@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use slint::Model;
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::layouts::views::blank_viewport_chrome;
@@ -141,9 +141,16 @@ fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_sl
         .expect("inspector body section node");
     assert!(body_section.frame.width > 0.0);
     assert!(body_section.frame.height > 0.0);
-    assert!(nodes
-        .iter()
-        .any(|node| node.control_id == "ApplyDraft" && node.text == "Apply Draft"));
+    assert!(
+        nodes
+            .iter()
+            .any(|node| node.control_id == "ApplyDraft" && node.text == "Apply Draft"),
+        "projected nodes: {:?}",
+        nodes
+            .iter()
+            .map(|node| (node.control_id.to_string(), node.text.to_string()))
+            .collect::<Vec<_>>()
+    );
     assert!(!nodes
         .iter()
         .any(|node| node.control_id == "InspectorContentPanel"));

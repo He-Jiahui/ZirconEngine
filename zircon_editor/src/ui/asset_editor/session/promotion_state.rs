@@ -2,6 +2,11 @@ use super::{
     command::{UiAssetEditorCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind},
     command_entry::tree_document_replay_bundle,
     hierarchy_projection::selection_for_node,
+    palette::{
+        build_palette_entries,
+        convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
+        UiAssetPaletteEntryKind,
+    },
     promote_widget::{
         can_promote_selected_component_to_external_widget, default_external_widget_draft,
         promote_selected_component_to_external_widget as tree_promote_selected_component_to_external_widget,
@@ -13,17 +18,14 @@ use super::{
         UiAssetExternalStyleDraft,
     },
     theme_state::theme_document_replay_bundle,
-    tree_editing::{
-        build_palette_entries,
-        convert_selected_node_to_reference as tree_convert_selected_node_to_reference,
-        extract_selected_node_to_component as tree_extract_selected_node_to_component,
-    },
+    tree_editing::extract_selected_node_to_component as tree_extract_selected_node_to_component,
     ui_asset_editor_session::{
         serialize_document, UiAssetEditorSession, UiAssetEditorSessionError,
     },
     undo_stack::{UiAssetEditorExternalEffect, UiAssetEditorUndoExternalEffects},
 };
-use zircon_runtime::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinitionKind};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinitionKind};
 
 impl UiAssetEditorSession {
     pub fn selected_reference_asset_id(&self) -> Option<String> {
@@ -61,9 +63,7 @@ impl UiAssetEditorSession {
         };
         let selection = selection_for_node(&document, &node_id);
         let component_ref = match &entry.kind {
-            super::tree_editing::UiAssetPaletteEntryKind::Reference { component_ref } => {
-                component_ref.clone()
-            }
+            UiAssetPaletteEntryKind::Reference { component_ref } => component_ref.clone(),
             _ => String::new(),
         };
         self.apply_document_edit_with_tree_edit_and_selection(

@@ -1,6 +1,6 @@
 use crate::ui::slint_host::detail_pointer::inspector_scroll_layout;
 use crate::ui::slint_host::scroll_surface_host::ScrollSurfaceHostState;
-use zircon_runtime::ui::layout::{UiPoint, UiSize};
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn scroll_surface_host_state_tracks_size_and_shared_scroll_offset() {

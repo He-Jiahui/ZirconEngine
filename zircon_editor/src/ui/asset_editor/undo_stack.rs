@@ -1,7 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleSheet};
 
 use super::command::{
     UiAssetEditorDocumentReplayBundle, UiAssetEditorDocumentReplayCommand,
@@ -592,7 +593,7 @@ fn apply_document_replay_command(
             stylesheet,
         } => {
             let Some(stylesheet) = stylesheet.clone().or_else(|| {
-                Some(zircon_runtime::ui::template::UiStyleSheet {
+                Some(UiStyleSheet {
                     id: stylesheet_id.clone(),
                     rules: Vec::new(),
                 })

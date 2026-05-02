@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 use super::undo_stack::UiAssetEditorUndoTransition;
 use super::{apply_external_effects_to_asset_sources, UiAssetEditorSourceCursorSnapshot};

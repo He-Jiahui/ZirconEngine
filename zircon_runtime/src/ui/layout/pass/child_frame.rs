@@ -1,11 +1,15 @@
-use crate::ui::tree::UiTreeError;
-use crate::ui::{layout::UiAxis, layout::UiFrame, tree::UiTree};
+use crate::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{UiAxis, UiFrame},
+    tree::{UiTree, UiTreeError},
+};
 
 use super::axis::{arranged_axis_extent, stacked_axis_extent};
 
 pub(crate) fn free_child_frame(
     tree: &UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
     parent_frame: UiFrame,
 ) -> Result<UiFrame, UiTreeError> {
     let node = tree
@@ -32,7 +36,7 @@ pub(crate) fn free_child_frame(
 
 pub(crate) fn linear_child_frame(
     tree: &UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
     parent_frame: UiFrame,
     axis: UiAxis,
     start: f32,
@@ -69,7 +73,7 @@ pub(crate) fn linear_child_frame(
 
 pub(crate) fn scrollable_child_frame(
     tree: &UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
     parent_frame: UiFrame,
     axis: UiAxis,
     start: f32,

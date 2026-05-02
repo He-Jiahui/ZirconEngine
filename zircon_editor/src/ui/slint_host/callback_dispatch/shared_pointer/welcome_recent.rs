@@ -1,4 +1,7 @@
-use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventKind, layout::UiPoint};
+use zircon_runtime_interface::ui::{
+    binding::{UiBindingValue, UiEventKind},
+    layout::UiPoint,
+};
 
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::slint_host::welcome_recent_pointer::{

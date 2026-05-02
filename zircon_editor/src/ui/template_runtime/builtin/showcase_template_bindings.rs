@@ -1,5 +1,5 @@
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
-use zircon_runtime::ui::binding::{UiBindingCall, UiBindingValue};
+use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
 
 pub(super) fn showcase_template_bindings() -> Vec<(String, EditorUiBinding)> {
     vec![
@@ -458,6 +458,30 @@ pub(super) fn showcase_template_bindings() -> Vec<(String, EditorUiBinding)> {
             "ListRowDemo",
             EditorUiEventKind::Press,
             "Press.ListRow",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/VirtualListScrolled",
+            "VirtualListDemo",
+            EditorUiEventKind::Scroll,
+            "SetVisibleRange.VirtualList",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/PagedListNextPage",
+            "PagedListDemo",
+            EditorUiEventKind::Click,
+            "SetPage.PagedList",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/WorldSpaceSurfaceMoved",
+            "WorldSpaceSurfaceDemo",
+            EditorUiEventKind::DragEnd,
+            "SetWorldTransform.WorldSpaceSurface",
+        ),
+        showcase_binding_entry(
+            "UiComponentShowcase/WorldSpaceSurfaceConfigured",
+            "WorldSpaceSurfaceDemo",
+            EditorUiEventKind::Submit,
+            "SetWorldSurface.WorldSpaceSurface",
         ),
         showcase_binding_entry(
             "UiComponentShowcase/TreeRowToggled",

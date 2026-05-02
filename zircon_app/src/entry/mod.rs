@@ -4,6 +4,7 @@ mod entry_config;
 mod entry_profile;
 mod entry_runner;
 mod runtime_entry_app;
+pub(crate) mod runtime_library;
 
 #[cfg(test)]
 mod tests;

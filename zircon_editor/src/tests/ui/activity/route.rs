@@ -1,5 +1,5 @@
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset};
-use zircon_runtime::ui::template::UiAssetKind;
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 #[test]
 fn ui_asset_editor_route_captures_asset_kind_and_editor_mode() {

@@ -123,6 +123,18 @@ impl RuntimePluginCatalog {
                     &mut diagnostics,
                 );
             }
+            for executor in registration.extensions.render_pass_executors() {
+                push_runtime_extension_result(
+                    registry.register_render_pass_executor(executor.clone()),
+                    &mut diagnostics,
+                );
+            }
+            for provider in registration.extensions.virtual_geometry_runtime_providers() {
+                push_runtime_extension_result(
+                    registry.register_virtual_geometry_runtime_provider(provider.clone()),
+                    &mut diagnostics,
+                );
+            }
             for component in registration.extensions.components() {
                 push_runtime_extension_result(
                     registry.register_component(component.clone()),

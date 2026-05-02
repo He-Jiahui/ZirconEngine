@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
-use crate::core::resource::{ResourceId, ResourceMarker, UntypedResourceHandle};
+use super::{ResourceId, ResourceMarker, UntypedResourceHandle};
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ResourceHandle<TMarker> {

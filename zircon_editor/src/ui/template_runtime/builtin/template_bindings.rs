@@ -9,7 +9,7 @@ use crate::ui::binding::{
     AnimationCommand, AssetCommand, DockCommand, DraftCommand, EditorUiBinding,
     EditorUiBindingPayload, EditorUiEventKind, SelectionCommand, ViewportCommand, WelcomeCommand,
 };
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 const DYNAMIC_DOCUMENT_TAB_INSTANCE_ID: &str = "$document_tab_instance";
 const DYNAMIC_MAIN_PAGE_ID: &str = "$main_page_id";

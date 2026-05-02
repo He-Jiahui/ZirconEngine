@@ -3,9 +3,10 @@ use std::collections::BTreeMap;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use thiserror::Error;
 use toml::Value as TomlValue;
-use zircon_runtime::ui::component::{
-    UiComponentDescriptorRegistry, UiComponentEvent, UiComponentEventError, UiComponentState,
-    UiDragPayload, UiDragSourceMetadata, UiValue,
+use zircon_runtime::ui::component::{apply_component_event, UiComponentDescriptorRegistry};
+use zircon_runtime_interface::ui::component::{
+    UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiComponentEventError,
+    UiComponentState, UiDragPayload, UiDragSourceMetadata, UiValue,
 };
 
 use super::host_nodes::SlintUiHostModel;
@@ -31,17 +32,67 @@ pub(crate) enum UiComponentShowcaseDemoEventInput {
     LargeDragDelta(f64),
     DropHover(bool),
     ActiveDragTarget(bool),
-    OpenPopupAt { x: f64, y: f64 },
-    SelectOption { option_id: String, selected: bool },
-    DropReference { payload: UiDragPayload },
-    AddElement { value: UiValue },
-    SetElement { index: usize, value: UiValue },
-    RemoveElement { index: usize },
-    MoveElement { from: usize, to: usize },
-    AddMapEntry { key: String, value: UiValue },
-    SetMapEntry { key: String, value: UiValue },
-    RenameMapEntry { from_key: String, to_key: String },
-    RemoveMapEntry { key: String },
+    OpenPopupAt {
+        x: f64,
+        y: f64,
+    },
+    SelectOption {
+        option_id: String,
+        selected: bool,
+    },
+    DropReference {
+        payload: UiDragPayload,
+    },
+    AddElement {
+        value: UiValue,
+    },
+    SetElement {
+        index: usize,
+        value: UiValue,
+    },
+    RemoveElement {
+        index: usize,
+    },
+    MoveElement {
+        from: usize,
+        to: usize,
+    },
+    AddMapEntry {
+        key: String,
+        value: UiValue,
+    },
+    SetMapEntry {
+        key: String,
+        value: UiValue,
+    },
+    RenameMapEntry {
+        from_key: String,
+        to_key: String,
+    },
+    RemoveMapEntry {
+        key: String,
+    },
+    SetVisibleRange {
+        start: i64,
+        count: i64,
+    },
+    SetPage {
+        page_index: i64,
+        page_size: i64,
+    },
+    SetWorldTransform {
+        position: [f64; 3],
+        rotation: [f64; 3],
+        scale: [f64; 3],
+    },
+    SetWorldSurface {
+        size: [f64; 2],
+        pixels_per_meter: f64,
+        billboard: bool,
+        depth_test: bool,
+        render_order: i64,
+        camera_target: String,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -56,6 +107,12 @@ pub(crate) struct UiComponentShowcaseDemoState {
     selected_category: String,
     states: BTreeMap<String, UiComponentState>,
     event_log: Vec<UiComponentShowcaseDemoLogEntry>,
+}
+
+pub(crate) struct UiComponentShowcaseResolvedEvent {
+    pub(crate) action: String,
+    pub(crate) changed_property: Option<String>,
+    pub(crate) envelope: UiComponentEventEnvelope,
 }
 
 impl Default for UiComponentShowcaseDemoState {
@@ -79,7 +136,6 @@ impl UiComponentShowcaseDemoState {
         &self.event_log
     }
 
-    #[cfg(test)]
     pub(crate) fn value_text(&self, control_id: &str, property: &str) -> Option<String> {
         if let Some(value) = self
             .states
@@ -92,49 +148,56 @@ impl UiComponentShowcaseDemoState {
             .and_then(|state| state.value(property).map(UiValue::display_text))
     }
 
-    pub(crate) fn apply_binding(
+    pub(crate) fn value_i64(&self, control_id: &str, property: &str) -> Option<i64> {
+        self.state_for_control(control_id)
+            .and_then(|state| state.value(property).and_then(ui_value_as_i64).copied())
+    }
+
+    pub(crate) fn apply_component_event_envelope(
         &mut self,
-        binding: &EditorUiBinding,
-        input: UiComponentShowcaseDemoEventInput,
-    ) -> Result<(), UiComponentShowcaseDemoError> {
-        let (action, control_id) = showcase_action(binding)?;
+        action: &str,
+        envelope: &UiComponentEventEnvelope,
+        changed_property: Option<&str>,
+    ) -> Result<Option<UiValue>, UiComponentShowcaseDemoError> {
+        let control_id = envelope.control_id.as_str();
         if let Some(category) = action.strip_prefix("SelectCategory.") {
             self.selected_category = category.to_string();
             self.push_log(action, control_id, Some(category.to_string()));
-            return Ok(());
+            return Ok(Some(UiValue::String(category.to_string())));
         }
 
-        let component_id = component_id_for_control(control_id).ok_or_else(|| {
-            UiComponentShowcaseDemoError::UnknownControl {
+        let component_id = envelope
+            .component_id
+            .as_deref()
+            .or_else(|| component_id_for_control(control_id))
+            .ok_or_else(|| UiComponentShowcaseDemoError::UnknownControl {
                 control_id: control_id.to_string(),
-            }
-        })?;
+            })?;
         let registry = UiComponentDescriptorRegistry::editor_showcase();
         let descriptor = registry.descriptor(component_id).ok_or_else(|| {
             UiComponentShowcaseDemoError::MissingDescriptor {
                 component_id: component_id.to_string(),
             }
         })?;
-        let (event, changed_property) = component_event_for_action(action, input)?;
-        let (result, value_text) = {
+        let (result, changed_value, value_text) = {
             let state = self
                 .states
                 .entry(control_id.to_string())
                 .or_insert_with(|| default_state_for_control(control_id));
-            let result = state.apply_event(descriptor, event);
-            let value_text = if result.is_ok() {
+            let result = apply_component_event(state, descriptor, envelope.event.clone());
+            let changed_value = if result.is_ok() {
                 changed_property
-                    .as_deref()
                     .and_then(|property| state.value(property))
-                    .map(UiValue::display_text)
+                    .cloned()
             } else {
                 None
             };
-            (result, value_text)
+            let value_text = changed_value.as_ref().map(UiValue::display_text);
+            (result, changed_value, value_text)
         };
         self.push_log(action, control_id, value_text);
         result?;
-        Ok(())
+        Ok(changed_value)
     }
 
     pub(crate) fn apply_to_host_model(&self, host_model: &mut SlintUiHostModel) {
@@ -200,13 +263,33 @@ impl UiComponentShowcaseDemoState {
             if let Some(explicit_state) = self.states.get(control_id) {
                 node.attributes.insert(
                     "popup_open".to_string(),
-                    TomlValue::Boolean(explicit_state.flags().popup_open),
+                    TomlValue::Boolean(explicit_state.flags.popup_open),
                 );
             }
             project_state_value_attribute(&mut node.attributes, &state, "popup_anchor_x");
             project_state_value_attribute(&mut node.attributes, &state, "popup_anchor_y");
             project_state_value_attribute(&mut node.attributes, &state, "query");
-            let flags = state.flags();
+            project_state_value_attribute(&mut node.attributes, &state, "viewport_start");
+            project_state_value_attribute(&mut node.attributes, &state, "viewport_count");
+            project_state_value_attribute(&mut node.attributes, &state, "visible_end");
+            project_state_value_attribute(&mut node.attributes, &state, "requested_start");
+            project_state_value_attribute(&mut node.attributes, &state, "requested_count");
+            project_state_value_attribute(&mut node.attributes, &state, "scroll_offset");
+            project_state_value_attribute(&mut node.attributes, &state, "page_index");
+            project_state_value_attribute(&mut node.attributes, &state, "page_size");
+            project_state_value_attribute(&mut node.attributes, &state, "page_count");
+            project_state_value_attribute(&mut node.attributes, &state, "page_start");
+            project_state_value_attribute(&mut node.attributes, &state, "page_end");
+            project_state_value_attribute(&mut node.attributes, &state, "world_position");
+            project_state_value_attribute(&mut node.attributes, &state, "world_rotation");
+            project_state_value_attribute(&mut node.attributes, &state, "world_scale");
+            project_state_value_attribute(&mut node.attributes, &state, "world_size");
+            project_state_value_attribute(&mut node.attributes, &state, "pixels_per_meter");
+            project_state_value_attribute(&mut node.attributes, &state, "billboard");
+            project_state_value_attribute(&mut node.attributes, &state, "depth_test");
+            project_state_value_attribute(&mut node.attributes, &state, "render_order");
+            project_state_value_attribute(&mut node.attributes, &state, "camera_target");
+            let flags = &state.flags;
             let force_transient_flags = self.states.contains_key(control_id);
             project_bool_attribute(
                 &mut node.attributes,
@@ -299,9 +382,9 @@ impl UiComponentShowcaseDemoState {
 
             node.attributes.insert(
                 "validation_level".to_string(),
-                TomlValue::String(state.validation().level_name().to_string()),
+                TomlValue::String(state.validation.level_name().to_string()),
             );
-            if let Some(message) = &state.validation().message {
+            if let Some(message) = &state.validation.message {
                 node.attributes.insert(
                     "validation_message".to_string(),
                     TomlValue::String(message.clone()),
@@ -430,7 +513,17 @@ fn primary_property_for_control(control_id: &str) -> Option<&'static str> {
         "ArrayFieldDemo" => Some("items"),
         "MapFieldDemo" => Some("entries"),
         "GroupDemo" | "FoldoutDemo" | "InspectorSectionDemo" | "TreeRowDemo" => Some("expanded"),
+        "VirtualListDemo" => Some("viewport_start"),
+        "PagedListDemo" => Some("page_index"),
+        "WorldSpaceSurfaceDemo" => Some("world_position"),
         control_id if component_id_for_control(control_id).is_some() => Some("value"),
+        _ => None,
+    }
+}
+
+fn ui_value_as_i64(value: &UiValue) -> Option<&i64> {
+    match value {
+        UiValue::Int(value) => Some(value),
         _ => None,
     }
 }
@@ -506,6 +599,48 @@ fn showcase_action(
         .and_then(|value| value.as_str())
         .ok_or(UiComponentShowcaseDemoError::MissingPayloadArgument { index: 1 })?;
     Ok((action, control_id))
+}
+
+pub(crate) fn resolve_showcase_component_event(
+    binding: &EditorUiBinding,
+    input: UiComponentShowcaseDemoEventInput,
+) -> Result<UiComponentShowcaseResolvedEvent, UiComponentShowcaseDemoError> {
+    let (action, control_id) = showcase_action(binding)?;
+    let (event, changed_property, component_id) =
+        if let Some(category) = action.strip_prefix("SelectCategory.") {
+            (
+                UiComponentEvent::Commit {
+                    property: "selected_category".to_string(),
+                    value: UiValue::String(category.to_string()),
+                },
+                Some("selected_category".to_string()),
+                None,
+            )
+        } else {
+            let component_id = component_id_for_control(control_id).ok_or_else(|| {
+                UiComponentShowcaseDemoError::UnknownControl {
+                    control_id: control_id.to_string(),
+                }
+            })?;
+            let (event, changed_property) = component_event_for_action(action, input)?;
+            (event, changed_property, Some(component_id))
+        };
+
+    let mut envelope = UiComponentEventEnvelope::new(
+        SHOWCASE_DOCUMENT_ID,
+        control_id,
+        UiComponentBindingTarget::showcase(control_id),
+        event,
+    );
+    if let Some(component_id) = component_id {
+        envelope = envelope.with_component_id(component_id);
+    }
+
+    Ok(UiComponentShowcaseResolvedEvent {
+        action: action.to_string(),
+        changed_property,
+        envelope,
+    })
 }
 
 fn component_event_for_action(
@@ -775,6 +910,62 @@ fn component_event_for_action(
                     key,
                 },
                 Some("entries".to_string()),
+            )),
+            _ => Err(mismatch()),
+        },
+        "SetVisibleRange" => match input {
+            UiComponentShowcaseDemoEventInput::SetVisibleRange { start, count } => Ok((
+                UiComponentEvent::SetVisibleRange { start, count },
+                Some("viewport_start".to_string()),
+            )),
+            _ => Err(mismatch()),
+        },
+        "SetPage" => match input {
+            UiComponentShowcaseDemoEventInput::SetPage {
+                page_index,
+                page_size,
+            } => Ok((
+                UiComponentEvent::SetPage {
+                    page_index,
+                    page_size,
+                },
+                Some("page_index".to_string()),
+            )),
+            _ => Err(mismatch()),
+        },
+        "SetWorldTransform" => match input {
+            UiComponentShowcaseDemoEventInput::SetWorldTransform {
+                position,
+                rotation,
+                scale,
+            } => Ok((
+                UiComponentEvent::SetWorldTransform {
+                    position,
+                    rotation,
+                    scale,
+                },
+                Some("world_position".to_string()),
+            )),
+            _ => Err(mismatch()),
+        },
+        "SetWorldSurface" => match input {
+            UiComponentShowcaseDemoEventInput::SetWorldSurface {
+                size,
+                pixels_per_meter,
+                billboard,
+                depth_test,
+                render_order,
+                camera_target,
+            } => Ok((
+                UiComponentEvent::SetWorldSurface {
+                    size,
+                    pixels_per_meter,
+                    billboard,
+                    depth_test,
+                    render_order,
+                    camera_target,
+                },
+                Some("world_size".to_string()),
             )),
             _ => Err(mismatch()),
         },

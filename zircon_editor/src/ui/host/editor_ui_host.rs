@@ -7,7 +7,7 @@ use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
 
 use super::animation_editor_sessions::AnimationEditorWorkspaceEntry;
-use super::asset_editor_sessions::UiAssetWorkspaceEntry;
+use super::asset_editor_sessions::{UiAssetWorkspaceEntry, UiAssetWorkspaceWatcher};
 use super::editor_capabilities::EditorCapabilitySnapshot;
 use super::editor_error::EditorError;
 use super::editor_session_state::EditorSessionState;
@@ -27,6 +27,7 @@ pub(super) struct EditorUiHost {
     pub(super) animation_editor_sessions:
         Mutex<BTreeMap<ViewInstanceId, AnimationEditorWorkspaceEntry>>,
     pub(super) ui_asset_sessions: Mutex<BTreeMap<ViewInstanceId, UiAssetWorkspaceEntry>>,
+    pub(super) ui_asset_workspace_watcher: Mutex<Option<UiAssetWorkspaceWatcher>>,
     pub(super) minimal_report: EditorHostMinimalReport,
     pub(super) subsystem_report: Mutex<EditorSubsystemReport>,
     pub(super) capability_snapshot: Mutex<EditorCapabilitySnapshot>,
@@ -50,6 +51,7 @@ impl EditorUiHost {
             session: Mutex::new(EditorSessionState::default()),
             animation_editor_sessions: Mutex::new(BTreeMap::new()),
             ui_asset_sessions: Mutex::new(BTreeMap::new()),
+            ui_asset_workspace_watcher: Mutex::new(None),
             minimal_report,
             subsystem_report: Mutex::new(subsystem_report),
             capability_snapshot: Mutex::new(capability_snapshot),

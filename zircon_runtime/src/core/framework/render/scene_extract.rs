@@ -267,7 +267,7 @@ impl Default for RenderHybridGiDebugView {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct RenderHybridGiProbe {
+pub struct RenderHybridGiProbe {
     pub entity: EntityId,
     pub probe_id: u32,
     pub position: Vec3,
@@ -292,7 +292,7 @@ impl Default for RenderHybridGiProbe {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct RenderHybridGiTraceRegion {
+pub struct RenderHybridGiTraceRegion {
     pub entity: EntityId,
     pub region_id: u32,
     pub bounds_center: Vec3,
@@ -322,10 +322,10 @@ pub struct RenderHybridGiExtract {
     pub card_budget: u32,
     pub voxel_budget: u32,
     pub debug_view: RenderHybridGiDebugView,
-    pub(crate) probe_budget: u32,
-    pub(crate) tracing_budget: u32,
-    pub(crate) probes: Vec<RenderHybridGiProbe>,
-    pub(crate) trace_regions: Vec<RenderHybridGiTraceRegion>,
+    pub probe_budget: u32,
+    pub tracing_budget: u32,
+    pub probes: Vec<RenderHybridGiProbe>,
+    pub trace_regions: Vec<RenderHybridGiTraceRegion>,
 }
 
 impl Default for RenderHybridGiExtract {

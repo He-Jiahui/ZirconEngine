@@ -18,10 +18,21 @@ fn native_floating_window_mode_uses_rust_owned_host_window_contract() {
         "UiHostWindow::new()",
         "UiHostWindow::clone_strong",
     ] {
-        assert!(native_windows.contains(required), "native window path missing `{required}`");
+        assert!(
+            native_windows.contains(required),
+            "native window path missing `{required}`"
+        );
     }
-    for required in ["set_size", "is_maximized", "set_maximized", "get_host_window_bootstrap"] {
-        assert!(window.contains(required), "UiHostWindow contract missing `{required}`");
+    for required in [
+        "set_size",
+        "is_maximized",
+        "set_maximized",
+        "get_host_window_bootstrap",
+    ] {
+        assert!(
+            window.contains(required),
+            "UiHostWindow contract missing `{required}`"
+        );
     }
     assert!(host_components.contains("pub(crate) struct HostNativeFloatingWindowSurfaceData"));
 }

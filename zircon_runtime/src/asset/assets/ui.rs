@@ -1,7 +1,8 @@
 use crate::core::resource::{AssetReference, ResourceLocator};
-use crate::ui::template::{UiAssetDocument, UiAssetKind, UiAssetLoader};
+use crate::ui::template::UiAssetLoader;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]

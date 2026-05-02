@@ -15,7 +15,10 @@ fn shared_document_tab_surfaces_use_rust_owned_pointer_callbacks() {
         "document_tab_pointer_clicked",
         "document_tab_close_pointer_clicked",
     ] {
-        assert!(globals.contains(required) || wiring.contains(required), "missing `{required}`");
+        assert!(
+            globals.contains(required) || wiring.contains(required),
+            "missing `{required}`"
+        );
     }
     assert!(pointer_layout.contains("build_host_document_tab_pointer_layout("));
 }

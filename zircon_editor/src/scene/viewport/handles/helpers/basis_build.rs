@@ -1,5 +1,5 @@
 use crate::scene::viewport::{ProjectionMode, TransformSpace, ViewportCameraSnapshot};
-use zircon_runtime::core::math::{Transform, Vec3};
+use zircon_runtime_interface::math::{Transform, Vec3};
 
 use crate::scene::viewport::handles::handle_basis::HandleBasis;
 

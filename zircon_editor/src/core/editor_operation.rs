@@ -168,6 +168,7 @@ impl EditorOperationRegistry {
                 descriptor.path().clone(),
             ));
         }
+        validate_operation_menu_path(&descriptor)?;
         self.descriptors.insert(descriptor.path.clone(), descriptor);
         Ok(())
     }
@@ -346,6 +347,7 @@ impl EditorOperationControlResponse {
 pub enum EditorOperationRegistryError {
     DuplicateOperation(EditorOperationPath),
     InvalidOperationPath(String),
+    InvalidOperationMenuPath(String),
     MissingOperation(EditorOperationPath),
     OperationNotCallableFromRemote(EditorOperationPath),
     OperationHasNoHandler(EditorOperationPath),
@@ -359,6 +361,9 @@ impl fmt::Display for EditorOperationRegistryError {
             }
             Self::InvalidOperationPath(path) => {
                 write!(formatter, "editor operation path `{path}` is invalid")
+            }
+            Self::InvalidOperationMenuPath(path) => {
+                write!(formatter, "editor operation menu path `{path}` is invalid")
             }
             Self::MissingOperation(path) => {
                 write!(formatter, "editor operation {path} is not registered")
@@ -377,6 +382,26 @@ impl fmt::Display for EditorOperationRegistryError {
 }
 
 impl std::error::Error for EditorOperationRegistryError {}
+
+fn validate_operation_menu_path(
+    descriptor: &EditorOperationDescriptor,
+) -> Result<(), EditorOperationRegistryError> {
+    if let Some(menu_path) = descriptor.menu_path() {
+        let segments = menu_path.split('/').collect::<Vec<_>>();
+        if segments.len() < MIN_MENU_PATH_SEGMENTS
+            || segments
+                .iter()
+                .any(|segment| segment.trim().is_empty() || segment.trim() != *segment)
+        {
+            return Err(EditorOperationRegistryError::InvalidOperationMenuPath(
+                menu_path.to_string(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+const MIN_MENU_PATH_SEGMENTS: usize = 2;
 
 fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
     vec![

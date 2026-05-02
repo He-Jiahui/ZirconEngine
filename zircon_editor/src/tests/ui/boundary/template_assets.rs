@@ -21,7 +21,9 @@ fn assert_no_files_with_extension(root: PathBuf, extension: &str) {
             {
                 stack.push(
                     entry
-                        .unwrap_or_else(|error| panic!("read entry under `{}`: {error}", path.display()))
+                        .unwrap_or_else(|error| {
+                            panic!("read entry under `{}`: {error}", path.display())
+                        })
                         .path(),
                 );
             }
@@ -60,7 +62,11 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
         ),
         (
             "assets/ui/editor/host/workbench_drawer_source.ui.toml",
-            &["WorkbenchDrawerSource", "BottomDrawerHeaderRoot", "LeftDrawerPanelRoot"],
+            &[
+                "WorkbenchDrawerSource",
+                "BottomDrawerHeaderRoot",
+                "LeftDrawerPanelRoot",
+            ],
         ),
         (
             "assets/ui/editor/host/floating_window_source.ui.toml",
@@ -109,17 +115,21 @@ fn rust_owned_template_node_contract_keeps_retained_widget_state() {
         "pub structured_menu_items: ModelRc<TemplatePaneMenuItemData>",
         "pub actions: ModelRc<TemplatePaneActionData>",
     ] {
-        assert!(template_nodes.contains(required), "template node DTO missing `{required}`");
+        assert!(
+            template_nodes.contains(required),
+            "template node DTO missing `{required}`"
+        );
     }
 }
 
 #[test]
 fn workbench_projection_uses_editor_assets_without_generated_host_dto_imports() {
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("src/ui/layouts/windows/workbench_host_window");
+    let root =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/layouts/windows/workbench_host_window");
 
     for path in collect_rust_files(&root) {
-        let text = fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
+        let text =
+            fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
         assert!(
             !text.contains("crate::ui::slint_host::{FrameRect")
                 && !text.contains("crate::ui::slint_host::{PaneData")

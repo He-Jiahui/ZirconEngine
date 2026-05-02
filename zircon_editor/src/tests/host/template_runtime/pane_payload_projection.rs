@@ -9,11 +9,11 @@ use zircon_runtime::core::framework::physics::{
     PhysicsBackendState, PhysicsBackendStatus, PhysicsSimulationMode,
 };
 use zircon_runtime::core::framework::render::{RenderCapabilitySummary, RenderStats};
-use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;

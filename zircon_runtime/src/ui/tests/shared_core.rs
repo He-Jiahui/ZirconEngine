@@ -1,41 +1,26 @@
-use crate::ui::event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId};
-use crate::ui::layout::{
-    compute_virtual_list_window, solve_axis_constraints, AxisConstraint, LayoutBoundary,
-    StretchMode,
-};
-use crate::ui::surface::UiFocusState;
-use crate::ui::surface::{
-    UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
-    UiVisualAssetRef,
-};
-use crate::ui::tree::{UiHitTestIndex, UiTemplateNodeMetadata};
 use crate::ui::{
-    dispatch::{
-        UiNavigationDispatchEffect, UiNavigationDispatcher, UiPointerDispatchEffect,
-        UiPointerDispatcher, UiPointerEvent,
-    },
-    layout::Anchor,
-    layout::BoxConstraints,
-    layout::DesiredSize,
-    layout::Pivot,
-    layout::Position,
-    layout::UiAxis,
-    layout::UiContainerKind,
-    layout::UiFrame,
-    layout::UiPoint,
-    layout::UiScrollState,
-    layout::UiScrollableBoxConfig,
-    layout::UiScrollbarVisibility,
-    layout::UiSize,
-    layout::UiVirtualListConfig,
-    layout::UiVirtualListWindow,
-    surface::UiNavigationEventKind,
-    surface::UiPointerButton,
-    surface::UiPointerEventKind,
+    dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
+    layout::{compute_virtual_list_window, solve_axis_constraints},
     surface::UiSurface,
-    tree::UiInputPolicy,
-    tree::UiTree,
-    tree::UiTreeNode,
+    tree::{
+        UiHitTestIndex, UiRuntimeTreeAccessExt, UiRuntimeTreeLayoutExt, UiRuntimeTreeScrollExt,
+    },
+};
+use zircon_runtime_interface::ui::{
+    dispatch::{UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent},
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    layout::{
+        Anchor, AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, Pivot, Position,
+        StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState,
+        UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
+        UiVirtualListWindow,
+    },
+    surface::{
+        UiFocusState, UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
+        UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
+        UiVisualAssetRef,
+    },
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeNode},
 };
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {

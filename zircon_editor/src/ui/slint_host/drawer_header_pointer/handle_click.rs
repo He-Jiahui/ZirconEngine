@@ -1,4 +1,6 @@
-use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
+};
 
 use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 use super::host_drawer_header_pointer_dispatch::HostDrawerHeaderPointerDispatch;

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::{UiEventBinding, UiEventPath};
+use zircon_runtime_interface::ui::binding::{UiEventBinding, UiEventPath};
 
 type Handler<T> = Box<dyn Fn(&UiEventBinding) -> T + Send + Sync + 'static>;
 

@@ -4,12 +4,17 @@ use std::path::{Path, PathBuf};
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
-use zircon_runtime::ui::layout::UiSize;
-use zircon_runtime::ui::surface::{UiRenderExtract, UiTextAlign};
+use zircon_runtime::ui::surface::extract_ui_render_tree;
 use zircon_runtime::ui::template::{
-    UiAssetError, UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
+    UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
 };
-use zircon_runtime::ui::{event_ui::UiTreeId, tree::UiTreeError};
+use zircon_runtime_interface::ui::{
+    event_ui::UiTreeId,
+    layout::UiSize,
+    surface::{UiRenderCommandKind, UiTextAlign},
+    template::UiAssetError,
+    tree::{UiTemplateNodeMetadata, UiTreeError},
+};
 
 use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
 
@@ -87,23 +92,21 @@ fn build_ui_asset_editor_node_projection(
     surface.compute_layout(size)?;
 
     let mut render_info_by_node = BTreeMap::new();
-    for command in UiRenderExtract::from_tree(&surface.tree).list.commands {
+    for command in extract_ui_render_tree(&surface.tree).list.commands {
         let entry = render_info_by_node
             .entry(command.node_id)
             .or_insert(TemplateRenderInfo {
                 text_align: command.style.text_align,
                 ..TemplateRenderInfo::default()
             });
-        entry.is_quad |= command.kind == zircon_runtime::ui::surface::UiRenderCommandKind::Quad;
+        entry.is_quad |= command.kind == UiRenderCommandKind::Quad;
         entry.font_size = entry.font_size.max(command.style.font_size.max(0.0));
         entry.border_width = entry.border_width.max(command.style.border_width.max(0.0));
         entry.corner_radius = entry
             .corner_radius
             .max(command.style.corner_radius.max(0.0));
         entry.text_align = command.style.text_align;
-        if command.kind == zircon_runtime::ui::surface::UiRenderCommandKind::Text
-            && command.text.is_some()
-        {
+        if command.kind == UiRenderCommandKind::Text && command.text.is_some() {
             entry.text = command.text.clone();
         }
     }
@@ -205,7 +208,7 @@ fn find_node(nodes: &[ViewTemplateNodeData], control_id: &str) -> ViewTemplateNo
 fn resolve_role(
     component: &str,
     render_info: Option<&TemplateRenderInfo>,
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
+    metadata: &UiTemplateNodeMetadata,
 ) -> &'static str {
     match component {
         "Button" => "Button",
@@ -220,10 +223,7 @@ fn resolve_role(
     }
 }
 
-fn string_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<String> {
+fn string_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<String> {
     metadata
         .attributes
         .get(key)
@@ -231,10 +231,7 @@ fn string_attribute(
         .map(str::to_string)
 }
 
-fn number_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<f32> {
+fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
     metadata.attributes.get(key).and_then(|value| match value {
         Value::Float(value) => Some(*value as f32),
         Value::Integer(value) => Some(*value as f32),
@@ -242,10 +239,7 @@ fn number_attribute(
     })
 }
 
-fn integer_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<i32> {
+fn integer_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<i32> {
     metadata
         .attributes
         .get(key)

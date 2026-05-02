@@ -5,7 +5,6 @@ use crate::core::framework::render::{
 use crate::core::math::UVec2;
 
 use crate::{
-    runtime::{HybridGiRuntimeState, HybridGiSceneInputs, VirtualGeometryRuntimeState},
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
     VisibilityHybridGiUpdatePlan, VisibilityVirtualGeometryFeedback,
     VisibilityVirtualGeometryPageUploadPlan,
@@ -27,12 +26,9 @@ pub(super) struct FrameSubmissionContext {
     compiled_pipeline: CompiledRenderPipeline,
     visibility_context: VisibilityContext,
     ui_stats: UiSubmissionStats,
-    previous_hybrid_gi_runtime: Option<HybridGiRuntimeState>,
-    previous_virtual_geometry_runtime: Option<VirtualGeometryRuntimeState>,
     hybrid_gi_enabled: bool,
     virtual_geometry_enabled: bool,
     hybrid_gi_extract: Option<RenderHybridGiExtract>,
-    hybrid_gi_scene_inputs: HybridGiSceneInputs,
     hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
     hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
@@ -53,12 +49,9 @@ impl FrameSubmissionContext {
         compiled_pipeline: CompiledRenderPipeline,
         visibility_context: VisibilityContext,
         ui_stats: UiSubmissionStats,
-        previous_hybrid_gi_runtime: Option<HybridGiRuntimeState>,
-        previous_virtual_geometry_runtime: Option<VirtualGeometryRuntimeState>,
         hybrid_gi_enabled: bool,
         virtual_geometry_enabled: bool,
         hybrid_gi_extract: Option<RenderHybridGiExtract>,
-        hybrid_gi_scene_inputs: HybridGiSceneInputs,
         hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
         hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
         virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
@@ -71,16 +64,7 @@ impl FrameSubmissionContext {
         predicted_generation: u64,
     ) -> Self {
         // Descriptor-disabled advanced features must not carry stale runtime payloads forward.
-        let previous_hybrid_gi_runtime = hybrid_gi_enabled
-            .then_some(previous_hybrid_gi_runtime)
-            .flatten();
-        let previous_virtual_geometry_runtime = virtual_geometry_enabled
-            .then_some(previous_virtual_geometry_runtime)
-            .flatten();
         let hybrid_gi_extract = hybrid_gi_enabled.then_some(hybrid_gi_extract).flatten();
-        let hybrid_gi_scene_inputs = hybrid_gi_enabled
-            .then_some(hybrid_gi_scene_inputs)
-            .unwrap_or_default();
         let hybrid_gi_update_plan = hybrid_gi_enabled.then_some(hybrid_gi_update_plan).flatten();
         let hybrid_gi_feedback = hybrid_gi_enabled.then_some(hybrid_gi_feedback).flatten();
         let virtual_geometry_extract = virtual_geometry_enabled
@@ -106,12 +90,9 @@ impl FrameSubmissionContext {
             compiled_pipeline,
             visibility_context,
             ui_stats,
-            previous_hybrid_gi_runtime,
-            previous_virtual_geometry_runtime,
             hybrid_gi_enabled,
             virtual_geometry_enabled,
             hybrid_gi_extract,
-            hybrid_gi_scene_inputs,
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
             virtual_geometry_extract,
@@ -147,14 +128,6 @@ impl FrameSubmissionContext {
         &self.ui_stats
     }
 
-    pub(super) fn previous_hybrid_gi_runtime(&self) -> Option<&HybridGiRuntimeState> {
-        self.previous_hybrid_gi_runtime.as_ref()
-    }
-
-    pub(super) fn previous_virtual_geometry_runtime(&self) -> Option<&VirtualGeometryRuntimeState> {
-        self.previous_virtual_geometry_runtime.as_ref()
-    }
-
     pub(super) fn hybrid_gi_enabled(&self) -> bool {
         self.hybrid_gi_enabled
     }
@@ -165,10 +138,6 @@ impl FrameSubmissionContext {
 
     pub(super) fn hybrid_gi_extract(&self) -> Option<&RenderHybridGiExtract> {
         self.hybrid_gi_extract.as_ref()
-    }
-
-    pub(super) fn hybrid_gi_scene_inputs(&self) -> &HybridGiSceneInputs {
-        &self.hybrid_gi_scene_inputs
     }
 
     pub(super) fn hybrid_gi_update_plan(&self) -> Option<&VisibilityHybridGiUpdatePlan> {
@@ -207,67 +176,6 @@ impl FrameSubmissionContext {
 
     pub(super) fn predicted_generation(&self) -> u64 {
         self.predicted_generation
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::core::framework::render::RenderPipelineHandle;
-    use crate::scene::world::World;
-    use crate::{RenderPipelineAsset, RenderPipelineCompileOptions};
-
-    use super::*;
-
-    #[test]
-    fn disabled_advanced_features_do_not_carry_previous_runtime_states() {
-        let context = frame_submission_context_with_runtime_flags(false, false);
-
-        assert!(context.previous_hybrid_gi_runtime().is_none());
-        assert!(context.previous_virtual_geometry_runtime().is_none());
-    }
-
-    #[test]
-    fn enabled_advanced_features_keep_previous_runtime_states() {
-        let context = frame_submission_context_with_runtime_flags(true, true);
-
-        assert!(context.previous_hybrid_gi_runtime().is_some());
-        assert!(context.previous_virtual_geometry_runtime().is_some());
-    }
-
-    fn frame_submission_context_with_runtime_flags(
-        hybrid_gi_enabled: bool,
-        virtual_geometry_enabled: bool,
-    ) -> FrameSubmissionContext {
-        FrameSubmissionContext::new(
-            UVec2::new(32, 32),
-            RenderPipelineHandle::new(1),
-            None,
-            compiled_pipeline(),
-            VisibilityContext::default(),
-            UiSubmissionStats::default(),
-            Some(HybridGiRuntimeState::default()),
-            Some(VirtualGeometryRuntimeState::default()),
-            hybrid_gi_enabled,
-            virtual_geometry_enabled,
-            None,
-            HybridGiSceneInputs::default(),
-            None,
-            None,
-            None,
-            Vec::new(),
-            Vec::new(),
-            None,
-            None,
-            1,
-        )
-    }
-
-    fn compiled_pipeline() -> crate::CompiledRenderPipeline {
-        let mut extract = World::new().to_render_frame_extract();
-        extract.apply_viewport_size(UVec2::new(32, 32));
-        RenderPipelineAsset::default_forward_plus()
-            .compile_with_options(&extract, &RenderPipelineCompileOptions::default())
-            .expect("expected test pipeline to compile")
     }
 }
 

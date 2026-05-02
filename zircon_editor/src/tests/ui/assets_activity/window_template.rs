@@ -1,7 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 fn asset_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))

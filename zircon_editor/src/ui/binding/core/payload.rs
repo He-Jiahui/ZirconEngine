@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime::ui::binding::UiBindingCall;
+use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
 
 use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
@@ -16,7 +16,7 @@ pub enum EditorUiBindingPayload {
     EditorOperation {
         operation_id: String,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        arguments: Vec<zircon_runtime::ui::binding::UiBindingValue>,
+        arguments: Vec<UiBindingValue>,
     },
     DraftCommand(DraftCommand),
     InspectorFieldBatch {

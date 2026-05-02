@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::inspector_constants::INSPECTOR_VIEWPORT_Y;
 use super::inspector_content_extent::inspector_content_extent;

@@ -3,12 +3,12 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};

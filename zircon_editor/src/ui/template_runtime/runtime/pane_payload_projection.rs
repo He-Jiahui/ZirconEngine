@@ -3,7 +3,7 @@ use toml::{Table, Value};
 use crate::ui::layouts::windows::workbench_host_window::{PaneBodyPresentation, PanePayload};
 use crate::ui::template::{EditorTemplateAdapter, EditorTemplateRegistry};
 use crate::ui::template_runtime::SlintUiProjection;
-use zircon_runtime::ui::template::UiTemplateNode;
+use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{projection::project_instance, runtime_host::EditorUiHostRuntimeError};
 

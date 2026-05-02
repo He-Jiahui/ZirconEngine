@@ -127,14 +127,14 @@ Expected: focused tests pass for the migrated surface; broader editor check pass
 
 Final evidence: `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never` passed; `cargo test -p zircon_editor --doc --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never` passed with 0 doctests; `cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture` passed 6 tests / 0 failed; `cargo test -p zircon_editor --lib generic_host_layout_paths --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture` passed 3 tests / 0 failed; and `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture` passed 16 tests / 0 failed.
 
-Workspace validation then passed with `.\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir E:\cargo-targets\zircon-ui-cutover-move-first`: `cargo build --workspace --locked` OK and `cargo test --workspace --locked` OK. Final source searches kept the hard fence intact: active `zircon_editor/ui/**/*.slint` count is 0, preserved migration copies under `temp/slint-migration/zircon_editor/ui` count 43, and remaining editor source `slint` hits are test names or absence guards rather than generated-source readers or local `to_slint_*` conversion helpers.
+Workspace validation then passed with `.\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir E:\cargo-targets\zircon-ui-cutover-move-first`: `cargo build --workspace --locked` OK and `cargo test --workspace --locked` OK. Final source searches kept the hard fence intact: active `zircon_editor/ui/**/*.slint` count is 0, `temp/slint-migration/**/*.slint` count is now 0 after deleting the disposable migration copies, and remaining editor source `slint` hits are test names or absence guards rather than generated-source readers or local `to_slint_*` conversion helpers.
 
 ### Task 5: Preserve No-Slint Fence Equivalents For Former Slint Layout/Split Tasks
 
 **Files:**
 - Modify: `zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs`
 - Reference: `zircon_editor/assets/ui/editor/**/*.ui.toml`
-- Reference only: `temp/slint-migration/zircon_editor/ui/**`
+- Deleted disposable migration copies: `temp/slint-migration/zircon_editor/ui/**`
 
 - [x] **Step 1: Translate obsolete Slint move/split expectations into active absence guards**
 

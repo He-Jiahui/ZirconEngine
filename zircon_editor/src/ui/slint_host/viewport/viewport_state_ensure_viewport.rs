@@ -1,7 +1,7 @@
 use crate::scene::viewport::{
     RenderFrameworkError, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use super::active_viewport::ActiveViewport;
 use super::viewport_state::ViewportState;

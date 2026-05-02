@@ -98,15 +98,34 @@ impl SlintEditorHost {
             return;
         };
 
-        self.dispatch_inspector_surface_control(
+        self.focus_callback_source_window();
+        let envelope = UiComponentEventEnvelope::new(
+            "inspector.surface_controls",
             control_id,
-            UiEventKind::Change,
-            vec![
-                UiBindingValue::string("entity://selected"),
-                UiBindingValue::string(field_id),
-                UiBindingValue::string(value),
-            ],
-        );
+            UiComponentBindingTarget::inspector("entity://selected", field_id),
+            UiComponentEvent::ValueChanged {
+                property: "value".to_string(),
+                value: UiValue::String(value.to_string()),
+            },
+        )
+        .with_component_id("InspectorField");
+
+        match self.runtime.dispatch_ui_component_adapter_event(&envelope) {
+            Ok(result) => {
+                let refresh_presentation = result.refresh_projection || result.changed;
+                self.set_status_line(
+                    result
+                        .status_text
+                        .unwrap_or_else(|| format!("Inspector field updated: {field_id}")),
+                );
+                if refresh_presentation {
+                    self.presentation_dirty = true;
+                }
+            }
+            Err(error) => {
+                self.set_status_line(format!("Inspector component binding failed: {error}"));
+            }
+        }
     }
 
     pub(super) fn dispatch_inspector_control_clicked(&mut self, control_id: &str) {

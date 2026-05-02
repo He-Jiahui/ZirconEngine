@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::ui::template::{
+use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiNodeDefinition, UiNodeDefinitionKind, UiTemplateNode,
 };
 

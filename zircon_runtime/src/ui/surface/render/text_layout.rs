@@ -1,24 +1,7 @@
-use serde::{Deserialize, Serialize};
-
-use crate::ui::layout::UiFrame;
-
-use super::{UiResolvedStyle, UiTextAlign, UiTextWrap};
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiResolvedTextLayout {
-    pub text_align: UiTextAlign,
-    pub wrap: UiTextWrap,
-    pub font_size: f32,
-    pub line_height: f32,
-    pub lines: Vec<UiResolvedTextLine>,
-    pub overflow_clipped: bool,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct UiResolvedTextLine {
-    pub text: String,
-    pub frame: UiFrame,
-}
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
+    UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextWrap,
+};
 
 pub fn layout_text(
     text: &str,

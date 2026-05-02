@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::slint_host as host_contract;
-use zircon_runtime::ui::component::UiValue;
+use zircon_runtime_interface::ui::component::UiValue;
 
 use super::pane_value_conversion::value_as_options;
 

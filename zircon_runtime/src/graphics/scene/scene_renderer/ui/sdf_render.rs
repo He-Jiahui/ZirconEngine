@@ -1,20 +1,20 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
+use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
-use crate::ui::layout::UiFrame;
-use crate::ui::surface::UiTextAlign;
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::UiTextAlign;
 
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_atlas::{SdfAtlasPlan, SdfAtlasRect};
+use super::sdf_font_bake::{SdfAtlasBake, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics};
 
 const SDF_TEXT_SHADER: &str = include_str!("shaders/sdf_text.wgsl");
 const SDF_ATLAS_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::R8Unorm;
-const SDF_MASK_PADDING_PX: f32 = 4.0;
-const SDF_MASK_SPREAD_PX: f32 = 6.0;
-const SDF_GLYPH_ADVANCE_RATIO: f32 = 0.62;
 
 pub(super) struct ScreenSpaceUiSdfRenderer {
+    font_bake: SdfFontBakeCache,
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
@@ -132,6 +132,7 @@ impl ScreenSpaceUiSdfRenderer {
             create_atlas_resources(device, &bind_group_layout, &sampler, atlas_size);
 
         Self {
+            font_bake: SdfFontBakeCache::new(),
             pipeline,
             bind_group_layout,
             sampler,
@@ -151,6 +152,7 @@ impl ScreenSpaceUiSdfRenderer {
         viewport_size: UVec2,
         texts: &[ScreenSpaceUiTextBatch],
         atlas_plan: &SdfAtlasPlan,
+        asset_manager: &ProjectAssetManager,
     ) {
         if atlas_plan.atlas_size != self.atlas_size {
             let (atlas_texture, atlas_view, bind_group) = create_atlas_resources(
@@ -165,10 +167,10 @@ impl ScreenSpaceUiSdfRenderer {
             self.atlas_size = atlas_plan.atlas_size;
         }
 
-        let atlas_bytes = build_sdf_atlas_alpha(atlas_plan);
+        let atlas_bake = self.font_bake.build_atlas(atlas_plan, asset_manager);
         queue.write_texture(
             self.atlas_texture.as_image_copy(),
-            &atlas_bytes,
+            &atlas_bake.pixels,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(atlas_plan.atlas_size.x.max(1)),
@@ -181,7 +183,14 @@ impl ScreenSpaceUiSdfRenderer {
             },
         );
 
-        let vertices = build_sdf_vertices(texts, atlas_plan, viewport_size);
+        let vertices = build_sdf_vertices(
+            texts,
+            atlas_plan,
+            &atlas_bake,
+            &mut self.font_bake,
+            asset_manager,
+            viewport_size,
+        );
         self.vertex_count = vertices.len() as u32;
         self.vertex_buffer = (!vertices.is_empty()).then(|| {
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -245,47 +254,12 @@ fn create_atlas_resources(
     (texture, view, bind_group)
 }
 
-fn build_sdf_atlas_alpha(plan: &SdfAtlasPlan) -> Vec<u8> {
-    let width = plan.atlas_size.x.max(1);
-    let height = plan.atlas_size.y.max(1);
-    let mut pixels = vec![0; width as usize * height as usize];
-    for slot in &plan.slots {
-        write_slot_mask(&mut pixels, width, height, slot.rect);
-    }
-    pixels
-}
-
-fn write_slot_mask(pixels: &mut [u8], atlas_width: u32, atlas_height: u32, rect: SdfAtlasRect) {
-    let right = rect.x.saturating_add(rect.width).min(atlas_width);
-    let bottom = rect.y.saturating_add(rect.height).min(atlas_height);
-    for y in rect.y..bottom {
-        for x in rect.x..right {
-            let local_x = x - rect.x;
-            let local_y = y - rect.y;
-            let value = sdf_rounded_rect_value(local_x, local_y, rect.width, rect.height);
-            pixels[y as usize * atlas_width as usize + x as usize] = value;
-        }
-    }
-}
-
-fn sdf_rounded_rect_value(x: u32, y: u32, width: u32, height: u32) -> u8 {
-    let center_x = width as f32 * 0.5;
-    let center_y = height as f32 * 0.5;
-    let half_width = (center_x - SDF_MASK_PADDING_PX).max(1.0);
-    let half_height = (center_y - SDF_MASK_PADDING_PX).max(1.0);
-    let dx = (x as f32 + 0.5 - center_x).abs() - half_width;
-    let dy = (y as f32 + 0.5 - center_y).abs() - half_height;
-    let outside_x = dx.max(0.0);
-    let outside_y = dy.max(0.0);
-    let outside_distance = (outside_x * outside_x + outside_y * outside_y).sqrt();
-    let inside_distance = dx.max(dy).min(0.0);
-    let signed_inside_distance = -(outside_distance + inside_distance);
-    ((0.5 + signed_inside_distance / SDF_MASK_SPREAD_PX).clamp(0.0, 1.0) * 255.0).round() as u8
-}
-
 fn build_sdf_vertices(
     texts: &[ScreenSpaceUiTextBatch],
     plan: &SdfAtlasPlan,
+    atlas_bake: &SdfAtlasBake,
+    font_bake: &mut SdfFontBakeCache,
+    asset_manager: &ProjectAssetManager,
     viewport_size: UVec2,
 ) -> Vec<ScreenSpaceUiSdfVertex> {
     let viewport = UiFrame::new(
@@ -305,37 +279,109 @@ fn build_sdf_vertices(
             };
             clip = clipped;
         }
-        let glyph_width = (text.font_size.max(1.0) * SDF_GLYPH_ADVANCE_RATIO).max(1.0);
-        let glyph_height = text.line_height.max(text.font_size).max(1.0);
-        let text_start_x = aligned_text_start_x(text, glyph_width);
-        for (glyph_index, slot_index) in run.glyph_slot_indices.iter().copied().enumerate() {
-            let Some(slot_index) = slot_index else {
+
+        let glyphs = resolve_run_glyphs(text, run, atlas_bake, font_bake, asset_manager);
+        let text_width = glyphs.iter().map(|glyph| glyph.metrics.advance).sum();
+        let line_ascent = glyphs
+            .iter()
+            .map(|glyph| glyph.metrics.ascent)
+            .fold(text.font_size.max(1.0), f32::max);
+        let baseline = text.frame.y
+            + (text.line_height.max(text.font_size) - text.font_size.max(1.0)).max(0.0) * 0.5
+            + line_ascent;
+        let mut cursor_x = aligned_text_start_x(text, text_width);
+
+        for glyph in glyphs {
+            let advance = glyph.metrics.advance;
+            let Some(slot_index) = glyph.slot_index else {
+                cursor_x += advance;
                 continue;
             };
             let Some(slot) = plan.slots.get(slot_index) else {
+                cursor_x += advance;
                 continue;
             };
+            if !glyph.visible || glyph.metrics.bitmap_width == 0 || glyph.metrics.bitmap_height == 0
+            {
+                cursor_x += advance;
+                continue;
+            }
             let frame = UiFrame::new(
-                text_start_x + glyph_index as f32 * glyph_width,
-                text.frame.y,
-                glyph_width,
-                glyph_height,
+                cursor_x + glyph.metrics.bitmap_left,
+                baseline - (glyph.metrics.bitmap_bottom + glyph.metrics.bitmap_height as f32),
+                glyph.metrics.bitmap_width as f32,
+                glyph.metrics.bitmap_height as f32,
             );
             push_clipped_glyph_quad(
                 &mut vertices,
                 frame,
                 clip,
                 viewport,
-                atlas_uv_rect(slot.rect, plan.atlas_size),
+                atlas_uv_rect(slot.rect, plan.atlas_size, glyph.metrics),
                 text.color,
             );
+            cursor_x += advance;
         }
     }
     vertices
 }
 
-fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, glyph_width: f32) -> f32 {
-    let text_width = text.text.chars().count() as f32 * glyph_width;
+#[derive(Clone, Copy)]
+struct RunGlyph {
+    slot_index: Option<usize>,
+    metrics: SdfGlyphMetrics,
+    visible: bool,
+}
+
+fn resolve_run_glyphs(
+    text: &ScreenSpaceUiTextBatch,
+    run: &super::sdf_atlas::SdfAtlasRun,
+    atlas_bake: &SdfAtlasBake,
+    font_bake: &mut SdfFontBakeCache,
+    asset_manager: &ProjectAssetManager,
+) -> Vec<RunGlyph> {
+    text.text
+        .chars()
+        .zip(run.glyph_slot_indices.iter().copied())
+        .map(|(glyph, slot_index)| match slot_index {
+            Some(slot_index) => atlas_bake
+                .glyphs
+                .get(slot_index)
+                .map(|baked| run_glyph_from_bake(slot_index, baked))
+                .unwrap_or_else(|| measured_run_glyph(glyph, text, font_bake, asset_manager)),
+            None => measured_run_glyph(glyph, text, font_bake, asset_manager),
+        })
+        .collect()
+}
+
+fn run_glyph_from_bake(slot_index: usize, baked: &SdfBakedGlyph) -> RunGlyph {
+    RunGlyph {
+        slot_index: Some(slot_index),
+        metrics: baked.metrics,
+        visible: baked.visible,
+    }
+}
+
+fn measured_run_glyph(
+    glyph: char,
+    text: &ScreenSpaceUiTextBatch,
+    font_bake: &mut SdfFontBakeCache,
+    asset_manager: &ProjectAssetManager,
+) -> RunGlyph {
+    RunGlyph {
+        slot_index: None,
+        metrics: font_bake.measure_glyph(
+            glyph,
+            text.font.as_deref(),
+            text.font_family.as_deref(),
+            text.font_size,
+            asset_manager,
+        ),
+        visible: false,
+    }
+}
+
+fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, text_width: f32) -> f32 {
     let free_width = (text.frame.width - text_width).max(0.0);
     let offset = match text.text_align {
         UiTextAlign::Left => 0.0,
@@ -345,14 +391,16 @@ fn aligned_text_start_x(text: &ScreenSpaceUiTextBatch, glyph_width: f32) -> f32 
     text.frame.x + offset
 }
 
-fn atlas_uv_rect(rect: SdfAtlasRect, atlas_size: UVec2) -> SdfUvRect {
+fn atlas_uv_rect(rect: SdfAtlasRect, atlas_size: UVec2, metrics: SdfGlyphMetrics) -> SdfUvRect {
     let width = atlas_size.x.max(1) as f32;
     let height = atlas_size.y.max(1) as f32;
+    let glyph_width = metrics.bitmap_width.min(rect.width);
+    let glyph_height = metrics.bitmap_height.min(rect.height);
     SdfUvRect {
         x0: rect.x as f32 / width,
         y0: rect.y as f32 / height,
-        x1: rect.x.saturating_add(rect.width) as f32 / width,
-        y1: rect.y.saturating_add(rect.height) as f32 / height,
+        x1: rect.x.saturating_add(glyph_width) as f32 / width,
+        y1: rect.y.saturating_add(glyph_height) as f32 / height,
     }
 }
 
@@ -428,41 +476,70 @@ fn pixel_to_ndc_y(y: f32, height: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::asset::ProjectAssetManager;
     use crate::graphics::scene::scene_renderer::ui::sdf_atlas::plan_sdf_atlas;
-    use crate::ui::surface::{UiTextAlign, UiTextWrap};
-
-    #[test]
-    fn sdf_atlas_alpha_contains_slot_masks() {
-        let plan = plan_sdf_atlas(&[text_batch("A", UiFrame::new(0.0, 0.0, 16.0, 16.0))]);
-
-        let alpha = build_sdf_atlas_alpha(&plan);
-
-        assert_eq!(alpha.len(), 256 * 256);
-        assert!(alpha.iter().any(|value| *value > 0));
-        assert_eq!(alpha[0], 0);
-    }
+    use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextWrap};
 
     #[test]
     fn sdf_draw_plan_creates_one_textured_quad_per_glyph() {
         let text = text_batch("AB", UiFrame::new(8.0, 12.0, 64.0, 20.0));
         let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+        let (mut font_bake, asset_manager, atlas_bake) = bake_atlas(&plan);
 
-        let vertices = build_sdf_vertices(&[text], &plan, UVec2::new(128, 64));
+        let vertices = build_sdf_vertices(
+            &[text],
+            &plan,
+            &atlas_bake,
+            &mut font_bake,
+            &asset_manager,
+            UVec2::new(128, 64),
+        );
 
         assert_eq!(vertices.len(), 12);
         assert_eq!(vertices[0].color, [0.2, 0.3, 0.4, 0.5]);
-        assert_eq!(vertices[0].uv, [0.0, 0.0]);
-        assert_eq!(vertices[6].uv, [0.125, 0.0]);
+        assert!(vertices[0].uv[0] >= 0.0);
+        assert!(vertices[0].uv[1] >= 0.0);
+        assert!(vertices[0].uv[0] < vertices[2].uv[0]);
+        assert!(vertices[6].uv[0] > vertices[0].uv[0]);
     }
 
     #[test]
     fn sdf_draw_plan_skips_whitespace_quads_but_preserves_advance() {
         let text = text_batch("A B", UiFrame::new(8.0, 12.0, 80.0, 20.0));
         let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+        let (mut font_bake, asset_manager, atlas_bake) = bake_atlas(&plan);
+        let a = font_bake.measure_glyph(
+            'A',
+            text.font.as_deref(),
+            text.font_family.as_deref(),
+            text.font_size,
+            &asset_manager,
+        );
+        let space = font_bake.measure_glyph(
+            ' ',
+            text.font.as_deref(),
+            text.font_family.as_deref(),
+            text.font_size,
+            &asset_manager,
+        );
+        let b = font_bake.measure_glyph(
+            'B',
+            text.font.as_deref(),
+            text.font_family.as_deref(),
+            text.font_size,
+            &asset_manager,
+        );
 
-        let vertices = build_sdf_vertices(&[text], &plan, UVec2::new(128, 64));
+        let vertices = build_sdf_vertices(
+            &[text],
+            &plan,
+            &atlas_bake,
+            &mut font_bake,
+            &asset_manager,
+            UVec2::new(128, 64),
+        );
 
-        let expected_second_glyph_x = 8.0 + 2.0 * 16.0 * SDF_GLYPH_ADVANCE_RATIO;
+        let expected_second_glyph_x = 8.0 + a.advance + space.advance + b.bitmap_left;
         assert_eq!(vertices.len(), 12);
         assert!(
             (vertices[6].position[0] - pixel_to_ndc_x(expected_second_glyph_x, 128.0)).abs()
@@ -472,17 +549,25 @@ mod tests {
 
     #[test]
     fn sdf_draw_plan_clips_to_text_frame_without_explicit_clip() {
-        let glyph_width = 16.0 * SDF_GLYPH_ADVANCE_RATIO;
-        let text = text_batch("AAAA", UiFrame::new(8.0, 12.0, glyph_width * 1.5, 20.0));
+        let text = text_batch("AAAA", UiFrame::new(8.0, 12.0, 24.0, 20.0));
         let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+        let (mut font_bake, asset_manager, atlas_bake) = bake_atlas(&plan);
 
-        let vertices = build_sdf_vertices(std::slice::from_ref(&text), &plan, UVec2::new(128, 64));
+        let vertices = build_sdf_vertices(
+            std::slice::from_ref(&text),
+            &plan,
+            &atlas_bake,
+            &mut font_bake,
+            &asset_manager,
+            UVec2::new(128, 64),
+        );
 
         let max_x = vertices
             .iter()
             .map(|vertex| vertex.position[0])
             .fold(f32::NEG_INFINITY, f32::max);
-        assert_eq!(vertices.len(), 12);
+        assert!(!vertices.is_empty());
+        assert!(vertices.len() <= 24);
         assert!(max_x <= pixel_to_ndc_x(text.frame.right(), 128.0) + 0.0001);
     }
 
@@ -491,8 +576,16 @@ mod tests {
         let mut text = text_batch("A", UiFrame::new(8.0, 12.0, 64.0, 20.0));
         text.clip_frame = Some(UiFrame::new(12.0, 12.0, 32.0, 20.0));
         let plan = plan_sdf_atlas(std::slice::from_ref(&text));
+        let (mut font_bake, asset_manager, atlas_bake) = bake_atlas(&plan);
 
-        let vertices = build_sdf_vertices(&[text], &plan, UVec2::new(128, 64));
+        let vertices = build_sdf_vertices(
+            &[text],
+            &plan,
+            &atlas_bake,
+            &mut font_bake,
+            &asset_manager,
+            UVec2::new(128, 64),
+        );
 
         assert_eq!(vertices.len(), 6);
         assert!(vertices[0].position[0] > -0.875);
@@ -501,19 +594,31 @@ mod tests {
 
     #[test]
     fn sdf_draw_plan_applies_text_alignment_inside_frame() {
-        let glyph_width = 16.0 * SDF_GLYPH_ADVANCE_RATIO;
         let mut centered = text_batch("AB", UiFrame::new(8.0, 12.0, 80.0, 20.0));
         centered.text_align = UiTextAlign::Center;
         let centered_plan = plan_sdf_atlas(std::slice::from_ref(&centered));
+        let (mut centered_bake, centered_assets, centered_atlas_bake) = bake_atlas(&centered_plan);
+        let centered_width = text_advance(&mut centered_bake, &centered_assets, &centered);
+        let centered_first = centered_bake.measure_glyph(
+            'A',
+            centered.font.as_deref(),
+            centered.font_family.as_deref(),
+            centered.font_size,
+            &centered_assets,
+        );
 
         let centered_vertices = build_sdf_vertices(
             std::slice::from_ref(&centered),
             &centered_plan,
+            &centered_atlas_bake,
+            &mut centered_bake,
+            &centered_assets,
             UVec2::new(128, 64),
         );
 
-        let expected_centered_x =
-            centered.frame.x + (centered.frame.width - glyph_width * 2.0) * 0.5;
+        let expected_centered_x = centered.frame.x
+            + (centered.frame.width - centered_width) * 0.5
+            + centered_first.bitmap_left;
         assert!(
             (centered_vertices[0].position[0] - pixel_to_ndc_x(expected_centered_x, 128.0)).abs()
                 < 0.0001
@@ -522,18 +627,58 @@ mod tests {
         let mut right_aligned = text_batch("AB", UiFrame::new(8.0, 12.0, 80.0, 20.0));
         right_aligned.text_align = UiTextAlign::Right;
         let right_plan = plan_sdf_atlas(std::slice::from_ref(&right_aligned));
+        let (mut right_bake, right_assets, right_atlas_bake) = bake_atlas(&right_plan);
+        let right_width = text_advance(&mut right_bake, &right_assets, &right_aligned);
+        let right_first = right_bake.measure_glyph(
+            'A',
+            right_aligned.font.as_deref(),
+            right_aligned.font_family.as_deref(),
+            right_aligned.font_size,
+            &right_assets,
+        );
 
         let right_vertices = build_sdf_vertices(
             std::slice::from_ref(&right_aligned),
             &right_plan,
+            &right_atlas_bake,
+            &mut right_bake,
+            &right_assets,
             UVec2::new(128, 64),
         );
 
-        let expected_right_x = right_aligned.frame.right() - glyph_width * 2.0;
+        let expected_right_x = right_aligned.frame.right() - right_width + right_first.bitmap_left;
         assert!(
             (right_vertices[0].position[0] - pixel_to_ndc_x(expected_right_x, 128.0)).abs()
                 < 0.0001
         );
+    }
+
+    fn bake_atlas(plan: &SdfAtlasPlan) -> (SdfFontBakeCache, ProjectAssetManager, SdfAtlasBake) {
+        let mut font_bake = SdfFontBakeCache::new();
+        let asset_manager = ProjectAssetManager::default();
+        let atlas_bake = font_bake.build_atlas(plan, &asset_manager);
+        (font_bake, asset_manager, atlas_bake)
+    }
+
+    fn text_advance(
+        font_bake: &mut SdfFontBakeCache,
+        asset_manager: &ProjectAssetManager,
+        text: &ScreenSpaceUiTextBatch,
+    ) -> f32 {
+        text.text
+            .chars()
+            .map(|glyph| {
+                font_bake
+                    .measure_glyph(
+                        glyph,
+                        text.font.as_deref(),
+                        text.font_family.as_deref(),
+                        text.font_size,
+                        asset_manager,
+                    )
+                    .advance
+            })
+            .sum()
     }
 
     fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {

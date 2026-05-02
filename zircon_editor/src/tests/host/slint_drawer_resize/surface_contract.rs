@@ -17,9 +17,19 @@ fn shared_resize_surface_uses_rust_owned_pointer_event_contract() {
         "update_drawer_resize_capture",
         "finish_drawer_resize_capture",
     ] {
-        assert!(docking.contains(required), "workspace docking missing `{required}`");
+        assert!(
+            docking.contains(required),
+            "workspace docking missing `{required}`"
+        );
     }
-    for legacy in ["on_begin_drawer_resize", "on_update_drawer_resize", "on_finish_drawer_resize"] {
-        assert!(!wiring.contains(legacy), "resize wiring should not keep `{legacy}`");
+    for legacy in [
+        "on_begin_drawer_resize",
+        "on_update_drawer_resize",
+        "on_finish_drawer_resize",
+    ] {
+        assert!(
+            !wiring.contains(legacy),
+            "resize wiring should not keep `{legacy}`"
+        );
     }
 }

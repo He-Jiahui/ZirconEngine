@@ -1,0 +1,5 @@
+mod virtual_geometry_gpu_readback;
+mod virtual_geometry_gpu_readback_completion_parts;
+
+pub(crate) use virtual_geometry_gpu_readback::VirtualGeometryGpuReadback;
+pub(crate) use virtual_geometry_gpu_readback_completion_parts::VirtualGeometryGpuReadbackCompletionParts;

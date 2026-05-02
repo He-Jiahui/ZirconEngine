@@ -1,10 +1,10 @@
 //! Responsive shell auto-layout for the Slint workbench host.
 
-pub use zircon_runtime::ui::layout::{
-    solve_axis_constraints, AxisConstraint, BoxConstraints as PaneConstraints,
-    ResolvedAxisConstraint, StretchMode,
+pub use zircon_runtime::ui::layout::solve_axis_constraints;
+pub use zircon_runtime_interface::ui::layout::{
+    AxisConstraint, BoxConstraints as PaneConstraints, ResolvedAxisConstraint, StretchMode,
+    UiFrame as ShellFrame, UiSize as ShellSizePx,
 };
-pub use zircon_runtime::ui::{layout::UiFrame as ShellFrame, layout::UiSize as ShellSizePx};
 
 mod active_tab;
 mod axis_constraint_override;

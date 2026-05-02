@@ -1,4 +1,4 @@
-use crate::ui::layout::UiContainerKind;
+use zircon_runtime_interface::ui::layout::UiContainerKind;
 
 pub(super) fn infer_container(component: &str) -> UiContainerKind {
     match component {

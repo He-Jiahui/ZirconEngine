@@ -9,17 +9,32 @@ use crate::ui::slint_host::root_shell_projection::resolve_root_viewport_content_
 use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
 
 impl SlintEditorHost {
-    pub(super) fn new(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
-        Self::new_with_viewport(core.clone(), ui, SlintViewportController::new(core)?)
+    pub(super) fn new(
+        core: CoreHandle,
+        runtime_client: SharedEditorRuntimeClient,
+        ui: UiHostWindow,
+    ) -> Result<Self, Box<dyn Error>> {
+        Self::new_with_viewport(
+            core.clone(),
+            runtime_client,
+            ui,
+            SlintViewportController::new(core)?,
+        )
     }
 
     #[cfg(test)]
     pub(super) fn new_for_test(core: CoreHandle, ui: UiHostWindow) -> Result<Self, Box<dyn Error>> {
-        Self::new_with_viewport(core, ui, SlintViewportController::new_test_stub())
+        Self::new_with_viewport(
+            core,
+            Arc::new(crate::ui::host::DetachedEditorRuntimeClient),
+            ui,
+            SlintViewportController::new_test_stub(),
+        )
     }
 
     fn new_with_viewport(
         core: CoreHandle,
+        runtime_client: SharedEditorRuntimeClient,
         ui: UiHostWindow,
         viewport: SlintViewportController,
     ) -> Result<Self, Box<dyn Error>> {
@@ -63,6 +78,7 @@ impl SlintEditorHost {
             ui,
             self_handle: None,
             runtime: EditorEventRuntime::new(state, editor_manager.clone()),
+            runtime_client,
             editor_manager,
             viewport,
             asset_server,
@@ -309,6 +325,12 @@ impl SlintEditorHost {
             &floating_window_projection_bundle,
             Some(&self.component_showcase_runtime),
         );
+        let world_space_ui_surfaces =
+            crate::ui::slint_host::build_world_space_ui_surface_submissions_from_host_scene(
+                &self.ui.get_host_presentation().host_scene_data,
+            );
+        self.viewport
+            .submit_world_space_ui_surfaces(world_space_ui_surfaces);
         self.sync_native_window_presenters(
             &model,
             &chrome,

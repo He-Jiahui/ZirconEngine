@@ -8,6 +8,7 @@
 
 ## Test Inventory
 - Source/failure filter case: a listener configured for `EditorEventSource::Cli` failures should ignore headless success and CLI success, then receive the failed CLI operation control request.
+- Operation group filter case: a listener configured for one `operation_group` should ignore other groups and ungrouped operations, then receive only matching grouped deliveries.
 - Delivery audit case: the delivered JSON exposes `source` and `result.error`.
 - Missing listener case: `QueryDeliveries`, `QueryDeliveriesSince`, and `AckDeliveriesThrough` should fail when the listener id is not registered.
 - Listener status case: `QueryListenerStatus` should expose descriptor metadata, `pending_delivery_count`, `first_pending_sequence`, and `last_pending_sequence`, then reset the pending sequence bounds to `null` after all deliveries are acknowledged.
@@ -38,8 +39,10 @@
 - Passed WSL compile: `CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never` finished in 14m53s with existing warnings only (`editor_meta.rs::save` dead code and `showcase_demo_state.rs` unused variants).
 - Passed WSL focused test: `CARGO_TARGET_DIR=/tmp/zircon-target-editor-listener-status RUSTFLAGS="-C debuginfo=0" cargo test -p zircon_editor --lib event_listener_control_reports_listener_status_with_pending_delivery_bounds --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture` finished in 17m23s; result was `1 passed; 0 failed; 886 filtered out`.
 - Passed: scoped `git diff --check` for touched listener code, runtime tests, docs, acceptance, and session files with only LF/CRLF warnings.
+- Pending: `event_listener_filter_limits_delivery_by_operation_group` covers exact operation-group listener filtering, but Cargo validation is waiting for the active Runtime UI/runtime-interface build queue to quiet down.
 
 ## Acceptance Decision
 - Listener audit API and unknown-listener error semantics are accepted.
 - Source/failure listener filtering and missing-listener control error semantics are accepted.
 - Listener status query is accepted on WSL/Linux evidence: the crate-level editor lib check and focused status regression test both pass. Windows focused runs remain inconclusive under concurrent Cargo/link load, but they produced no Rust or assertion diagnostic.
+- Operation group listener filtering is implemented and has a focused regression in the suite; final acceptance remains pending until the next focused Cargo run reaches test execution.

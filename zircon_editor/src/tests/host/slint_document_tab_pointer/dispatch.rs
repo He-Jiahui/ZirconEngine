@@ -17,7 +17,7 @@ use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     layout::{UiFrame, UiPoint, UiSize},
 };

@@ -1,4 +1,4 @@
-use zircon_runtime::ui::{layout::UiPoint, layout::UiSize};
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 use super::detail_pointer::{
     ScrollSurfacePointerBridge, ScrollSurfacePointerLayout, ScrollSurfacePointerState,

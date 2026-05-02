@@ -17,14 +17,15 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime/src/ui/surface/render/text_layout.rs
-  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
-  - zircon_runtime/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/template/mod.rs
@@ -148,14 +149,15 @@ implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime/src/ui/surface/render/text_layout.rs
-  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
-  - zircon_runtime/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/template/mod.rs
@@ -264,6 +266,7 @@ plan_sources:
   - user: 2026-04-29 继续 Generic host boundary activity rail ui.toml cutover
   - user: 2026-04-30 继续 Generic host catalog leaf-name cutover
   - user: 2026-05-01 继续 editor-only Generic host cleanup，删除 legacy builtin host document alias
+  - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
@@ -306,6 +309,7 @@ tests:
   - cargo test -p zircon_runtime --lib screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1
+  - cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1
   - cargo test -p zircon_runtime --lib text_backend_routing --locked --jobs 1
   - cargo test -p zircon_runtime default_runtime_font_manifest_stays_inside_runtime_assets --locked
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
@@ -517,11 +521,11 @@ text_render_mode = "sdf"
 
 SDF 路径现在还有一个 renderer-local atlas/cache planning owner：[`sdf_atlas.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs)。shared template runtime 仍然只写 `text_render_mode = "sdf"`、`font`、`font_family` 和字号这些中性样式字段；进入 graphics 后，`ScreenSpaceUiSdfAtlas` 会把 resolved SDF text batches 收敛成 glyph slot plan。slot key 包含 glyph、font asset、font family 和字号，因此不同字体或字号的同一字符不会在后续专用 SDF atlas 中错误共用 cache entry；atlas rect 按 key 排序分配，空白字符只保留 advance，不会占用 atlas slot。
 
-SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`sdf_text.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl) 在 UI pass 内 alpha blend 输出。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；当前 atlas mask 仍是最小 CPU placeholder SDF，用来固定 texture/bind group/quad/UV/clip 合同；后续真实字体轮廓 SDF bake 只需要替换 mask 生成，不需要让 template runtime 暴露 GPU 细节。
+SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`sdf_text.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl) 在 UI pass 内 alpha blend 输出。真实字体轮廓由 renderer-local [`sdf_font_bake.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 封装 `fontsdf` 完成：它通过既有 `.font.toml` manifest 解析字体源、为非空白 glyph bake 单通道 SDF alpha、为 whitespace 只保留 advance，并把 glyph metrics/advance/bearing 交回 quad planner。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；template runtime 仍然不暴露 GPU atlas、SDF crate 或 shader 细节。
 
 普通文本渲染兼容性由 `ResolvedScreenSpaceUiTextBatches` 负责守住。`Native` 批次和解析为 `Native` 的 `Auto` 批次只进入 normal glyphon backend；`Sdf` 批次和解析为 `Sdf` 的 `Auto` 批次进入 SDF atlas owner 与 GPU SDF renderer。这个 routing contract 让专用 SDF shader 不会误把普通文本迁到 SDF cache，也不会让 SDF atlas state 污染 native-only frame。
 
-这条边界由 `ui::tests::text_layout`、`screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches`、`sdf_atlas`、`sdf_draw_plan` 和 `text_backend_routing` 锁住：word wrap + center align 会输出稳定的 line frames，`clip_frame` 会裁掉不可见行并标记 overflow，graphics planner 会把这些行 frame 作为最终 text batch 输入，SDF atlas owner 会按字体身份和字号生成稳定 glyph slot plan 并把空白保留为 advance，GPU SDF renderer 会按 `text_align` 为可见 glyph 生成 textured quads，普通 native 文本不会进入 SDF atlas input。
+这条边界由 `ui::tests::text_layout`、`screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches`、`sdf_atlas`、`sdf_font_bake`、`sdf_draw_plan`、`text_backend_routing` 和 `runtime_ui_text_render_contract` 锁住：word wrap + center align 会输出稳定的 line frames，`clip_frame` 会裁掉不可见行并标记 overflow，graphics planner 会把这些行 frame 作为最终 text batch 输入，SDF atlas owner 会按字体身份和字号生成稳定 glyph slot plan 并把空白保留为 advance，SDF bake 会证明 `A`/`I`/`O` 生成不同字体轮廓而不是旧圆角矩形占位块，GPU SDF renderer 会按真实 metrics 和 `text_align` 为可见 glyph 生成 textured quads，普通 native 文本不会进入 SDF atlas input。
 
 editor viewport 那条 runtime-style HUD 现在也加入了这条 capture 证据链：[render_frame_submission_hud_text_renders_through_runtime_glyph_capture](/E:/Git/ZirconEngine/zircon_editor/src/tests/editing/state.rs) 直接把 `EditorState::render_frame_submission()` 产出的 `UiRenderExtract` 交给 runtime render framework capture，并用“有字 HUD / 去字 HUD”的像素差异证明 shared template/runtime 写出的 typography 字段没有在 editor 宿主路径里被旁路掉。
 

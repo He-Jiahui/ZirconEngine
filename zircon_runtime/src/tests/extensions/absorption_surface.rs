@@ -1,5 +1,5 @@
 #[test]
-fn optional_extension_module_registration_is_externalized_to_plugin_packages() {
+fn optional_extension_module_registration_keeps_current_owner_packages_explicit() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
         .parent()
@@ -9,18 +9,25 @@ fn optional_extension_module_registration_is_externalized_to_plugin_packages() {
 
     assert!(
         !runtime_root.join("src/extensions").exists(),
-        "zircon_runtime should not keep optional extension implementations after plugin cutover"
+        "zircon_runtime should not revive the old optional extensions umbrella"
     );
 
-    for plugin in [
-        "physics",
-        "sound",
-        "texture",
-        "net",
-        "navigation",
-        "particles",
-        "animation",
-    ] {
+    for domain in ["physics", "animation"] {
+        assert!(
+            runtime_root
+                .join("src")
+                .join(domain)
+                .join("mod.rs")
+                .exists(),
+            "runtime domain {domain} should be absorbed under zircon_runtime/src/{domain}"
+        );
+        assert!(
+            !runtime_root.join(format!("src/{domain}.rs")).exists(),
+            "runtime domain {domain} should be folder-backed, not a flat root file"
+        );
+    }
+
+    for plugin in ["sound", "texture", "net", "navigation", "particles"] {
         let plugin_root = repo_root.join("zircon_plugins").join(plugin);
         assert!(
             plugin_root.join("runtime/Cargo.toml").exists(),

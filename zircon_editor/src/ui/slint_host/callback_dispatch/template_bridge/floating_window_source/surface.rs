@@ -1,4 +1,5 @@
-use zircon_runtime::ui::{layout::UiSize, surface::UiSurface};
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_FLOATING_WINDOW_SOURCE_DOCUMENT_ID;
 use crate::ui::template_runtime::EditorUiHostRuntime;

@@ -1,6 +1,6 @@
 use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::HandleOverlayExtract;
-use zircon_runtime::core::math::Transform;
+use zircon_runtime_interface::math::Transform;
 
 use super::{
     handle_build_context::HandleBuildContext, handle_drag_context::HandleDragContext,

@@ -1,4 +1,6 @@
-use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
+};
 
 use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
 use super::host_activity_rail_pointer_dispatch::HostActivityRailPointerDispatch;

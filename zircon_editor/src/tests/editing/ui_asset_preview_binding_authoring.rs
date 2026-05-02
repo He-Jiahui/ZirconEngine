@@ -1,5 +1,5 @@
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
-use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 const PREVIEW_AND_BINDING_LAYOUT_ASSET_TOML: &str = r##"
 [asset]

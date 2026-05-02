@@ -107,6 +107,8 @@ mod tests {
         let framework = WgpuRenderFramework::new_with_plugin_render_features(
             Arc::new(ProjectAssetManager::default()),
             [descriptor],
+            Vec::new(),
+            Vec::new(),
         )
         .unwrap();
 

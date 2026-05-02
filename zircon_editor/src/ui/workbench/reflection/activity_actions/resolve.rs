@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiActionDescriptor;
+use zircon_runtime_interface::ui::event_ui::UiActionDescriptor;
 
 use crate::ui::workbench::snapshot::{ViewContentKind, ViewTabSnapshot};
 

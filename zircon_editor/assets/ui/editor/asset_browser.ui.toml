@@ -93,7 +93,7 @@ type = "Button"
 control_id = "LocateSelectedAsset"
 
 [root.children.node.children.node.children.node.props]
-label = "Locate In Assets"
+text = "Locate In Assets"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 124.0
@@ -204,7 +204,7 @@ type = "Button"
 control_id = "AssetBrowserKindAllChip"
 
 [root.children.node.children.node.children.node.props]
-label = "All"
+text = "All"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 34.0
@@ -223,7 +223,7 @@ type = "Button"
 control_id = "AssetBrowserKindTextureChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Texture"
+text = "Texture"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 52.0
@@ -242,7 +242,7 @@ type = "Button"
 control_id = "AssetBrowserKindMaterialChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Material"
+text = "Material"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 56.0
@@ -261,7 +261,7 @@ type = "Button"
 control_id = "AssetBrowserKindSceneChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Scene"
+text = "Scene"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 46.0
@@ -280,7 +280,7 @@ type = "Button"
 control_id = "AssetBrowserKindModelChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Model"
+text = "Model"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 50.0
@@ -299,7 +299,7 @@ type = "Button"
 control_id = "AssetBrowserKindShaderChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Shader"
+text = "Shader"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 54.0
@@ -330,7 +330,7 @@ type = "Button"
 control_id = "AssetBrowserViewModeListButton"
 
 [root.children.node.children.node.children.node.props]
-label = "List"
+text = "List"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 44.0
@@ -349,7 +349,7 @@ type = "Button"
 control_id = "AssetBrowserViewModeThumbButton"
 
 [root.children.node.children.node.children.node.props]
-label = "Thumb"
+text = "Thumb"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 52.0
@@ -388,7 +388,7 @@ type = "Button"
 control_id = "AssetBrowserKindPhysicsChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Physics"
+text = "Physics"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 56.0
@@ -407,7 +407,7 @@ type = "Button"
 control_id = "AssetBrowserKindSkeletonChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Skeleton"
+text = "Skeleton"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 62.0
@@ -426,7 +426,7 @@ type = "Button"
 control_id = "AssetBrowserKindClipChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Clip"
+text = "Clip"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 38.0
@@ -445,7 +445,7 @@ type = "Button"
 control_id = "AssetBrowserKindSequenceChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Sequence"
+text = "Sequence"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 64.0
@@ -464,7 +464,7 @@ type = "Button"
 control_id = "AssetBrowserKindGraphChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Graph"
+text = "Graph"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 52.0
@@ -483,7 +483,7 @@ type = "Button"
 control_id = "AssetBrowserKindStateChip"
 
 [root.children.node.children.node.children.node.props]
-label = "State"
+text = "State"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 48.0
@@ -574,7 +574,7 @@ type = "Button"
 control_id = "ImportModel"
 
 [root.children.node.children.node.props]
-label = "Import"
+text = "Import"
 button_variant = "primary"
 
 [root.children.node.children.node.layout.width]
@@ -1965,7 +1965,7 @@ type = "Button"
 control_id = "AssetBrowserPreviewTabButton"
 
 [root.children.node.children.node.children.node.props]
-label = "Preview"
+text = "Preview"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 56.0
@@ -1984,7 +1984,7 @@ type = "Button"
 control_id = "AssetBrowserReferencesTabButton"
 
 [root.children.node.children.node.children.node.props]
-label = "References"
+text = "References"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 74.0
@@ -2003,7 +2003,7 @@ type = "Button"
 control_id = "AssetBrowserMetadataTabButton"
 
 [root.children.node.children.node.children.node.props]
-label = "Metadata"
+text = "Metadata"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 74.0
@@ -2022,7 +2022,7 @@ type = "Button"
 control_id = "AssetBrowserPluginsTabButton"
 
 [root.children.node.children.node.children.node.props]
-label = "Plugins"
+text = "Plugins"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 64.0

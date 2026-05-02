@@ -1,7 +1,7 @@
 use crate::scene::viewport::{
     HandleOverlayExtract, SceneGizmoOverlayExtract, ViewportCameraSnapshot,
 };
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use super::viewport_renderable_pick_candidate::ViewportRenderablePickCandidate;
 

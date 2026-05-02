@@ -1,15 +1,20 @@
 use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode};
 use crate::engine_module::{factory, qualified_name};
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutionContext, RenderPassExecutorId,
+    RenderPassExecutorRegistration, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
+};
 use crate::plugin::{
     ComponentTypeDescriptor, RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog,
     RuntimePluginDescriptor, UiComponentDescriptor,
 };
 use crate::scene::{components::NodeKind, World};
-use crate::ui::component::{
-    UiComponentCategory, UiComponentDescriptorRegistry, UiSlotSchema, UiValue,
-};
+use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::{RuntimePluginId, RuntimeTargetMode};
+use zircon_runtime_interface::ui::component::{UiComponentCategory, UiSlotSchema, UiValue};
 
 #[test]
 fn runtime_extension_registry_collects_plugin_manager_and_component_contributions() {
@@ -74,6 +79,41 @@ fn runtime_extension_registry_collects_plugin_module_and_render_feature_contribu
 }
 
 #[test]
+fn runtime_extension_registry_collects_render_pass_executor_contributions() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let registration =
+        RenderPassExecutorRegistration::new("weather.volumetric-clouds", weather_render_executor);
+
+    registry
+        .register_render_pass_executor(registration)
+        .expect("executor contribution");
+
+    assert_eq!(registry.render_pass_executors().len(), 1);
+    assert_eq!(
+        registry.render_pass_executors()[0].executor_id(),
+        &RenderPassExecutorId::new("weather.volumetric-clouds")
+    );
+}
+
+#[test]
+fn runtime_extension_registry_collects_virtual_geometry_runtime_provider_contributions() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let provider = VirtualGeometryRuntimeProviderRegistration::new(
+        "weather.virtual_geometry",
+        std::sync::Arc::new(NoopVirtualGeometryRuntimeProvider),
+    );
+
+    registry
+        .register_virtual_geometry_runtime_provider(provider.clone())
+        .expect("provider contribution");
+
+    assert_eq!(
+        registry.virtual_geometry_runtime_providers()[0].provider_id(),
+        provider.provider_id()
+    );
+}
+
+#[test]
 fn runtime_extension_registry_rejects_duplicate_module_and_render_feature_names() {
     let mut registry = RuntimeExtensionRegistry::default();
     let manager = ManagerDescriptor::new(
@@ -120,6 +160,32 @@ fn runtime_extension_registry_rejects_duplicate_module_and_render_feature_names(
     assert!(duplicate_render_feature
         .to_string()
         .contains("render feature weather.volumetric_clouds already registered"));
+
+    let executor =
+        RenderPassExecutorRegistration::new("weather.volumetric-clouds", weather_render_executor);
+    registry
+        .register_render_pass_executor(executor.clone())
+        .expect("first executor");
+    let duplicate_executor = registry
+        .register_render_pass_executor(executor)
+        .unwrap_err();
+    assert!(duplicate_executor
+        .to_string()
+        .contains("render pass executor weather.volumetric-clouds already registered"));
+
+    let provider = VirtualGeometryRuntimeProviderRegistration::new(
+        "weather.virtual_geometry",
+        std::sync::Arc::new(NoopVirtualGeometryRuntimeProvider),
+    );
+    registry
+        .register_virtual_geometry_runtime_provider(provider.clone())
+        .expect("first provider");
+    let duplicate_provider = registry
+        .register_virtual_geometry_runtime_provider(provider)
+        .unwrap_err();
+    assert!(duplicate_provider
+        .to_string()
+        .contains("virtual geometry runtime provider weather.virtual_geometry already registered"));
 }
 
 #[test]
@@ -143,6 +209,17 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
     assert_eq!(
         report.registry.render_features()[0].name,
         "weather.volumetric_clouds"
+    );
+    assert_eq!(report.registry.render_pass_executors().len(), 1);
+    assert_eq!(
+        report.registry.render_pass_executors()[0]
+            .executor_id()
+            .as_str(),
+        "weather.volumetric-clouds"
+    );
+    assert_eq!(
+        report.registry.virtual_geometry_runtime_providers()[0].provider_id(),
+        "weather.virtual_geometry"
     );
 }
 
@@ -227,7 +304,49 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             history_bindings: Vec::new(),
             stage_passes: Vec::new(),
         })?;
+        registry.register_render_pass_executor(RenderPassExecutorRegistration::new(
+            "weather.volumetric-clouds",
+            weather_render_executor,
+        ))?;
+        registry.register_virtual_geometry_runtime_provider(
+            VirtualGeometryRuntimeProviderRegistration::new(
+                "weather.virtual_geometry",
+                std::sync::Arc::new(NoopVirtualGeometryRuntimeProvider),
+            ),
+        )?;
         Ok(())
+    }
+}
+
+fn weather_render_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
+}
+
+#[derive(Debug)]
+struct NoopVirtualGeometryRuntimeProvider;
+
+impl VirtualGeometryRuntimeProvider for NoopVirtualGeometryRuntimeProvider {
+    fn create_state(&self) -> Box<dyn VirtualGeometryRuntimeState> {
+        Box::new(NoopVirtualGeometryRuntimeState)
+    }
+}
+
+#[derive(Debug)]
+struct NoopVirtualGeometryRuntimeState;
+
+impl VirtualGeometryRuntimeState for NoopVirtualGeometryRuntimeState {
+    fn prepare_frame(
+        &mut self,
+        _input: VirtualGeometryRuntimePrepareInput<'_>,
+    ) -> VirtualGeometryRuntimePrepareOutput {
+        VirtualGeometryRuntimePrepareOutput::default()
+    }
+
+    fn update_after_render(
+        &mut self,
+        _feedback: VirtualGeometryRuntimeFeedback,
+    ) -> VirtualGeometryRuntimeUpdate {
+        VirtualGeometryRuntimeUpdate::default()
     }
 }
 

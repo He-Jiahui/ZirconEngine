@@ -23,6 +23,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
@@ -64,6 +65,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
@@ -98,6 +100,7 @@ plan_sources:
   - user: 2026-04-21 继续推进 M1，把 .font.toml 接进正式 asset/resource/importer 主链，并让 UI loader 复用公共 FontAsset
   - user: 2026-04-21 继续推进 M1，让项目内 res:// 字体资产通过 ProjectAssetManager 进入 runtime UI 文本链路
   - user: 2026-04-28 继续文本的 SDF 渲染和排版能力任务
+  - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
 tests:
@@ -118,6 +121,7 @@ tests:
   - cargo test -p zircon_runtime screen_space_ui_plan_keeps_auto_text_in_a_separate_batch
   - cargo test -p zircon_runtime --lib screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1
+  - cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1
   - cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1
   - cargo test -p zircon_runtime --lib text_backend_routing --locked --jobs 1
   - cargo test -p zircon_runtime auto_text_mode_uses_font_asset_default_when_present
@@ -315,14 +319,14 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 - 按 key-sorted glyph set 为每个 atlas slot 分配稳定 `SdfAtlasRect`，小批次从 256x256 texture 起步，超过默认网格后按 power-of-two grid 扩容
 - 为每个 SDF text batch 生成 glyph slot index run；空白字符保留 advance 但不分配 atlas slot，让 GPU SDF renderer 可以从同一个 plan 生成 textured glyph quads 而不会画出可见空格
 
-[`ScreenSpaceUiSdfRenderer`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 是当前 SDF 可见输出路径。`ScreenSpaceUiTextSystem::prepare` 会先把 `Auto` batch 解析到 native/sdf，再把 resolved SDF batches 同步交给 `ScreenSpaceUiSdfAtlas::prepare(...)`，随后由 SDF renderer 上传 `R8Unorm` atlas texture、生成 screen-space glyph quads，并在 UI render pass 中绑定 SDF pipeline 绘制。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；native glyphon backend 不再接收 SDF batch，因此替换 shader path 不会污染普通文本 atlas。
+[`ScreenSpaceUiSdfRenderer`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 是当前 SDF 可见输出路径。`ScreenSpaceUiTextSystem::prepare` 会先把 `Auto` batch 解析到 native/sdf，再把 resolved SDF batches 同步交给 `ScreenSpaceUiSdfAtlas::prepare(...)`，随后由 SDF renderer 调用 renderer-local [`SdfFontBakeCache`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 生成字体轮廓 atlas、上传 `R8Unorm` atlas texture、生成 screen-space glyph quads，并在 UI render pass 中绑定 SDF pipeline 绘制。SDF quad planning 会同时受真实 glyph metrics、advance、bearing、text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；native glyphon backend 不再接收 SDF batch，因此替换 shader path 不会污染普通文本 atlas。
 
-当前 GPU SDF path 先落的是 renderer ownership 和 shader submission 闭环：CPU atlas mask 仍是最小占位 SDF mask，用来固定 texture/bind group/quad/UV/clip 合同；后续真实字体轮廓 SDF bake 可以替换 atlas mask 生成，不需要再改 shared template metadata、render extract DTO 或 native/SDF routing。
+真实字体 bake 被局部封装在 `scene_renderer::ui` 内：`SdfFontBakeCache` 通过既有 `.font.toml` manifest 解析字体源，缓存 `fontsdf::Font`，按 `SdfAtlasGlyphKey` 为非空白 glyph bake 单通道 SDF alpha，并把 bitmap 尺寸、bearing、ascent 与 advance 交回 draw planner。whitespace 不写 atlas slot，只通过字体 metrics 保留 advance；missing glyph 使用稳定空可见输出和保守 advance，避免把未知字符退回旧的整块占位 mask。这保持了 shared template metadata、`UiRenderExtract` DTO、RHI、render graph 和 render plugin 边界不变。
 
 这一轮还补了一条 capture 级回归：[runtime_ui_text_render_contract.rs](/E:/Git/ZirconEngine/zircon_runtime/tests/runtime_ui_text_render_contract.rs)。它不再只看 planner/batch 统计，而是直接通过 `RenderFramework::submit_frame_extract_with_ui(...) -> capture_frame(...)` 证明：
 
 - `UiTextRenderMode::Native` 会产出真实 glyph footprint，而不是整块文本占位带
-- `UiTextRenderMode::Sdf` 也会沿同一条 runtime UI 提交链产出 glyph 像素，并且 centered SDF 文本会留下左右暗边距而不是退回左对齐/full-width 占位带
+- `UiTextRenderMode::Sdf` 也会沿同一条 runtime UI 提交链产出真实字体轮廓像素；`AIO` 这类测试文本会相对 background-only frame 留下稀疏 glyph delta，而不是退回整块占位带
 - `clip_frame` 会继续约束文本采样区域，不会沿整条文本带泄漏
 - `wrap = "word"` 会把 glyph footprint 实际分配到多行，而不是仍然挤成单条占位带
 - `opacity` 会继续进入 glyph 颜色/采样链路，capture frame 上能看到稳定的可见变暗，而不是只停留在 shared command 元数据里
@@ -422,8 +426,10 @@ M1 这里再补了一条最小默认策略：
   - 证明 graphics planner 会把 extract 阶段的 resolved text lines 分别送进 text batch，而不是重新用整段文本和节点 frame 排版
 - `cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1`
   - 证明 SDF atlas/cache owner 会按 glyph + font asset + family + size 生成稳定 slot key，跨 batch 去重，按 key 分配稳定 atlas rect，空白只保留 advance 不分配 slot，并在下一帧 prepare 时替换旧 plan
+- `cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-sdf-font-bake --message-format short --color never`
+  - 2026-05-01 fresh focused SDF bake suite 通过 4 passed / 0 failed；证明 renderer-local `fontsdf` bake 会为 `A`、`I`、`O` 生成不同 alpha pattern，输出不等于旧 rounded-rect placeholder，whitespace 只保留 advance，不可见/missing glyph 策略稳定不 panic
 - `cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`
-  - 2026-04-29 fresh focused SDF draw-plan suite 通过 5 passed / 0 failed；证明 GPU SDF renderer 会从 atlas plan 生成每个可见 glyph 的 textured quad，上传 atlas alpha mask，并按 text frame、`text_align`、clip frame 和 viewport 计算 position/uv
+  - 2026-04-29 fresh focused SDF draw-plan suite 通过 5 passed / 0 failed；后续真实 bake slice 保持同一测试面通过，证明 GPU SDF renderer 会从 atlas plan 和真实 glyph metrics 生成每个可见 glyph 的 textured quad，上传 atlas alpha mask，并按 text frame、`text_align`、clip frame 和 viewport 计算 position/uv
 - `cargo test -p zircon_runtime --lib text_backend_routing --locked --jobs 1`
   - 证明 SDF routing contract 不会把普通 native 文本送进 SDF atlas input，`Auto` 解析成 native/sdf 后也不会跨 backend 混用
 - `cargo test -p zircon_runtime auto_text_mode_uses_font_asset_default_when_present`
@@ -440,6 +446,8 @@ M1 这里再补了一条最小默认策略：
   - 证明当前打开项目里的 `res://fonts/project.font.toml` 会优先经 `ProjectAssetManager` 解析，并把 `project.ttf` 当成字体 source auxiliary，而不是把项目 scan 过程炸成 unsupported format
 - `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`
   - 2026-04-29 fresh capture contract 通过 7 passed / 0 failed；证明 runtime UI 文本在最终 capture frame 上已经是 glyph 输出而不是矩形占位，并同时覆盖 `Native`、centered `Sdf` side margins、clip-bound glyph sampling、多行 wrap、opacity dimming，以及正式 `.ui.toml -> compiled surface -> render extract` 链上的 wrap/opacity glyph capture
+- `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-sdf-font-bake --message-format short --color never -- --test-threads=1 --nocapture`
+  - 2026-05-01 fresh capture contract 通过 8 passed / 0 failed；新增 SDF/background delta 证明真实 bake 后的 `AIO` glyph footprint 保持稀疏，且不再是旧 placeholder block
 - `cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked`
   - 证明 runtime fixture 仍走 shared compiler，而不是 runtime-only 特例解析
 - `cargo check -p zircon_editor --lib --locked`

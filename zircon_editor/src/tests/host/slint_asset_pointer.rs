@@ -16,8 +16,8 @@ use crate::ui::slint_host::callback_dispatch::{
     BuiltinAssetSurfaceTemplateBridge,
 };
 use zircon_runtime::asset::project::PreviewState;
-use zircon_runtime::core::resource::ResourceKind;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::resource::ResourceKind;
+use zircon_runtime_interface::ui::{
     binding::UiBindingValue, binding::UiEventKind, layout::UiPoint, layout::UiSize,
 };
 
@@ -245,12 +245,16 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         .expect("host globals");
     let wiring = std::fs::read_to_string(root.join("src/ui/slint_host/app/callback_wiring.rs"))
         .expect("callback wiring");
-    let controls = std::fs::read_to_string(root.join("assets/ui/editor/host/asset_surface_controls.ui.toml"))
-        .expect("asset controls asset");
+    let controls =
+        std::fs::read_to_string(root.join("assets/ui/editor/host/asset_surface_controls.ui.toml"))
+            .expect("asset controls asset");
 
     for needle in ["on_asset_control_changed", "on_asset_control_clicked"] {
         assert!(globals.contains(needle), "host globals missing `{needle}`");
-        assert!(wiring.contains(needle), "callback wiring missing `{needle}`");
+        assert!(
+            wiring.contains(needle),
+            "callback wiring missing `{needle}`"
+        );
     }
     for needle in [
         "SearchEdited",
@@ -261,7 +265,10 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
         "LocateSelectedAsset",
         "ImportModel",
     ] {
-        assert!(controls.contains(needle), "asset controls TOML missing `{needle}`");
+        assert!(
+            controls.contains(needle),
+            "asset controls TOML missing `{needle}`"
+        );
     }
 }
 
@@ -281,17 +288,21 @@ fn asset_surface_templates_expose_physics_and_animation_kind_filters() {
         "AnimationGraph",
         "AnimationStateMachine",
     ] {
-        assert!(projection.contains(kind), "asset kind projection missing `{kind}`");
+        assert!(
+            projection.contains(kind),
+            "asset kind projection missing `{kind}`"
+        );
     }
 }
 
 #[test]
 fn asset_surface_templates_map_no_preview_physics_and_animation_assets_to_specific_icons() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    let sequence_descriptor = std::fs::read_to_string(
-        root.join("src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs"),
-    )
-    .expect("animation sequence descriptor");
+    let sequence_descriptor =
+        std::fs::read_to_string(root.join(
+            "src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs",
+        ))
+        .expect("animation sequence descriptor");
     let graph_descriptor = std::fs::read_to_string(
         root.join("src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs"),
     )

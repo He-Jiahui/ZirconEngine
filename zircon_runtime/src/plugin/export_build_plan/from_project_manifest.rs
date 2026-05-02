@@ -31,6 +31,7 @@ impl ExportBuildPlan {
             .iter()
             .filter(|selection| {
                 selection.runtime_crate.is_some()
+                    && !selection.is_runtime_builtin_domain()
                     && selection.packaging != ExportPackagingStrategy::NativeDynamic
                     && profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
             })
@@ -43,6 +44,7 @@ impl ExportBuildPlan {
         let mut native_dynamic_diagnostics = Vec::new();
         for selection in enabled_plugins.iter().filter(|selection| {
             selection.packaging == ExportPackagingStrategy::NativeDynamic
+                && !selection.is_runtime_builtin_domain()
                 && profile.uses_strategy(ExportPackagingStrategy::NativeDynamic)
         }) {
             if !native_dynamic_package_ids.insert(selection.id.clone()) {
@@ -76,7 +78,8 @@ impl ExportBuildPlan {
             enabled_plugins
                 .iter()
                 .filter(|selection| {
-                    selection.packaging != ExportPackagingStrategy::NativeDynamic
+                    !selection.is_runtime_builtin_domain()
+                        && selection.packaging != ExportPackagingStrategy::NativeDynamic
                         && !profile.uses_strategy(ExportPackagingStrategy::LibraryEmbed)
                         && !profile.uses_strategy(ExportPackagingStrategy::SourceTemplate)
                 })

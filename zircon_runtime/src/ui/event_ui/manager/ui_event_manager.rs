@@ -2,11 +2,11 @@ use std::collections::BTreeMap;
 
 use crossbeam_channel::Sender;
 
-use super::super::{
+use super::route_entry::RouteEntry;
+use zircon_runtime_interface::ui::event_ui::{
     UiNodeId, UiNodePath, UiNotification, UiReflectionSnapshot, UiRouteId, UiSubscriptionId,
     UiTreeId,
 };
-use super::route_entry::RouteEntry;
 
 #[derive(Default)]
 pub struct UiEventManager {

@@ -1,6 +1,5 @@
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
@@ -15,7 +14,7 @@ impl SceneRendererCore {
         target: &mut OffscreenTarget,
         frame: &ViewportRenderFrame,
         runtime_features: SceneRuntimeFeatureFlags,
-        hybrid_gi_scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
+        _hybrid_gi_scene_prepare_resources: Option<()>,
         history_textures: Option<&SceneFrameHistoryTextures>,
         history_available: bool,
     ) {
@@ -68,7 +67,6 @@ impl SceneRendererCore {
             &target.cluster_buffer,
             frame,
             runtime_features,
-            hybrid_gi_scene_prepare_resources,
             history_available,
         );
     }

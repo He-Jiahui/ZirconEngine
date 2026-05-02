@@ -3,8 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::core::resource::identity::{stable_uuid_from_components, AssetUuid};
-use crate::core::resource::{ResourceLocator, ResourceScheme};
+use super::{stable_uuid_from_components, AssetUuid, ResourceLocator, ResourceScheme};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct ResourceId(Uuid);

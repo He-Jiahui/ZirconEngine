@@ -1,6 +1,6 @@
-use crate::ui::event_ui::UiStateFlags;
-use crate::ui::template::UiTemplateNode;
-use crate::ui::tree::UiInputPolicy;
+use zircon_runtime_interface::ui::event_ui::UiStateFlags;
+use zircon_runtime_interface::ui::template::UiTemplateNode;
+use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
 pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInputPolicy) {
     let is_interactive = !node.bindings.is_empty()

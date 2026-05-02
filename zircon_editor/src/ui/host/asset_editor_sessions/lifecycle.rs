@@ -20,7 +20,13 @@ impl EditorUiHost {
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
-        Ok(entry.session.reflection_model())
+        let mut reflection = entry.session.reflection_model();
+        reflection = reflection.with_workspace_state(
+            entry.has_external_conflict(),
+            entry.external_conflict_summary(),
+            entry.stale_import_items(),
+        );
+        Ok(reflection)
     }
 
     pub fn ui_asset_editor_pane_presentation(
@@ -32,7 +38,14 @@ impl EditorUiHost {
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
-        Ok(entry.session.pane_presentation())
+        let mut pane = entry.session.pane_presentation();
+        pane.has_external_conflict = entry.has_external_conflict();
+        pane.external_conflict_summary = entry.external_conflict_summary();
+        pane.stale_import_items = entry.stale_import_items();
+        pane.can_reload_from_disk = pane.has_external_conflict;
+        pane.can_keep_local_and_save = pane.has_external_conflict;
+        pane.can_open_diff_snapshot = pane.has_external_conflict;
+        Ok(pane)
     }
 
     pub fn open_ui_asset_editor_selected_reference(
@@ -101,14 +114,11 @@ impl EditorUiHost {
         let source = fs::read_to_string(&source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let preview_size = preview_size_for_preset(route.preview_preset);
-        let session = UiAssetEditorSession::from_source(route, source, preview_size)
+        let session = UiAssetEditorSession::from_source(route, source.clone(), preview_size)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         self.ui_asset_sessions.lock().unwrap().insert(
             instance.instance_id.clone(),
-            UiAssetWorkspaceEntry {
-                source_path,
-                session,
-            },
+            UiAssetWorkspaceEntry::new(source_path, source, session),
         );
         self.hydrate_ui_asset_editor_imports(&instance.instance_id)?;
         self.sync_ui_asset_editor_instance(&instance.instance_id)

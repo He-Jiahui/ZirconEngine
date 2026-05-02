@@ -19,18 +19,13 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
 ) -> Result<(), RenderFrameworkError> {
     let context =
         build_frame_submission_context(server, viewport, &frame.extract, frame.ui.as_ref())?;
-    let prepared = prepare_runtime_submission(&context);
-
     let mut state = server.state.lock().unwrap();
+    let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
-    let runtime_frame = frame
-        .with_hybrid_gi_prepare(prepared.hybrid_gi_prepare().cloned())
-        .with_hybrid_gi_resolve_runtime(prepared.hybrid_gi_resolve_runtime().cloned())
-        .with_virtual_geometry_prepare(prepared.virtual_geometry_prepare().cloned());
     let frame = state
         .renderer
         .render_frame_with_pipeline(
-            &runtime_frame,
+            &frame,
             context.compiled_pipeline(),
             resolved_history.current_history_handle(),
         )

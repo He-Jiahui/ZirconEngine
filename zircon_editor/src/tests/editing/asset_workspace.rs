@@ -3,7 +3,7 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetFolderRecord, EditorAssetReferenceRecord,
 };
 use zircon_runtime::asset::project::PreviewState;
-use zircon_runtime::core::resource::{
+use zircon_runtime_interface::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
 };
 

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::{

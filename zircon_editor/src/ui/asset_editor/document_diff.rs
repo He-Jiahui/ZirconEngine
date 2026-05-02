@@ -1,4 +1,4 @@
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(super) struct UiAssetDocumentDiff {
@@ -29,9 +29,9 @@ mod tests {
     use std::collections::BTreeMap;
 
     use toml::Value;
-    use zircon_runtime::ui::template::{
-        UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind, UiNodeDefinition,
-        UiNodeDefinitionKind,
+    use zircon_runtime_interface::ui::template::{
+        UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind, UiChildMount,
+        UiNodeDefinition, UiNodeDefinitionKind,
     };
 
     use super::UiAssetDocumentDiff;
@@ -74,6 +74,7 @@ mod tests {
                 widget_type: Some("VerticalBox".to_string()),
                 component: None,
                 component_ref: None,
+                component_api_version: None,
                 slot_name: None,
                 control_id: Some("Root".to_string()),
                 classes: Vec::new(),
@@ -82,7 +83,7 @@ mod tests {
                 layout: None,
                 bindings: Vec::new(),
                 style_overrides: Default::default(),
-                children: vec![zircon_runtime::ui::template::UiChildMount {
+                children: vec![UiChildMount {
                     mount: None,
                     slot: BTreeMap::new(),
                     node: UiNodeDefinition {
@@ -91,6 +92,7 @@ mod tests {
                         widget_type: Some("Label".to_string()),
                         component: None,
                         component_ref: None,
+                        component_api_version: None,
                         slot_name: None,
                         control_id: Some("Status".to_string()),
                         classes: Vec::new(),

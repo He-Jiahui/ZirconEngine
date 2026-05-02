@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::ui::template::{EditorTemplateAdapter, EditorTemplateRegistry};
 use zircon_runtime::ui::template::UiTemplateInstance;
-use zircon_runtime::ui::template::UiTemplateNode;
-use zircon_runtime::ui::{surface::UiSurface, tree::UiTree};
+use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, template::UiTemplateNode, tree::UiTree};
 
 use crate::ui::template_runtime::{
     SlintUiBindingProjection, SlintUiHostBindingProjection, SlintUiHostModel,
@@ -152,7 +152,7 @@ fn collect_host_nodes(
 
 fn collect_surface_host_nodes(
     tree: &UiTree,
-    node_id: zircon_runtime::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
     bindings: &BTreeMap<String, SlintUiBindingProjection>,
     host_nodes: &mut Vec<SlintUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {

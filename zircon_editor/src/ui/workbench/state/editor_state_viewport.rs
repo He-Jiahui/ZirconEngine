@@ -1,4 +1,4 @@
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::scene::viewport::ViewportFeedback;
@@ -84,22 +84,22 @@ impl EditorState {
     pub fn apply_viewport_command(&mut self, command: &ViewportCommand) -> ViewportFeedback {
         match command {
             ViewportCommand::PointerMoved { x, y } => self.handle_viewport_input(
-                ViewportInput::PointerMoved(zircon_runtime::core::math::Vec2::new(*x, *y)),
+                ViewportInput::PointerMoved(zircon_runtime_interface::math::Vec2::new(*x, *y)),
             ),
             ViewportCommand::LeftPressed { x, y } => self.handle_viewport_input(
-                ViewportInput::LeftPressed(zircon_runtime::core::math::Vec2::new(*x, *y)),
+                ViewportInput::LeftPressed(zircon_runtime_interface::math::Vec2::new(*x, *y)),
             ),
             ViewportCommand::LeftReleased => {
                 self.handle_viewport_input(ViewportInput::LeftReleased)
             }
             ViewportCommand::RightPressed { x, y } => self.handle_viewport_input(
-                ViewportInput::RightPressed(zircon_runtime::core::math::Vec2::new(*x, *y)),
+                ViewportInput::RightPressed(zircon_runtime_interface::math::Vec2::new(*x, *y)),
             ),
             ViewportCommand::RightReleased => {
                 self.handle_viewport_input(ViewportInput::RightReleased)
             }
             ViewportCommand::MiddlePressed { x, y } => self.handle_viewport_input(
-                ViewportInput::MiddlePressed(zircon_runtime::core::math::Vec2::new(*x, *y)),
+                ViewportInput::MiddlePressed(zircon_runtime_interface::math::Vec2::new(*x, *y)),
             ),
             ViewportCommand::MiddleReleased => {
                 self.handle_viewport_input(ViewportInput::MiddleReleased)

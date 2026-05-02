@@ -1,4 +1,5 @@
 pub(crate) mod builtin;
+pub(crate) mod component_adapter;
 mod harness;
 mod host_nodes;
 mod model;

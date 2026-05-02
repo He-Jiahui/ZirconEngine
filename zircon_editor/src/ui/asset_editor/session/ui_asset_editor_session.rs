@@ -1,22 +1,23 @@
 use crate::ui::asset_editor::{
-    UiAssetEditorRoute, UiDesignerSelectionModel, UiStyleInspectorReflectionModel,
+    UiAssetEditorDiagnostic, UiAssetEditorRoute, UiDesignerSelectionModel,
+    UiStyleInspectorReflectionModel,
 };
 use thiserror::Error;
-use zircon_runtime::ui::template::{UiAssetError, UiCompiledDocument, UiTemplateBuildError};
-use zircon_runtime::ui::tree::UiTreeError;
-use zircon_runtime::ui::{template::UiAssetDocument, template::UiAssetKind};
+use zircon_runtime::ui::template::{UiCompiledDocument, UiTemplateBuildError};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
+use zircon_runtime_interface::ui::tree::UiTreeError;
 
 use super::{
     command::UiAssetEditorTreeEdit,
     hierarchy_projection::selection_for_node,
+    palette::PaletteInsertMode,
     palette_target_chooser::UiAssetPaletteTargetChooser,
     preview_host::UiAssetPreviewHost,
     preview_mock::UiAssetPreviewMockState,
     session_state::UiAssetCompilerImports,
     source_buffer::UiAssetSourceBuffer,
     tree_editing::{
-        unwrap_selected_node, wrap_selected_node, PaletteInsertMode, UiTreeMoveDirection,
-        UiTreeReparentDirection,
+        unwrap_selected_node, wrap_selected_node, UiTreeMoveDirection, UiTreeReparentDirection,
     },
     undo_stack::{UiAssetEditorExternalEffect, UiAssetEditorUndoStack},
 };
@@ -82,6 +83,7 @@ pub struct UiAssetEditorSession {
     pub(super) preview_host: Option<UiAssetPreviewHost>,
     pub(super) undo_stack: UiAssetEditorUndoStack,
     pub(super) diagnostics: Vec<String>,
+    pub(super) structured_diagnostics: Vec<UiAssetEditorDiagnostic>,
     pub(super) source_cursor_byte_offset: usize,
     pub(super) source_cursor_anchor: Option<UiAssetSourceCursorAnchor>,
     pub(super) selection: UiDesignerSelectionModel,

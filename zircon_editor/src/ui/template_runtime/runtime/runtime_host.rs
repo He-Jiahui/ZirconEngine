@@ -6,15 +6,18 @@ use crate::ui::template::{
     EditorTemplateRegistry,
 };
 use thiserror::Error;
-use zircon_runtime::ui::template::{
-    UiAssetError, UiAssetLoader, UiTemplateBuildError, UiTemplateSurfaceBuilder,
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime::ui::template::{UiAssetLoader, UiTemplateBuildError, UiTemplateSurfaceBuilder};
+use zircon_runtime_interface::ui::{
+    event_ui::UiTreeId,
+    template::{UiAssetDocument, UiAssetError},
 };
-use zircon_runtime::ui::{event_ui::UiTreeId, surface::UiSurface, template::UiAssetDocument};
 
 use crate::ui::template_runtime::{
     SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,
     UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
 };
+use zircon_runtime_interface::ui::component::UiComponentAdapterResult;
 
 use super::{
     build_session::{compile_template_document_file, load_builtin_host_templates},
@@ -134,8 +137,16 @@ impl EditorUiHostRuntime {
         &mut self,
         binding: &EditorUiBinding,
         input: UiComponentShowcaseDemoEventInput,
-    ) -> Result<(), UiComponentShowcaseDemoError> {
-        self.showcase_demo_state.apply_binding(binding, input)
+    ) -> Result<UiComponentAdapterResult, UiComponentShowcaseDemoError> {
+        crate::ui::template_runtime::component_adapter::showcase::apply_showcase_component_binding(
+            &mut self.showcase_demo_state,
+            binding,
+            input,
+        )
+    }
+
+    pub(crate) fn showcase_demo_value_i64(&self, control_id: &str, property: &str) -> Option<i64> {
+        self.showcase_demo_state.value_i64(control_id, property)
     }
 
     pub fn project_document(

@@ -1,5 +1,5 @@
 use crate::scene::viewport::{ProjectionMode, ViewportCameraSnapshot};
-use zircon_runtime::core::math::{UVec2, Vec2, Vec3};
+use zircon_runtime_interface::math::{UVec2, Vec2, Vec3};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) struct ScreenProjection {
@@ -15,7 +15,7 @@ pub(crate) fn projected_point(
     let viewport = UVec2::new(viewport.x.max(1), viewport.y.max(1));
     let aspect = viewport.x as f32 / viewport.y.max(1) as f32;
     let projection = match camera.projection_mode {
-        ProjectionMode::Perspective => zircon_runtime::core::math::perspective(
+        ProjectionMode::Perspective => zircon_runtime_interface::math::perspective(
             camera.fov_y_radians,
             aspect,
             camera.z_near,
@@ -24,7 +24,7 @@ pub(crate) fn projected_point(
         ProjectionMode::Orthographic => {
             let half_height = camera.ortho_size.max(0.01);
             let half_width = half_height * aspect.max(0.001);
-            zircon_runtime::core::math::Mat4::orthographic_rh(
+            zircon_runtime_interface::math::Mat4::orthographic_rh(
                 -half_width,
                 half_width,
                 -half_height,
@@ -34,8 +34,9 @@ pub(crate) fn projected_point(
             )
         }
     };
-    let clip =
-        projection * zircon_runtime::core::math::view_matrix(camera.transform) * world.extend(1.0);
+    let clip = projection
+        * zircon_runtime_interface::math::view_matrix(camera.transform)
+        * world.extend(1.0);
     if clip.w <= f32::EPSILON {
         return None;
     }

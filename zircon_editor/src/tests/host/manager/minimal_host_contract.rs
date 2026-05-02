@@ -735,11 +735,11 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
     );
     manifest.plugins.selections.push(
         zircon_runtime::ProjectPluginSelection::runtime_plugin(
-            zircon_runtime::RuntimePluginId::Physics,
+            zircon_runtime::RuntimePluginId::Sound,
             true,
             false,
         )
-        .with_runtime_crate("zircon_plugin_physics_runtime"),
+        .with_runtime_crate("zircon_plugin_sound_runtime"),
     );
     manifest.export_profiles = vec![zircon_runtime::ExportProfile::new(
         "native-only",
@@ -757,7 +757,7 @@ fn export_build_report_includes_plan_diagnostics_when_no_files_are_generated() {
     assert!(report
         .diagnostics
         .iter()
-        .any(|message| message.contains("physics") && message.contains("LibraryEmbed")));
+        .any(|message| message.contains("sound") && message.contains("LibraryEmbed")));
     assert!(report
         .diagnostics
         .iter()

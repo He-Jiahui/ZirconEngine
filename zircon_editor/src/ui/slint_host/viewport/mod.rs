@@ -15,5 +15,6 @@ mod tests;
 mod viewport_state;
 mod viewport_state_drop;
 mod viewport_state_ensure_viewport;
+mod world_space_ui;
 
 pub(crate) use slint_viewport_controller::SlintViewportController;

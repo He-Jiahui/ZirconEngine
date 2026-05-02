@@ -1,18 +1,11 @@
 use super::scene_renderer_advanced_plugin_outputs::SceneRendererAdvancedPluginOutputs;
+use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::scene::scene_renderer::core::scene_renderer::{
     VirtualGeometryCullOutputUpdate, VirtualGeometryIndirectOutputUpdate,
     VirtualGeometryLastOutputUpdate, VirtualGeometryRenderPathOutputUpdate,
 };
-use crate::graphics::scene::scene_renderer::{HybridGiGpuReadback, VirtualGeometryGpuReadback};
 
 impl SceneRendererAdvancedPluginOutputs {
-    pub(in crate::graphics::scene::scene_renderer::core) fn store_hybrid_gi_gpu_readback(
-        &mut self,
-        readback: Option<HybridGiGpuReadback>,
-    ) {
-        self.hybrid_gi_readback_mut().store_gpu_readback(readback);
-    }
-
     pub(in crate::graphics::scene::scene_renderer::core) fn store_virtual_geometry_last_outputs(
         &mut self,
         update: VirtualGeometryLastOutputUpdate,
@@ -26,14 +19,6 @@ impl SceneRendererAdvancedPluginOutputs {
         self.store_virtual_geometry_cull_outputs(node_and_cluster_cull);
         self.store_virtual_geometry_render_path_outputs(render_path);
         self.store_virtual_geometry_indirect_outputs(indirect);
-    }
-
-    pub(in crate::graphics::scene::scene_renderer::core) fn store_virtual_geometry_gpu_readback(
-        &mut self,
-        readback: Option<VirtualGeometryGpuReadback>,
-    ) {
-        self.virtual_geometry_readback_mut()
-            .store_gpu_readback(readback);
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn store_virtual_geometry_cull_outputs(
@@ -55,5 +40,41 @@ impl SceneRendererAdvancedPluginOutputs {
         update: VirtualGeometryIndirectOutputUpdate,
     ) {
         self.virtual_geometry_indirect_mut().store(update);
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn store_plugin_renderer_outputs(
+        &mut self,
+        outputs: RenderPluginRendererOutputs,
+    ) {
+        *self.plugin_renderer_outputs_mut() = outputs;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{
+        RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
+        RenderVirtualGeometryReadbackOutputs,
+    };
+
+    #[test]
+    fn stores_neutral_plugin_renderer_outputs() {
+        let mut outputs = SceneRendererAdvancedPluginOutputs::default();
+        let plugin_outputs = RenderPluginRendererOutputs {
+            virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                page_table_entries: vec![1, 2, 3],
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+            hybrid_gi: RenderHybridGiReadbackOutputs {
+                completed_probe_ids: vec![7, 9],
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+        };
+
+        outputs.store_plugin_renderer_outputs(plugin_outputs.clone());
+
+        assert_eq!(outputs.plugin_renderer_outputs(), &plugin_outputs);
+        assert!(outputs.has_virtual_geometry_gpu_readback());
     }
 }

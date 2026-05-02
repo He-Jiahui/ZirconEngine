@@ -1,3 +1,3 @@
-use zircon_runtime::ui::binding::UiEventKind;
+use zircon_runtime_interface::ui::binding::UiEventKind;
 
 pub type EditorUiEventKind = UiEventKind;

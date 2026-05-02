@@ -1,7 +1,10 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetPreviewPreset};
-use zircon_runtime::ui::{
+use zircon_runtime::ui::template::{
+    collect_asset_binding_report, component_contract_diagnostic, UiAssetLoader, UiDocumentCompiler,
+};
+use zircon_runtime_interface::ui::{
     layout::UiSize,
     template::{UiAssetDocument, UiAssetError, UiAssetKind},
 };
@@ -12,6 +15,7 @@ use super::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorInverseTreeEdit, UiAssetEditorTreeEdit,
         UiAssetEditorTreeEditKind,
     },
+    diagnostics::{map_binding_diagnostic, map_component_contract_diagnostic},
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group, reconcile_selected_semantic_path,
     },
@@ -31,13 +35,13 @@ use super::{
         reconcile_selected_style_token_name,
     },
     theme_summary::reconcile_selected_theme_source_key,
-    tree_editing::build_palette_entries,
     ui_asset_editor_session::{
         serialize_document, UiAssetEditorSession, UiAssetEditorSessionError,
         UiAssetSourceCursorAnchor,
     },
     undo_stack::UiAssetEditorExternalEffect,
 };
+use crate::ui::asset_editor::palette::build_palette_entries;
 
 impl UiAssetEditorSession {
     pub fn from_source(
@@ -86,10 +90,14 @@ impl UiAssetEditorSession {
                         &document.asset.display_name,
                     )
                 });
-        let (last_valid_compiled, preview_host, diagnostics) =
+        let (last_valid_compiled, preview_host, diagnostics, structured_diagnostics) =
             match compile_preview(&document, preview_size, &compiler_imports) {
-                Ok((compiled, preview_host)) => (compiled, preview_host, Vec::new()),
-                Err(error) => (None, None, vec![error.to_string()]),
+                Ok((compiled, preview_host)) => (compiled, preview_host, Vec::new(), Vec::new()),
+                Err(error) => {
+                    let structured_diagnostics =
+                        structured_compile_diagnostics(&document, &compiler_imports);
+                    (None, None, vec![error.to_string()], structured_diagnostics)
+                }
             };
         Ok(Self {
             route,
@@ -100,6 +108,7 @@ impl UiAssetEditorSession {
             preview_host,
             undo_stack: super::undo_stack::UiAssetEditorUndoStack::default(),
             diagnostics,
+            structured_diagnostics,
             source_cursor_byte_offset,
             source_cursor_anchor,
             selection,
@@ -166,6 +175,10 @@ impl UiAssetEditorSession {
 
     pub fn diagnostics(&self) -> &[String] {
         &self.diagnostics
+    }
+
+    pub fn structured_diagnostics(&self) -> &[crate::ui::asset_editor::UiAssetEditorDiagnostic] {
+        &self.structured_diagnostics
     }
 
     pub fn can_undo(&self) -> bool {
@@ -371,6 +384,7 @@ impl UiAssetEditorSession {
             Ok(document) => self.apply_valid_document(document),
             Err(error) => {
                 self.diagnostics = vec![error.to_string()];
+                self.structured_diagnostics.clear();
                 Ok(())
             }
         }
@@ -466,9 +480,14 @@ impl UiAssetEditorSession {
                 self.last_valid_compiled = compiled;
                 self.preview_host = preview_host;
                 self.diagnostics.clear();
+                self.structured_diagnostics.clear();
             }
             Err(error) => {
                 self.diagnostics = vec![error.to_string()];
+                self.structured_diagnostics = structured_compile_diagnostics(
+                    &self.last_valid_document,
+                    &self.compiler_imports,
+                );
             }
         }
         Ok(())
@@ -488,7 +507,7 @@ impl UiAssetEditorSession {
         Ok(
             toml::to_string_pretty(&self.last_valid_document).map_err(|error| {
                 super::ui_asset_editor_session::UiAssetEditorSessionError::Asset(
-                    zircon_runtime::ui::template::UiAssetError::ParseToml(error.to_string()),
+                    UiAssetError::ParseToml(error.to_string()),
                 )
             })?,
         )
@@ -503,7 +522,7 @@ impl UiAssetEditorSession {
 }
 
 pub(super) fn parse_ui_asset_source(source: &str) -> Result<UiAssetDocument, UiAssetError> {
-    zircon_runtime::ui::template::UiAssetLoader::load_toml_str(source).or_else(|error| {
+    UiAssetLoader::load_toml_str(source).or_else(|error| {
         #[cfg(test)]
         {
             crate::tests::support::load_test_ui_asset(source).or(Err(error))
@@ -520,5 +539,32 @@ fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> O
         (_, 0) => None,
         (Some(index), count) => Some(index.min(count - 1)),
         (None, _) => None,
+    }
+}
+
+fn structured_compile_diagnostics(
+    document: &UiAssetDocument,
+    imports: &UiAssetCompilerImports,
+) -> Vec<crate::ui::asset_editor::UiAssetEditorDiagnostic> {
+    let mut diagnostics = structured_contract_diagnostics(document, imports);
+    diagnostics.extend(
+        collect_asset_binding_report(document, UiDocumentCompiler::default().component_registry())
+            .diagnostics
+            .into_iter()
+            .map(map_binding_diagnostic),
+    );
+    diagnostics
+}
+
+fn structured_contract_diagnostics(
+    document: &UiAssetDocument,
+    imports: &UiAssetCompilerImports,
+) -> Vec<crate::ui::asset_editor::UiAssetEditorDiagnostic> {
+    match component_contract_diagnostic(document, &imports.widgets, &imports.styles) {
+        Ok(diagnostic) => diagnostic
+            .into_iter()
+            .map(map_component_contract_diagnostic)
+            .collect(),
+        Err(_) => Vec::new(),
     }
 }

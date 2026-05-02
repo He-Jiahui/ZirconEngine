@@ -1,5 +1,6 @@
 use crate::ui::asset_editor::{UiAssetEditorReflectionModel, UiDesignerSelectionModel};
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 pub(super) fn selection_summary(selection: &UiDesignerSelectionModel) -> String {
     let primary = selection
@@ -70,6 +71,12 @@ pub(super) fn build_inspector_items(reflection: &UiAssetEditorReflectionModel) -
         ));
     }
     items
+}
+
+pub(super) fn build_component_contract_items(root_class_policy: Option<&str>) -> Vec<String> {
+    root_class_policy
+        .map(|policy| vec![format!("root class policy: {policy}")])
+        .unwrap_or_default()
 }
 
 pub(super) fn selected_hierarchy_index(

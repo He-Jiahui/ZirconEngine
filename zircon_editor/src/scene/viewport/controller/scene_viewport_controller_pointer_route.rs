@@ -1,8 +1,8 @@
 use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::ViewportCameraSnapshot;
-use zircon_runtime::core::math::Vec2;
 use zircon_runtime::scene::Scene;
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::math::Vec2;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::scene::viewport::pointer::ViewportPointerRoute;
 

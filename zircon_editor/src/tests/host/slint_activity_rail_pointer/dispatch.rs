@@ -13,7 +13,7 @@ use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime::ui::layout::{UiPoint, UiSize};
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_dispatcher() {

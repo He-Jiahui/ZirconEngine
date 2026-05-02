@@ -1,4 +1,4 @@
-use crate::ui::binding::{UiBindingParseError, UiEventBinding};
+use zircon_runtime_interface::ui::binding::{UiBindingParseError, UiEventBinding};
 
 #[derive(Clone, Debug, Default)]
 pub struct UiBindingCodec;

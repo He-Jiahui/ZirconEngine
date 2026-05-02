@@ -2,11 +2,14 @@ use std::collections::BTreeMap;
 
 use crossbeam_channel::Receiver;
 use thiserror::Error;
-use zircon_runtime::ui::{
-    binding::UiEventBinding, event_ui::UiControlRequest, event_ui::UiControlResponse,
-    event_ui::UiEventManager, event_ui::UiInvocationContext, event_ui::UiInvocationError,
-    event_ui::UiNotification, event_ui::UiReflectionDiff, event_ui::UiReflectionSnapshot,
-    event_ui::UiRouteId, event_ui::UiSubscriptionId,
+use zircon_runtime::ui::event_ui::UiEventManager;
+use zircon_runtime_interface::ui::{
+    binding::UiEventBinding,
+    event_ui::{
+        UiControlRequest, UiControlResponse, UiInvocationContext, UiInvocationError,
+        UiNodeDescriptor, UiNodePath, UiNotification, UiPropertyDescriptor, UiReflectionDiff,
+        UiReflectionSnapshot, UiRouteId, UiSubscriptionId, UiTreeId,
+    },
 };
 
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
@@ -87,25 +90,19 @@ impl EditorUiControlService {
         self.event_manager.replace_tree(snapshot)
     }
 
-    pub fn query_tree(
-        &self,
-        tree_id: &zircon_runtime::ui::event_ui::UiTreeId,
-    ) -> Option<UiReflectionSnapshot> {
+    pub fn query_tree(&self, tree_id: &UiTreeId) -> Option<UiReflectionSnapshot> {
         self.event_manager.query_tree(tree_id)
     }
 
-    pub fn query_node(
-        &self,
-        node_path: &zircon_runtime::ui::event_ui::UiNodePath,
-    ) -> Option<zircon_runtime::ui::event_ui::UiNodeDescriptor> {
+    pub fn query_node(&self, node_path: &UiNodePath) -> Option<UiNodeDescriptor> {
         self.event_manager.query_node(node_path)
     }
 
     pub fn query_property(
         &self,
-        node_path: &zircon_runtime::ui::event_ui::UiNodePath,
+        node_path: &UiNodePath,
         property_name: &str,
-    ) -> Option<zircon_runtime::ui::event_ui::UiPropertyDescriptor> {
+    ) -> Option<UiPropertyDescriptor> {
         self.event_manager.query_property(node_path, property_name)
     }
 

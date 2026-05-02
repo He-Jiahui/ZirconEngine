@@ -1,7 +1,7 @@
-use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
-    event_ui::UiNodeId,
-    event_ui::UiStateFlags,
+use zircon_runtime::ui::dispatch::UiPointerDispatcher;
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect,
+    event_ui::{UiNodeId, UiStateFlags},
     surface::UiPointerEventKind,
 };
 

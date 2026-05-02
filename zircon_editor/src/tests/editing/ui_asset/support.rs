@@ -5,8 +5,9 @@ pub(super) use crate::ui::asset_editor::{
     UiAssetEditorTreeEditKind, UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
     UiAssetEditorUndoTransition, UiAssetPreviewPreset, UiDesignerSelectionModel,
 };
-pub(super) use zircon_runtime::ui::layout::UiSize;
-pub(super) use zircon_runtime::ui::template::{UiAssetKind, UiStyleRule};
+pub(super) use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+pub(super) use zircon_runtime_interface::ui::layout::UiSize;
+pub(super) use zircon_runtime_interface::ui::template::{UiAssetKind, UiStyleRule};
 pub(super) const SIMPLE_LAYOUT_ASSET_TOML: &str = r#"
 [asset]
 kind = "layout"

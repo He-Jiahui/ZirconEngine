@@ -12,12 +12,6 @@ impl ViewportRenderFrame {
             extract,
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
             ui: None,
-            hybrid_gi_prepare: None,
-            hybrid_gi_scene_prepare: None,
-            hybrid_gi_resolve_runtime: None,
-            virtual_geometry_cluster_selections: None,
-            virtual_geometry_cluster_selections_source: None,
-            virtual_geometry_prepare: None,
             virtual_geometry_debug_snapshot: None,
         }
     }

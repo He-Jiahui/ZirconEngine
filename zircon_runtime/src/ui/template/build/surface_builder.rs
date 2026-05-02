@@ -1,7 +1,7 @@
-use crate::ui::event_ui::UiTreeId;
 use crate::ui::surface::UiSurface;
 use crate::ui::template::UiCompiledDocument;
 use crate::ui::template::UiTemplateInstance;
+use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
 use super::build_error::UiTemplateBuildError;
 use super::tree_builder::UiTemplateTreeBuilder;

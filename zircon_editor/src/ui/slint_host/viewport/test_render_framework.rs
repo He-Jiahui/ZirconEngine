@@ -3,7 +3,7 @@ use crate::scene::viewport::{
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
 use zircon_runtime::graphics::RenderPipelineAsset;
-use zircon_runtime::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 pub(super) struct TestRenderFramework;
 

@@ -1,20 +1,21 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_runtime::ui::template::UiAssetDocument;
-use zircon_runtime::ui::template::UiComponentDefinition;
-use zircon_runtime::ui::template::UiNodeDefinition;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiChildMount, UiComponentDefinition, UiNodeDefinition,
+};
 
 use crate::ui::asset_editor::preview::preview_projection::UiAssetPreviewProjection;
 
-use super::super::tree_editing::{
-    insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteEntry,
-    UiAssetPaletteInsertionPlacement,
-};
 use super::{
     flow_slots::{flow_slot_for_hover, flow_slot_target_overlays, flow_slot_targets},
     grid_slots::{grid_slot_for_hover, grid_slot_target_overlays, grid_slot_targets},
     overlay_slots::{overlay_slot_for_hover, overlay_slot_target_overlays, overlay_slot_targets},
+};
+use crate::ui::asset_editor::palette::{
+    insert_palette_item_with_placement, PaletteInsertMode, UiAssetPaletteEntry,
+    UiAssetPaletteInsertionPlacement,
 };
 
 #[derive(Clone, Debug, PartialEq)]
@@ -742,7 +743,7 @@ fn component_definition_for_node<'a>(
 
 fn available_component_slots(
     component: &UiComponentDefinition,
-    children: &[zircon_runtime::ui::template::UiChildMount],
+    children: &[UiChildMount],
 ) -> Vec<String> {
     let mut counts = BTreeMap::<String, usize>::new();
     for child in children {

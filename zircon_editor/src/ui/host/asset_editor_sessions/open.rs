@@ -35,16 +35,13 @@ impl EditorUiHost {
         let route =
             UiAssetEditorRoute::new(asset_id, document.asset.kind, mode.unwrap_or_default());
         let preview_size = preview_size_for_preset(route.preview_preset);
-        let session = UiAssetEditorSession::from_source(route, source, preview_size)
+        let session = UiAssetEditorSession::from_source(route, source.clone(), preview_size)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let instance_id =
             self.open_view(ViewDescriptorId::new(UI_ASSET_EDITOR_DESCRIPTOR_ID), None)?;
         self.ui_asset_sessions.lock().unwrap().insert(
             instance_id.clone(),
-            UiAssetWorkspaceEntry {
-                source_path,
-                session,
-            },
+            UiAssetWorkspaceEntry::new(source_path, source, session),
         );
         self.hydrate_ui_asset_editor_imports(&instance_id)?;
         self.sync_ui_asset_editor_instance(&instance_id)?;

@@ -1,5 +1,5 @@
-use crate::ui::tree::UiTreeError;
-use crate::ui::{layout::UiFrame, layout::UiSize, tree::UiTree};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
+use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
 
 use super::arrange::arrange_node;
 use super::measure::measure_node;

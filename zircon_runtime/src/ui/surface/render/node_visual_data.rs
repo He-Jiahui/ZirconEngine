@@ -1,7 +1,7 @@
-use crate::ui::tree::UiTemplateNodeMetadata;
+use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiVisualAssetRef};
+use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
 use super::resolve::{resolve_image, resolve_opacity, resolve_style, resolve_text};
-use super::{UiResolvedStyle, UiVisualAssetRef};
 
 #[derive(Default)]
 pub(super) struct UiNodeVisualData {

@@ -21,6 +21,8 @@ pub(super) fn pluginized_wgpu_render_framework_with_asset_manager(
             virtual_geometry_render_feature_descriptor(),
             hybrid_gi_render_feature_descriptor(),
         ],
+        Vec::new(),
+        Vec::new(),
     )
     .unwrap()
 }

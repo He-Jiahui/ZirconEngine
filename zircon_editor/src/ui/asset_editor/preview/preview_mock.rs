@@ -5,7 +5,8 @@ use crate::ui::asset_editor::value_path::{
 };
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_runtime::ui::template::{UiAssetDocument, UiNodeDefinition};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
 
 #[path = "mock_expression.rs"]
 mod mock_expression;
@@ -974,7 +975,7 @@ fn preview_mock_inline_literal(value: &Value) -> String {
 }
 
 fn preview_mock_display_key(
-    node: &zircon_runtime::ui::template::UiNodeDefinition,
+    node: &UiNodeDefinition,
     node_id: &str,
     key: &str,
     qualify: bool,

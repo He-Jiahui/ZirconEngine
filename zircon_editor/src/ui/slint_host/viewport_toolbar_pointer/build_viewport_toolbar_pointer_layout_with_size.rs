@@ -1,4 +1,4 @@
-use zircon_runtime::ui::{layout::UiFrame, layout::UiSize};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use super::constants::SURFACE_VERTICAL_STRIDE;
 use super::viewport_toolbar_pointer_layout::ViewportToolbarPointerLayout;

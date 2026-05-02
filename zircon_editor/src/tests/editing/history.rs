@@ -1,5 +1,5 @@
-use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime_interface::math::{Transform, Vec3};
 
 use crate::core::editing::intent::EditorIntent;
 

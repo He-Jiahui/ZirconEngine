@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::workbench::view::ViewInstanceId;
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 
 impl EditorUiHost {
     pub(super) fn hydrate_ui_asset_editor_imports(
@@ -23,7 +23,7 @@ impl EditorUiHost {
         for reference in widget_refs {
             self.collect_ui_asset_import_document(
                 &reference,
-                zircon_runtime::ui::template::UiAssetKind::Widget,
+                UiAssetKind::Widget,
                 &mut widget_docs,
                 &mut style_docs,
                 &mut visited,
@@ -32,7 +32,7 @@ impl EditorUiHost {
         for reference in style_refs {
             self.collect_ui_asset_import_document(
                 &reference,
-                zircon_runtime::ui::template::UiAssetKind::Style,
+                UiAssetKind::Style,
                 &mut widget_docs,
                 &mut style_docs,
                 &mut visited,

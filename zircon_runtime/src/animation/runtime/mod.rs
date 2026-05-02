@@ -37,7 +37,7 @@ impl DefaultAnimationManager {
     pub fn new(core: Option<CoreHandle>) -> Self {
         let playback_settings = core
             .as_ref()
-            .and_then(|core| core.load_config(super::super::ANIMATION_PLAYBACK_CONFIG_KEY).ok())
+            .and_then(|core| core.load_config(super::ANIMATION_PLAYBACK_CONFIG_KEY).ok())
             .unwrap_or_default();
         Self {
             core,
@@ -54,7 +54,7 @@ impl DefaultAnimationManager {
             .lock()
             .expect("animation playback mutex poisoned") = playback_settings.clone();
         if let Some(core) = &self.core {
-            core.store_config(super::super::ANIMATION_PLAYBACK_CONFIG_KEY, &playback_settings)?;
+            core.store_config(super::ANIMATION_PLAYBACK_CONFIG_KEY, &playback_settings)?;
         }
         Ok(())
     }
@@ -449,9 +449,7 @@ fn sample_vec3(value: &crate::asset::AnimationChannelValueAsset) -> Result<Vec3,
     }
 }
 
-fn sample_quaternion(
-    value: &crate::asset::AnimationChannelValueAsset,
-) -> Result<Quat, String> {
+fn sample_quaternion(value: &crate::asset::AnimationChannelValueAsset) -> Result<Quat, String> {
     match value {
         crate::asset::AnimationChannelValueAsset::Quaternion(value)
             if value.iter().all(|c| c.is_finite()) && quaternion_array_is_normalizable(value) =>

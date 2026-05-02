@@ -1,8 +1,11 @@
-use super::{
-    UiBindingRef, UiTemplateDocument, UiTemplateError, UiTemplateNode, UiTemplateValidator,
+use serde::{Deserialize, Serialize};
+
+use super::UiTemplateValidator;
+use zircon_runtime_interface::ui::template::{
+    UiBindingRef, UiTemplateDocument, UiTemplateError, UiTemplateNode,
 };
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTemplateInstance {
     pub root: UiTemplateNode,
 }

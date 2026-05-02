@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_inspector_surface_name_field_matches_direct_binding_dispatch() {
@@ -28,9 +29,9 @@ fn builtin_inspector_surface_name_field_matches_direct_binding_dispatch() {
         "NameField",
         UiEventKind::Change,
         vec![
-            zircon_runtime::ui::binding::UiBindingValue::string("entity://selected"),
-            zircon_runtime::ui::binding::UiBindingValue::string("name"),
-            zircon_runtime::ui::binding::UiBindingValue::string("Draft Cube"),
+            UiBindingValue::string("entity://selected"),
+            UiBindingValue::string("name"),
+            UiBindingValue::string("Draft Cube"),
         ],
     )
     .expect("templated inspector name control should resolve")

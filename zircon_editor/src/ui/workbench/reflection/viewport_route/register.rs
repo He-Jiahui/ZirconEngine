@@ -1,7 +1,10 @@
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
-use zircon_runtime::ui::binding::UiEventKind;
+use zircon_runtime_interface::ui::{
+    binding::{UiEventKind, UiEventPath},
+    event_ui::UiRouteId,
+};
 
 use super::super::name_mapping::binding_view_id;
 use super::super::route_registration::register_stub_route;
@@ -12,13 +15,9 @@ pub(crate) fn register_viewport_route(
     activity: &EditorActivityReflection,
     action_id: &str,
     event_kind: UiEventKind,
-) -> Option<zircon_runtime::ui::event_ui::UiRouteId> {
+) -> Option<UiRouteId> {
     let default_command = default_viewport_command(action_id)?;
-    let path = zircon_runtime::ui::binding::UiEventPath::new(
-        binding_view_id(activity),
-        "ViewportSurface",
-        event_kind,
-    );
+    let path = UiEventPath::new(binding_view_id(activity), "ViewportSurface", event_kind);
     let registration_binding = EditorUiBinding::new(
         path.view_id.clone(),
         path.control_id.clone(),

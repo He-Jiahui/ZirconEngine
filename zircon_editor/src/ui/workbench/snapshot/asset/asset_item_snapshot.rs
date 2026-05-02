@@ -1,4 +1,4 @@
-use zircon_runtime::core::resource::{ResourceKind, ResourceState};
+use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 #[derive(Clone, Debug)]
 pub struct AssetItemSnapshot {

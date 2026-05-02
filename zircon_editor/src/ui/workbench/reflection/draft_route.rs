@@ -3,7 +3,10 @@ use crate::ui::binding::{
 };
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
-use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventKind};
+use zircon_runtime_interface::ui::{
+    binding::{UiBindingValue, UiEventKind, UiEventPath},
+    event_ui::UiRouteId,
+};
 
 use super::name_mapping::binding_view_id;
 use super::route_registration::register_stub_route;
@@ -13,7 +16,7 @@ pub(super) fn register_draft_route(
     activity: &EditorActivityReflection,
     action_id: &str,
     event_kind: UiEventKind,
-) -> Option<zircon_runtime::ui::event_ui::UiRouteId> {
+) -> Option<UiRouteId> {
     let view_id = binding_view_id(activity);
     let (control_id, payload) = match action_id {
         "edit_field" => (
@@ -32,7 +35,7 @@ pub(super) fn register_draft_route(
         ),
         _ => return None,
     };
-    let path = zircon_runtime::ui::binding::UiEventPath::new(view_id, control_id, event_kind);
+    let path = UiEventPath::new(view_id, control_id, event_kind);
     let registration_binding = EditorUiBinding::new(
         path.view_id.clone(),
         path.control_id.clone(),

@@ -2,8 +2,7 @@
 
 use crate::core::framework::render::RenderFrameExtract;
 use crate::core::math::UVec2;
-
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 #[derive(Clone, Debug)]
 pub(crate) struct PublicRuntimeFrame {

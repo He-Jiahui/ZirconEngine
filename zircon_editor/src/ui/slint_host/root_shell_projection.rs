@@ -5,7 +5,7 @@ use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 pub(crate) fn resolve_root_center_band_frame(
     geometry: &WorkbenchShellGeometry,

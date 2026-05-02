@@ -1,4 +1,5 @@
-use zircon_runtime::ui::{layout::UiFrame, surface::UiSurface};
+use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiFrame};
 
 use super::control_ids::{
     BOTTOM_DRAWER_CONTENT_CONTROL_ID, BOTTOM_DRAWER_HEADER_CONTROL_ID,
@@ -62,10 +63,7 @@ fn surface_control_frame(surface: &UiSurface, control_id: &str) -> Option<UiFram
         .map(|node| node.layout_cache.frame)
 }
 
-fn surface_control_node_id(
-    surface: &UiSurface,
-    control_id: &str,
-) -> Option<zircon_runtime::ui::event_ui::UiNodeId> {
+fn surface_control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

@@ -1,7 +1,7 @@
 use crate::ui::slint_host::activity_rail_pointer::{
     HostActivityRailPointerItem, HostActivityRailPointerLayout,
 };
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 pub(super) fn sample_activity_rail_layout() -> HostActivityRailPointerLayout {
     HostActivityRailPointerLayout {

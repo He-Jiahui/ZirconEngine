@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::slint_host as host_contract;
 use crate::ui::template_runtime::SlintUiHostBindingProjection;
-use zircon_runtime::ui::component::UiValue;
+use zircon_runtime_interface::ui::component::{UiValue, UiValueKind};
 
 use super::super::pane_value_conversion::value_as_string;
 use super::showcase_actions::showcase_binding_id_for_suffix;
@@ -355,15 +355,14 @@ fn collection_field_role(declared_type: &str, value: Option<&UiValue>) -> &'stat
     }
 
     match value.map(UiValue::kind) {
-        Some(zircon_runtime::ui::component::UiValueKind::Bool) => "checkbox",
-        Some(zircon_runtime::ui::component::UiValueKind::Int)
-        | Some(zircon_runtime::ui::component::UiValueKind::Float) => "number-field",
-        Some(zircon_runtime::ui::component::UiValueKind::Color) => "color-field",
-        Some(zircon_runtime::ui::component::UiValueKind::Vec2)
-        | Some(zircon_runtime::ui::component::UiValueKind::Vec3)
-        | Some(zircon_runtime::ui::component::UiValueKind::Vec4) => "vector-field",
-        Some(zircon_runtime::ui::component::UiValueKind::AssetRef) => "asset-field",
-        Some(zircon_runtime::ui::component::UiValueKind::InstanceRef) => "object-field",
+        Some(UiValueKind::Bool) => "checkbox",
+        Some(UiValueKind::Int) | Some(UiValueKind::Float) => "number-field",
+        Some(UiValueKind::Color) => "color-field",
+        Some(UiValueKind::Vec2) | Some(UiValueKind::Vec3) | Some(UiValueKind::Vec4) => {
+            "vector-field"
+        }
+        Some(UiValueKind::AssetRef) => "asset-field",
+        Some(UiValueKind::InstanceRef) => "object-field",
         _ => "text-field",
     }
 }

@@ -1,7 +1,7 @@
 use crossbeam_channel::{unbounded, Receiver};
 
-use super::super::{UiNotification, UiSubscriptionId};
 use super::UiEventManager;
+use zircon_runtime_interface::ui::event_ui::{UiNotification, UiSubscriptionId};
 
 impl UiEventManager {
     pub fn subscribe(&mut self) -> (UiSubscriptionId, Receiver<UiNotification>) {

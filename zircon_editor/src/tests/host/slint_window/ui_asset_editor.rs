@@ -8,7 +8,6 @@ fn ui_asset_editor_host_genericizes_collection_event_dispatch() {
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/ui_asset_editor.rs"
     ));
-
     assert!(
         wiring.contains("pane_surface_host.on_ui_asset_collection_event("),
         "callback wiring should converge PaneSurfaceHostContext UI asset selection callbacks into a generic collection event hook"
@@ -99,6 +98,10 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/slint_host/app/ui_asset_editor.rs"
     ));
+    let component_adapter = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/template_runtime/component_adapter/asset_editor.rs"
+    ));
 
     assert!(
         wiring.contains("pane_surface_host.on_ui_asset_detail_event("),
@@ -138,12 +141,51 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         );
     }
 
+    for host_adapter_route in [
+        "dispatch_ui_asset_component_adapter_commit(",
+        "\"widget.control_id\"",
+        "\"widget.text\"",
+        "\"component.root_class_policy\"",
+        "\"slot.mount\"",
+        "\"slot.width_preferred\"",
+        "\"slot.height_preferred\"",
+        "\"layout.width_preferred\"",
+        "\"layout.height_preferred\"",
+        "\"slot.semantic.value\"",
+        "\"layout.semantic.value\"",
+        "\"binding.id\"",
+        "\"binding.event\"",
+        "\"binding.route\"",
+        "\"binding.route_target\"",
+        "\"binding.action_target\"",
+    ] {
+        assert!(
+            ui_asset_editor.contains(host_adapter_route),
+            "generic detail dispatch should route authored field commits through component adapter `{host_adapter_route}`"
+        );
+    }
+
     for manager_call in [
         ".set_ui_asset_editor_selected_widget_control_id(",
-        ".set_ui_asset_editor_selected_promote_widget_asset_id(",
+        ".set_ui_asset_editor_selected_widget_text_property(",
+        ".set_ui_asset_editor_selected_component_root_class_policy(",
         ".set_ui_asset_editor_selected_slot_mount(",
+        ".set_ui_asset_editor_selected_slot_width_preferred(",
         ".set_ui_asset_editor_selected_layout_width_preferred(",
         ".set_ui_asset_editor_selected_binding_id(",
+        ".set_ui_asset_editor_selected_binding_event(",
+        ".set_ui_asset_editor_selected_binding_route(",
+        ".set_ui_asset_editor_selected_binding_route_target(",
+        ".set_ui_asset_editor_selected_binding_action_target(",
+    ] {
+        assert!(
+            component_adapter.contains(manager_call),
+            "component adapter should still route field commits through `{manager_call}`"
+        );
+    }
+
+    for manager_call in [
+        ".set_ui_asset_editor_selected_promote_widget_asset_id(",
         ".rename_ui_asset_editor_selected_stylesheet_rule(",
         ".upsert_ui_asset_editor_selected_style_rule_declaration(",
         ".upsert_ui_asset_editor_style_token(",
@@ -152,7 +194,7 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
     ] {
         assert!(
             ui_asset_editor.contains(manager_call),
-            "generic detail dispatch should still route through `{manager_call}`"
+            "generic detail dispatch should still route direct detail action through `{manager_call}`"
         );
     }
 

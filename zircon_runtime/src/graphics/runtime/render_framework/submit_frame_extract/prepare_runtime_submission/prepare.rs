@@ -1,43 +1,54 @@
+use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
-use super::hybrid_gi::{
-    build_hybrid_gi_prepare, build_hybrid_gi_runtime, build_hybrid_gi_scene_prepare,
-    collect_hybrid_gi_evictable_probe_ids,
-};
-use super::virtual_geometry::{
-    build_virtual_geometry_prepare, build_virtual_geometry_runtime,
-    collect_virtual_geometry_evictable_page_ids,
-};
+use crate::VirtualGeometryRuntimePrepareInput;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prepare_runtime_submission(
+    state: &mut RenderFrameworkState,
+    viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
 ) -> PreparedRuntimeSubmission {
-    let hybrid_gi_runtime = build_hybrid_gi_runtime(context);
-    let hybrid_gi_prepare = build_hybrid_gi_prepare(hybrid_gi_runtime.as_ref());
-    let hybrid_gi_scene_prepare = build_hybrid_gi_scene_prepare(hybrid_gi_runtime.as_ref());
-    let hybrid_gi_resolve_runtime = hybrid_gi_runtime
-        .as_ref()
-        .map(crate::graphics::runtime::HybridGiRuntimeState::build_resolve_runtime);
-    let virtual_geometry_runtime = build_virtual_geometry_runtime(context);
+    let virtual_geometry_evictable_page_ids =
+        prepare_virtual_geometry_runtime(state, viewport, context)
+            .map(|output| output.into_evictable_page_ids())
+            .unwrap_or_default();
+
+    PreparedRuntimeSubmission::new(virtual_geometry_evictable_page_ids)
+}
+
+fn prepare_virtual_geometry_runtime(
+    state: &mut RenderFrameworkState,
+    viewport: crate::core::framework::render::RenderViewportHandle,
+    context: &FrameSubmissionContext,
+) -> Option<crate::VirtualGeometryRuntimePrepareOutput> {
+    if !context.virtual_geometry_enabled() {
+        if let Some(record) = state.viewports.get_mut(&viewport) {
+            record.clear_virtual_geometry_runtime();
+        }
+        return None;
+    }
+
+    let Some(registration) = state.virtual_geometry_runtime_provider.clone() else {
+        if let Some(record) = state.viewports.get_mut(&viewport) {
+            record.clear_virtual_geometry_runtime();
+        }
+        return None;
+    };
+    let record = state
+        .viewports
+        .get_mut(&viewport)
+        .expect("viewport checked while building frame submission context");
     let visibility_context = context.visibility_context();
-    let virtual_geometry_prepare = build_virtual_geometry_prepare(
-        virtual_geometry_runtime.as_ref(),
+    let input = VirtualGeometryRuntimePrepareInput::new(
+        context.virtual_geometry_extract(),
+        context.virtual_geometry_page_upload_plan(),
         &visibility_context.virtual_geometry_visible_clusters,
         &visibility_context.virtual_geometry_draw_segments,
+        context.predicted_generation(),
     );
-    let hybrid_gi_evictable_probe_ids =
-        collect_hybrid_gi_evictable_probe_ids(hybrid_gi_prepare.as_ref());
-    let virtual_geometry_evictable_page_ids =
-        collect_virtual_geometry_evictable_page_ids(virtual_geometry_prepare.as_ref());
-
-    PreparedRuntimeSubmission::new(
-        hybrid_gi_runtime,
-        hybrid_gi_prepare,
-        hybrid_gi_scene_prepare,
-        hybrid_gi_resolve_runtime,
-        hybrid_gi_evictable_probe_ids,
-        virtual_geometry_runtime,
-        virtual_geometry_prepare,
-        virtual_geometry_evictable_page_ids,
+    Some(
+        record
+            .ensure_virtual_geometry_runtime(registration.provider())
+            .prepare_frame(input),
     )
 }

@@ -1,6 +1,6 @@
-use crate::ui::component::{
-    UiComponentDescriptorRegistry, UiComponentEvent, UiComponentState, UiValidationLevel, UiValue,
-    UiValueKind,
+use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
+use zircon_runtime_interface::ui::component::{
+    UiComponentEvent, UiComponentState, UiValidationLevel, UiValue, UiValueKind,
 };
 
 use super::UiComponentEventError;
@@ -34,7 +34,7 @@ fn component_state_rejects_schema_value_kind_mismatches() {
         color_state.value("value"),
         Some(&UiValue::Color("#4d89ff".to_string()))
     );
-    assert_eq!(color_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(color_state.validation.level, UiValidationLevel::Error);
 
     let mut vector_state = UiComponentState::new();
     let vector_error = vector_state
@@ -55,5 +55,5 @@ fn component_state_rejects_schema_value_kind_mismatches() {
         }
     ));
     assert_eq!(vector_state.value("value"), None);
-    assert_eq!(vector_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(vector_state.validation.level, UiValidationLevel::Error);
 }

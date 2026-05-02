@@ -10,6 +10,7 @@ use crate::core::{
 };
 use crate::engine_module::factory;
 use crate::graphics::RenderPipelineAsset;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 const DIAGNOSTICS_TEST_MODULE: &str = "DiagnosticsTestModule";
 
@@ -106,7 +107,7 @@ impl RenderFramework for FakeRenderFramework {
         &self,
         viewport: RenderViewportHandle,
         extract: RenderFrameExtract,
-        _ui: Option<crate::ui::surface::UiRenderExtract>,
+        _ui: Option<UiRenderExtract>,
     ) -> Result<(), RenderFrameworkError> {
         self.submit_frame_extract(viewport, extract)
     }

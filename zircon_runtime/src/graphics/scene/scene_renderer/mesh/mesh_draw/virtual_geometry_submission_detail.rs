@@ -1,4 +1,4 @@
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
+use crate::core::framework::render::RenderVirtualGeometryExecutionState;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct VirtualGeometrySubmissionDetail {
@@ -12,7 +12,7 @@ pub(crate) struct VirtualGeometrySubmissionDetail {
     cluster_span_count: u32,
     cluster_total_count: u32,
     submission_slot: Option<u32>,
-    state: VirtualGeometryPrepareClusterState,
+    state: RenderVirtualGeometryExecutionState,
     lineage_depth: u32,
     lod_level: u8,
     frontier_rank: u32,
@@ -31,7 +31,7 @@ impl VirtualGeometrySubmissionDetail {
         cluster_span_count: u32,
         cluster_total_count: u32,
         submission_slot: Option<u32>,
-        state: VirtualGeometryPrepareClusterState,
+        state: RenderVirtualGeometryExecutionState,
         lineage_depth: u32,
         lod_level: u8,
         frontier_rank: u32,
@@ -94,7 +94,7 @@ impl VirtualGeometrySubmissionDetail {
         self.submission_slot
     }
 
-    pub(crate) fn state(self) -> VirtualGeometryPrepareClusterState {
+    pub(crate) fn state(self) -> RenderVirtualGeometryExecutionState {
         self.state
     }
 

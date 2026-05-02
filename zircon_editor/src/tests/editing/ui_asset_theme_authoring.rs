@@ -1,6 +1,6 @@
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
 use toml::Value;
-use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 const THEME_SUMMARY_LAYOUT_ASSET_TOML: &str = r##"
 [asset]

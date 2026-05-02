@@ -9,7 +9,7 @@ pub(super) use crate::ui::slint_host::menu_pointer::{
     HostMenuPointerRoute, HostMenuPointerState,
 };
 pub(super) use crate::ui::workbench::model::WorkbenchViewModel;
-pub(super) use zircon_runtime::ui::{layout::UiFrame, layout::UiPoint, layout::UiSize};
+pub(super) use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint, UiSize};
 
 pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
     HostMenuPointerLayout {

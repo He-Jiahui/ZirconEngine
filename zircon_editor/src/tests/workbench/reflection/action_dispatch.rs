@@ -13,7 +13,7 @@ use zircon_runtime::asset::assets::{
     AnimationSequenceTrackAsset,
 };
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     binding::UiBindingValue, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiNodePath,
 };
@@ -116,7 +116,7 @@ fn workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_ac
     ));
     assert_eq!(
         runtime.runtime.editor_snapshot().viewport_size,
-        zircon_runtime::core::math::UVec2::new(1024, 768)
+        zircon_runtime_interface::math::UVec2::new(1024, 768)
     );
 
     let docking = runtime

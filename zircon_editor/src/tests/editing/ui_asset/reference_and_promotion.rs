@@ -1,4 +1,6 @@
 use super::support::*;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiNodeDefinitionKind, UiRootClassPolicy};
 
 #[test]
 fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_entries() {
@@ -40,7 +42,7 @@ fn ui_asset_editor_session_creates_reference_nodes_from_imported_widget_palette_
         .expect("document");
     let reference_node = document
         .iter_nodes()
-        .find(|node| node.kind == zircon_runtime::ui::template::UiNodeDefinitionKind::Reference)
+        .find(|node| node.kind == UiNodeDefinitionKind::Reference)
         .expect("reference node");
     assert_eq!(reference_node.component_ref.as_deref(), Some(reference));
 }
@@ -347,10 +349,7 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let converted = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("converted document");
     let button = converted.node("button").expect("button node");
-    assert_eq!(
-        button.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
-    );
+    assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(button.component_ref.as_deref(), Some(reference));
     assert_eq!(button.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(button.classes, vec!["primary".to_string()]);
@@ -376,10 +375,7 @@ fn ui_asset_editor_session_converts_selected_node_to_reference_from_palette_sele
     let undone = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("undone document");
     let button = undone.node("button").expect("button node");
-    assert_eq!(
-        button.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Native
-    );
+    assert_eq!(button.kind, UiNodeDefinitionKind::Native);
     assert_eq!(button.widget_type.as_deref(), Some("Button"));
     assert_eq!(
         button.props.get("text").and_then(toml::Value::as_str),
@@ -430,10 +426,7 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
         .get("SaveButton")
         .expect("new local component");
     let instance = extracted.node("button").expect("component instance");
-    assert_eq!(
-        instance.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Component
-    );
+    assert_eq!(instance.kind, UiNodeDefinitionKind::Component);
     assert_eq!(instance.component.as_deref(), Some("SaveButton"));
     assert_eq!(instance.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(instance.classes, vec!["primary".to_string()]);
@@ -446,10 +439,7 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
     let component_root = extracted
         .node(&component.root.node_id)
         .expect("extracted component root");
-    assert_eq!(
-        component_root.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Native
-    );
+    assert_eq!(component_root.kind, UiNodeDefinitionKind::Native);
     assert_eq!(component_root.widget_type.as_deref(), Some("Button"));
     assert_eq!(component_root.control_id.as_deref(), Some("SaveButton"));
     assert_eq!(component_root.classes, vec!["primary".to_string()]);
@@ -493,6 +483,70 @@ fn ui_asset_editor_session_extracts_selected_node_into_local_component() {
             .node("button")
             .and_then(|node| node.component.as_deref()),
         Some("SaveButton")
+    );
+}
+
+#[test]
+fn ui_asset_editor_session_projects_and_updates_root_class_policy() {
+    let route = UiAssetEditorRoute::new(
+        "asset://ui/tests/style-authoring.ui.toml",
+        UiAssetKind::Layout,
+        UiAssetEditorMode::Design,
+    );
+    let mut session = UiAssetEditorSession::from_source(
+        route,
+        STYLE_AUTHORING_LAYOUT_ASSET_TOML,
+        UiSize::new(640.0, 360.0),
+    )
+    .expect("session");
+
+    session
+        .select_hierarchy_index(1)
+        .expect("select button from hierarchy");
+    assert!(session
+        .extract_selected_node_to_component()
+        .expect("extract selected node to component"));
+
+    let initial = session.pane_presentation();
+    assert_eq!(initial.inspector_component_root_class_policy, "append_only");
+    assert!(initial.inspector_can_edit_component_root_class_policy);
+    assert!(initial
+        .inspector_items
+        .iter()
+        .any(|item| item == "root class policy: append_only"));
+
+    assert!(session
+        .set_selected_component_root_class_policy("closed")
+        .expect("set root class policy"));
+    let updated = session.pane_presentation();
+    assert_eq!(updated.inspector_component_root_class_policy, "closed");
+
+    let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("updated document");
+    assert_eq!(
+        document
+            .components
+            .get("SaveButton")
+            .map(|component| component.contract.root_class_policy),
+        Some(UiRootClassPolicy::Closed)
+    );
+
+    assert!(session.undo().expect("undo root class policy"));
+    let undone = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
+        .expect("undone document");
+    assert_eq!(
+        undone
+            .components
+            .get("SaveButton")
+            .map(|component| component.contract.root_class_policy),
+        Some(UiRootClassPolicy::AppendOnly)
+    );
+    assert!(session.redo().expect("redo root class policy"));
+    assert_eq!(
+        session
+            .pane_presentation()
+            .inspector_component_root_class_policy,
+        "closed"
     );
 }
 
@@ -629,10 +683,7 @@ fn ui_asset_editor_session_promotes_selected_local_component_to_external_widget_
         .iter()
         .any(|reference| { reference == "res://ui/widgets/save_button.ui.toml#SaveButton" }));
     let button = promoted.node("button").expect("button node");
-    assert_eq!(
-        button.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
-    );
+    assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")

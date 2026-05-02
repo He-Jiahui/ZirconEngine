@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::event_ui::UiNodeId;
-use crate::ui::{layout::UiPoint, tree::UiTree};
+use crate::ui::tree::{
+    UiRuntimeTreeAccessExt, UiRuntimeTreeInteractionExt, UiRuntimeTreeRenderOrderExt,
+};
+use zircon_runtime_interface::ui::tree::{UiInputPolicy, UiTree};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiPoint};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiHitTestResult {
@@ -34,7 +37,7 @@ impl UiHitTestIndex {
             }
             if tree
                 .effective_input_policy(node_id)
-                .is_ok_and(|policy| policy == super::UiInputPolicy::Ignore)
+                .is_ok_and(|policy| policy == UiInputPolicy::Ignore)
             {
                 continue;
             }

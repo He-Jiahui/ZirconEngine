@@ -1,6 +1,6 @@
 use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{RenderFrameExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle};
-use zircon_runtime::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::editor_state::EditorState;
 

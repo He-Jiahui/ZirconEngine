@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime::ui::binding::UiEventPath;
+use zircon_runtime_interface::ui::binding::UiEventPath;
 
 use super::EditorUiBindingPayload;
 

@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::binding::EditorUiBinding;
 use toml::Value;
-use zircon_runtime::ui::event_ui::UiRouteId;
+use zircon_runtime_interface::ui::event_ui::UiRouteId;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct SlintUiBindingProjection {

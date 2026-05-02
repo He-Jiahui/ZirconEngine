@@ -13,7 +13,12 @@ related_code:
   - zircon_runtime/src/core/framework/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/physics/settings.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
-  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/animation/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_runtime/src/animation/runtime/mod.rs
+  - zircon_runtime/src/animation/sequence/mod.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -22,7 +27,10 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
-  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_runtime/src/physics/mod.rs
+  - zircon_runtime/src/physics/module.rs
+  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_runtime/src/physics/runtime/query_contact.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -35,8 +43,6 @@ related_code:
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
-  - zircon_plugins/animation/runtime/src/service_types.rs
-  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
@@ -47,27 +53,23 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_plugins/physics/runtime/src/service_types.rs
-  - zircon_plugins/physics/runtime/src/service_types/query_contact.rs
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/assets/physics_material.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
-  - zircon_plugins/animation/runtime/src/tests/clip_pose_guards.rs
-  - zircon_plugins/physics/runtime/src/tests.rs
-  - zircon_plugins/physics/runtime/src/tests/contact.rs
-  - zircon_plugins/physics/runtime/src/tests/integration.rs
-  - zircon_plugins/physics/runtime/src/tests/ray.rs
-  - zircon_plugins/physics/runtime/src/tests/sync.rs
+  - zircon_runtime/src/tests/extensions/absorption_surface.rs
+  - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
+  - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
   - zircon_runtime/tests/physics_manager_runtime_contract.rs
   - zircon_runtime/tests/physics_manager_runtime_contract/contact.rs
   - zircon_runtime/tests/physics_manager_runtime_contract/query.rs
-  - zircon_runtime/tests/scene_world_driver_runtime_contract.rs
+  - zircon_runtime/tests/runtime_physics_animation_tick_contract.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
@@ -103,7 +105,12 @@ implementation_files:
   - zircon_runtime/src/core/framework/physics/material_metadata.rs
   - zircon_runtime/src/core/framework/physics/settings.rs
   - zircon_runtime/src/core/framework/physics/world_sync_state.rs
-  - zircon_plugins/animation/runtime/src/animation_interface.rs
+  - zircon_runtime/src/lib.rs
+  - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_runtime/src/animation/mod.rs
+  - zircon_runtime/src/animation/module.rs
+  - zircon_runtime/src/animation/runtime/mod.rs
+  - zircon_runtime/src/animation/sequence/mod.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -112,7 +119,10 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/import_obj.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
-  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_runtime/src/physics/mod.rs
+  - zircon_runtime/src/physics/module.rs
+  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_runtime/src/physics/runtime/query_contact.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -125,8 +135,6 @@ implementation_files:
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
-  - zircon_plugins/animation/runtime/src/service_types.rs
-  - zircon_plugins/animation/runtime/src/sequence_runtime.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex.rs
   - zircon_runtime/src/graphics/scene/resources/gpu_mesh/gpu_mesh_vertex_from_mesh_vertex.rs
@@ -137,8 +145,6 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/extend_pending_draws_for_mesh_instance.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/pending_mesh_draw.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/skinning.rs
-  - zircon_plugins/physics/runtime/src/service_types.rs
-  - zircon_plugins/physics/runtime/src/service_types/query_contact.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/catalog_snapshot.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/asset_details.rs
@@ -173,56 +179,20 @@ tests:
   - zircon_runtime/src/asset/tests/assets/model.rs
   - zircon_runtime/src/asset/tests/assets/physics_material.rs
   - zircon_runtime/src/asset/tests/assets/scene.rs
-  - zircon_plugins/animation/runtime/src/tests.rs
-  - zircon_plugins/animation/runtime/src/tests/clip_pose_guards.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_plugins/physics/runtime/src/tests.rs
-  - zircon_plugins/physics/runtime/src/tests/contact.rs
-  - zircon_plugins/physics/runtime/src/tests/integration.rs
-  - zircon_plugins/physics/runtime/src/tests/ray.rs
-  - zircon_plugins/physics/runtime/src/tests/sync.rs
+  - zircon_runtime/src/tests/extensions/absorption_surface.rs
+  - zircon_runtime/src/tests/extensions/animation_physics_absorption.rs
+  - zircon_runtime/src/tests/extensions/manager_handles.rs
+  - zircon_runtime/src/tests/runtime_absorption/builtin_modules.rs
+  - zircon_runtime/src/tests/runtime_absorption/physics_animation_runtime.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/property_paths.rs
   - zircon_runtime/src/scene/tests/physics_animation_components.rs
-  - zircon_runtime/tests/scene_world_driver_runtime_contract.rs
-  - cargo test -p zircon_runtime --test scene_world_driver_runtime_contract --locked
-  - cargo test -p zircon_runtime --test scene_world_driver_runtime_contract --locked level_render_extract_carries_cached_clip_pose_for_skinned_entity -- --exact --nocapture
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --test scene_world_driver_runtime_contract level_tick_integrates_dynamic_rigid_body_linear_velocity -- --exact
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --test scene_world_driver_runtime_contract level_tick_integrates_dynamic_rigid_body_angular_velocity -- --exact
-  - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --test scene_world_driver_runtime_contract level_tick_integrates_kinematic_rigid_body_velocity -- --exact
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --test physics_manager_runtime_contract
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-ray-scaled-guard --test physics_manager_runtime_contract contract::query::ray_cast_skips_non_finite_scaled_box_half_extents -- --exact --nocapture
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-ray-scaled-guard --test physics_manager_runtime_contract
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-contact-finite-point --test physics_manager_runtime_contract contract::contact::contact_point_stays_finite_for_large_overlapping_centers -- --exact --nocapture
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-contact-finite-point --test physics_manager_runtime_contract
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap tests::contact::physics_manager_contacts_do_not_overflow_large_sphere_overlap_test -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::contact::physics_manager_contacts_keep_large_contact_normal_finite_test -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::ray::physics_manager_ray_cast_accepts_large_finite_direction -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap tests::ray::physics_manager_ray_cast_inside_large_sphere_returns_finite_exit_hit -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::ray::physics_manager_ray_cast_skips_sphere_when_hit_position_overflows -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap tests::ray::physics_manager_ray_cast_inside_large_capsule_returns_finite_exit_hit -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::ray::physics_manager_ray_cast_skips_box_when_scaled_bounds_overflow -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::builtin_physics_step_skips_translation_writeback_when_position_would_overflow -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_collider_when_combined_transform_would_overflow -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_body_when_transform_is_non_finite -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_body_when_mass_is_non_positive -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_joint_when_axis_is_non_finite -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_joint_when_limits_are_non_finite -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_collider_when_sphere_radius_is_non_finite -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_collider_when_material_override_is_non_finite -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::integration::build_world_sync_state_skips_collider_when_layer_exceeds_mask_bits -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_sanitizes_external_world_sync_state -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_orphan_material_sync_entries -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_material_sync_entries_without_collider_material_binding -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_material_sync_entries_with_mismatched_locator -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_deduplicates_material_sync_entries_per_collider -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_deduplicates_external_component_sync_entries_per_entity -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_external_colliders_with_invalid_layer -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_external_body_sync_entries_with_non_positive_mass -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1 tests::sync::physics_manager_drops_material_sync_entries_with_empty_locator -- --exact --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap do_not_overflow_large -- --nocapture
-  - cargo test --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --lib
-  - cargo check --manifest-path zircon_plugins/physics/runtime/Cargo.toml --locked --target-dir target/manual-physics-plugin-overlap --jobs 1
   - cargo test -p zircon_runtime --locked --target-dir target/manual-physics-animation --lib physics_manager_
   - cargo test -p zircon_runtime importer_preserves_gltf_skinning_channels_on_model_vertices --locked -- --nocapture
   - cargo test -p zircon_runtime model_asset_toml_roundtrip_preserves_virtual_geometry_payload --locked -- --nocapture
@@ -230,8 +200,6 @@ tests:
   - cargo test -p zircon_runtime skin_model_primitive_rotates_weighted_vertex_around_joint_bind_origin --locked -- --nocapture
   - cargo test -p zircon_runtime animation_manager_samples_clip_pose_against_skeleton --locked -- --nocapture
   - cargo test -p zircon_runtime apply_sequence_to_world_resolves_track_paths_and_updates_scene_properties --locked -- --nocapture
-  - cargo test -p zircon_runtime world_driver --locked
-  - cargo test -p zircon_runtime --test scene_world_driver_runtime_contract --locked
   - cargo test -p zircon_runtime directory_project_scene_renders_non_background_frame_with_gizmo_overlay --locked -- --nocapture
   - cargo test -p zircon_editor --locked --lib ui::slint_host::app::helpers::tests::derive_animation_assets_from_model_source_preserves_project_asset_ids_across_reimport_with_gltf_buffer_sidecars -- --exact --nocapture
   - cargo test -p zircon_editor --locked --lib ui::slint_host::app::helpers::tests::derive_animation_assets_from_model_source_writes_stable_sibling_skeleton_and_clip_files -- --exact --nocapture
@@ -288,7 +256,10 @@ tests:
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b physics_manager_tracks_fixed_step_accumulator_per_world -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --target-dir target/codex-shared-b -- --nocapture
   - cargo test -p zircon_runtime --locked --offline core::framework::tests --target-dir D:/cargo-targets/zircon-workspace-hard-cutover -- --nocapture
-  - cargo test -p zircon_runtime --locked --offline externalized_runtime_plugins_keep_manager_handles_under_core_manager_contracts --target-dir D:/cargo-targets/zircon-workspace-hard-cutover -- --nocapture
+  - cargo test -p zircon_runtime --locked runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts --lib
+  - cargo test -p zircon_runtime --locked runtime_absorption::physics_animation_runtime --lib
+  - cargo test -p zircon_runtime --locked --test runtime_physics_animation_tick_contract
+  - cargo test -p zircon_runtime --locked physics_animation_manifest_entries_resolve_to_builtin_runtime_domains --lib
 doc_type: module-detail
 ---
 
@@ -353,10 +324,12 @@ doc_type: module-detail
   - 运行时权威 `World`
   - scene 组件存储、typed getter/setter、project JSON roundtrip
 - `zircon_runtime::animation`
+  - `AnimationModule` / `DefaultAnimationManager` / `AnimationManagerHandle`
   - sequence track sampling
   - property-path based scene mutation
   - animation playback settings manager surface
 - `zircon_runtime::physics`
+  - `PhysicsModule` / `DefaultPhysicsManager` / `PhysicsManagerHandle`
   - physics settings manager surface
   - per-world fixed-step accumulator bookkeeping
   - backend status / world sync / ray-cast / contact fallback contract
@@ -364,8 +337,8 @@ doc_type: module-detail
 这里的 structure 规则也一起固定下来：
 
 - `core::framework::physics` 与 `core::framework::animation` 内部现在都和 `input/`、`render/`、`scene/` 一样采用 folder-backed subtree
-- 顶层 `zircon_plugins/physics/runtime/src/mod.rs` 与 `zircon_plugins/animation/runtime/src/mod.rs` 也降成结构入口
-- `PhysicsConfig` / `AnimationConfig` 进入 `config.rs`，module registration 与 service-name 常量进入 `module.rs`
+- `zircon_runtime/src/physics/` 与 `zircon_runtime/src/animation/` 是当前 runtime-owned 执行域入口
+- `PhysicsModule` / `AnimationModule` 的 module registration 与 service-name 常量进入各自 `module.rs`
 - root `mod.rs` 不再允许重新吸收 DTO、trait、default impl 或 parse helper
 - 后续新增 physics/animation contract 时，应该继续进入子文件，而不是回到 umbrella root
 
@@ -664,8 +637,15 @@ scene 默认阶段顺序已经按当前计划固定为：
   - 把 `PhysicsWorldStepPlan` 和 `PhysicsContactEvent` 缓存在 level runtime state
 - animation
   - 推进 `AnimationPlayerComponent` / `AnimationSequencePlayerComponent` 组件时钟
-  - 解析并应用 asset-backed sequence property track
+  - 通过 `zircon_runtime::animation::sequence::apply_sequence_to_world(...)` 解析并应用 asset-backed sequence property track
   - 对 clip / graph / state machine 生成 `AnimationPoseOutput` 并缓存到 level runtime state
+
+这条主干现在不再依赖外置 plugin crate 才能拿到基础 runtime service：
+
+- `builtin_runtime_modules()` 会把 `zircon_runtime::physics::PhysicsModule` 和 `zircon_runtime::animation::AnimationModule` 放在 scene 之后、graphics/script 之前
+- legacy project manifest 里仍选择 `RuntimePluginId::Physics` / `RuntimePluginId::Animation` 时，会解析到 runtime built-in domain warning，而不是报告缺少 `zircon_plugins/...` crate
+- `resolve_physics_manager(...)` / `resolve_animation_manager(...)` 能从同一个 `CoreHandle` 解析到 runtime-owned manager handle
+- `LevelSystem::tick(...)` 会使用这些 manager 推进 physics step、contacts 与 sequence property writeback
 
 这条 tick 主干里，`looping` 现在已经不再只停在 scene component 字段上，而是会被真正传进采样层：
 
@@ -787,7 +767,11 @@ render extract seam 和 skinned vertex resource surface 现在已经接成一条
   - physics fixed-step accumulator 按 `WorldHandle` 分桶追踪
   - physics backend unavailable 会显式降级成 status，而不是隐式失败
   - physics world sync / ray cast / contact DTO 可以在无真实 backend 时继续跑 contract 验证
+  - `zircon_runtime::physics::PhysicsModule` / `zircon_runtime::animation::AnimationModule` 会作为 runtime built-in module 注册，并提供 canonical manager handle
+  - legacy physics / animation manifest entries 会被识别为 runtime built-in domain，而不是外置 plugin 缺失
   - animation graph / state-machine / clip pose evaluator 能在 runtime 内直接执行
+  - `LevelSystem::tick(...)` 会使用 runtime physics manager 生成 fixed-step plan、同步 world snapshot，并缓存 contact event
+  - `LevelSystem::tick(...)` 会应用 ready `AnimationSequenceAsset` property track，并把 sequence player time 写回 world
   - `LevelSystem::tick(...)` 会缓存 clip / graph / state-machine pose 输出
   - `LevelSystem::build_render_frame_extract(...)` 会把 skinned mesh entity 的 cached pose 投影到 render extract
   - skinned glTF primitive 的 `JOINTS_0` / `WEIGHTS_0` 会保留到 `ModelAsset`、`MeshVertex` 和 `GpuMeshVertex`

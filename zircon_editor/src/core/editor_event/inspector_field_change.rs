@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InspectorFieldChange {

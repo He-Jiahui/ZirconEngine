@@ -4,12 +4,17 @@ use std::path::{Path, PathBuf};
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
-use zircon_runtime::ui::layout::UiSize;
-use zircon_runtime::ui::surface::{UiRenderCommandKind, UiRenderExtract, UiTextAlign};
 use zircon_runtime::ui::template::{
-    UiAssetError, UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
+    UiAssetLoader, UiDocumentCompiler, UiTemplateBuildError, UiTemplateSurfaceBuilder,
 };
-use zircon_runtime::ui::{event_ui::UiTreeId, tree::UiTreeError};
+use zircon_runtime::ui::{surface::extract_ui_render_tree, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{
+    event_ui::UiTreeId,
+    layout::UiSize,
+    surface::{UiRenderCommandKind, UiTextAlign},
+    template::UiAssetError,
+    tree::{UiTemplateNodeMetadata, UiTreeError},
+};
 
 use super::{ViewTemplateFrameData, ViewTemplateNodeData};
 
@@ -66,7 +71,7 @@ pub(crate) fn build_view_template_nodes_with_imports(
     )?;
     surface.compute_layout(size)?;
 
-    let render = UiRenderExtract::from_tree(&surface.tree);
+    let render = extract_ui_render_tree(&surface.tree);
     let mut nodes = Vec::new();
     for command in render.list.commands {
         let Some(tree_node) = surface.tree.node(command.node_id) else {
@@ -141,7 +146,7 @@ fn asset_path(relative: &str) -> PathBuf {
 fn resolve_role(
     component: &str,
     kind: &UiRenderCommandKind,
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
+    metadata: &UiTemplateNodeMetadata,
 ) -> &'static str {
     match component {
         "Button" => "Button",
@@ -156,10 +161,7 @@ fn resolve_role(
     }
 }
 
-fn string_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<String> {
+fn string_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<String> {
     metadata
         .attributes
         .get(key)
@@ -167,10 +169,7 @@ fn string_attribute(
         .map(str::to_string)
 }
 
-fn number_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<f32> {
+fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32> {
     metadata.attributes.get(key).and_then(|value| match value {
         Value::Float(value) => Some(*value as f32),
         Value::Integer(value) => Some(*value as f32),
@@ -178,10 +177,7 @@ fn number_attribute(
     })
 }
 
-fn integer_attribute(
-    metadata: &zircon_runtime::ui::tree::UiTemplateNodeMetadata,
-    key: &str,
-) -> Option<i32> {
+fn integer_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<i32> {
     metadata
         .attributes
         .get(key)

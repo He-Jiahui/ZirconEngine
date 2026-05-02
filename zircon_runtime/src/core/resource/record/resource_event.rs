@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::{ResourceEventKind, ResourceId, ResourceLocator};
+use super::{ResourceEventKind, ResourceId, ResourceLocator};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceEvent {

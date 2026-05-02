@@ -1,4 +1,6 @@
-use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
+};
 
 use super::route_conversion::to_public_route;
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;

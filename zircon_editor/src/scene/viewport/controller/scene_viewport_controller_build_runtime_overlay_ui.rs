@@ -1,9 +1,11 @@
 use crate::scene::viewport::{DisplayMode, GridMode, ProjectionMode, SceneViewportTool};
-use zircon_runtime::ui::event_ui::{UiNodeId, UiTreeId};
-use zircon_runtime::ui::layout::UiFrame;
-use zircon_runtime::ui::surface::{
-    UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
-    UiTextAlign, UiTextRenderMode, UiTextWrap,
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiTreeId},
+    layout::UiFrame,
+    surface::{
+        UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
+        UiTextAlign, UiTextRenderMode, UiTextWrap,
+    },
 };
 
 use super::SceneViewportController;

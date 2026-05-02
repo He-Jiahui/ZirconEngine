@@ -1,5 +1,6 @@
-use crate::ui::component::{
-    UiComponentDescriptorRegistry, UiComponentEvent, UiComponentState, UiValidationLevel, UiValue,
+use crate::ui::component::{UiComponentDescriptorRegistry, UiComponentStateRuntimeExt};
+use zircon_runtime_interface::ui::component::{
+    UiComponentEvent, UiComponentState, UiValidationLevel, UiValue,
 };
 
 use super::UiComponentEventError;
@@ -93,5 +94,5 @@ fn component_state_rejects_disabled_option_ids_from_retained_metadata() {
         state.value("value"),
         Some(&UiValue::Array(vec![UiValue::Enum("runtime".to_string())]))
     );
-    assert_eq!(state.validation().level, UiValidationLevel::Error);
+    assert_eq!(state.validation.level, UiValidationLevel::Error);
 }

@@ -1,13 +1,32 @@
 use crate::core::framework::render::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderVirtualGeometryExecutionDraw, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState,
 };
-use crate::graphics::types::VirtualGeometryPrepareClusterState;
 
 use super::{MeshDraw, VirtualGeometrySubmissionDetail};
 
 const INDIRECT_ARGS_STRIDE_BYTES: u64 = (std::mem::size_of::<u32>() as u64) * 5;
 
 impl MeshDraw {
+    pub(crate) fn virtual_geometry_execution_draw(
+        &self,
+        original_index: u32,
+        draw_index: usize,
+    ) -> RenderVirtualGeometryExecutionDraw {
+        RenderVirtualGeometryExecutionDraw {
+            indirect_args_buffer: self.indirect_args_buffer.clone(),
+            indirect_args_offset: self.indirect_args_offset,
+            uses_indirect_draw: self.indirect_args_buffer.is_some(),
+            execution_selection_key: self.virtual_geometry_execution_selection_key(),
+            execution_segment: self.virtual_geometry_execution_segment(original_index),
+            submission_order_record: self.virtual_geometry_submission_order_record(),
+            draw_submission_record: self.virtual_geometry_draw_submission_record(draw_index),
+            draw_submission_token_record: self
+                .virtual_geometry_draw_submission_token_record(draw_index),
+            execution_draw_ref_index: self.virtual_geometry_execution_draw_ref_index(),
+        }
+    }
+
     pub(crate) fn virtual_geometry_execution_draw_ref_index(&self) -> u32 {
         execution_draw_ref_index(
             self.virtual_geometry_submission_detail,
@@ -50,7 +69,7 @@ impl MeshDraw {
                 .unwrap_or(1),
             submission_slot: detail.and_then(|detail| detail.submission_slot()),
             state: detail
-                .map(|detail| map_execution_state(detail.state()))
+                .map(|detail| detail.state())
                 .unwrap_or(RenderVirtualGeometryExecutionState::Resident),
             lineage_depth: detail
                 .map(|detail| detail.lineage_depth())
@@ -112,20 +131,6 @@ fn execution_draw_ref_index(
         .unwrap_or_else(|| (indirect_args_offset / INDIRECT_ARGS_STRIDE_BYTES) as u32)
 }
 
-fn map_execution_state(
-    state: VirtualGeometryPrepareClusterState,
-) -> RenderVirtualGeometryExecutionState {
-    match state {
-        VirtualGeometryPrepareClusterState::Resident => {
-            RenderVirtualGeometryExecutionState::Resident
-        }
-        VirtualGeometryPrepareClusterState::PendingUpload => {
-            RenderVirtualGeometryExecutionState::PendingUpload
-        }
-        VirtualGeometryPrepareClusterState::Missing => RenderVirtualGeometryExecutionState::Missing,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::{execution_draw_ref_index, VirtualGeometrySubmissionDetail};
@@ -143,7 +148,7 @@ mod tests {
             1,
             4,
             Some(5),
-            crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
+            crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident,
             2,
             1,
             6,

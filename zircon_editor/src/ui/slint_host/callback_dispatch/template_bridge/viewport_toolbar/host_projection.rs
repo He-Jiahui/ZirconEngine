@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID;
 use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostProjection, SlintUiProjection};

@@ -132,7 +132,7 @@ if (Test-Path -LiteralPath $workspaceTargetPath) {
     $searchCandidates.Add((Get-Item -LiteralPath $workspaceTargetPath))
 }
 
-foreach ($drive in @("D:\", "F:\")) {
+foreach ($drive in @("D:\", "E:\", "F:\")) {
     if (-not (Test-Path -LiteralPath $drive)) {
         continue
     }

@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use super::constants::ITEM_NODE_ID_BASE;
 

@@ -14,7 +14,11 @@ impl RuntimeExtensionRegistry {
                     component.component_id.clone(),
                 ));
             }
-            registry.register(component.to_runtime_component_descriptor());
+            if let Err(error) = registry.register(component.to_runtime_component_descriptor()) {
+                return Err(RuntimeExtensionRegistryError::InvalidUiComponent(
+                    error.to_string(),
+                ));
+            }
         }
         Ok(())
     }

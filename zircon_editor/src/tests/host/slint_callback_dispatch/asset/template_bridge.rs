@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_asset_surface_view_mode_dispatches_dynamic_binding_from_template() {
@@ -13,8 +14,8 @@ fn builtin_asset_surface_view_mode_dispatches_dynamic_binding_from_template() {
         "SetViewMode",
         UiEventKind::Change,
         vec![
-            zircon_runtime::ui::binding::UiBindingValue::string("browser"),
-            zircon_runtime::ui::binding::UiBindingValue::string("thumbnail"),
+            UiBindingValue::string("browser"),
+            UiBindingValue::string("thumbnail"),
         ],
     )
     .expect("asset surface control should resolve through template bridge")
@@ -108,7 +109,7 @@ fn builtin_asset_surface_search_matches_legacy_asset_search_dispatch() {
         &bridge,
         "SearchEdited",
         UiEventKind::Change,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string("cube")],
+        vec![UiBindingValue::string("cube")],
     )
     .expect("templated asset search control should resolve")
     .unwrap();

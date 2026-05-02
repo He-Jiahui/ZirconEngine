@@ -2,7 +2,7 @@ use crate::ui::activity::{
     ActivityDrawerSlotPreference, ActivityViewDescriptor, ActivityWindowDescriptor,
 };
 use crate::ui::control::EditorUiControlService;
-use zircon_runtime::ui::event_ui::UiNodePath;
+use zircon_runtime_interface::ui::event_ui::UiNodePath;
 
 #[test]
 fn editor_ui_control_service_registers_activity_descriptors() {

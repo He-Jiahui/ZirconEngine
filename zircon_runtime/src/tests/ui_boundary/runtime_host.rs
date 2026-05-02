@@ -107,12 +107,14 @@ fn runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces() {
 
 #[test]
 fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface() {
-    use crate::ui::dispatch::{
-        UiNavigationDispatchEffect, UiNavigationDispatcher, UiPointerDispatchEffect,
-        UiPointerDispatcher, UiPointerEvent,
+    use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
+    use zircon_runtime_interface::ui::dispatch::{
+        UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent,
     };
-    use crate::ui::layout::UiPoint;
-    use crate::ui::surface::{UiNavigationEventKind, UiPointerButton, UiPointerEventKind};
+    use zircon_runtime_interface::ui::layout::UiPoint;
+    use zircon_runtime_interface::ui::surface::{
+        UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
+    };
 
     let viewport_size = crate::core::math::UVec2::new(640, 360);
     let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);

@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiStateFlags;
+use zircon_runtime_interface::ui::event_ui::UiStateFlags;
 
 pub(in crate::ui::slint_host::menu_pointer) fn base_state(interactive: bool) -> UiStateFlags {
     UiStateFlags {

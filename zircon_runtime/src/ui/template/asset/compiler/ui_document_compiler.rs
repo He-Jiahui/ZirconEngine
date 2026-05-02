@@ -2,9 +2,12 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
 
-use crate::ui::component::{UiComponentDescriptor, UiComponentDescriptorRegistry};
-use crate::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetKind, UiStyleSheet, UiTemplateInstance,
+use crate::ui::component::UiComponentDescriptorRegistry;
+use crate::ui::template::UiTemplateInstance;
+use zircon_runtime_interface::ui::component::UiComponentDescriptor;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetKind, UiResourceDependency,
+    UiResourceDiagnostic, UiStyleSheet,
 };
 
 use super::value_normalizer::compose_tokens;
@@ -13,6 +16,8 @@ use super::value_normalizer::compose_tokens;
 pub struct UiCompiledDocument {
     pub asset: UiAssetHeader,
     pub(super) instance: UiTemplateInstance,
+    pub resource_dependencies: Vec<UiResourceDependency>,
+    pub resource_diagnostics: Vec<UiResourceDiagnostic>,
 }
 
 impl UiCompiledDocument {
@@ -22,6 +27,14 @@ impl UiCompiledDocument {
 
     pub fn template_instance(&self) -> &UiTemplateInstance {
         &self.instance
+    }
+
+    pub fn resource_dependencies(&self) -> &[UiResourceDependency] {
+        &self.resource_dependencies
+    }
+
+    pub fn resource_diagnostics(&self) -> &[UiResourceDiagnostic] {
+        &self.resource_diagnostics
     }
 }
 
@@ -52,6 +65,14 @@ impl UiDocumentCompiler {
         component_id: &str,
     ) -> Option<&UiComponentDescriptor> {
         self.component_registry.descriptor(component_id)
+    }
+
+    pub(super) fn component_registry_revision(&self) -> u64 {
+        self.component_registry.revision()
+    }
+
+    pub fn component_registry(&self) -> &UiComponentDescriptorRegistry {
+        &self.component_registry
     }
 
     pub fn register_widget_import(

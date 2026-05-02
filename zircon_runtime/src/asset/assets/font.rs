@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::ui::surface::UiTextRenderMode;
+use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct FontAsset {

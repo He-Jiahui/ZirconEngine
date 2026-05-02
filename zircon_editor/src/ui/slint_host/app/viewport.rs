@@ -5,7 +5,7 @@ use crate::ui::slint_host::root_shell_projection::{
 };
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::view::ViewHost;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     dispatch::UiPointerEvent, surface::UiPointerButton, surface::UiPointerEventKind,
 };
 
@@ -38,6 +38,17 @@ impl SlintEditorHost {
         };
         if event.kind != UiPointerEventKind::Move {
             self.focus_callback_source_window();
+        }
+
+        if let Some(route) = self.viewport.route_world_space_ui_pointer_event(
+            event.kind,
+            event.point.x,
+            event.point.y,
+        ) {
+            if let Some(status) = world_space_ui_pointer_status(event.kind, &route.control_id) {
+                self.set_status_line(status);
+            }
+            return;
         }
 
         match callback_dispatch::dispatch_viewport_pointer_event(
@@ -180,6 +191,15 @@ impl SlintEditorHost {
             });
 
         UiSize::new(width.max(1.0), TOOLBAR_HEIGHT)
+    }
+}
+
+fn world_space_ui_pointer_status(kind: UiPointerEventKind, control_id: &str) -> Option<String> {
+    match kind {
+        UiPointerEventKind::Down => Some(format!("World-space UI target selected: {control_id}")),
+        UiPointerEventKind::Scroll => Some(format!("World-space UI scroll routed: {control_id}")),
+        UiPointerEventKind::Up => Some(format!("World-space UI target released: {control_id}")),
+        UiPointerEventKind::Move => None,
     }
 }
 

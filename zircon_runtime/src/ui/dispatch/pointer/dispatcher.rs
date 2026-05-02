@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use crate::ui::event_ui::UiNodeId;
-use crate::ui::surface::{UiPointerEventKind, UiPointerRoute};
-use crate::ui::tree::{UiTree, UiTreeError};
-
-use super::{
+use crate::ui::tree::UiRuntimeTreeRoutingExt;
+use zircon_runtime_interface::ui::dispatch::{
     UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchInvocation,
     UiPointerDispatchResult,
 };
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::surface::{UiPointerEventKind, UiPointerRoute};
+use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
 
 type PointerHandler =
     Arc<dyn Fn(&UiPointerDispatchContext) -> UiPointerDispatchEffect + Send + Sync + 'static>;

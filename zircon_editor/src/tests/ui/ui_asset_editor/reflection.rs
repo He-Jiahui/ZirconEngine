@@ -4,7 +4,7 @@ use crate::ui::asset_editor::{
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
 };
 use serde_json::json;
-use zircon_runtime::ui::template::UiAssetKind;
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 #[test]
 fn ui_asset_editor_reflection_model_tracks_source_selection_and_style_state() {

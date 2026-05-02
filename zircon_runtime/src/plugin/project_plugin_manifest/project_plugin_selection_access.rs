@@ -11,6 +11,13 @@ impl ProjectPluginSelection {
         self.target_modes.is_empty() || self.target_modes.contains(&target)
     }
 
+    pub fn is_runtime_builtin_domain(&self) -> bool {
+        matches!(
+            self.runtime_id(),
+            Some(RuntimePluginId::Physics | RuntimePluginId::Animation)
+        )
+    }
+
     pub fn runtime_crate_name(&self) -> String {
         self.runtime_crate
             .clone()

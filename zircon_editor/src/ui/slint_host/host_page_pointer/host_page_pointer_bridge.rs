@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiNodeId, layout::UiFrame, surface::UiSurface,
-};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime_interface::ui::{event_ui::UiNodeId, layout::UiFrame};
 
 use super::host_page_pointer_layout::HostPagePointerLayout;
 use super::host_page_pointer_target::HostPagePointerTarget;

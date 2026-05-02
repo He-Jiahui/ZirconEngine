@@ -1,4 +1,5 @@
 use super::support::*;
+use zircon_runtime_interface::ui::template::UiNodeDefinitionKind;
 
 #[test]
 fn ui_asset_editor_session_inserts_palette_items_and_tracks_tree_edits_in_undo_stack() {
@@ -594,7 +595,7 @@ fn ui_asset_editor_session_tracks_explicit_inverse_tree_edits_for_reparent_and_r
         convert_session.next_undo_inverse_tree_edit(),
         Some(UiAssetEditorInverseTreeEdit::RestoreNodeDefinition {
             node_id: "button".to_string(),
-            kind: zircon_runtime::ui::template::UiNodeDefinitionKind::Native,
+            kind: UiNodeDefinitionKind::Native,
             widget_type: Some("Button".to_string()),
             component: None,
             component_ref: None,

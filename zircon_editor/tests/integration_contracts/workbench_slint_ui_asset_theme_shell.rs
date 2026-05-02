@@ -25,7 +25,10 @@ fn ui_asset_theme_shell_contract_is_rust_owned_and_toml_projected() {
         "pub promote_asset_id: SharedString",
         "pub can_prune_duplicate_local_overrides: bool",
     ] {
-        assert!(ui_asset.contains(required), "theme DTO missing `{required}`");
+        assert!(
+            ui_asset.contains(required),
+            "theme DTO missing `{required}`"
+        );
     }
     assert!(callbacks.contains("on_ui_asset_action"));
     assert!(asset.contains("StylesheetThemeSection"));

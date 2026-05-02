@@ -11,9 +11,9 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::scene::world::World;
-use crate::ui::event_ui::{UiNodeId, UiTreeId};
-use crate::ui::layout::UiFrame;
-use crate::ui::surface::{
+use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
@@ -864,21 +864,6 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
         )
         .unwrap();
     let extract = flagship_extract();
-    let hybrid_gi = extract
-        .lighting
-        .hybrid_global_illumination
-        .as_ref()
-        .expect("flagship extract should include hybrid gi");
-    let expected_scene_card_count = extract.geometry.meshes.len();
-    let expected_surface_cache_resident_page_count =
-        expected_scene_card_count.min(hybrid_gi.card_budget as usize);
-    let expected_surface_cache_feedback_card_count =
-        expected_scene_card_count.saturating_sub(expected_surface_cache_resident_page_count);
-    let expected_voxel_resident_clipmap_count = if expected_scene_card_count == 0 {
-        0
-    } else {
-        hybrid_gi.voxel_budget as usize
-    };
     server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
 
@@ -898,32 +883,17 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert_eq!(stats.last_virtual_geometry_visible_cluster_count, 2);
     assert_eq!(stats.last_virtual_geometry_requested_page_count, 1);
     assert_eq!(stats.last_virtual_geometry_dirty_page_count, 1);
-    assert_eq!(stats.last_virtual_geometry_page_table_entry_count, 2);
-    assert_eq!(stats.last_virtual_geometry_resident_page_count, 2);
+    assert_eq!(stats.last_virtual_geometry_page_table_entry_count, 0);
+    assert_eq!(stats.last_virtual_geometry_resident_page_count, 0);
     assert_eq!(stats.last_virtual_geometry_pending_request_count, 0);
-    assert_eq!(stats.last_virtual_geometry_completed_page_count, 1);
+    assert_eq!(stats.last_virtual_geometry_completed_page_count, 0);
     assert_eq!(
-        stats.last_virtual_geometry_replaced_page_count, 1,
-        "expected render-framework stats to expose how many resident pages were explicitly recycled by the GPU uploader so residency-manager cascades can observe real replacement pressure"
+        stats.last_virtual_geometry_replaced_page_count, 0,
+        "plugin-owned VG residency replacement pressure should not leak through runtime stats after the hard cutover"
     );
-    assert!(
-        stats.last_virtual_geometry_indirect_draw_count >= 1,
-        "expected VG-enabled server submission to record at least one indirect raster draw"
-    );
-    assert_eq!(
-        stats.last_virtual_geometry_indirect_segment_count,
-        stats.last_virtual_geometry_indirect_draw_count,
-        "expected prepare-owned VG segments to remain the authoritative indirect submission count until explicit GPU compaction changes that contract"
-    );
-    assert!(
-        stats.last_virtual_geometry_indirect_buffer_count >= 1,
-        "expected VG-enabled server submission to record at least one shared indirect args buffer"
-    );
-    assert!(
-        stats.last_virtual_geometry_indirect_buffer_count
-            <= stats.last_virtual_geometry_indirect_draw_count,
-        "expected shared indirect buffer count to stay within indirect draw count"
-    );
+    assert_eq!(stats.last_virtual_geometry_indirect_draw_count, 0);
+    assert_eq!(stats.last_virtual_geometry_indirect_segment_count, 0);
+    assert_eq!(stats.last_virtual_geometry_indirect_buffer_count, 0);
     assert_eq!(stats.last_hybrid_gi_active_probe_count, 0);
     assert_eq!(stats.last_hybrid_gi_requested_probe_count, 0);
     assert_eq!(stats.last_hybrid_gi_dirty_probe_count, 0);
@@ -931,35 +901,14 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert_eq!(stats.last_hybrid_gi_resident_probe_count, 0);
     assert_eq!(stats.last_hybrid_gi_pending_update_count, 0);
     assert_eq!(stats.last_hybrid_gi_scheduled_trace_region_count, 0);
-    assert_eq!(
-        stats.last_hybrid_gi_scene_card_count,
-        expected_scene_card_count
-    );
-    assert_eq!(
-        stats.last_hybrid_gi_surface_cache_resident_page_count,
-        expected_surface_cache_resident_page_count
-    );
-    assert_eq!(
-        stats.last_hybrid_gi_surface_cache_dirty_page_count,
-        expected_surface_cache_resident_page_count
-    );
-    assert_eq!(
-        stats.last_hybrid_gi_surface_cache_feedback_card_count,
-        expected_surface_cache_feedback_card_count
-    );
-    assert_eq!(
-        stats.last_hybrid_gi_surface_cache_capture_slot_count,
-        expected_surface_cache_resident_page_count
-    );
+    assert_eq!(stats.last_hybrid_gi_scene_card_count, 0);
+    assert_eq!(stats.last_hybrid_gi_surface_cache_resident_page_count, 0);
+    assert_eq!(stats.last_hybrid_gi_surface_cache_dirty_page_count, 0);
+    assert_eq!(stats.last_hybrid_gi_surface_cache_feedback_card_count, 0);
+    assert_eq!(stats.last_hybrid_gi_surface_cache_capture_slot_count, 0);
     assert_eq!(stats.last_hybrid_gi_surface_cache_invalidated_page_count, 0);
-    assert_eq!(
-        stats.last_hybrid_gi_voxel_resident_clipmap_count,
-        expected_voxel_resident_clipmap_count
-    );
-    assert_eq!(
-        stats.last_hybrid_gi_voxel_dirty_clipmap_count,
-        expected_voxel_resident_clipmap_count
-    );
+    assert_eq!(stats.last_hybrid_gi_voxel_resident_clipmap_count, 0);
+    assert_eq!(stats.last_hybrid_gi_voxel_dirty_clipmap_count, 0);
     assert_eq!(stats.last_hybrid_gi_voxel_invalidated_clipmap_count, 0);
 }
 
@@ -980,27 +929,16 @@ fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_a
         .unwrap();
 
     let active_extract = flagship_extract();
-    let hybrid_gi = active_extract
-        .lighting
-        .hybrid_global_illumination
-        .as_ref()
-        .expect("flagship extract should include hybrid gi");
-    let expected_scene_card_count = active_extract.geometry.meshes.len();
-    let expected_surface_cache_resident_page_count =
-        expected_scene_card_count.min(hybrid_gi.card_budget as usize);
     server
         .submit_frame_extract(viewport, active_extract)
         .unwrap();
     let active_stats = server.query_stats().unwrap();
-    assert_eq!(active_stats.last_virtual_geometry_page_table_entry_count, 2);
+    assert_eq!(active_stats.last_virtual_geometry_page_table_entry_count, 0);
     assert_eq!(active_stats.last_hybrid_gi_cache_entry_count, 0);
-    assert_eq!(
-        active_stats.last_hybrid_gi_scene_card_count,
-        expected_scene_card_count
-    );
+    assert_eq!(active_stats.last_hybrid_gi_scene_card_count, 0);
     assert_eq!(
         active_stats.last_hybrid_gi_surface_cache_resident_page_count,
-        expected_surface_cache_resident_page_count
+        0
     );
 
     server
@@ -1101,7 +1039,7 @@ fn render_framework_ignores_legacy_hybrid_gi_history_while_feature_disabled() {
 }
 
 #[test]
-fn render_framework_hybrid_gi_second_frame_resolve_reuses_gpu_completed_hierarchy_history() {
+fn render_framework_hybrid_gi_second_frame_resolve_ignores_plugin_private_history() {
     let warm = render_hybrid_gi_history_capture([255, 72, 48]);
     let cool = render_hybrid_gi_history_capture([48, 96, 255]);
 
@@ -1147,12 +1085,12 @@ fn render_framework_hybrid_gi_second_frame_resolve_reuses_gpu_completed_hierarch
     );
 
     assert!(
-        warm_red > cool_red + 0.4,
-        "expected the second-frame neutral resolve to keep more red indirect light when the previous frame's hierarchy-aware GPU completion was seeded by a warm ancestor-trace lineage; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
+        (warm_red - cool_red).abs() <= 0.4,
+        "runtime neutral resolve should not consume plugin-private Hybrid GI completion history after the hard cutover; warm_red={warm_red:.2}, cool_red={cool_red:.2}"
     );
     assert!(
-        cool_blue > warm_blue + 0.4,
-        "expected the second-frame neutral resolve to keep more blue indirect light when the previous frame's hierarchy-aware GPU completion was seeded by a cool ancestor-trace lineage; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
+        (cool_blue - warm_blue).abs() <= 0.4,
+        "runtime neutral resolve should not consume plugin-private Hybrid GI completion history after the hard cutover; warm_blue={warm_blue:.2}, cool_blue={cool_blue:.2}"
     );
 }
 

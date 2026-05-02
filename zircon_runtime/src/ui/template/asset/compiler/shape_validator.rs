@@ -1,4 +1,4 @@
-use crate::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
 
 pub(super) fn validate_document_shape(document: &UiAssetDocument) -> Result<(), UiAssetError> {
     match document.asset.kind {

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::{ResourceHandle, ResourceId, ResourceKind, ResourceMarker};
+use super::{ResourceHandle, ResourceId, ResourceKind, ResourceMarker};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct UntypedResourceHandle {

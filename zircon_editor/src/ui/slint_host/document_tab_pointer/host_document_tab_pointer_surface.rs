@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::host_document_tab_pointer_item::HostDocumentTabPointerItem;
 

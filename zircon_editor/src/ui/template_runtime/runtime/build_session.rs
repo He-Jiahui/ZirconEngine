@@ -3,9 +3,9 @@ use crate::ui::template_runtime::builtin::{
 };
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
-use zircon_runtime::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetLoader, UiCompiledDocument, UiComponentDefinition,
-    UiDocumentCompiler,
+use zircon_runtime::ui::template::{UiAssetLoader, UiCompiledDocument, UiDocumentCompiler};
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiAssetError, UiComponentDefinition,
 };
 
 use super::runtime_host::{EditorUiHostRuntime, EditorUiHostRuntimeError};

@@ -1,7 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
-use zircon_runtime::ui::template::{UiAssetDocument, UiComponentDefinition, UiNodeDefinition};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiComponentDefinition, UiNodeDefinition,
+};
 
 use super::{
     command::{
@@ -139,7 +142,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
     ) -> Result<(), UiAssetEditorSessionError> {
         self.apply_document_edit_with_kind(
             document,
@@ -150,7 +153,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_kind(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         kind: UiAssetEditorTreeEditKind,
         label: &str,
     ) -> Result<(), UiAssetEditorSessionError> {
@@ -163,7 +166,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_tree_edit(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         edit: UiAssetEditorTreeEdit,
         label: &str,
     ) -> Result<(), UiAssetEditorSessionError> {
@@ -173,7 +176,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_tree_edit_and_replay(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         edit: UiAssetEditorTreeEdit,
         label: &str,
         replay: UiAssetEditorDocumentReplayBundle,
@@ -188,7 +191,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_label(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         label: &str,
     ) -> Result<(), UiAssetEditorSessionError> {
         self.apply_document_edit_with_kind(document, UiAssetEditorTreeEditKind::DocumentEdit, label)
@@ -196,7 +199,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_label_and_replay(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         label: &str,
         replay: UiAssetEditorDocumentReplayBundle,
     ) -> Result<(), UiAssetEditorSessionError> {
@@ -210,7 +213,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_label_replay_and_style_rule_selection(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         label: &str,
         replay: UiAssetEditorDocumentReplayBundle,
         selected_style_rule_id: Option<String>,
@@ -232,7 +235,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_binding_document_edit_with_label(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         label: &str,
     ) -> Result<(), UiAssetEditorSessionError> {
         let Some(node_id) = self.selection.primary_node_id.clone() else {
@@ -244,7 +247,7 @@ impl UiAssetEditorSession {
 
     pub(super) fn apply_document_edit_with_tree_edit_and_selection(
         &mut self,
-        document: zircon_runtime::ui::template::UiAssetDocument,
+        document: UiAssetDocument,
         edit: UiAssetEditorTreeEdit,
         label: &str,
         selection: UiDesignerSelectionModel,

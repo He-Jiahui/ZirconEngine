@@ -1,6 +1,6 @@
 use super::{
     binding::binding_inspector,
-    command, palette_target_chooser, presentation,
+    command, diagnostics, palette, palette_target_chooser, presentation,
     preview::{preview_host, preview_mock, preview_projection},
     promote_widget,
     source::{source_buffer, source_sync},
@@ -22,6 +22,7 @@ pub(crate) mod presentation_state;
 pub(crate) mod preview_compile;
 pub(crate) mod preview_state;
 pub(crate) mod promotion_state;
+pub(crate) mod root_class_policy_state;
 pub(crate) mod session_state;
 pub(crate) mod style_inspection;
 pub(crate) mod style_rule_identity;

@@ -27,7 +27,8 @@ use super::{
     theme_state::theme_document_replay_bundle,
     ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
 };
-use zircon_runtime::ui::template::{
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet,
 };
 

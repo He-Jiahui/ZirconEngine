@@ -17,9 +17,15 @@ fn shared_drag_capture_surface_uses_rust_owned_pointer_event_contract() {
         "dispatch_drag_drop_from_pointer",
         "HOST_POINTER_UP",
     ] {
-        assert!(docking.contains(required), "workspace docking missing `{required}`");
+        assert!(
+            docking.contains(required),
+            "workspace docking missing `{required}`"
+        );
     }
     for legacy in ["on_drop_tab", "on_update_drag_target"] {
-        assert!(!wiring.contains(legacy), "drag wiring should not keep `{legacy}`");
+        assert!(
+            !wiring.contains(legacy),
+            "drag wiring should not keep `{legacy}`"
+        );
     }
 }

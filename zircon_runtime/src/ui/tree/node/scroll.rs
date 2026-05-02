@@ -1,19 +1,23 @@
-use super::{UiTree, UiTreeError};
-use crate::ui::event_ui::UiNodeId;
-use crate::ui::layout::UiScrollState;
+use crate::ui::layout::virtual_window_for_scrollable_box;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{UiContainerKind, UiScrollState},
+    tree::{UiTree, UiTreeError},
+};
 
-impl UiTree {
-    pub fn set_scroll_offset(
-        &mut self,
-        node_id: UiNodeId,
-        offset: f32,
-    ) -> Result<bool, UiTreeError> {
+pub trait UiRuntimeTreeScrollExt {
+    fn set_scroll_offset(&mut self, node_id: UiNodeId, offset: f32) -> Result<bool, UiTreeError>;
+    fn scroll_by(&mut self, node_id: UiNodeId, delta: f32) -> Result<bool, UiTreeError>;
+}
+
+impl UiRuntimeTreeScrollExt for UiTree {
+    fn set_scroll_offset(&mut self, node_id: UiNodeId, offset: f32) -> Result<bool, UiTreeError> {
         let (config, current_state, child_count, previous_window) = {
             let node = self
                 .nodes
                 .get(&node_id)
                 .ok_or(UiTreeError::MissingNode(node_id))?;
-            let crate::ui::layout::UiContainerKind::ScrollableBox(config) = node.container else {
+            let UiContainerKind::ScrollableBox(config) = node.container else {
                 return Err(UiTreeError::NotScrollable(node_id));
             };
             (
@@ -30,8 +34,12 @@ impl UiTree {
             return Ok(false);
         }
 
-        let next_window =
-            config.virtual_window(clamped_offset, child_count, current_state.viewport_extent);
+        let next_window = virtual_window_for_scrollable_box(
+            config,
+            clamped_offset,
+            child_count,
+            current_state.viewport_extent,
+        );
         let node = self
             .nodes
             .get_mut(&node_id)
@@ -50,7 +58,7 @@ impl UiTree {
         Ok(true)
     }
 
-    pub fn scroll_by(&mut self, node_id: UiNodeId, delta: f32) -> Result<bool, UiTreeError> {
+    fn scroll_by(&mut self, node_id: UiNodeId, delta: f32) -> Result<bool, UiTreeError> {
         let current = self
             .nodes
             .get(&node_id)

@@ -1,7 +1,9 @@
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetReferenceSnapshot, AssetWorkspaceSnapshot,
 };
-use zircon_runtime::ui::component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata};
+use zircon_runtime_interface::ui::component::{
+    UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata,
+};
 
 const ACTIVITY_ASSET_CONTENT_CONTROL_ID: &str = "AssetsActivityContentPanel";
 const BROWSER_ASSET_CONTENT_CONTROL_ID: &str = "AssetBrowserContentPanel";

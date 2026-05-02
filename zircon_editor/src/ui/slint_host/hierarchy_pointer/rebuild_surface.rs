@@ -1,9 +1,15 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiTreeId, layout::UiAxis, layout::UiContainerKind,
-    layout::UiFrame, layout::UiScrollState, layout::UiScrollableBoxConfig,
-    layout::UiScrollbarVisibility, surface::UiSurface, tree::UiInputPolicy, tree::UiTreeNode,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodePath, UiTreeId},
+    layout::{
+        UiAxis, UiContainerKind, UiFrame, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility,
+    },
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::base_state::base_state;
@@ -24,17 +30,14 @@ impl HierarchyPointerBridge {
         let mut targets = BTreeMap::new();
 
         surface.tree.insert_root(
-            UiTreeNode::new(
-                ROOT_NODE_ID,
-                zircon_runtime::ui::event_ui::UiNodePath::new("editor.hierarchy.root"),
-            )
-            .with_frame(UiFrame::new(
-                0.0,
-                0.0,
-                self.layout.pane_width.max(0.0),
-                self.layout.pane_height.max(0.0),
-            ))
-            .with_state_flags(base_state(false)),
+            UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.hierarchy.root"))
+                .with_frame(UiFrame::new(
+                    0.0,
+                    0.0,
+                    self.layout.pane_width.max(0.0),
+                    self.layout.pane_height.max(0.0),
+                ))
+                .with_state_flags(base_state(false)),
         );
 
         let viewport = viewport_frame(&self.layout);
@@ -44,7 +47,7 @@ impl HierarchyPointerBridge {
                 ROOT_NODE_ID,
                 UiTreeNode::new(
                     VIEWPORT_NODE_ID,
-                    zircon_runtime::ui::event_ui::UiNodePath::new("editor.hierarchy.viewport"),
+                    UiNodePath::new("editor.hierarchy.viewport"),
                 )
                 .with_frame(viewport)
                 .with_z_index(10)
@@ -76,9 +79,7 @@ impl HierarchyPointerBridge {
                     VIEWPORT_NODE_ID,
                     UiTreeNode::new(
                         item_node_id,
-                        zircon_runtime::ui::event_ui::UiNodePath::new(format!(
-                            "editor.hierarchy/item_{item_index}"
-                        )),
+                        UiNodePath::new(format!("editor.hierarchy/item_{item_index}")),
                     )
                     .with_frame(UiFrame::new(
                         ROW_X,

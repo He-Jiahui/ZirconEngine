@@ -1,8 +1,17 @@
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassStage,
+    RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
 };
 use zircon_runtime::render_graph::QueueLane;
+
+mod provider;
+#[cfg(test)]
+pub(crate) mod test_support;
+mod virtual_geometry;
+
+use std::sync::Arc;
+
+pub use provider::PluginVirtualGeometryRuntimeProvider;
 
 pub const PLUGIN_ID: &str = "virtual_geometry";
 pub const VIRTUAL_GEOMETRY_FEATURE_NAME: &str = "virtual_geometry";
@@ -31,8 +40,22 @@ impl zircon_runtime::RuntimePlugin for VirtualGeometryRuntimePlugin {
         registry: &mut zircon_runtime::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
-        registry.register_render_feature(render_feature_descriptor())
+        registry.register_render_feature(render_feature_descriptor())?;
+        for registration in render_pass_executor_registrations() {
+            registry.register_render_pass_executor(registration)?;
+        }
+        registry.register_virtual_geometry_runtime_provider(
+            virtual_geometry_runtime_provider_registration(),
+        )
     }
+}
+
+pub fn virtual_geometry_runtime_provider_registration(
+) -> zircon_runtime::graphics::VirtualGeometryRuntimeProviderRegistration {
+    zircon_runtime::graphics::VirtualGeometryRuntimeProviderRegistration::new(
+        PLUGIN_ID,
+        Arc::new(PluginVirtualGeometryRuntimeProvider),
+    )
 }
 
 pub fn module_descriptor() -> zircon_runtime::core::ModuleDescriptor {
@@ -97,6 +120,59 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
     .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
 }
 
+pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
+    vec![
+        RenderPassExecutorRegistration::new(
+            "virtual-geometry.prepare",
+            virtual_geometry_prepare_executor,
+        ),
+        RenderPassExecutorRegistration::new(
+            "virtual-geometry.node-cluster-cull",
+            virtual_geometry_node_cluster_cull_executor,
+        ),
+        RenderPassExecutorRegistration::new(
+            "virtual-geometry.page-feedback",
+            virtual_geometry_page_feedback_executor,
+        ),
+        RenderPassExecutorRegistration::new(
+            "virtual-geometry.visbuffer",
+            virtual_geometry_visbuffer_executor,
+        ),
+        RenderPassExecutorRegistration::new(
+            "virtual-geometry.debug-overlay",
+            virtual_geometry_debug_overlay_executor,
+        ),
+    ]
+}
+
+fn virtual_geometry_prepare_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
+}
+
+fn virtual_geometry_node_cluster_cull_executor(
+    _context: &RenderPassExecutionContext,
+) -> Result<(), String> {
+    Ok(())
+}
+
+fn virtual_geometry_page_feedback_executor(
+    _context: &RenderPassExecutionContext,
+) -> Result<(), String> {
+    Ok(())
+}
+
+fn virtual_geometry_visbuffer_executor(
+    _context: &RenderPassExecutionContext,
+) -> Result<(), String> {
+    Ok(())
+}
+
+fn virtual_geometry_debug_overlay_executor(
+    _context: &RenderPassExecutionContext,
+) -> Result<(), String> {
+    Ok(())
+}
+
 pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
     zircon_runtime::RuntimePluginDescriptor::new(
         PLUGIN_ID,
@@ -150,6 +226,10 @@ mod tests {
             VIRTUAL_GEOMETRY_FEATURE_NAME
         );
         assert_eq!(
+            report.extensions.virtual_geometry_runtime_providers()[0].provider_id(),
+            PLUGIN_ID
+        );
+        assert_eq!(
             report.package_manifest.modules[0].target_modes,
             vec![
                 zircon_runtime::RuntimeTargetMode::ClientRuntime,
@@ -181,6 +261,22 @@ mod tests {
                 "virtual-geometry-page-feedback",
                 "virtual-geometry-visbuffer",
                 "virtual-geometry-debug-overlay",
+            ]
+        );
+        assert_eq!(report.extensions.render_pass_executors().len(), 5);
+        assert_eq!(
+            report
+                .extensions
+                .render_pass_executors()
+                .iter()
+                .map(|registration| registration.executor_id().as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "virtual-geometry.prepare",
+                "virtual-geometry.node-cluster-cull",
+                "virtual-geometry.page-feedback",
+                "virtual-geometry.visbuffer",
+                "virtual-geometry.debug-overlay",
             ]
         );
     }

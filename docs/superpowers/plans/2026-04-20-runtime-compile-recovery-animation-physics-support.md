@@ -1,14 +1,14 @@
 ---
 related_code:
-  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_runtime/src/animation/runtime/mod.rs
   - zircon_runtime/src/core/framework/physics/mod.rs
   - zircon_runtime/src/core/framework/scene/world_handle.rs
-  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_runtime/src/physics/runtime/mod.rs
 implementation_files:
-  - zircon_plugins/animation/runtime/src/service_types.rs
+  - zircon_runtime/src/animation/runtime/mod.rs
   - zircon_runtime/src/core/framework/physics/mod.rs
   - zircon_runtime/src/core/framework/scene/world_handle.rs
-  - zircon_plugins/physics/runtime/src/physics_interface.rs
+  - zircon_runtime/src/physics/runtime/mod.rs
 plan_sources:
   - user: 2026-04-20 focus graphics/rendering recovery first, but keep current absorbed runtime layout compiling while continuing M5
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
@@ -48,11 +48,11 @@ doc_type: milestone-detail
 
 ### 3. PhysicsInterface 同名转发去二义性
 
-`physics/physics_interface.rs` 里的 `sync_scene_world()` 现在显式调用 `PhysicsManager::sync_world(...)`，不再依赖歧义的 trait method 解析。
+`zircon_runtime::physics` runtime 接口里的 `sync_scene_world()` 现在显式调用 `PhysicsManager::sync_world(...)`，不再依赖歧义的 trait method 解析。
 
 ### 4. Animation service_types 清理无效导入
 
-`animation/service_types.rs` 移除了未使用的 `BTreeMap` 导入，使这轮 compile recovery 不再带无意义噪音。
+`zircon_runtime::animation` runtime 类型移除了未使用的 `BTreeMap` 导入，使这轮 compile recovery 不再带无意义噪音。
 
 ## Why This Matters
 

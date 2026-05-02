@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::{map::Map, Value};
-use zircon_runtime::ui::template::UiStyleDeclarationBlock;
+use zircon_runtime_interface::ui::template::UiStyleDeclarationBlock;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiStyleRuleDeclarationEntry {

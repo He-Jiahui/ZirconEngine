@@ -1,8 +1,11 @@
-use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
-use crate::ui::layout::UiScrollState;
-use crate::ui::template::{UiTemplateInstance, UiTemplateNode};
-use crate::ui::tree::UiTemplateNodeMetadata;
-use crate::ui::{tree::UiTree, tree::UiTreeNode};
+use crate::ui::template::UiTemplateInstance;
+use crate::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    layout::UiScrollState,
+    template::UiTemplateNode,
+    tree::{UiTemplateNodeMetadata, UiTree, UiTreeNode},
+};
 
 use super::build_error::UiTemplateBuildError;
 use super::child_segment::child_segment;

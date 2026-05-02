@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatcher, UiPointerEvent},
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent,
     event_ui::UiNodeId,
     layout::UiPoint,
-    surface::UiPointerButton,
-    surface::UiPointerEventKind,
-    surface::UiSurface,
+    surface::{UiPointerButton, UiPointerEventKind},
 };
 
 #[cfg(test)]

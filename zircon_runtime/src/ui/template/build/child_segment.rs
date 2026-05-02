@@ -1,4 +1,4 @@
-use crate::ui::template::UiTemplateNode;
+use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 pub(super) fn child_segment(node: &UiTemplateNode, index: usize) -> String {
     let raw = node

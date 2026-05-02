@@ -1,7 +1,13 @@
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiNodePath, event_ui::UiTreeId, layout::UiAxis,
-    layout::UiContainerKind, layout::UiFrame, layout::UiScrollState, layout::UiScrollableBoxConfig,
-    layout::UiScrollbarVisibility, surface::UiSurface, tree::UiInputPolicy, tree::UiTreeNode,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodePath, UiTreeId},
+    layout::{
+        UiAxis, UiContainerKind, UiFrame, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility,
+    },
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::base_state::base_state;

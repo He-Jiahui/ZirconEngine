@@ -6,4 +6,9 @@ license.workspace = true
 description = "Virtual geometry runtime plugin package for Zircon."
 
 [dependencies]
+bytemuck = { version = "1.25.0", features = ["derive"] }
+wgpu = "29.0.1"
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+pollster = "0.4.0"

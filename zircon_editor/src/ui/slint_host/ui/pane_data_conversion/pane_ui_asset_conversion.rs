@@ -279,8 +279,11 @@ pub(in super::super) fn to_host_contract_ui_asset_pane(
                 widget_label: data.inspector_widget_label.into(),
                 control_id: data.inspector_control_id.into(),
                 text_prop: data.inspector_text_prop.into(),
+                component_root_class_policy: data.inspector_component_root_class_policy.into(),
                 can_edit_control_id: data.inspector_can_edit_control_id,
                 can_edit_text_prop: data.inspector_can_edit_text_prop,
+                can_edit_component_root_class_policy: data
+                    .inspector_can_edit_component_root_class_policy,
                 promote_asset_id: data.inspector_promote_asset_id.into(),
                 promote_component_name: data.inspector_promote_component_name.into(),
                 promote_document_id: data.inspector_promote_document_id.into(),

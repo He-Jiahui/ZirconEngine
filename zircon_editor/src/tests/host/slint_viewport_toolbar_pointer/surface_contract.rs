@@ -20,6 +20,9 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
         "SetGridMode",
         "FrameSelection",
     ] {
-        assert!(toolbar.contains(required), "viewport toolbar asset missing `{required}`");
+        assert!(
+            toolbar.contains(required),
+            "viewport toolbar asset missing `{required}`"
+        );
     }
 }

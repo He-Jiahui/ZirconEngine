@@ -8,7 +8,6 @@ mod scene_renderer_core_render_compiled_scene;
 mod scene_renderer_core_render_scene;
 mod scene_renderer_core_write_scene_uniform;
 mod scene_renderer_history;
-mod scene_renderer_hybrid_gi;
 mod scene_renderer_new;
 mod scene_renderer_render;
 mod scene_renderer_render_with_pipeline;

@@ -1,7 +1,8 @@
 use std::collections::BTreeSet;
 
 use toml::Value;
-use zircon_runtime::ui::template::{UiAssetDocument, UiBindingRef};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiBindingRef};
 
 use super::UiAssetPreviewMockState;
 use super::{

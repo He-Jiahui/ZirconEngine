@@ -5,9 +5,9 @@ use crate::scene::viewport::{
     SceneGizmoOverlayExtract, SceneViewportExtractRequest, SceneViewportSettings,
     SelectionAnchorExtract, SelectionHighlightExtract, ViewportCameraSnapshot, ViewportIconId,
 };
-use zircon_runtime::core::math::{Real, UVec2, Vec4};
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::math::{Real, UVec2, Vec4};
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 const SELECTION_TINT: Vec4 = Vec4::new(1.0, 0.92, 0.55, 0.18);

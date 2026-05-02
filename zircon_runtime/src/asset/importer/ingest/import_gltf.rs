@@ -14,8 +14,10 @@ impl AssetImporter {
         let (document, buffers, _) = gltf::import(source_path)
             .map_err(|error| AssetImportError::Parse(format!("parse gltf: {error}")))?;
         let mut primitives = Vec::new();
+        let source_hint = uri.to_string();
 
         for mesh in document.meshes() {
+            let mesh_name = mesh.name();
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()].0));
                 let positions = reader
@@ -63,6 +65,8 @@ impl AssetImporter {
                     &indices,
                     &joint_indices,
                     &joint_weights,
+                    mesh_name,
+                    &source_hint,
                 )?);
             }
         }

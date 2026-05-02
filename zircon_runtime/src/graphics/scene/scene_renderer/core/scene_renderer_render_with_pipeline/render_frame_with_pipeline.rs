@@ -1,5 +1,6 @@
 use crate::core::framework::render::{
-    FrameHistoryHandle, RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExtract,
+    FrameHistoryHandle, RenderVirtualGeometryClusterSelectionInputSource,
+    RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryExtract,
 };
 
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
@@ -75,7 +76,7 @@ impl SceneRenderer {
             runtime_outputs,
             frame.virtual_geometry_debug_snapshot.clone(),
             virtual_geometry_cull_input,
-            frame.virtual_geometry_cluster_selection_input_source(),
+            RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
             frame.extract.geometry.virtual_geometry.as_ref(),
         )?;
         self.generation += 1;
@@ -142,39 +143,15 @@ fn resolve_virtual_geometry_cull_input(
                 instance_count: saturated_u32_len(extract.instances.len()),
                 cluster_count: saturated_u32_len(extract.clusters.len()),
                 page_count: saturated_u32_len(extract.pages.len()),
-                visible_entity_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.visible_entities.len()))
-                    .unwrap_or_else(|| unique_extract_entity_count(extract)),
-                visible_cluster_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.visible_clusters.len()))
-                    .unwrap_or_else(|| saturated_u32_len(extract.clusters.len())),
-                resident_page_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.resident_pages.len()))
-                    .unwrap_or(0),
-                pending_page_request_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.pending_page_requests.len()))
-                    .unwrap_or(0),
-                available_page_slot_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.available_slots.len()))
-                    .unwrap_or(0),
-                evictable_page_count: frame
-                    .virtual_geometry_prepare
-                    .as_ref()
-                    .map(|prepare| saturated_u32_len(prepare.evictable_pages.len()))
-                    .unwrap_or(0),
+                visible_entity_count: unique_extract_entity_count(extract),
+                visible_cluster_count: saturated_u32_len(extract.clusters.len()),
+                resident_page_count: 0,
+                pending_page_request_count: 0,
+                available_page_slot_count: 0,
+                evictable_page_count: 0,
                 debug: extract.debug,
-                cluster_selection_input_source: frame
-                    .virtual_geometry_cluster_selection_input_source(),
+                cluster_selection_input_source:
+                    RenderVirtualGeometryClusterSelectionInputSource::Unavailable,
             })
         })
 }

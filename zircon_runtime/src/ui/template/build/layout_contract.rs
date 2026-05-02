@@ -1,10 +1,11 @@
-use crate::ui::layout::LayoutBoundary;
 use toml::Value;
 
-use crate::ui::template::UiTemplateNode;
-use crate::ui::{
-    layout::Anchor, layout::Pivot, layout::Position, layout::UiContainerKind, tree::UiInputPolicy,
+use zircon_runtime_interface::ui::layout::{
+    Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiAxis, UiContainerKind,
+    UiScrollableBoxConfig,
 };
+use zircon_runtime_interface::ui::template::UiTemplateNode;
+use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
 use super::build_error::UiTemplateBuildError;
 use super::parsers::{
@@ -14,7 +15,7 @@ use super::parsers::{
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct TemplateLayoutContract {
-    pub(super) constraints: crate::ui::layout::BoxConstraints,
+    pub(super) constraints: BoxConstraints,
     pub(super) anchor: Anchor,
     pub(super) pivot: Pivot,
     pub(super) position: Position,
@@ -35,7 +36,7 @@ pub(super) fn infer_layout_contract(
     };
 
     Ok(TemplateLayoutContract {
-        constraints: crate::ui::layout::BoxConstraints {
+        constraints: BoxConstraints {
             width: parse_axis_constraint(layout.get("width"), path, "width")?,
             height: parse_axis_constraint(layout.get("height"), path, "height")?,
         },
@@ -74,21 +75,17 @@ fn merged_layout_table(
             }
             match parent_container {
                 Some(UiContainerKind::HorizontalBox(_))
-                | Some(UiContainerKind::ScrollableBox(
-                    crate::ui::layout::UiScrollableBoxConfig {
-                        axis: crate::ui::layout::UiAxis::Horizontal,
-                        ..
-                    },
-                )) => {
+                | Some(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+                    axis: UiAxis::Horizontal,
+                    ..
+                })) => {
                     restore_axis(&mut merged, self_layout, "width");
                 }
                 Some(UiContainerKind::VerticalBox(_))
-                | Some(UiContainerKind::ScrollableBox(
-                    crate::ui::layout::UiScrollableBoxConfig {
-                        axis: crate::ui::layout::UiAxis::Vertical,
-                        ..
-                    },
-                )) => {
+                | Some(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+                    axis: UiAxis::Vertical,
+                    ..
+                })) => {
                     restore_axis(&mut merged, self_layout, "height");
                 }
                 _ => {}

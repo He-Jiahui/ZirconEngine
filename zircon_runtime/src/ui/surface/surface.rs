@@ -1,17 +1,23 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::dispatch::{
-    UiNavigationDispatchResult, UiNavigationDispatcher, UiPointerDispatchResult,
-    UiPointerDispatcher, UiPointerEvent,
+use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
+use crate::ui::layout::compute_layout_tree;
+use crate::ui::tree::{
+    UiHitTestIndex, UiHitTestResult, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt,
+    UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
 };
-use crate::ui::event_ui::{UiNodeId, UiTreeId};
-use crate::ui::layout::{compute_layout_tree, UiPoint, UiSize};
-use crate::ui::tree::{UiHitTestIndex, UiHitTestResult, UiTree, UiTreeError};
+use zircon_runtime_interface::ui::tree::{UiTree, UiTreeError};
+use zircon_runtime_interface::ui::{
+    dispatch::{UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent},
+    event_ui::{UiNodeId, UiTreeId},
+    layout::{UiPoint, UiSize},
+    surface::{
+        UiFocusState, UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerButton,
+        UiPointerEventKind, UiPointerRoute, UiRenderExtract, UiRenderList,
+    },
+};
 
-use super::{
-    UiFocusState, UiNavigationEventKind, UiNavigationRoute, UiNavigationState, UiPointerButton,
-    UiPointerEventKind, UiPointerRoute, UiRenderExtract, UiRenderList,
-};
+use super::extract_ui_render_tree;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurface {
@@ -38,7 +44,7 @@ impl UiSurface {
 
     pub fn rebuild(&mut self) {
         self.hit_test.rebuild(&self.tree);
-        self.render_extract = UiRenderExtract::from_tree(&self.tree);
+        self.render_extract = extract_ui_render_tree(&self.tree);
     }
 
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {

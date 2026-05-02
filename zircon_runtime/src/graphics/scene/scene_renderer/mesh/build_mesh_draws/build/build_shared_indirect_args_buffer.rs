@@ -446,11 +446,11 @@ fn draw_ref_counts_within_segment(draw_refs: &[DrawRefEntry]) -> Vec<u32> {
 
 fn decode_cluster_state(
     encoded: u32,
-) -> crate::graphics::types::VirtualGeometryPrepareClusterState {
+) -> crate::core::framework::render::RenderVirtualGeometryExecutionState {
     match encoded {
-        0 => crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-        1 => crate::graphics::types::VirtualGeometryPrepareClusterState::PendingUpload,
-        _ => crate::graphics::types::VirtualGeometryPrepareClusterState::Missing,
+        0 => crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident,
+        1 => crate::core::framework::render::RenderVirtualGeometryExecutionState::PendingUpload,
+        _ => crate::core::framework::render::RenderVirtualGeometryExecutionState::Missing,
     }
 }
 
@@ -833,7 +833,7 @@ mod tests {
             1,
             1,
             submission_slot,
-            crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
+            crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident,
             0,
             0,
             0,

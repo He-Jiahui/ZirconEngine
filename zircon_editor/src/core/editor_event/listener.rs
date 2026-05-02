@@ -8,6 +8,8 @@ pub struct EditorEventListenerFilter {
     #[serde(default)]
     pub operation_path_prefixes: Vec<String>,
     #[serde(default)]
+    pub operation_groups: Vec<String>,
+    #[serde(default)]
     pub sources: Vec<EditorEventSource>,
     #[serde(default = "default_filter_includes_events")]
     pub include_successes: bool,
@@ -19,6 +21,7 @@ impl Default for EditorEventListenerFilter {
     fn default() -> Self {
         Self {
             operation_path_prefixes: Vec::new(),
+            operation_groups: Vec::new(),
             sources: Vec::new(),
             include_successes: true,
             include_failures: true,
@@ -30,6 +33,13 @@ impl EditorEventListenerFilter {
     pub fn operation_prefix(prefix: impl Into<String>) -> Self {
         Self {
             operation_path_prefixes: vec![prefix.into()],
+            ..Self::default()
+        }
+    }
+
+    pub fn operation_group(group: impl Into<String>) -> Self {
+        Self {
+            operation_groups: vec![group.into()],
             ..Self::default()
         }
     }
@@ -70,6 +80,19 @@ impl EditorEventListenerFilter {
                 .operation_path_prefixes
                 .iter()
                 .any(|prefix| operation_id.starts_with(prefix))
+            {
+                return false;
+            }
+        }
+
+        if !self.operation_groups.is_empty() {
+            let Some(operation_group) = record.operation_group.as_deref() else {
+                return false;
+            };
+            if !self
+                .operation_groups
+                .iter()
+                .any(|group| group == operation_group)
             {
                 return false;
             }

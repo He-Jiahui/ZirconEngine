@@ -1,6 +1,6 @@
 use crate::scene::viewport::{ProjectionMode, ViewOrientation, ViewportCameraSnapshot};
-use zircon_runtime::core::math::{Transform, UVec2, Vec3};
 use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::math::{Transform, UVec2, Vec3};
 
 use crate::scene::viewport::ViewportState;
 

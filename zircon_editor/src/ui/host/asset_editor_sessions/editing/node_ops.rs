@@ -73,24 +73,18 @@ impl EditorUiHost {
             else {
                 return Ok(false);
             };
-            (
-                UiWidgetAsset {
-                    document: widget_document,
-                },
-                target.asset_id,
-                target.source_path,
-            )
+            (widget_document, target.asset_id, target.source_path)
         };
         if let Some(parent) = target_source_path.parent() {
             fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         }
-        let widget_source = widget_asset
-            .to_toml_string()
+        let widget_source = toml::to_string_pretty(&widget_asset)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         fs::write(&target_source_path, widget_source)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
         let _ = self.asset_manager()?.import_asset(&normalized);
+        self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
         self.hydrate_ui_asset_editor_imports(instance_id)?;
         self.sync_ui_asset_editor_instance(instance_id)?;
         Ok(true)
@@ -132,24 +126,18 @@ impl EditorUiHost {
             else {
                 return Ok(false);
             };
-            (
-                UiStyleAsset {
-                    document: style_document,
-                },
-                target.asset_id,
-                target.source_path,
-            )
+            (style_document, target.asset_id, target.source_path)
         };
         if let Some(parent) = target_source_path.parent() {
             fs::create_dir_all(parent).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         }
-        let style_source = style_asset
-            .to_toml_string()
+        let style_source = toml::to_string_pretty(&style_asset)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         fs::write(&target_source_path, style_source)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let normalized = normalize_ui_asset_asset_id(&target_asset_id).to_string();
         let _ = self.asset_manager()?.import_asset(&normalized);
+        self.refresh_ui_asset_workspace_for_changes(vec![normalized])?;
         self.hydrate_ui_asset_editor_imports(instance_id)?;
         self.sync_ui_asset_editor_instance(instance_id)?;
         Ok(true)

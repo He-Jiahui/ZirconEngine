@@ -1,4 +1,4 @@
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::viewport_render_frame::ViewportRenderFrame;
 

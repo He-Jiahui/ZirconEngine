@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::host_page_pointer_layout::HostPagePointerLayout;
 

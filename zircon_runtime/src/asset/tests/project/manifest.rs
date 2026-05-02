@@ -43,8 +43,8 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
         3,
     );
     manifest.plugins.set_enabled(
-        ProjectPluginSelection::runtime_plugin(RuntimePluginId::Physics, true, false)
-            .with_runtime_crate("zircon_plugin_physics_runtime"),
+        ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+            .with_runtime_crate("zircon_plugin_sound_runtime"),
     );
     manifest.export_profiles.push(
         ExportProfile::new(
@@ -73,7 +73,7 @@ fn project_manifest_roundtrip_preserves_plugins_and_export_profiles() {
     assert_eq!(client.profile.name, "client");
     assert!(client
         .linked_runtime_crates
-        .contains(&"zircon_plugin_physics_runtime".to_string()));
+        .contains(&"zircon_plugin_sound_runtime".to_string()));
     assert!(client
         .generated_files
         .iter()

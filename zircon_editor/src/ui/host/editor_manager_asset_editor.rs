@@ -169,6 +169,15 @@ impl EditorManager {
             .set_ui_asset_editor_selected_widget_text_property(instance_id, text)
     }
 
+    pub fn set_ui_asset_editor_selected_component_root_class_policy(
+        &self,
+        instance_id: &ViewInstanceId,
+        policy: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_selected_component_root_class_policy(instance_id, policy)
+    }
+
     pub fn set_ui_asset_editor_selected_promote_widget_asset_id(
         &self,
         instance_id: &ViewInstanceId,

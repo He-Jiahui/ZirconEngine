@@ -3,6 +3,7 @@ members = [
     "zircon_app",
     "zircon_runtime",
     "zircon_editor",
+    "zircon_runtime_interface",
 ]
 resolver = "2"
 default-members = ["zircon_runtime"]

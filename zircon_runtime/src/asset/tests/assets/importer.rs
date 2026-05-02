@@ -8,7 +8,10 @@ use crate::asset::tests::support::{
     sample_animation_sequence_asset, sample_physics_material_asset,
     write_default_animation_sequence, write_default_physics_material,
 };
-use crate::asset::{AssetImporter, AssetUri, ImportedAsset};
+use crate::asset::{
+    AssetImporter, AssetUri, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+};
+use crate::core::math::{Vec2, Vec3};
 
 #[test]
 fn importer_subtree_uses_ingest_namespace_without_service_shell() {
@@ -169,6 +172,7 @@ f 1/1/1 2/2/1 3/3/1
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+            assert_cooked_virtual_geometry(&model.primitives[0], "res://models/triangle.obj");
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -177,6 +181,51 @@ f 1/1/1 2/2/1 3/3/1
             assert_eq!(model.primitives.len(), 1);
             assert_eq!(model.primitives[0].vertices.len(), 3);
             assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+            assert_cooked_virtual_geometry(&model.primitives[0], "res://models/triangle.gltf");
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_backfills_virtual_geometry_for_model_toml_without_dropping_base_mesh() {
+    let root = unique_temp_project_root("model_toml_virtual_geometry_import");
+    fs::create_dir_all(&root).unwrap();
+    let model_path = root.join("triangle.model.toml");
+    let base_vertices = vec![
+        MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO),
+        MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X),
+        MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
+    ];
+    let base_indices = vec![0, 1, 2];
+    let source_model = ModelAsset {
+        uri: AssetUri::parse("res://models/triangle.model.toml").unwrap(),
+        primitives: vec![ModelPrimitiveAsset {
+            vertices: base_vertices.clone(),
+            indices: base_indices.clone(),
+            virtual_geometry: None,
+        }],
+    };
+    fs::write(&model_path, source_model.to_toml_string().unwrap()).unwrap();
+
+    let imported = AssetImporter::default()
+        .import_from_source(
+            &model_path,
+            &AssetUri::parse("res://models/triangle.model.toml").unwrap(),
+        )
+        .unwrap();
+
+    match imported {
+        ImportedAsset::Model(model) => {
+            assert_eq!(model.primitives.len(), 1);
+            assert_eq!(model.primitives[0].vertices, base_vertices);
+            assert_eq!(model.primitives[0].indices, base_indices);
+            assert_cooked_virtual_geometry(
+                &model.primitives[0],
+                "res://models/triangle.model.toml",
+            );
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
@@ -269,6 +318,22 @@ fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.4, 0.2, 1.0);
 }
 "#
+}
+
+fn assert_cooked_virtual_geometry(primitive: &ModelPrimitiveAsset, source_hint: &str) {
+    let virtual_geometry = primitive
+        .virtual_geometry
+        .as_ref()
+        .expect("imported model primitive should carry cooked virtual geometry");
+    assert!(!virtual_geometry.hierarchy_buffer.is_empty());
+    assert!(!virtual_geometry.cluster_headers.is_empty());
+    assert!(!virtual_geometry.cluster_page_headers.is_empty());
+    assert!(!virtual_geometry.cluster_page_data.is_empty());
+    assert!(!virtual_geometry.root_page_table.is_empty());
+    assert_eq!(
+        virtual_geometry.debug.source_hint.as_deref(),
+        Some(source_hint)
+    );
 }
 
 fn write_triangle_gltf(root: &Path) -> std::path::PathBuf {

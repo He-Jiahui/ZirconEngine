@@ -36,6 +36,7 @@ impl EditorEventRuntime {
                         invocation.operation_id,
                         error,
                         invocation.arguments,
+                        invocation.operation_group,
                     );
                 }
             };
@@ -52,6 +53,7 @@ impl EditorEventRuntime {
                     invocation.operation_id,
                     error,
                     invocation.arguments,
+                    invocation.operation_group,
                 );
             }
             if let Some(error) = operation_capability_error(
@@ -64,6 +66,7 @@ impl EditorEventRuntime {
                     invocation.operation_id,
                     error,
                     invocation.arguments,
+                    invocation.operation_group,
                 );
             }
             descriptor
@@ -80,6 +83,7 @@ impl EditorEventRuntime {
                     invocation.operation_id,
                     error,
                     invocation.arguments,
+                    invocation.operation_group,
                 );
             }
         };
@@ -103,6 +107,7 @@ impl EditorEventRuntime {
         operation_id: EditorOperationPath,
         error: String,
         arguments: serde_json::Value,
+        operation_group: Option<String>,
     ) -> Result<EditorEventRecord, String> {
         self.dispatch_normalized_event_with_operation(
             source,
@@ -115,7 +120,7 @@ impl EditorEventRuntime {
                 operation_id.to_string(),
                 false,
                 arguments,
-                None,
+                operation_group,
             )),
         )
     }
@@ -166,6 +171,7 @@ impl EditorEventRuntime {
                                 "undo_display_name": descriptor
                                     .undoable()
                                     .map(|operation| operation.display_name()),
+                                "required_capabilities": descriptor.required_capabilities(),
                             })
                         })
                         .collect::<Vec<_>>()

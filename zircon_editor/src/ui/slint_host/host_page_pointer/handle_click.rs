@@ -1,5 +1,7 @@
-use zircon_runtime::ui::{
-    dispatch::UiPointerEvent, layout::UiFrame, layout::UiPoint, surface::UiPointerEventKind,
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent,
+    layout::{UiFrame, UiPoint},
+    surface::UiPointerEventKind,
 };
 
 use super::constants::{STRIP_Y, TAB_HEIGHT, TAB_MIN_WIDTH};

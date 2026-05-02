@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 pub(super) const ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(super) const SURFACE_NODE_ID_BASE: u64 = 10;

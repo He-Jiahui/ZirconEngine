@@ -1,11 +1,10 @@
-use crate::ui::layout::{AxisConstraint, LayoutBoundary, StretchMode};
 use toml::Value;
 
-use crate::ui::{
-    layout::UiAxis, layout::UiContainerKind, layout::UiLinearBoxConfig,
-    layout::UiScrollableBoxConfig, layout::UiScrollbarVisibility, layout::UiVirtualListConfig,
-    tree::UiInputPolicy,
+use zircon_runtime_interface::ui::layout::{
+    AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiContainerKind, UiLinearBoxConfig,
+    UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig,
 };
+use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
 use super::build_error::UiTemplateBuildError;
 

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::binding::UiEventKind;
+use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_WELCOME_SURFACE_DOCUMENT_ID;

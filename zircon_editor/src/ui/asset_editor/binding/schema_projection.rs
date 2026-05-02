@@ -1,10 +1,13 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::ui::asset_editor::preview::preview_mock::{
     format_preview_mock_inline_value, resolve_preview_mock_value_preview, UiAssetPreviewMockState,
 };
 use toml::Value;
-use zircon_runtime::ui::template::{UiAssetDocument, UiBindingRef};
+use zircon_runtime::ui::template::{collect_asset_binding_report, UiDocumentCompiler};
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiBindingDiagnostic, UiBindingRef, UiBindingTarget, UiBindingTargetKind,
+};
 
 pub(super) fn build_binding_schema_items(
     document: &UiAssetDocument,
@@ -29,6 +32,16 @@ pub(super) fn build_binding_schema_items(
         super::UiBindingActionKind::None => {
             items.push("action.kind [None]".to_string());
         }
+    }
+
+    let diagnostics_by_path = binding_diagnostics_by_path(document, current_node_id, &binding.id);
+    for (index, assignment) in binding.targets.iter().enumerate() {
+        items.push(format!(
+            "target[{index}] [{}] = {}",
+            binding_target_label(&assignment.target),
+            assignment.expression
+        ));
+        append_target_diagnostics(&mut items, &diagnostics_by_path, index);
     }
 
     let mut projected_payload_keys = BTreeSet::new();
@@ -61,6 +74,61 @@ pub(super) fn build_binding_schema_items(
     }
 
     items
+}
+
+fn binding_diagnostics_by_path(
+    document: &UiAssetDocument,
+    current_node_id: &str,
+    binding_id: &str,
+) -> BTreeMap<String, Vec<UiBindingDiagnostic>> {
+    collect_asset_binding_report(document, UiDocumentCompiler::default().component_registry())
+        .diagnostics
+        .into_iter()
+        .filter(|diagnostic| {
+            diagnostic.node_id == current_node_id && diagnostic.binding_id == binding_id
+        })
+        .fold(BTreeMap::new(), |mut by_path, diagnostic| {
+            by_path
+                .entry(diagnostic.path.clone())
+                .or_default()
+                .push(diagnostic);
+            by_path
+        })
+}
+
+fn append_target_diagnostics(
+    items: &mut Vec<String>,
+    diagnostics_by_path: &BTreeMap<String, Vec<UiBindingDiagnostic>>,
+    target_index: usize,
+) {
+    let target_suffix = format!(".targets[{target_index}]");
+    for (path, diagnostics) in diagnostics_by_path {
+        if path.ends_with(&target_suffix) || path.contains(&format!("{target_suffix}.")) {
+            for diagnostic in diagnostics {
+                items.push(format!(
+                    "target diagnostic [{}] {}: {}",
+                    diagnostic.code.as_str(),
+                    diagnostic.path,
+                    diagnostic.message
+                ));
+            }
+        }
+    }
+}
+
+fn binding_target_label(target: &UiBindingTarget) -> String {
+    let kind = match target.kind {
+        UiBindingTargetKind::Prop => "prop",
+        UiBindingTargetKind::Class => "class",
+        UiBindingTargetKind::Visibility => "visibility",
+        UiBindingTargetKind::Enabled => "enabled",
+        UiBindingTargetKind::ActionPayload => "action_payload",
+    };
+    target
+        .name
+        .as_deref()
+        .map(|name| format!("{kind}.{name}"))
+        .unwrap_or_else(|| kind.to_string())
 }
 
 fn append_binding_value_projection(

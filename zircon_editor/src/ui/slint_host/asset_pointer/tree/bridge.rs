@@ -1,20 +1,17 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatcher, UiPointerEvent},
-    event_ui::UiNodeId,
-    event_ui::UiNodePath,
-    event_ui::UiTreeId,
-    layout::UiAxis,
-    layout::UiContainerKind,
-    layout::UiPoint,
-    layout::UiScrollState,
-    layout::UiScrollableBoxConfig,
-    layout::UiScrollbarVisibility,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent,
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    layout::{
+        UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility,
+    },
     surface::UiPointerEventKind,
-    surface::UiSurface,
-    tree::UiInputPolicy,
-    tree::UiTreeNode,
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::dispatch::AssetFolderTreePointerDispatch;
@@ -142,7 +139,7 @@ impl AssetFolderTreePointerBridge {
 
         surface.tree.insert_root(
             UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.asset_tree.root"))
-                .with_frame(zircon_runtime::ui::layout::UiFrame::new(
+                .with_frame(UiFrame::new(
                     0.0,
                     0.0,
                     self.layout.pane_size.width.max(0.0),
@@ -192,7 +189,7 @@ impl AssetFolderTreePointerBridge {
                         node_id,
                         UiNodePath::new(format!("editor.asset_tree/row_{row_index}")),
                     )
-                    .with_frame(zircon_runtime::ui::layout::UiFrame::new(
+                    .with_frame(UiFrame::new(
                         ROW_X,
                         viewport_y() + ROW_Y + row_index as f32 * (ROW_HEIGHT + ROW_GAP)
                             - self.state.scroll_offset,

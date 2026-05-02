@@ -5,10 +5,11 @@ use std::sync::{Mutex, OnceLock};
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_runtime::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiAssetLoader, UiBindingRef,
-    UiChildMount, UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema,
-    UiNodeDefinition, UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
+use zircon_runtime::ui::template::UiAssetLoader;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiBindingRef, UiChildMount,
+    UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
+    UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
 };
 
 pub(crate) fn env_lock() -> &'static Mutex<()> {
@@ -73,6 +74,7 @@ impl FlatUiAssetDocument {
                             &mut Vec::new(),
                         )?,
                         style_scope: component.style_scope,
+                        contract: Default::default(),
                         params: component.params,
                         slots: component.slots,
                     },
@@ -130,6 +132,7 @@ fn build_tree_node(
         widget_type: node.widget_type.clone(),
         component: node.component.clone(),
         component_ref: node.component_ref.clone(),
+        component_api_version: None,
         slot_name: node.slot_name.clone(),
         control_id: node.control_id.clone(),
         classes: node.classes.clone(),

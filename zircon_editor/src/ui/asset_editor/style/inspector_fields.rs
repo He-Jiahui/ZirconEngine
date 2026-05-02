@@ -1,8 +1,9 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::{map::Map, Value};
-use zircon_runtime::ui::template::UiAssetDocument;
-use zircon_runtime::ui::template::UiChildMount;
-use zircon_runtime::ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiChildMount, UiNodeDefinition, UiNodeDefinitionKind,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiAssetInspectorFields {

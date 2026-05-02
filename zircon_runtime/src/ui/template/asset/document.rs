@@ -1,55 +1,71 @@
 use std::collections::BTreeMap;
 
-use serde::{Deserialize, Serialize};
-use thiserror::Error;
-use toml::Value;
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiAssetError, UiChildMount, UiNodeDefinition, UiSelector, UiStyleRule,
+    UiStyleSheet,
+};
 
-use super::style::UiSelector;
-use crate::ui::template::{UiBindingRef, UiTemplateError};
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum UiAssetKind {
-    Layout,
-    Widget,
-    Style,
+pub trait UiAssetDocumentRuntimeExt {
+    fn validate_tree_authority(&self) -> Result<(), UiAssetError>;
+    fn root_node_id(&self) -> Option<&str>;
+    fn contains_node(&self, node_id: &str) -> bool;
+    fn node(&self, node_id: &str) -> Option<&UiNodeDefinition>;
+    fn node_mut(&mut self, node_id: &str) -> Option<&mut UiNodeDefinition>;
+    fn style_rule(&self, rule_id: &str) -> Option<&UiStyleRule>;
+    fn style_rule_mut(&mut self, rule_id: &str) -> Option<&mut UiStyleRule>;
+    fn style_rule_position(&self, rule_id: &str) -> Option<UiStyleRulePosition<'_>>;
+    fn rename_style_rule(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError>;
+    fn remove_style_rule(&mut self, rule_id: &str) -> Option<UiStyleRule>;
+    fn insert_style_rule(
+        &mut self,
+        stylesheet_id: &str,
+        index: usize,
+        rule: UiStyleRule,
+    ) -> Result<bool, UiAssetError>;
+    fn replace_style_rule(
+        &mut self,
+        rule_id: &str,
+        replacement: UiStyleRule,
+    ) -> Result<Option<UiStyleRule>, UiAssetError>;
+    fn move_style_rule(
+        &mut self,
+        rule_id: &str,
+        target_stylesheet_id: &str,
+        target_index: usize,
+    ) -> Result<bool, UiAssetError>;
+    fn style_sheet(&self, stylesheet_id: &str) -> Option<&UiStyleSheet>;
+    fn style_sheet_mut(&mut self, stylesheet_id: &str) -> Option<&mut UiStyleSheet>;
+    fn style_sheet_index(&self, stylesheet_id: &str) -> Option<usize>;
+    fn rename_style_sheet(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError>;
+    fn remove_style_sheet(&mut self, stylesheet_id: &str) -> Option<UiStyleSheet>;
+    fn set_style_sheets(&mut self, stylesheets: Vec<UiStyleSheet>) -> Result<bool, UiAssetError>;
+    fn insert_style_sheet(
+        &mut self,
+        index: usize,
+        stylesheet: UiStyleSheet,
+    ) -> Result<usize, UiAssetError>;
+    fn replace_style_sheet(
+        &mut self,
+        stylesheet_id: &str,
+        replacement: UiStyleSheet,
+    ) -> Result<Option<UiStyleSheet>, UiAssetError>;
+    fn move_style_sheet(&mut self, stylesheet_id: &str, target_index: usize) -> Option<usize>;
+    fn component_root_node_id(&self, component_name: &str) -> Option<&str>;
+    fn child_index_in_parent(&self, child_id: &str) -> Option<(String, usize)>;
+    fn child_mount(&self, child_id: &str) -> Option<&UiChildMount>;
+    fn child_mount_mut(&mut self, child_id: &str) -> Option<&mut UiChildMount>;
+    fn parent_of(&self, child_id: &str) -> Option<UiNodeParent<'_>>;
+    fn iter_nodes(&self) -> UiAssetNodeIter<'_>;
+    fn node_map(&self) -> BTreeMap<String, UiNodeDefinition>;
+    fn replace_node(&mut self, node_id: &str, replacement: UiNodeDefinition) -> bool;
+    fn remove_node(&mut self, node_id: &str) -> Option<UiNodeDefinition>;
+    fn insert_child(&mut self, parent_id: &str, index: usize, child: UiChildMount) -> bool;
+    fn push_child(&mut self, parent_id: &str, child: UiChildMount) -> bool;
+    fn swap_children(&mut self, parent_id: &str, left: usize, right: usize) -> bool;
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UiAssetHeader {
-    pub kind: UiAssetKind,
-    pub id: String,
-    #[serde(default = "default_asset_version")]
-    pub version: u32,
-    #[serde(default)]
-    pub display_name: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UiAssetImports {
-    #[serde(default)]
-    pub widgets: Vec<String>,
-    #[serde(default)]
-    pub styles: Vec<String>,
-}
-
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct UiAssetDocument {
-    pub asset: UiAssetHeader,
-    #[serde(default)]
-    pub imports: UiAssetImports,
-    #[serde(default)]
-    pub tokens: BTreeMap<String, Value>,
-    #[serde(default)]
-    pub root: Option<UiNodeDefinition>,
-    #[serde(default)]
-    pub components: BTreeMap<String, UiComponentDefinition>,
-    #[serde(default)]
-    pub stylesheets: Vec<UiStyleSheet>,
-}
-
-impl UiAssetDocument {
-    pub fn validate_tree_authority(&self) -> Result<(), UiAssetError> {
+impl UiAssetDocumentRuntimeExt for UiAssetDocument {
+    fn validate_tree_authority(&self) -> Result<(), UiAssetError> {
         let mut seen = BTreeMap::new();
         if let Some(root) = &self.root {
             validate_node_tree(&self.asset.id, "root", root, &mut seen)?;
@@ -68,15 +84,15 @@ impl UiAssetDocument {
         Ok(())
     }
 
-    pub fn root_node_id(&self) -> Option<&str> {
+    fn root_node_id(&self) -> Option<&str> {
         self.root.as_ref().map(|node| node.node_id.as_str())
     }
 
-    pub fn contains_node(&self, node_id: &str) -> bool {
+    fn contains_node(&self, node_id: &str) -> bool {
         self.node(node_id).is_some()
     }
 
-    pub fn node(&self, node_id: &str) -> Option<&UiNodeDefinition> {
+    fn node(&self, node_id: &str) -> Option<&UiNodeDefinition> {
         if let Some(root) = &self.root {
             if let Some(node) = find_node(root, node_id) {
                 return Some(node);
@@ -87,7 +103,7 @@ impl UiAssetDocument {
             .find_map(|component| find_node(&component.root, node_id))
     }
 
-    pub fn node_mut(&mut self, node_id: &str) -> Option<&mut UiNodeDefinition> {
+    fn node_mut(&mut self, node_id: &str) -> Option<&mut UiNodeDefinition> {
         if let Some(root) = &mut self.root {
             if let Some(node) = find_node_mut(root, node_id) {
                 return Some(node);
@@ -98,21 +114,21 @@ impl UiAssetDocument {
             .find_map(|component| find_node_mut(&mut component.root, node_id))
     }
 
-    pub fn style_rule(&self, rule_id: &str) -> Option<&UiStyleRule> {
+    fn style_rule(&self, rule_id: &str) -> Option<&UiStyleRule> {
         self.stylesheets
             .iter()
             .flat_map(|stylesheet| stylesheet.rules.iter())
             .find(|rule| rule.id.as_deref() == Some(rule_id))
     }
 
-    pub fn style_rule_mut(&mut self, rule_id: &str) -> Option<&mut UiStyleRule> {
+    fn style_rule_mut(&mut self, rule_id: &str) -> Option<&mut UiStyleRule> {
         self.stylesheets
             .iter_mut()
             .flat_map(|stylesheet| stylesheet.rules.iter_mut())
             .find(|rule| rule.id.as_deref() == Some(rule_id))
     }
 
-    pub fn style_rule_position(&self, rule_id: &str) -> Option<UiStyleRulePosition<'_>> {
+    fn style_rule_position(&self, rule_id: &str) -> Option<UiStyleRulePosition<'_>> {
         self.stylesheets
             .iter()
             .enumerate()
@@ -129,11 +145,7 @@ impl UiAssetDocument {
             })
     }
 
-    pub fn rename_style_rule(
-        &mut self,
-        current_id: &str,
-        new_id: &str,
-    ) -> Result<bool, UiAssetError> {
+    fn rename_style_rule(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError> {
         let new_id = new_id.trim();
         if new_id.is_empty() {
             return Err(UiAssetError::InvalidDocument {
@@ -185,7 +197,7 @@ impl UiAssetDocument {
         Ok(true)
     }
 
-    pub fn remove_style_rule(&mut self, rule_id: &str) -> Option<UiStyleRule> {
+    fn remove_style_rule(&mut self, rule_id: &str) -> Option<UiStyleRule> {
         let (stylesheet_index, rule_index) =
             self.stylesheets
                 .iter()
@@ -200,7 +212,7 @@ impl UiAssetDocument {
         Some(self.stylesheets[stylesheet_index].rules.remove(rule_index))
     }
 
-    pub fn insert_style_rule(
+    fn insert_style_rule(
         &mut self,
         stylesheet_id: &str,
         index: usize,
@@ -225,7 +237,7 @@ impl UiAssetDocument {
         Ok(true)
     }
 
-    pub fn replace_style_rule(
+    fn replace_style_rule(
         &mut self,
         rule_id: &str,
         replacement: UiStyleRule,
@@ -256,7 +268,7 @@ impl UiAssetDocument {
         Ok(Some(previous))
     }
 
-    pub fn move_style_rule(
+    fn move_style_rule(
         &mut self,
         rule_id: &str,
         target_stylesheet_id: &str,
@@ -298,29 +310,25 @@ impl UiAssetDocument {
         Ok(true)
     }
 
-    pub fn style_sheet(&self, stylesheet_id: &str) -> Option<&UiStyleSheet> {
+    fn style_sheet(&self, stylesheet_id: &str) -> Option<&UiStyleSheet> {
         self.stylesheets
             .iter()
             .find(|stylesheet| stylesheet.id == stylesheet_id)
     }
 
-    pub fn style_sheet_mut(&mut self, stylesheet_id: &str) -> Option<&mut UiStyleSheet> {
+    fn style_sheet_mut(&mut self, stylesheet_id: &str) -> Option<&mut UiStyleSheet> {
         self.stylesheets
             .iter_mut()
             .find(|stylesheet| stylesheet.id == stylesheet_id)
     }
 
-    pub fn style_sheet_index(&self, stylesheet_id: &str) -> Option<usize> {
+    fn style_sheet_index(&self, stylesheet_id: &str) -> Option<usize> {
         self.stylesheets
             .iter()
             .position(|stylesheet| stylesheet.id == stylesheet_id)
     }
 
-    pub fn rename_style_sheet(
-        &mut self,
-        current_id: &str,
-        new_id: &str,
-    ) -> Result<bool, UiAssetError> {
+    fn rename_style_sheet(&mut self, current_id: &str, new_id: &str) -> Result<bool, UiAssetError> {
         let new_id = new_id.trim();
         if new_id.is_empty() {
             return Err(UiAssetError::InvalidDocument {
@@ -355,7 +363,7 @@ impl UiAssetDocument {
         Ok(true)
     }
 
-    pub fn remove_style_sheet(&mut self, stylesheet_id: &str) -> Option<UiStyleSheet> {
+    fn remove_style_sheet(&mut self, stylesheet_id: &str) -> Option<UiStyleSheet> {
         let stylesheet_index = self
             .stylesheets
             .iter()
@@ -363,10 +371,7 @@ impl UiAssetDocument {
         Some(self.stylesheets.remove(stylesheet_index))
     }
 
-    pub fn set_style_sheets(
-        &mut self,
-        stylesheets: Vec<UiStyleSheet>,
-    ) -> Result<bool, UiAssetError> {
+    fn set_style_sheets(&mut self, stylesheets: Vec<UiStyleSheet>) -> Result<bool, UiAssetError> {
         if self.stylesheets == stylesheets {
             return Ok(false);
         }
@@ -377,7 +382,7 @@ impl UiAssetDocument {
         Ok(true)
     }
 
-    pub fn insert_style_sheet(
+    fn insert_style_sheet(
         &mut self,
         index: usize,
         stylesheet: UiStyleSheet,
@@ -392,7 +397,7 @@ impl UiAssetDocument {
         Ok(insert_index)
     }
 
-    pub fn replace_style_sheet(
+    fn replace_style_sheet(
         &mut self,
         stylesheet_id: &str,
         replacement: UiStyleSheet,
@@ -414,7 +419,7 @@ impl UiAssetDocument {
         Ok(Some(previous))
     }
 
-    pub fn move_style_sheet(&mut self, stylesheet_id: &str, target_index: usize) -> Option<usize> {
+    fn move_style_sheet(&mut self, stylesheet_id: &str, target_index: usize) -> Option<usize> {
         let source_index = self
             .stylesheets
             .iter()
@@ -425,18 +430,18 @@ impl UiAssetDocument {
         Some(insert_index)
     }
 
-    pub fn component_root_node_id(&self, component_name: &str) -> Option<&str> {
+    fn component_root_node_id(&self, component_name: &str) -> Option<&str> {
         self.components
             .get(component_name)
             .map(|component| component.root.node_id.as_str())
     }
 
-    pub fn child_index_in_parent(&self, child_id: &str) -> Option<(String, usize)> {
+    fn child_index_in_parent(&self, child_id: &str) -> Option<(String, usize)> {
         self.parent_of(child_id)
             .map(|parent| (parent.parent_node_id.to_string(), parent.child_index))
     }
 
-    pub fn child_mount(&self, child_id: &str) -> Option<&UiChildMount> {
+    fn child_mount(&self, child_id: &str) -> Option<&UiChildMount> {
         if let Some(root) = &self.root {
             if let Some(mount) = find_child_mount(root, child_id) {
                 return Some(mount);
@@ -447,7 +452,7 @@ impl UiAssetDocument {
             .find_map(|component| find_child_mount(&component.root, child_id))
     }
 
-    pub fn child_mount_mut(&mut self, child_id: &str) -> Option<&mut UiChildMount> {
+    fn child_mount_mut(&mut self, child_id: &str) -> Option<&mut UiChildMount> {
         if let Some(root) = &mut self.root {
             if let Some(mount) = find_child_mount_mut(root, child_id) {
                 return Some(mount);
@@ -458,7 +463,7 @@ impl UiAssetDocument {
             .find_map(|component| find_child_mount_mut(&mut component.root, child_id))
     }
 
-    pub fn parent_of(&self, child_id: &str) -> Option<UiNodeParent<'_>> {
+    fn parent_of(&self, child_id: &str) -> Option<UiNodeParent<'_>> {
         if let Some(root) = &self.root {
             if let Some(parent) = find_parent(root, child_id) {
                 return Some(parent);
@@ -469,7 +474,7 @@ impl UiAssetDocument {
             .find_map(|component| find_parent(&component.root, child_id))
     }
 
-    pub fn iter_nodes(&self) -> UiAssetNodeIter<'_> {
+    fn iter_nodes(&self) -> UiAssetNodeIter<'_> {
         let mut stack = Vec::new();
         for component in self.components.values().rev() {
             stack.push(&component.root);
@@ -480,13 +485,13 @@ impl UiAssetDocument {
         UiAssetNodeIter { stack }
     }
 
-    pub fn node_map(&self) -> BTreeMap<String, UiNodeDefinition> {
+    fn node_map(&self) -> BTreeMap<String, UiNodeDefinition> {
         self.iter_nodes()
             .map(|node| (node.node_id.clone(), node.clone()))
             .collect()
     }
 
-    pub fn replace_node(&mut self, node_id: &str, replacement: UiNodeDefinition) -> bool {
+    fn replace_node(&mut self, node_id: &str, replacement: UiNodeDefinition) -> bool {
         if self
             .root
             .as_ref()
@@ -518,7 +523,7 @@ impl UiAssetDocument {
         false
     }
 
-    pub fn remove_node(&mut self, node_id: &str) -> Option<UiNodeDefinition> {
+    fn remove_node(&mut self, node_id: &str) -> Option<UiNodeDefinition> {
         if self
             .root
             .as_ref()
@@ -539,7 +544,7 @@ impl UiAssetDocument {
         None
     }
 
-    pub fn insert_child(&mut self, parent_id: &str, index: usize, child: UiChildMount) -> bool {
+    fn insert_child(&mut self, parent_id: &str, index: usize, child: UiChildMount) -> bool {
         let Some(parent) = self.node_mut(parent_id) else {
             return false;
         };
@@ -548,7 +553,7 @@ impl UiAssetDocument {
         true
     }
 
-    pub fn push_child(&mut self, parent_id: &str, child: UiChildMount) -> bool {
+    fn push_child(&mut self, parent_id: &str, child: UiChildMount) -> bool {
         let Some(parent) = self.node_mut(parent_id) else {
             return false;
         };
@@ -556,7 +561,7 @@ impl UiAssetDocument {
         true
     }
 
-    pub fn swap_children(&mut self, parent_id: &str, left: usize, right: usize) -> bool {
+    fn swap_children(&mut self, parent_id: &str, left: usize, right: usize) -> bool {
         let Some(parent) = self.node_mut(parent_id) else {
             return false;
         };
@@ -596,178 +601,6 @@ pub struct UiStyleRulePosition<'a> {
     pub stylesheet_id: &'a str,
     pub stylesheet_index: usize,
     pub rule_index: usize,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum UiNodeDefinitionKind {
-    #[default]
-    Native,
-    Component,
-    Reference,
-    Slot,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiNodeDefinition {
-    #[serde(default)]
-    pub node_id: String,
-    #[serde(default)]
-    pub kind: UiNodeDefinitionKind,
-    #[serde(default, rename = "type")]
-    pub widget_type: Option<String>,
-    #[serde(default)]
-    pub component: Option<String>,
-    #[serde(default)]
-    pub component_ref: Option<String>,
-    #[serde(default)]
-    pub slot_name: Option<String>,
-    #[serde(default)]
-    pub control_id: Option<String>,
-    #[serde(default)]
-    pub classes: Vec<String>,
-    #[serde(default)]
-    pub params: BTreeMap<String, Value>,
-    #[serde(default)]
-    pub props: BTreeMap<String, Value>,
-    #[serde(default)]
-    pub layout: Option<BTreeMap<String, Value>>,
-    #[serde(default)]
-    pub bindings: Vec<UiBindingRef>,
-    #[serde(default)]
-    pub style_overrides: UiStyleDeclarationBlock,
-    #[serde(default)]
-    pub children: Vec<UiChildMount>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiChildMount {
-    #[serde(default)]
-    pub mount: Option<String>,
-    #[serde(default)]
-    pub slot: BTreeMap<String, Value>,
-    pub node: UiNodeDefinition,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiComponentDefinition {
-    pub root: UiNodeDefinition,
-    #[serde(default)]
-    pub style_scope: UiStyleScope,
-    #[serde(default)]
-    pub params: BTreeMap<String, UiComponentParamSchema>,
-    #[serde(default)]
-    pub slots: BTreeMap<String, UiNamedSlotSchema>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiComponentParamSchema {
-    #[serde(default)]
-    pub r#type: String,
-    #[serde(default)]
-    pub default: Option<Value>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UiNamedSlotSchema {
-    #[serde(default)]
-    pub required: bool,
-    #[serde(default)]
-    pub multiple: bool,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum UiStyleScope {
-    Open,
-    #[default]
-    Closed,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiStyleSheet {
-    #[serde(default)]
-    pub id: String,
-    #[serde(default)]
-    pub rules: Vec<UiStyleRule>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiStyleRule {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    pub selector: String,
-    #[serde(default)]
-    pub set: UiStyleDeclarationBlock,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiStyleDeclarationBlock {
-    #[serde(default, rename = "self")]
-    pub self_values: BTreeMap<String, Value>,
-    #[serde(default)]
-    pub slot: BTreeMap<String, Value>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct UiActionRef {
-    #[serde(default)]
-    pub route: Option<String>,
-    #[serde(default)]
-    pub action: Option<String>,
-    #[serde(default)]
-    pub payload: BTreeMap<String, Value>,
-}
-
-#[derive(Clone, Debug, Error, PartialEq, Eq)]
-pub enum UiAssetError {
-    #[error("failed to parse ui asset document: {0}")]
-    ParseToml(String),
-    #[error("failed to read ui asset document: {0}")]
-    Io(String),
-    #[error("ui asset {asset_id} is invalid: {detail}")]
-    InvalidDocument { asset_id: String, detail: String },
-    #[error("ui asset {asset_id} references missing node {node_id}")]
-    MissingNode { asset_id: String, node_id: String },
-    #[error("ui asset {asset_id} references unknown component {component}")]
-    UnknownComponent { asset_id: String, component: String },
-    #[error("ui asset reference {reference} is not registered")]
-    UnknownImport { reference: String },
-    #[error("ui asset reference {reference} expected kind {expected:?} but received {actual:?}")]
-    ImportKindMismatch {
-        reference: String,
-        expected: UiAssetKind,
-        actual: UiAssetKind,
-    },
-    #[error("ui component {component} missing required slot {slot_name}")]
-    MissingRequiredSlot {
-        component: String,
-        slot_name: String,
-    },
-    #[error("ui component {component} received unknown slot {slot_name}")]
-    UnknownSlot {
-        component: String,
-        slot_name: String,
-    },
-    #[error("ui component {component} slot {slot_name} does not accept multiple children")]
-    SlotDoesNotAcceptMultiple {
-        component: String,
-        slot_name: String,
-    },
-    #[error("ui selector is invalid: {0}")]
-    InvalidSelector(String),
-    #[error("ui asset template fixture conversion failed: {0}")]
-    TemplateFixtureConversion(String),
-}
-
-impl From<UiTemplateError> for UiAssetError {
-    fn from(value: UiTemplateError) -> Self {
-        Self::TemplateFixtureConversion(value.to_string())
-    }
-}
-
-const fn default_asset_version() -> u32 {
-    1
 }
 
 fn validate_node_tree(

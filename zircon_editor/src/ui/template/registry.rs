@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::template::UiTemplateInstance;
-use zircon_runtime::ui::template::{UiAssetDocument, UiCompiledDocument, UiDocumentCompiler};
+use zircon_runtime::ui::template::{UiCompiledDocument, UiDocumentCompiler, UiTemplateInstance};
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 use crate::ui::template::EditorTemplateError;
 

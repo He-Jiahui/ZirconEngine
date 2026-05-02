@@ -1,5 +1,6 @@
-use crate::ui::binding::{
-    UiBindingCall, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath, UiEventRouter,
+use crate::ui::binding::UiEventRouter;
+use zircon_runtime_interface::ui::binding::{
+    UiBindingCall, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

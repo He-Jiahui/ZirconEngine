@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::ui::component::UiComponentEventError;
+use crate::ui::component::UiComponentStateRuntimeExt;
+use zircon_runtime_interface::ui::component::UiComponentEventError;
 
 use super::*;
 
@@ -35,7 +36,7 @@ fn component_state_applies_retained_number_dropdown_collection_and_drop_events()
         .unwrap_err();
     assert!(error.to_string().contains("not-a-number"));
     assert_eq!(
-        number_state.validation().level,
+        number_state.validation.level,
         UiValidationLevel::Error,
         "invalid numeric commits should leave validation state on the retained control"
     );
@@ -122,7 +123,7 @@ fn component_state_applies_retained_number_dropdown_collection_and_drop_events()
         .apply_event(group, UiComponentEvent::ToggleExpanded { expanded: false })
         .unwrap();
     assert_eq!(group_state.value("expanded"), Some(&UiValue::Bool(false)));
-    assert!(!group_state.flags().expanded);
+    assert!(!group_state.flags.expanded);
 
     let asset = registry.descriptor("AssetField").unwrap();
     let mut asset_state = UiComponentState::new();
@@ -215,9 +216,9 @@ fn component_state_rejects_disabled_selection_options_with_validation_reason() {
         state.value("value"),
         Some(&UiValue::Enum("primary".to_string()))
     );
-    assert_eq!(state.validation().level, UiValidationLevel::Error);
+    assert_eq!(state.validation.level, UiValidationLevel::Error);
     assert!(state
-        .validation()
+        .validation
         .message
         .as_deref()
         .is_some_and(|message| message.contains("disabled option")));
@@ -234,7 +235,7 @@ fn component_state_opens_context_action_menu_at_pointer_anchor() {
         .apply_event(menu, UiComponentEvent::OpenPopupAt { x: 212.0, y: 96.0 })
         .unwrap();
 
-    assert!(state.flags().popup_open);
+    assert!(state.flags.popup_open);
     assert_eq!(state.value("popup_anchor_x"), Some(&UiValue::Float(212.0)));
     assert_eq!(state.value("popup_anchor_y"), Some(&UiValue::Float(96.0)));
 }
@@ -333,9 +334,9 @@ fn component_state_renames_map_keys_and_rejects_duplicate_targets() {
         error,
         UiComponentEventError::DuplicateMapKey { .. }
     ));
-    assert_eq!(state.validation().level, UiValidationLevel::Error);
+    assert_eq!(state.validation.level, UiValidationLevel::Error);
     assert!(state
-        .validation()
+        .validation
         .message
         .as_deref()
         .is_some_and(|message| message.contains("already exists")));
@@ -366,9 +367,9 @@ fn component_state_sets_collection_validation_on_row_errors() {
         array_error,
         UiComponentEventError::ArrayIndexOutOfBounds { .. }
     ));
-    assert_eq!(array_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(array_state.validation.level, UiValidationLevel::Error);
     assert!(array_state
-        .validation()
+        .validation
         .message
         .as_deref()
         .is_some_and(|message| message.contains("index 2")));
@@ -390,9 +391,9 @@ fn component_state_sets_collection_validation_on_row_errors() {
         map_error,
         UiComponentEventError::MissingMapKey { .. }
     ));
-    assert_eq!(map_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(map_state.validation.level, UiValidationLevel::Error);
     assert!(map_state
-        .validation()
+        .validation
         .message
         .as_deref()
         .is_some_and(|message| message.contains("does not exist")));
@@ -451,7 +452,7 @@ fn component_state_handles_reference_actions_and_drop_rejection_feedback() {
         )
         .unwrap_err();
     assert!(error.to_string().contains("value"));
-    assert_eq!(asset_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(asset_state.validation.level, UiValidationLevel::Error);
 
     let rejected = asset_state
         .apply_event(
@@ -463,9 +464,9 @@ fn component_state_handles_reference_actions_and_drop_rejection_feedback() {
         )
         .unwrap_err();
     assert!(rejected.to_string().contains("scene-instance"));
-    assert_eq!(asset_state.validation().level, UiValidationLevel::Error);
+    assert_eq!(asset_state.validation.level, UiValidationLevel::Error);
     assert!(asset_state
-        .validation()
+        .validation
         .message
         .as_deref()
         .is_some_and(|message| message.contains("rejected drop")));
@@ -729,8 +730,8 @@ fn component_state_applies_transient_interaction_flags() {
         .apply_event(list_row, UiComponentEvent::Press { pressed: true })
         .unwrap();
 
-    assert!(row_state.flags().hovered);
-    assert!(row_state.flags().pressed);
+    assert!(row_state.flags.hovered);
+    assert!(row_state.flags.pressed);
 
     row_state
         .apply_event(list_row, UiComponentEvent::Hover { hovered: false })
@@ -739,8 +740,8 @@ fn component_state_applies_transient_interaction_flags() {
         .apply_event(list_row, UiComponentEvent::Press { pressed: false })
         .unwrap();
 
-    assert!(!row_state.flags().hovered);
-    assert!(!row_state.flags().pressed);
+    assert!(!row_state.flags.hovered);
+    assert!(!row_state.flags.pressed);
 
     let asset = registry.descriptor("AssetField").unwrap();
     assert_has_event(asset, UiComponentEventKind::DropHover);
@@ -754,8 +755,8 @@ fn component_state_applies_transient_interaction_flags() {
         .apply_event(asset, UiComponentEvent::ActiveDragTarget { active: true })
         .unwrap();
 
-    assert!(asset_state.flags().drop_hovered);
-    assert!(asset_state.flags().active_drag_target);
+    assert!(asset_state.flags.drop_hovered);
+    assert!(asset_state.flags.active_drag_target);
 }
 
 #[test]

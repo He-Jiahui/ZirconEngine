@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
 use toml::Value;
-use zircon_runtime::ui::component::{UiComponentDescriptorRegistry, UiValue};
-use zircon_runtime::ui::{binding::UiEventKind, event_ui::UiRouteId, layout::UiFrame};
+use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind, component::UiValue, event_ui::UiRouteId, layout::UiFrame,
+};
 
 use super::SlintUiHostModel;
 

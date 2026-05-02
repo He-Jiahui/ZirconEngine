@@ -14,6 +14,8 @@ impl SlintViewportController {
                 latest_generation: None,
                 latest_image: None,
                 last_error: None,
+                last_world_space_ui_surfaces: Vec::new(),
+                world_space_ui_pointer_capture: None,
             })),
         }
     }

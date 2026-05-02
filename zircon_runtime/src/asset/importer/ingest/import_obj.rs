@@ -21,6 +21,7 @@ impl AssetImporter {
         )
         .map_err(|error| AssetImportError::Parse(format!("parse obj: {error}")))?;
 
+        let source_hint = uri.to_string();
         let primitives = models
             .into_iter()
             .map(|model| {
@@ -31,6 +32,8 @@ impl AssetImporter {
                     &model.mesh.indices,
                     &[],
                     &[],
+                    Some(model.name.as_str()),
+                    &source_hint,
                 )
             })
             .collect::<Result<Vec<_>, _>>()?;

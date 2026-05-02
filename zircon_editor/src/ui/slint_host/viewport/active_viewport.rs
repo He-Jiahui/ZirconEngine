@@ -1,5 +1,5 @@
 use crate::scene::viewport::RenderViewportHandle;
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct ActiveViewport {

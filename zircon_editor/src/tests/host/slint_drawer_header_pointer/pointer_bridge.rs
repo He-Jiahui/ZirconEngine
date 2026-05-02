@@ -1,7 +1,7 @@
 use crate::ui::slint_host::drawer_header_pointer::{
     HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerRoute,
 };
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use super::support::sample_drawer_header_layout;
 

@@ -1,4 +1,4 @@
-use crate::ui::template::UiAssetError;
+use zircon_runtime_interface::ui::template::UiAssetError;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct UiSelector {
@@ -23,6 +23,7 @@ pub enum UiSelectorToken {
     Class(String),
     Id(String),
     State(String),
+    Part(String),
     Host,
 }
 
@@ -94,7 +95,10 @@ impl UiSelector {
             .flat_map(|segment| segment.tokens.iter())
             .map(|token| match token {
                 UiSelectorToken::Id(_) => 100,
-                UiSelectorToken::Class(_) | UiSelectorToken::State(_) | UiSelectorToken::Host => 10,
+                UiSelectorToken::Class(_)
+                | UiSelectorToken::State(_)
+                | UiSelectorToken::Part(_)
+                | UiSelectorToken::Host => 10,
                 UiSelectorToken::Type(_) => 1,
             })
             .sum()
@@ -154,6 +158,7 @@ fn matches_segment(segment: &UiSelectorSegment, node: &UiSelectorMatchNode<'_>) 
         UiSelectorToken::Class(class_name) => node.classes.iter().any(|class| class == class_name),
         UiSelectorToken::Id(control_id) => node.control_id == Some(control_id.as_str()),
         UiSelectorToken::State(state) => node.states.iter().any(|value| value == state),
+        UiSelectorToken::Part(_) => false,
         UiSelectorToken::Host => node.is_host,
     })
 }
@@ -183,6 +188,16 @@ fn parse_compound_tokens(input: &str) -> Result<Vec<UiSelectorToken>, UiAssetErr
             '.' => tokens.push(UiSelectorToken::Class(value)),
             '#' => tokens.push(UiSelectorToken::Id(value)),
             ':' if value == "host" => tokens.push(UiSelectorToken::Host),
+            ':' if value.starts_with("part(") && value.ends_with(')') => {
+                let part = value
+                    .strip_prefix("part(")
+                    .and_then(|value| value.strip_suffix(')'))
+                    .unwrap_or_default();
+                if part.is_empty() {
+                    return Err(UiAssetError::InvalidSelector(input.to_string()));
+                }
+                tokens.push(UiSelectorToken::Part(part.to_string()));
+            }
             ':' => tokens.push(UiSelectorToken::State(value)),
             _ => tokens.push(UiSelectorToken::Type(value)),
         }

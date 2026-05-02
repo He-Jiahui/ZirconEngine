@@ -4,14 +4,16 @@ use crate::core::framework::render::{
     ViewportCameraSnapshot,
 };
 use crate::core::math::UVec2;
-use crate::ui::dispatch::{
-    UiNavigationDispatchResult, UiNavigationDispatcher, UiPointerDispatchResult,
-    UiPointerDispatcher, UiPointerEvent,
-};
-use crate::ui::surface::UiNavigationEventKind;
+use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
+use crate::ui::surface::UiSurface;
 use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
-use crate::ui::tree::UiTreeError;
-use crate::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
+use zircon_runtime_interface::ui::tree::UiTreeError;
+use zircon_runtime_interface::ui::{
+    dispatch::{UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent},
+    event_ui::UiTreeId,
+    layout::UiSize,
+    surface::UiNavigationEventKind,
+};
 
 use super::public_frame::PublicRuntimeFrame;
 use super::runtime_ui_fixture::RuntimeUiFixture;

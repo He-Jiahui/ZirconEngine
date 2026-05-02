@@ -1,4 +1,7 @@
-use zircon_runtime::ui::{event_ui::UiNodeId, event_ui::UiStateFlags, layout::UiFrame};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiStateFlags},
+    layout::UiFrame,
+};
 
 use super::constants::{
     CLOSEABLE_TAB_MIN_WIDTH, CLOSE_NODE_ID_BASE, TAB_MIN_WIDTH, TAB_NODE_ID_BASE,

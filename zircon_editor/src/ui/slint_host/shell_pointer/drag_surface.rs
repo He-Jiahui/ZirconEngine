@@ -2,15 +2,14 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
-    event_ui::UiNodeId,
-    event_ui::UiNodePath,
-    event_ui::UiTreeId,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect,
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
     layout::UiFrame,
     surface::UiPointerEventKind,
-    surface::UiSurface,
-    tree::UiInputPolicy,
-    tree::UiTreeNode,
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;

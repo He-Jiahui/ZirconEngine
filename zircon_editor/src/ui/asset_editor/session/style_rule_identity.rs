@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 pub(super) fn unique_style_rule_id(document: &UiAssetDocument, selector: &str) -> String {
     let base = style_rule_id_stem(selector);

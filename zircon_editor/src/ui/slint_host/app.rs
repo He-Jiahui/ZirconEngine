@@ -12,16 +12,19 @@ use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
 use zircon_runtime::core::framework::asset::ResourceManager;
 use zircon_runtime::core::manager::ManagerResolver;
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::core::resource::{
-    MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
-};
 use zircon_runtime::core::{ChannelReceiver, CoreHandle};
 use zircon_runtime::scene::Scene;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::resource::{
+    MaterialMarker, ModelMarker, ResourceEvent, ResourceHandle, ResourceLocator,
+};
+use zircon_runtime_interface::ui::{
     binding::UiBindingValue,
     binding::UiEventKind,
-    component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata},
+    component::{
+        UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiDragPayload,
+        UiDragPayloadKind, UiDragSourceMetadata, UiValue,
+    },
     layout::UiFrame,
     layout::UiPoint,
     layout::UiSize,
@@ -36,6 +39,7 @@ use crate::ui::host::editor_asset_manager::{
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorManager;
+use crate::ui::host::SharedEditorRuntimeClient;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
@@ -134,14 +138,21 @@ pub(crate) use native_windows::{
 };
 pub(super) use startup::build_startup_state;
 
-pub fn run_editor(core: CoreHandle) -> Result<(), Box<dyn Error>> {
+pub fn run_editor(
+    core: CoreHandle,
+    runtime_client: SharedEditorRuntimeClient,
+) -> Result<(), Box<dyn Error>> {
     slint::BackendSelector::new()
         .backend_name("winit".into())
         .renderer_name("software".into())
         .select()?;
 
     let ui = UiHostWindow::new()?;
-    let host = Rc::new(RefCell::new(SlintEditorHost::new(core, ui.clone_strong())?));
+    let host = Rc::new(RefCell::new(SlintEditorHost::new(
+        core,
+        runtime_client,
+        ui.clone_strong(),
+    )?));
     wire_callbacks(&ui, &host);
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
 
@@ -164,6 +175,7 @@ struct SlintEditorHost {
     ui: UiHostWindow,
     self_handle: Option<Weak<RefCell<SlintEditorHost>>>,
     runtime: EditorEventRuntime,
+    runtime_client: SharedEditorRuntimeClient,
     editor_manager: Arc<EditorManager>,
     viewport: SlintViewportController,
     asset_server: Arc<dyn AssetManager>,

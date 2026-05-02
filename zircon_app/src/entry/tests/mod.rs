@@ -2,7 +2,7 @@ mod builtin_engine_entry;
 mod profile_bootstrap;
 
 #[test]
-fn runtime_sources_route_preview_through_render_framework_without_wgpu_surface_bindings() {
+fn runtime_sources_route_preview_through_dynamic_api_without_wgpu_surface_bindings() {
     let lib_source = include_str!("../../lib.rs");
     let production_lib_source = lib_source
         .split("\n#[cfg(test)]")
@@ -12,24 +12,22 @@ fn runtime_sources_route_preview_through_render_framework_without_wgpu_surface_b
     let manifest = include_str!("../../../Cargo.toml");
 
     assert!(
-        presenter_source.contains("resolve_render_framework"),
-        "runtime presenter should resolve RenderFramework from core"
-    );
-    assert!(
         presenter_source.contains("softbuffer"),
-        "runtime presenter should blit RenderFramework output through softbuffer"
+        "runtime presenter should blit runtime-owned frame output through softbuffer"
     );
     assert!(
-        presenter_source.contains("submit_frame_extract"),
-        "runtime presenter should submit RenderFrameExtract through RenderFramework"
+        runtime_handler_source_for_tests().contains("capture_frame"),
+        "runtime preview should request frames through the runtime dynamic API"
     );
     assert!(
-        presenter_source.contains("capture_frame"),
-        "runtime presenter should read captured frames through RenderFramework"
+        presenter_source.contains("RuntimeFrame"),
+        "runtime presenter should consume runtime interface frames, not runtime implementation frames"
     );
 
     for forbidden in [
         "wgpu::",
+        "RenderFrameExtract",
+        "RenderFrameworkRuntimeBridge",
         "RuntimePreviewRenderer",
         "create_runtime_preview_renderer",
         "SharedTextureRenderService",
@@ -37,11 +35,11 @@ fn runtime_sources_route_preview_through_render_framework_without_wgpu_surface_b
     ] {
         assert!(
             !production_lib_source.contains(forbidden),
-            "runtime entry source should not reference `{forbidden}` after RenderFramework migration"
+            "runtime entry source should not reference `{forbidden}` after dynamic runtime migration"
         );
         assert!(
             !presenter_source.contains(forbidden),
-            "runtime presenter source should not reference `{forbidden}` after RenderFramework migration"
+            "runtime presenter source should not reference `{forbidden}` after dynamic runtime migration"
         );
     }
 
@@ -52,18 +50,22 @@ fn runtime_sources_route_preview_through_render_framework_without_wgpu_surface_b
 }
 
 #[test]
-fn runtime_viewport_interaction_is_private_to_entry_camera_controller() {
+fn runtime_viewport_interaction_is_owned_by_dynamic_runtime_session() {
     let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
     let runtime_construct_source = include_str!("../runtime_entry_app/construct.rs");
     let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
 
     assert!(
-        runtime_app_source.contains("mod camera_controller;"),
-        "runtime entry app should own a private camera controller module"
+        runtime_app_source.contains("RuntimeSession"),
+        "runtime entry app should own a runtime session wrapper"
     );
     assert!(
-        runtime_construct_source.contains("RuntimeCameraController"),
-        "runtime entry construction should use the private runtime camera controller"
+        !runtime_app_source.contains("mod camera_controller;"),
+        "runtime camera control should live in zircon_runtime dynamic session state"
+    );
+    assert!(
+        runtime_construct_source.contains("ZrRuntimeEventV1::viewport_resized"),
+        "runtime entry construction should forward viewport changes through ABI events"
     );
     assert!(
         !runtime_app_source.contains("zircon_graphics::ViewportController"),
@@ -81,18 +83,21 @@ fn runtime_viewport_interaction_is_private_to_entry_camera_controller() {
 }
 
 #[test]
-fn runtime_input_protocol_is_owned_by_input_subsystem() {
+fn runtime_input_protocol_crosses_through_runtime_interface_events() {
     let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
 
     assert!(
-        runtime_handler_source.contains("use zircon_runtime::input::{InputButton, InputEvent};"),
-        "runtime window event handling should import input protocol types through zircon_runtime"
+        runtime_handler_source.contains("ZrRuntimeEventV1"),
+        "runtime window event handling should forward input through runtime interface events"
     );
     assert!(
-        !runtime_handler_source
-            .contains("use zircon_runtime::core::manager::{InputButton, InputEvent};"),
-        "runtime window event handling should not import input protocol types from zircon_manager"
+        !runtime_handler_source.contains("zircon_runtime::input"),
+        "runtime window event handling should not import runtime implementation input types"
     );
+}
+
+fn runtime_handler_source_for_tests() -> &'static str {
+    include_str!("../runtime_entry_app/application_handler.rs")
 }
 
 #[test]
@@ -108,6 +113,9 @@ fn entry_subsystem_is_split_into_builtin_modules_run_modes_and_runtime_app_tree(
         "entry_runner/runtime.rs",
         "entry_runner/headless.rs",
         "runtime_entry_app/mod.rs",
+        "runtime_library/mod.rs",
+        "runtime_library/loaded_runtime.rs",
+        "runtime_library/runtime_session.rs",
         "tests/mod.rs",
         "tests/profile_bootstrap.rs",
         "tests/builtin_engine_entry.rs",

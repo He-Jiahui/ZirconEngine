@@ -1,36 +1,47 @@
-use crate::graphics::scene::scene_renderer::{
-    HybridGiGpuPendingReadback, VirtualGeometryGpuPendingReadback,
-};
+use crate::core::framework::render::RenderPluginRendererOutputs;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginReadbacks {
-    hybrid_gi_gpu_readback: Option<HybridGiGpuPendingReadback>,
-    virtual_geometry_gpu_readback: Option<VirtualGeometryGpuPendingReadback>,
+    pub(super) outputs: RenderPluginRendererOutputs,
 }
 
 impl SceneRendererAdvancedPluginReadbacks {
-    pub(in crate::graphics::scene::scene_renderer::core) fn new(
-        hybrid_gi_gpu_readback: Option<HybridGiGpuPendingReadback>,
-        virtual_geometry_gpu_readback: Option<VirtualGeometryGpuPendingReadback>,
-    ) -> Self {
+    pub(in crate::graphics::scene::scene_renderer::core) fn new() -> Self {
         Self {
-            hybrid_gi_gpu_readback,
-            virtual_geometry_gpu_readback,
+            outputs: RenderPluginRendererOutputs::default(),
         }
     }
 
-    pub(super) fn hybrid_gi_gpu_readback(&self) -> Option<&HybridGiGpuPendingReadback> {
-        self.hybrid_gi_gpu_readback.as_ref()
+    #[cfg(test)]
+    pub(in crate::graphics::scene::scene_renderer::core) fn from_outputs(
+        outputs: RenderPluginRendererOutputs,
+    ) -> Self {
+        Self { outputs }
     }
+}
 
-    pub(super) fn into_pending_readbacks(
-        self,
-    ) -> (
-        Option<HybridGiGpuPendingReadback>,
-        Option<VirtualGeometryGpuPendingReadback>,
-    ) {
-        (
-            self.hybrid_gi_gpu_readback,
-            self.virtual_geometry_gpu_readback,
-        )
+#[cfg(test)]
+mod tests {
+    use super::SceneRendererAdvancedPluginReadbacks;
+    use crate::core::framework::render::{
+        RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
+        RenderVirtualGeometryReadbackOutputs,
+    };
+
+    #[test]
+    fn advanced_plugin_readbacks_hold_neutral_plugin_renderer_outputs() {
+        let outputs = RenderPluginRendererOutputs {
+            virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                page_table_entries: vec![1, 2, 3],
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+            hybrid_gi: RenderHybridGiReadbackOutputs {
+                completed_probe_ids: vec![7, 9],
+                ..RenderHybridGiReadbackOutputs::default()
+            },
+        };
+
+        let readbacks = SceneRendererAdvancedPluginReadbacks::from_outputs(outputs.clone());
+
+        assert_eq!(readbacks.outputs, outputs);
     }
 }

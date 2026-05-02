@@ -4,9 +4,9 @@ use crate::ui::binding::{
 use serde_json::json;
 use std::fs;
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
-use zircon_runtime::core::resource::ResourceKind;
 use zircon_runtime::scene::components::NodeKind;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::resource::ResourceKind;
+use zircon_runtime_interface::ui::{
     binding::UiBindingValue, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiNodePath,
 };
@@ -49,6 +49,36 @@ fn editor_operation_path_requires_namespace_action_and_leaf_segments() {
     assert!(EditorOperationPath::parse("Weather.Refresh").is_err());
     assert!(EditorOperationPath::parse("Weather..Refresh").is_err());
     assert!(EditorOperationPath::parse("Weather.Cloud Layer.Refresh").is_err());
+}
+
+#[test]
+fn editor_operation_registry_rejects_invalid_menu_paths() {
+    use crate::core::editor_operation::{
+        EditorOperationDescriptor, EditorOperationPath, EditorOperationRegistry,
+    };
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    for menu_path in [
+        "",
+        "Tools",
+        "Tools//Refresh",
+        "/Tools/Refresh",
+        "Tools/Refresh/",
+        "Tools/ Refresh",
+    ] {
+        let mut registry = EditorOperationRegistry::default();
+        let error = registry
+            .register(
+                EditorOperationDescriptor::new(operation_path.clone(), "Refresh Cloud Layers")
+                    .with_menu_path(menu_path),
+            )
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("editor operation menu path `{menu_path}` is invalid")
+        );
+    }
 }
 
 #[test]
@@ -264,6 +294,52 @@ fn failed_operation_control_request_is_journaled_without_polluting_undo_stack() 
 }
 
 #[test]
+fn failed_operation_control_request_preserves_operation_group_for_audit_delivery() {
+    use crate::core::editor_event::EditorEventListenerControlRequest;
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_failure_group");
+    let listener_id = "External.OperationFailureAudit".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Operation Failure Audit".to_string(),
+        },
+    );
+
+    let failure = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(
+            EditorOperationInvocation::new(
+                EditorOperationPath::parse("Weather.Missing.Action").unwrap(),
+            )
+            .with_operation_group("External.Batch.42"),
+        ),
+    );
+
+    assert_eq!(
+        failure.error.as_deref(),
+        Some("editor operation Weather.Missing.Action is not registered")
+    );
+    let journal = runtime.runtime.journal();
+    assert_eq!(
+        journal.records()[0].operation_group.as_deref(),
+        Some("External.Batch.42")
+    );
+    assert!(runtime.runtime.operation_stack().undo_stack().is_empty());
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    assert_eq!(
+        deliveries.value["deliveries"][0]["operation_group"],
+        json!("External.Batch.42")
+    );
+}
+
+#[test]
 fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
     use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
     use crate::core::editor_operation::{
@@ -391,6 +467,10 @@ fn operation_control_request_lists_registered_operations_for_remote_discovery() 
                 .get("undoable")
                 .and_then(serde_json::Value::as_bool)
                 == Some(true)
+            && operation
+                .get("required_capabilities")
+                .and_then(serde_json::Value::as_array)
+                .is_some_and(|capabilities| capabilities.is_empty())
     }));
     assert!(operations.iter().any(|operation| {
         operation
@@ -804,6 +884,67 @@ fn event_listener_filter_limits_delivery_by_operation_path_prefix() {
         .expect("deliveries");
     assert_eq!(deliveries.len(), 1);
     assert_eq!(deliveries[0]["operation_id"], "Scene.Node.CreateCube");
+}
+
+#[test]
+fn event_listener_filter_limits_delivery_by_operation_group() {
+    use crate::core::editor_event::{EditorEventListenerControlRequest, EditorEventListenerFilter};
+    use crate::core::editor_operation::{
+        EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_listener_group_filter");
+    let listener_id = "External.TransformDrag".to_string();
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::Register {
+            listener_id: listener_id.clone(),
+            display_name: "Transform Drag".to_string(),
+        },
+    );
+    runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::SetFilter {
+            listener_id: listener_id.clone(),
+            filter: EditorEventListenerFilter::operation_group("Viewport.TransformDrag.42"),
+        },
+    );
+
+    let operation_path = EditorOperationPath::parse("Scene.Node.CreateCube").unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::UiBinding,
+            EditorOperationInvocation::new(operation_path.clone())
+                .with_operation_group("Viewport.TransformDrag.41"),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::UiBinding,
+            EditorOperationInvocation::new(operation_path.clone())
+                .with_operation_group("Viewport.TransformDrag.42"),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .invoke_operation(
+            EditorOperationSource::UiBinding,
+            EditorOperationInvocation::new(operation_path),
+        )
+        .unwrap();
+
+    let deliveries = runtime.runtime.handle_event_listener_control_request(
+        EditorEventListenerControlRequest::QueryDeliveries { listener_id },
+    );
+    let deliveries = deliveries.value["deliveries"]
+        .as_array()
+        .expect("deliveries");
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(
+        deliveries[0]["operation_group"],
+        json!("Viewport.TransformDrag.42")
+    );
 }
 
 #[test]
@@ -1642,17 +1783,29 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     let enabled_operations = runtime
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
-    assert!(enabled_operations
+    let enabled_operations = enabled_operations
         .value
         .as_ref()
         .and_then(|value| value.get("operations"))
         .and_then(serde_json::Value::as_array)
-        .expect("operations array")
+        .expect("operations array");
+    let weather_operation = enabled_operations
         .iter()
-        .any(|operation| operation
-            .get("operation_id")
-            .and_then(serde_json::Value::as_str)
-            == Some("Weather.CloudLayer.Refresh")));
+        .find(|operation| {
+            operation
+                .get("operation_id")
+                .and_then(serde_json::Value::as_str)
+                == Some("Weather.CloudLayer.Refresh")
+        })
+        .expect("weather operation is discoverable when capability is enabled");
+    assert_eq!(
+        weather_operation.get("required_capabilities"),
+        Some(&json!(["editor.extension.weather_authoring"]))
+    );
+    assert!(enabled_operations.iter().any(|operation| operation
+        .get("operation_id")
+        .and_then(serde_json::Value::as_str)
+        == Some("Weather.CloudLayer.Refresh")));
     let enabled_invoke = runtime.runtime.handle_operation_control_request(
         EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
             operation_path,
@@ -1666,10 +1819,17 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
     use crate::core::editor_extension::{
         ComponentDrawerDescriptor, EditorExtensionRegistry, EditorUiTemplateDescriptor,
     };
+    use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_component_drawer");
     let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(EditorOperationDescriptor::new(
+            EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap(),
+            "Refresh Cloud Layers",
+        ))
+        .unwrap();
     extension
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
@@ -1713,6 +1873,237 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
     assert_eq!(
         template.ui_document(),
         "asset://weather/editor/cloud_layer.inspector.ui.toml"
+    );
+}
+
+#[test]
+fn editor_runtime_rejects_menu_items_to_missing_operations() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::EditorOperationPath;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_menu_missing_operation");
+    let mut extension = EditorExtensionRegistry::default();
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            operation_path,
+        ))
+        .unwrap();
+
+    let error = runtime
+        .runtime
+        .register_editor_extension(extension)
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor operation Weather.CloudLayer.Refresh is not registered"
+    );
+}
+
+#[test]
+fn editor_extension_registry_rejects_invalid_menu_item_paths() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::EditorOperationPath;
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    for path in [
+        "",
+        "Tools",
+        "Tools//Refresh",
+        "/Tools/Refresh",
+        "Tools/Refresh/",
+    ] {
+        let mut extension = EditorExtensionRegistry::default();
+        let error = extension
+            .register_menu_item(EditorMenuItemDescriptor::new(path, operation_path.clone()))
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("editor menu item path `{path}` is invalid")
+        );
+    }
+}
+
+#[test]
+fn editor_extension_registry_rejects_view_ids_that_cannot_form_open_operation_paths() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+
+    for view_id in ["weather/cloud_layers", "weather.cloud layers"] {
+        let mut extension = EditorExtensionRegistry::default();
+        let error = extension
+            .register_view(ViewDescriptor::new(view_id, "Cloud Layers", "Weather"))
+            .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            format!("editor operation path `View.{view_id}.Open` is invalid")
+        );
+        assert!(extension.views().is_empty());
+    }
+}
+
+#[test]
+fn editor_runtime_rejects_duplicate_extension_view_without_registering_operations() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, ViewDescriptor};
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationDescriptor, EditorOperationPath,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_duplicate_extension_view");
+    let mut first_extension = EditorExtensionRegistry::default();
+    first_extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers",
+            "Weather",
+        ))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(first_extension)
+        .expect("register first extension view");
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut duplicate_extension = EditorExtensionRegistry::default();
+    duplicate_extension
+        .register_view(ViewDescriptor::new(
+            "weather.cloud_layers",
+            "Cloud Layers Duplicate",
+            "Weather",
+        ))
+        .unwrap();
+    duplicate_extension
+        .register_operation(EditorOperationDescriptor::new(
+            operation_path.clone(),
+            "Refresh Cloud Layers",
+        ))
+        .unwrap();
+
+    let error = runtime
+        .runtime
+        .register_editor_extension(duplicate_extension)
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "view descriptor weather.cloud_layers already registered"
+    );
+    let operations = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
+    assert!(!operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some(operation_path.as_str())));
+}
+
+#[test]
+fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_operations() {
+    use crate::core::editor_event::{EditorEvent, MenuAction};
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationDescriptor, EditorOperationPath,
+    };
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_duplicate_extension_menu");
+    let first_operation = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut first_extension = EditorExtensionRegistry::default();
+    first_extension
+        .register_operation(
+            EditorOperationDescriptor::new(first_operation.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+        )
+        .unwrap();
+    first_extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            first_operation,
+        ))
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(first_extension)
+        .expect("register first extension menu");
+
+    let second_operation = EditorOperationPath::parse("Weather.CloudLayer.Reset").unwrap();
+    let mut duplicate_extension = EditorExtensionRegistry::default();
+    duplicate_extension
+        .register_operation(EditorOperationDescriptor::new(
+            second_operation.clone(),
+            "Reset Cloud Layers",
+        ))
+        .unwrap();
+    duplicate_extension
+        .register_menu_item(EditorMenuItemDescriptor::new(
+            "Tools/Weather/Refresh Cloud Layers",
+            second_operation.clone(),
+        ))
+        .unwrap();
+
+    let error = runtime
+        .runtime
+        .register_editor_extension(duplicate_extension)
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor menu item Tools/Weather/Refresh Cloud Layers already registered"
+    );
+    let operations = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::ListOperations);
+    assert!(!operations
+        .value
+        .as_ref()
+        .and_then(|value| value.get("operations"))
+        .and_then(serde_json::Value::as_array)
+        .expect("operations array")
+        .iter()
+        .any(|operation| operation
+            .get("operation_id")
+            .and_then(serde_json::Value::as_str)
+            == Some(second_operation.as_str())));
+}
+
+#[test]
+fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_missing_binding");
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                "weather.Component.CloudLayer",
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_binding("Weather.CloudLayer.Refresh"),
+        )
+        .unwrap();
+
+    let error = runtime
+        .runtime
+        .register_editor_extension(extension)
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor operation Weather.CloudLayer.Refresh is not registered"
     );
 }
 

@@ -1,5 +1,7 @@
-use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord};
 use zircon_runtime::scene::LevelSystem;
+use zircon_runtime_interface::resource::{
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceRecord,
+};
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::core::editor_event::{
@@ -18,6 +20,10 @@ use crate::ui::workbench::snapshot::{EditorChromeSnapshot, EditorDataSnapshot};
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorRenderFrameSubmission;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
+use zircon_runtime_interface::ui::component::{
+    UiComponentAdapterError, UiComponentAdapterResult, UiComponentDataSourceDescriptor,
+    UiComponentEventEnvelope,
+};
 
 impl EditorEventRuntime {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
@@ -71,6 +77,28 @@ impl EditorEventRuntime {
         let mut inner = self.inner.lock().unwrap();
         inner.state.set_status_line(message);
         Self::refresh_reflection_locked(&mut inner);
+    }
+
+    pub(crate) fn dispatch_ui_component_adapter_event(
+        &self,
+        envelope: &UiComponentEventEnvelope,
+    ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
+        let mut inner = self.inner.lock().unwrap();
+        let manager = inner.manager.clone();
+        let result =
+            crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::apply_envelope(
+                &mut inner.state,
+                manager.as_ref(),
+                envelope,
+            )?;
+        if result.refresh_projection {
+            Self::refresh_reflection_locked(&mut inner);
+        }
+        Ok(result)
+    }
+
+    pub(crate) fn ui_component_data_sources(&self) -> Vec<UiComponentDataSourceDescriptor> {
+        crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::data_sources()
     }
 
     pub fn set_session_mode(&self, session_mode: EditorSessionMode) {

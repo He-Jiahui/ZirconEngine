@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use zircon_runtime::core::framework::render::{
     DisplayMode, ProjectionMode, ViewportRenderSettings,
 };
-use zircon_runtime::core::math::Real;
+use zircon_runtime_interface::math::Real;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SceneViewportTool {

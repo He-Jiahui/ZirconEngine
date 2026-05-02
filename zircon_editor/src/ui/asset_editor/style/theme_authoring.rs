@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use toml::Value;
-use zircon_runtime::ui::template::{
+use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetHeader, UiAssetImports, UiAssetKind, UiStyleDeclarationBlock,
     UiStyleRule, UiStyleSheet,
 };
@@ -224,6 +224,7 @@ pub(crate) fn promote_local_theme_to_external_style_asset(
         imports: UiAssetImports {
             widgets: Vec::new(),
             styles: document.imports.styles.clone(),
+            resources: Vec::new(),
         },
         tokens: std::mem::take(&mut document.tokens),
         root: None,

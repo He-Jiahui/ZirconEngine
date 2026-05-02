@@ -6,11 +6,8 @@ use crate::graphics::types::ViewportRenderFrame;
 use super::super::super::super::super::resources::{default_pipeline_key, ResourceStreamer};
 use super::super::super::super::primitives::render_mat4_or;
 use super::super::raster_draws_for_mesh::raster_draws_for_mesh;
-use super::super::virtual_geometry_cluster_streaming_tint::virtual_geometry_cluster_streaming_tint;
 use super::mesh_draw_build_context::MeshDrawBuildContext;
-use super::pending_mesh_draw::{
-    indirect_draw_ref_for_cluster_draw, PendingMeshDraw, PendingMeshGeometry,
-};
+use super::pending_mesh_draw::{PendingMeshDraw, PendingMeshGeometry};
 use super::skinning::skin_model_primitive;
 
 pub(super) fn extend_pending_draws_for_mesh_instance(
@@ -46,11 +43,6 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
     };
     let model_matrix =
         render_mat4_or(mesh_instance.transform.matrix(), RenderMat4::IDENTITY).to_cols_array_2d();
-    let cluster_raster_draws = build_context
-        .virtual_geometry_cluster_draws
-        .as_ref()
-        .and_then(|cluster_draws| cluster_draws.get(&mesh_instance.node_id))
-        .map(Vec::as_slice);
     let skinned_primitives = frame
         .extract
         .animation_poses
@@ -76,7 +68,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             .flatten()
         {
             for (first_index, draw_index_count, draw_tint) in
-                raster_draws_for_mesh(mesh.index_count, None, base_tint)
+                raster_draws_for_mesh(mesh.index_count, base_tint)
             {
                 pending_draws.push(PendingMeshDraw {
                     mesh: PendingMeshGeometry::Skinned(skinned_primitive.clone()),
@@ -92,51 +84,22 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
             continue;
         }
 
-        if build_context.virtual_geometry_enabled {
-            if let Some(cluster_raster_draws) = cluster_raster_draws {
-                for cluster_draw in cluster_raster_draws {
-                    pending_draws.push(PendingMeshDraw {
-                        mesh: PendingMeshGeometry::Prepared(mesh.clone()),
-                        texture: texture.clone(),
-                        pipeline_key: pipeline_key.clone(),
-                        model_matrix,
-                        draw_tint: base_tint
-                            * virtual_geometry_cluster_streaming_tint(*cluster_draw),
-                        first_index: 0,
-                        draw_index_count: 0,
-                        indirect_draw_ref: Some(indirect_draw_ref_for_cluster_draw(
-                            mesh_instance.node_id,
-                            mesh.index_count,
-                            mesh.indirect_order_signature,
-                            *cluster_draw,
-                        )),
-                    });
-                }
-            } else {
-                // Under the prepare-owned VG path, "no cluster draws" is authoritative:
-                // the entity collapsed out of unified indirect submission, so renderer-side
-                // mesh build must not resurrect a private full-mesh fallback draw.
-                continue;
-            }
-        } else {
-            let raster_draws =
-                raster_draws_for_mesh(mesh.index_count, cluster_raster_draws, base_tint);
-            if raster_draws.is_empty() {
-                continue;
-            }
+        let raster_draws = raster_draws_for_mesh(mesh.index_count, base_tint);
+        if raster_draws.is_empty() {
+            continue;
+        }
 
-            for (first_index, draw_index_count, draw_tint) in raster_draws {
-                pending_draws.push(PendingMeshDraw {
-                    mesh: PendingMeshGeometry::Prepared(mesh.clone()),
-                    texture: texture.clone(),
-                    pipeline_key: pipeline_key.clone(),
-                    model_matrix,
-                    draw_tint,
-                    first_index,
-                    draw_index_count,
-                    indirect_draw_ref: None,
-                });
-            }
+        for (first_index, draw_index_count, draw_tint) in raster_draws {
+            pending_draws.push(PendingMeshDraw {
+                mesh: PendingMeshGeometry::Prepared(mesh.clone()),
+                texture: texture.clone(),
+                pipeline_key: pipeline_key.clone(),
+                model_matrix,
+                draw_tint,
+                first_index,
+                draw_index_count,
+                indirect_draw_ref: None,
+            });
         }
     }
 }

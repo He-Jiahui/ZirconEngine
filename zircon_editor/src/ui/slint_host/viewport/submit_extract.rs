@@ -1,8 +1,9 @@
 use crate::scene::viewport::{RenderFrameExtract, RenderFrameworkError};
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::slint_viewport_controller::SlintViewportController;
+use super::world_space_ui::merge_ui_with_world_space_submissions;
 
 impl SlintViewportController {
     pub(crate) fn submit_extract_with_ui(
@@ -14,6 +15,7 @@ impl SlintViewportController {
         let mut shared = self.shared.lock().unwrap();
         let viewport = shared.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
+        let ui = merge_ui_with_world_space_submissions(ui, &shared.last_world_space_ui_surfaces);
         shared
             .render_framework
             .submit_frame_extract_with_ui(viewport, extract, ui)?;

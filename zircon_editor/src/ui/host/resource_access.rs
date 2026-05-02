@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::asset::ResourceManager;
-use zircon_runtime::core::resource::{
+use zircon_runtime_interface::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceKind, ResourceLocator, ResourceMarker,
     ResourceRecord, ResourceState,
 };
@@ -75,7 +75,7 @@ fn render_diagnostics(diagnostics: &[ResourceDiagnostic]) -> String {
 #[cfg(test)]
 mod tests {
     use super::resource_kind_name;
-    use zircon_runtime::core::resource::ResourceKind;
+    use zircon_runtime_interface::resource::ResourceKind;
 
     #[test]
     fn resource_kind_name_includes_font() {

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::graphics::RenderFeatureDescriptor;
 use crate::CompiledRenderPipeline;
 
-use super::{RenderPassExecutionContext, RenderPassExecutorId};
+use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
 pub type RenderPassExecutorFn = fn(&RenderPassExecutionContext) -> Result<(), String>;
 
@@ -32,6 +32,15 @@ impl RenderPassExecutorRegistry {
         registry
     }
 
+    pub fn with_builtin_noop_executors_for_render_features_and_executor_registrations(
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        executor_registrations: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    ) -> Self {
+        let mut registry = Self::with_builtin_noop_executors_for_render_features(render_features);
+        registry.register_explicit_executors(executor_registrations);
+        registry
+    }
+
     pub fn register_noop_executors_for_render_features(
         &mut self,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
@@ -49,6 +58,15 @@ impl RenderPassExecutorRegistry {
         executor: RenderPassExecutorFn,
     ) -> Option<RenderPassExecutorFn> {
         self.executors.insert(id, executor)
+    }
+
+    pub fn register_explicit_executors(
+        &mut self,
+        registrations: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    ) {
+        for registration in registrations {
+            self.register(registration.executor_id, registration.executor);
+        }
     }
 
     #[cfg(test)]
@@ -137,7 +155,9 @@ mod tests {
         RenderPipelineCompileOptions, RendererFeatureAsset,
     };
 
-    use super::super::{RenderPassExecutionContext, RenderPassExecutorId};
+    use super::super::{
+        RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration,
+    };
     use super::RenderPassExecutorRegistry;
 
     #[test]
@@ -307,6 +327,27 @@ mod tests {
     }
 
     #[test]
+    fn explicit_executor_registration_replaces_descriptor_noop_executor() {
+        let descriptor = plugin_virtual_geometry_descriptor();
+        let registry = RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
+            [descriptor],
+            [RenderPassExecutorRegistration::new(
+                "virtual-geometry.prepare",
+                explicit_virtual_geometry_executor,
+            )],
+        );
+
+        let error = registry
+            .execute(&RenderPassExecutionContext::new(
+                "plugin-virtual-geometry-registry",
+                RenderPassExecutorId::new("virtual-geometry.prepare"),
+            ))
+            .unwrap_err();
+
+        assert_eq!(error, "explicit virtual geometry executor called");
+    }
+
+    #[test]
     fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
         let mut graph = RenderGraphBuilder::new("custom-pipeline");
         graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
@@ -419,5 +460,14 @@ mod tests {
             .with_side_effects()],
         )
         .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry)
+    }
+
+    fn explicit_virtual_geometry_executor(
+        context: &RenderPassExecutionContext,
+    ) -> Result<(), String> {
+        if context.executor_id.as_str() == "virtual-geometry.prepare" {
+            return Err("explicit virtual geometry executor called".to_string());
+        }
+        Ok(())
     }
 }

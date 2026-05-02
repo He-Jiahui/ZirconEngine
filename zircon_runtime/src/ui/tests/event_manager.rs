@@ -1,10 +1,13 @@
 use serde_json::json;
 
-use crate::ui::binding::{UiBindingCall, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath};
-use crate::ui::event_ui::{
-    UiActionDescriptor, UiControlResponse, UiEventManager, UiInvocationError, UiInvocationRequest,
-    UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification, UiParameterDescriptor,
-    UiPropertyDescriptor, UiReflectionSnapshot, UiStateFlags, UiTreeId, UiValueType,
+use crate::ui::event_ui::UiEventManager;
+use zircon_runtime_interface::ui::{
+    binding::{UiBindingCall, UiBindingValue, UiEventBinding, UiEventKind, UiEventPath},
+    event_ui::{
+        UiActionDescriptor, UiControlResponse, UiInvocationError, UiInvocationRequest,
+        UiNodeDescriptor, UiNodeId, UiNodePath, UiNotification, UiParameterDescriptor,
+        UiPropertyDescriptor, UiReflectionSnapshot, UiStateFlags, UiTreeId, UiValueType,
+    },
 };
 
 #[test]

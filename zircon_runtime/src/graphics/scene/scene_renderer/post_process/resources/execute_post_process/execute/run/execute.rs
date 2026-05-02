@@ -1,6 +1,5 @@
 use crate::core::math::UVec2;
 
-use crate::graphics::scene::scene_renderer::HybridGiScenePrepareResourcesSnapshot;
 use crate::graphics::types::ViewportRenderFrame;
 
 use super::super::super::super::super::scene_post_process_resources::ScenePostProcessResources;
@@ -31,7 +30,6 @@ impl ScenePostProcessResources {
         cluster_buffer: &wgpu::Buffer,
         frame: &ViewportRenderFrame,
         features: SceneRuntimeFeatureFlags,
-        hybrid_gi_scene_prepare_resources: Option<&HybridGiScenePrepareResourcesSnapshot>,
         history_available: bool,
     ) {
         let extract = &frame.extract;
@@ -48,7 +46,6 @@ impl ScenePostProcessResources {
             frame,
             viewport_size,
             features.hybrid_global_illumination_enabled,
-            hybrid_gi_scene_prepare_resources,
         );
         let params = build_post_process_params(
             viewport_size,

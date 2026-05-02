@@ -1,9 +1,7 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt::{Display, Formatter};
 
-use crate::core::resource::ResourceLocator;
-
-use super::AssetUuid;
+use super::{AssetUuid, ResourceLocator};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize)]
 pub struct AssetReference {

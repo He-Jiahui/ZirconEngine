@@ -1,5 +1,5 @@
 use crate::ui::workbench::layout::DockEdge;
-use zircon_runtime::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 pub(super) const DRAG_POINTER_ROOT_NODE_ID: UiNodeId = UiNodeId::new(1);
 pub(super) const DRAG_TARGET_DOCUMENT_NODE_ID: UiNodeId = UiNodeId::new(2);

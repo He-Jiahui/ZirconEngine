@@ -1,7 +1,6 @@
-use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
-    event_ui::UiNodeId,
-    surface::UiPointerEventKind,
+use zircon_runtime::ui::dispatch::UiPointerDispatcher;
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect, event_ui::UiNodeId, surface::UiPointerEventKind,
 };
 
 pub(in crate::ui::slint_host::menu_pointer) fn register_handled_pointer_node(

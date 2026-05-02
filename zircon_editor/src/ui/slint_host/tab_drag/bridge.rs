@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::shell_pointer::HostShellPointerBridge;

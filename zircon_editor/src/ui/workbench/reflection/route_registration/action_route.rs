@@ -1,5 +1,6 @@
 use crate::ui::control::EditorUiControlService;
 use crate::ui::EditorActivityReflection;
+use zircon_runtime_interface::ui::event_ui::UiActionDescriptor;
 
 use super::super::animation_route::register_animation_route;
 use super::super::asset_route::register_asset_route;
@@ -11,7 +12,7 @@ use super::super::viewport_route::register_viewport_route;
 pub(super) fn register_action_route(
     service: &mut EditorUiControlService,
     activity_meta: &EditorActivityReflection,
-    action: &mut zircon_runtime::ui::event_ui::UiActionDescriptor,
+    action: &mut UiActionDescriptor,
 ) {
     if action.route_id.is_some() {
         action.callable_from_remote = true;

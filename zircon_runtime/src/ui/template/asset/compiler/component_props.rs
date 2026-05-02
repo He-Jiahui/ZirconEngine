@@ -2,8 +2,10 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::ui::component::{UiComponentDescriptor, UiPropSchema, UiValue};
-use crate::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinition};
+use zircon_runtime_interface::ui::component::{
+    UiComponentDescriptor, UiPropSchema, UiValue, UiValueKind,
+};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiNodeDefinition};
 
 use super::value_normalizer::{build_attribute_map, merge_value_maps};
 
@@ -76,7 +78,7 @@ fn validate_component_prop(
     schema: &UiPropSchema,
     value: &Value,
 ) -> Result<(), UiAssetError> {
-    let Some(typed_value) = UiValue::from_toml_with_kind(value, schema.value_kind) else {
+    let Some(typed_value) = component_prop_value(value, schema.value_kind) else {
         return Err(UiAssetError::InvalidDocument {
             asset_id: document.asset.id.clone(),
             detail: format!(
@@ -112,4 +114,21 @@ fn validate_component_prop(
     }
 
     Ok(())
+}
+
+fn component_prop_value(value: &Value, kind: UiValueKind) -> Option<UiValue> {
+    UiValue::from_toml_with_kind(value, kind).or_else(|| {
+        (kind == UiValueKind::String && is_localized_text_ref(value))
+            .then_some(UiValue::String(String::new()))
+    })
+}
+
+fn is_localized_text_ref(value: &Value) -> bool {
+    let Value::Table(table) = value else {
+        return false;
+    };
+    table
+        .get("text_key")
+        .and_then(Value::as_str)
+        .is_some_and(|key| !key.trim().is_empty())
 }

@@ -4,7 +4,7 @@ use crate::core::math::UVec2;
 
 use super::render::ScreenSpaceUiTextBatch;
 
-const SDF_ATLAS_SLOT_SIZE_PX: u32 = 32;
+const SDF_ATLAS_SLOT_SIZE_PX: u32 = 64;
 const SDF_ATLAS_MIN_GRID_SIDE: u32 = 8;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -167,8 +167,8 @@ fn ceil_sqrt(value: u32) -> u32 {
 mod tests {
     use super::{plan_sdf_atlas, ScreenSpaceUiSdfAtlas};
     use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
-    use crate::ui::layout::UiFrame;
-    use crate::ui::surface::{UiTextAlign, UiTextWrap};
+    use zircon_runtime_interface::ui::layout::UiFrame;
+    use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextWrap};
 
     #[test]
     fn sdf_atlas_plan_deduplicates_glyph_slots_across_batches() {
@@ -177,16 +177,16 @@ mod tests {
             text_batch("CAB", UiFrame::new(10.0, 36.0, 30.0, 12.0)),
         ]);
 
-        assert_eq!(plan.atlas_size, crate::core::math::UVec2::splat(256));
+        assert_eq!(plan.atlas_size, crate::core::math::UVec2::splat(512));
         assert_eq!(plan.slots.len(), 3);
         assert_eq!(plan.slots[0].key.glyph, 'A');
         assert_eq!(plan.slots[0].rect.x, 0);
         assert_eq!(plan.slots[0].rect.y, 0);
         assert_eq!(plan.slots[1].key.glyph, 'B');
-        assert_eq!(plan.slots[1].rect.x, 32);
+        assert_eq!(plan.slots[1].rect.x, 64);
         assert_eq!(plan.slots[1].rect.y, 0);
         assert_eq!(plan.slots[2].key.glyph, 'C');
-        assert_eq!(plan.slots[2].rect.x, 64);
+        assert_eq!(plan.slots[2].rect.x, 128);
         assert_eq!(plan.slots[2].rect.y, 0);
         assert_eq!(plan.runs.len(), 2);
         assert_eq!(plan.runs[0].glyph_slot_indices, glyph_slots(&[0, 1, 1, 0]));
@@ -289,9 +289,9 @@ mod tests {
         )]);
 
         assert_eq!(plan.slots.len(), 70);
-        assert_eq!(plan.atlas_size, crate::core::math::UVec2::splat(512));
+        assert_eq!(plan.atlas_size, crate::core::math::UVec2::splat(1024));
         assert_eq!(plan.slots[64].rect.x, 0);
-        assert_eq!(plan.slots[64].rect.y, 128);
+        assert_eq!(plan.slots[64].rect.y, 256);
     }
 
     fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {

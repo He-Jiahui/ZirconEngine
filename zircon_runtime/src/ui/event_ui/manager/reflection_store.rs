@@ -1,10 +1,10 @@
 use serde_json::Value;
 
-use super::super::{
+use super::{diff::compute_diff, UiEventManager};
+use zircon_runtime_interface::ui::event_ui::{
     UiInvocationError, UiNodeDescriptor, UiNodePath, UiNotification, UiPropertyDescriptor,
     UiReflectionDiff, UiReflectionSnapshot, UiTreeId,
 };
-use super::{diff::compute_diff, UiEventManager};
 
 impl UiEventManager {
     pub fn replace_tree(&mut self, snapshot: UiReflectionSnapshot) -> UiReflectionDiff {

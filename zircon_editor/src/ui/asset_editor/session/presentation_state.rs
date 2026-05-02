@@ -1,16 +1,18 @@
 use crate::ui::asset_editor::UiAssetEditorReflectionModel;
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 use super::{
     binding_inspector::build_binding_fields,
     hierarchy_projection::{
-        build_hierarchy_items, build_inspector_items, selected_hierarchy_index, selection_summary,
+        build_component_contract_items, build_hierarchy_items, build_inspector_items,
+        selected_hierarchy_index, selection_summary,
     },
     inspector_fields::build_inspector_fields,
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group,
         build_structured_layout_semantic_fields, build_structured_slot_semantic_fields,
     },
+    palette::{build_palette_entries, can_convert_selected_node_to_reference, PaletteInsertMode},
     palette_drop::{
         build_palette_drag_slot_target_overlays,
         can_insert_palette_item_for_node as can_insert_palette_item_at_node,
@@ -24,6 +26,7 @@ use super::{
     preview_mock::{build_preview_mock_fields, build_preview_state_graph_items},
     preview_projection::build_preview_projection,
     promote_widget::can_promote_selected_component_to_external_widget,
+    root_class_policy_state::root_class_policy_label,
     source_sync::{build_source_outline, build_source_selection_summary},
     style_inspection::{
         build_stylesheet_items, local_style_rule_entries, local_style_token_entries,
@@ -39,10 +42,9 @@ use super::{
     theme_compare::build_theme_compare_items,
     theme_summary::{build_theme_source_details, build_theme_summary},
     tree_editing::{
-        build_palette_entries, can_convert_selected_node_to_reference,
         can_extract_selected_node_to_component, move_selected_node,
         reparent_selected_node as tree_reparent_selected_node, unwrap_selected_node,
-        wrap_selected_node, PaletteInsertMode, UiTreeMoveDirection, UiTreeReparentDirection,
+        wrap_selected_node, UiTreeMoveDirection, UiTreeReparentDirection,
     },
     ui_asset_editor_session::UiAssetEditorSession,
 };
@@ -129,6 +131,11 @@ impl UiAssetEditorSession {
             .selection
             .primary_node_id
             .as_deref()
+            .or_else(|| {
+                self.structured_diagnostics
+                    .iter()
+                    .find_map(|diagnostic| diagnostic.target_node_id.as_deref())
+            })
             .and_then(|node_id| {
                 source_outline
                     .iter()
@@ -379,6 +386,11 @@ impl UiAssetEditorSession {
         let theme_promote_draft = self.selected_promote_theme_draft();
         let can_edit_theme_promote_draft =
             theme_summary.selected_kind == "Local" && theme_summary.can_promote_local;
+        let root_class_policy = self
+            .selected_component_root_class_policy()
+            .map(root_class_policy_label);
+        let mut inspector_items = build_inspector_items(&reflection);
+        inspector_items.extend(build_component_contract_items(root_class_policy));
         UiAssetEditorPanePresentation {
             nodes: Vec::new(),
             center_column_node: Default::default(),
@@ -389,6 +401,12 @@ impl UiAssetEditorSession {
             asset_id: reflection.route.asset_id.clone(),
             mode: format!("{:?}", reflection.route.mode),
             source_dirty: reflection.source_dirty,
+            has_external_conflict: reflection.has_external_conflict,
+            external_conflict_summary: reflection.external_conflict_summary.clone(),
+            stale_import_items: reflection.stale_import_items.clone(),
+            can_reload_from_disk: reflection.can_reload_from_disk,
+            can_keep_local_and_save: reflection.can_keep_local_and_save,
+            can_open_diff_snapshot: reflection.can_open_diff_snapshot,
             can_save: reflection.source_dirty && reflection.last_error.is_none(),
             can_undo: reflection.can_undo,
             can_redo: reflection.can_redo,
@@ -532,6 +550,19 @@ impl UiAssetEditorSession {
                 .map(|entry| format!("line {} • {}", entry.line, entry.block_label))
                 .collect(),
             source_outline_selected_index,
+            structured_diagnostic_items: self
+                .structured_diagnostics
+                .iter()
+                .map(|diagnostic| {
+                    format!(
+                        "{} [{}] {}: {}",
+                        diagnostic.severity.as_str(),
+                        diagnostic.code,
+                        diagnostic.source_path,
+                        diagnostic.message
+                    )
+                })
+                .collect(),
             preview_surface_width: preview_projection.surface_width,
             preview_surface_height: preview_projection.surface_height,
             preview_canvas_items: preview_projection
@@ -697,8 +728,13 @@ impl UiAssetEditorSession {
             inspector_widget_label: inspector_fields.widget_label,
             inspector_control_id: inspector_fields.control_id,
             inspector_text_prop: inspector_fields.text_prop,
+            inspector_component_root_class_policy: root_class_policy
+                .unwrap_or_default()
+                .to_string(),
             inspector_can_edit_control_id: inspector_fields.can_edit_control_id,
             inspector_can_edit_text_prop: inspector_fields.can_edit_text_prop,
+            inspector_can_edit_component_root_class_policy: self
+                .can_edit_selected_component_root_class_policy(),
             inspector_promote_asset_id: promote_draft
                 .as_ref()
                 .map(|draft| draft.asset_id.clone())
@@ -720,7 +756,7 @@ impl UiAssetEditorSession {
                 &self.last_valid_document,
                 reflection.selection.primary_node_id.as_deref(),
             ),
-            inspector_items: build_inspector_items(&reflection),
+            inspector_items,
             stylesheet_items: build_stylesheet_items(&reflection.style_inspector, selector_hint),
             preview_items: preview_projection.items,
         }

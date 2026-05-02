@@ -5,7 +5,7 @@ use crate::ui::workbench::reflection::{
     activity_descriptors_from_views, build_workbench_reflection_model,
 };
 use crate::ui::EditorUiReflectionAdapter;
-use zircon_runtime::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
+use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
 
 #[test]
 fn workbench_reflection_model_projects_menu_and_activity_descriptors() {

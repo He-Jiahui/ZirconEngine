@@ -3,7 +3,7 @@ stylesheets = []
 [asset]
 kind = "layout"
 id = "editor.ui_asset_editor"
-version = 2
+version = 3
 display_name = "UI Asset Editor"
 
 [imports]
@@ -423,6 +423,37 @@ stretch = "Stretch"
 [root.children.node.children.node.children.node.children.node.children.slot]
 
 [root.children.node.children.node.children.node.children.node.children.node]
+node_id = "designer_tool_mode_row"
+kind = "native"
+type = "Label"
+control_id = "DesignerToolModeRow"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Designer tool mode shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 24.0
+min = 24.0
+preferred = 24.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
 node_id = "designer_canvas_panel"
 kind = "native"
 type = "Label"
@@ -440,6 +471,68 @@ text = "Designer canvas shell region"
 min = 92.0
 preferred = 96.0
 stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "designer_diagnostic_overlay_panel"
+kind = "native"
+type = "Label"
+control_id = "DesignerDiagnosticOverlayPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Diagnostic overlay shell region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.self]
+
+[root.children.node.children.node.children.node.children.node.children.node.style_overrides.slot]
+
+[[root.children.node.children.node.children.node.children.node.children]]
+
+[root.children.node.children.node.children.node.children.node.children.slot]
+
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "emergency_shell_panel"
+kind = "native"
+type = "Label"
+control_id = "EmergencyShellPanel"
+classes = []
+bindings = []
+children = []
+
+[root.children.node.children.node.children.node.children.node.children.node.params]
+
+[root.children.node.children.node.children.node.children.node.children.node.props]
+text = "Emergency shell fallback region"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+max = 32.0
+min = 32.0
+preferred = 32.0
+stretch = "Fixed"
 
 [root.children.node.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"

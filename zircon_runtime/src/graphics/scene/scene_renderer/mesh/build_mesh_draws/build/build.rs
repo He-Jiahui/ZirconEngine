@@ -9,7 +9,6 @@ use super::super::indexed_indirect_args::IndexedIndirectArgs;
 use super::build_mesh_draw_build_context::build_mesh_draw_build_context;
 use super::build_shared_indirect_args_buffer::build_shared_indirect_args_buffer;
 use super::extend_pending_draws_for_mesh_instance::extend_pending_draws_for_mesh_instance;
-use super::pending_mesh_draw::{indirect_draw_ref_for_cluster_draw, segment_key_for_cluster_draw};
 
 pub(crate) struct BuiltMeshDraws {
     draws: Vec<MeshDraw>,
@@ -76,59 +75,8 @@ pub(crate) fn build_mesh_draws(
             mesh_instance,
         );
     }
-    let authoritative_segment_keys = build_context
-        .virtual_geometry_cluster_draws
-        .as_ref()
-        .map(|cluster_draws| {
-            cluster_draws
-                .iter()
-                .flat_map(|(entity, cluster_draws)| {
-                    cluster_draws
-                        .iter()
-                        .copied()
-                        .map(|cluster_draw| segment_key_for_cluster_draw(*entity, cluster_draw))
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let authoritative_draw_refs = build_context
-        .virtual_geometry_cluster_draws
-        .as_ref()
-        .map(|cluster_draws| {
-            frame
-                .scene
-                .scene
-                .meshes
-                .iter()
-                .flat_map(|mesh_instance| {
-                    let Some(entity_cluster_draws) = cluster_draws.get(&mesh_instance.node_id)
-                    else {
-                        return Vec::new();
-                    };
-                    let Some(model) = streamer.model(&mesh_instance.model.id()) else {
-                        return Vec::new();
-                    };
-                    model
-                        .meshes
-                        .iter()
-                        .flat_map(|mesh| {
-                            entity_cluster_draws
-                                .iter()
-                                .copied()
-                                .map(move |cluster_draw| {
-                                    indirect_draw_ref_for_cluster_draw(
-                                        mesh_instance.node_id,
-                                        mesh.index_count,
-                                        mesh.indirect_order_signature,
-                                        cluster_draw,
-                                    )
-                                })
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
+    let authoritative_segment_keys = Vec::new();
+    let authoritative_draw_refs = Vec::new();
 
     let shared_indirect_args_parts = virtual_geometry_indirect_args
         .filter(|_| virtual_geometry_enabled)
@@ -312,9 +260,9 @@ fn submission_detail_from_draw_ref(
         draw_ref.segment_key.cluster_total_count,
         draw_ref.segment_key.submission_slot,
         match draw_ref.segment_key.state {
-            0 => crate::graphics::types::VirtualGeometryPrepareClusterState::Resident,
-            1 => crate::graphics::types::VirtualGeometryPrepareClusterState::PendingUpload,
-            _ => crate::graphics::types::VirtualGeometryPrepareClusterState::Missing,
+            0 => crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident,
+            1 => crate::core::framework::render::RenderVirtualGeometryExecutionState::PendingUpload,
+            _ => crate::core::framework::render::RenderVirtualGeometryExecutionState::Missing,
         },
         draw_ref.segment_key.lineage_depth,
         draw_ref.segment_key.lod_level,

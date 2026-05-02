@@ -1,5 +1,8 @@
 use crate::core::{ManagerDescriptor, ModuleDescriptor};
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
+};
 use crate::plugin::{
     ComponentTypeDescriptor, RuntimeExtensionRegistryError, UiComponentDescriptor,
 };
@@ -56,6 +59,42 @@ impl RuntimeExtensionRegistry {
             ));
         }
         self.render_features.push(descriptor);
+        Ok(())
+    }
+
+    pub fn register_render_pass_executor(
+        &mut self,
+        registration: RenderPassExecutorRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .render_pass_executors
+            .iter()
+            .any(|existing| existing.executor_id() == registration.executor_id())
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicateRenderPassExecutor(
+                registration.executor_id().to_string(),
+            ));
+        }
+        self.render_pass_executors.push(registration);
+        Ok(())
+    }
+
+    pub fn register_virtual_geometry_runtime_provider(
+        &mut self,
+        registration: VirtualGeometryRuntimeProviderRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .virtual_geometry_runtime_providers
+            .iter()
+            .any(|existing| existing.provider_id() == registration.provider_id())
+        {
+            return Err(
+                RuntimeExtensionRegistryError::DuplicateVirtualGeometryRuntimeProvider(
+                    registration.provider_id().to_string(),
+                ),
+            );
+        }
+        self.virtual_geometry_runtime_providers.push(registration);
         Ok(())
     }
 

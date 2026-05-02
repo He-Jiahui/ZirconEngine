@@ -1,8 +1,10 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
     layout::{AxisConstraint, StretchMode, UiSize},
-    surface::UiSurface,
 };
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID;
@@ -219,10 +221,7 @@ fn drawer_region_input(
     }
 }
 
-fn surface_control_node_id(
-    surface: &UiSurface,
-    control_id: &str,
-) -> Option<zircon_runtime::ui::event_ui::UiNodeId> {
+fn surface_control_node_id(surface: &UiSurface, control_id: &str) -> Option<UiNodeId> {
     surface.tree.nodes.values().find_map(|node| {
         node.template_metadata
             .as_ref()

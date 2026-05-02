@@ -1,8 +1,10 @@
 use crate::core::math::{Vec2, Vec3};
 
 use super::generate_normals::generate_normals;
-use crate::asset::assets::ModelPrimitiveAsset;
-use crate::asset::{AssetImportError, MeshVertex};
+use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
+use crate::asset::{
+    cook_virtual_geometry_from_mesh, AssetImportError, MeshVertex, VirtualGeometryCookConfig,
+};
 
 pub(super) fn primitive_from_indexed_mesh(
     positions: &[f32],
@@ -11,6 +13,8 @@ pub(super) fn primitive_from_indexed_mesh(
     indices: &[u32],
     joint_indices: &[[u16; 4]],
     joint_weights: &[[f32; 4]],
+    mesh_name: Option<&str>,
+    source_hint: &str,
 ) -> Result<ModelPrimitiveAsset, AssetImportError> {
     if positions.len() % 3 != 0 {
         return Err(AssetImportError::Parse(
@@ -27,7 +31,7 @@ pub(super) fn primitive_from_indexed_mesh(
         computed_normals.resize(vertex_count * 3, 0.0);
     }
 
-    let vertices = (0..vertex_count)
+    let vertices: Vec<MeshVertex> = (0..vertex_count)
         .map(|index| {
             let position = Vec3::new(
                 positions[index * 3],
@@ -63,9 +67,37 @@ pub(super) fn primitive_from_indexed_mesh(
         })
         .collect();
 
+    let virtual_geometry = cook_virtual_geometry_from_mesh(
+        &vertices,
+        indices,
+        VirtualGeometryCookConfig {
+            mesh_name: mesh_name.map(str::to_owned),
+            source_hint: Some(source_hint.to_string()),
+            ..VirtualGeometryCookConfig::default()
+        },
+    );
+
     Ok(ModelPrimitiveAsset {
         vertices,
         indices: indices.to_vec(),
-        virtual_geometry: None,
+        virtual_geometry,
     })
+}
+
+pub(super) fn backfill_virtual_geometry_for_model(model: &mut ModelAsset) {
+    let source_hint = model.uri.to_string();
+    for (primitive_index, primitive) in model.primitives.iter_mut().enumerate() {
+        if primitive.virtual_geometry.is_some() {
+            continue;
+        }
+        primitive.virtual_geometry = cook_virtual_geometry_from_mesh(
+            &primitive.vertices,
+            &primitive.indices,
+            VirtualGeometryCookConfig {
+                mesh_name: Some(format!("primitive_{primitive_index}")),
+                source_hint: Some(source_hint.clone()),
+                ..VirtualGeometryCookConfig::default()
+            },
+        );
+    }
 }

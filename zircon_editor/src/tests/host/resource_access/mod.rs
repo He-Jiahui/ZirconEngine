@@ -1,6 +1,6 @@
 use crossbeam_channel::unbounded;
 use zircon_runtime::core::framework::asset::ResourceManager;
-use zircon_runtime::core::resource::{
+use zircon_runtime_interface::resource::{
     MaterialMarker, ModelMarker, ResourceDiagnostic, ResourceEvent, ResourceHandle, ResourceId,
     ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
 };

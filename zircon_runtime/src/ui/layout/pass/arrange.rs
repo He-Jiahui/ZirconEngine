@@ -1,7 +1,10 @@
-use crate::ui::tree::UiTreeError;
-use crate::ui::{
-    layout::UiAxis, layout::UiContainerKind, layout::UiFrame, layout::UiScrollState,
-    layout::UiVirtualListWindow, tree::UiTree,
+use crate::ui::{layout::virtual_window_for_scrollable_box, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{
+        UiAxis, UiContainerKind, UiFrame, UiScrollState, UiScrollableBoxConfig, UiVirtualListWindow,
+    },
+    tree::{UiTree, UiTreeError},
 };
 
 use super::axis::{frame_axis_extent, resolve_linear_child_main_extents, size_axis_extent};
@@ -10,7 +13,7 @@ use super::clip::resolve_clip_frame;
 
 pub(crate) fn arrange_node(
     tree: &mut UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
 ) -> Result<(), UiTreeError> {
@@ -83,7 +86,7 @@ pub(crate) fn arrange_node(
 
 fn arrange_linear_children(
     tree: &mut UiTree,
-    children: &[crate::ui::event_ui::UiNodeId],
+    children: &[UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
     axis: UiAxis,
@@ -111,11 +114,11 @@ fn arrange_linear_children(
 
 fn arrange_scrollable_children(
     tree: &mut UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
-    children: &[crate::ui::event_ui::UiNodeId],
+    node_id: UiNodeId,
+    children: &[UiNodeId],
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
-    config: crate::ui::layout::UiScrollableBoxConfig,
+    config: UiScrollableBoxConfig,
 ) -> Result<(), UiTreeError> {
     let (content_size, previous_offset) = {
         let node = tree
@@ -131,12 +134,12 @@ fn arrange_scrollable_children(
     let content_extent = size_axis_extent(content_size, config.axis);
     let max_offset = (content_extent - viewport_extent).max(0.0);
     let offset = previous_offset.max(0.0).min(max_offset);
-    let visible_window = config
-        .virtual_window(offset, children.len(), viewport_extent)
-        .unwrap_or(UiVirtualListWindow {
-            first_visible: 0,
-            last_visible_exclusive: children.len(),
-        });
+    let visible_window =
+        virtual_window_for_scrollable_box(config, offset, children.len(), viewport_extent)
+            .unwrap_or(UiVirtualListWindow {
+                first_visible: 0,
+                last_visible_exclusive: children.len(),
+            });
 
     {
         let node = tree
@@ -167,7 +170,7 @@ fn arrange_scrollable_children(
 
 fn child_positions(
     tree: &UiTree,
-    children: &[crate::ui::event_ui::UiNodeId],
+    children: &[UiNodeId],
     axis: UiAxis,
     gap: f32,
 ) -> Result<Vec<f32>, UiTreeError> {
@@ -187,10 +190,7 @@ fn child_positions(
     Ok(positions)
 }
 
-fn hide_subtree_layout(
-    tree: &mut UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
-) -> Result<(), UiTreeError> {
+fn hide_subtree_layout(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), UiTreeError> {
     let children = {
         let node = tree
             .node_mut(node_id)

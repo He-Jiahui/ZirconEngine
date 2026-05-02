@@ -34,7 +34,7 @@ pub(super) use crate::ui::workbench::layout::{
     WorkspaceTarget,
 };
 pub(super) use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
-pub(super) use zircon_runtime::ui::{
+pub(super) use zircon_runtime_interface::ui::{
     binding::UiEventKind, dispatch::UiPointerEvent, layout::UiFrame, layout::UiPoint,
     layout::UiSize, surface::UiPointerButton, surface::UiPointerEventKind,
 };

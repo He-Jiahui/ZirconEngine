@@ -1,19 +1,45 @@
 ---
 related_code:
+  - zircon_editor/Cargo.toml
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
+  - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/node_ops.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/workspace_state.rs
   - zircon_editor/src/ui/host/ui_asset_promotion.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
+  - zircon_editor/src/ui/asset_editor/contract.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
+  - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
+  - zircon_runtime_interface/src/ui/tree/mod.rs
+  - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/tree/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
@@ -26,6 +52,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/navigation_state.rs
   - zircon_editor/src/ui/asset_editor/session/theme_state.rs
   - zircon_editor/src/ui/asset_editor/session/promotion_state.rs
+  - zircon_editor/src/ui/asset_editor/session/root_class_policy_state.rs
   - zircon_editor/src/ui/asset_editor/session/style_state.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_state.rs
@@ -40,6 +67,7 @@ related_code:
   - zircon_editor/assets/ui/editor/welcome.ui.toml
   - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
   - zircon_editor/src/ui/layouts/views/mod.rs
+  - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs
   - zircon_editor/src/ui/layouts/views/asset_browser_shell_layout.rs
   - zircon_editor/src/ui/layouts/views/assets_activity.rs
@@ -53,8 +81,12 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/ui_asset.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
   - zircon_editor/ui/workbench/fallback_pane.slint
   - zircon_editor/ui/workbench/pane_content.slint
   - zircon_editor/ui/workbench/pane_data.slint
@@ -74,6 +106,7 @@ related_code:
   - zircon_editor/ui/workbench/host_root.slint
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/host/manager/mod.rs
+  - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
   - zircon_editor/src/tests/ui/boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
   - zircon_editor/src/tests/ui/boundary/host_cutover.rs
@@ -84,25 +117,53 @@ related_code:
   - zircon_editor/src/tests/ui/welcome/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/view_projection_cutover.rs
+  - zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/mod.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/reflection.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/editor_layouts.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
   - zircon_editor/tests/workbench_slint_shell.rs
 implementation_files:
+  - zircon_editor/Cargo.toml
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/editor_manager.rs
+  - zircon_editor/src/ui/host/editor_manager_asset_workspace.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
+  - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/host/editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
   - zircon_editor/src/ui/host/resource_access.rs
   - zircon_editor/src/ui/host/window_host_manager.rs
   - zircon_editor/src/ui/host/asset_editor_sessions/mod.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/inspector.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/navigation.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/editing/node_ops.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/imports.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/lifecycle.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/open.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/save.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/watcher.rs
+  - zircon_editor/src/ui/host/asset_editor_sessions/workspace_state.rs
   - zircon_editor/src/ui/host/ui_asset_promotion.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
+  - zircon_editor/src/ui/asset_editor/contract.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
+  - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
+  - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
+  - zircon_runtime_interface/src/ui/tree/mod.rs
+  - zircon_runtime_interface/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/tree/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
@@ -115,6 +176,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/navigation_state.rs
   - zircon_editor/src/ui/asset_editor/session/theme_state.rs
   - zircon_editor/src/ui/asset_editor/session/promotion_state.rs
+  - zircon_editor/src/ui/asset_editor/session/root_class_policy_state.rs
   - zircon_editor/src/ui/asset_editor/session/style_state.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_state.rs
@@ -142,8 +204,12 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/ui_asset.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
   - zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/registry.rs
   - zircon_editor/ui/workbench/asset_panes.slint
   - zircon_editor/ui/workbench/animation_editor_pane.slint
   - zircon_editor/ui/workbench/assets_activity_pane.slint
@@ -176,6 +242,13 @@ plan_sources:
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/收敛缺口修复 Spec 与 Implementation Plan.md
+  - .codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md
+  - docs/superpowers/specs/2026-05-01-ui-asset-workspace-full-watcher-design.md
+  - docs/superpowers/plans/2026-05-01-ui-asset-workspace-full-watcher.md
+  - .codex/plans/UI 后续产品化与验证归档计划.md
+  - docs/superpowers/plans/2026-05-01-ui-productization-editor-binding-parity.md
+  - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
+  - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
 tests:
   - zircon_editor/src/tests/editing/ui_asset/structure_split.rs
   - zircon_editor/src/tests/editing/ui_asset/source_projection.rs
@@ -185,6 +258,7 @@ tests:
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
+  - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
   - zircon_editor/src/tests/host/manager/ui_asset_style_and_inspector.rs
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/tests/ui/boundary/asset_editor_structure.rs
@@ -201,12 +275,16 @@ tests:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/view_projection_cutover.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/surface_contract.rs
+  - zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/template_callbacks.rs
   - zircon_editor/src/tests/host/slint_list_pointer/pane_surface_actions.rs
   - zircon_editor/src/tests/host/slint_list_pointer/surface_contract.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/editor_layouts.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
+  - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - cargo test -p zircon_editor --lib editor_asset_boundary_lives_in_editor_crate --locked
   - cargo test -p zircon_editor --lib editor_manager_becomes_thin_facade_over_editor_ui_host --locked
@@ -241,8 +319,23 @@ tests:
   - F:/cargo-targets/zircon-codex-a/debug/deps/zircon_editor-0e7c5fdfee4db764.exe ui::slint_host::ui::tests::apply_presentation_projects_welcome_shell_layout_into_global_context --exact --nocapture
   - cargo test -p zircon_editor --locked ui_asset_editor_stylesheet_panel_consumes_shell_layout_for_header_rows --lib --target-dir F:/cargo-targets/zircon-codex-a
   - cargo test -p zircon_editor --lib tests::ui::ui_asset_editor --locked --offline --message-format short
+  - cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib workbench_slint_entry_stays_on_generic_host_bootstrap_files --locked
   - cargo test -p zircon_editor --locked --offline --test workbench_slint_shell
+  - cargo test -p zircon_editor --lib contract_diagnostics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-productization-contract --message-format short --color never (3 passed)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-productization-contract --message-format short --color never (passed with unrelated graphics warnings)
+  - cargo test -p zircon_editor --lib ui_asset_editor_host_genericizes_detail_event_dispatch --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never
+  - cargo test -p zircon_editor --lib asset_browser_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never
+  - cargo test -p zircon_editor --lib ui_asset_editor_session_projects_and_updates_root_class_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (passed after one cold compile timeout)
+  - cargo test -p zircon_editor --lib asset_editor_component_adapter_updates_selected_component_root_class_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (passed)
+  - cargo test -p zircon_editor --lib editor_component_adapter_registry_advertises_reflection_and_asset_editor_sources --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (passed)
+  - cargo test -p zircon_editor --lib ui_asset_editor_host_genericizes_detail_event_dispatch --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (passed)
+  - cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (204 passed; 0 failed; 675 filtered out)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (blocked by unrelated runtime-interface manifest/lock drift)
+  - cargo test -p zircon_runtime --lib asset_component_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m10-root-class-authoring --message-format short --color never (blocked by unrelated runtime-interface manifest/lock drift)
+  - cargo test -p zircon_editor --lib ui_asset_editor_projects_runtime_binding_diagnostic_and_schema_items --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (passed: 1 passed; 0 failed; 888 filtered out)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (blocked before compilation by unrelated workspace lock drift: `web-sys` selected `js-sys` 0.3.97 while `Cargo.lock` selected 0.3.95)
 doc_type: module-detail
 ---
 
@@ -325,6 +418,20 @@ doc_type: module-detail
 
 也就是说，host 层只保留“会话编排”和“工作台整合”；真正的 UI asset authoring 行为已经回到 `ui::asset_editor` 域内，而不是继续夹在 `core` 和 `ui` 之间。
 
+### Workspace Watcher And Conflict State
+
+M5 的 workspace owner 现在也收口在 host 层，而不是塞回 `UiAssetEditorSession`：
+
+- `EditorUiHost` 在 project open/save 后重启 `UiAssetWorkspaceWatcher`，watch `project_root/assets` 下的 `.ui.toml` 文件，并把路径规整成 `res://...` asset id
+- `refresh_ui_asset_workspace_for_changes(...)` 是 deterministic refresh 入口；真实 watcher poll、保存后的 dependent refresh、promotion undo/redo 外部 effect 都走同一条入口
+- `UiAssetWorkspaceEntry` 持有 disk baseline、external conflict、diff snapshot 和 stale import diagnostics；`UiAssetEditorSession` 仍只负责 source/document/preview 与 authoring state
+- clean direct asset change 会从磁盘重建 session、更新 baseline、清理 conflict，并重新 hydrate imports
+- dirty direct asset change 不覆盖本地 source，而是记录 `UiAssetExternalConflict`；pane/reflection 暴露 `has_external_conflict`、reload/keep-local/diff snapshot affordance
+- removed direct asset change 也进入 conflict state，而不是让 promotion undo 或外部删除因为 `NotFound` 中断 session 流程
+- import asset change 会尝试重新收集 imported widget/style documents；解析失败、kind mismatch 或 missing file 会变成 stale import diagnostic，并保留 last-good preview/session，直到 import 恢复后清空 stale state
+
+对外 editor manager 只新增薄 façade 方法：`reload_ui_asset_editor_from_disk`、`keep_ui_asset_editor_local_and_save`、`refresh_ui_asset_workspace_for_changes`、`poll_ui_asset_workspace_watcher`，以及 crate 内测试/诊断用的 diff snapshot accessor。UI shell 可以通过 pane presentation 决定是否展示 reload/keep-local/diff/stale import 操作，但真正的冲突裁决仍由 host workspace pipeline 执行。
+
 ### Session Folder Split
 
 当前 `zircon_editor/src/ui/asset_editor/session/` 已经开始按作者态职责继续下沉，而不是让 `ui_asset_editor_session.rs` 持续吞下所有 session 逻辑：
@@ -353,6 +460,35 @@ doc_type: module-detail
   - 负责 `reflection_model` / `pane_presentation`、preview summary，以及 source/preview/inspector/style/theme/palette/binding 的 view-projection 组装；session 主文件不再继续吞下整块 UI projection owner
 
 这条拆分线的目标不是把 `session/` 一次性拆到极限，而是先把最明显的状态机簇从 4k+ 主文件里切走，让后续剩余的 style/theme/source/promotion 再继续按责任下沉时，不需要重新挪动已经稳定的 palette/binding/command 生命周期边界。
+
+### Structured Contract Diagnostics
+
+`ui::asset_editor` now has a dedicated `diagnostics/` child module for editor-facing diagnostic DTOs. The current production path maps runtime-owned `UiComponentContractDiagnostic` and `UiBindingDiagnostic` values into `UiAssetEditorDiagnostic` without making the editor parse compiler error display strings or invent separate contract/binding semantics.
+
+The session keeps two diagnostic surfaces intentionally:
+
+- `diagnostics: Vec<String>` remains the legacy status/error surface used by existing presentation code and editability checks.
+- `structured_diagnostics: Vec<UiAssetEditorDiagnostic>` carries stable code, severity, source path, target node id, target control id, and target binding id for contract-aware and binding-aware panels.
+
+`lifecycle.rs` refreshes structured diagnostics whenever preview compilation fails or imports change. It combines component-contract diagnostics from `zircon_runtime::ui::template::asset::component_contract` with interface-owned binding diagnostics returned by runtime binding validation. `presentation_state.rs` projects them into `structured_diagnostic_items` and uses a diagnostic `target_node_id` to select the matching source-outline row when there is no current user selection. This keeps runtime component-contract and binding behavior authority in `zircon_runtime` while neutral binding diagnostic DTOs come from `zircon_runtime_interface::ui::template`, allowing the editor to deep-link private selector, API mismatch, closed-root-class, invalid binding target, invalid value kind, unresolved reference, and unsupported operator failures.
+
+Binding inspector schema projection is also runtime-report driven. `binding/schema_projection.rs` imports `UiBindingDiagnostic`, `UiBindingTarget`, and `UiBindingTargetKind` from `zircon_runtime_interface::ui::template`, lists authored target assignments as `target[index] [kind.name] = expression`, then appends matching runtime diagnostic rows for that target index. The projection intentionally uses `collect_asset_binding_report(...)` rather than reimplementing value-kind or descriptor-prop rules in editor code.
+
+Template-node projection keeps render extraction as runtime behavior. `asset_editor/node_projection.rs` and `layouts/views/view_projection.rs` now call `zircon_runtime::ui::surface::extract_ui_render_tree(&surface.tree)` when they need command/style/text rows for host projection; they do not call an interface-owned `UiRenderExtract::from_tree(...)` constructor. This preserves `zircon_runtime_interface::ui::surface::UiRenderExtract` as a data-only DTO while letting editor host projection reuse the canonical runtime extraction path.
+
+### Component Root-Class Authoring
+
+Root-class policy authoring now lives in `session/root_class_policy_state.rs` instead of being folded into generic style or promotion state. The session resolves the selected local component from the current component node, projects the runtime-owned `UiRootClassPolicy` as `append_only` or `closed`, validates accepted editor literals, and applies changes through the same replay-aware document edit path as other authoring mutations. `pane_presentation()` exposes both `inspector_component_root_class_policy` and `inspector_can_edit_component_root_class_policy`, and the inspector summary includes a `root class policy: ...` item so the product surface is visible without inventing editor-owned contract semantics.
+
+The host and adapter path stays on the shared Runtime UI envelope route. Slint detail action `component.root_class_policy.set` dispatches a `Commit` envelope to the `asset_editor` adapter, the adapter accepts `component.root_class_policy`, and `EditorManager` forwards the mutation to `EditorUiHost::set_ui_asset_editor_selected_component_root_class_policy(...)`. This keeps closed-root-class validation in runtime component contracts while giving the UI Asset Editor a replayable authoring control for the contract value.
+
+Focused evidence from 2026-05-02 used `E:\cargo-targets\zircon-ui-m10-root-class-authoring`: `ui_asset_editor_session_projects_and_updates_root_class_policy`, `asset_editor_component_adapter_updates_selected_component_root_class_policy`, `editor_component_adapter_registry_advertises_reflection_and_asset_editor_sources`, and `ui_asset_editor_host_genericizes_detail_event_dispatch` passed as focused gates; `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1` also passed with `204 passed; 0 failed; 675 filtered out`. Broader `cargo check -p zircon_editor --lib --locked` and `cargo test -p zircon_runtime --lib asset_component_contract --locked` did not reach compilation because the shared checkout had unrelated runtime-interface manifest/lock drift and Cargo refused to update `Cargo.lock` under `--locked`.
+
+### UI Asset Detail Component Adapter Dispatch
+
+UI Asset Editor detail edits now share the Runtime UI component-adapter envelope instead of dispatching field-specific manager mutations directly from the Slint host callback. `zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs` builds `UiComponentEventEnvelope` commits for widget, slot, layout, and semantic field edits, then calls `dispatch_ui_asset_component_adapter_commit(...)`; the `asset_editor` adapter in `zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs` maps supported target paths onto the existing `EditorManager` mutation APIs. Delete actions remain direct manager commands because they are structural operations rather than value commits.
+
+The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks the real source route and the adapter-owned field paths: `widget.control_id`, `widget.text`, `component.root_class_policy`, `slot.mount`, `slot.width_preferred`, `slot.height_preferred`, `layout.width_preferred`, `layout.height_preferred`, `slot.semantic.value`, and `layout.semantic.value`. This keeps detail editing on the same typed adapter seam as Inspector and future reflection bindings while preserving the existing UI Asset Editor session owner boundary.
 
 ## Slint Entry Boundary
 
@@ -416,10 +552,10 @@ doc_type: module-detail
 随后这条边界又继续往 `SourcePanel` 内部推进了一层，不再只停在“整个 source panel 是一个大矩形”：
 
 - [`ui_asset_editor.ui.toml`](../../zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml) 现在除了 `SourceInfoPanel`、`SourceOutlinePanel`、`MockWorkspacePanel`、`SourceTextPanel` 之外，还明确给 `MockWorkspacePanel` 拆出了 `MockSubjectsPanel`、`MockEditorPanel`、`MockStateGraphPanel`
-- 同一份 bootstrap asset 也开始继续拆 `DesignerPanel` 内部几何，新增 `DesignerCanvasPanel` 和 `RenderStackPanel`，避免 `.slint` 自己继续保留 `preview_canvas y: 28px`、`render stack y: parent.height - 90px` 这类内部纵向真源
+- 同一份 bootstrap asset 也开始继续拆 `DesignerPanel` 内部几何，新增 `DesignerToolModeRow`、`DesignerCanvasPanel`、`DesignerDiagnosticOverlayPanel`、`EmergencyShellPanel` 和 `RenderStackPanel`，避免 `.slint` 自己继续保留 `preview_canvas y: 28px`、`render stack y: parent.height - 90px` 这类内部纵向真源
 - [`shell_layout.rs`](../../zircon_editor/src/ui/asset_editor/shell_layout.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 也同步把这三块 frame 作为正式 `UiAssetEditorShellLayout` / `UiAssetEditorShellLayoutData` 字段传到 Slint 边界
 - [`ui_asset_editor_center_column.slint`](../../zircon_editor/ui/workbench/ui_asset_editor_center_column.slint) 不再自己决定 mock workspace 的大段纵向分区；它现在只消费这三个 host band，再在每个 band 内用局部 layout 摆叶子控件
-- `Designer` 区域也开始遵守同一个规则：`.slint` 只在 `DesignerCanvasPanel` / `RenderStackPanel` 里面放 preview canvas 与 render-stack list，不再自己决定这两个 band 的相对外框
+- `Designer` 区域也开始遵守同一个规则：`.ui.toml` 先固定 tool-mode row、diagnostic overlay 和 emergency fallback band，`.slint`/host projection 后续只能在 `DesignerCanvasPanel`、`DesignerDiagnosticOverlayPanel`、`EmergencyShellPanel`、`RenderStackPanel` 这些 host band 内摆 preview canvas、诊断、fallback 操作和 render-stack list，不再自己决定这些 band 的相对外框
 - `ActionBarPanel` 现在也不再把三排按钮组的分段几何留在 `.slint` 里：
   - bootstrap `.ui.toml` 继续下钻到 `ActionInsertRow`、`ActionReparentRow`、`ActionStructureRow`
   - `shell_layout.rs` / `pane_data_conversion/mod.rs` / `UiAssetEditorShellLayoutData` 把这三块 frame 当成正式宿主边界字段传进 Slint
@@ -435,6 +571,13 @@ doc_type: module-detail
   - `ui_asset_editor_inspector_panel.slint` 不再把 `Rectangle { x: 0px; y: 26px; width: parent.width; height: parent.height - 26px; ... }` 和内部 `VerticalLayout { x: 10px; y: 8px; ... }` 当成唯一壳层几何 authority，而是直接消费 `InspectorContentPanel` frame
 
 这样 cutover 的真实结果是：`UiAssetEditor` 还没有完全删除业务 `.slint`，但 source/mock 这块最明显的“绝对 y 偏移串”已经不再是最终几何 authority。`.slint` 这时只剩 leaf interaction、draft field 和局部微布局，而不是继续拿一串 `y: 78/94/126/...` 当真正的 panel 结构。
+
+2026-05-01 这一刀把 `UI Asset Editor` 自身的 M6/M24 缺口继续压到 authored bootstrap asset 上，而不是新增 runtime showcase 或 graphics/plugin 路径：
+
+- `DesignerToolModeRow` 是明确的工具模式壳层，给后续 select/move/resize/preview-interact 模式切换提供稳定 host band
+- `DesignerDiagnosticOverlayPanel` 是画布诊断 overlay 壳层，给 parse/compile/layout/slot 诊断提供不依赖业务 Slint 坐标的落点
+- `EmergencyShellPanel` 是 self-host fallback 壳层，先把 plan 中的 last-valid/emergency shell 边界钉进 `.ui.toml` authority；真正的 reload/revert/open-asset-browser 行为仍属于后续 host command slice
+- 本轮只承诺“作者态壳层存在、能编译、能投影出 frame”，不宣称完整 emergency fallback state machine 或 preview interact dispatch 已完成
 
 根 pane 自己持有的 popup 壳层也继续缩了一步：
 
@@ -458,7 +601,7 @@ doc_type: module-detail
   - 同时禁止旧的 stylesheet `y: 26/54/82/112/118` 顶部壳层 offsets 重新回流
 - [`bootstrap_assets.rs`](../../zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs)
   - bootstrap shell-layout 回归现在要求 `MockSubjectsPanel` / `MockEditorPanel` / `MockStateGraphPanel` 在编译后的 shared `UiSurface` 中都能导出有效 frame
-  - 同时也要求 `DesignerCanvasPanel` / `RenderStackPanel` 导出有效 frame，避免 designer panel 内层几何重新回流到 Slint
+  - 同时也要求 `DesignerToolModeRow` / `DesignerCanvasPanel` / `DesignerDiagnosticOverlayPanel` / `EmergencyShellPanel` / `RenderStackPanel` 导出有效 frame，避免 designer panel 内层几何重新回流到 Slint
   - `ActionInsertRow` / `ActionReparentRow` / `ActionStructureRow` 也必须从 bootstrap shell-layout 导出有效 frame，避免 action bar 分组再退回成 Slint-only 布局
   - `StylesheetActionRow` / `StylesheetStatePrimaryRow` / `StylesheetStateSecondaryRow` / `StylesheetContentPanel` 也必须导出有效 frame，避免右侧 stylesheet panel 再退回成手写 Slint 分区
   - `InspectorContentPanel` 也必须导出有效 frame，避免 inspector body 再退回成手写 `y: 26 + x: 10/y: 8` 的 Slint 壳层偏移
@@ -474,6 +617,7 @@ doc_type: module-detail
 - [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 和 [`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs) 继续把这份 layout 作为 `PaneData.asset_browser -> AssetBrowserPaneData -> AssetBrowserShellLayoutData` 的正式投影链路
 - [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint) 现在只把 `root.pane.asset_browser` 透传进 [`asset_panes.slint`](../../zircon_editor/ui/workbench/asset_panes.slint)，而 `AssetBrowserPane` 本身不再保留旧的 outer-margin / toolbar-height / sources-width / details-width 公式；它只消费 `root.pane.shell_layout.*` frame，再在每个 host band 里摆 Search、kind chip、details rail 和 utility tab 叶子控件
 - 这一步先只收口 shell/topology authority。`metadata` / `plugins` tab 的叶子排布仍然保留在 pane owner 内部，但它们已经退到 `UtilityContentPanel` 这个稳定宿主壳层之下，不再决定 page 级 panel 分区
+- Asset Browser bootstrap buttons now author their visible text with the runtime `Button.text` prop. The shared `label` fallback still exists for older generic visual extract paths, but `asset_browser.ui.toml` no longer depends on non-catalog `label` props for `Button` nodes such as `LocateSelectedAsset`.
 
 这条 asset browser seam 的 focused evidence 也已经补上：
 
@@ -483,6 +627,8 @@ doc_type: module-detail
   - `asset_browser_pane_consumes_shell_layout_for_top_level_sections` 和 `asset_browser_pane_consumes_shell_layout_for_toolbar_and_utility_sections` 现在直接禁止 `asset_panes.slint` 回流旧的 top-level geometry formula 与 toolbar/reference 绝对坐标
 - `cargo check -p zircon_editor --lib --locked --target-dir F:/cargo-targets/zircon-codex-a`
   - 证明 asset browser 的 host projection、DTO 转换和 Slint consumer 同步后，`zircon_editor` production 代码仍能正常编译
+- `cargo test -p zircon_editor --lib asset_browser_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never`
+  - 证明 `asset_browser.ui.toml` 的 mount-node projection 与 runtime `Button.text` authored props 能通过当前 closeout target
 
 同一轮 `.slint -> ui.toml` 收口随后也推进到 `AnimationEditorPane`：
 
@@ -684,6 +830,8 @@ doc_type: module-detail
   - 证明 `EditorManager` 和 `ui::host::asset_editor_sessions` 的职责边界已经稳定
 - `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap_assets_parse_and_compile_with_imports --locked`
   - 证明 editor bootstrap 资产仍能经 shared loader/compiler 打开
+- `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture`
+  - 证明 `ui_asset_editor.ui.toml` 的 tool-mode row、diagnostic overlay 和 emergency shell band 继续能经 shared loader/compiler/surface projection 导出有效 frame，当前结果为 9 passed / 0 failed / 839 filtered out
 - `cargo test -p zircon_editor --lib workbench_slint_entry_stays_on_generic_host_bootstrap_files --locked`
   - 证明 `workbench.slint` 入口不再倒回业务壳 import
 - `cargo test -p zircon_editor --locked --offline --test workbench_slint_shell`
@@ -712,5 +860,31 @@ doc_type: module-detail
   - 追加验证 21 个 preview/binding authoring 回归，确认 `preview_state.rs` 切分后 preview mock subject/property/nested value/suggestion 流程仍然稳定驱动 preview rebuild 与表达式求值
 - `F:/cargo-targets/zircon-codex-a/debug/deps/zircon_editor-0e7c5fdfee4db764.exe tests::host::manager::ui_asset_session_preview:: --nocapture`
   - 追加验证 8 个 host-facing preview/session 回归，确认 editor manager 继续通过稳定 session API 驱动 preview preset、mock preview、source byte offset 选中与交互式 session command
+- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked -- --nocapture`
+  - 追加验证 4 个 M5 workspace watcher/conflict 回归，覆盖 clean external reload、dirty conflict preservation、diff snapshot、reload/keep-local resolution、stale import failure/recovery
+- `cargo test -p zircon_editor --lib ui_asset_reference_and_promotion --locked -- --nocapture`
+  - 追加验证 12 个 reference/promotion host 回归，确认 promotion undo/redo 删除或恢复外部 `.ui.toml` 时 dependent refresh 不再把 missing file 当作 fatal host error
+- `cargo test -p zircon_editor --lib ui_asset_replay --locked -- --nocapture`
+  - 追加验证 17 个 replay 回归，确认 workspace refresh wiring 没有破坏 external effect replay source maps 与 undo/redo 合同
+- `cargo test -p zircon_editor --lib contract_diagnostics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-productization-contract --message-format short --color never`
+  - 追加验证 3 个 UI Asset Editor structured contract diagnostic 回归，覆盖 private selector code/control target、API mismatch source-outline target、closed root class code/source path/node target
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-productization-contract --message-format short --color never`
+  - 证明 editor diagnostic DTO、session storage 和 pane projection surface 可以通过 `zircon_editor` lib type-check；输出仍包含 unrelated runtime graphics warnings
+- `cargo test -p zircon_editor --lib ui_asset_editor_host_genericizes_detail_event_dispatch --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never`
+  - 证明 UI Asset Editor detail callbacks 通过 `dispatch_ui_asset_component_adapter_commit` 和 `asset_editor` component adapter mutation route，而不是回退成直接 detail-manager field dispatch
+- `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never`
+  - 作为 Milestone 0 editor closeout package gate 通过，当前结果为 876 passed / 0 failed / 1 ignored；runtime/workspace broad green 仍未声明
 
 这组测试组合起来，覆盖了“代码物理位置”“owner 边界”“shared 资产链路”“导航/光标行为回归”和“Slint 入口约束”几个最关键的验收面。
+
+## Runtime Interface UI DTO Cutover Status
+
+The 2026-05-02 UI runtime-interface audit separates remaining editor `zircon_runtime` usage into two groups.
+
+Concrete runtime services still intentionally come from `zircon_runtime::ui`: `UiSurface`, `UiEventManager`, `UiDocumentCompiler`, `UiAssetLoader`, `UiTemplateSurfaceBuilder`, `UiTemplateBuildError`, `UiComponentDescriptorRegistry`, `UiAssetDocumentRuntimeExt`, runtime pointer/surface dispatchers, and runtime layout/render behavior exposed through those services. These dependencies are runtime behavior APIs, not neutral DTO ownership.
+
+The latest Milestone 4 audit found 128 `zircon_runtime::ui` hits and 428 `zircon_runtime_interface::ui` hits under `zircon_editor/src`. The editor is already broadly consuming interface DTOs for IDs, layout geometry, component values, binding reports, dispatch records, and template asset records, but the remaining runtime hits cannot be treated as one mechanical import rewrite.
+
+The tree/surface identity blocker has been cut over. `zircon_runtime_interface::ui::tree` owns neutral `UiTree`, `UiTreeNode`, `UiInputPolicy`, and `UiTreeError` declarations, and `zircon_runtime::ui::surface::UiSurface` stores that interface `UiTree` directly. Editor files that construct a `UiSurface`, insert `UiTreeNode`s, or set `UiInputPolicy` import those DTOs from `zircon_runtime_interface::ui::tree`; files that call insertion, query, mutation, routing, focus, scroll, or other tree behavior import the needed `zircon_runtime::ui::tree::UiRuntimeTree*Ext` trait instead of importing DTOs through runtime.
+
+Neutral UI DTO imports are therefore not fully cut over yet outside the tree DTO family. Current editor source still has mixed files where IDs, geometry values, binding values/calls/kinds, component values/events/descriptors, drag payloads, render commands/styles/text records, template asset records, and package/report DTOs appear near runtime services. The next hard-cutover slice must split only the safe DTO imports to `zircon_runtime_interface::ui` while leaving concrete services and runtime behavior types on `zircon_runtime::ui`. The focused `cargo check -p zircon_editor --lib` gate proves the editor type-checks only when it is actually rerun for the current dirty workspace; it does not by itself prove this source-import cleanup is complete.

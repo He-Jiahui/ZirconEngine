@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
-    surface::UiPointerEventKind,
+use zircon_runtime::ui::dispatch::UiPointerDispatcher;
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect, surface::UiPointerEventKind,
 };
 
 use crate::scene::viewport::pointer::{

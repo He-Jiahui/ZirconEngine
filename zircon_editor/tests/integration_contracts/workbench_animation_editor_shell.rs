@@ -21,7 +21,10 @@ fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
         "pub transition_items: ModelRc<SharedString>",
         "pub animation: AnimationEditorPaneData",
     ] {
-        assert!(panes.contains(required), "animation pane DTO missing `{required}`");
+        assert!(
+            panes.contains(required),
+            "animation pane DTO missing `{required}`"
+        );
     }
     for required in [
         "AnimationEditorHeaderPanel",
@@ -29,6 +32,9 @@ fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
         "AnimationGraphContentPanel",
         "AnimationStateMachineTransitionsPanel",
     ] {
-        assert!(asset.contains(required), "animation editor TOML missing `{required}`");
+        assert!(
+            asset.contains(required),
+            "animation editor TOML missing `{required}`"
+        );
     }
 }

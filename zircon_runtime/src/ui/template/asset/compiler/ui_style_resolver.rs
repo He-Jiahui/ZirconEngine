@@ -1,5 +1,4 @@
-use crate::ui::template::UiTemplateNode;
-use crate::ui::template::{UiAssetDocument, UiAssetError};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiTemplateNode};
 
 use super::style_apply::{apply_styles_to_tree, build_style_plan};
 use super::ui_document_compiler::{CompilationArtifacts, ResolvedStyleSheet, UiDocumentCompiler};

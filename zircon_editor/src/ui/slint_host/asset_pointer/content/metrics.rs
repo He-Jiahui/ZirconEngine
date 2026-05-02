@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::layout::AssetContentListPointerLayout;
 use crate::ui::slint_host::asset_pointer::AssetListViewMode;

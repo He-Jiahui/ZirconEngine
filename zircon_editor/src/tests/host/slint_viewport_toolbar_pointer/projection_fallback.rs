@@ -8,7 +8,7 @@ use crate::ui::slint_host::viewport_toolbar_pointer::{
     build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
     ViewportToolbarPointerRoute,
 };
-use zircon_runtime::ui::layout::{UiPoint, UiSize};
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn shared_viewport_toolbar_pointer_click_falls_back_to_surface_projection_when_control_rect_is_empty(

@@ -10,6 +10,8 @@ use super::font_asset::load_ui_font_manifest_with_asset_manager;
 use super::render::ScreenSpaceUiTextBatch;
 use crate::asset::ProjectAssetManager;
 use glyphon::cosmic_text::Align;
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextRenderMode, UiTextWrap};
 
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 use super::sdf_render::ScreenSpaceUiSdfRenderer;
@@ -53,12 +55,11 @@ impl ResolvedScreenSpaceUiTextBatches {
     fn push_resolved_auto_text(
         &mut self,
         text: ScreenSpaceUiTextBatch,
-        resolved_mode: crate::ui::surface::UiTextRenderMode,
+        resolved_mode: UiTextRenderMode,
     ) {
         match resolved_mode {
-            crate::ui::surface::UiTextRenderMode::Auto
-            | crate::ui::surface::UiTextRenderMode::Native => self.native_texts.push(text),
-            crate::ui::surface::UiTextRenderMode::Sdf => self.sdf_texts.push(text),
+            UiTextRenderMode::Auto | UiTextRenderMode::Native => self.native_texts.push(text),
+            UiTextRenderMode::Sdf => self.sdf_texts.push(text),
         }
     }
 
@@ -78,7 +79,7 @@ impl ResolvedScreenSpaceUiTextBatches {
 #[derive(Clone, Debug, Default)]
 struct LoadedUiFontAsset {
     family: Option<String>,
-    render_mode: Option<crate::ui::surface::UiTextRenderMode>,
+    render_mode: Option<UiTextRenderMode>,
 }
 
 impl ScreenSpaceUiTextSystem {
@@ -139,6 +140,7 @@ impl ScreenSpaceUiTextSystem {
             viewport_size,
             resolved_texts.sdf_texts(),
             self.sdf_atlas.plan(),
+            self.asset_manager.as_ref(),
         );
         self.native.prepare(
             device,
@@ -225,9 +227,9 @@ impl ScreenSpaceUiTextBackend {
             buffer.set_wrap(
                 font_system,
                 match text.wrap {
-                    crate::ui::surface::UiTextWrap::None => Wrap::None,
-                    crate::ui::surface::UiTextWrap::Word => Wrap::Word,
-                    crate::ui::surface::UiTextWrap::Glyph => Wrap::Glyph,
+                    UiTextWrap::None => Wrap::None,
+                    UiTextWrap::Word => Wrap::Word,
+                    UiTextWrap::Glyph => Wrap::Glyph,
                 },
             );
             buffer.set_text(
@@ -236,9 +238,9 @@ impl ScreenSpaceUiTextBackend {
                 &attrs,
                 Shaping::Advanced,
                 Some(match text.text_align {
-                    crate::ui::surface::UiTextAlign::Left => Align::Left,
-                    crate::ui::surface::UiTextAlign::Center => Align::Center,
-                    crate::ui::surface::UiTextAlign::Right => Align::Right,
+                    UiTextAlign::Left => Align::Left,
+                    UiTextAlign::Center => Align::Center,
+                    UiTextAlign::Right => Align::Right,
                 }),
             );
             buffer.shape_until_scroll(font_system, false);
@@ -313,7 +315,7 @@ fn resolve_text_batches(
         );
         resolved.push_resolved_auto_text(
             text.clone(),
-            effective_text_render_mode(crate::ui::surface::UiTextRenderMode::Auto, font_asset),
+            effective_text_render_mode(UiTextRenderMode::Auto, font_asset),
         );
     }
 
@@ -338,18 +340,16 @@ fn resolve_font_asset_record<'a>(
 }
 
 fn effective_text_render_mode(
-    requested_mode: crate::ui::surface::UiTextRenderMode,
+    requested_mode: UiTextRenderMode,
     font_asset: Option<&LoadedUiFontAsset>,
-) -> crate::ui::surface::UiTextRenderMode {
+) -> UiTextRenderMode {
     match requested_mode {
-        crate::ui::surface::UiTextRenderMode::Native => {
-            crate::ui::surface::UiTextRenderMode::Native
-        }
-        crate::ui::surface::UiTextRenderMode::Sdf => crate::ui::surface::UiTextRenderMode::Sdf,
-        crate::ui::surface::UiTextRenderMode::Auto => font_asset
+        UiTextRenderMode::Native => UiTextRenderMode::Native,
+        UiTextRenderMode::Sdf => UiTextRenderMode::Sdf,
+        UiTextRenderMode::Auto => font_asset
             .and_then(|asset| asset.render_mode)
-            .filter(|mode| !matches!(mode, crate::ui::surface::UiTextRenderMode::Auto))
-            .unwrap_or(crate::ui::surface::UiTextRenderMode::Native),
+            .filter(|mode| !matches!(mode, UiTextRenderMode::Auto))
+            .unwrap_or(UiTextRenderMode::Native),
     }
 }
 
@@ -381,11 +381,11 @@ fn text_bounds(
     viewport_size: crate::core::math::UVec2,
     text: &ScreenSpaceUiTextBatch,
 ) -> TextBounds {
-    let clip = text.clip_frame.unwrap_or_else(|| {
-        crate::ui::layout::UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32)
-    });
+    let clip = text
+        .clip_frame
+        .unwrap_or_else(|| UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32));
     let clip = clip
-        .intersection(crate::ui::layout::UiFrame::new(
+        .intersection(UiFrame::new(
             0.0,
             0.0,
             viewport_size.x as f32,
@@ -412,8 +412,6 @@ fn pack_color(color: [f32; 4]) -> Color {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::ui::layout::UiFrame;
-    use crate::ui::surface::{UiTextAlign, UiTextRenderMode, UiTextWrap};
 
     #[test]
     fn text_backend_routing_keeps_explicit_native_out_of_sdf_atlas_batches() {
@@ -453,34 +451,34 @@ mod tests {
     #[test]
     fn auto_text_mode_uses_font_asset_default_when_present() {
         let resolved = effective_text_render_mode(
-            crate::ui::surface::UiTextRenderMode::Auto,
+            UiTextRenderMode::Auto,
             Some(&LoadedUiFontAsset {
                 family: Some("Fira Mono".to_string()),
-                render_mode: Some(crate::ui::surface::UiTextRenderMode::Sdf),
+                render_mode: Some(UiTextRenderMode::Sdf),
             }),
         );
 
-        assert_eq!(resolved, crate::ui::surface::UiTextRenderMode::Sdf);
+        assert_eq!(resolved, UiTextRenderMode::Sdf);
     }
 
     #[test]
     fn explicit_text_mode_overrides_font_asset_default() {
         let resolved = effective_text_render_mode(
-            crate::ui::surface::UiTextRenderMode::Native,
+            UiTextRenderMode::Native,
             Some(&LoadedUiFontAsset {
                 family: Some("Fira Mono".to_string()),
-                render_mode: Some(crate::ui::surface::UiTextRenderMode::Sdf),
+                render_mode: Some(UiTextRenderMode::Sdf),
             }),
         );
 
-        assert_eq!(resolved, crate::ui::surface::UiTextRenderMode::Native);
+        assert_eq!(resolved, UiTextRenderMode::Native);
     }
 
     #[test]
     fn auto_text_mode_falls_back_to_native_without_font_asset_default() {
-        let resolved = effective_text_render_mode(crate::ui::surface::UiTextRenderMode::Auto, None);
+        let resolved = effective_text_render_mode(UiTextRenderMode::Auto, None);
 
-        assert_eq!(resolved, crate::ui::surface::UiTextRenderMode::Native);
+        assert_eq!(resolved, UiTextRenderMode::Native);
     }
 
     fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {

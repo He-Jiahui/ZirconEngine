@@ -1,7 +1,7 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEnvelope, EditorEventRecord, EditorEventSource,
 };
-use zircon_runtime::ui::binding::UiEventBinding;
+use zircon_runtime_interface::ui::binding::UiEventBinding;
 
 pub trait EditorEventDispatcher {
     fn dispatch_envelope(&self, envelope: EditorEventEnvelope)

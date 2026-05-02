@@ -1,6 +1,7 @@
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
-use zircon_runtime::ui::layout::UiSize;
-use zircon_runtime::ui::template::UiAssetKind;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::layout::UiSize;
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 const GRID_DROP_LAYOUT_ASSET_TOML: &str = r##"
 [asset]

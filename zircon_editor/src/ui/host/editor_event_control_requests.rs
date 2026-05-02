@@ -4,11 +4,12 @@ use crate::core::editor_operation::{
 };
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use serde_json::{Number, Value};
-use zircon_runtime::ui::binding::UiBindingValue;
-use zircon_runtime::ui::{
-    binding::UiEventBinding, event_ui::UiControlRequest, event_ui::UiControlResponse,
-    event_ui::UiInvocationError, event_ui::UiInvocationResult, event_ui::UiNodePath,
-    event_ui::UiRouteId,
+use zircon_runtime_interface::ui::{
+    binding::{UiBindingValue, UiEventBinding},
+    event_ui::{
+        UiControlRequest, UiControlResponse, UiInvocationError, UiInvocationResult, UiNodePath,
+        UiRouteId,
+    },
 };
 
 impl EditorEventRuntime {
@@ -55,7 +56,7 @@ impl EditorEventRuntime {
     fn invoke_route(
         &self,
         route_id: UiRouteId,
-        arguments: Vec<zircon_runtime::ui::binding::UiBindingValue>,
+        arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let binding = {
             let inner = self.inner.lock().unwrap();
@@ -101,7 +102,7 @@ impl EditorEventRuntime {
         &self,
         node_path: UiNodePath,
         action_id: String,
-        arguments: Vec<zircon_runtime::ui::binding::UiBindingValue>,
+        arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let route_id = {
             let inner = self.inner.lock().unwrap();

@@ -54,7 +54,10 @@ mod tests {
 
         assert_eq!(
             selection.target_modes,
-            vec![RuntimeTargetMode::ClientRuntime, RuntimeTargetMode::EditorHost]
+            vec![
+                RuntimeTargetMode::ClientRuntime,
+                RuntimeTargetMode::EditorHost
+            ]
         );
     }
 }

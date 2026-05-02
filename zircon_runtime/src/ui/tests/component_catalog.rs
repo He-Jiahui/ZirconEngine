@@ -1,9 +1,17 @@
+mod complex_components;
+mod data_binding;
+
 use std::collections::BTreeSet;
 
 use crate::ui::component::{
-    UiComponentCategory, UiComponentDescriptor, UiComponentDescriptorRegistry, UiComponentEvent,
-    UiComponentEventKind, UiComponentState, UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata,
-    UiPropSchema, UiValidationLevel, UiValue, UiValueKind,
+    validate_component_descriptor, UiComponentDescriptorError, UiComponentDescriptorRegistry,
+};
+use zircon_runtime_interface::ui::component::{
+    UiComponentCategory, UiComponentDescriptor, UiComponentEvent, UiComponentEventKind,
+    UiComponentState, UiDefaultNodeTemplate, UiDragPayload, UiDragPayloadKind,
+    UiDragSourceMetadata, UiHostCapability, UiHostCapabilitySet, UiPaletteMetadata, UiPropSchema,
+    UiRenderCapability, UiValidationLevel, UiValue, UiValueKind, UiWidgetEditorFallback,
+    UiWidgetFallbackPolicy, UiWidgetRuntimeFallback,
 };
 
 #[test]
@@ -11,6 +19,14 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
 
     let showcase_v1_components = [
+        "Container",
+        "Overlay",
+        "HorizontalBox",
+        "VerticalBox",
+        "FlowBox",
+        "GridBox",
+        "ScrollableBox",
+        "Space",
         "Label",
         "RichLabel",
         "Image",
@@ -46,9 +62,12 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         "Foldout",
         "PropertyRow",
         "InspectorSection",
+        "WorldSpaceSurface",
         "ArrayField",
         "MapField",
         "ListRow",
+        "VirtualList",
+        "PagedList",
         "TreeRow",
         "ContextActionMenu",
         "SvgIcon",
@@ -148,12 +167,33 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     assert_category_component_ids(
         &registry,
         UiComponentCategory::Container,
-        &["Foldout", "Group", "InspectorSection", "PropertyRow"],
+        &[
+            "Container",
+            "Foldout",
+            "FlowBox",
+            "GridBox",
+            "Group",
+            "HorizontalBox",
+            "InspectorSection",
+            "Overlay",
+            "PropertyRow",
+            "ScrollableBox",
+            "Space",
+            "VerticalBox",
+            "WorldSpaceSurface",
+        ],
     );
     assert_category_component_ids(
         &registry,
         UiComponentCategory::Collection,
-        &["ArrayField", "ListRow", "MapField", "TreeRow"],
+        &[
+            "ArrayField",
+            "ListRow",
+            "MapField",
+            "PagedList",
+            "TreeRow",
+            "VirtualList",
+        ],
     );
 
     for component_id in showcase_v1_components {
@@ -297,11 +337,44 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     assert_has_prop(inspector_section, "text");
     assert_has_prop(inspector_section, "expanded");
 
+    let world_space_surface = registry.descriptor("WorldSpaceSurface").unwrap();
+    assert_has_prop(world_space_surface, "world_position");
+    assert_has_prop(world_space_surface, "world_rotation");
+    assert_has_prop(world_space_surface, "world_scale");
+    assert_has_prop(world_space_surface, "world_size");
+    assert_has_prop(world_space_surface, "pixels_per_meter");
+    assert_has_prop(world_space_surface, "billboard");
+    assert_has_prop(world_space_surface, "depth_test");
+    assert_has_prop(world_space_surface, "render_order");
+    assert_has_prop(world_space_surface, "camera_target");
+    assert!(world_space_surface.slot_schema("content").is_some());
+
     let list_row = registry.descriptor("ListRow").unwrap();
     assert_has_prop(list_row, "value");
     assert_has_prop(list_row, "selected");
     assert_has_prop(list_row, "focused");
     assert_has_prop(list_row, "hovered");
+
+    let virtual_list = registry.descriptor("VirtualList").unwrap();
+    assert_has_prop(virtual_list, "items");
+    assert_has_prop(virtual_list, "total_count");
+    assert_has_prop(virtual_list, "viewport_start");
+    assert_has_prop(virtual_list, "viewport_count");
+    assert_has_prop(virtual_list, "item_extent");
+    assert_has_prop(virtual_list, "overscan");
+    assert_has_state(virtual_list, "viewport_start");
+    assert_has_state(virtual_list, "viewport_count");
+    assert!(virtual_list.slot_schema("row").is_some());
+
+    let paged_list = registry.descriptor("PagedList").unwrap();
+    assert_has_prop(paged_list, "items");
+    assert_has_prop(paged_list, "total_count");
+    assert_has_prop(paged_list, "page_index");
+    assert_has_prop(paged_list, "page_size");
+    assert_has_prop(paged_list, "page_count");
+    assert_has_state(paged_list, "page_index");
+    assert_has_state(paged_list, "page_size");
+    assert!(paged_list.slot_schema("page").is_some());
 
     let tree_row = registry.descriptor("TreeRow").unwrap();
     assert_has_prop(tree_row, "tree_depth");
@@ -334,6 +407,200 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
 
     let map_field = registry.descriptor("MapField").unwrap();
     assert_has_prop(map_field, "validation_level");
+}
+
+#[test]
+fn runtime_component_descriptors_validate_palette_and_schema_contracts() {
+    let valid = UiComponentDescriptor::new(
+        "TestWidget",
+        "Test Widget",
+        UiComponentCategory::Visual,
+        "test-widget",
+    )
+    .with_prop(UiPropSchema::new("text", UiValueKind::String))
+    .default_prop("text", UiValue::String("hello".to_string()))
+    .requires_host_capability(UiHostCapability::Editor)
+    .requires_render_capability(UiRenderCapability::Text)
+    .default_node_template(UiDefaultNodeTemplate::native("TestWidget"))
+    .palette(UiPaletteMetadata::new(
+        "Test Widget",
+        UiComponentCategory::Visual,
+        "test-widget",
+        UiDefaultNodeTemplate::native("TestWidget"),
+    ))
+    .fallback_policy(UiWidgetFallbackPolicy::new(
+        UiWidgetEditorFallback::Placeholder,
+        UiWidgetRuntimeFallback::RejectNode,
+    ));
+    assert!(validate_component_descriptor(&valid).is_ok());
+
+    let duplicate = valid
+        .clone()
+        .with_prop(UiPropSchema::new("text", UiValueKind::String));
+    assert!(matches!(
+        validate_component_descriptor(&duplicate),
+        Err(UiComponentDescriptorError::DuplicateSchemaName { name, .. }) if name == "text"
+    ));
+
+    let missing_schema = UiComponentDescriptor::new(
+        "BrokenWidget",
+        "Broken Widget",
+        UiComponentCategory::Visual,
+        "broken-widget",
+    )
+    .default_prop("missing", UiValue::String("value".to_string()));
+    assert!(matches!(
+        validate_component_descriptor(&missing_schema),
+        Err(UiComponentDescriptorError::MissingDefaultPropSchema { name, .. }) if name == "missing"
+    ));
+
+    let non_finite = UiComponentDescriptor::new(
+        "NonFiniteWidget",
+        "Non Finite Widget",
+        UiComponentCategory::Numeric,
+        "non-finite-widget",
+    )
+    .with_prop(
+        UiPropSchema::new("value", UiValueKind::Float).default_value(UiValue::Float(f64::NAN)),
+    );
+    assert!(matches!(
+        validate_component_descriptor(&non_finite),
+        Err(UiComponentDescriptorError::NonFiniteNumber { name, .. }) if name == "value"
+    ));
+}
+
+#[test]
+fn runtime_component_registry_filters_by_host_capabilities_and_reports_missing() {
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let runtime_basic = UiHostCapabilitySet::runtime_basic();
+
+    assert!(registry
+        .descriptors_for_host(&runtime_basic)
+        .iter()
+        .all(|descriptor| runtime_basic.contains_all(&descriptor.required_host_capabilities)));
+    assert!(registry
+        .descriptors_for_host(&runtime_basic)
+        .iter()
+        .all(|descriptor| descriptor.id != "TextField"));
+
+    assert!(registry
+        .descriptors_for_host(&runtime_basic)
+        .iter()
+        .any(|descriptor| descriptor.id == "Button"));
+
+    let missing = registry
+        .missing_capabilities("TextField", &runtime_basic)
+        .expect("TextField descriptor should exist");
+    assert!(missing.contains(&UiHostCapability::TextInput));
+}
+
+#[test]
+fn runtime_component_registry_builds_descriptor_palette_views() {
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let entries = registry.palette_entries_for_host(&UiHostCapabilitySet::editor_authoring());
+
+    assert!(entries.windows(2).all(|window| {
+        (
+            window[0].category,
+            &window[0].sort_key,
+            &window[0].component_id,
+        ) <= (
+            window[1].category,
+            &window[1].sort_key,
+            &window[1].component_id,
+        )
+    }));
+    let button = entries
+        .iter()
+        .find(|entry| entry.component_id == "Button")
+        .expect("Button should be palette-visible");
+    assert_eq!(button.display_name, "Button");
+    assert_eq!(button.category, UiComponentCategory::Input);
+    assert_eq!(button.default_node.widget_type, "Button");
+    assert_eq!(
+        button
+            .default_node
+            .props
+            .get("text")
+            .and_then(toml::Value::as_str),
+        Some("Button")
+    );
+
+    let virtual_list = registry.descriptor("VirtualList").unwrap();
+    assert!(virtual_list
+        .required_render_capabilities
+        .contains(&UiRenderCapability::VirtualizedLayout));
+    assert_eq!(
+        virtual_list.fallback_policy.runtime,
+        UiWidgetRuntimeFallback::RejectNode
+    );
+
+    let container = entries
+        .iter()
+        .find(|entry| entry.component_id == "Container")
+        .expect("Container should be palette-visible from descriptor metadata");
+    assert_eq!(container.category, UiComponentCategory::Container);
+    assert_eq!(container.default_node.widget_type, "Container");
+    assert_eq!(
+        container
+            .default_node
+            .layout
+            .as_ref()
+            .and_then(|layout| layout.get("container"))
+            .and_then(toml::Value::as_table)
+            .and_then(|container| container.get("kind"))
+            .and_then(toml::Value::as_str),
+        Some("Container")
+    );
+    assert!(registry
+        .descriptor("Container")
+        .and_then(|descriptor| descriptor.slot_schema("content"))
+        .is_some());
+    assert!(registry
+        .descriptor("Space")
+        .and_then(|descriptor| descriptor.slot_schema("content"))
+        .is_none());
+}
+
+#[test]
+fn runtime_component_registry_revision_changes_only_for_descriptor_set_changes() {
+    let mut registry = UiComponentDescriptorRegistry::new();
+    let descriptor = UiComponentDescriptor::new(
+        "RevisionWidget",
+        "Revision Widget",
+        UiComponentCategory::Visual,
+        "revision-widget",
+    )
+    .default_node_template(UiDefaultNodeTemplate::native("RevisionWidget"))
+    .palette(UiPaletteMetadata::new(
+        "Revision Widget",
+        UiComponentCategory::Visual,
+        "revision-widget",
+        UiDefaultNodeTemplate::native("RevisionWidget"),
+    ));
+
+    assert_eq!(registry.revision(), 0);
+    assert_eq!(registry.register(descriptor.clone()), Ok(true));
+    let first_revision = registry.revision();
+    assert!(first_revision > 0);
+    assert_eq!(registry.register(descriptor.clone()), Ok(false));
+    assert_eq!(registry.revision(), first_revision);
+
+    let changed = UiComponentDescriptor::new(
+        "RevisionWidget",
+        "Changed Revision Widget",
+        UiComponentCategory::Visual,
+        "revision-widget",
+    )
+    .default_node_template(UiDefaultNodeTemplate::native("RevisionWidget"))
+    .palette(UiPaletteMetadata::new(
+        "Changed Revision Widget",
+        UiComponentCategory::Visual,
+        "revision-widget",
+        UiDefaultNodeTemplate::native("RevisionWidget"),
+    ));
+    assert_eq!(registry.register(changed), Ok(true));
+    assert!(registry.revision() > first_revision);
 }
 
 #[test]
@@ -420,9 +687,47 @@ fn runtime_component_catalog_selection_and_state_coverage() {
             &["focused", "selected", "popup_open"][..],
         ),
         (
+            "WorldSpaceSurface",
+            "world_position",
+            &[
+                "world_position",
+                "world_rotation",
+                "world_scale",
+                "world_size",
+                "pixels_per_meter",
+                "billboard",
+                "depth_test",
+                "render_order",
+                "camera_target",
+            ][..],
+        ),
+        (
             "ListRow",
             "text",
             &["selected", "focused", "hovered", "pressed"][..],
+        ),
+        (
+            "VirtualList",
+            "items",
+            &[
+                "items",
+                "total_count",
+                "viewport_start",
+                "viewport_count",
+                "item_extent",
+                "overscan",
+            ][..],
+        ),
+        (
+            "PagedList",
+            "items",
+            &[
+                "items",
+                "total_count",
+                "page_index",
+                "page_size",
+                "page_count",
+            ][..],
         ),
         (
             "TreeRow",
@@ -468,8 +773,11 @@ fn runtime_component_catalog_selection_and_state_coverage() {
         ("PropertyRow", "text"),
         ("PropertyRow", "value"),
         ("InspectorSection", "text"),
+        ("WorldSpaceSurface", "world_position"),
         ("ListRow", "text"),
         ("ListRow", "value"),
+        ("VirtualList", "items"),
+        ("PagedList", "items"),
         ("Separator", "text"),
         ("Spinner", "text"),
         ("SegmentedControl", "value"),
@@ -536,6 +844,21 @@ fn runtime_component_catalog_selection_and_state_coverage() {
         assert_has_event(descriptor, UiComponentEventKind::Hover);
         assert_has_event(descriptor, UiComponentEventKind::Press);
     }
+
+    for component_id in ["VirtualList", "PagedList"] {
+        let descriptor = registry.descriptor(component_id).unwrap();
+        assert_has_event(descriptor, UiComponentEventKind::ValueChanged);
+    }
+
+    let virtual_list = registry.descriptor("VirtualList").unwrap();
+    assert_has_event(virtual_list, UiComponentEventKind::SetVisibleRange);
+
+    let paged_list = registry.descriptor("PagedList").unwrap();
+    assert_has_event(paged_list, UiComponentEventKind::SetPage);
+
+    let world_space_surface = registry.descriptor("WorldSpaceSurface").unwrap();
+    assert_has_event(world_space_surface, UiComponentEventKind::SetWorldTransform);
+    assert_has_event(world_space_surface, UiComponentEventKind::SetWorldSurface);
 
     for component_id in ["AssetField", "InstanceField", "ObjectField"] {
         let descriptor = registry.descriptor(component_id).unwrap();

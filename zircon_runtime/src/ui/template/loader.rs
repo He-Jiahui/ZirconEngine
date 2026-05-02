@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use super::{UiTemplateDocument, UiTemplateError};
+use zircon_runtime_interface::ui::template::{UiTemplateDocument, UiTemplateError};
 
 #[derive(Default)]
 pub struct UiTemplateLoader;

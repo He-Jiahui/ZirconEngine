@@ -4,6 +4,7 @@ mod asset_browser;
 mod assets_activity;
 mod binding;
 mod boundary;
+mod component_adapter;
 mod console;
 mod control;
 mod hierarchy;

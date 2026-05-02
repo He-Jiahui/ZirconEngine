@@ -1,5 +1,5 @@
 use crate::ui::binding::EditorUiBinding;
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 use super::super::error::EditorBindingDispatchError;
 use super::dispatch::dispatch_inspector_binding;

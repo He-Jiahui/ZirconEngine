@@ -6,13 +6,13 @@ use crate::core::framework::render::{
 
 use super::{HybridGiExtractProbeRecord, HybridGiExtractTraceRegionRecord};
 
-pub(in crate::graphics) fn hybrid_gi_extract_probe_records(
+pub fn hybrid_gi_extract_probe_records(
     extract: &RenderHybridGiExtract,
 ) -> Vec<HybridGiExtractProbeRecord> {
     first_hybrid_gi_probe_records(&extract.probes)
 }
 
-pub(in crate::graphics) fn hybrid_gi_extract_probe_records_by_id(
+pub fn hybrid_gi_extract_probe_records_by_id(
     extract: &RenderHybridGiExtract,
 ) -> BTreeMap<u32, HybridGiExtractProbeRecord> {
     hybrid_gi_extract_probe_records(extract)
@@ -21,13 +21,13 @@ pub(in crate::graphics) fn hybrid_gi_extract_probe_records_by_id(
         .collect()
 }
 
-pub(in crate::graphics) fn hybrid_gi_extract_trace_region_records(
+pub fn hybrid_gi_extract_trace_region_records(
     extract: &RenderHybridGiExtract,
 ) -> Vec<HybridGiExtractTraceRegionRecord> {
     first_hybrid_gi_trace_region_records(&extract.trace_regions)
 }
 
-pub(in crate::graphics) fn hybrid_gi_extract_trace_region_records_by_id(
+pub fn hybrid_gi_extract_trace_region_records_by_id(
     extract: &RenderHybridGiExtract,
 ) -> BTreeMap<u32, HybridGiExtractTraceRegionRecord> {
     hybrid_gi_extract_trace_region_records(extract)

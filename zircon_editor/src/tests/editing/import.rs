@@ -1,5 +1,5 @@
-use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 use zircon_runtime::scene::components::NodeKind;
+use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use crate::core::editing::intent::EditorIntent;
 

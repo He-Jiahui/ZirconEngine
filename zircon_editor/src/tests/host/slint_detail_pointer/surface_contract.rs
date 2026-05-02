@@ -18,7 +18,10 @@ fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
         "on_inspector_pointer_scrolled",
         "on_browser_asset_details_pointer_scrolled",
     ] {
-        assert!(globals.contains(required), "host contract missing `{required}`");
+        assert!(
+            globals.contains(required),
+            "host contract missing `{required}`"
+        );
     }
     for required in [
         "sync_detail_pointer_layouts",
@@ -26,6 +29,9 @@ fn shared_detail_scroll_surfaces_keep_scroll_authority_in_rust() {
         "sync_inspector_pointer_layout",
         "sync_browser_asset_details_pointer_layout",
     ] {
-        assert!(pointer_layout.contains(required), "pointer layout missing `{required}`");
+        assert!(
+            pointer_layout.contains(required),
+            "pointer layout missing `{required}`"
+        );
     }
 }

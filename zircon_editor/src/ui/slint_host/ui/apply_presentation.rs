@@ -19,7 +19,7 @@ use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use slint::{Model, ModelRc};
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::template_node_conversion::to_host_contract_template_nodes;
 

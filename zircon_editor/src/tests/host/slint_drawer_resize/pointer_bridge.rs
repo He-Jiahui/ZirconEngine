@@ -6,7 +6,7 @@ use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
 };
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 #[test]
 fn unified_shell_pointer_bridge_routes_drag_targets_and_resize_targets_from_one_surface() {

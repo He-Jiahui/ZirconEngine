@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{dispatch::UiPointerDispatchResult, event_ui::UiNodeId};
+use zircon_runtime_interface::ui::{dispatch::UiPointerDispatchResult, event_ui::UiNodeId};
 
 use crate::ui::slint_host::drawer_resize::HostResizeTargetGroup;
 use crate::ui::slint_host::tab_drag::HostDragTargetGroup;

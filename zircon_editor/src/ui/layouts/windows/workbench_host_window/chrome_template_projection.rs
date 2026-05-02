@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use slint::{Model, ModelRc, SharedString};
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::{build_view_template_nodes, ViewTemplateNodeData};

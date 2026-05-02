@@ -2,9 +2,8 @@ use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::{map::Map, Value};
-use zircon_runtime::ui::template::UiAssetDocument;
-use zircon_runtime::ui::template::UiChildMount;
-use zircon_runtime::ui::template::UiNodeDefinition;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiChildMount, UiNodeDefinition};
 
 use super::style_rule_declarations::parse_declaration_literal;
 

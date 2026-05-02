@@ -20,7 +20,8 @@ pub fn apply_sequence_to_world(
     looping: bool,
 ) -> Result<AnimationSequenceApplyReport, String> {
     let mut report = AnimationSequenceApplyReport::default();
-    let sample_time = resolve_sequence_sample_time(sequence.duration_seconds, time_seconds, looping);
+    let sample_time =
+        resolve_sequence_sample_time(sequence.duration_seconds, time_seconds, looping);
 
     for binding in &sequence.bindings {
         let Some(entity) = world.resolve_entity_path(&binding.entity_path) else {
@@ -138,8 +139,12 @@ fn animation_channel_value_is_finite(value: &AnimationChannelValueAsset) -> bool
     match value {
         AnimationChannelValueAsset::Bool(_) | AnimationChannelValueAsset::Integer(_) => true,
         AnimationChannelValueAsset::Scalar(value) => value.is_finite(),
-        AnimationChannelValueAsset::Vec2(value) => value.iter().all(|component| component.is_finite()),
-        AnimationChannelValueAsset::Vec3(value) => value.iter().all(|component| component.is_finite()),
+        AnimationChannelValueAsset::Vec2(value) => {
+            value.iter().all(|component| component.is_finite())
+        }
+        AnimationChannelValueAsset::Vec3(value) => {
+            value.iter().all(|component| component.is_finite())
+        }
         AnimationChannelValueAsset::Vec4(value) | AnimationChannelValueAsset::Quaternion(value) => {
             value.iter().all(|component| component.is_finite())
         }

@@ -7,10 +7,13 @@ use crate::ui::asset_editor::{
     UiAssetEditorSourceCursorSnapshot, UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
     UiDesignerSelectionModel,
 };
-use zircon_runtime::ui::template::{UiActionRef, UiBindingRef};
-use zircon_runtime::ui::{
-    binding::UiEventKind, layout::UiSize, template::UiAssetKind, template::UiNodeDefinitionKind,
-    template::UiStyleDeclarationBlock, template::UiStyleRule, template::UiStyleSheet,
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    layout::UiSize,
+    template::UiAssetKind,
+    template::UiNodeDefinitionKind,
+    template::{UiActionRef, UiBindingRef, UiStyleDeclarationBlock, UiStyleRule, UiStyleSheet},
 };
 
 const LOCAL_THEME_LAYOUT_ASSET_TOML: &str = r##"
@@ -1505,6 +1508,7 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
                 event: UiEventKind::Click,
                 route: Some("MenuAction.SaveProject".to_string()),
                 action: None,
+                targets: Vec::new(),
             }],
         }]
     );
@@ -1528,6 +1532,7 @@ fn ui_asset_editor_session_binding_payload_authoring_uses_executable_binding_rep
                     .into_iter()
                     .collect(),
                 }),
+                targets: Vec::new(),
             }],
         }]
     );

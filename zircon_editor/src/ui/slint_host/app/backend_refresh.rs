@@ -1,5 +1,5 @@
 use zircon_runtime::asset::watch::AssetChange;
-use zircon_runtime::core::resource::ResourceEvent;
+use zircon_runtime_interface::resource::ResourceEvent;
 
 use crate::ui::host::editor_asset_manager::{EditorAssetChange, EditorAssetChangeKind};
 

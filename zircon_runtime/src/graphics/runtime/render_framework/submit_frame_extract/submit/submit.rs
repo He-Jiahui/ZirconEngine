@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle,
 };
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -29,9 +29,8 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
     let context = build_frame_submission_context(server, viewport, &extract, ui.as_ref())?;
-    let prepared = prepare_runtime_submission(&context);
-
     let mut state = server.state.lock().unwrap();
+    let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
     let frame = state

@@ -1,12 +1,21 @@
-use super::{UiInputPolicy, UiTree, UiTreeError};
-use crate::ui::event_ui::UiNodeId;
-use crate::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::UiPoint,
+    tree::{UiInputPolicy, UiTree, UiTreeError},
+};
 
-impl UiTree {
-    pub(crate) fn effective_input_policy(
+pub trait UiRuntimeTreeInteractionExt {
+    fn effective_input_policy(&self, node_id: UiNodeId) -> Result<UiInputPolicy, UiTreeError>;
+    fn supports_pointer(&self, node_id: UiNodeId) -> Result<bool, UiTreeError>;
+    fn first_scrollable_in_candidates(
         &self,
-        node_id: UiNodeId,
-    ) -> Result<UiInputPolicy, UiTreeError> {
+        candidates: &[UiNodeId],
+    ) -> Result<Option<UiNodeId>, UiTreeError>;
+    fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError>;
+}
+
+impl UiRuntimeTreeInteractionExt for UiTree {
+    fn effective_input_policy(&self, node_id: UiNodeId) -> Result<UiInputPolicy, UiTreeError> {
         let mut current = Some(node_id);
         while let Some(id) = current {
             let node = self.nodes.get(&id).ok_or(UiTreeError::MissingNode(id))?;
@@ -18,7 +27,7 @@ impl UiTree {
         Ok(UiInputPolicy::Receive)
     }
 
-    pub(crate) fn supports_pointer(&self, node_id: UiNodeId) -> Result<bool, UiTreeError> {
+    fn supports_pointer(&self, node_id: UiNodeId) -> Result<bool, UiTreeError> {
         let node = self
             .nodes
             .get(&node_id)
@@ -29,7 +38,7 @@ impl UiTree {
                 || node.state_flags.focusable))
     }
 
-    pub(crate) fn first_scrollable_in_candidates(
+    fn first_scrollable_in_candidates(
         &self,
         candidates: &[UiNodeId],
     ) -> Result<Option<UiNodeId>, UiTreeError> {
@@ -48,11 +57,7 @@ impl UiTree {
         Ok(None)
     }
 
-    pub(crate) fn passes_clip_chain(
-        &self,
-        node_id: UiNodeId,
-        point: UiPoint,
-    ) -> Result<bool, UiTreeError> {
+    fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError> {
         let mut current = Some(node_id);
         while let Some(id) = current {
             let node = self.nodes.get(&id).ok_or(UiTreeError::MissingNode(id))?;

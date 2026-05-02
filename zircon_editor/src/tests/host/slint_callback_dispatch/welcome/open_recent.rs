@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_welcome_surface_open_recent_dispatches_dynamic_host_event_from_template() {
@@ -10,9 +11,7 @@ fn builtin_welcome_surface_open_recent_dispatches_dynamic_host_event_from_templa
         &bridge,
         "OpenRecentProject",
         UiEventKind::Click,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string(
-            "E:/Projects/Sandbox",
-        )],
+        vec![UiBindingValue::string("E:/Projects/Sandbox")],
     )
     .expect("welcome open recent control should resolve through template bridge")
     .unwrap();
@@ -34,9 +33,7 @@ fn builtin_welcome_surface_open_recent_matches_direct_binding_dispatch() {
         &bridge,
         "OpenRecentProject",
         UiEventKind::Click,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string(
-            "E:/Projects/Sandbox",
-        )],
+        vec![UiBindingValue::string("E:/Projects/Sandbox")],
     )
     .expect("welcome open recent control should resolve through template bridge")
     .unwrap();

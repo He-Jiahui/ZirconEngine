@@ -4,9 +4,11 @@ mod frame_extract;
 mod framework;
 mod framework_error;
 mod overlay;
+mod plugin_renderer_outputs;
 mod scene_extract;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
+mod virtual_geometry_execution_draw;
 
 pub use backend_types::{
     CapturedFrame, FrameHistoryHandle, RenderCapabilityKind, RenderCapabilityMismatchDetail,
@@ -32,6 +34,13 @@ pub use overlay::{
     RenderOverlayExtract, SceneGizmoKind, SceneGizmoOverlayExtract, SelectionAnchorExtract,
     SelectionHighlightExtract, ViewportIconId,
 };
+pub use plugin_renderer_outputs::{
+    RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
+    RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
+    RenderHybridGiVoxelCellRecord, RenderPluginRendererOutputs,
+    RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
+    RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
+};
 pub use scene_extract::{
     PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,
@@ -42,7 +51,7 @@ pub use scene_extract::{
     RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
     SceneViewportRenderPacket,
 };
-pub(crate) use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
+pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
     RenderVirtualGeometryClusterSelectionInputSource,
@@ -90,6 +99,7 @@ pub use virtual_geometry_debug_snapshot_streams::{
     RenderVirtualGeometryVisBuffer64ReadbackStream,
     RenderVirtualGeometryVisBuffer64ReadbackStreamDecodeError,
 };
+pub use virtual_geometry_execution_draw::RenderVirtualGeometryExecutionDraw;
 
 pub trait RenderingManager: Send + Sync {
     fn backend_info(&self) -> RenderingBackendInfo;

@@ -2,12 +2,11 @@ use std::sync::Arc;
 
 use serde_json::Value;
 
-use crate::ui::binding::UiEventBinding;
-
-use super::super::{UiInvocationContext, UiInvocationError, UiRouteId};
 use super::route_entry::RouteEntry;
 use super::route_handler::RouteHandler;
 use super::UiEventManager;
+use zircon_runtime_interface::ui::binding::UiEventBinding;
+use zircon_runtime_interface::ui::event_ui::{UiInvocationContext, UiInvocationError, UiRouteId};
 
 impl UiEventManager {
     pub fn register_route<F>(&mut self, binding: UiEventBinding, handler: F) -> UiRouteId

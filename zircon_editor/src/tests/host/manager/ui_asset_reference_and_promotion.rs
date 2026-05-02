@@ -2,6 +2,7 @@ use std::fs;
 
 use zircon_runtime::asset::assets::{UiStyleAsset, UiWidgetAsset};
 use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime_interface::ui::template::{UiAssetKind, UiNodeDefinitionKind};
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
@@ -104,10 +105,7 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(
-        reflection.route.asset_kind,
-        zircon_runtime::ui::template::UiAssetKind::Widget
-    );
+    assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -206,10 +204,7 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(
-        reflection.route.asset_kind,
-        zircon_runtime::ui::template::UiAssetKind::Widget
-    );
+    assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -315,10 +310,7 @@ control_id = "ToolbarHost"
         .expect("reference reflection");
     assert_eq!(reflection.route.asset_id, "res://ui/widgets/button.ui.toml");
     assert_eq!(reflection.display_name, "Toolbar Button");
-    assert_eq!(
-        reflection.route.asset_kind,
-        zircon_runtime::ui::template::UiAssetKind::Widget
-    );
+    assert_eq!(reflection.route.asset_kind, UiAssetKind::Widget);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -511,10 +503,7 @@ style_overrides = { self = { text = { color = "#ffffff" } }, slot = { padding = 
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
-    assert_eq!(
-        button.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
-    );
+    assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/toolbar_button.ui.toml#ToolbarButton")
@@ -688,10 +677,7 @@ fn editor_manager_promotes_selected_ui_asset_component_to_external_widget_asset(
     let document =
         crate::tests::support::load_test_ui_asset(&saved).expect("saved ui asset document");
     let button = document.node("button").expect("button node");
-    assert_eq!(
-        button.kind,
-        zircon_runtime::ui::template::UiNodeDefinitionKind::Reference
-    );
+    assert_eq!(button.kind, UiNodeDefinitionKind::Reference);
     assert_eq!(
         button.component_ref.as_deref(),
         Some("res://ui/widgets/save_button.ui.toml#SaveButton")
@@ -840,10 +826,7 @@ fn editor_manager_promotes_local_theme_to_external_style_asset_and_opens_selecte
         reflection.route.asset_id,
         "res://ui/themes/editor_theme.ui.toml"
     );
-    assert_eq!(
-        reflection.route.asset_kind,
-        zircon_runtime::ui::template::UiAssetKind::Style
-    );
+    assert_eq!(reflection.route.asset_kind, UiAssetKind::Style);
 
     assert!(manager
         .undo_ui_asset_editor(&instance_id)

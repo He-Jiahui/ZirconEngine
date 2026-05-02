@@ -1,7 +1,10 @@
-use crate::ui::event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId};
-use crate::ui::layout::UiFrame;
-use crate::ui::surface::{UiSurface, UiTextAlign, UiTextWrap};
-use crate::ui::tree::{UiTemplateNodeMetadata, UiTreeNode};
+use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    layout::UiFrame,
+    surface::{UiTextAlign, UiTextWrap},
+    tree::{UiTemplateNodeMetadata, UiTreeNode},
+};
 
 #[test]
 fn render_extract_outputs_aligned_wrapped_text_layout() {

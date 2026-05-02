@@ -21,7 +21,10 @@ fn ui_asset_authoring_preview_and_binding_contracts_are_rust_owned() {
         "pub route_suggestion_collection: UiAssetStringSelectionData",
         "pub action_suggestion_collection: UiAssetStringSelectionData",
     ] {
-        assert!(ui_asset.contains(required), "ui asset DTO missing `{required}`");
+        assert!(
+            ui_asset.contains(required),
+            "ui asset DTO missing `{required}`"
+        );
     }
 
     for required in [
@@ -31,6 +34,9 @@ fn ui_asset_authoring_preview_and_binding_contracts_are_rust_owned() {
         "MockStateGraphPanel",
         "InspectorBindingSection",
     ] {
-        assert!(asset.contains(required), "ui asset TOML missing `{required}`");
+        assert!(
+            asset.contains(required),
+            "ui asset TOML missing `{required}`"
+        );
     }
 }

@@ -7,6 +7,7 @@ mod panes;
 mod template_nodes;
 mod ui_asset;
 mod welcome;
+mod world_space_submission;
 
 pub(crate) use assets::*;
 pub(crate) use host_components::*;
@@ -17,3 +18,5 @@ pub(crate) use panes::*;
 pub(crate) use template_nodes::*;
 pub(crate) use ui_asset::*;
 pub(crate) use welcome::*;
+#[allow(unused_imports)]
+pub(crate) use world_space_submission::*;

@@ -1,5 +1,6 @@
-use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher, UiPointerEvent},
+use zircon_runtime::ui::dispatch::UiPointerDispatcher;
+use zircon_runtime_interface::ui::{
+    dispatch::{UiPointerDispatchEffect, UiPointerEvent},
     surface::{UiPointerButton, UiPointerEventKind, UiPointerRoute},
 };
 

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{RenderFeatureDescriptor, RenderPassExecutorRegistration};
 
 use crate::graphics::types::GraphicsError;
 
@@ -25,6 +25,7 @@ impl SceneRenderer {
             asset_manager,
             icon_source,
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -32,8 +33,10 @@ impl SceneRenderer {
         asset_manager: Arc<ProjectAssetManager>,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
+        let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let core = SceneRendererCore::new_with_icon_source(
             asset_manager.clone(),
@@ -58,8 +61,9 @@ impl SceneRenderer {
             history_targets: HashMap::new(),
             generation: 0,
             render_pass_executors:
-                RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features(
+                RenderPassExecutorRegistry::with_builtin_noop_executors_for_render_features_and_executor_registrations(
                     render_features,
+                    render_pass_executors,
                 ),
             last_render_graph_execution: RenderGraphExecutionRecord::default(),
             advanced_plugin_outputs: SceneRendererAdvancedPluginOutputs::default(),

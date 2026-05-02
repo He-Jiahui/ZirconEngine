@@ -6,7 +6,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     ProjectOverviewData, ProjectOverviewPaneViewData,
 };
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.ui.toml";
 const PROJECT_OVERVIEW_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.ui.toml";

@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch() {
@@ -22,9 +23,7 @@ fn builtin_pane_surface_trigger_action_matches_legacy_menu_action_dispatch() {
         &bridge,
         "TriggerAction",
         UiEventKind::Click,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string(
-            "CreateScene",
-        )],
+        vec![UiBindingValue::string("CreateScene")],
     )
     .expect("templated pane surface action should resolve")
     .unwrap();

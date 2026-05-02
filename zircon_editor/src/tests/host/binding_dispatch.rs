@@ -18,8 +18,8 @@ use crate::ui::binding_dispatch::{
     WelcomeHostEvent,
 };
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn inspector_binding_applies_batch_changes_to_editor_state() {
@@ -51,7 +51,7 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
             assert_eq!(node.name, "Bound Cube");
             assert_eq!(
                 node.transform.translation,
-                zircon_runtime::core::math::Vec3::new(4.0, 5.0, 6.0)
+                zircon_runtime_interface::math::Vec3::new(4.0, 5.0, 6.0)
             );
         });
 }
@@ -603,10 +603,10 @@ fn welcome_open_recent_binding_dispatches_into_typed_host_event() {
 
 mod support {
     use crate::ui::workbench::state::EditorState;
-    use zircon_runtime::core::math::UVec2;
     use zircon_runtime::scene::components::NodeKind;
     use zircon_runtime::scene::DefaultLevelManager;
     use zircon_runtime::scene::NodeId;
+    use zircon_runtime_interface::math::UVec2;
 
     pub fn test_state() -> EditorState {
         let manager = DefaultLevelManager::default();

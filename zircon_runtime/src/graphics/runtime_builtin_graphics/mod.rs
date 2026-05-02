@@ -3,7 +3,10 @@
 mod host;
 
 use crate::engine_module::{EngineModule, ModuleDescriptor};
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
+};
 
 pub use host::{
     module_descriptor, module_descriptor_with_render_features, GRAPHICS_MODULE_NAME,
@@ -13,6 +16,8 @@ pub use host::{
 #[derive(Clone, Debug, Default)]
 pub struct GraphicsModule {
     render_features: Vec<RenderFeatureDescriptor>,
+    render_pass_executors: Vec<RenderPassExecutorRegistration>,
+    virtual_geometry_runtime_providers: Vec<VirtualGeometryRuntimeProviderRegistration>,
 }
 
 impl GraphicsModule {
@@ -21,11 +26,39 @@ impl GraphicsModule {
     ) -> Self {
         Self {
             render_features: render_features.into_iter().collect(),
+            render_pass_executors: Vec::new(),
+            virtual_geometry_runtime_providers: Vec::new(),
+        }
+    }
+
+    pub fn with_render_extensions(
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Self {
+        Self {
+            render_features: render_features.into_iter().collect(),
+            render_pass_executors: render_pass_executors.into_iter().collect(),
+            virtual_geometry_runtime_providers: virtual_geometry_runtime_providers
+                .into_iter()
+                .collect(),
         }
     }
 
     pub fn render_features(&self) -> &[RenderFeatureDescriptor] {
         &self.render_features
+    }
+
+    pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
+        &self.render_pass_executors
+    }
+
+    pub fn virtual_geometry_runtime_providers(
+        &self,
+    ) -> &[VirtualGeometryRuntimeProviderRegistration] {
+        &self.virtual_geometry_runtime_providers
     }
 }
 
@@ -39,6 +72,10 @@ impl EngineModule for GraphicsModule {
     }
 
     fn descriptor(&self) -> ModuleDescriptor {
-        module_descriptor_with_render_features(self.render_features.clone())
+        module_descriptor_with_render_features(
+            self.render_features.clone(),
+            self.render_pass_executors.clone(),
+            self.virtual_geometry_runtime_providers.clone(),
+        )
     }
 }

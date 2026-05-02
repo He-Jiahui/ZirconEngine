@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() {
@@ -12,7 +13,7 @@ fn builtin_viewport_toolbar_set_tool_dispatches_dynamic_binding_from_template() 
         &bridge,
         "SetTool",
         UiEventKind::Change,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string("Scale")],
+        vec![UiBindingValue::string("Scale")],
     )
     .expect("viewport toolbar control should resolve through template bridge")
     .unwrap();
@@ -79,7 +80,7 @@ fn builtin_viewport_toolbar_set_tool_matches_legacy_viewport_command_dispatch() 
         &bridge,
         "SetTool",
         UiEventKind::Change,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string("Scale")],
+        vec![UiBindingValue::string("Scale")],
     )
     .expect("templated viewport tool control should resolve")
     .unwrap();

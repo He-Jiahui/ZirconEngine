@@ -963,6 +963,59 @@ route = "UiComponentShowcase.Press.ListRow"
 [[root.children.node.children.node.children.node.children]]
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
+node_id = "virtual_list_demo"
+kind = "native"
+type = "VirtualList"
+control_id = "VirtualListDemo"
+classes = ["showcase-field"]
+props = { data_source = "showcase.large_items", total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, overscan = 4, items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/VirtualListScrolled"
+event = "Scroll"
+route = "UiComponentShowcase.SetVisibleRange.VirtualList"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "paged_list_demo"
+kind = "native"
+type = "PagedList"
+control_id = "PagedListDemo"
+classes = ["showcase-field"]
+props = { data_source = "showcase.large_items", total_count = 10000, page_index = 0, page_size = 100, page_count = 100, items = ["Page row 0", "Page row 1", "Page row 2"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/PagedListNextPage"
+event = "Click"
+route = "UiComponentShowcase.SetPage.PagedList"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
+node_id = "world_space_surface_demo"
+kind = "native"
+type = "WorldSpaceSurface"
+control_id = "WorldSpaceSurfaceDemo"
+classes = ["showcase-field"]
+props = { world_position = [0.0, 1.5, 3.0], world_rotation = [0.0, 180.0, 0.0], world_scale = [1.0, 1.0, 1.0], world_size = [2.0, 1.0], pixels_per_meter = 256.0, billboard = true, depth_test = true, render_order = 0, camera_target = "viewport-main" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/WorldSpaceSurfaceMoved"
+event = "DragEnd"
+route = "UiComponentShowcase.SetWorldTransform.WorldSpaceSurface"
+
+[[root.children.node.children.node.children.node.children.node.bindings]]
+id = "UiComponentShowcase/WorldSpaceSurfaceConfigured"
+event = "Submit"
+route = "UiComponentShowcase.SetWorldSurface.WorldSpaceSurface"
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
 node_id = "tree_row_demo"
 kind = "native"
 type = "TreeRow"

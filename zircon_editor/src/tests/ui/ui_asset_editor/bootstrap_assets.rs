@@ -8,8 +8,11 @@ use crate::ui::asset_editor::{
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
 };
-use zircon_runtime::ui::template::{UiDocumentCompiler, UiNodeDefinitionKind};
-use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
+use zircon_runtime::ui::template::{UiAssetDocumentRuntimeExt, UiDocumentCompiler};
+use zircon_runtime_interface::ui::{
+    layout::UiSize,
+    template::{UiAssetKind, UiNodeDefinitionKind},
+};
 
 #[test]
 fn ui_asset_editor_bootstrap_assets_parse_and_compile_with_imports() {
@@ -143,7 +146,10 @@ fn ui_asset_editor_bootstrap_layout_self_hosts_shell_columns_and_panels() {
         "palette_panel",
         "hierarchy_panel",
         "designer_panel",
+        "designer_tool_mode_row",
         "designer_canvas_panel",
+        "designer_diagnostic_overlay_panel",
+        "emergency_shell_panel",
         "render_stack_panel",
         "action_bar_panel",
         "action_insert_row",
@@ -214,7 +220,10 @@ fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
         "PalettePanel",
         "HierarchyPanel",
         "DesignerPanel",
+        "DesignerToolModeRow",
         "DesignerCanvasPanel",
+        "DesignerDiagnosticOverlayPanel",
+        "EmergencyShellPanel",
         "RenderStackPanel",
         "ActionBarPanel",
         "ActionInsertRow",
@@ -260,8 +269,11 @@ fn ui_asset_editor_bootstrap_template_projection_exposes_pane_shell_regions() {
     assert!(node("CenterColumn").frame.x < node("RightColumn").frame.x);
     assert!(node("PalettePanel").frame.x < node("DesignerPanel").frame.x);
     assert!(node("DesignerPanel").frame.x < node("InspectorPanel").frame.x);
-    assert!(node("DesignerCanvasPanel").frame.y >= node("DesignerPanel").frame.y);
-    assert!(node("RenderStackPanel").frame.y >= node("DesignerCanvasPanel").frame.y);
+    assert!(node("DesignerToolModeRow").frame.y >= node("DesignerPanel").frame.y);
+    assert!(node("DesignerCanvasPanel").frame.y >= node("DesignerToolModeRow").frame.y);
+    assert!(node("DesignerDiagnosticOverlayPanel").frame.y >= node("DesignerCanvasPanel").frame.y);
+    assert!(node("EmergencyShellPanel").frame.y >= node("DesignerDiagnosticOverlayPanel").frame.y);
+    assert!(node("RenderStackPanel").frame.y >= node("EmergencyShellPanel").frame.y);
     assert!(node("ActionBarPanel").frame.y >= node("DesignerPanel").frame.y);
     assert!(node("ActionInsertRow").frame.y >= node("ActionBarPanel").frame.y);
     assert!(node("ActionReparentRow").frame.y >= node("ActionInsertRow").frame.y);

@@ -3,7 +3,7 @@ use crate::core::framework::render::{
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
     RenderVirtualGeometryDebugSnapshot,
 };
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::capture_frame::capture_frame;
 use super::super::create_viewport::create_viewport;

@@ -1,9 +1,9 @@
 //! Undoable editor commands that mutate the ECS world.
 
-use zircon_runtime::core::math::Transform;
-use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 use zircon_runtime::scene::components::{NodeKind, NodeRecord};
 use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime_interface::math::Transform;
+use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 #[derive(Clone, Debug)]
 pub(crate) enum EditorCommand {

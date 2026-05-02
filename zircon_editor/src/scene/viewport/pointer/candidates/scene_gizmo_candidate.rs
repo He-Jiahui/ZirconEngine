@@ -1,5 +1,5 @@
 use crate::scene::viewport::{OverlayPickShape, ViewportCameraSnapshot};
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::pointer::constants::{GIZMO_PICK_THRESHOLD_PX, GIZMO_PRIORITY};
 use crate::scene::viewport::pointer::precision::{PrecisionCandidate, PrecisionShape};

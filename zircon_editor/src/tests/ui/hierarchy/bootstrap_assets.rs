@@ -1,6 +1,7 @@
 use crate::ui::layouts::views::hierarchy_pane_nodes;
 use slint::Model;
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 const HIERARCHY_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

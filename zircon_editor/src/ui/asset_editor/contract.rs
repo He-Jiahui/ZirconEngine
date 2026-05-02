@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use zircon_runtime::ui::template::UiAssetKind;
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 use crate::ui::activity::ActivityWindowDescriptor;
 
@@ -222,6 +222,12 @@ pub struct UiAssetEditorReflectionModel {
     pub route: UiAssetEditorRoute,
     pub display_name: String,
     pub source_dirty: bool,
+    pub has_external_conflict: bool,
+    pub external_conflict_summary: String,
+    pub stale_import_items: Vec<String>,
+    pub can_reload_from_disk: bool,
+    pub can_keep_local_and_save: bool,
+    pub can_open_diff_snapshot: bool,
     pub can_undo: bool,
     pub can_redo: bool,
     pub preview_available: bool,
@@ -236,6 +242,12 @@ impl UiAssetEditorReflectionModel {
             route,
             display_name: display_name.into(),
             source_dirty: false,
+            has_external_conflict: false,
+            external_conflict_summary: String::new(),
+            stale_import_items: Vec::new(),
+            can_reload_from_disk: false,
+            can_keep_local_and_save: false,
+            can_open_diff_snapshot: false,
             can_undo: false,
             can_redo: false,
             preview_available: false,
@@ -247,6 +259,21 @@ impl UiAssetEditorReflectionModel {
 
     pub fn with_source_dirty(mut self, dirty: bool) -> Self {
         self.source_dirty = dirty;
+        self
+    }
+
+    pub fn with_workspace_state(
+        mut self,
+        has_external_conflict: bool,
+        external_conflict_summary: impl Into<String>,
+        stale_import_items: Vec<String>,
+    ) -> Self {
+        self.has_external_conflict = has_external_conflict;
+        self.external_conflict_summary = external_conflict_summary.into();
+        self.stale_import_items = stale_import_items;
+        self.can_reload_from_disk = has_external_conflict;
+        self.can_keep_local_and_save = has_external_conflict;
+        self.can_open_diff_snapshot = has_external_conflict;
         self
     }
 

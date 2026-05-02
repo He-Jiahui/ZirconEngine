@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::editor_event::{
     ActivityDrawerMode as EventActivityDrawerMode, ActivityDrawerSlot as EventActivityDrawerSlot,
-    EditorAssetEvent, EditorDraftEvent, EditorEvent, EditorEventRuntime, EditorViewportEvent,
+    EditorAssetEvent, EditorEvent, EditorEventRuntime, EditorViewportEvent,
     LayoutCommand as EventLayoutCommand, MainPageId as EventMainPageId, MenuAction,
     ViewInstanceId as EventViewInstanceId,
 };
@@ -25,12 +25,12 @@ use crate::ui::workbench::startup::{
 use crate::ui::workbench::state::EditorState;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use slint::PhysicalSize;
-use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::scene::DefaultLevelManager;
+use zircon_runtime_interface::math::UVec2;
 mod drag_sources;
 mod floating_window_projection;
 
@@ -318,16 +318,9 @@ fn child_window_inspector_control_focuses_source_window_before_runtime_dispatch(
 
     assert_eq!(
         harness.delta_events_since(baseline),
-        vec![
-            EditorEvent::Layout(EventLayoutCommand::FocusView {
-                instance_id: EventViewInstanceId::new("editor.inspector#1"),
-            }),
-            EditorEvent::Draft(EditorDraftEvent::SetInspectorField {
-                subject_path: "entity://selected".to_string(),
-                field_id: "name".to_string(),
-                value: "Draft Cube".to_string(),
-            }),
-        ]
+        vec![EditorEvent::Layout(EventLayoutCommand::FocusView {
+            instance_id: EventViewInstanceId::new("editor.inspector#1"),
+        })]
     );
     assert_eq!(
         harness

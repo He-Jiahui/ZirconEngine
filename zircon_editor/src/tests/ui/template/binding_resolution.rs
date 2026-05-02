@@ -1,7 +1,7 @@
 use super::support::EDITOR_HOST_WINDOW_ASSET_TOML;
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::template::{EditorTemplateAdapter, EditorTemplateError, EditorTemplateRegistry};
-use zircon_runtime::ui::binding::UiEventKind;
+use zircon_runtime_interface::ui::binding::UiEventKind;
 
 #[test]
 fn editor_template_adapter_resolves_stable_binding_ids_to_typed_editor_bindings() {

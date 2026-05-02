@@ -1,8 +1,12 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiTreeId, surface::UiSurface, tree::UiInputPolicy,
-    tree::UiTreeNode,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodePath, UiTreeId},
+    layout::UiFrame,
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::base_state::base_state;
@@ -22,25 +26,19 @@ impl HostPagePointerBridge {
         let mut targets = BTreeMap::new();
 
         surface.tree.insert_root(
-            UiTreeNode::new(
-                ROOT_NODE_ID,
-                zircon_runtime::ui::event_ui::UiNodePath::new("editor.host_page.root"),
-            )
-            .with_frame(root_frame(&self.layout))
-            .with_state_flags(base_state(false)),
+            UiTreeNode::new(ROOT_NODE_ID, UiNodePath::new("editor.host_page.root"))
+                .with_frame(root_frame(&self.layout))
+                .with_state_flags(base_state(false)),
         );
         surface
             .tree
             .insert_child(
                 ROOT_NODE_ID,
-                UiTreeNode::new(
-                    STRIP_NODE_ID,
-                    zircon_runtime::ui::event_ui::UiNodePath::new("editor.host_page.strip"),
-                )
-                .with_frame(self.layout.strip_frame)
-                .with_z_index(10)
-                .with_input_policy(UiInputPolicy::Receive)
-                .with_state_flags(base_state(true)),
+                UiTreeNode::new(STRIP_NODE_ID, UiNodePath::new("editor.host_page.strip"))
+                    .with_frame(self.layout.strip_frame)
+                    .with_z_index(10)
+                    .with_input_policy(UiInputPolicy::Receive)
+                    .with_state_flags(base_state(true)),
             )
             .expect("host page root must exist");
 
@@ -51,7 +49,7 @@ impl HostPagePointerBridge {
                 .measured_frames
                 .get(item_index)
                 .and_then(|frame| *frame)
-                .unwrap_or(zircon_runtime::ui::layout::UiFrame::new(
+                .unwrap_or(UiFrame::new(
                     next_x,
                     self.layout.strip_frame.y + STRIP_Y,
                     TAB_MIN_WIDTH,
@@ -64,9 +62,7 @@ impl HostPagePointerBridge {
                     STRIP_NODE_ID,
                     UiTreeNode::new(
                         node_id,
-                        zircon_runtime::ui::event_ui::UiNodePath::new(format!(
-                            "editor.host_page/tab_{item_index}"
-                        )),
+                        UiNodePath::new(format!("editor.host_page/tab_{item_index}")),
                     )
                     .with_frame(frame)
                     .with_z_index(20 + item_index as i32)

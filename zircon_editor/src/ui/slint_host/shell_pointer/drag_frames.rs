@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct DragTargetFrames {

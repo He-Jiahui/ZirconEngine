@@ -54,14 +54,6 @@ fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
 
     let graphics_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/graphics");
     let allowed_adapter = PathBuf::from("hybrid_gi_extract_sources/normalize.rs");
-    let cfg_test_source_files = [
-        PathBuf::from(
-            "scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_probe_source.rs",
-        ),
-        PathBuf::from(
-            "scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs",
-        ),
-    ];
     let mut violations = Vec::new();
 
     collect_rust_files(
@@ -73,7 +65,6 @@ fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
                 || normalized_path.components().any(|component| {
                     matches!(component.as_os_str().to_str(), Some("tests" | "tests.rs"))
                 })
-                || cfg_test_source_files.contains(&normalized_path)
             {
                 return;
             }
@@ -96,21 +87,6 @@ fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
         "RenderHybridGiProbe / RenderHybridGiTraceRegion should stay behind hybrid_gi_extract_sources::normalize; production leaks: {violations:?}"
     );
 
-    assert_cfg_test_adapter_impl(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_probe_source.rs"
-        )),
-        "impl HybridGiProbeSource for RenderHybridGiProbe",
-    );
-    assert_cfg_test_adapter_impl(
-        include_str!(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/hybrid_gi_trace_region_source.rs"
-        )),
-        "impl HybridGiTraceRegionSource for RenderHybridGiTraceRegion",
-    );
-
     fn collect_rust_files(root: &Path, current: &Path, visit: &mut impl FnMut(&Path, &str)) {
         for entry in std::fs::read_dir(current).expect("read graphics source directory") {
             let entry = entry.expect("read graphics source entry");
@@ -127,20 +103,5 @@ fn hybrid_gi_old_probe_trace_types_stay_confined_to_extract_source_adapter() {
 
     fn normalize_test_path(path: &Path) -> PathBuf {
         path.components().collect()
-    }
-
-    fn assert_cfg_test_adapter_impl(source: &str, impl_signature: &str) {
-        let Some(index) = source.find(impl_signature) else {
-            panic!("missing fixture-only adapter impl `{impl_signature}`");
-        };
-        let prefix = &source[..index];
-        assert!(
-            prefix
-                .lines()
-                .rev()
-                .take(3)
-                .any(|line| line.trim() == "#[cfg(test)]"),
-            "adapter impl `{impl_signature}` must stay cfg(test)-only"
-        );
     }
 }

@@ -5,8 +5,8 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
-use zircon_runtime::ui::binding::UiEventKind;
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
+use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;

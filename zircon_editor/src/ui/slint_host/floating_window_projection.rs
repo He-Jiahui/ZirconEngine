@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use crate::ui::host::NativeWindowHostState;
 use crate::ui::slint_host::callback_dispatch::BuiltinFloatingWindowSourceFrames;

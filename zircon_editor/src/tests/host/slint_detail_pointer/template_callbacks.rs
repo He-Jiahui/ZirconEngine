@@ -15,7 +15,10 @@ fn inspector_surface_controls_use_pane_surface_host_callbacks() {
         "invoke_inspector_control_changed",
         "invoke_inspector_control_clicked",
     ] {
-        assert!(globals.contains(required), "host globals missing `{required}`");
+        assert!(
+            globals.contains(required),
+            "host globals missing `{required}`"
+        );
     }
     assert!(wiring.contains("pane_surface_host.on_inspector_control_changed("));
     assert!(wiring.contains("pane_surface_host.on_inspector_control_clicked("));

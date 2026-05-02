@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     event_ui::UiNodeDescriptor, event_ui::UiPropertyDescriptor, event_ui::UiReflectionSnapshot,
     event_ui::UiValueType,
 };

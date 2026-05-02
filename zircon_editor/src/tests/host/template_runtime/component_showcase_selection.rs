@@ -1,7 +1,7 @@
 use crate::ui::template_runtime::{
     EditorUiHostRuntime, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
 };
-use zircon_runtime::ui::component::UiValue;
+use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
 fn showcase_binding(
     runtime: &EditorUiHostRuntime,
@@ -21,7 +21,7 @@ fn try_apply_showcase_binding(
     runtime: &mut EditorUiHostRuntime,
     binding_id: &str,
     input: UiComponentShowcaseDemoEventInput,
-) -> Result<(), crate::ui::template_runtime::UiComponentShowcaseDemoError> {
+) -> Result<UiComponentAdapterResult, crate::ui::template_runtime::UiComponentShowcaseDemoError> {
     let binding = showcase_binding(runtime, binding_id);
     runtime.apply_showcase_demo_binding(&binding, input)
 }

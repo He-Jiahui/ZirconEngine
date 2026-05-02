@@ -263,6 +263,7 @@ tests:
   - cargo test -p zircon_editor --lib --locked editor_manager_restores_ui_asset_tree_selection_across_undo_and_redo
   - cargo test -p zircon_editor --lib --locked tests::host::slint_window::child_window_callback_wiring_tracks_source_window_for_pane_interactions
   - cargo test -p zircon_editor --test workbench_slint_shell --locked ui_asset_editor_
+  - cargo test -p zircon_editor --lib asset_browser_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -557,7 +558,7 @@ shared visual payload 当前直接从 `zircon_ui::tree::UiTemplateNodeMetadata.a
 
 这让 `.ui.toml` 里已经经过样式解析的属性，能够直接沉到 shared surface 的视觉抽取出口；editor preview、后续 runtime renderer 和 screenshot/golden harness 都不需要再各自重读模板 source 才知道节点要画什么。
 
-2026-04-29 的 Runtime UI regression 又把文本解析顺序收紧成“非空 `text` 优先，否则回退非空 `label`”。这避免 `Button` 等 component schema 注入的 `text = ""` 默认值遮蔽资产作者写在 `label` 上的可见文案；`asset_browser.ui.toml` 的 `LocateSelectedAsset` 这类仍以 `label` 表达按钮文案的节点，会继续在 `UiRenderExtract` 中生成可渲染文本。对应 focused test 是 `render_extract_uses_label_when_schema_text_default_is_empty`，随后 broad `zircon_runtime --lib ui::tests` 也覆盖了这条 shared extract contract。
+2026-04-29 的 Runtime UI regression 又把文本解析顺序收紧成“非空 `text` 优先，否则回退非空 `label`”。这避免 legacy/generic visual assets 在 schema defaults 注入 `text = ""` 时丢失作者写在 `label` 上的可见文案；对应 focused test 是 `render_extract_uses_label_when_schema_text_default_is_empty`，随后 broad `zircon_runtime --lib ui::tests` 也覆盖了这条 shared extract contract。当前 Asset Browser bootstrap asset 不再把这条 fallback 当作 `Button` authored contract：runtime `Button` descriptor owns `text`, and `asset_browser.ui.toml` now authors `LocateSelectedAsset` and the other action buttons with `text`, covered by `asset_browser_projection_maps_bootstrap_asset_into_mount_nodes` in the Milestone 0 editor closeout target.
 
 与之对应，`zircon_ui::tree::UiDirtyFlags` 现在也显式保留 `text` 位，开始把 layout/style/text/render 脏域拆开，而不是继续把所有视觉变化都挤回一个粗粒度 render flag。
 

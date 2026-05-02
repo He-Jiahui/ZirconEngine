@@ -1,4 +1,4 @@
-use zircon_runtime::ui::dispatch::UiPointerEvent;
+use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
 
 use super::{
     host_document_tab_pointer_bridge::HostDocumentTabPointerBridge,

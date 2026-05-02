@@ -6,7 +6,7 @@ use crate::ui::{
     EditorWorkbenchReflectionModel,
 };
 use serde_json::json;
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     binding::UiBindingCall, binding::UiBindingValue, binding::UiEventBinding, binding::UiEventKind,
     binding::UiEventPath, event_ui::UiControlRequest, event_ui::UiControlResponse,
     event_ui::UiNodePath, event_ui::UiTreeId,

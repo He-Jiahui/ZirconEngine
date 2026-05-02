@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use toml::{map::Map, Value};
 
-use crate::ui::template::UiNodeDefinition;
+use zircon_runtime_interface::ui::template::UiNodeDefinition;
 
 pub(super) fn build_attribute_map(
     node: &UiNodeDefinition,

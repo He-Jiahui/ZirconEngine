@@ -7,7 +7,7 @@ use crate::ui::workbench::autolayout::{
 };
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime::ui::layout::{UiFrame, UiSize};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 #[test]
 fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_region_geometry_is_stale(

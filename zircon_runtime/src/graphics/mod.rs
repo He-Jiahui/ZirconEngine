@@ -3,13 +3,14 @@
 pub(crate) mod backend;
 pub(crate) mod extract;
 pub(crate) mod feature;
-pub(in crate::graphics) mod hybrid_gi_extract_sources;
+pub mod hybrid_gi_extract_sources;
 pub(crate) mod material;
 pub(crate) mod pipeline;
 pub(crate) mod runtime;
 pub(crate) mod scene;
 pub(crate) mod shader;
 pub(crate) mod types;
+pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;
 
 pub mod runtime_builtin_graphics;
@@ -32,12 +33,23 @@ pub use runtime_builtin_graphics::{
     module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
     RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };
-pub use scene::SceneRenderer;
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
+pub use scene::{
+    RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId,
+    RenderPassExecutorRegistration, SceneRenderer,
+};
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
-pub(crate) use types::ViewportRenderFrame;
-pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
+pub use types::{
+    GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle,
+    ViewportRenderFrame,
+};
+pub use virtual_geometry_runtime_provider::{
+    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
+};
 pub use visibility::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,
     VisibilityBvhUpdatePlan, VisibilityBvhUpdateStrategy, VisibilityContext, VisibilityDrawCommand,

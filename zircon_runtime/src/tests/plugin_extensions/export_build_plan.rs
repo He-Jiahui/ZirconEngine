@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[test]
-fn source_template_generates_linked_runtime_plugin_registration_calls() {
+fn source_template_generates_linked_external_runtime_plugin_registration_calls() {
     let mut manifest = ProjectManifest::new(
         "Plugin Export Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -18,11 +18,11 @@ fn source_template_generates_linked_runtime_plugin_registration_calls() {
     );
     manifest.plugins = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Physics,
+            RuntimePluginId::Sound,
             true,
             true,
         )
-        .with_runtime_crate("zircon_plugin_physics_runtime")],
+        .with_runtime_crate("zircon_plugin_sound_runtime")],
     };
     manifest.export_profiles = vec![ExportProfile::new(
         "client",
@@ -38,9 +38,73 @@ fn source_template_generates_linked_runtime_plugin_registration_calls() {
 
     assert!(plugin_source
         .contains("pub fn runtime_plugin_registrations() -> Vec<RuntimePluginRegistrationReport>"));
-    assert!(plugin_source.contains("zircon_plugin_physics_runtime::plugin_registration()"));
+    assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
     assert!(main_source.contains("EntryRunner::bootstrap_with_runtime_plugin_registrations"));
     assert!(main_source.contains("zircon_plugins::runtime_plugin_registrations()"));
+}
+
+#[test]
+fn source_template_keeps_runtime_builtin_domains_out_of_plugin_registration_calls() {
+    let mut manifest = ProjectManifest::new(
+        "Builtin Domain Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Physics,
+            true,
+            true,
+        )
+        .with_runtime_crate("builtin_physics_runtime")],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+    let cargo_manifest = generated_file(&plan, "Cargo.toml");
+
+    assert!(plan.linked_runtime_crates.is_empty());
+    assert!(plugin_source.contains("id: \"physics\".to_string()"));
+    assert!(!plugin_source.contains("builtin_physics_runtime::plugin_registration()"));
+    assert!(!cargo_manifest.contains("builtin_physics_runtime"));
+}
+
+#[test]
+fn export_plan_keeps_runtime_builtin_domains_out_of_native_plugin_packages_and_diagnostics() {
+    let mut manifest = ProjectManifest::new(
+        "Builtin Native Domain Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![ProjectPluginSelection::runtime_plugin(
+            RuntimePluginId::Animation,
+            true,
+            true,
+        )
+        .with_runtime_crate("builtin_animation_runtime")
+        .with_packaging(ExportPackagingStrategy::NativeDynamic)],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "native-only",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategies([ExportPackagingStrategy::NativeDynamic])];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "native-only").unwrap();
+
+    assert!(plan.linked_runtime_crates.is_empty());
+    assert!(plan.native_dynamic_packages.is_empty());
+    assert!(plan.generated_files.is_empty());
+    assert!(plan.diagnostics.is_empty());
 }
 
 #[test]
@@ -169,8 +233,8 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
     );
     manifest.plugins = ProjectPluginManifest {
         selections: vec![
-            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Physics, true, false)
-                .with_runtime_crate("zircon_plugin_physics_runtime"),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_runtime_crate("zircon_plugin_sound_runtime"),
             ProjectPluginSelection::runtime_plugin(RuntimePluginId::VirtualGeometry, true, true)
                 .with_runtime_crate("zircon_plugin_virtual_geometry_runtime")
                 .with_packaging(ExportPackagingStrategy::NativeDynamic),
@@ -196,7 +260,7 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
     );
     assert!(main_source
         .contains("registrations.extend(native_report.runtime_plugin_registration_reports())"));
-    assert!(plugin_source.contains("zircon_plugin_physics_runtime::plugin_registration()"));
+    assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
     assert!(
         !plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()")
     );
@@ -211,11 +275,11 @@ fn native_dynamic_generates_loader_manifest_without_source_template() {
     );
     manifest.plugins = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Physics,
+            RuntimePluginId::Sound,
             true,
             false,
         )
-        .with_runtime_crate("zircon_plugin_physics_runtime")
+        .with_runtime_crate("zircon_plugin_sound_runtime")
         .with_packaging(ExportPackagingStrategy::NativeDynamic)],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -228,12 +292,12 @@ fn native_dynamic_generates_loader_manifest_without_source_template() {
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let native_manifest = generated_file(&plan, "plugins/native_plugins.toml");
 
-    assert_eq!(plan.native_dynamic_packages, vec!["physics".to_string()]);
+    assert_eq!(plan.native_dynamic_packages, vec!["sound".to_string()]);
     assert!(plan.linked_runtime_crates.is_empty());
     assert!(native_manifest.contains("[[plugins]]"));
-    assert!(native_manifest.contains("id = \"physics\""));
-    assert!(native_manifest.contains("path = \"plugins/physics\""));
-    assert!(native_manifest.contains("manifest = \"plugins/physics/plugin.toml\""));
+    assert!(native_manifest.contains("id = \"sound\""));
+    assert!(native_manifest.contains("path = \"plugins/sound\""));
+    assert!(native_manifest.contains("manifest = \"plugins/sound/plugin.toml\""));
     assert!(plan
         .generated_files
         .iter()
@@ -244,13 +308,13 @@ fn native_dynamic_generates_loader_manifest_without_source_template() {
 fn native_dynamic_materialization_copies_runtime_package_without_source_crates() {
     let plugin_root = temp_dir("zircon_native_dynamic_plugin_root");
     let output_root = temp_dir("zircon_native_dynamic_output_root");
-    let package_root = plugin_root.join("physics");
+    let package_root = plugin_root.join("sound");
     fs::create_dir_all(package_root.join("runtime/src")).unwrap();
     fs::create_dir_all(package_root.join("editor/src")).unwrap();
     fs::create_dir_all(package_root.join("native/src")).unwrap();
     fs::create_dir_all(package_root.join("native")).unwrap();
     fs::create_dir_all(package_root.join("assets")).unwrap();
-    fs::write(package_root.join("plugin.toml"), physics_plugin_manifest()).unwrap();
+    fs::write(package_root.join("plugin.toml"), sound_plugin_manifest()).unwrap();
     fs::write(package_root.join("runtime/Cargo.toml"), "[package]\n").unwrap();
     fs::write(
         package_root.join("runtime/src/lib.rs"),
@@ -268,18 +332,18 @@ fn native_dynamic_materialization_copies_runtime_package_without_source_crates()
         "pub fn native() {}\n",
     )
     .unwrap();
-    fs::write(package_root.join("native/physics.dll"), "dynamic-library").unwrap();
+    fs::write(package_root.join("native/sound.dll"), "dynamic-library").unwrap();
     fs::write(package_root.join("assets/material.toml"), "name = \"mat\"").unwrap();
 
     let plan = native_dynamic_plan();
     let report = plan
         .materialize_with_native_packages(&plugin_root, &output_root)
         .unwrap();
-    let copied = output_root.join("plugins/physics");
+    let copied = output_root.join("plugins/sound");
 
     assert!(report.copied_packages.contains(&copied));
     assert!(copied.join("plugin.toml").exists());
-    assert!(copied.join("native/physics.dll").exists());
+    assert!(copied.join("native/sound.dll").exists());
     assert!(copied.join("assets/material.toml").exists());
     assert!(!copied.join("runtime/Cargo.toml").exists());
     assert!(!copied.join("runtime/src/lib.rs").exists());
@@ -295,17 +359,17 @@ fn native_dynamic_materialization_copies_runtime_package_without_source_crates()
 fn native_dynamic_materialization_sanitizes_package_directory_names() {
     let plugin_root = temp_dir("zircon_native_dynamic_unsafe_plugin_root");
     let output_root = temp_dir("zircon_native_dynamic_unsafe_output_root");
-    let package_id = "physics/../escape";
+    let package_id = "sound/../escape";
     let package_root = plugin_root.join("unsafe_package");
     fs::create_dir_all(package_root.join("native")).unwrap();
     fs::write(
         package_root.join("plugin.toml"),
         format!(
-            "id = {package_id:?}\nversion = \"0.1.0\"\ndisplay_name = \"Unsafe Physics\"\n\n[[modules]]\nname = \"physics.runtime\"\nkind = \"runtime\"\ncrate_name = \"zircon_plugin_physics_runtime\"\ntarget_modes = [\"client_runtime\"]\n"
+            "id = {package_id:?}\nversion = \"0.1.0\"\ndisplay_name = \"Unsafe Sound\"\n\n[[modules]]\nname = \"sound.runtime\"\nkind = \"runtime\"\ncrate_name = \"zircon_plugin_sound_runtime\"\ntarget_modes = [\"client_runtime\"]\n"
         ),
     )
     .unwrap();
-    fs::write(package_root.join("native/physics.dll"), "dynamic-library").unwrap();
+    fs::write(package_root.join("native/sound.dll"), "dynamic-library").unwrap();
     let mut manifest = ProjectManifest::new(
         "Native Dynamic Unsafe Path Test",
         AssetUri::parse("res://scenes/main.zscene").unwrap(),
@@ -318,7 +382,7 @@ fn native_dynamic_materialization_sanitizes_package_directory_names() {
             required: false,
             target_modes: vec![RuntimeTargetMode::ClientRuntime],
             packaging: ExportPackagingStrategy::NativeDynamic,
-            runtime_crate: Some("zircon_plugin_physics_runtime".to_string()),
+            runtime_crate: Some("zircon_plugin_sound_runtime".to_string()),
             editor_crate: None,
         }],
     };
@@ -331,17 +395,17 @@ fn native_dynamic_materialization_sanitizes_package_directory_names() {
 
     let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
     let load_manifest = generated_file(&plan, "plugins/native_plugins.toml");
-    assert!(load_manifest.contains("plugins/physics____escape"));
-    assert!(!load_manifest.contains("plugins/physics/../escape"));
+    assert!(load_manifest.contains("plugins/sound____escape"));
+    assert!(!load_manifest.contains("plugins/sound/../escape"));
 
     let report = plan
         .materialize_with_native_packages(&plugin_root, &output_root)
         .unwrap();
-    let copied = output_root.join("plugins/physics____escape");
+    let copied = output_root.join("plugins/sound____escape");
 
     assert!(report.copied_packages.contains(&copied));
     assert!(copied.join("plugin.toml").exists());
-    assert!(copied.join("native/physics.dll").exists());
+    assert!(copied.join("native/sound.dll").exists());
     assert!(!output_root.join("escape/plugin.toml").exists());
 
     let _ = fs::remove_dir_all(plugin_root);
@@ -416,9 +480,9 @@ fn native_dynamic_materialization_does_not_directly_resolve_package_id_outside_p
 fn native_dynamic_materialization_reports_source_only_native_package() {
     let plugin_root = temp_dir("zircon_native_dynamic_source_only_plugin_root");
     let output_root = temp_dir("zircon_native_dynamic_source_only_output_root");
-    let package_root = plugin_root.join("physics");
+    let package_root = plugin_root.join("sound");
     fs::create_dir_all(package_root.join("native/src")).unwrap();
-    fs::write(package_root.join("plugin.toml"), physics_plugin_manifest()).unwrap();
+    fs::write(package_root.join("plugin.toml"), sound_plugin_manifest()).unwrap();
     fs::write(package_root.join("native/Cargo.toml"), "[package]\n").unwrap();
     fs::write(
         package_root.join("native/src/lib.rs"),
@@ -429,7 +493,7 @@ fn native_dynamic_materialization_reports_source_only_native_package() {
     let report = native_dynamic_plan()
         .materialize_with_native_packages(&plugin_root, &output_root)
         .unwrap();
-    let copied = output_root.join("plugins/physics");
+    let copied = output_root.join("plugins/sound");
 
     assert!(copied.join("plugin.toml").exists());
     assert!(!copied.join("native/Cargo.toml").exists());
@@ -447,14 +511,14 @@ fn native_dynamic_materialization_reports_source_only_native_package() {
 fn native_dynamic_materialization_reports_missing_native_directory() {
     let plugin_root = temp_dir("zircon_native_dynamic_missing_native_plugin_root");
     let output_root = temp_dir("zircon_native_dynamic_missing_native_output_root");
-    let package_root = plugin_root.join("physics");
+    let package_root = plugin_root.join("sound");
     fs::create_dir_all(&package_root).unwrap();
-    fs::write(package_root.join("plugin.toml"), physics_plugin_manifest()).unwrap();
+    fs::write(package_root.join("plugin.toml"), sound_plugin_manifest()).unwrap();
 
     let report = native_dynamic_plan()
         .materialize_with_native_packages(&plugin_root, &output_root)
         .unwrap();
-    let copied = output_root.join("plugins/physics");
+    let copied = output_root.join("plugins/sound");
 
     assert!(copied.join("plugin.toml").exists());
     assert!(report
@@ -482,11 +546,11 @@ fn native_dynamic_plan() -> ExportBuildPlan {
     );
     manifest.plugins = ProjectPluginManifest {
         selections: vec![ProjectPluginSelection::runtime_plugin(
-            RuntimePluginId::Physics,
+            RuntimePluginId::Sound,
             true,
             false,
         )
-        .with_runtime_crate("zircon_plugin_physics_runtime")
+        .with_runtime_crate("zircon_plugin_sound_runtime")
         .with_packaging(ExportPackagingStrategy::NativeDynamic)],
     };
     manifest.export_profiles = vec![ExportProfile::new(
@@ -498,16 +562,16 @@ fn native_dynamic_plan() -> ExportBuildPlan {
     ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap()
 }
 
-fn physics_plugin_manifest() -> &'static str {
+fn sound_plugin_manifest() -> &'static str {
     r#"
-id = "physics"
+id = "sound"
 version = "0.1.0"
-display_name = "Physics"
+display_name = "Sound"
 
 [[modules]]
-name = "physics.runtime"
+name = "sound.runtime"
 kind = "runtime"
-crate_name = "zircon_plugin_physics_runtime"
+crate_name = "zircon_plugin_sound_runtime"
 target_modes = ["client_runtime"]
 "#
 }

@@ -5,10 +5,6 @@ use crate::core::framework::scene::EntityId;
 use crate::core::math::Vec4;
 use bytemuck::{Pod, Zeroable};
 
-use crate::graphics::types::{
-    VirtualGeometryClusterRasterDraw, VirtualGeometryPrepareClusterState,
-};
-
 pub(super) enum PendingMeshGeometry {
     Prepared(Arc<crate::graphics::scene::resources::GpuMeshResource>),
     Skinned(ModelPrimitiveAsset),
@@ -75,39 +71,6 @@ pub(super) struct VirtualGeometryIndirectDrawRefInput {
     pub(super) submission_token: u32,
 }
 
-pub(super) fn indirect_draw_ref_for_cluster_draw(
-    entity: EntityId,
-    mesh_index_count: u32,
-    mesh_signature: u64,
-    cluster_draw: VirtualGeometryClusterRasterDraw,
-) -> VirtualGeometryIndirectDrawRef {
-    VirtualGeometryIndirectDrawRef {
-        mesh_index_count,
-        mesh_signature,
-        segment_key: segment_key_for_cluster_draw(entity, cluster_draw),
-    }
-}
-
-pub(super) fn segment_key_for_cluster_draw(
-    entity: EntityId,
-    cluster_draw: VirtualGeometryClusterRasterDraw,
-) -> VirtualGeometryIndirectSegmentKey {
-    VirtualGeometryIndirectSegmentKey {
-        submission_index: cluster_draw.submission_index,
-        instance_index: cluster_draw.instance_index,
-        entity,
-        page_id: cluster_draw.page_id,
-        cluster_start_ordinal: cluster_draw.entity_cluster_start_ordinal as u32,
-        cluster_span_count: cluster_draw.entity_cluster_span_count.max(1) as u32,
-        cluster_total_count: cluster_draw.entity_cluster_total_count.max(1) as u32,
-        lineage_depth: cluster_draw.lineage_depth,
-        lod_level: cluster_draw.lod_level,
-        frontier_rank: cluster_draw.frontier_rank,
-        submission_slot: cluster_draw.submission_slot,
-        state: encode_cluster_state(cluster_draw.state),
-    }
-}
-
 pub(super) fn segment_input(
     segment_key: VirtualGeometryIndirectSegmentKey,
 ) -> VirtualGeometryIndirectSegmentInput {
@@ -139,13 +102,5 @@ pub(super) fn draw_ref_input(
         segment_index,
         segment_draw_ref_count,
         submission_token,
-    }
-}
-
-fn encode_cluster_state(state: VirtualGeometryPrepareClusterState) -> u32 {
-    match state {
-        VirtualGeometryPrepareClusterState::Resident => 0,
-        VirtualGeometryPrepareClusterState::PendingUpload => 1,
-        VirtualGeometryPrepareClusterState::Missing => 2,
     }
 }

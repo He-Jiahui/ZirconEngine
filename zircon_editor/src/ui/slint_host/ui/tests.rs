@@ -43,9 +43,11 @@ use crate::ui::workbench::view::{
     PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace, PreferredHost,
     ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId, ViewKind,
 };
-use zircon_runtime::core::math::UVec2;
-use zircon_runtime::ui::component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata};
-use zircon_runtime::ui::layout::{UiFrame, UiSize};
+use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::{
+    component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata},
+    layout::{UiFrame, UiSize},
+};
 
 fn root_shell_fixture() -> (
     PreviewFixture,

@@ -1,4 +1,4 @@
-use zircon_runtime::ui::dispatch::UiPointerEvent;
+use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
 
 use super::viewport_toolbar_pointer_bridge::ViewportToolbarPointerBridge;
 use super::viewport_toolbar_pointer_target::ViewportToolbarPointerTarget;

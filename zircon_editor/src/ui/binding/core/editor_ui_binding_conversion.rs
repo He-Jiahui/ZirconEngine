@@ -1,4 +1,6 @@
-use zircon_runtime::ui::{binding::UiBindingValue, binding::UiEventBinding, binding::UiEventPath};
+use zircon_runtime_interface::ui::{
+    binding::UiBindingValue, binding::UiEventBinding, binding::UiEventPath,
+};
 
 use super::{EditorUiBinding, EditorUiBindingError, EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::binding::{inspector_field_control_id, DraftCommand};

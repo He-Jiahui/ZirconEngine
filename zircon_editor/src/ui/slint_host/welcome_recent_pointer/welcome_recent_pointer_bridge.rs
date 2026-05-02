@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiNodeId, surface::UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use super::welcome_recent_pointer_layout::WelcomeRecentPointerLayout;
 use super::welcome_recent_pointer_state::WelcomeRecentPointerState;

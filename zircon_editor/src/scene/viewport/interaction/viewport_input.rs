@@ -1,4 +1,4 @@
-use zircon_runtime::core::math::{UVec2, Vec2};
+use zircon_runtime_interface::math::{UVec2, Vec2};
 
 #[derive(Clone, Debug)]
 pub enum ViewportInput {

@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::component::{UiComponentState, UiValue};
+use zircon_runtime_interface::ui::component::{UiComponentState, UiValue};
 
 pub(super) fn component_id_for_control(control_id: &str) -> Option<&'static str> {
     match control_id {
@@ -33,6 +33,9 @@ pub(super) fn component_id_for_control(control_id: &str) -> Option<&'static str>
         "ArrayFieldDemo" => Some("ArrayField"),
         "MapFieldDemo" => Some("MapField"),
         "ListRowDemo" => Some("ListRow"),
+        "VirtualListDemo" => Some("VirtualList"),
+        "PagedListDemo" => Some("PagedList"),
+        "WorldSpaceSurfaceDemo" => Some("WorldSpaceSurface"),
         "TreeRowDemo" => Some("TreeRow"),
         "ContextActionMenuDemo" => Some("ContextActionMenu"),
         _ => None,
@@ -115,6 +118,39 @@ pub(super) fn default_state_for_control(control_id: &str) -> UiComponentState {
         "ListRowDemo" => {
             UiComponentState::new().with_value("value", UiValue::String("selected".to_string()))
         }
+        "VirtualListDemo" => UiComponentState::new()
+            .with_value(
+                "data_source",
+                UiValue::String("showcase.large_items".to_string()),
+            )
+            .with_value("total_count", UiValue::Int(10000))
+            .with_value("viewport_start", UiValue::Int(0))
+            .with_value("viewport_count", UiValue::Int(25))
+            .with_value("item_extent", UiValue::Float(28.0))
+            .with_value("overscan", UiValue::Int(4))
+            .with_value("selected_index", UiValue::Int(-1)),
+        "PagedListDemo" => UiComponentState::new()
+            .with_value(
+                "data_source",
+                UiValue::String("showcase.large_items".to_string()),
+            )
+            .with_value("total_count", UiValue::Int(10000))
+            .with_value("page_index", UiValue::Int(0))
+            .with_value("page_size", UiValue::Int(100))
+            .with_value("page_count", UiValue::Int(100)),
+        "WorldSpaceSurfaceDemo" => UiComponentState::new()
+            .with_value("world_position", UiValue::Vec3([0.0, 1.5, 3.0]))
+            .with_value("world_rotation", UiValue::Vec3([0.0, 180.0, 0.0]))
+            .with_value("world_scale", UiValue::Vec3([1.0, 1.0, 1.0]))
+            .with_value("world_size", UiValue::Vec2([2.0, 1.0]))
+            .with_value("pixels_per_meter", UiValue::Float(256.0))
+            .with_value("billboard", UiValue::Bool(true))
+            .with_value("depth_test", UiValue::Bool(true))
+            .with_value("render_order", UiValue::Int(0))
+            .with_value(
+                "camera_target",
+                UiValue::String("viewport-main".to_string()),
+            ),
         "TreeRowDemo" => UiComponentState::new().with_value("expanded", UiValue::Bool(true)),
         "ContextActionMenuDemo" => {
             UiComponentState::new().with_value("value", UiValue::String("Inspect".to_string()))

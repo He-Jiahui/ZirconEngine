@@ -4,7 +4,7 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord,
 };
-use zircon_runtime::core::resource::{ResourceKind, ResourceRecord, ResourceState};
+use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord, ResourceState};
 
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,

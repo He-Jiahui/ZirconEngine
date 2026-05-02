@@ -1,4 +1,7 @@
-use zircon_runtime::ui::{event_ui::UiNodeId, event_ui::UiStateFlags, layout::UiFrame};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiStateFlags},
+    layout::UiFrame,
+};
 
 use super::constants::{
     BUTTON_HEIGHT, BUTTON_WIDTH, ITEM_GAP, ITEM_HEIGHT, ITEM_NODE_ID_BASE,

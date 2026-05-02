@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::PrecisionShape;
 use crate::scene::viewport::pointer::overlay_router::frame_from_points;

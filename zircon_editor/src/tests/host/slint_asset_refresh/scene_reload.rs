@@ -1,7 +1,7 @@
 use crate::ui::slint_host::{plan_asset_backend_refresh, AssetBackendRefreshPlan};
 use zircon_runtime::asset::watch::{AssetChange, AssetChangeKind};
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::resource::{
+use zircon_runtime_interface::resource::{
     ResourceEvent, ResourceEventKind, ResourceId, ResourceLocator,
 };
 

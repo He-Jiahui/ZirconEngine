@@ -1,5 +1,5 @@
 use crate::ui::slint_host::host_page_pointer::{HostPagePointerBridge, HostPagePointerRoute};
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use super::support::sample_host_page_layout;
 

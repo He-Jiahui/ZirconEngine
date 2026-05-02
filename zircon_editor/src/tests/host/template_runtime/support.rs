@@ -4,8 +4,10 @@ pub(super) use crate::ui::template_runtime::{
     SlintUiHostComponentKind, SlintUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
-pub(super) use zircon_runtime::ui::{
-    binding::UiEventKind, layout::UiFrame, layout::UiSize, tree::UiInputPolicy,
+pub(super) use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    layout::{UiFrame, UiSize},
+    tree::UiInputPolicy,
 };
 
 pub(super) const ASSET_HOST_WINDOW_DOCUMENT_TOML: &str = r##"

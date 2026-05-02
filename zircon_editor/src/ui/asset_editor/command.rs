@@ -2,10 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_runtime::ui::template::{
-    UiBindingRef, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind,
+use zircon_runtime_interface::ui::template::{
+    UiBindingRef, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind, UiStyleRule,
+    UiStyleSheet,
 };
-use zircon_runtime::ui::{template::UiStyleRule, template::UiStyleSheet};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UiAssetEditorTreeEditKind {

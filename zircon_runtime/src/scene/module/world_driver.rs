@@ -1,13 +1,16 @@
 use std::collections::BTreeMap;
 
+use crate::animation::apply_sequence_to_world;
 use crate::asset::{AssetId, ProjectAssetManager};
 use crate::core::framework::animation::{
     AnimationGraphClipInstance, AnimationManager, AnimationParameterMap, AnimationPoseOutput,
     AnimationPoseSource,
 };
-use crate::core::manager::resolve_animation_manager;
+use crate::core::framework::physics::PhysicsWorldStepPlan;
+use crate::core::manager::{resolve_animation_manager, resolve_physics_manager};
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
+use crate::physics::{build_world_sync_state, integrate_builtin_physics_steps};
 use crate::scene::{EntityId, LevelSystem};
 
 #[derive(Clone, Debug)]
@@ -253,12 +256,30 @@ impl WorldDriver {
     }
 }
 
-fn tick_physics_world(_core: &CoreHandle, _level: &LevelSystem, _delta_seconds: Real) {}
+fn tick_physics_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
+    let Ok(physics) = resolve_physics_manager(core) else {
+        level.record_physics_step(PhysicsWorldStepPlan::default(), Vec::new());
+        return;
+    };
+
+    let plan = physics.plan_world_step(level.world_handle(), delta_seconds);
+    let sync = level.with_world_mut(|world| {
+        integrate_builtin_physics_steps(world, plan);
+        build_world_sync_state(level.world_handle(), world)
+    });
+    physics.sync_world(sync);
+    level.record_physics_step(plan, physics.drain_contacts(level.world_handle()));
+}
 
 fn apply_loaded_sequences(
-    _level: &LevelSystem,
-    _loaded_sequences: &[(crate::asset::AnimationSequenceAsset, Real, bool)],
+    level: &LevelSystem,
+    loaded_sequences: &[(crate::asset::AnimationSequenceAsset, Real, bool)],
 ) {
+    level.with_world_mut(|world| {
+        for (sequence, time_seconds, looping) in loaded_sequences {
+            let _ = apply_sequence_to_world(world, sequence, *time_seconds, *looping);
+        }
+    });
 }
 
 fn sample_pose_requests(

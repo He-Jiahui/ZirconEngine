@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use super::host_drawer_header_pointer_bridge::HostDrawerHeaderPointerBridge;
 

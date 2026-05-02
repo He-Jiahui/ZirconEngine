@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use zircon_runtime::core::resource::ResourceKind;
+use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::core::editing::intent::EditorIntent;
 use crate::core::editor_event::EditorEventEffect;

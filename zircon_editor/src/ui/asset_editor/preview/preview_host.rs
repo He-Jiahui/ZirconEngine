@@ -1,6 +1,7 @@
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime::ui::template::UiTemplateSurfaceBuilder;
-use zircon_runtime::ui::{event_ui::UiTreeId, layout::UiSize, surface::UiSurface};
+use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
 use crate::ui::asset_editor::session::UiAssetEditorSessionError;
 

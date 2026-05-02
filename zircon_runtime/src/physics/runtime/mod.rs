@@ -130,7 +130,8 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
         let entity_transform = world.world_transform(node.id).unwrap_or(node.transform);
 
         if let Some(rigid_body) = node.rigid_body.as_ref() {
-            if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(rigid_body) {
+            if transform_is_finite(entity_transform) && rigid_body_sync_input_is_finite(rigid_body)
+            {
                 sync.bodies.push(PhysicsBodySyncState {
                     entity: node.id,
                     body_type: match rigid_body.body_type {
@@ -253,7 +254,8 @@ pub fn integrate_builtin_physics_steps(world: &mut World, plan: PhysicsWorldStep
                 RigidBodyType::Dynamic => {
                     let damping = (1.0 - rigid_body.linear_damping.max(0.0) * plan.step_seconds)
                         .clamp(0.0, 1.0);
-                    (rigid_body.linear_velocity + GRAVITY * rigid_body.gravity_scale * plan.step_seconds)
+                    (rigid_body.linear_velocity
+                        + GRAVITY * rigid_body.gravity_scale * plan.step_seconds)
                         * damping
                 }
                 RigidBodyType::Kinematic => rigid_body.linear_velocity,

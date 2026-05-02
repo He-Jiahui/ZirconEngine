@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::ui::tree::UiTreeError;
+use zircon_runtime_interface::ui::tree::UiTreeError;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum UiTemplateBuildError {

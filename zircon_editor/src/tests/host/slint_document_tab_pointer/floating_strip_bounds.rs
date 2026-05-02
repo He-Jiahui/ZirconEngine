@@ -10,7 +10,7 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 #[test]
 fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floating_strip() {

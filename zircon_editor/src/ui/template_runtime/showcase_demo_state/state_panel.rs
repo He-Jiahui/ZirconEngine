@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use toml::Value as TomlValue;
-use zircon_runtime::ui::component::{UiComponentState, UiDragSourceMetadata, UiValue};
+use zircon_runtime_interface::ui::component::{UiComponentState, UiDragSourceMetadata, UiValue};
 
 use super::{primary_property_for_control, UiComponentShowcaseDemoState};
 
@@ -71,7 +71,7 @@ fn validation_summary(showcase: &UiComponentShowcaseDemoState) -> String {
     let Some(state) = showcase.state_for_control(&entry.control_id) else {
         return "normal".to_string();
     };
-    let validation = state.validation();
+    let validation = &state.validation;
     match &validation.message {
         Some(message) if !message.is_empty() => format!("{}: {message}", validation.level_name()),
         _ => validation.level_name().to_string(),
@@ -91,7 +91,7 @@ fn drag_payload_summary(showcase: &UiComponentShowcaseDemoState) -> String {
     {
         return format!("Dropped from {source}");
     }
-    let flags = state.flags();
+    let flags = &state.flags;
     if flags.active_drag_target {
         "Active drop target".to_string()
     } else if flags.drop_hovered {
@@ -104,7 +104,7 @@ fn drag_payload_summary(showcase: &UiComponentShowcaseDemoState) -> String {
 }
 
 fn state_flags_summary(state: &UiComponentState) -> String {
-    let flags = state.flags();
+    let flags = &state.flags;
     let mut states = Vec::new();
     if flags.focused {
         states.push("focused");

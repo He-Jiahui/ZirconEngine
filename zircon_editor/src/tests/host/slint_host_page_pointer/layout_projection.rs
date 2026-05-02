@@ -5,7 +5,7 @@ use crate::ui::slint_host::callback_dispatch::{
 use crate::ui::slint_host::host_page_pointer::build_host_page_pointer_layout;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime::ui::layout::{UiFrame, UiSize};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 #[test]
 fn shared_host_page_pointer_layout_prefers_shared_shell_width_over_metric_strip_estimate() {

@@ -1,0 +1,10 @@
+mod virtual_geometry_executed_cluster_selection_pass;
+mod virtual_geometry_hardware_rasterization_pass;
+mod virtual_geometry_indirect_stats;
+mod virtual_geometry_indirect_stats_store_parts;
+mod virtual_geometry_node_and_cluster_cull_pass;
+mod virtual_geometry_visbuffer64_pass;
+
+pub(in crate::virtual_geometry::renderer) use virtual_geometry_indirect_stats::VirtualGeometryIndirectStats;
+pub(in crate::virtual_geometry::renderer) use virtual_geometry_indirect_stats_store_parts::VirtualGeometryIndirectStatsStoreParts;
+pub(in crate::virtual_geometry::renderer) use virtual_geometry_node_and_cluster_cull_pass::VirtualGeometryNodeAndClusterCullPassStoreParts;

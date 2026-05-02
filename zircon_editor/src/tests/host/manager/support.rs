@@ -7,6 +7,7 @@ use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
+pub(super) use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 
 use crate::ui::host::module::{self, module_descriptor};
 use crate::ui::workbench::layout::{

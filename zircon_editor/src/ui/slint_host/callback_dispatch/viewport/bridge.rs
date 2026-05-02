@@ -1,6 +1,8 @@
-use zircon_runtime::ui::{
-    event_ui::UiNodeId, event_ui::UiNodePath, event_ui::UiStateFlags, event_ui::UiTreeId,
-    layout::UiFrame, surface::UiSurface, tree::UiTreeNode,
+use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    layout::UiFrame,
+    tree::UiTreeNode,
 };
 
 use super::super::constants::{VIEWPORT_SURFACE_NODE_ID, VIEWPORT_SURFACE_ROOT_ID};

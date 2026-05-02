@@ -192,8 +192,6 @@
 ## Task 8: Finish Non-Render Runtime Plugin Package Ownership
 
 **Files:**
-- Modify: `zircon_plugins/physics/runtime/**`
-- Modify: `zircon_plugins/animation/runtime/**`
 - Modify: `zircon_plugins/sound/runtime/**`
 - Modify: `zircon_plugins/net/runtime/**`
 - Modify: `zircon_plugins/navigation/runtime/**`
@@ -202,7 +200,7 @@
 - Modify: `zircon_plugins/*/plugin.toml`
 - Modify: `zircon_runtime/src/plugin/package_manifest/*`
 
-- [ ] Confirm every non-render runtime plugin has a non-empty `RuntimePlugin` implementation.
+- [ ] Confirm every non-render runtime plugin has a non-empty `RuntimePlugin` implementation. Physics and animation are excluded because they have since been hard-cut to runtime-owned built-ins under `zircon_runtime::{physics,animation}`.
 - [ ] Confirm every non-render runtime plugin registers at least one concrete `ModuleDescriptor` when it needs startup graph visibility.
 - [ ] Confirm `navigation`, `particles`, and `texture` remain manager-backed activation points, not descriptor-only shells.
 - [ ] Confirm each plugin descriptor target modes match its `plugin.toml` target modes.
@@ -329,7 +327,7 @@ cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_native_dy
 - [x] Run plugin runtime crate validation:
 
 ```powershell
-cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_runtime -p zircon_plugin_animation_runtime -p zircon_plugin_sound_runtime -p zircon_plugin_net_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 -- --nocapture
+cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sound_runtime -p zircon_plugin_net_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 -- --nocapture
 ```
 
 - [x] Run editor plugin/report validation only after runtime/native checks are green:
@@ -338,7 +336,7 @@ cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_physics_ru
 cargo test -p zircon_editor --lib editor_runtime_ --locked --jobs 1 -- --nocapture
 cargo test -p zircon_editor --lib native_aware_completion_aggregates_native_module_target_modes --locked --jobs 1 -- --nocapture
 cargo test -p zircon_editor --lib native_selection_aggregates_runtime_and_editor_module_target_modes --locked --jobs 1 -- --nocapture
-cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_support -p zircon_plugin_physics_editor -p zircon_plugin_animation_editor -p zircon_plugin_sound_editor -p zircon_plugin_net_editor -p zircon_plugin_navigation_editor -p zircon_plugin_particles_editor -p zircon_plugin_texture_editor -p zircon_plugin_virtual_geometry_editor -p zircon_plugin_hybrid_gi_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor -p zircon_plugin_native_window_hosting_editor --locked --jobs 1
+cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_support -p zircon_plugin_sound_editor -p zircon_plugin_net_editor -p zircon_plugin_navigation_editor -p zircon_plugin_particles_editor -p zircon_plugin_texture_editor -p zircon_plugin_virtual_geometry_editor -p zircon_plugin_hybrid_gi_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor -p zircon_plugin_native_window_hosting_editor --locked --jobs 1
 ```
 
 - [x] Run final validator only after focused checks pass or after failures have been documented and fixed:
@@ -355,16 +353,16 @@ cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_editor_su
 - `git diff --check -- .codex .opencode docs zircon_runtime zircon_plugins zircon_editor zircon_app` exited `0`; output still included LF-to-CRLF warnings for dirty active-owner files.
 - `cargo test -p zircon_runtime --test native_plugin_loader_contract --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 1 test.
 - `cargo test -p zircon_runtime --test export_build_plan_contract --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 8 tests.
-- `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed.
+- `cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed. Physics and animation editor surfaces are now runtime-owned/editor-owned, not plugin workspace packages.
 - `cargo test -p zircon_runtime --lib export_build_plan --no-default-features --features core-min --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 11 tests.
 - `cargo test -p zircon_runtime --lib runtime_modules --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 5 tests.
 - `cargo test -p zircon_runtime --lib plugin_render_feature --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 7 tests.
-- `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed.
-- `cargo test --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_physics_runtime -p zircon_plugin_animation_runtime -p zircon_plugin_sound_runtime -p zircon_plugin_net_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 76 runtime plugin tests plus doctests.
+- `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_native_dynamic_fixture_native --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed. Physics and animation editor surfaces are now runtime-owned/editor-owned, not plugin workspace packages.
+- `cargo test --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_sound_runtime -p zircon_plugin_net_runtime -p zircon_plugin_navigation_runtime -p zircon_plugin_particles_runtime -p zircon_plugin_texture_runtime -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: runtime plugin tests plus doctests. Physics and animation are now runtime-owned built-ins, not plugin workspace packages.
 - `cargo test -p zircon_editor --lib editor_runtime_ --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 12 tests.
 - `cargo test -p zircon_editor --lib native_aware_completion_aggregates_native_module_target_modes --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 1 test.
 - `cargo test -p zircon_editor --lib native_selection_aggregates_runtime_and_editor_module_target_modes --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone" -- --nocapture` passed: 1 test.
-- `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_editor_support -p zircon_plugin_physics_editor -p zircon_plugin_animation_editor -p zircon_plugin_sound_editor -p zircon_plugin_net_editor -p zircon_plugin_navigation_editor -p zircon_plugin_particles_editor -p zircon_plugin_texture_editor -p zircon_plugin_virtual_geometry_editor -p zircon_plugin_hybrid_gi_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor -p zircon_plugin_native_window_hosting_editor --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed.
+- `cargo check --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_editor_support -p zircon_plugin_sound_editor -p zircon_plugin_net_editor -p zircon_plugin_navigation_editor -p zircon_plugin_particles_editor -p zircon_plugin_texture_editor -p zircon_plugin_virtual_geometry_editor -p zircon_plugin_hybrid_gi_editor -p zircon_plugin_runtime_diagnostics_editor -p zircon_plugin_ui_asset_authoring_editor -p zircon_plugin_native_window_hosting_editor --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed. Physics and animation editor surfaces are now runtime-owned/editor-owned, not plugin workspace packages.
 - `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir "D:\cargo-targets\zircon-runtime-dynamic-milestone"` passed `cargo build --workspace --locked --target-dir D:\cargo-targets\zircon-runtime-dynamic-milestone` and `cargo test --workspace --locked --target-dir D:\cargo-targets\zircon-runtime-dynamic-milestone`.
 
 ---

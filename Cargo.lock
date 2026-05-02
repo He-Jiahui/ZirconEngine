@@ -1327,7 +1327,17 @@ dependencies = [
  "memmap2",
  "slotmap",
  "tinyvec",
- "ttf-parser",
+ "ttf-parser 0.25.1",
+]
+
+[[package]]
+name = "fontdue"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2e57e16b3fe8ff4364c0661fdaac543fb38b29ea9bc9c2f45612d90adf931d2b"
+dependencies = [
+ "hashbrown 0.15.5",
+ "ttf-parser 0.21.1",
 ]
 
 [[package]]
@@ -1350,6 +1360,18 @@ dependencies = [
  "windows",
  "windows-core",
  "yeslogic-fontconfig-sys",
+]
+
+[[package]]
+name = "fontsdf"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "240f559f31f6b78e7dd4ed2cd09bc4180bce0b34969dfcfe8b7cd0da8f1de7ca"
+dependencies = [
+ "fontdue",
+ "glam 0.30.10",
+ "hashbrown 0.15.5",
+ "ttf-parser 0.25.1",
 ]
 
 [[package]]
@@ -1553,6 +1575,12 @@ dependencies = [
  "log",
  "xml-rs",
 ]
+
+[[package]]
+name = "glam"
+version = "0.30.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "19fc433e8437a212d1b6f1e68c7824af3aed907da60afa994e7f542d18d12aa9"
 
 [[package]]
 name = "glam"
@@ -1776,6 +1804,8 @@ version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
 dependencies = [
+ "allocator-api2",
+ "equivalent",
  "foldhash 0.1.5",
 ]
 
@@ -3498,7 +3528,7 @@ version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "36820e9051aca1014ddc75770aab4d68bc1e9e632f0f5627c4086bc216fb583b"
 dependencies = [
- "ttf-parser",
+ "ttf-parser 0.25.1",
 ]
 
 [[package]]
@@ -4188,7 +4218,7 @@ dependencies = [
  "core_maths",
  "log",
  "smallvec",
- "ttf-parser",
+ "ttf-parser 0.25.1",
  "unicode-bidi-mirroring",
  "unicode-ccc",
  "unicode-properties",
@@ -5019,6 +5049,12 @@ dependencies = [
 
 [[package]]
 name = "ttf-parser"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c591d83f69777866b9126b24c6dd9a18351f177e49d625920d19f989fd31cf8"
+
+[[package]]
+name = "ttf-parser"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2df906b07856748fa3f6e0ad0cbaa047052d4a7dd609e231c4f72cee8c36f31"
@@ -5182,7 +5218,7 @@ dependencies = [
  "strict-num",
  "svgtypes",
  "tiny-skia-path 0.12.0",
- "ttf-parser",
+ "ttf-parser 0.25.1",
  "unicode-bidi",
  "unicode-script",
  "unicode-vo",
@@ -6772,11 +6808,13 @@ dependencies = [
 name = "zircon_app"
 version = "0.1.0"
 dependencies = [
+ "libloading 0.9.0",
  "serde_json",
  "softbuffer",
  "winit 0.31.0-beta.2",
  "zircon_editor",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
@@ -6787,12 +6825,14 @@ dependencies = [
  "gltf",
  "i-slint-backend-testing",
  "image",
+ "notify",
  "serde",
  "serde_json",
  "slint",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
@@ -6803,7 +6843,8 @@ dependencies = [
  "bytemuck",
  "crossbeam-channel",
  "crossbeam-utils",
- "glam",
+ "fontsdf",
+ "glam 0.32.1",
  "gltf",
  "glyphon",
  "image",
@@ -6823,7 +6864,20 @@ dependencies = [
  "uuid",
  "wgpu",
  "winit 0.31.0-beta.2",
+ "zircon_runtime_interface",
  "zstd",
+]
+
+[[package]]
+name = "zircon_runtime_interface"
+version = "0.1.0"
+dependencies = [
+ "glam 0.32.1",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "toml 1.1.2+spec-1.1.0",
+ "uuid",
 ]
 
 [[package]]

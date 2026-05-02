@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use super::constants::{LEFT_BUTTON_NODE_ID_BASE, RIGHT_BUTTON_NODE_ID_BASE};
 use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;

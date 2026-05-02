@@ -1,5 +1,5 @@
-use zircon_runtime::core::math::Vec3;
 use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::math::Vec3;
 
 use super::SceneViewportController;
 

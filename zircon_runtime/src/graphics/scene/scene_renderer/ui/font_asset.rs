@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::asset::{AssetUri, FontAsset, ProjectAssetManager};
-use crate::ui::surface::UiTextRenderMode;
+use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct LoadedUiFontManifest {

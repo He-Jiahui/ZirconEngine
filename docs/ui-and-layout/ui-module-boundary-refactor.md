@@ -6,14 +6,15 @@ related_code:
   - zircon_runtime/src/ui/dispatch/pointer/mod.rs
   - zircon_runtime/src/ui/dispatch/navigation/mod.rs
   - zircon_runtime/src/ui/binding/mod.rs
-  - zircon_runtime/src/ui/binding/model/mod.rs
-  - zircon_runtime/src/ui/binding/model/event_path.rs
-  - zircon_runtime/src/ui/binding/model/event_kind.rs
-  - zircon_runtime/src/ui/binding/model/binding_value.rs
-  - zircon_runtime/src/ui/binding/model/binding_call.rs
-  - zircon_runtime/src/ui/binding/model/event_binding.rs
-  - zircon_runtime/src/ui/binding/model/parse_error.rs
-  - zircon_runtime/src/ui/binding/model/parser.rs
+  - zircon_runtime_interface/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_path.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
+  - zircon_runtime_interface/src/ui/binding/model/binding_call.rs
+  - zircon_runtime_interface/src/ui/binding/model/event_binding.rs
+  - zircon_runtime_interface/src/ui/binding/model/parse_error.rs
+  - zircon_runtime_interface/src/ui/binding/model/parser.rs
   - zircon_runtime/src/ui/event_ui/mod.rs
   - zircon_runtime/src/ui/event_ui/manager/mod.rs
   - zircon_runtime/src/ui/event_ui/manager/ui_event_manager.rs
@@ -54,7 +55,8 @@ implementation_files:
   - zircon_runtime/src/ui/module.rs
   - zircon_runtime/src/ui/dispatch/mod.rs
   - zircon_runtime/src/ui/surface/mod.rs
-  - zircon_runtime/src/ui/binding/model/mod.rs
+  - zircon_runtime/src/ui/binding/mod.rs
+  - zircon_runtime_interface/src/ui/binding/model/mod.rs
   - zircon_runtime/src/ui/event_ui/manager/mod.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/template/build/mod.rs
@@ -136,13 +138,13 @@ doc_type: module-detail
 - parse error
 - parser
 
-现在这些职责被拆到 `binding/model/`：
+这些 neutral DTO/parser 职责先被拆到 `binding/model/`，并在 2026-05-02 UI runtime-interface hard-cutover 中整体迁到 `zircon_runtime_interface::ui::binding`：
 
 - 声明类型各自独立文件
 - parser 独立到 `parser.rs`
-- `binding/mod.rs` 继续只做导出层
+- `zircon_runtime/src/ui/binding/mod.rs` 继续保留 `UiEventRouter` behavior，并 re-export interface DTOs for runtime consumers
 
-这意味着后续新增新的 binding value、event kind 或 parser 规则时，不需要再回到一个 AST+parser 混合文件里追加段落。
+这意味着后续新增新的 binding value、event kind 或 parser 规则时，应修改 interface DTO owner，而不是在 runtime 重新引入本地 DTO/parser shadow module。
 
 ## Event Manager
 
@@ -206,7 +208,8 @@ doc_type: module-detail
 - `navigation/`
   - `event_kind.rs`、`route.rs`
 - `render/`
-  - `command.rs`、`command_kind.rs`、`list.rs`、`extract.rs`、`resolved_style.rs`、`visual_asset_ref.rs`
+  - interface owns `command.rs`、`command_kind.rs`、`list.rs`、`resolved_style.rs`、`visual_asset_ref.rs` DTO declarations under `zircon_runtime_interface::ui::surface::render`
+  - runtime keeps `extract.rs` for `extract_ui_render_tree(&UiTree)` behavior
   - `node_visual_data.rs` 与 `resolve.rs` 负责 render extract 的 metadata 解析
 - `surface.rs`
   - `UiSurface` 自身的 rebuild / compute_layout / route / dispatch 行为

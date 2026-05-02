@@ -1,6 +1,6 @@
 use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
-use zircon_runtime::core::math::Vec3;
+use zircon_runtime_interface::math::Vec3;
 
 use super::{viewport_drag_session::ViewportDragSession, viewport_hover_state::ViewportHoverState};
 

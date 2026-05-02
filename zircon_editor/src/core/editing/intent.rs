@@ -10,7 +10,7 @@ pub enum EditorIntent {
     SelectNode(NodeId),
     RenameNode(NodeId, String),
     SetParent(NodeId, Option<NodeId>),
-    SetTransform(NodeId, zircon_runtime::core::math::Transform),
+    SetTransform(NodeId, zircon_runtime_interface::math::Transform),
     ApplyInspectorChanges,
     BeginGizmoDrag,
     DragGizmo,

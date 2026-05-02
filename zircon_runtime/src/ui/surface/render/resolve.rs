@@ -1,11 +1,10 @@
 use toml::Value;
 
-use crate::ui::tree::UiTemplateNodeMetadata;
-
-use super::{
+use zircon_runtime_interface::ui::surface::{
     UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
     UiVisualAssetRef,
 };
+use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
 pub(super) fn resolve_command_kind(
     style: &UiResolvedStyle,

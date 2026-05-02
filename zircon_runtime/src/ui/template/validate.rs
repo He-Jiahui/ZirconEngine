@@ -1,4 +1,6 @@
-use super::{UiComponentTemplate, UiTemplateDocument, UiTemplateError, UiTemplateNode};
+use zircon_runtime_interface::ui::template::{
+    UiComponentTemplate, UiTemplateDocument, UiTemplateError, UiTemplateNode,
+};
 
 #[derive(Default)]
 pub struct UiTemplateValidator;

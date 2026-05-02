@@ -5,7 +5,7 @@ use crate::ui::layouts::windows::workbench_host_window::PaneContentSize;
 use crate::ui::slint_host as host_contract;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use slint::{Model, ModelRc};
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::template_node_conversion::to_host_contract_template_node_owned;
 

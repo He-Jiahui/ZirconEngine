@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use zircon_runtime::core::resource::ResourceScheme;
+use zircon_runtime_interface::resource::ResourceScheme;
 
 use super::super::EditorAssetFolderRecord;
 use super::default_editor_asset_manager::EditorAssetState;

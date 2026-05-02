@@ -8,6 +8,7 @@ use crate::ui::workbench::autolayout::{
 };
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 use super::build_surface::build_surface;
 use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
@@ -69,7 +70,7 @@ pub(crate) fn build_host_drawer_header_pointer_layout(
 fn build_surface_for_region(
     key: &str,
     region: ShellRegionId,
-    region_frame: zircon_runtime::ui::layout::UiFrame,
+    region_frame: UiFrame,
     model: &WorkbenchViewModel,
     slots: &[crate::ui::workbench::layout::ActivityDrawerSlot],
     metrics: &WorkbenchChromeMetrics,

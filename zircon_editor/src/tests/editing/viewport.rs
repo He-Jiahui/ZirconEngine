@@ -7,9 +7,11 @@ use crate::scene::viewport::{
     ProjectionMode, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportController,
     ViewportCameraSnapshot,
 };
-use zircon_runtime::core::math::{perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4};
 use zircon_runtime::scene::Scene;
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::math::{
+    perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4,
+};
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 #[test]
 fn viewport_overlay_pointer_router_prefers_handle_axis_over_renderable_candidate() {
@@ -184,7 +186,7 @@ fn projected_point(camera: &ViewportCameraSnapshot, viewport: UVec2, world: Vec3
         ProjectionMode::Orthographic => {
             let half_height = camera.ortho_size.max(0.01);
             let half_width = half_height * aspect.max(0.001);
-            zircon_runtime::core::math::Mat4::orthographic_rh(
+            zircon_runtime_interface::math::Mat4::orthographic_rh(
                 -half_width,
                 half_width,
                 -half_height,

@@ -8,9 +8,8 @@ use crate::core::framework::render::{
 };
 use crate::core::math::{Vec3, Vec4};
 
-use crate::graphics::types::VirtualGeometryPrepareFrame;
 use crate::graphics::ViewportRenderFrame;
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
@@ -22,44 +21,27 @@ pub(super) fn build_runtime_frame(
     context: &FrameSubmissionContext,
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
-    let virtual_geometry_debug_snapshot =
-        build_virtual_geometry_debug_snapshot(context, prepared.virtual_geometry_prepare());
+    let _ = prepared;
+    let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(context);
     let extract = augment_virtual_geometry_debug_overlays(
         extract,
         context,
-        prepared.virtual_geometry_prepare(),
         virtual_geometry_debug_snapshot.as_ref(),
     );
     ViewportRenderFrame::from_extract(extract, context.size())
         .with_ui(ui)
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
-        .with_hybrid_gi_prepare(prepared.hybrid_gi_prepare().cloned())
-        .with_hybrid_gi_scene_prepare(prepared.hybrid_gi_scene_prepare().cloned())
-        .with_hybrid_gi_resolve_runtime(prepared.hybrid_gi_resolve_runtime().cloned())
-        .with_prepare_derived_virtual_geometry_cluster_selections(
-            prepared.virtual_geometry_prepare().and_then(|prepare| {
-                context
-                    .virtual_geometry_extract()
-                    .map(|extract| prepare.cluster_selections(extract))
-            }),
-        )
-        .with_virtual_geometry_prepare(prepared.virtual_geometry_prepare().cloned())
 }
 
 fn augment_virtual_geometry_debug_overlays(
     mut extract: RenderFrameExtract,
     context: &FrameSubmissionContext,
-    prepare: Option<&VirtualGeometryPrepareFrame>,
     snapshot: Option<&RenderVirtualGeometryDebugSnapshot>,
 ) -> RenderFrameExtract {
     let Some(snapshot) = snapshot else {
         return extract;
     };
-    let visbuffer_debug_marks = build_current_frame_visbuffer_debug_marks(
-        snapshot,
-        context.virtual_geometry_extract(),
-        prepare,
-    );
+    let visbuffer_debug_marks = build_current_frame_visbuffer_debug_marks(snapshot);
     if snapshot.bvh_visualization_instances.is_empty() && visbuffer_debug_marks.is_empty() {
         return extract;
     }
@@ -172,18 +154,9 @@ fn build_virtual_geometry_visbuffer_scene_gizmos(
 
 fn build_current_frame_visbuffer_debug_marks(
     snapshot: &RenderVirtualGeometryDebugSnapshot,
-    extract: Option<&RenderVirtualGeometryExtract>,
-    prepare: Option<&VirtualGeometryPrepareFrame>,
 ) -> Vec<RenderVirtualGeometryVisBufferMark> {
     if !snapshot.debug.visualize_visbuffer {
         return Vec::new();
-    }
-
-    if let (Some(extract), Some(prepare)) = (extract, prepare) {
-        let marks = prepare.same_frame_visbuffer_debug_marks(extract);
-        if !marks.is_empty() {
-            return marks;
-        }
     }
 
     snapshot.visbuffer_debug_marks.clone()
@@ -311,166 +284,5 @@ fn bvh_connector_color(node: &RenderVirtualGeometryBvhVisualizationNode) -> Vec4
         Vec4::new(1.0, 0.9, 0.3, 1.0)
     } else {
         Vec4::new(1.0, 0.5, 0.35, 1.0)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::build_current_frame_visbuffer_debug_marks;
-    use crate::core::framework::render::{
-        RenderVirtualGeometryCluster, RenderVirtualGeometryDebugSnapshot,
-        RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-        RenderVirtualGeometryInstance, RenderVirtualGeometryVisBufferMark,
-    };
-    use crate::core::math::{Transform, Vec3};
-    use crate::graphics::types::{VirtualGeometryPrepareFrame, VirtualGeometryPreparePage};
-
-    #[test]
-    fn same_frame_visbuffer_marks_follow_prepare_unified_draw_fallback_when_snapshot_marks_are_empty(
-    ) {
-        let entity = 101_u64;
-        let extract = RenderVirtualGeometryExtract {
-            cluster_budget: 2,
-            page_budget: 1,
-            clusters: vec![
-                RenderVirtualGeometryCluster {
-                    entity,
-                    cluster_id: 1,
-                    hierarchy_node_id: None,
-                    page_id: 10,
-                    lod_level: 10,
-                    parent_cluster_id: None,
-                    bounds_center: Vec3::ZERO,
-                    bounds_radius: 0.5,
-                    screen_space_error: 0.25,
-                },
-                RenderVirtualGeometryCluster {
-                    entity,
-                    cluster_id: 2,
-                    hierarchy_node_id: None,
-                    page_id: 20,
-                    lod_level: 10,
-                    parent_cluster_id: Some(1),
-                    bounds_center: Vec3::X,
-                    bounds_radius: 0.5,
-                    screen_space_error: 0.2,
-                },
-            ],
-            hierarchy_nodes: Vec::new(),
-            hierarchy_child_ids: Vec::new(),
-            pages: Vec::new(),
-            instances: vec![RenderVirtualGeometryInstance {
-                entity,
-                source_model: None,
-                transform: Transform::default(),
-                cluster_offset: 0,
-                cluster_count: 2,
-                page_offset: 0,
-                page_count: 0,
-                mesh_name: Some("OverlayUnitTest".to_string()),
-                source_hint: Some("unit-test".to_string()),
-            }],
-            debug: RenderVirtualGeometryDebugState {
-                visualize_visbuffer: true,
-                ..RenderVirtualGeometryDebugState::default()
-            },
-        };
-        let snapshot = RenderVirtualGeometryDebugSnapshot {
-            instances: extract.instances.clone(),
-            debug: extract.debug,
-            ..RenderVirtualGeometryDebugSnapshot::default()
-        };
-        let prepare = VirtualGeometryPrepareFrame {
-            visible_entities: vec![entity],
-            visible_clusters: Vec::new(),
-            cluster_draw_segments: Vec::new(),
-            resident_pages: vec![VirtualGeometryPreparePage {
-                page_id: 10,
-                slot: 0,
-                size_bytes: 4096,
-            }],
-            pending_page_requests: Vec::new(),
-            available_slots: Vec::new(),
-            evictable_pages: Vec::new(),
-        };
-
-        let marks =
-            build_current_frame_visbuffer_debug_marks(&snapshot, Some(&extract), Some(&prepare));
-
-        assert_eq!(
-            marks,
-            vec![RenderVirtualGeometryVisBufferMark {
-                instance_index: Some(0),
-                entity,
-                cluster_id: 1,
-                page_id: 10,
-                lod_level: 10,
-                state:
-                    crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident,
-                color_rgba: [179, 212, 35, 255],
-            }],
-            "expected same-frame visbuffer overlays to follow the prepare fallback draw list even before the stored snapshot is backfilled from execution segments"
-        );
-    }
-
-    #[test]
-    fn same_frame_visbuffer_marks_stay_empty_when_visualization_is_disabled() {
-        let entity = 101_u64;
-        let extract = RenderVirtualGeometryExtract {
-            cluster_budget: 1,
-            page_budget: 1,
-            clusters: vec![RenderVirtualGeometryCluster {
-                entity,
-                cluster_id: 1,
-                hierarchy_node_id: None,
-                page_id: 10,
-                lod_level: 10,
-                parent_cluster_id: None,
-                bounds_center: Vec3::ZERO,
-                bounds_radius: 0.5,
-                screen_space_error: 0.25,
-            }],
-            hierarchy_nodes: Vec::new(),
-            hierarchy_child_ids: Vec::new(),
-            pages: Vec::new(),
-            instances: vec![RenderVirtualGeometryInstance {
-                entity,
-                source_model: None,
-                transform: Transform::default(),
-                cluster_offset: 0,
-                cluster_count: 1,
-                page_offset: 0,
-                page_count: 0,
-                mesh_name: Some("OverlayUnitTest".to_string()),
-                source_hint: Some("unit-test".to_string()),
-            }],
-            debug: RenderVirtualGeometryDebugState::default(),
-        };
-        let snapshot = RenderVirtualGeometryDebugSnapshot {
-            instances: extract.instances.clone(),
-            debug: extract.debug,
-            ..RenderVirtualGeometryDebugSnapshot::default()
-        };
-        let prepare = VirtualGeometryPrepareFrame {
-            visible_entities: vec![entity],
-            visible_clusters: Vec::new(),
-            cluster_draw_segments: Vec::new(),
-            resident_pages: vec![VirtualGeometryPreparePage {
-                page_id: 10,
-                slot: 0,
-                size_bytes: 4096,
-            }],
-            pending_page_requests: Vec::new(),
-            available_slots: Vec::new(),
-            evictable_pages: Vec::new(),
-        };
-
-        let marks =
-            build_current_frame_visbuffer_debug_marks(&snapshot, Some(&extract), Some(&prepare));
-
-        assert!(
-            marks.is_empty(),
-            "expected same-frame visbuffer overlays to stay disabled when visualize_visbuffer is false"
-        );
     }
 }

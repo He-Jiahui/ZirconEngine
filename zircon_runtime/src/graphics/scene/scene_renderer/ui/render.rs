@@ -1,12 +1,12 @@
 use std::ops::Range;
 
-use crate::ui::layout::UiFrame;
-use crate::ui::surface::{
+use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
+use zircon_runtime_interface::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiTextAlign, UiTextRenderMode,
     UiTextWrap,
 };
-use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -503,10 +503,10 @@ fn parse_hex_byte(value: &str) -> Option<u8> {
 mod tests {
     use super::*;
     use crate::core::math::UVec2;
-    use crate::ui::event_ui::{UiNodeId, UiTreeId};
-    use crate::ui::surface::{
-        UiRenderExtract, UiRenderList, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign,
-        UiTextRenderMode, UiTextWrap,
+    use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
+    use zircon_runtime_interface::ui::surface::{
+        UiRenderExtract, UiRenderList, UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine,
+        UiTextAlign, UiTextRenderMode, UiTextWrap,
     };
 
     #[test]
@@ -521,7 +521,7 @@ mod tests {
                         frame: UiFrame::new(8.0, 12.0, 120.0, 36.0),
                         clip_frame: None,
                         z_index: 0,
-                        style: crate::ui::surface::UiResolvedStyle {
+                        style: UiResolvedStyle {
                             background_color: Some("#112233".to_string()),
                             foreground_color: Some("#ddeeff".to_string()),
                             font_size: 18.0,
@@ -529,7 +529,7 @@ mod tests {
                             text_align: UiTextAlign::Center,
                             wrap: UiTextWrap::Word,
                             text_render_mode: UiTextRenderMode::Native,
-                            ..crate::ui::surface::UiResolvedStyle::default()
+                            ..UiResolvedStyle::default()
                         },
                         text_layout: None,
                         text: Some("Launch".to_string()),
@@ -558,14 +558,14 @@ mod tests {
                         frame: UiFrame::new(0.0, 0.0, 160.0, 48.0),
                         clip_frame: None,
                         z_index: 0,
-                        style: crate::ui::surface::UiResolvedStyle {
+                        style: UiResolvedStyle {
                             foreground_color: Some("#ffffff".to_string()),
                             font_size: 20.0,
                             line_height: 24.0,
                             text_align: UiTextAlign::Left,
                             wrap: UiTextWrap::Word,
                             text_render_mode: UiTextRenderMode::Sdf,
-                            ..crate::ui::surface::UiResolvedStyle::default()
+                            ..UiResolvedStyle::default()
                         },
                         text_layout: None,
                         text: Some("SDF".to_string()),
@@ -593,7 +593,7 @@ mod tests {
                         frame: UiFrame::new(4.0, 6.0, 144.0, 40.0),
                         clip_frame: None,
                         z_index: 0,
-                        style: crate::ui::surface::UiResolvedStyle {
+                        style: UiResolvedStyle {
                             foreground_color: Some("#ffffff".to_string()),
                             font: Some("res://fonts/default.font.toml".to_string()),
                             font_size: 16.0,
@@ -601,7 +601,7 @@ mod tests {
                             text_align: UiTextAlign::Left,
                             wrap: UiTextWrap::Word,
                             text_render_mode: UiTextRenderMode::Auto,
-                            ..crate::ui::surface::UiResolvedStyle::default()
+                            ..UiResolvedStyle::default()
                         },
                         text_layout: None,
                         text: Some("Auto".to_string()),
@@ -630,14 +630,14 @@ mod tests {
                         frame: UiFrame::new(10.0, 20.0, 90.0, 48.0),
                         clip_frame: Some(UiFrame::new(0.0, 0.0, 120.0, 48.0)),
                         z_index: 0,
-                        style: crate::ui::surface::UiResolvedStyle {
+                        style: UiResolvedStyle {
                             foreground_color: Some("#ffffff".to_string()),
                             font_size: 10.0,
                             line_height: 12.0,
                             text_align: UiTextAlign::Center,
                             wrap: UiTextWrap::Word,
                             text_render_mode: UiTextRenderMode::Native,
-                            ..crate::ui::surface::UiResolvedStyle::default()
+                            ..UiResolvedStyle::default()
                         },
                         text_layout: Some(UiResolvedTextLayout {
                             text_align: UiTextAlign::Center,

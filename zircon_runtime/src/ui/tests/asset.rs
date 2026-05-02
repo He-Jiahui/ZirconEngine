@@ -1,15 +1,15 @@
 use toml::Value;
 
-use super::asset_migration_support::{
-    convert_legacy_template_fixture_document, convert_legacy_template_fixture_source,
-    migrate_flat_ui_asset_fixture_toml_str,
-};
-use crate::ui::event_ui::UiTreeId;
-use crate::ui::surface::{UiRenderCommandKind, UiVisualAssetRef};
 use crate::ui::template::{
-    UiAssetLoader, UiDocumentCompiler, UiTemplateLoader, UiTemplateSurfaceBuilder,
+    UiAssetDocumentRuntimeExt, UiAssetLoader, UiAssetSchemaMigrator, UiDocumentCompiler,
+    UiTemplateSurfaceBuilder,
 };
-use crate::ui::{layout::UiSize, template::UiAssetKind};
+use zircon_runtime_interface::ui::{
+    event_ui::UiTreeId,
+    layout::UiSize,
+    surface::{UiRenderCommandKind, UiVisualAssetRef},
+    template::{UiAssetError, UiAssetKind},
+};
 
 const IMPORTED_BUTTON_ASSET_TOML: &str = r##"
 [asset]
@@ -510,10 +510,7 @@ fn ui_asset_stylesheet_rule_write_apis_reject_invalid_selectors_atomically() {
         .replace_style_rule("primary_button_hover", invalid_replacement)
         .expect_err("replacing with an invalid selector should fail");
     assert!(
-        matches!(
-            replace_error,
-            crate::ui::template::UiAssetError::InvalidSelector(_)
-        ),
+        matches!(replace_error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {replace_error:?}"
     );
     assert_eq!(
@@ -533,10 +530,7 @@ fn ui_asset_stylesheet_rule_write_apis_reject_invalid_selectors_atomically() {
         .insert_style_rule("rule_id_sheet", 0, invalid_insert)
         .expect_err("inserting an invalid selector should fail");
     assert!(
-        matches!(
-            insert_error,
-            crate::ui::template::UiAssetError::InvalidSelector(_)
-        ),
+        matches!(insert_error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {insert_error:?}"
     );
     assert_eq!(document.stylesheets[0].rules.len(), rule_count);
@@ -628,10 +622,7 @@ fn ui_asset_stylesheet_write_apis_reject_invalid_selectors_atomically() {
         .replace_style_sheet("rule_id_sheet", invalid_replacement)
         .expect_err("replacing a stylesheet with an invalid selector should fail");
     assert!(
-        matches!(
-            replace_error,
-            crate::ui::template::UiAssetError::InvalidSelector(_)
-        ),
+        matches!(replace_error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {replace_error:?}"
     );
     assert_eq!(
@@ -649,10 +640,7 @@ fn ui_asset_stylesheet_write_apis_reject_invalid_selectors_atomically() {
         .insert_style_sheet(0, invalid_insert)
         .expect_err("inserting a stylesheet with an invalid selector should fail");
     assert!(
-        matches!(
-            insert_error,
-            crate::ui::template::UiAssetError::InvalidSelector(_)
-        ),
+        matches!(insert_error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {insert_error:?}"
     );
     assert_eq!(document.stylesheets.len(), stylesheet_count);
@@ -670,10 +658,7 @@ fn ui_asset_stylesheets_can_be_replaced_atomically_for_editor_replay() {
         .set_style_sheets(replacement)
         .expect_err("setting invalid stylesheets should fail");
     assert!(
-        matches!(
-            replace_error,
-            crate::ui::template::UiAssetError::InvalidSelector(_)
-        ),
+        matches!(replace_error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {replace_error:?}"
     );
     assert_eq!(document.stylesheets, original_stylesheets);
@@ -801,10 +786,7 @@ set = { self = { text = "Hover" } }
         .expect_err("duplicate stable style rule ids should be rejected");
 
     assert!(
-        matches!(
-            error,
-            crate::ui::template::UiAssetError::InvalidDocument { .. }
-        ),
+        matches!(error, UiAssetError::InvalidDocument { .. }),
         "unexpected error: {error:?}"
     );
     assert!(
@@ -843,10 +825,7 @@ set = { self = { text = "Hover" } }
         .expect_err("duplicate stable stylesheet ids should be rejected");
 
     assert!(
-        matches!(
-            error,
-            crate::ui::template::UiAssetError::InvalidDocument { .. }
-        ),
+        matches!(error, UiAssetError::InvalidDocument { .. }),
         "unexpected error: {error:?}"
     );
     assert!(
@@ -878,10 +857,7 @@ set = { self = { text = "Primary" } }
         .expect_err("blank stable stylesheet ids should be rejected");
 
     assert!(
-        matches!(
-            error,
-            crate::ui::template::UiAssetError::InvalidDocument { .. }
-        ),
+        matches!(error, UiAssetError::InvalidDocument { .. }),
         "unexpected error: {error:?}"
     );
     assert!(
@@ -912,7 +888,7 @@ set = { self = { text = "Bad" } }
         .expect_err("invalid style rule selectors should be rejected");
 
     assert!(
-        matches!(error, crate::ui::template::UiAssetError::InvalidSelector(_)),
+        matches!(error, UiAssetError::InvalidSelector(_)),
         "unexpected error: {error:?}"
     );
     assert!(
@@ -1076,11 +1052,13 @@ fn ui_asset_loader_materializes_recursive_tree_authority_in_memory() {
 
 #[test]
 fn ui_legacy_template_fixture_conversion_converts_template_documents_into_asset_documents() {
-    let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
-
-    let asset_document =
-        convert_legacy_template_fixture_document("legacy.workbench", "Legacy Workbench", &legacy)
-            .unwrap();
+    let asset_document = UiAssetSchemaMigrator::migrate_legacy_template_str(
+        "legacy.workbench",
+        "Legacy Workbench",
+        LEGACY_TEMPLATE_TOML,
+    )
+    .unwrap()
+    .document;
 
     assert_eq!(asset_document.asset.kind, UiAssetKind::Layout);
     assert_eq!(asset_document.asset.id, "legacy.workbench");
@@ -1118,11 +1096,16 @@ fn ui_legacy_template_fixture_conversion_converts_template_documents_into_asset_
 
 #[test]
 fn ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_roundtrips() {
-    let legacy = UiTemplateLoader::load_toml_str(LEGACY_TEMPLATE_TOML).unwrap();
-
-    let source =
-        convert_legacy_template_fixture_source("legacy.workbench", "Legacy Workbench", &legacy)
-            .unwrap();
+    let source = toml::to_string_pretty(
+        &UiAssetSchemaMigrator::migrate_legacy_template_str(
+            "legacy.workbench",
+            "Legacy Workbench",
+            LEGACY_TEMPLATE_TOML,
+        )
+        .unwrap()
+        .document,
+    )
+    .unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     let compiled = UiDocumentCompiler::default().compile(&document).unwrap();
     let instance = compiled.into_template_instance();
@@ -1137,7 +1120,8 @@ fn ui_legacy_template_fixture_conversion_emits_canonical_asset_source_that_round
 
 #[test]
 fn ui_flat_fixture_migration_converts_flat_assets_into_tree_authority_source() {
-    let source = migrate_flat_ui_asset_fixture_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
+    let migrated = UiAssetSchemaMigrator::migrate_toml_str(FLAT_LAYOUT_ASSET_TOML).unwrap();
+    let source = toml::to_string_pretty(&migrated.document).unwrap();
     let document = UiAssetLoader::load_toml_str(&source).unwrap();
     assert!(
         !source.contains("[nodes."),
@@ -1184,17 +1168,16 @@ fn ui_flat_fixture_migration_converts_flat_assets_into_tree_authority_source() {
 }
 
 #[test]
-fn ui_asset_loader_rejects_flat_asset_documents_on_formal_path() {
-    let error = UiAssetLoader::load_toml_str(FLAT_LAYOUT_ASSET_TOML)
-        .expect_err("formal loader should reject flat authority documents");
+fn ui_asset_loader_migrates_flat_asset_documents_on_formal_path() {
+    let document = UiAssetLoader::load_toml_str(FLAT_LAYOUT_ASSET_TOML)
+        .expect("formal loader should migrate supported flat authority documents");
 
-    assert!(
-        matches!(
-            error,
-            crate::ui::template::UiAssetError::ParseToml(_)
-                | crate::ui::template::UiAssetError::InvalidDocument { .. }
-        ),
-        "unexpected error: {error:?}"
+    let root = document.root.as_ref().expect("migrated root");
+    assert_eq!(root.node_id, "editor_root");
+    assert_eq!(root.children[0].node.node_id, "toolbar");
+    assert_eq!(
+        root.children[0].node.children[0].node.node_id,
+        "open_button"
     );
 }
 

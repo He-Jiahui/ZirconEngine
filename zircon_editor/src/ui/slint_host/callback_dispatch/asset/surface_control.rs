@@ -1,4 +1,4 @@
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
@@ -9,7 +9,7 @@ pub(crate) fn dispatch_builtin_asset_surface_control(
     runtime: &EditorEventRuntime,
     bridge: &BuiltinAssetSurfaceTemplateBridge,
     control_id: &str,
-    event_kind: zircon_runtime::ui::binding::UiEventKind,
+    event_kind: UiEventKind,
     arguments: Vec<UiBindingValue>,
 ) -> Option<Result<SlintDispatchEffects, String>> {
     let binding = match bridge.binding_for_control(control_id, event_kind) {

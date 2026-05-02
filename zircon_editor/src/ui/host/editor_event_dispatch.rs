@@ -7,7 +7,7 @@ use crate::core::editor_operation::{EditorOperationPath, EditorOperationStackEnt
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::binding_dispatch::editor_event_normalization::normalize_editor_event_binding;
 use serde_json::Value;
-use zircon_runtime::ui::binding::UiEventBinding;
+use zircon_runtime_interface::ui::binding::UiEventBinding;
 
 use super::editor_event_execution::{event_result_value, execute_event, undo_policy_for_event};
 

@@ -81,14 +81,14 @@ related_code:
   - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
   - zircon_graphics/src/runtime/render_framework/mod.rs
   - zircon_graphics/src/runtime/render_framework/capability_summary/mod.rs
@@ -108,9 +108,9 @@ related_code:
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
@@ -255,14 +255,14 @@ implementation_files:
   - zircon_graphics/src/runtime/hybrid_gi/pending_completion/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/prepare_frame/mod.rs
   - zircon_graphics/src/runtime/hybrid_gi/residency_management/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/declarations/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/build_prepare_frame.rs
-  - zircon_graphics/src/runtime/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
-  - zircon_graphics/src/runtime/virtual_geometry/pending_completion/mod.rs
-  - zircon_graphics/src/runtime/virtual_geometry/snapshot.rs
-  - zircon_graphics/src/runtime/virtual_geometry/residency_management/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/build_prepare_frame.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/prepare_visible_clusters.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/residency_management/mod.rs
   - zircon_graphics/src/backend/render_backend/read_buffer_u32s.rs
   - zircon_graphics/src/runtime/render_framework/mod.rs
   - zircon_graphics/src/runtime/render_framework/capability_summary/mod.rs
@@ -282,9 +282,9 @@ implementation_files:
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/build_frame_submission_context/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/virtual_geometry/build_virtual_geometry_prepare.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepare_runtime_submission/prepare.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/mod.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/submit/mod.rs
   - zircon_graphics/src/runtime/render_framework/submit_frame_extract/update_stats/mod.rs
   - zircon_graphics/src/scene/scene_renderer/core/scene_renderer_render/mod.rs
@@ -404,7 +404,7 @@ tests:
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_graphics/src/tests/hybrid_gi_resolve_render.rs
   - zircon_graphics/src/tests/virtual_geometry_prepare_render.rs
-  - zircon_graphics/src/runtime/render_framework/submit_frame_extract/record_submission/update_virtual_geometry_runtime.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_editor/src/lib.rs
   - cargo test -p zircon_resource -p zircon_asset -p zircon_scene -p zircon_graphics -p zircon_editor
   - cargo test -p zircon_rhi --lib --tests

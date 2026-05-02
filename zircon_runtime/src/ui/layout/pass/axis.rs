@@ -1,10 +1,14 @@
-use crate::ui::layout::{solve_axis_constraints, AxisConstraint, LayoutBoundary, StretchMode};
-use crate::ui::tree::UiTreeError;
-use crate::ui::{layout::UiAxis, layout::UiFrame, layout::UiSize, tree::UiTree};
+use crate::ui::layout::solve_axis_constraints;
+use crate::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiFrame, UiSize},
+    tree::{UiTree, UiTreeError},
+};
 
 pub(crate) fn resolve_linear_child_main_extents(
     tree: &UiTree,
-    children: &[crate::ui::event_ui::UiNodeId],
+    children: &[UiNodeId],
     axis: UiAxis,
     available_extent: f32,
     gap: f32,

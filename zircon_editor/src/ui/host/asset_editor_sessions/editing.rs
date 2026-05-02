@@ -12,8 +12,7 @@ use std::path::{Path, PathBuf};
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::asset_editor::{
-    UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorMode, UiAssetEditorSession,
-    UiAssetPreviewPreset,
+    UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorMode, UiAssetPreviewPreset,
 };
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;
@@ -21,8 +20,7 @@ use crate::ui::workbench::view::{
     ActivityWindowTemplateSpec, PreferredHost, ViewDescriptor, ViewDescriptorId, ViewInstanceId,
     ViewKind,
 };
-use zircon_runtime::asset::assets::{UiStyleAsset, UiWidgetAsset};
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::super::ui_asset_promotion::{
@@ -30,11 +28,6 @@ use super::super::ui_asset_promotion::{
 };
 
 pub(crate) const UI_ASSET_EDITOR_DESCRIPTOR_ID: &str = "editor.ui_asset";
-
-pub(crate) struct UiAssetWorkspaceEntry {
-    pub(crate) source_path: PathBuf,
-    pub(crate) session: UiAssetEditorSession,
-}
 
 fn ui_asset_effect_source_path(project_root: &Path, asset_id: &str) -> PathBuf {
     let relative = asset_id.strip_prefix("res://").unwrap_or(asset_id);
@@ -63,7 +56,7 @@ impl EditorUiHost {
         &self,
         project_root: &Path,
         effect: &UiAssetEditorExternalEffect,
-    ) -> Result<(), EditorError> {
+    ) -> Result<String, EditorError> {
         match effect {
             UiAssetEditorExternalEffect::UpsertAssetSource { asset_id, source }
             | UiAssetEditorExternalEffect::RestoreAssetSource { asset_id, source } => {
@@ -76,7 +69,7 @@ impl EditorUiHost {
                     .map_err(|error| EditorError::UiAsset(error.to_string()))?;
                 let normalized = normalize_ui_asset_asset_id(asset_id).to_string();
                 let _ = self.asset_manager()?.import_asset(&normalized);
-                Ok(())
+                Ok(normalized)
             }
             UiAssetEditorExternalEffect::RemoveAssetSource { asset_id } => {
                 let source_path = ui_asset_effect_source_path(project_root, asset_id);
@@ -85,7 +78,7 @@ impl EditorUiHost {
                         .map_err(|error| EditorError::UiAsset(error.to_string()))?;
                 }
                 let _ = self.asset_manager()?.reimport_all();
-                Ok(())
+                Ok(normalize_ui_asset_asset_id(asset_id).to_string())
             }
         }
     }

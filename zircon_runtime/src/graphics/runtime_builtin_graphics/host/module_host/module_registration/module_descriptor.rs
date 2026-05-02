@@ -5,7 +5,10 @@ use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
 };
 use crate::engine_module::{dependency_on, factory, qualified_name};
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
+};
 
 use crate::asset::ASSET_MODULE_NAME;
 
@@ -16,13 +19,23 @@ use super::graphics_core_error::graphics_core_error;
 use super::service_names::{GRAPHICS_MODULE_NAME, RENDER_FRAMEWORK_NAME};
 
 pub fn module_descriptor() -> ModuleDescriptor {
-    module_descriptor_with_render_features(Vec::new())
+    module_descriptor_with_render_features(Vec::new(), Vec::new(), Vec::new())
 }
 
 pub fn module_descriptor_with_render_features(
     render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+    render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    virtual_geometry_runtime_providers: impl IntoIterator<
+        Item = VirtualGeometryRuntimeProviderRegistration,
+    >,
 ) -> ModuleDescriptor {
     let render_features = Arc::new(render_features.into_iter().collect::<Vec<_>>());
+    let render_pass_executors = Arc::new(render_pass_executors.into_iter().collect::<Vec<_>>());
+    let virtual_geometry_runtime_providers = Arc::new(
+        virtual_geometry_runtime_providers
+            .into_iter()
+            .collect::<Vec<_>>(),
+    );
     ModuleDescriptor::new(
         GRAPHICS_MODULE_NAME,
         "Rendering device abstraction and scene rendering",
@@ -47,10 +60,17 @@ pub fn module_descriptor_with_render_features(
         )],
         factory({
             let render_features = Arc::clone(&render_features);
+            let render_pass_executors = Arc::clone(&render_pass_executors);
+            let virtual_geometry_runtime_providers =
+                Arc::clone(&virtual_geometry_runtime_providers);
             move |core| {
-                let render_framework =
-                    create_render_framework_with_render_features(core, render_features.to_vec())
-                        .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
+                let render_framework = create_render_framework_with_render_features(
+                    core,
+                    render_features.to_vec(),
+                    render_pass_executors.to_vec(),
+                    virtual_geometry_runtime_providers.to_vec(),
+                )
+                .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
                 Ok(Arc::new(RenderFrameworkHandle::new(render_framework)) as ServiceObject)
             }
         }),

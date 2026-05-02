@@ -10,8 +10,7 @@ use super::runtime::{AnimationDriver, DefaultAnimationManager};
 
 pub const ANIMATION_MODULE_NAME: &str = "AnimationModule";
 pub const ANIMATION_DRIVER_NAME: &str = "AnimationModule.Driver.AnimationDriver";
-pub const DEFAULT_ANIMATION_MANAGER_NAME: &str =
-    "AnimationModule.Manager.DefaultAnimationManager";
+pub const DEFAULT_ANIMATION_MANAGER_NAME: &str = "AnimationModule.Manager.DefaultAnimationManager";
 pub const ANIMATION_MANAGER_NAME: &str = crate::core::manager::ANIMATION_MANAGER_NAME;
 pub const ANIMATION_PLAYBACK_CONFIG_KEY: &str = "animation.playback_settings";
 
@@ -41,7 +40,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|core| Ok(Arc::new(DefaultAnimationManager::new(Some(core.clone()))) as ServiceObject)),
+        factory(|core| {
+            Ok(Arc::new(DefaultAnimationManager::new(Some(core.clone()))) as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(

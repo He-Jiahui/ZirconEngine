@@ -1,8 +1,18 @@
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutionContext,
+    RenderPassExecutorRegistration, RenderPassStage,
 };
 use zircon_runtime::render_graph::QueueLane;
+
+mod hybrid_gi;
+#[cfg(test)]
+pub(crate) mod test_support;
+
+pub(crate) use hybrid_gi::{
+    HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimeScenePrepareResources,
+    HybridGiRuntimeState, HybridGiSceneInputs,
+};
 
 pub const PLUGIN_ID: &str = "hybrid_gi";
 pub const HYBRID_GI_FEATURE_NAME: &str = "hybrid_gi";
@@ -31,7 +41,11 @@ impl zircon_runtime::RuntimePlugin for HybridGiRuntimePlugin {
         registry: &mut zircon_runtime::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
-        registry.register_render_feature(render_feature_descriptor())
+        registry.register_render_feature(render_feature_descriptor())?;
+        for registration in render_pass_executor_registrations() {
+            registry.register_render_pass_executor(registration)?;
+        }
+        Ok(())
     }
 }
 
@@ -89,6 +103,37 @@ pub fn render_feature_descriptor() -> RenderFeatureDescriptor {
         ],
     )
     .with_capability_requirement(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
+}
+
+pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistration> {
+    vec![
+        RenderPassExecutorRegistration::new(
+            "hybrid-gi.scene-prepare",
+            hybrid_gi_scene_prepare_executor,
+        ),
+        RenderPassExecutorRegistration::new(
+            "hybrid-gi.trace-schedule",
+            hybrid_gi_trace_schedule_executor,
+        ),
+        RenderPassExecutorRegistration::new("hybrid-gi.resolve", hybrid_gi_resolve_executor),
+        RenderPassExecutorRegistration::new("hybrid-gi.history", hybrid_gi_history_executor),
+    ]
+}
+
+fn hybrid_gi_scene_prepare_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
+}
+
+fn hybrid_gi_trace_schedule_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
+}
+
+fn hybrid_gi_resolve_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
+}
+
+fn hybrid_gi_history_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+    Ok(())
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::RuntimePluginDescriptor {
@@ -182,6 +227,21 @@ mod tests {
                 "hybrid-gi-trace-schedule",
                 "hybrid-gi-resolve",
                 "hybrid-gi-history",
+            ]
+        );
+        assert_eq!(report.extensions.render_pass_executors().len(), 4);
+        assert_eq!(
+            report
+                .extensions
+                .render_pass_executors()
+                .iter()
+                .map(|registration| registration.executor_id().as_str())
+                .collect::<Vec<_>>(),
+            vec![
+                "hybrid-gi.scene-prepare",
+                "hybrid-gi.trace-schedule",
+                "hybrid-gi.resolve",
+                "hybrid-gi.history",
             ]
         );
     }

@@ -1,5 +1,13 @@
 mod asset;
-mod asset_migration_support;
+mod asset_action_policy;
+mod asset_binding;
+mod asset_compile_cache;
+mod asset_component_contract;
+mod asset_invalidation;
+mod asset_localization;
+mod asset_package_validation;
+mod asset_resource_refs;
+mod asset_schema_migration;
 mod binding;
 mod boundary;
 mod component_catalog;

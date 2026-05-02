@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{
+use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     layout::{UiFrame, UiSize},
 };

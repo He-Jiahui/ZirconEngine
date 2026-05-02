@@ -1,6 +1,9 @@
 use super::*;
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset};
 use crate::ui::workbench::view::ViewInstanceId;
+use zircon_runtime_interface::ui::component::{
+    UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiValue,
+};
 
 impl SlintEditorHost {
     pub(super) fn dispatch_ui_asset_action(&mut self, instance_id: &str, action_id: &str) {
@@ -332,26 +335,34 @@ impl SlintEditorHost {
     }
 
     fn handle_ui_asset_widget_detail(&mut self, instance_id: &str, action_id: &str, value: &str) {
-        self.focus_callback_source_window();
-        let instance_id = ViewInstanceId::new(instance_id);
-        let result = match action_id {
-            "widget.control_id.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_widget_control_id(&instance_id, value)
-                .map(|_| ()),
-            "widget.text.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_widget_text_property(&instance_id, value)
-                .map(|_| ()),
+        match action_id {
+            "widget.control_id.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id,
+                    action_id,
+                    "widget.control_id",
+                    value,
+                );
+            }
+            "widget.text.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id,
+                    action_id,
+                    "widget.text",
+                    value,
+                );
+            }
+            "component.root_class_policy.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id,
+                    action_id,
+                    "component.root_class_policy",
+                    value,
+                );
+            }
             other => {
                 self.set_status_line(format!("Unknown UI asset widget action {other}"));
-                return;
             }
-        };
-
-        match result {
-            Ok(()) => self.presentation_dirty = true,
-            Err(error) => self.set_status_line(error.to_string()),
         }
     }
 
@@ -392,35 +403,64 @@ impl SlintEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "slot.mount.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_slot_mount(&instance_id, value)
-                .map(|_| ()),
-            "slot.padding.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_slot_padding(&instance_id, value)
-                .map(|_| ()),
-            "slot.layout.width.preferred.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_slot_width_preferred(&instance_id, value)
-                .map(|_| ()),
-            "slot.layout.height.preferred.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_slot_height_preferred(&instance_id, value)
-                .map(|_| ()),
-            "slot.semantic.value.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_slot_semantic_value(&instance_id, value)
-                .map(|_| ()),
+            "slot.mount.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "slot.mount",
+                    value,
+                );
+                return;
+            }
+            "slot.padding.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "slot.padding",
+                    value,
+                );
+                return;
+            }
+            "slot.layout.width.preferred.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "slot.width_preferred",
+                    value,
+                );
+                return;
+            }
+            "slot.layout.height.preferred.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "slot.height_preferred",
+                    value,
+                );
+                return;
+            }
+            "slot.semantic.value.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "slot.semantic.value",
+                    value,
+                );
+                return;
+            }
             "slot.semantic.delete" => self
                 .editor_manager
                 .delete_ui_asset_editor_selected_slot_semantic(&instance_id)
                 .map(|_| ()),
             other => {
                 if let Some(path) = slot_semantic_action_path(other) {
-                    self.editor_manager
-                        .set_ui_asset_editor_selected_slot_semantic_field(&instance_id, path, value)
-                        .map(|_| ())
+                    self.dispatch_ui_asset_component_adapter_commit(
+                        instance_id.0.as_str(),
+                        action_id,
+                        &format!("slot.semantic.field.{path}"),
+                        value,
+                    );
+                    return;
                 } else {
                     self.set_status_line(format!("Unknown UI asset slot action {other}"));
                     return;
@@ -438,31 +478,46 @@ impl SlintEditorHost {
         self.focus_callback_source_window();
         let instance_id = ViewInstanceId::new(instance_id);
         let result = match action_id {
-            "layout.width.preferred.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_layout_width_preferred(&instance_id, value)
-                .map(|_| ()),
-            "layout.height.preferred.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_layout_height_preferred(&instance_id, value)
-                .map(|_| ()),
-            "layout.semantic.value.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_layout_semantic_value(&instance_id, value)
-                .map(|_| ()),
+            "layout.width.preferred.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "layout.width_preferred",
+                    value,
+                );
+                return;
+            }
+            "layout.height.preferred.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "layout.height_preferred",
+                    value,
+                );
+                return;
+            }
+            "layout.semantic.value.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "layout.semantic.value",
+                    value,
+                );
+                return;
+            }
             "layout.semantic.delete" => self
                 .editor_manager
                 .delete_ui_asset_editor_selected_layout_semantic(&instance_id)
                 .map(|_| ()),
             other => {
                 if let Some(path) = layout_semantic_action_path(other) {
-                    self.editor_manager
-                        .set_ui_asset_editor_selected_layout_semantic_field(
-                            &instance_id,
-                            path,
-                            value,
-                        )
-                        .map(|_| ())
+                    self.dispatch_ui_asset_component_adapter_commit(
+                        instance_id.0.as_str(),
+                        action_id,
+                        &format!("layout.semantic.field.{path}"),
+                        value,
+                    );
+                    return;
                 } else {
                     self.set_status_line(format!("Unknown UI asset layout action {other}"));
                     return;
@@ -472,6 +527,38 @@ impl SlintEditorHost {
 
         match result {
             Ok(()) => self.presentation_dirty = true,
+            Err(error) => self.set_status_line(error.to_string()),
+        }
+    }
+
+    fn dispatch_ui_asset_component_adapter_commit(
+        &mut self,
+        instance_id: &str,
+        control_id: &str,
+        target_path: &str,
+        value: &str,
+    ) {
+        self.focus_callback_source_window();
+        let envelope = UiComponentEventEnvelope::new(
+            "ui_asset.editor",
+            control_id,
+            UiComponentBindingTarget::asset_editor(instance_id.to_string(), target_path),
+            UiComponentEvent::Commit {
+                property: "value".to_string(),
+                value: UiValue::String(value.to_string()),
+            },
+        )
+        .with_component_id(control_id);
+
+        match self.runtime.dispatch_ui_component_adapter_event(&envelope) {
+            Ok(result) => {
+                if let Some(status_text) = result.status_text {
+                    self.set_status_line(status_text);
+                }
+                if result.changed || result.refresh_projection || !result.patches.is_empty() {
+                    self.presentation_dirty = true;
+                }
+            }
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -488,26 +575,51 @@ impl SlintEditorHost {
                 .editor_manager
                 .delete_ui_asset_editor_selected_binding(&instance_id)
                 .map(|_| ()),
-            "binding.id.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_binding_id(&instance_id, value)
-                .map(|_| ()),
-            "binding.event.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_binding_event(&instance_id, value)
-                .map(|_| ()),
-            "binding.route.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_binding_route(&instance_id, value)
-                .map(|_| ()),
-            "binding.route_target.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_binding_route_target(&instance_id, value)
-                .map(|_| ()),
-            "binding.action_target.set" => self
-                .editor_manager
-                .set_ui_asset_editor_selected_binding_action_target(&instance_id, value)
-                .map(|_| ()),
+            "binding.id.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "binding.id",
+                    value,
+                );
+                return;
+            }
+            "binding.event.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "binding.event",
+                    value,
+                );
+                return;
+            }
+            "binding.route.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "binding.route",
+                    value,
+                );
+                return;
+            }
+            "binding.route_target.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "binding.route_target",
+                    value,
+                );
+                return;
+            }
+            "binding.action_target.set" => {
+                self.dispatch_ui_asset_component_adapter_commit(
+                    instance_id.0.as_str(),
+                    action_id,
+                    "binding.action_target",
+                    value,
+                );
+                return;
+            }
             other => {
                 self.set_status_line(format!("Unknown UI asset binding action {other}"));
                 return;

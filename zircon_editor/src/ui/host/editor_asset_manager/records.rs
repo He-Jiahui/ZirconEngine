@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use zircon_runtime::core::resource::ResourceKind;
+use zircon_runtime_interface::resource::ResourceKind;
 
 use zircon_runtime::asset::project::PreviewState;
 

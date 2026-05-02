@@ -20,7 +20,7 @@ use crate::ui::layouts::views::hierarchy_pane_nodes;
 use crate::ui::layouts::views::inspector_pane_nodes;
 use crate::ui::layouts::views::project_overview_pane_data;
 use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel};
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 const DEFAULT_PRESET_NAME: &str = "rider";
 const MIN_DROP_TARGET_PX: f32 = 92.0;

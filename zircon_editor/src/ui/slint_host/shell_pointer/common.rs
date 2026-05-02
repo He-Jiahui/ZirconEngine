@@ -1,5 +1,7 @@
-use zircon_runtime::ui::{
-    event_ui::UiNodeId, event_ui::UiStateFlags, layout::UiFrame, surface::UiSurface,
+use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiStateFlags},
+    layout::UiFrame,
     tree::UiInputPolicy,
 };
 

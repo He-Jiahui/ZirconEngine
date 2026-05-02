@@ -1,4 +1,4 @@
-use super::super::{UiReflectionDiff, UiReflectionSnapshot};
+use zircon_runtime_interface::ui::event_ui::{UiReflectionDiff, UiReflectionSnapshot};
 
 pub(crate) fn compute_diff(
     previous: &UiReflectionSnapshot,

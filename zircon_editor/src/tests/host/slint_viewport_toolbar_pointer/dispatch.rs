@@ -8,7 +8,7 @@ use crate::ui::slint_host::viewport_toolbar_pointer::{
     build_viewport_toolbar_pointer_layout, ViewportToolbarPointerBridge,
     ViewportToolbarPointerRoute,
 };
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 #[test]
 fn shared_viewport_toolbar_pointer_click_dispatches_display_cycle_through_runtime_dispatcher() {

@@ -1,7 +1,8 @@
 use super::{EditorUiBinding, EditorUiRouter};
+use zircon_runtime_interface::ui::binding::UiEventPath;
 
 impl<T> EditorUiRouter<T> {
-    pub fn register_exact<F>(&mut self, path: zircon_runtime::ui::binding::UiEventPath, handler: F)
+    pub fn register_exact<F>(&mut self, path: UiEventPath, handler: F)
     where
         F: Fn(&EditorUiBinding) -> T + Send + Sync + 'static,
     {

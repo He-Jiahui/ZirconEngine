@@ -3,7 +3,7 @@ use std::fs;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{AssetImporter, AssetKind, AssetUri, FontAsset, ImportedAsset};
-use crate::ui::surface::UiTextRenderMode;
+use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 const FONT_TOML: &str = r#"
 source = "FiraMono-subset.ttf"

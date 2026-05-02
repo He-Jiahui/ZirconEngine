@@ -1,10 +1,13 @@
 //! Runtime absorption layer for the built-in high-level engine subsystems.
 
 pub mod core;
+pub mod dynamic_api;
 pub mod engine_module;
 
 // `ui` must be declared before `asset` (asset types reference UI template loaders).
+pub mod animation;
 pub mod asset;
+pub mod physics;
 pub mod scene;
 pub mod ui;
 
@@ -43,6 +46,10 @@ pub(crate) use graphics::{
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
     RenderFeatureResourceKind, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
     RendererAsset, RendererFeatureAsset, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
+    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
     VisibilityContext, VisibilityHistorySnapshot, VisibilityHybridGiFeedback,
     VisibilityHybridGiUpdatePlan, VisibilityVirtualGeometryCluster,
     VisibilityVirtualGeometryDrawSegment, VisibilityVirtualGeometryFeedback,

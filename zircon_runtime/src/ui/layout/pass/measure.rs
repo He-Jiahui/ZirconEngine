@@ -1,13 +1,15 @@
-use crate::ui::tree::UiTreeError;
-use crate::ui::{
-    layout::DesiredSize, layout::UiAxis, layout::UiContainerKind, layout::UiSize, tree::UiTree,
+use crate::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    event_ui::UiNodeId,
+    layout::{DesiredSize, UiAxis, UiContainerKind, UiSize},
+    tree::{UiTree, UiTreeError},
 };
 
 use super::axis::desired_axis;
 
 pub(crate) fn measure_node(
     tree: &mut UiTree,
-    node_id: crate::ui::event_ui::UiNodeId,
+    node_id: UiNodeId,
 ) -> Result<DesiredSize, UiTreeError> {
     let (children, layout_boundary, constraints, container) = {
         let node = tree

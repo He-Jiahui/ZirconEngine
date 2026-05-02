@@ -1,4 +1,3 @@
-mod hybrid_gi_readback_outputs;
 mod output_access;
 mod output_storage;
 mod scene_renderer_advanced_plugin_outputs;
@@ -6,13 +5,10 @@ mod virtual_geometry_cull_access;
 mod virtual_geometry_cull_outputs;
 mod virtual_geometry_indirect_access;
 mod virtual_geometry_indirect_outputs;
-mod virtual_geometry_readback_outputs;
 mod virtual_geometry_render_path_access;
 mod virtual_geometry_render_path_outputs;
 
-use hybrid_gi_readback_outputs::HybridGiReadbackOutputs;
 pub(in crate::graphics::scene::scene_renderer::core) use scene_renderer_advanced_plugin_outputs::SceneRendererAdvancedPluginOutputs;
 use virtual_geometry_cull_outputs::VirtualGeometryCullOutputs;
 use virtual_geometry_indirect_outputs::VirtualGeometryIndirectOutputs;
-use virtual_geometry_readback_outputs::VirtualGeometryReadbackOutputs;
 use virtual_geometry_render_path_outputs::VirtualGeometryRenderPathOutputs;

@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use super::host_activity_rail_pointer_bridge::HostActivityRailPointerBridge;
 use super::host_activity_rail_pointer_side::HostActivityRailPointerSide;

@@ -98,6 +98,16 @@ impl LevelSystem {
         self.runtime_state.lock().unwrap().physics_contacts.clone()
     }
 
+    pub(crate) fn record_physics_step(
+        &self,
+        physics_step_plan: PhysicsWorldStepPlan,
+        physics_contacts: Vec<PhysicsContactEvent>,
+    ) {
+        let mut runtime_state = self.runtime_state.lock().unwrap();
+        runtime_state.physics_step_plan = Some(physics_step_plan);
+        runtime_state.physics_contacts = physics_contacts;
+    }
+
     pub fn animation_pose(&self, entity: EntityId) -> Option<AnimationPoseOutput> {
         self.runtime_state
             .lock()

@@ -8,7 +8,7 @@ use crate::ui::slint_host::host_page_pointer::{
 };
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
-use zircon_runtime::ui::layout::{UiPoint, UiSize};
+use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
 fn shared_host_page_pointer_click_dispatches_activate_main_page_through_runtime_dispatcher() {

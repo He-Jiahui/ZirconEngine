@@ -1,5 +1,5 @@
 use crate::ui::asset_editor::ui_asset_editor_window_descriptor;
-use zircon_runtime::ui::event_ui::UiNodePath;
+use zircon_runtime_interface::ui::event_ui::UiNodePath;
 
 #[test]
 fn ui_asset_editor_window_descriptor_matches_shared_asset_editor_contract() {

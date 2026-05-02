@@ -1,6 +1,6 @@
 use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::OverlayAxis;
-use zircon_runtime::core::math::{Vec3, Vec4};
+use zircon_runtime_interface::math::{Vec3, Vec4};
 
 use crate::scene::viewport::handles::{
     constants::{X_COLOR, Y_COLOR, Z_COLOR},

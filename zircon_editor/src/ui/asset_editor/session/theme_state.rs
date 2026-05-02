@@ -23,7 +23,7 @@ use super::{
     },
     undo_stack::UiAssetEditorUndoExternalEffects,
 };
-use zircon_runtime::ui::template::{UiAssetDocument, UiStyleRule, UiStyleSheet};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleRule, UiStyleSheet};
 
 impl UiAssetEditorSession {
     pub fn select_theme_source(&mut self, index: usize) -> Result<bool, UiAssetEditorSessionError> {

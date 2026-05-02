@@ -15,8 +15,10 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
         crate::platform::PLATFORM_MODULE_NAME,
         crate::input::INPUT_MODULE_NAME,
         crate::asset::ASSET_MODULE_NAME,
-        crate::graphics::GRAPHICS_MODULE_NAME,
         crate::scene::SCENE_MODULE_NAME,
+        crate::physics::PHYSICS_MODULE_NAME,
+        crate::animation::ANIMATION_MODULE_NAME,
+        crate::graphics::GRAPHICS_MODULE_NAME,
         crate::script::SCRIPT_MODULE_NAME,
     ] {
         assert!(
@@ -54,6 +56,14 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
         .iter()
         .position(|name| *name == crate::scene::SCENE_MODULE_NAME)
         .expect("scene module should exist in runtime builtins");
+    let physics_index = descriptors
+        .iter()
+        .position(|name| *name == crate::physics::PHYSICS_MODULE_NAME)
+        .expect("physics module should exist in runtime builtins");
+    let animation_index = descriptors
+        .iter()
+        .position(|name| *name == crate::animation::ANIMATION_MODULE_NAME)
+        .expect("animation module should exist in runtime builtins");
 
     assert!(
         scene_index < script_index,
@@ -61,9 +71,11 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
     );
     assert_eq!(
         graphics_index,
-        scene_index + 1,
+        animation_index + 1,
         "graphics base should remain in the minimal runtime core before script"
     );
+    assert_eq!(physics_index, scene_index + 1);
+    assert_eq!(animation_index, physics_index + 1);
 
     #[cfg(feature = "plugin-ui")]
     {
@@ -125,4 +137,27 @@ fn optional_unavailable_runtime_plugin_stays_warning_only() {
         .warnings
         .iter()
         .any(|warning| warning.contains("zircon_plugins/virtual_geometry")));
+}
+
+#[test]
+fn physics_animation_manifest_entries_resolve_to_builtin_runtime_domains() {
+    let manifest = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Physics, true, true),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, true),
+        ],
+    };
+
+    let report = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, Some(&manifest));
+
+    assert!(report.required_missing().is_empty());
+    assert!(report.errors.is_empty());
+    assert!(report
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("zircon_runtime::physics")));
+    assert!(report
+        .warnings
+        .iter()
+        .any(|warning| warning.contains("zircon_runtime::animation")));
 }

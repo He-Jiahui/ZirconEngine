@@ -36,7 +36,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|core| Ok(Arc::new(DefaultPhysicsManager::new(Some(core.clone()))) as ServiceObject)),
+        factory(|core| {
+            Ok(Arc::new(DefaultPhysicsManager::new(Some(core.clone()))) as ServiceObject)
+        }),
     ))
     .with_manager(ManagerDescriptor::new(
         qualified_name(PHYSICS_MODULE_NAME, ServiceKind::Manager, "PhysicsManager"),

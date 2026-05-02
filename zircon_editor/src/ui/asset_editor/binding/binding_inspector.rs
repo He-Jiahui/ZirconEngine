@@ -7,9 +7,13 @@ use crate::ui::asset_editor::value_path::{
 };
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use toml::Value;
-use zircon_runtime::ui::template::{UiActionRef, UiBindingRef};
-use zircon_runtime::ui::template::{UiNodeDefinition, UiNodeDefinitionKind};
-use zircon_runtime::ui::{binding::UiEventKind, template::UiAssetDocument};
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    template::{
+        UiActionRef, UiAssetDocument, UiBindingRef, UiNodeDefinition, UiNodeDefinitionKind,
+    },
+};
 
 use crate::ui::asset_editor::style::style_rule_declarations::parse_declaration_literal;
 
@@ -238,6 +242,7 @@ pub(crate) fn add_default_binding(
         event: UiEventKind::Click,
         route: None,
         action: None,
+        targets: Vec::new(),
     });
     Some(next_index)
 }

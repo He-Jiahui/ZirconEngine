@@ -2,7 +2,7 @@ use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{
     DraftCommand, EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind,
 };
-use zircon_runtime::ui::binding::UiBindingValue;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn inspector_batch_binding_roundtrips_with_array_payload() {

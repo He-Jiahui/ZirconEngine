@@ -1,6 +1,6 @@
 use crate::core::editor_event::MainPageId;
 use crate::ui::slint_host::host_page_pointer::{HostPagePointerItem, HostPagePointerLayout};
-use zircon_runtime::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 pub(super) fn sample_host_page_layout() -> HostPagePointerLayout {
     HostPagePointerLayout {

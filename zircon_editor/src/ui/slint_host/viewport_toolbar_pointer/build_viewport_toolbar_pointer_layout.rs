@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiSize;
+use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::build_viewport_toolbar_pointer_layout_with_size::build_viewport_toolbar_pointer_layout_with_size;
 use super::constants::{SURFACE_HEIGHT, SURFACE_WIDTH};

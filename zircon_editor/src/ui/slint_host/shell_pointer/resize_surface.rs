@@ -1,12 +1,12 @@
 use zircon_runtime::ui::{
-    dispatch::{UiPointerDispatchEffect, UiPointerDispatcher},
-    event_ui::UiNodePath,
-    event_ui::UiTreeId,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect,
+    event_ui::{UiNodePath, UiTreeId},
     layout::UiFrame,
     surface::UiPointerEventKind,
-    surface::UiSurface,
-    tree::UiInputPolicy,
-    tree::UiTreeNode,
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use crate::ui::workbench::autolayout::ShellRegionId;

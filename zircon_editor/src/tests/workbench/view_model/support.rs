@@ -14,7 +14,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewKind,
 };
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 pub(super) fn sample_workbench_chrome() -> EditorChromeSnapshot {
     let scene_instance = ViewInstance {

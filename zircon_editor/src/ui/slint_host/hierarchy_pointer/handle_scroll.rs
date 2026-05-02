@@ -1,4 +1,7 @@
-use zircon_runtime::ui::{dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind};
+use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerEvent, layout::UiPoint, surface::UiPointerEventKind,
+};
 
 use super::constants::VIEWPORT_NODE_ID;
 use super::hierarchy_pointer_bridge::HierarchyPointerBridge;

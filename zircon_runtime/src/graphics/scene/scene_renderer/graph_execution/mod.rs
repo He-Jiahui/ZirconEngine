@@ -1,9 +1,11 @@
 mod render_graph_execution_record;
 mod render_pass_execution_context;
 mod render_pass_executor_id;
+mod render_pass_executor_registration;
 mod render_pass_executor_registry;
 
 pub use render_graph_execution_record::RenderGraphExecutionRecord;
 pub use render_pass_execution_context::RenderPassExecutionContext;
 pub use render_pass_executor_id::RenderPassExecutorId;
-pub use render_pass_executor_registry::RenderPassExecutorRegistry;
+pub use render_pass_executor_registration::RenderPassExecutorRegistration;
+pub use render_pass_executor_registry::{RenderPassExecutorFn, RenderPassExecutorRegistry};

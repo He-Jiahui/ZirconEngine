@@ -4,7 +4,7 @@ use super::{
     RenderVirtualGeometryDebugSnapshot,
 };
 use crate::graphics::RenderPipelineAsset;
-use crate::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 pub trait RenderFramework: Send + Sync {
     fn create_viewport(

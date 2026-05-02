@@ -1,10 +1,9 @@
-use crate::ui::binding::{UiBindingValue, UiEventBinding};
-
-use super::super::{
+use super::UiEventManager;
+use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventBinding};
+use zircon_runtime_interface::ui::event_ui::{
     UiControlRequest, UiControlResponse, UiInvocationContext, UiInvocationError,
     UiInvocationResult, UiInvocationSource, UiNodePath, UiRouteId,
 };
-use super::UiEventManager;
 
 impl UiEventManager {
     pub fn invoke_route(
@@ -176,7 +175,9 @@ impl UiEventManager {
                 error,
             ),
         };
-        self.broadcast(super::super::UiNotification::Invocation(result.clone()));
+        self.broadcast(
+            zircon_runtime_interface::ui::event_ui::UiNotification::Invocation(result.clone()),
+        );
         result
     }
 }

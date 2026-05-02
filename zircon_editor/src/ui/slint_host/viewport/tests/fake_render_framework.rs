@@ -5,9 +5,9 @@ use crate::scene::viewport::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
     RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
 };
-use zircon_runtime::core::math::UVec2;
 use zircon_runtime::graphics::RenderPipelineAsset;
-use zircon_runtime::ui::surface::UiRenderExtract;
+use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
 #[derive(Default)]
 pub(super) struct FakeRenderFramework {
@@ -23,6 +23,7 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) submitted_viewports: Vec<RenderViewportHandle>,
     pub(super) submitted_aspect_ratios: Vec<f32>,
     pub(super) submitted_ui_command_counts: Vec<usize>,
+    pub(super) submitted_ui_texts: Vec<Vec<String>>,
     pub(super) capture_requests: usize,
     pub(super) captures: HashMap<RenderViewportHandle, CapturedFrame>,
 }
@@ -87,9 +88,23 @@ impl RenderFramework for FakeRenderFramework {
         state
             .submitted_aspect_ratios
             .push(size.x as f32 / size.y as f32);
-        state
-            .submitted_ui_command_counts
-            .push(ui.map(|extract| extract.list.commands.len()).unwrap_or(0));
+        state.submitted_ui_command_counts.push(
+            ui.as_ref()
+                .map(|extract| extract.list.commands.len())
+                .unwrap_or(0),
+        );
+        state.submitted_ui_texts.push(
+            ui.as_ref()
+                .map(|extract| {
+                    extract
+                        .list
+                        .commands
+                        .iter()
+                        .filter_map(|command| command.text.clone())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default(),
+        );
         state.captures.insert(
             viewport,
             CapturedFrame::new(1, 1, vec![viewport.raw() as u8, 0, 0, 255], viewport.raw()),

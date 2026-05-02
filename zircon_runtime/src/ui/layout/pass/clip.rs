@@ -1,4 +1,4 @@
-use crate::ui::layout::UiFrame;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 pub(crate) fn resolve_clip_frame(
     inherited_clip: Option<UiFrame>,

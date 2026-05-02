@@ -14,7 +14,6 @@ use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
 use super::partition_mesh_draws::partition_mesh_draws;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
-use super::virtual_geometry_indirect_stats::collect_virtual_geometry_indirect_stats;
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -33,6 +32,8 @@ impl SceneRendererCore {
         history_textures: Option<&mut SceneFrameHistoryTextures>,
         history_available: bool,
     ) -> Result<SceneRendererCompiledSceneOutputs, GraphicsError> {
+        let _ = virtual_geometry_cull_input;
+        let _ = previous_node_and_cluster_cull_global_state;
         self.write_scene_uniform(queue, frame);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-compiled-scene-encoder"),
@@ -63,32 +64,10 @@ impl SceneRendererCore {
         } else {
             compiled_scene_draws.draws().iter().collect::<Vec<_>>()
         };
-        let resolved_virtual_geometry_cluster_selections =
-            frame.resolved_virtual_geometry_cluster_selections();
-        let indirect_stats = collect_virtual_geometry_indirect_stats(
-            &self.advanced_plugin_resources,
-            device,
-            &mut encoder,
-            runtime_features.virtual_geometry_enabled,
-            frame,
-            virtual_geometry_cull_input,
-            previous_node_and_cluster_cull_global_state,
-            resolved_virtual_geometry_cluster_selections.as_deref(),
-            &execution_draws,
-            compiled_scene_draws.indirect_args_buffer(),
-            compiled_scene_draws.indirect_args_count(),
-            compiled_scene_draws.indirect_segment_count(),
-            compiled_scene_draws.indirect_submission_buffer(),
-            compiled_scene_draws.indirect_authority_buffer(),
-            compiled_scene_draws.indirect_draw_ref_buffer(),
-            compiled_scene_draws.indirect_segment_buffer(),
-        );
         let prepared_overlays = prepare_overlay_buffers(self, device, queue, streamer, frame)?;
 
         let advanced_plugin_readbacks =
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
-        let hybrid_gi_scene_prepare_resources =
-            advanced_plugin_readbacks.hybrid_gi_scene_prepare_resources();
         self.render_scene_passes(
             device,
             &mut encoder,
@@ -107,7 +86,7 @@ impl SceneRendererCore {
             target,
             frame,
             runtime_features,
-            hybrid_gi_scene_prepare_resources,
+            None,
             history_textures.as_deref(),
             history_available,
         );
@@ -131,7 +110,6 @@ impl SceneRendererCore {
         queue.submit([encoder.finish()]);
         Ok(SceneRendererCompiledSceneOutputs::new(
             advanced_plugin_readbacks,
-            indirect_stats,
         ))
     }
 }

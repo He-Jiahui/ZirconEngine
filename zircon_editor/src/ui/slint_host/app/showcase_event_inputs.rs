@@ -1,5 +1,8 @@
 use crate::ui::template_runtime::UiComponentShowcaseDemoEventInput;
-use zircon_runtime::ui::component::{UiDragPayload, UiDragPayloadKind, UiValue};
+use zircon_runtime_interface::ui::component::{UiDragPayload, UiDragPayloadKind, UiValue};
+
+const DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT: i64 = 36;
+const DEFAULT_PAGED_LIST_PAGE_SIZE: i64 = 100;
 
 pub(super) fn demo_input_for_showcase_edit(
     action_id: &str,
@@ -8,6 +11,16 @@ pub(super) fn demo_input_for_showcase_edit(
     if action_id.contains("ContextActionMenuOpenAt") {
         if let Some((x, y)) = parse_popup_anchor(value) {
             return UiComponentShowcaseDemoEventInput::OpenPopupAt { x, y };
+        }
+    }
+    if action_id.contains("VirtualListScrolled") {
+        if let Some(input) = parse_virtual_list_range(value) {
+            return input;
+        }
+    }
+    if action_id.contains("PagedList") {
+        if let Some(input) = parse_paged_list_request(value) {
+            return input;
         }
     }
     if action_id.contains("ArrayFieldRemoveElement") {
@@ -211,6 +224,35 @@ pub(super) fn demo_input_for_showcase_action(
             }
         }
         action if action.contains("ListRowClicked") => UiComponentShowcaseDemoEventInput::None,
+        action if action.contains("VirtualListScrolled") => {
+            UiComponentShowcaseDemoEventInput::SetVisibleRange {
+                start: 240,
+                count: DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
+            }
+        }
+        action if action.contains("PagedListNextPage") => {
+            UiComponentShowcaseDemoEventInput::SetPage {
+                page_index: 1,
+                page_size: DEFAULT_PAGED_LIST_PAGE_SIZE,
+            }
+        }
+        action if action.contains("WorldSpaceSurfaceMoved") => {
+            UiComponentShowcaseDemoEventInput::SetWorldTransform {
+                position: [1.0, 2.0, 4.0],
+                rotation: [0.0, 180.0, 0.0],
+                scale: [1.0, 1.0, 1.0],
+            }
+        }
+        action if action.contains("WorldSpaceSurfaceConfigured") => {
+            UiComponentShowcaseDemoEventInput::SetWorldSurface {
+                size: [2.5, 1.25],
+                pixels_per_meter: 256.0,
+                billboard: true,
+                depth_test: true,
+                render_order: 4,
+                camera_target: "viewport-main".to_string(),
+            }
+        }
         action if action.contains("Show") && control_id.starts_with("ComponentShowcase") => {
             UiComponentShowcaseDemoEventInput::None
         }
@@ -231,6 +273,63 @@ fn parse_collection_edit_value(value: &str) -> UiValue {
 fn parse_popup_anchor(value: &str) -> Option<(f64, f64)> {
     let (x, y) = value.split_once(',')?;
     Some((x.trim().parse().ok()?, y.trim().parse().ok()?))
+}
+
+fn parse_virtual_list_range(value: &str) -> Option<UiComponentShowcaseDemoEventInput> {
+    let (start, count) = parse_i64_request_pair(
+        value,
+        &["start", "viewport_start", "requested_start"],
+        &["count", "viewport_count", "requested_count"],
+        DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
+    )?;
+    Some(UiComponentShowcaseDemoEventInput::SetVisibleRange { start, count })
+}
+
+fn parse_paged_list_request(value: &str) -> Option<UiComponentShowcaseDemoEventInput> {
+    let (page_index, page_size) = parse_i64_request_pair(
+        value,
+        &["page", "page_index", "index"],
+        &["size", "page_size"],
+        DEFAULT_PAGED_LIST_PAGE_SIZE,
+    )?;
+    Some(UiComponentShowcaseDemoEventInput::SetPage {
+        page_index,
+        page_size,
+    })
+}
+
+fn parse_i64_request_pair(
+    value: &str,
+    first_keys: &[&str],
+    second_keys: &[&str],
+    default_second: i64,
+) -> Option<(i64, i64)> {
+    let value = value.trim();
+    if value.is_empty() {
+        return None;
+    }
+    if value.contains('=') {
+        let mut first = None;
+        let mut second = None;
+        for part in value.split([',', ';', '&']) {
+            let (key, raw_value) = part.split_once('=')?;
+            let key = key.trim();
+            let parsed_value = raw_value.trim().parse::<i64>().ok()?;
+            if first_keys.iter().any(|candidate| key == *candidate) {
+                first = Some(parsed_value);
+            } else if second_keys.iter().any(|candidate| key == *candidate) {
+                second = Some(parsed_value);
+            }
+        }
+        return first.map(|first| (first, second.unwrap_or(default_second)));
+    }
+    if let Some((first, second)) = value.split_once(',') {
+        return Some((first.trim().parse().ok()?, second.trim().parse().ok()?));
+    }
+    value
+        .parse::<i64>()
+        .ok()
+        .map(|first| (first, default_second))
 }
 
 pub(super) fn select_option(option_id: &str, selected: bool) -> UiComponentShowcaseDemoEventInput {
@@ -308,6 +407,62 @@ mod tests {
         assert_eq!(
             demo_input_for_showcase_edit("UiComponentShowcase/NumberFieldCommitted", "51"),
             UiComponentShowcaseDemoEventInput::Value(UiValue::Float(51.0))
+        );
+    }
+
+    #[test]
+    fn showcase_edit_input_maps_virtual_list_scroll_payload_to_visible_range() {
+        assert_eq!(
+            demo_input_for_showcase_edit(
+                "UiComponentShowcase/VirtualListScrolled",
+                "start=512,count=48",
+            ),
+            UiComponentShowcaseDemoEventInput::SetVisibleRange {
+                start: 512,
+                count: 48,
+            }
+        );
+        assert_eq!(
+            demo_input_for_showcase_edit("UiComponentShowcase/VirtualListScrolled", "128,24",),
+            UiComponentShowcaseDemoEventInput::SetVisibleRange {
+                start: 128,
+                count: 24,
+            }
+        );
+        assert_eq!(
+            demo_input_for_showcase_edit("UiComponentShowcase/VirtualListScrolled", "240",),
+            UiComponentShowcaseDemoEventInput::SetVisibleRange {
+                start: 240,
+                count: DEFAULT_VIRTUAL_LIST_VISIBLE_COUNT,
+            }
+        );
+    }
+
+    #[test]
+    fn showcase_edit_input_maps_paged_list_payload_to_page_request() {
+        assert_eq!(
+            demo_input_for_showcase_edit(
+                "UiComponentShowcase/PagedListNextPage",
+                "page=3,size=100",
+            ),
+            UiComponentShowcaseDemoEventInput::SetPage {
+                page_index: 3,
+                page_size: 100,
+            }
+        );
+        assert_eq!(
+            demo_input_for_showcase_edit("UiComponentShowcase/PagedListGoToPage", "4,50",),
+            UiComponentShowcaseDemoEventInput::SetPage {
+                page_index: 4,
+                page_size: 50,
+            }
+        );
+        assert_eq!(
+            demo_input_for_showcase_edit("UiComponentShowcase/PagedListPreviousPage", "2",),
+            UiComponentShowcaseDemoEventInput::SetPage {
+                page_index: 2,
+                page_size: DEFAULT_PAGED_LIST_PAGE_SIZE,
+            }
         );
     }
 }

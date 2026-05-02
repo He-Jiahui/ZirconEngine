@@ -10,8 +10,14 @@ fn welcome_surface_controls_use_generic_rust_callbacks_and_toml_controls() {
     let controls = source("assets/ui/editor/host/startup_welcome_controls.ui.toml");
 
     for required in ["on_welcome_control_changed", "on_welcome_control_clicked"] {
-        assert!(globals.contains(required), "host globals missing `{required}`");
-        assert!(wiring.contains(required), "callback wiring missing `{required}`");
+        assert!(
+            globals.contains(required),
+            "host globals missing `{required}`"
+        );
+        assert!(
+            wiring.contains(required),
+            "callback wiring missing `{required}`"
+        );
     }
     for required in [
         "ProjectNameEdited",
@@ -21,6 +27,9 @@ fn welcome_surface_controls_use_generic_rust_callbacks_and_toml_controls() {
         "OpenRecentProject",
         "RemoveRecentProject",
     ] {
-        assert!(controls.contains(required), "welcome controls asset missing `{required}`");
+        assert!(
+            controls.contains(required),
+            "welcome controls asset missing `{required}`"
+        );
     }
 }

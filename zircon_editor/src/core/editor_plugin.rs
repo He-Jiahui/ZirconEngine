@@ -42,12 +42,6 @@ impl EditorPluginDescriptor {
     pub fn builtin_catalog() -> Vec<Self> {
         [
             (
-                "physics",
-                "Physics",
-                "zircon_plugin_physics_editor",
-                "editor.extension.physics_authoring",
-            ),
-            (
                 "sound",
                 "Sound",
                 "zircon_plugin_sound_editor",
@@ -76,12 +70,6 @@ impl EditorPluginDescriptor {
                 "Particles",
                 "zircon_plugin_particles_editor",
                 "editor.extension.particles_authoring",
-            ),
-            (
-                "animation",
-                "Animation",
-                "zircon_plugin_animation_editor",
-                "editor.extension.animation_authoring",
             ),
             (
                 "virtual_geometry",

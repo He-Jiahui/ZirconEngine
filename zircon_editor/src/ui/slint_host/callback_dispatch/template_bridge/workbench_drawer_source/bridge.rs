@@ -1,7 +1,5 @@
-use zircon_runtime::ui::{
-    layout::{UiFrame, UiSize},
-    surface::UiSurface,
-};
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;

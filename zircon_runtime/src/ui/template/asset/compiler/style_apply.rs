@@ -2,8 +2,10 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 
-use crate::ui::template::UiTemplateNode;
-use crate::ui::template::{UiAssetError, UiSelector, UiStyleDeclarationBlock};
+use crate::ui::template::UiSelector;
+use zircon_runtime_interface::ui::template::{
+    UiAssetError, UiStyleDeclarationBlock, UiTemplateNode,
+};
 
 use super::super::style::UiSelectorMatchNode;
 use super::ui_document_compiler::ResolvedStyleSheet;

@@ -1,4 +1,5 @@
-use zircon_runtime::ui::{layout::UiFrame, surface::UiSurface};
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::layout::UiFrame;
 
 const FLOATING_WINDOW_CENTER_BAND_CONTROL_ID: &str = "FloatingWindowCenterBandRoot";
 const FLOATING_WINDOW_DOCUMENT_CONTROL_ID: &str = "FloatingWindowDocumentRoot";

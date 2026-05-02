@@ -1,4 +1,5 @@
 use super::super::support::*;
+use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
 fn builtin_welcome_surface_project_name_dispatches_dynamic_host_event_from_template() {
@@ -10,9 +11,7 @@ fn builtin_welcome_surface_project_name_dispatches_dynamic_host_event_from_templ
         &bridge,
         "ProjectNameEdited",
         UiEventKind::Change,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string(
-            "Sandbox",
-        )],
+        vec![UiBindingValue::string("Sandbox")],
     )
     .expect("welcome surface control should resolve through template bridge")
     .unwrap();
@@ -34,9 +33,7 @@ fn builtin_welcome_surface_project_name_matches_direct_binding_dispatch() {
         &bridge,
         "ProjectNameEdited",
         UiEventKind::Change,
-        vec![zircon_runtime::ui::binding::UiBindingValue::string(
-            "Sandbox",
-        )],
+        vec![UiBindingValue::string("Sandbox")],
     )
     .expect("welcome surface control should resolve through template bridge")
     .unwrap();

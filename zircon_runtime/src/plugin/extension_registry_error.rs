@@ -8,6 +8,10 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateModule(String),
     #[error("render feature {0} already registered")]
     DuplicateRenderFeature(String),
+    #[error("render pass executor {0} already registered")]
+    DuplicateRenderPassExecutor(String),
+    #[error("virtual geometry runtime provider {0} already registered")]
+    DuplicateVirtualGeometryRuntimeProvider(String),
     #[error("component type {0} already registered")]
     DuplicateComponentType(String),
     #[error("invalid component type: {0}")]

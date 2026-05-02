@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
+use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
-use zircon_runtime::core::math::{UVec2, Vec2};
-use zircon_runtime::input::{InputButton, InputEvent};
+use zircon_runtime_interface::{
+    ZrRuntimeEventV1, ZrRuntimeViewportSizeV1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
+};
 
 use super::RuntimeEntryApp;
 use crate::runtime_presenter::SoftbufferRuntimePresenter;
@@ -27,7 +31,13 @@ impl ApplicationHandler for RuntimeEntryApp {
             }
         };
         let size = window.surface_size();
-        self.resize_viewport(UVec2::new(size.width, size.height));
+        if self
+            .resize_viewport(ZrRuntimeViewportSizeV1::new(size.width, size.height))
+            .is_err()
+        {
+            event_loop.exit();
+            return;
+        }
         self.window = Some(window.clone());
         self.presenter = Some(SoftbufferRuntimePresenter::new(window).expect("runtime presenter"));
     }
@@ -43,21 +53,29 @@ impl ApplicationHandler for RuntimeEntryApp {
             WindowEvent::SurfaceResized(size) => {
                 if let Some(presenter) = self.presenter.as_mut() {
                     if presenter
-                        .resize(UVec2::new(size.width, size.height))
+                        .resize(ZrRuntimeViewportSizeV1::new(size.width, size.height))
                         .is_err()
                     {
                         event_loop.exit();
                     }
                 }
-                self.resize_viewport(UVec2::new(size.width, size.height));
+                if self
+                    .resize_viewport(ZrRuntimeViewportSizeV1::new(size.width, size.height))
+                    .is_err()
+                {
+                    event_loop.exit();
+                }
             }
             WindowEvent::PointerMoved { position, .. } => {
-                let cursor = Vec2::new(position.x as f32, position.y as f32);
-                self.input_manager.submit_event(InputEvent::CursorMoved {
-                    x: cursor.x,
-                    y: cursor.y,
-                });
-                self.handle_cursor_moved(cursor);
+                let event = ZrRuntimeEventV1::pointer_moved(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    self.viewport,
+                    position.x as f32,
+                    position.y as f32,
+                );
+                if self.session.handle_event(event).is_err() {
+                    event_loop.exit();
+                }
             }
             WindowEvent::PointerButton {
                 state,
@@ -65,39 +83,18 @@ impl ApplicationHandler for RuntimeEntryApp {
                 position,
                 ..
             } => {
-                self.cursor = Vec2::new(position.x as f32, position.y as f32);
-                match (state, button.mouse_button()) {
-                    (ElementState::Pressed, Some(MouseButton::Left)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
-                        self.handle_left_pressed();
+                if let (Some(button), Some(state)) = (mouse_button(button), button_state(state)) {
+                    let event = ZrRuntimeEventV1::mouse_button(
+                        ZIRCON_RUNTIME_ABI_VERSION_V1,
+                        self.viewport,
+                        button,
+                        state,
+                        position.x as f32,
+                        position.y as f32,
+                    );
+                    if self.session.handle_event(event).is_err() {
+                        event_loop.exit();
                     }
-                    (ElementState::Released, Some(MouseButton::Left)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonReleased(InputButton::MouseLeft));
-                        self.handle_left_released();
-                    }
-                    (ElementState::Pressed, Some(MouseButton::Right)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonPressed(InputButton::MouseRight));
-                        self.handle_right_pressed();
-                    }
-                    (ElementState::Released, Some(MouseButton::Right)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonReleased(InputButton::MouseRight));
-                        self.handle_right_released();
-                    }
-                    (ElementState::Pressed, Some(MouseButton::Middle)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonPressed(InputButton::MouseMiddle));
-                        self.handle_middle_pressed();
-                    }
-                    (ElementState::Released, Some(MouseButton::Middle)) => {
-                        self.input_manager
-                            .submit_event(InputEvent::ButtonReleased(InputButton::MouseMiddle));
-                        self.handle_middle_released();
-                    }
-                    _ => {}
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
@@ -105,21 +102,23 @@ impl ApplicationHandler for RuntimeEntryApp {
                     MouseScrollDelta::LineDelta(_, y) => y,
                     MouseScrollDelta::PixelDelta(position) => position.y as f32 * 0.1,
                 };
-                self.input_manager
-                    .submit_event(InputEvent::WheelScrolled { delta: amount });
-                self.handle_scroll(amount);
+                let event = ZrRuntimeEventV1::mouse_wheel(
+                    ZIRCON_RUNTIME_ABI_VERSION_V1,
+                    self.viewport,
+                    amount,
+                );
+                if self.session.handle_event(event).is_err() {
+                    event_loop.exit();
+                }
             }
             WindowEvent::RedrawRequested => {
-                let extract = self.current_extract();
-                let size = self.camera_controller.viewport_size();
                 if let Some(presenter) = self.presenter.as_mut() {
-                    match self.render_bridge.submit_extract(extract, size) {
-                        Ok(Some(frame)) => {
+                    match self.session.capture_frame(self.viewport, self.viewport_size) {
+                        Ok(frame) => {
                             if presenter.present(&frame).is_err() {
                                 event_loop.exit();
                             }
                         }
-                        Ok(None) => {}
                         Err(_) => {
                             event_loop.exit();
                         }
@@ -134,5 +133,21 @@ impl ApplicationHandler for RuntimeEntryApp {
         if let Some(window) = self.window.as_ref() {
             window.request_redraw();
         }
+    }
+}
+
+fn mouse_button(button: ButtonSource) -> Option<u32> {
+    match button.mouse_button() {
+        Some(MouseButton::Left) => Some(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1),
+        Some(MouseButton::Right) => Some(ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1),
+        Some(MouseButton::Middle) => Some(ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1),
+        _ => None,
+    }
+}
+
+fn button_state(state: ElementState) -> Option<u32> {
+    match state {
+        ElementState::Pressed => Some(ZR_RUNTIME_BUTTON_STATE_PRESSED_V1),
+        ElementState::Released => Some(ZR_RUNTIME_BUTTON_STATE_RELEASED_V1),
     }
 }

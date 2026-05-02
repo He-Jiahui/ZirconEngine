@@ -1,6 +1,8 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
-use zircon_runtime::ui::template::UiAssetDocument;
-use zircon_runtime::ui::tree::UiTemplateNodeMetadata;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiNodeDefinition};
+use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
 use super::preview_host::UiAssetPreviewHost;
 
@@ -148,7 +150,7 @@ fn preview_item_component_label(
     }
 }
 
-fn node_component_label(node: &zircon_runtime::ui::template::UiNodeDefinition) -> Option<String> {
+fn node_component_label(node: &UiNodeDefinition) -> Option<String> {
     node.component_ref
         .as_deref()
         .and_then(|reference| reference.split_once('#').map(|(_, component)| component))

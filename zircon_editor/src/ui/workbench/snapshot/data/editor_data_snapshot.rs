@@ -1,6 +1,6 @@
 use crate::scene::viewport::GizmoAxis;
 use crate::scene::viewport::SceneViewportSettings;
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 

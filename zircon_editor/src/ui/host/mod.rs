@@ -19,6 +19,7 @@ mod editor_extension_views;
 mod editor_manager;
 mod editor_manager_animation_editor;
 mod editor_manager_asset_editor;
+mod editor_manager_asset_workspace;
 mod editor_manager_layout;
 mod editor_manager_minimal_host;
 mod editor_manager_plugins_export;
@@ -27,6 +28,7 @@ mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_operation_dispatch;
+mod editor_runtime_client;
 mod editor_session_state;
 mod editor_subsystems;
 mod editor_ui_host;
@@ -52,6 +54,9 @@ pub use editor_manager::EditorManager;
 pub use editor_manager_plugins_export::{
     EditorExportBuildReport, EditorExportCargoInvocation, EditorPluginEnableReport,
     EditorPluginSelectionUpdateReport, EditorPluginStatus, EditorPluginStatusReport,
+};
+pub use editor_runtime_client::{
+    DetachedEditorRuntimeClient, EditorRuntimeClient, SharedEditorRuntimeClient,
 };
 pub use editor_subsystems::{
     EditorSubsystemReport, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,

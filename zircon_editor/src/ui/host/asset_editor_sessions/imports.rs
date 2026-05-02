@@ -3,7 +3,7 @@ use std::fs;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
-use zircon_runtime::ui::template::{UiAssetDocument, UiAssetKind};
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::parse_ui_asset_document_source;
@@ -63,5 +63,23 @@ impl EditorUiHost {
             )?;
         }
         Ok(())
+    }
+
+    pub(super) fn try_collect_ui_asset_import_document(
+        &self,
+        reference: &str,
+        expected_kind: UiAssetKind,
+        widget_docs: &mut BTreeMap<String, UiAssetDocument>,
+        style_docs: &mut BTreeMap<String, UiAssetDocument>,
+        visited: &mut BTreeSet<String>,
+    ) -> Result<(), String> {
+        self.collect_ui_asset_import_document(
+            reference,
+            expected_kind,
+            widget_docs,
+            style_docs,
+            visited,
+        )
+        .map_err(|error| error.to_string())
     }
 }

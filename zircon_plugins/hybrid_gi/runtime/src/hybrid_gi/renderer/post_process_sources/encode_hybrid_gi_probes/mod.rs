@@ -1,0 +1,13 @@
+mod count_scheduled_trace_regions;
+mod encode_hybrid_gi_probe_screen_data;
+mod hybrid_gi_budget_weight;
+mod hybrid_gi_hierarchy_irradiance;
+mod hybrid_gi_hierarchy_resolve_weight;
+mod hybrid_gi_hierarchy_rt_lighting;
+mod hybrid_gi_probe_encode_frame;
+mod hybrid_gi_probe_source;
+mod hybrid_gi_temporal_signature;
+mod runtime_parent_chain;
+mod scene_prepare_surface_cache_samples;
+
+pub(in crate::hybrid_gi::renderer::post_process_sources::encode_hybrid_gi_probes) use hybrid_gi_probe_encode_frame::HybridGiProbeEncodeFrame;

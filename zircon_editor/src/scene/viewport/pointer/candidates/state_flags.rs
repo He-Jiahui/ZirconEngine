@@ -1,4 +1,4 @@
-use zircon_runtime::ui::event_ui::UiStateFlags;
+use zircon_runtime_interface::ui::event_ui::UiStateFlags;
 
 pub(in crate::scene::viewport::pointer) fn passive_state_flags() -> UiStateFlags {
     UiStateFlags {

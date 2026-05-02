@@ -30,7 +30,7 @@ pub(super) use crate::ui::workbench::model::{
 };
 pub(super) use crate::ui::workbench::snapshot::{DocumentWorkspaceSnapshot, ViewContentKind};
 pub(super) use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstanceId};
-pub(super) use zircon_runtime::ui::layout::{UiFrame, UiPoint, UiSize};
+pub(super) use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint, UiSize};
 
 pub(super) fn workbench_page(id: MainPageId) -> MainHostPageLayout {
     MainHostPageLayout::WorkbenchPage {

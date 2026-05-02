@@ -165,7 +165,7 @@ fn editor_asset_workspace_uses_canonical_resource_kind() {
     ] {
         assert!(
             !source.contains("AssetRecordKind"),
-            "editor asset workspace sources should use zircon_runtime::core::resource::ResourceKind instead of zircon_runtime::core::manager::AssetRecordKind"
+            "editor asset workspace sources should use zircon_runtime_interface::resource::ResourceKind instead of zircon_runtime::core::manager::AssetRecordKind"
         );
     }
 }
@@ -196,7 +196,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
     ] {
         assert!(
             !source.contains("ResourceStateRecord"),
-            "editor asset workspace sources should use zircon_runtime::core::resource::ResourceState instead of zircon_runtime::core::manager::ResourceStateRecord"
+            "editor asset workspace sources should use zircon_runtime_interface::resource::ResourceState instead of zircon_runtime::core::manager::ResourceStateRecord"
         );
     }
 
@@ -208,7 +208,7 @@ fn editor_asset_workspace_uses_canonical_resource_state() {
     ] {
         assert!(
             source.contains("ResourceState"),
-            "editor asset workspace sources should refer to zircon_runtime::core::resource::ResourceState"
+            "editor asset workspace sources should refer to zircon_runtime_interface::resource::ResourceState"
         );
     }
 }
@@ -239,7 +239,7 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
     for source in [asset_workspace_source, resource_access_test_source] {
         assert!(
             source.contains("ResourceRecord"),
-            "editor sources should use zircon_runtime::core::resource::ResourceRecord after canonical ResourceRecord migration"
+            "editor sources should use zircon_runtime_interface::resource::ResourceRecord after canonical ResourceRecord migration"
         );
     }
 }
@@ -274,7 +274,7 @@ fn editor_host_uses_canonical_resource_event() {
     ] {
         assert!(
             source.contains("ResourceEvent"),
-            "editor host sources should use zircon_runtime::core::resource::ResourceEvent after canonical ResourceEvent migration"
+            "editor host sources should use zircon_runtime_interface::resource::ResourceEvent after canonical ResourceEvent migration"
         );
     }
 }

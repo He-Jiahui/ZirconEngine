@@ -20,9 +20,12 @@ impl EditorUiHost {
                             .to_string(),
                     )
                 })?;
+                let mut affected_asset_ids = Vec::new();
                 for effect in &replay.external_effects {
-                    self.apply_ui_asset_editor_external_effect(&project_root, effect)?;
+                    affected_asset_ids
+                        .push(self.apply_ui_asset_editor_external_effect(&project_root, effect)?);
                 }
+                self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
             self.sync_ui_asset_editor_instance(instance_id)?;
@@ -49,9 +52,12 @@ impl EditorUiHost {
                             .to_string(),
                     )
                 })?;
+                let mut affected_asset_ids = Vec::new();
                 for effect in &replay.external_effects {
-                    self.apply_ui_asset_editor_external_effect(&project_root, effect)?;
+                    affected_asset_ids
+                        .push(self.apply_ui_asset_editor_external_effect(&project_root, effect)?);
                 }
+                self.refresh_ui_asset_workspace_for_changes(affected_asset_ids)?;
             }
             self.hydrate_ui_asset_editor_imports(instance_id)?;
             self.sync_ui_asset_editor_instance(instance_id)?;

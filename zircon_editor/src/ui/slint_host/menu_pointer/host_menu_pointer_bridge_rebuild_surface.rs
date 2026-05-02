@@ -1,10 +1,17 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::ui::{
-    dispatch::UiPointerDispatcher, event_ui::UiNodePath, event_ui::UiTreeId, layout::UiAxis,
-    layout::UiContainerKind, layout::UiFrame, layout::UiScrollState, layout::UiScrollableBoxConfig,
-    layout::UiScrollbarVisibility, surface::UiPointerEventKind, surface::UiSurface,
-    tree::UiInputPolicy, tree::UiTreeNode,
+    dispatch::UiPointerDispatcher, surface::UiSurface, tree::UiRuntimeTreeAccessExt,
+};
+use zircon_runtime_interface::ui::{
+    dispatch::UiPointerDispatchEffect,
+    event_ui::{UiNodePath, UiTreeId},
+    layout::{
+        UiAxis, UiContainerKind, UiFrame, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility,
+    },
+    surface::UiPointerEventKind,
+    tree::{UiInputPolicy, UiTreeNode},
 };
 
 use super::constants::{
@@ -67,10 +74,10 @@ impl HostMenuPointerBridge {
                 )
                 .expect("menu pointer root must exist");
             dispatcher.register(DISMISS_NODE_ID, UiPointerEventKind::Move, |_context| {
-                zircon_runtime::ui::dispatch::UiPointerDispatchEffect::handled()
+                UiPointerDispatchEffect::handled()
             });
             dispatcher.register(DISMISS_NODE_ID, UiPointerEventKind::Down, |_context| {
-                zircon_runtime::ui::dispatch::UiPointerDispatchEffect::handled()
+                UiPointerDispatchEffect::handled()
             });
             targets.insert(DISMISS_NODE_ID, HostMenuPointerTarget::DismissOverlay);
 

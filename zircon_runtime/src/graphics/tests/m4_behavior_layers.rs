@@ -316,6 +316,8 @@ impl RenderFixture {
         WgpuRenderFramework::new_with_plugin_render_features(
             self.asset_manager.clone(),
             render_features,
+            Vec::new(),
+            Vec::new(),
         )
         .unwrap()
     }

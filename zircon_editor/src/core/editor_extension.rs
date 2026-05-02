@@ -23,6 +23,9 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: ViewDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
+        descriptor
+            .open_operation_path()
+            .map_err(EditorExtensionRegistryError::Operation)?;
         insert_unique(&mut self.views, descriptor.id.clone(), descriptor, "view")
     }
 
@@ -42,6 +45,7 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: EditorMenuItemDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
+        validate_menu_item_path(&descriptor)?;
         insert_unique(
             &mut self.menu_items,
             descriptor.path.clone(),
@@ -299,6 +303,24 @@ fn default_menu_item_enabled() -> bool {
     true
 }
 
+fn validate_menu_item_path(
+    descriptor: &EditorMenuItemDescriptor,
+) -> Result<(), EditorExtensionRegistryError> {
+    let segments = descriptor.path.split('/').collect::<Vec<_>>();
+    if segments.len() < MIN_MENU_PATH_SEGMENTS
+        || segments
+            .iter()
+            .any(|segment| segment.trim().is_empty() || segment.trim() != *segment)
+    {
+        return Err(EditorExtensionRegistryError::InvalidMenuPath(
+            descriptor.path.clone(),
+        ));
+    }
+    Ok(())
+}
+
+const MIN_MENU_PATH_SEGMENTS: usize = 2;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ComponentDrawerDescriptor {
     component_type: String,
@@ -380,6 +402,7 @@ impl EditorUiTemplateDescriptor {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorExtensionRegistryError {
     DuplicateContribution { kind: &'static str, id: String },
+    InvalidMenuPath(String),
     Operation(EditorOperationRegistryError),
     View(String),
 }
@@ -389,6 +412,9 @@ impl fmt::Display for EditorExtensionRegistryError {
         match self {
             Self::DuplicateContribution { kind, id } => {
                 write!(formatter, "editor {kind} {id} already registered")
+            }
+            Self::InvalidMenuPath(path) => {
+                write!(formatter, "editor menu item path `{path}` is invalid")
             }
             Self::Operation(error) => write!(formatter, "{error}"),
             Self::View(error) => formatter.write_str(error),

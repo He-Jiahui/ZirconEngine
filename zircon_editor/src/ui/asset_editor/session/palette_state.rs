@@ -1,6 +1,7 @@
 use super::{
     command::UiAssetEditorTreeEdit,
     hierarchy_projection::selection_for_node,
+    palette::{build_palette_entries, insert_palette_item_with_placement, PaletteInsertMode},
     palette_drop::{
         build_palette_insert_plan,
         resolve_palette_drag_target as resolve_palette_drag_target_for_preview,
@@ -9,10 +10,9 @@ use super::{
     palette_target_chooser::{reconcile_palette_target_chooser, UiAssetPaletteTargetChooser},
     preview_projection::build_preview_projection,
     tree_editing::{
-        build_palette_entries, insert_palette_item_with_placement,
         move_selected_node as tree_move_selected_node,
-        reparent_selected_node as tree_reparent_selected_node, PaletteInsertMode,
-        UiTreeMoveDirection, UiTreeReparentDirection,
+        reparent_selected_node as tree_reparent_selected_node, UiTreeMoveDirection,
+        UiTreeReparentDirection,
     },
     ui_asset_editor_session::{
         move_direction_label, palette_insert_mode_label, reparent_direction_label,

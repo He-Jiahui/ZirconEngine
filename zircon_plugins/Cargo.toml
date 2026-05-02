@@ -1,8 +1,6 @@
 [workspace]
 members = [
     "editor_support",
-    "physics/runtime",
-    "physics/editor",
     "sound/runtime",
     "sound/editor",
     "texture/runtime",
@@ -13,8 +11,6 @@ members = [
     "navigation/editor",
     "particles/runtime",
     "particles/editor",
-    "animation/runtime",
-    "animation/editor",
     "virtual_geometry/runtime",
     "virtual_geometry/editor",
     "hybrid_gi/runtime",

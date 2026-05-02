@@ -6,7 +6,7 @@ use crate::ui::asset_editor::{
     UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE,
 };
 use zircon_runtime::ui::template::UiDocumentCompiler;
-use zircon_runtime::ui::{layout::UiSize, template::UiAssetKind};
+use zircon_runtime_interface::ui::{layout::UiSize, template::UiAssetKind};
 
 pub(super) const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),

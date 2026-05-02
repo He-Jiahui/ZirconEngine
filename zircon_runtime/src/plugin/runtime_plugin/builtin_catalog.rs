@@ -6,18 +6,6 @@ impl RuntimePluginDescriptor {
     pub fn builtin_catalog() -> Vec<Self> {
         [
             (
-                "physics",
-                "Physics",
-                RuntimePluginId::Physics,
-                "zircon_plugin_physics_runtime",
-                "runtime.plugin.physics",
-                &[
-                    RuntimeTargetMode::ClientRuntime,
-                    RuntimeTargetMode::ServerRuntime,
-                    RuntimeTargetMode::EditorHost,
-                ][..],
-            ),
-            (
                 "sound",
                 "Sound",
                 RuntimePluginId::Sound,
@@ -68,17 +56,6 @@ impl RuntimePluginDescriptor {
                 RuntimePluginId::Particles,
                 "zircon_plugin_particles_runtime",
                 "runtime.plugin.particles",
-                &[
-                    RuntimeTargetMode::ClientRuntime,
-                    RuntimeTargetMode::EditorHost,
-                ][..],
-            ),
-            (
-                "animation",
-                "Animation",
-                RuntimePluginId::Animation,
-                "zircon_plugin_animation_runtime",
-                "runtime.plugin.animation",
                 &[
                     RuntimeTargetMode::ClientRuntime,
                     RuntimeTargetMode::EditorHost,

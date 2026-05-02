@@ -1,4 +1,4 @@
-use zircon_runtime::ui::dispatch::UiPointerEvent;
+use zircon_runtime_interface::ui::dispatch::UiPointerEvent;
 
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 use super::welcome_recent_pointer_target::WelcomeRecentPointerTarget;

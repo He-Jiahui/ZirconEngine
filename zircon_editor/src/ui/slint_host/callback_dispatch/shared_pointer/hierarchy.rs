@@ -1,4 +1,4 @@
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{

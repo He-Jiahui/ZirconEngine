@@ -5,6 +5,9 @@ edition.workspace = true
 license.workspace = true
 description = "Runtime absorption layer for high-level engine subsystems."
 
+[lib]
+crate-type = ["rlib", "cdylib"]
+
 [features]
 default = ["target-client"]
 runtime-ui-integration-tests = []
@@ -31,6 +34,7 @@ crossbeam-utils = "0.8.21"
 glam.workspace = true
 gltf.workspace = true
 glyphon = "0.11.0"
+fontsdf = "0.5.3"
 image.workspace = true
 naga.workspace = true
 notify.workspace = true
@@ -49,3 +53,4 @@ wgpu.workspace = true
 winit.workspace = true
 libloading = "0.9.0"
 zstd = "0.13.3"
+zircon_runtime_interface = { path = "../zircon_runtime_interface" }

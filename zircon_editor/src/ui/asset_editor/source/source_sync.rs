@@ -1,6 +1,7 @@
 use crate::ui::asset_editor::UiDesignerSelectionModel;
 use std::collections::BTreeSet;
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime_interface::ui::template::UiAssetDocument;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct UiAssetSourceSelectionSummary {

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use slint::{Image, ModelRc, SharedString};
-use zircon_runtime::core::resource::{ResourceKind, ResourceState};
+use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
@@ -240,7 +240,7 @@ fn preview_image(path: &str, cache_key: &str) -> Image {
 #[cfg(test)]
 mod tests {
     use super::asset_kind_label;
-    use zircon_runtime::core::resource::ResourceKind;
+    use zircon_runtime_interface::resource::ResourceKind;
 
     #[test]
     fn asset_surface_labels_font_assets() {

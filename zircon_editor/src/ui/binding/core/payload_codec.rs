@@ -1,4 +1,4 @@
-use zircon_runtime::ui::{binding::UiBindingCall, binding::UiBindingValue};
+use zircon_runtime_interface::ui::{binding::UiBindingCall, binding::UiBindingValue};
 
 use crate::core::editor_event::InspectorFieldChange;
 use crate::ui::binding::{

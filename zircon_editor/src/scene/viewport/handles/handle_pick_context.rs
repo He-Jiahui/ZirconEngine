@@ -1,6 +1,6 @@
 use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
-use zircon_runtime::core::math::Vec2;
 use zircon_runtime::scene::Scene;
+use zircon_runtime_interface::math::Vec2;
 
 #[derive(Clone, Debug)]
 pub(crate) struct HandlePickContext<'a> {

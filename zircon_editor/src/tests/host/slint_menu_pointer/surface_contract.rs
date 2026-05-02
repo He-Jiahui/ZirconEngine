@@ -6,7 +6,8 @@ fn source(relative: &str) -> String {
 #[test]
 fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
     let pointer_layout = source("src/ui/slint_host/app/pointer_layout.rs");
-    let pointer_builder = source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
+    let pointer_builder =
+        source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
 
     for getter in [
         "get_file_menu_button_frame()",
@@ -29,9 +30,12 @@ fn shared_menu_pointer_layout_sync_replaces_direct_menu_button_frame_getters() {
 fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
     let host_components = source("src/ui/slint_host/host_contract/data/host_components.rs");
     let host_interaction = source("src/ui/slint_host/host_contract/data/host_interaction.rs");
-    let pointer_builder = source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
-    let chrome_projection = source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
-    let scene_projection = source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
+    let pointer_builder =
+        source("src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs");
+    let chrome_projection =
+        source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let scene_projection =
+        source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
     let menu_asset = source("assets/ui/editor/workbench_menu_chrome.ui.toml");
     let popup_asset = source("assets/ui/editor/workbench_menu_popup.ui.toml");
 
@@ -50,16 +54,27 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
         );
     }
     for required in ["WorkbenchMenuBarRoot", "MenuSlot0", "MenuSlot5"] {
-        assert!(menu_asset.contains(required), "menu chrome asset missing `{required}`");
+        assert!(
+            menu_asset.contains(required),
+            "menu chrome asset missing `{required}`"
+        );
     }
-    for required in ["WorkbenchMenuPopupRoot", "WorkbenchMenuPopupPanel", "MenuPopupItemLabel0"] {
-        assert!(popup_asset.contains(required), "menu popup asset missing `{required}`");
+    for required in [
+        "WorkbenchMenuPopupRoot",
+        "WorkbenchMenuPopupPanel",
+        "MenuPopupItemLabel0",
+    ] {
+        assert!(
+            popup_asset.contains(required),
+            "menu popup asset missing `{required}`"
+        );
     }
 }
 
 #[test]
 fn menu_popup_projection_mutes_disabled_item_labels() {
-    let chrome_projection = source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
+    let chrome_projection =
+        source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
 
     for required in [
         "if !item.enabled {",

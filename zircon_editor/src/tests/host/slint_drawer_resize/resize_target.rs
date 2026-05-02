@@ -6,7 +6,7 @@ use crate::ui::slint_host::drawer_resize::{
 use crate::ui::workbench::autolayout::{
     ShellFrame, ShellRegionId, ShellSizePx, WorkbenchShellGeometry,
 };
-use zircon_runtime::ui::layout::UiPoint;
+use zircon_runtime_interface::ui::layout::UiPoint;
 
 #[test]
 fn shared_resize_target_route_resolves_left_right_and_bottom_splitters() {

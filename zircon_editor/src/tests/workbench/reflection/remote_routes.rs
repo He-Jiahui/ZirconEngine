@@ -5,7 +5,7 @@ use crate::ui::workbench::reflection::{
     build_workbench_reflection_model, register_workbench_reflection_routes,
 };
 use crate::ui::EditorUiReflectionAdapter;
-use zircon_runtime::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
+use zircon_runtime_interface::ui::event_ui::{UiControlRequest, UiControlResponse, UiNodePath};
 
 #[test]
 fn workbench_reflection_routes_mark_activity_actions_as_remotely_callable() {

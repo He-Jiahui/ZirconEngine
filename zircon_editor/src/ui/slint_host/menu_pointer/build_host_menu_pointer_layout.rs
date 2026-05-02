@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::{layout::UiFrame, layout::UiSize};
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::layouts::views::build_view_template_nodes;

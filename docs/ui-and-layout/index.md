@@ -7,7 +7,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/compiler/mod.rs
   - zircon_runtime/src/ui/layout/constraints.rs
-  - zircon_runtime/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/layout/virtualization.rs
@@ -59,7 +59,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/template/asset/compiler/mod.rs
   - zircon_runtime/src/ui/layout/constraints.rs
-  - zircon_runtime/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/layout/virtualization.rs
@@ -164,14 +164,14 @@ doc_type: category-index
 - [Shared UI Template Runtime](./shared-ui-template-runtime.md): `zircon_runtime::ui::template` 的 TOML 文档模型、component/slot 节点语义、模板校验规则、运行时实例展开、shared `UiTree` / `UiSurface` 桥接，以及 `.ui.toml -> UiSurface -> host projection / UiRenderExtract` 的显式映射；它记录 no-Slint generic host fence、Rust-owned `host_contract` DTO/callback seam、runtime fixture acceptance，以及 workbench pane body、HostMenuChrome business rows/popup、top menu/Page tab/Dock header/status bar/floating header/activity rail chrome 从手写 `.slint` 迁到 `.ui.toml -> TemplatePane` 的 cutover 状态。
 - [Runtime UI Component Showcase](./runtime-ui-component-showcase.md): Runtime UI 组件描述注册表、typed value/event/state/drop 契约、`editor.ui_component_showcase` Activity Window、Showcase `.ui.toml` 资产和 Slint Material generic component-row projection。
 - [UI Asset Documents And Editor Protocol](./ui-asset-documents-and-editor-protocol.md): `zircon_runtime::ui::template::asset` 当前 tree-shaped `.ui.toml` authority、flat-to-tree 一次性迁移器、shared loader/compiler/surface builder，以及 editor/runtime 如何继续共用同一条资产消费链路。
-- [UI Module Boundary Refactor](./ui-module-boundary-refactor.md): `binding/model`、`event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 从混合单文件重构成 folder-backed subtree 后的职责边界，约束后续 shared UI runtime 继续演化时的文件级纪律。
+- [UI Module Boundary Refactor](./ui-module-boundary-refactor.md): `event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 从混合单文件重构成 folder-backed subtree 后的职责边界，并记录 `binding/model` DTO owner 已硬切到 `zircon_runtime_interface::ui::binding`。
 - [Editor Host Final Cleanup](./editor-host-final-cleanup.md): `Final cleanup` 阶段对 editor host 剩余 legacy seam 的删除记录，覆盖 drawer extent root binding、menu button frame host setter/binding、floating-window drag/document-tab 生产路径里的 geometry outer-frame fallback，以及 root-shell projection / callback sizing helper 对 legacy geometry 的最后兜底。
 
 ## Related Files
 
 - `zircon_runtime/src/ui/mod.rs`
 - `zircon_runtime/src/ui/layout/constraints.rs`
-- `zircon_runtime/src/ui/layout/geometry.rs`
+- `zircon_runtime_interface/src/ui/layout/geometry.rs`
 - `zircon_runtime/src/ui/layout/pass/mod.rs`
 - `zircon_runtime/src/ui/layout/scroll.rs`
 - `zircon_runtime/src/ui/layout/virtualization.rs`
@@ -194,7 +194,7 @@ doc_type: category-index
 - 共享约束和几何类型进入 `zircon_runtime::ui`
 - retained tree、dirty 标记、clip 链命中、scroll state 与 surface/render extract scaffolding 进入 `zircon_runtime::ui`
 - 基础 measure/arrange pass、`Container` / `Overlay` / `Space` / `HorizontalBox` / `VerticalBox` / `ScrollableBox` 共享容器、pointer/focus/navigation route、统一 pointer dispatcher 和虚拟化窗口计算进入 `zircon_runtime::ui`
-- `binding/model`、`event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 已经按 folder-backed subtree 重新分层，入口 `mod.rs` 保持导出层，不再承载混合实现
+- `event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 已经按 folder-backed subtree 重新分层；`binding/model` neutral DTO declarations 已硬切到 `zircon_runtime_interface::ui::binding`，runtime `binding/mod.rs` 只保留 router behavior 与 interface DTO re-export
 - `template/asset` 已经承接正式 `layout/widget/style` 资产 AST、tree-shaped `.ui.toml` authority、一次性 flat-to-tree migration adapter，以及编译到 `UiTemplateInstance` / `UiSurface` 的 shared 真源链路
 - editor workbench 首批 pane body 已把 `.ui.toml -> PanePresentation` 作为结构 authority，Rust-owned host/native 需要的 DTO 被限制在 `PaneNativeBodyData` 宿主投影内
 - active `zircon_editor/ui` tree 已硬性保持无 `.slint` 源，former generated Slint DTO/callback seam 由 `zircon_editor/src/ui/slint_host/host_contract/**` 的 Rust-owned structs/globals 承接；`generic_host_layout_paths` 和 `generic_host_boundary` 同时禁止恢复 `ui/workbench.slint`、`slint_build`/`slint-build`、`slint::include_modules!()`、`temp/slint-migration/**` 或 `as slint_ui` alias

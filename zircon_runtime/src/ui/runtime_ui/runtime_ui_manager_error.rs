@@ -1,6 +1,7 @@
-use crate::ui::template::{UiAssetError, UiTemplateBuildError};
-use crate::ui::tree::UiTreeError;
+use crate::ui::template::UiTemplateBuildError;
 use thiserror::Error;
+use zircon_runtime_interface::ui::template::UiAssetError;
+use zircon_runtime_interface::ui::tree::UiTreeError;
 
 #[derive(Debug, Error)]
 pub(crate) enum RuntimeUiManagerError {

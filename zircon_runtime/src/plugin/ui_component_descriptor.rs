@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::ui::component::{
-    UiComponentCategory, UiComponentDescriptor as RuntimeUiComponentDescriptor, UiPropSchema,
-    UiSlotSchema, UiValue, UiValueKind,
+use zircon_runtime_interface::ui::component::{
+    UiComponentCategory, UiComponentDescriptor as RuntimeUiComponentDescriptor,
+    UiDefaultNodeTemplate, UiHostCapability, UiPaletteMetadata, UiPropSchema, UiSlotSchema,
+    UiValue, UiValueKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,6 +38,15 @@ impl UiComponentDescriptor {
         .with_prop(UiPropSchema::new("plugin_id", UiValueKind::String).required(true))
         .with_prop(UiPropSchema::new("ui_document", UiValueKind::String).required(true))
         .slot(UiSlotSchema::new("content").multiple(true))
+        .requires_host_capability(UiHostCapability::Editor)
+        .requires_host_capability(UiHostCapability::Runtime)
+        .default_node_template(UiDefaultNodeTemplate::native(self.component_id.as_str()))
+        .palette(UiPaletteMetadata::new(
+            self.display_name(),
+            UiComponentCategory::Container,
+            self.component_id.clone(),
+            UiDefaultNodeTemplate::native(self.component_id.as_str()),
+        ))
     }
 
     fn display_name(&self) -> String {

@@ -4,11 +4,14 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::engine_module::EngineModule;
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
+};
 use crate::plugin::RuntimePluginRegistrationReport;
 #[cfg(feature = "plugin-ui")]
 use crate::ui;
-use crate::{asset, foundation, graphics, input, platform, scene, script};
+use crate::{animation, asset, foundation, graphics, input, physics, platform, scene, script};
 use crate::{ProjectPluginManifest, ProjectPluginSelection};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -134,12 +137,14 @@ pub fn runtime_core_modules() -> Vec<Arc<dyn EngineModule>> {
 }
 
 fn runtime_core_modules_for_target(target: RuntimeTargetMode) -> Vec<Arc<dyn EngineModule>> {
-    runtime_core_modules_for_target_with_render_features(target, &[])
+    runtime_core_modules_for_target_with_render_features(target, &[], &[], &[])
 }
 
 fn runtime_core_modules_for_target_with_render_features(
     target: RuntimeTargetMode,
     render_features: &[RenderFeatureDescriptor],
+    render_pass_executors: &[RenderPassExecutorRegistration],
+    virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(foundation::FoundationModule),
@@ -147,10 +152,14 @@ fn runtime_core_modules_for_target_with_render_features(
         Arc::new(input::InputModule),
         Arc::new(asset::AssetModule),
         Arc::new(scene::SceneModule),
+        Arc::new(physics::PhysicsModule),
+        Arc::new(animation::AnimationModule),
     ];
     if target != RuntimeTargetMode::ServerRuntime {
-        modules.push(Arc::new(graphics::GraphicsModule::with_render_features(
+        modules.push(Arc::new(graphics::GraphicsModule::with_render_extensions(
             render_features.iter().cloned(),
+            render_pass_executors.iter().cloned(),
+            virtual_geometry_runtime_providers.iter().cloned(),
         )));
     }
     modules.push(Arc::new(script::ScriptModule));
@@ -178,6 +187,8 @@ pub fn runtime_modules_for_target_with_linked_plugins(
         manifest_override,
         linked_plugin_ids,
         &[],
+        &[],
+        &[],
     )
 }
 
@@ -201,11 +212,33 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
         .iter()
         .flat_map(|registration| registration.extensions.render_features().iter().cloned())
         .collect::<Vec<_>>();
+    let render_pass_executors = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .render_pass_executors()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    let virtual_geometry_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .virtual_geometry_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
     runtime_modules_for_target_with_linked_plugins_and_render_features(
         target,
         manifest_override,
         linked_plugin_ids,
         &render_features,
+        &render_pass_executors,
+        &virtual_geometry_runtime_providers,
     )
 }
 
@@ -214,14 +247,20 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     manifest_override: Option<&ProjectPluginManifest>,
     linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
     render_features: &[RenderFeatureDescriptor],
+    render_pass_executors: &[RenderPassExecutorRegistration],
+    virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
     let linked_plugin_ids = linked_plugin_ids
         .into_iter()
         .map(|id| id.as_ref().to_string())
         .collect::<HashSet<_>>();
-    let mut report = RuntimeModuleLoadReport::new(
-        runtime_core_modules_for_target_with_render_features(target, render_features),
-    );
+    let mut report =
+        RuntimeModuleLoadReport::new(runtime_core_modules_for_target_with_render_features(
+            target,
+            render_features,
+            render_pass_executors,
+            virtual_geometry_runtime_providers,
+        ));
     let manifest = manifest_with_mode_baseline(target, manifest_override);
 
     for selection in manifest.enabled_for_target(target) {
@@ -237,6 +276,12 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
             }
             continue;
         };
+        if builtin_runtime_domain_is_available(runtime_id) {
+            report
+                .warnings
+                .push(builtin_runtime_domain_message(runtime_id.key()));
+            continue;
+        }
         if linked_plugin_is_available(selection, runtime_id, &linked_plugin_ids) {
             continue;
         }
@@ -286,6 +331,10 @@ fn linked_plugin_is_available(
     linked_plugin_ids.contains(&selection.id) || linked_plugin_ids.contains(runtime_id.key())
 }
 
+fn builtin_runtime_domain_is_available(id: RuntimePluginId) -> bool {
+    matches!(id, RuntimePluginId::Physics | RuntimePluginId::Animation)
+}
+
 pub fn default_manifest_for_target(target: RuntimeTargetMode) -> ProjectPluginManifest {
     let selections = match target {
         RuntimeTargetMode::ClientRuntime => default_ui_plugin_selection(),
@@ -327,8 +376,8 @@ fn module_for_plugin(
             }
         }
         RuntimePluginId::Physics => {
-            warnings.push(externalized_runtime_plugin_message("physics"));
-            None
+            warnings.push(builtin_runtime_domain_message("physics"));
+            Some(Arc::new(physics::PhysicsModule))
         }
         RuntimePluginId::Sound => {
             warnings.push(externalized_runtime_plugin_message("sound"));
@@ -351,8 +400,8 @@ fn module_for_plugin(
             None
         }
         RuntimePluginId::Animation => {
-            warnings.push(externalized_runtime_plugin_message("animation"));
-            None
+            warnings.push(builtin_runtime_domain_message("animation"));
+            Some(Arc::new(animation::AnimationModule))
         }
         RuntimePluginId::VirtualGeometry => {
             warnings.push(externalized_runtime_plugin_message("virtual_geometry"));
@@ -367,6 +416,10 @@ fn module_for_plugin(
 
 fn externalized_runtime_plugin_message(plugin_id: &str) -> String {
     format!("runtime implementation is externalized to zircon_plugins/{plugin_id}")
+}
+
+fn builtin_runtime_domain_message(plugin_id: &str) -> String {
+    format!("runtime implementation is built into zircon_runtime::{plugin_id}")
 }
 
 #[cfg(test)]

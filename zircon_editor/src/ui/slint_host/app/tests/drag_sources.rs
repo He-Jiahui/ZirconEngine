@@ -8,8 +8,10 @@ use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetReferenceSnapshot, AssetWorkspaceSnapshot,
 };
 use zircon_runtime::asset::project::PreviewState;
-use zircon_runtime::core::resource::ResourceKind;
-use zircon_runtime::ui::component::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata};
+use zircon_runtime_interface::resource::ResourceKind;
+use zircon_runtime_interface::ui::component::{
+    UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata,
+};
 
 #[test]
 fn hierarchy_pointer_down_arms_scene_instance_payload_for_instance_field_drop() {

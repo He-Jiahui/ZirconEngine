@@ -1,15 +1,18 @@
-use crate::ui::binding::UiEventKind;
-use crate::ui::event_ui::UiTreeId;
-use crate::ui::layout::{AxisConstraint, StretchMode};
 use crate::ui::template::UiTemplateLoader;
 use crate::ui::template::{
-    UiTemplateError, UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder,
-    UiTemplateValidator,
+    UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator,
 };
-use crate::ui::{
-    layout::UiAxis, layout::UiContainerKind, layout::UiFrame, layout::UiLinearBoxConfig,
-    layout::UiScrollState, layout::UiScrollableBoxConfig, layout::UiScrollbarVisibility,
-    layout::UiSize, layout::UiVirtualListConfig, tree::UiInputPolicy,
+use crate::ui::tree::UiRuntimeTreeAccessExt;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    event_ui::UiTreeId,
+    layout::{
+        AxisConstraint, StretchMode, UiAxis, UiContainerKind, UiFrame, UiLinearBoxConfig,
+        UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
+        UiVirtualListWindow,
+    },
+    template::UiTemplateError,
+    tree::UiInputPolicy,
 };
 
 const WORKBENCH_TEMPLATE_TOML: &str = r#"
@@ -464,7 +467,7 @@ fn template_surface_builder_computes_layout_from_template_contract_attributes() 
     );
     assert_eq!(
         asset_list.layout_cache.virtual_window,
-        Some(crate::ui::layout::UiVirtualListWindow {
+        Some(UiVirtualListWindow {
             first_visible: 0,
             last_visible_exclusive: 5,
         })

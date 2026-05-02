@@ -30,6 +30,58 @@ fn sdf_runtime_ui_text_renders_sparse_glyph_pixels_without_placeholder_band() {
 }
 
 #[test]
+fn sdf_runtime_ui_text_adds_sparse_real_glyph_delta_over_background() {
+    let viewport_size = UVec2::new(320, 180);
+    let sdf_command = text_command(UiTextRenderMode::Sdf, "AIO");
+    let text_frame = sdf_command.frame;
+    let (with_text, with_text_stats) = render_ui_extract_frame(
+        UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.text.sdf.real_glyphs"),
+            list: UiRenderList {
+                commands: vec![sdf_command],
+            },
+        },
+        "runtime.ui.text.sdf.real_glyphs",
+        viewport_size,
+    );
+    assert_eq!(with_text_stats.last_ui_text_payload_count, 1);
+
+    let mut background_command = text_command(UiTextRenderMode::Sdf, "AIO");
+    background_command.text = None;
+    let (background, background_stats) = render_ui_extract_frame(
+        UiRenderExtract {
+            tree_id: UiTreeId::new("runtime.ui.text.sdf.real_glyphs.background"),
+            list: UiRenderList {
+                commands: vec![background_command],
+            },
+        },
+        "runtime.ui.text.sdf.real_glyphs.background",
+        viewport_size,
+    );
+    assert_eq!(background_stats.last_ui_text_payload_count, 0);
+
+    let changed_pixels = count_changed_pixels_in_frame(
+        &with_text.rgba,
+        &background.rgba,
+        with_text.width,
+        with_text.height,
+        text_frame,
+        12,
+    );
+    let text_area = (text_frame.width * text_frame.height) as usize;
+
+    assert_sparse_text_footprint(&with_text.rgba, with_text.width, with_text.height);
+    assert!(
+        changed_pixels > 60,
+        "expected SDF glyph bake to add visible text deltas over the background; changed_pixels={changed_pixels}"
+    );
+    assert!(
+        changed_pixels < text_area / 3,
+        "expected SDF glyph delta to remain sparse instead of filling the old placeholder block; changed_pixels={changed_pixels}, text_area={text_area}"
+    );
+}
+
+#[test]
 fn clipped_runtime_ui_text_stays_inside_clip_frame() {
     let capture = render_custom_text_frame(
         UiRenderCommand {
@@ -288,29 +340,33 @@ fn render_text_frame(
     text: &str,
 ) -> zircon_runtime::core::framework::render::CapturedFrame {
     render_custom_text_frame(
-        UiRenderCommand {
-            node_id: UiNodeId::new(1),
-            kind: UiRenderCommandKind::Text,
-            frame: UiFrame::new(20.0, 64.0, 280.0, 40.0),
-            clip_frame: None,
-            z_index: 0,
-            style: UiResolvedStyle {
-                foreground_color: Some("#f3f7ff".to_string()),
-                font: Some("res://fonts/default.font.toml".to_string()),
-                font_size: 28.0,
-                line_height: 32.0,
-                text_align: UiTextAlign::Center,
-                wrap: UiTextWrap::None,
-                text_render_mode,
-                ..UiResolvedStyle::default()
-            },
-            text_layout: None,
-            text: Some(text.to_string()),
-            image: None,
-            opacity: 1.0,
-        },
+        text_command(text_render_mode, text),
         "runtime.ui.text.contract",
     )
+}
+
+fn text_command(text_render_mode: UiTextRenderMode, text: &str) -> UiRenderCommand {
+    UiRenderCommand {
+        node_id: UiNodeId::new(1),
+        kind: UiRenderCommandKind::Text,
+        frame: UiFrame::new(20.0, 64.0, 280.0, 40.0),
+        clip_frame: None,
+        z_index: 0,
+        style: UiResolvedStyle {
+            foreground_color: Some("#f3f7ff".to_string()),
+            font: Some("res://fonts/default.font.toml".to_string()),
+            font_size: 28.0,
+            line_height: 32.0,
+            text_align: UiTextAlign::Center,
+            wrap: UiTextWrap::None,
+            text_render_mode,
+            ..UiResolvedStyle::default()
+        },
+        text_layout: None,
+        text: Some(text.to_string()),
+        image: None,
+        opacity: 1.0,
+    }
 }
 
 fn render_custom_text_frame(

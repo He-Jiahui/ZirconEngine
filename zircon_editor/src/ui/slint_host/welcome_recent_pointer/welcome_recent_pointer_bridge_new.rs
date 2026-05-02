@@ -1,4 +1,5 @@
-use zircon_runtime::ui::{dispatch::UiPointerDispatcher, event_ui::UiTreeId, surface::UiSurface};
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
+use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
 use super::welcome_recent_pointer_bridge::WelcomeRecentPointerBridge;
 use super::welcome_recent_pointer_layout::WelcomeRecentPointerLayout;

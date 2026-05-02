@@ -25,6 +25,7 @@ impl EditorUiHost {
         self.editor_asset_manager()?
             .refresh_from_runtime_project()
             .map_err(|error| EditorError::Project(error.to_string()))?;
+        self.restart_ui_asset_workspace_watcher()?;
         EditorProjectDocument::load_from_path(&path)
             .map_err(|error| EditorError::Project(error.to_string()))
     }
@@ -45,7 +46,8 @@ impl EditorUiHost {
             .map_err(|error| EditorError::Project(error.to_string()))?;
         self.editor_asset_manager()?
             .refresh_from_runtime_project()
-            .map_err(|error| EditorError::Project(error.to_string()))
+            .map_err(|error| EditorError::Project(error.to_string()))?;
+        self.restart_ui_asset_workspace_watcher()
     }
 
     pub(super) fn create_runtime_level(

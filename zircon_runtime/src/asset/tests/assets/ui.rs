@@ -5,6 +5,7 @@ use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
     AssetImporter, AssetKind, AssetUri, ImportedAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
+use zircon_runtime_interface::ui::template::UiAssetKind;
 
 const LAYOUT_UI_TOML: &str = r#"
 [asset]
@@ -112,18 +113,9 @@ fn ui_asset_wrappers_parse_and_validate_kind() {
     let widget = UiWidgetAsset::from_toml_str(WIDGET_UI_TOML).unwrap();
     let style = UiStyleAsset::from_toml_str(STYLE_UI_TOML).unwrap();
 
-    assert_eq!(
-        layout.document.asset.kind,
-        crate::ui::template::UiAssetKind::Layout
-    );
-    assert_eq!(
-        widget.document.asset.kind,
-        crate::ui::template::UiAssetKind::Widget
-    );
-    assert_eq!(
-        style.document.asset.kind,
-        crate::ui::template::UiAssetKind::Style
-    );
+    assert_eq!(layout.document.asset.kind, UiAssetKind::Layout);
+    assert_eq!(widget.document.asset.kind, UiAssetKind::Widget);
+    assert_eq!(style.document.asset.kind, UiAssetKind::Style);
     assert!(UiLayoutAsset::from_toml_str(WIDGET_UI_TOML).is_err());
 }
 

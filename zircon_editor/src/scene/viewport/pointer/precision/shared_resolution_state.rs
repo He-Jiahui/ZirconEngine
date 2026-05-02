@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::ui::event_ui::UiNodeId;
+use zircon_runtime_interface::ui::event_ui::UiNodeId;
 
 use super::PrecisionCandidate;
 use crate::scene::viewport::pointer::viewport_pointer_route::ViewportPointerRoute;

@@ -15,7 +15,7 @@ use crate::ui::workbench::view::{
     PreferredHost, ViewDescriptor, ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
     ViewKind,
 };
-use zircon_runtime::core::math::UVec2;
+use zircon_runtime_interface::math::UVec2;
 
 #[test]
 fn welcome_startup_projects_into_exclusive_page_model() {
