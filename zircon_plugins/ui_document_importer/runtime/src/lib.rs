@@ -1,7 +1,7 @@
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    AssetSchemaMigrationReport, DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset,
-    UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    AssetSchemaMigrationReport, FunctionAssetImporter, ImportedAsset, UiLayoutAsset, UiStyleAsset,
+    UiWidgetAsset,
 };
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::ui::template::{
@@ -21,6 +21,10 @@ pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_ui_document_importer_runtime
 pub const MODULE_NAME: &str = "UiDocumentImporterModule";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.ui_document_importer";
 pub const IMPORTER_CAPABILITY: &str = "runtime.asset.importer.ui_document";
+pub const UI_BINARY_MAGIC: &[u8; 8] = b"ZRUI001\0";
+pub const UI_BINARY_FORMAT_VERSION: u32 = 1;
+
+const UI_BINARY_HEADER_LEN: usize = UI_BINARY_MAGIC.len() + std::mem::size_of::<u32>();
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
     &[RUNTIME_CAPABILITY, IMPORTER_CAPABILITY]
@@ -112,12 +116,9 @@ pub fn register_runtime_extensions(
             "ui_document_importer.serialized_json" => registry.register_asset_importer(
                 FunctionAssetImporter::new(importer, import_ui_json_document),
             )?,
-            "ui_document_importer.serialized_binary" => {
-                registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
-                    importer,
-                    "zui/uidoc binary UI documents require a UI document codec backend",
-                ))?;
-            }
+            "ui_document_importer.serialized_binary" => registry.register_asset_importer(
+                FunctionAssetImporter::new(importer, import_ui_binary_document),
+            )?,
             _ => unreachable!("asset_importer_descriptors returns only known UI importer ids"),
         }
     }
@@ -145,13 +146,78 @@ pub fn import_ui_toml_document(
 pub fn import_ui_json_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    let mut document: UiAssetDocument =
+    let document: UiAssetDocument =
         serde_json::from_slice(&context.source_bytes).map_err(|error| {
             AssetImportError::Parse(format!(
                 "parse ui asset json {}: {error}",
                 context.source_path.display()
             ))
         })?;
+    import_serialized_ui_document(document, "json tree")
+}
+
+pub fn import_ui_binary_document(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let document = decode_ui_binary_document(&context.source_bytes, context)?;
+    import_serialized_ui_document(document, "binary document")
+}
+
+pub fn encode_ui_binary_document(document: &UiAssetDocument) -> Result<Vec<u8>, AssetImportError> {
+    let payload = bincode::serialize(document)
+        .map_err(|error| AssetImportError::Parse(format!("encode ui binary document: {error}")))?;
+    let mut bytes = Vec::with_capacity(UI_BINARY_HEADER_LEN + payload.len());
+    bytes.extend_from_slice(UI_BINARY_MAGIC);
+    bytes.extend_from_slice(&UI_BINARY_FORMAT_VERSION.to_le_bytes());
+    bytes.extend_from_slice(&payload);
+    Ok(bytes)
+}
+
+fn decode_ui_binary_document(
+    source_bytes: &[u8],
+    context: &AssetImportContext,
+) -> Result<UiAssetDocument, AssetImportError> {
+    if source_bytes.len() < UI_BINARY_HEADER_LEN {
+        return Err(AssetImportError::Parse(format!(
+            "parse ui binary document {}: expected at least {UI_BINARY_HEADER_LEN} bytes",
+            context.source_path.display()
+        )));
+    }
+    if &source_bytes[..UI_BINARY_MAGIC.len()] != UI_BINARY_MAGIC {
+        return Err(AssetImportError::Parse(format!(
+            "parse ui binary document {}: invalid ZRUI001 magic header",
+            context.source_path.display()
+        )));
+    }
+
+    let version_offset = UI_BINARY_MAGIC.len();
+    let container_version = u32::from_le_bytes([
+        source_bytes[version_offset],
+        source_bytes[version_offset + 1],
+        source_bytes[version_offset + 2],
+        source_bytes[version_offset + 3],
+    ]);
+    if container_version != UI_BINARY_FORMAT_VERSION {
+        return Err(AssetImportError::SchemaMigration(format!(
+            "ui binary document {} uses unsupported container version {}; current supported version is {}",
+            context.source_path.display(),
+            container_version,
+            UI_BINARY_FORMAT_VERSION
+        )));
+    }
+
+    bincode::deserialize(&source_bytes[UI_BINARY_HEADER_LEN..]).map_err(|error| {
+        AssetImportError::Parse(format!(
+            "decode ui binary document {}: {error}",
+            context.source_path.display()
+        ))
+    })
+}
+
+fn import_serialized_ui_document(
+    mut document: UiAssetDocument,
+    source_label: &str,
+) -> Result<AssetImportOutcome, AssetImportError> {
     let source_version = document.asset.version;
     if !UiAssetSchemaVersionPolicy::is_supported_source_schema(source_version) {
         return Err(AssetImportError::SchemaMigration(format!(
@@ -167,10 +233,10 @@ pub fn import_ui_json_document(
 
     let summary = if UiAssetSchemaVersionPolicy::requires_source_schema_migration(source_version) {
         format!(
-            "ui asset schema json tree; source version bumped from {source_version} to {UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION}"
+            "ui asset schema {source_label}; source version bumped from {source_version} to {UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION}"
         )
     } else {
-        "ui asset schema json tree; validated current version".to_string()
+        format!("ui asset schema {source_label}; validated current version")
     };
     let migration_report = AssetSchemaMigrationReport {
         source_schema_version: Some(source_version),
@@ -222,6 +288,10 @@ mod tests {
             importer.full_suffixes.contains(&".ui.toml".to_string())
                 && importer.allows_output_kind(AssetKind::UiWidget)
         }));
+        assert!(manifest.asset_importers.iter().any(|importer| importer
+            .source_extensions
+            .contains(&"zui".to_string())
+            && importer.source_extensions.contains(&"uidoc".to_string())));
     }
 
     #[test]
@@ -307,6 +377,98 @@ id = "main"
             }
             other => panic!("unexpected imported asset: {other:?}"),
         }
+    }
+
+    #[test]
+    fn serialized_binary_importer_decodes_ui_layout_asset() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("layout.zui"))
+            .unwrap();
+        let document: UiAssetDocument = serde_json::from_slice(
+            br#"
+{
+  "asset": {
+    "kind": "layout",
+    "id": "binary.layout",
+    "version": 1,
+    "display_name": "Binary Layout"
+  },
+  "root": {
+    "node_id": "root",
+    "type": "Panel"
+  }
+}
+"#,
+        )
+        .unwrap();
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "layout.zui".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/layout.zui").unwrap(),
+            encode_ui_binary_document(&document).unwrap(),
+            Default::default(),
+        );
+
+        let outcome = importer.import(&context).unwrap();
+
+        match outcome.imported_asset {
+            zircon_runtime::asset::ImportedAsset::UiLayout(asset) => {
+                assert_eq!(asset.document.asset.id, "binary.layout");
+                assert_eq!(asset.document.root_node_id(), Some("root"));
+                assert_eq!(
+                    outcome.migration_report.unwrap().target_schema_version,
+                    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn serialized_binary_rejects_invalid_magic() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("broken.uidoc"))
+            .unwrap();
+        let mut source = vec![0; UI_BINARY_HEADER_LEN];
+        source.extend_from_slice(b"payload");
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "broken.uidoc".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/broken.uidoc").unwrap(),
+            source,
+            Default::default(),
+        );
+
+        let error = importer.import(&context).unwrap_err();
+
+        assert!(error.to_string().contains("invalid ZRUI001 magic header"));
+    }
+
+    #[test]
+    fn serialized_binary_rejects_future_container_version() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("future.zui"))
+            .unwrap();
+        let mut source = Vec::new();
+        source.extend_from_slice(UI_BINARY_MAGIC);
+        source.extend_from_slice(&(UI_BINARY_FORMAT_VERSION + 1).to_le_bytes());
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "future.zui".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/future.zui").unwrap(),
+            source,
+            Default::default(),
+        );
+
+        let error = importer.import(&context).unwrap_err();
+
+        assert!(error.to_string().contains("unsupported container version"));
     }
 
     #[test]

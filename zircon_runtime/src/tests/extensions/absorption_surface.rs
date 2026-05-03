@@ -14,16 +14,20 @@ fn optional_extension_module_registration_keeps_current_owner_packages_explicit(
 
     for domain in ["physics", "animation"] {
         assert!(
-            runtime_root
-                .join("src")
-                .join(domain)
-                .join("mod.rs")
-                .exists(),
-            "runtime domain {domain} should keep its shared runtime contract under zircon_runtime/src/{domain}"
+            !runtime_root.join("src").join(domain).exists(),
+            "runtime domain {domain} should not keep concrete runtime behavior under zircon_runtime/src/{domain}"
         );
         assert!(
             !runtime_root.join(format!("src/{domain}.rs")).exists(),
             "runtime domain {domain} should be folder-backed, not a flat root file"
+        );
+        assert!(
+            runtime_root
+                .join("src/core/framework")
+                .join(domain)
+                .join("mod.rs")
+                .exists(),
+            "runtime domain {domain} should keep its neutral framework contract under zircon_runtime/src/core/framework/{domain}"
         );
     }
 

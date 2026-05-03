@@ -11,7 +11,11 @@ related_code:
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
+  - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
   - zircon_editor/src/ui/slint_host/app/helpers.rs
   - zircon_editor/src/ui/slint_host/app/pointer_layout.rs
   - zircon_editor/src/ui/slint_host/app/detail_scroll_pointer.rs
@@ -175,6 +179,8 @@ related_code:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/slint_host/app/inspector.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
 implementation_files:
   - zircon_ui/src/layout/constraints.rs
@@ -186,7 +192,11 @@ implementation_files:
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
+  - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
   - zircon_editor/src/ui/slint_host/app/helpers.rs
   - zircon_editor/src/ui/slint_host/app/pointer_layout.rs
   - zircon_editor/src/ui/slint_host/app/detail_scroll_pointer.rs
@@ -328,6 +338,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/slint_host/app/inspector.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
 plan_sources:
   - user: 2026-04-13 JetBrains Hybrid Workbench Shell Spec + Implementation Plan
   - user: 2026-04-14 Slint Workbench 响应式 AutoLayout 与约束求解计划
@@ -348,6 +360,8 @@ plan_sources:
   - user: 2026-04-17 Palette 到真实节点/引用节点创建的落地
   - user: 2026-04-17 结构化 undo/redo，从当前 source-text 级别继续往 tree-command 演进
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
+  - docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md
+  - docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -418,8 +432,6 @@ tests:
   - cargo check -p zircon_editor --lib --locked
   - cargo check -p zircon_editor --lib --offline
   - cargo test -p zircon_asset -p zircon_manager --locked
-  - cargo build --workspace --locked --verbose
-  - cargo test --workspace --locked --verbose
   - 2026-05-03: cargo metadata --no-deps --format-version 1 (passed)
   - 2026-05-03: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (passed)
   - 2026-05-03: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_support --tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-gap-closure --message-format short --color never (passed)
@@ -461,6 +473,14 @@ tests:
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe desktop_export_output_root_is_project_local_and_profile_scoped --nocapture (passed)
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations --nocapture (passed)
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects --nocapture (passed)
+  - 2026-05-03: rustfmt --edition 2021 --check --config skip_children=true zircon_editor/src/ui/slint_host/app/build_export_actions.rs zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs (passed)
+  - 2026-05-03: git diff --check -- zircon_editor/src/ui/slint_host/app/build_export_actions.rs zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs docs/editor-and-tooling/editor-workbench-shell.md docs/engine-architecture/runtime-editor-pluginized-export.md (passed; LF-to-CRLF warnings only)
+  - 2026-05-03: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-gap-check --message-format short --color never (passed with existing warnings)
+  - 2026-05-03: cargo test -p zircon_editor "build_export" --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-editor-gap-check --message-format short --color never -- --nocapture (11 passed)
+  - 2026-05-03 Milestone 4: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (passed with existing warnings)
+  - 2026-05-03 Milestone 4: cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (timed out after compiling and running part of the lib suite)
+  - 2026-05-03 Milestone 4: focused Milestone 1-3 filters for default layout/menu, pane payload, Slint projection, action parsing, and export queue (11/11 passed)
+  - 2026-05-03 Milestone 4: .\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput (passed build and test; existing warnings remain)
 doc_type: module-detail
 ---
 
@@ -1524,15 +1544,25 @@ root shell 当前又减少了一层 visible-drawer 混合权威：
 - [`template_runtime/builtin/mod.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/builtin/mod.rs) 现在把 `PANE_BUILD_EXPORT_BODY_DOCUMENT_ID` 从 builtin template documents 重新导出，`BuildExportPaneBody` descriptor 不再引用一个未暴露的文档 ID。
 - [`build_export_view_descriptor.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/host/builtin_views/activity_views/build_export_view_descriptor.rs) 把 `editor.build_export_desktop` 固化成内置 bottom-right 工具视图；默认布局会把它和 runtime diagnostics 放在同一个 bottom-right stack，View 菜单也能通过 `View.BuildExport.Open` 打开。
 - [`build_export_desktop_body.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml) 与 [`pane_payload_builders/build_export.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/build_export.rs) 共同提供桌面发布行的模板、payload 和 host contract。
-- [`app/host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/host_lifecycle.rs) 在 root host 与 native floating child host 两条 `apply_presentation(...)` 路径都构建并传入 `BuildExportPaneViewData`，让 `ShellPresentation::from_state(...)`、pane payload builder 和 host contract 使用同一份 export plan projection。
+- [`host_data.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs) 固定 `ModulePluginsPaneViewData` 与 `BuildExportPaneViewData` 作为 editor-owned pane DTO；[`app/host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/host_lifecycle.rs) 在 root host 与 native floating child host 两条 `apply_presentation(...)` 路径都构建并传入这两份 view data，让 `ShellPresentation::from_state(...)`、pane payload builder 和 host contract 使用同一份 Plugin Manager / Desktop Export projection。
 - [`name_mapping.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/reflection/name_mapping.rs) 补上 `ViewContentKind::BuildExport` 的 stable reflection 名称，避免新增 pane kind 在反射/远程 surface 名称转换里落到非穷尽匹配。
 - [`build_export_actions.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/build_export_actions.rs) 现在把每个桌面目标的 `BuildExport.Execute.<profile>` action 接到 `DesktopExportJobQueue`。队列一次只运行一个后台 export job，默认输出到当前项目下 `Builds/zircon/<profile>`，并把最近一次 `EditorExportBuildReport` 归约成 `desktop_export_reports`。
-- 同一个 action parser 也正式接收 `BuildExport.Cancel.<profile>`、`BuildExport.SetOutput.<profile>|<path>` 和 `BuildExport.ClearOutput.<profile>`。Queued job 会被直接移出队列；Running job 会进入 cancel-requested 状态，并在 native-aware export backend 返回后丢弃该次结果，避免迟到 report 覆盖用户已取消的 UI 状态。
+- 同一个 action parser 也正式接收 `BuildExport.Cancel.<profile>`、`BuildExport.ChooseOutput.<profile>`、`BuildExport.SetOutput.<profile>|<path>`、`BuildExport.ClearOutput.<profile>` 和 `BuildExport.RevealOutput.<profile>`。Queued job 会被直接移出队列；Running job 会进入 cancel-requested 状态，并在 native-aware export backend 返回后丢弃该次结果，避免迟到 report 覆盖用户已取消的 UI 状态。Choose action 通过 [`app/build_export_actions/output_folder.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs) 调宿主原生目录选择器并写入同一份 output override；Reveal action 会确保当前输出目录存在，并用宿主 OS 的文件管理器打开它。
+- [`pane_data_conversion/build_export.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs) 现在独立承接 Build Export row 投影，避免继续扩大泛用 `pane_data_conversion/mod.rs`。每个桌面目标行会同时投影 `Export/Cancel`、`Choose`、`Open` 和 `Default` 四个 `BuildExportAction` 按钮，行级 actions 与可视按钮消费同一组稳定 action id。
 - [`pane_surface_actions.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs) 会把 `BuildExportAction` 控件分派给上面的执行入口；pane contract 根据目标状态在 `Export` 和 `Cancel` 间切换稳定 action id，所以 template/Slint 渲染层不需要解析 profile 名称。
 
-当前 pane 生成 Windows / Linux / macOS 三个桌面目标的 export plan 行，展示目标平台、运行目标、打包策略、启用插件数量、linked runtime crate、NativeDynamic package、生成文件数量、诊断和 fatal 状态。点击行级 `Export` 后，host 会排队后台 native-aware export build；`tick()` 会启动/轮询队列，并把 `Queued`、`Running`、`Cancel requested`、`Exported`、`Failed`、`Cancelled` 这些 coarse 状态、输出目录、generated file/package counts、诊断和 fatal 标记覆盖回下一次 pane projection。取消令牌会传入 SourceTemplate Cargo build 和 native dynamic 插件 Cargo build，runner 会轮询取消请求并尽量终止正在运行的构建树：Windows 走 `taskkill /PID <cargo-pid> /T /F`，Unix 让 Cargo 进入独立 process group 后对该组发送强制终止信号，最后保留单进程 kill 作为兜底。自定义输出目录已经有 host action contract，但原生目录选择器 UI 和百分比/阶段级进度仍是后续 UX/runner 工作。
+当前 pane 生成 Windows / Linux / macOS 三个桌面目标的 export plan 行，展示目标平台、运行目标、打包策略、启用插件数量、linked runtime crate、NativeDynamic package、生成文件数量、诊断和 fatal 状态。点击行级 `Export` 后，host 会排队后台 native-aware export build；`tick()` 会启动/轮询队列，并把 `Queued`、`Running`、`Cancel requested`、`Exported`、`Failed`、`Cancelled` 这些 coarse 状态、输出目录、generated file/package counts、诊断和 fatal 标记覆盖回下一次 pane projection。runner 还会通过 `EditorExportBuildProgress` 回传阶段/百分比：native package discovery、export plan resolve、native package preparation、materialization、staging cleanup、Cargo build、exported native manifest probe 和 diagnostics 写入都会投影到 active row diagnostics。取消令牌会传入 SourceTemplate Cargo build 和 native dynamic 插件 Cargo build，runner 会轮询取消请求并尽量终止正在运行的构建树：Windows 走 `taskkill /PID <cargo-pid> /T /F`，Unix 让 Cargo 进入独立 process group 后对该组发送强制终止信号，最后保留单进程 kill 作为兜底。自定义输出目录现在同时有 scriptable `SetOutput` contract 和行级原生 `Choose` UI；可视层也能打开当前输出目录并恢复 profile 默认输出目录。
 
 这不是把 export build 执行权迁到插件里；`editor_build_export_desktop` 仍只贡献视图、菜单和 authoring descriptors，实际 plan 生成继续由 host 侧 `EditorManager` / runtime `ExportBuildPlan` 负责。
+
+Milestone 4 inspection confirmed that missing or unreadable project manifests are pane diagnostics, not pane blockers: Plugin Manager falls back to a builtin-catalog `ProjectManifest` and still emits `ModulePluginsPaneViewData`; Desktop Export emits `BuildExportPaneViewData` with an empty target list plus the manifest diagnostic so `editor.build_export_desktop` can still open. Repeated open/refresh behavior stays idempotent because `ViewRegistry::open_descriptor(...)` reuses non-multi-instance descriptors, `restore_or_reuse_instance(...)` preserves builtin `#1` instances, and `TabStackLayout::insert(...)` removes an existing tab id before re-inserting it.
+
+Milestone 4 validation evidence for this shell slice:
+
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never` passed with existing warnings.
+- `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never` compiled and started the full lib suite but timed out after 15 minutes before a full result.
+- Focused plan filters from Milestones 1-3 passed: default layout/menu checks, pane payload checks, Plugin Manager and Desktop Export Slint projection checks, action parsing checks, and Desktop Export queue cancellation.
+- `.\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput` passed package build and test with existing warnings, so this crate-local validator is the fresh green evidence for the milestone; no workspace-wide green claim is made.
 
 ## Latest Menu Operation Dispatch
 

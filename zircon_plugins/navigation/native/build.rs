@@ -6,12 +6,15 @@ fn main() {
     let mut build = cc::Build::new();
     build
         .cpp(true)
+        .define("DT_VIRTUAL_QUERYFILTER", None)
         .include(vendor.join("Recast/Include"))
         .include(vendor.join("Detour/Include"))
         .include(vendor.join("DetourCrowd/Include"))
         .include(vendor.join("DetourTileCache/Include"))
         .file("native/recast_bridge.cpp")
-        .file("native/recast_bake.cpp");
+        .file("native/recast_bake.cpp")
+        .file("native/detour_query.cpp")
+        .file("native/detour_tile_cache.cpp");
 
     for directory in [
         vendor.join("Recast/Source"),
@@ -33,6 +36,8 @@ fn main() {
     println!("cargo:rerun-if-changed=native/recast_bridge.cpp");
     println!("cargo:rerun-if-changed=native/recast_bridge.h");
     println!("cargo:rerun-if-changed=native/recast_bake.cpp");
+    println!("cargo:rerun-if-changed=native/detour_query.cpp");
+    println!("cargo:rerun-if-changed=native/detour_tile_cache.cpp");
     println!("cargo:rerun-if-changed=vendor/recastnavigation");
 }
 

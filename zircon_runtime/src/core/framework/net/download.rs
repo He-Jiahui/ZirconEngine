@@ -11,6 +11,24 @@ pub struct NetDownloadChunk {
     pub sha256: String,
 }
 
+impl NetDownloadChunk {
+    pub fn new(
+        id: impl Into<String>,
+        url: impl Into<String>,
+        byte_offset: u64,
+        byte_len: u64,
+        sha256: impl Into<String>,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            url: url.into(),
+            byte_offset,
+            byte_len,
+            sha256: sha256.into(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NetDownloadManifest {
     pub download: NetDownloadId,
@@ -48,4 +66,32 @@ pub enum NetDownloadStatus {
     Complete,
     Failed,
     Cancelled,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetDownloadProgress {
+    pub download: NetDownloadId,
+    pub status: NetDownloadStatus,
+    pub completed_chunks: Vec<String>,
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+    pub diagnostic: Option<String>,
+}
+
+impl NetDownloadProgress {
+    pub fn new(download: NetDownloadId, status: NetDownloadStatus, total_bytes: u64) -> Self {
+        Self {
+            download,
+            status,
+            completed_chunks: Vec::new(),
+            downloaded_bytes: 0,
+            total_bytes,
+            diagnostic: None,
+        }
+    }
+
+    pub fn with_diagnostic(mut self, diagnostic: impl Into<String>) -> Self {
+        self.diagnostic = Some(diagnostic.into());
+        self
+    }
 }

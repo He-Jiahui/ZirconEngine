@@ -14,7 +14,9 @@ mod package_projection;
 mod reports;
 mod status;
 
-pub use self::export_build::{EditorExportBuildReport, EditorExportCargoInvocation};
+pub use self::export_build::{
+    EditorExportBuildProgress, EditorExportBuildReport, EditorExportCargoInvocation,
+};
 pub use self::reports::{
     EditorPluginEnableReport, EditorPluginFeatureDependencyStatus,
     EditorPluginFeatureSelectionUpdateReport, EditorPluginFeatureStatus,

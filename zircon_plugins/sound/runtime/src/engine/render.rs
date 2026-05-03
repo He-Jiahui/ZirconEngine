@@ -3,9 +3,9 @@ use std::collections::{HashMap, HashSet};
 use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAttenuationMode, SoundError, SoundExternalSourceBlock,
-    SoundImpulseResponseId, SoundListenerDescriptor, SoundMixBlock, SoundParameterId,
-    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceInput, SoundTrackId,
-    SoundVolumeDescriptor, SoundVolumeShape,
+    SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundListenerDescriptor, SoundMixBlock,
+    SoundParameterId, SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceInput,
+    SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
 };
 
 use crate::SoundConfig;
@@ -178,6 +178,7 @@ impl SoundEngineState {
         let listeners = self.listeners.values().cloned().collect::<Vec<_>>();
         let volumes = self.volumes.values().cloned().collect::<Vec<_>>();
         let impulse_responses = self.impulse_responses.clone();
+        let hrtf_profiles = self.hrtf_profiles.clone();
         let ray_tracing = self.ray_tracing.clone();
         for voice in self.sources.values_mut() {
             let source_descriptor =
@@ -214,6 +215,7 @@ impl SoundEngineState {
                 active_listener_for(&listeners, output_track),
                 &volumes,
                 &impulse_responses,
+                &hrtf_profiles,
                 &ray_tracing,
             );
             if let Some(destination) = track_buffers.get_mut(&output_track) {
@@ -335,7 +337,7 @@ fn mix_clip_playback(
     let step = resample_step(clip.sample_rate_hz, config.sample_rate_hz);
 
     for frame_index in 0..frames {
-        let Some(source_frame_index) = next_source_frame_index(
+        let Some(source_frame_position) = next_source_frame_position(
             &mut playback.cursor_position,
             frame_count,
             step,
@@ -345,11 +347,17 @@ fn mix_clip_playback(
             return true;
         };
 
-        let clip_frame_offset = source_frame_index * clip_channels;
-        let clip_frame = &clip.samples[clip_frame_offset..clip_frame_offset + clip_channels];
         let output_offset = frame_index * output_channels;
         for channel in 0..output_channels {
-            let mut sample = sample_for_output_channel(clip_frame, channel, output_channels);
+            let mut sample = interpolated_source_sample(
+                &clip.samples,
+                clip_channels,
+                frame_count,
+                source_frame_position,
+                channel,
+                output_channels,
+                playback.looped,
+            );
             sample *= playback.gain;
             if output_channels > 1 {
                 sample *= if channel == 0 {
@@ -506,20 +514,24 @@ fn mix_external_source_block(
     let step = resample_step(block.sample_rate_hz, output_sample_rate_hz);
 
     for frame_index in 0..frames {
-        let Some(source_frame_index) =
-            next_source_frame_index(cursor_position, frame_count, step, looped)
+        let Some(source_frame_position) =
+            next_source_frame_position(cursor_position, frame_count, step, looped)
         else {
             *cursor_frame = frame_count;
             return;
         };
 
-        let source_frame_offset = source_frame_index * source_channels;
-        let source_frame =
-            &block.samples[source_frame_offset..source_frame_offset + source_channels];
         let output_offset = frame_index * output_channels;
         for channel in 0..output_channels {
-            destination[output_offset + channel] +=
-                sample_for_output_channel(source_frame, channel, output_channels) * gain;
+            destination[output_offset + channel] += interpolated_source_sample(
+                &block.samples,
+                source_channels,
+                frame_count,
+                source_frame_position,
+                channel,
+                output_channels,
+                looped,
+            ) * gain;
         }
         *cursor_frame = cursor_position.floor() as usize;
     }
@@ -529,12 +541,12 @@ fn resample_step(source_sample_rate_hz: u32, output_sample_rate_hz: u32) -> f64 
     source_sample_rate_hz.max(1) as f64 / output_sample_rate_hz.max(1) as f64
 }
 
-fn next_source_frame_index(
+fn next_source_frame_position(
     cursor_position: &mut f64,
     frame_count: usize,
     step: f64,
     looped: bool,
-) -> Option<usize> {
+) -> Option<f64> {
     if frame_count == 0 {
         return None;
     }
@@ -545,9 +557,64 @@ fn next_source_frame_index(
             return None;
         }
     }
-    let frame_index = cursor_position.floor() as usize;
+    let frame_position = *cursor_position;
     *cursor_position += step;
-    Some(frame_index.min(frame_count - 1))
+    Some(frame_position)
+}
+
+fn interpolated_source_sample(
+    samples: &[f32],
+    source_channels: usize,
+    frame_count: usize,
+    frame_position: f64,
+    output_channel: usize,
+    output_channel_count: usize,
+    looped: bool,
+) -> f32 {
+    if source_channels == 0 || frame_count == 0 {
+        return 0.0;
+    }
+
+    let base_position = frame_position.floor().max(0.0);
+    let base_frame = (base_position as usize).min(frame_count - 1);
+    let next_frame = if base_frame + 1 < frame_count {
+        base_frame + 1
+    } else if looped {
+        0
+    } else {
+        base_frame
+    };
+    let blend = (frame_position - base_position).clamp(0.0, 1.0) as f32;
+    let start = source_frame_sample(
+        samples,
+        source_channels,
+        base_frame,
+        output_channel,
+        output_channel_count,
+    );
+    let end = source_frame_sample(
+        samples,
+        source_channels,
+        next_frame,
+        output_channel,
+        output_channel_count,
+    );
+    start + (end - start) * blend
+}
+
+fn source_frame_sample(
+    samples: &[f32],
+    source_channels: usize,
+    frame_index: usize,
+    output_channel: usize,
+    output_channel_count: usize,
+) -> f32 {
+    let source_frame_offset = frame_index.saturating_mul(source_channels);
+    let source_frame_end = source_frame_offset.saturating_add(source_channels);
+    let Some(source_frame) = samples.get(source_frame_offset..source_frame_end) else {
+        return 0.0;
+    };
+    sample_for_output_channel(source_frame, output_channel, output_channel_count)
 }
 
 fn sample_for_output_channel(
@@ -582,6 +649,7 @@ fn apply_source_environment(
     listener: Option<&SoundListenerDescriptor>,
     volumes: &[SoundVolumeDescriptor],
     impulse_responses: &HashMap<SoundImpulseResponseId, Vec<f32>>,
+    hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
     ray_tracing: &SoundRayTracingConvolutionStatus,
 ) {
     let mut gain = 1.0;
@@ -589,7 +657,9 @@ fn apply_source_environment(
 
     if let Some(listener) = listener {
         let spatial = spatial_profile(source, listener, sample_rate_hz);
-        apply_hrtf_preview(buffer, channels, spatial);
+        if !apply_loaded_hrtf_profile(buffer, channels, listener, hrtf_profiles) {
+            apply_hrtf_preview(buffer, channels, spatial);
+        }
         gain *= spatial.gain;
         pan = spatial.pan;
     }
@@ -786,6 +856,52 @@ fn apply_hrtf_preview(buffer: &mut [f32], channels: usize, spatial: SpatialProfi
         buffer[frame * channels] = left * spatial.left_ear_gain;
         buffer[frame * channels + 1] = right * spatial.right_ear_gain;
     }
+}
+
+fn apply_loaded_hrtf_profile(
+    buffer: &mut [f32],
+    channels: usize,
+    listener: &SoundListenerDescriptor,
+    hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
+) -> bool {
+    if channels < 2 {
+        return false;
+    }
+    let Some(profile_id) = listener.hrtf_profile.as_deref() else {
+        return false;
+    };
+    let Some(profile) = hrtf_profiles.get(profile_id) else {
+        return false;
+    };
+
+    let dry = buffer.to_vec();
+    let frames = buffer.len() / channels;
+    for frame in 0..frames {
+        buffer[frame * channels] =
+            convolve_channel_sample(&dry, channels, frame, 0, profile.left_kernel.as_slice());
+        buffer[frame * channels + 1] =
+            convolve_channel_sample(&dry, channels, frame, 1, profile.right_kernel.as_slice());
+    }
+    true
+}
+
+fn convolve_channel_sample(
+    dry: &[f32],
+    channels: usize,
+    frame: usize,
+    channel: usize,
+    kernel: &[f32],
+) -> f32 {
+    kernel
+        .iter()
+        .enumerate()
+        .filter_map(|(tap, gain)| {
+            frame
+                .checked_sub(tap)
+                .and_then(|source_frame| dry.get(source_frame * channels + channel))
+                .map(|sample| *sample * *gain)
+        })
+        .sum()
 }
 
 fn attenuation_gain(

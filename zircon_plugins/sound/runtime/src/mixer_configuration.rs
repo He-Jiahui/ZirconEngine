@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::core::framework::sound::{
     SoundAutomationBinding, SoundAutomationBindingId, SoundError, SoundMixerGraph, SoundSourceId,
@@ -32,10 +32,34 @@ pub(crate) fn configure_mixer_graph(
         .map(|track| SoundTrackMeter::silent(track.id))
         .collect();
 
+    let dynamic_event_ids = graph
+        .dynamic_events
+        .events
+        .iter()
+        .map(|event| event.id.clone())
+        .collect::<HashSet<_>>();
     state.dynamic_events = graph.dynamic_events.clone();
+    state
+        .dynamic_event_handlers
+        .retain(|handler| dynamic_event_ids.contains(&handler.event_id));
+    state
+        .pending_dynamic_events
+        .retain(|event| dynamic_event_ids.contains(&event.event_id));
     state.graph = graph;
     state.sources = sources;
     state.automation_bindings = automation_bindings;
+    let automation_binding_ids = state
+        .automation_bindings
+        .keys()
+        .copied()
+        .collect::<HashSet<_>>();
+    state.timeline_sequences.retain(|playback| {
+        playback
+            .sequence
+            .tracks
+            .iter()
+            .all(|track| automation_binding_ids.contains(&track.binding))
+    });
     state.effect_states.clear();
     state.track_states.clear();
     state.meters = meters;

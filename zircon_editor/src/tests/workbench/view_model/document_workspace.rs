@@ -40,6 +40,14 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::ModulePlugins));
+    assert_eq!(
+        left_bottom
+            .tabs
+            .iter()
+            .filter(|tab| tab.content_kind == ViewContentKind::ModulePlugins)
+            .count(),
+        1
+    );
 
     let right_top = model
         .drawer_ring
@@ -74,6 +82,14 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::BuildExport));
+    assert_eq!(
+        bottom_right
+            .tabs
+            .iter()
+            .filter(|tab| tab.content_kind == ViewContentKind::BuildExport)
+            .count(),
+        1
+    );
 
     match &model.document {
         DocumentWorkspaceModel::Workbench { workspace, .. } => match workspace {
@@ -281,6 +297,43 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
                 )
             })
     }));
+}
+
+#[test]
+fn view_menu_operation_paths_route_plugin_manager_and_build_export() {
+    let model = WorkbenchViewModel::build(&default_preview_fixture().build_chrome());
+    let view_menu = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "View")
+        .expect("view menu");
+
+    let plugin_manager = view_menu
+        .items
+        .iter()
+        .find(|item| item.label == "Plugin Manager")
+        .expect("plugin manager view item");
+    assert_eq!(
+        plugin_manager
+            .operation_path
+            .as_ref()
+            .map(|path| path.as_str()),
+        Some("View.PluginManager.Open")
+    );
+
+    let desktop_export = view_menu
+        .items
+        .iter()
+        .find(|item| item.label == "Desktop Export")
+        .expect("desktop export view item");
+    assert_eq!(
+        desktop_export
+            .operation_path
+            .as_ref()
+            .map(|path| path.as_str()),
+        Some("View.BuildExport.Open")
+    );
 }
 
 #[test]

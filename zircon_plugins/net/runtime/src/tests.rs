@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::net::{
-    NetConnectionState, NetEndpoint, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
+    NetConnectionState, NetEndpoint, NetError, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
     NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId, NetRuntimeMode,
     NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame, RpcDescriptor,
     RpcDirection,
@@ -119,6 +119,21 @@ fn net_runtime_manager_reports_mode_diagnostics_and_events() {
 }
 
 #[test]
+fn net_runtime_manager_closes_listeners_across_transports() {
+    let net = DefaultNetManager::for_mode(NetRuntimeMode::DedicatedServer);
+    let listener = net.listen_tcp(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    assert_eq!(net.diagnostics().open_tcp_listeners, 1);
+
+    net.close_listener(listener).unwrap();
+
+    assert_eq!(net.diagnostics().open_tcp_listeners, 0);
+    assert_eq!(
+        net.listener_endpoint(listener).unwrap_err(),
+        NetError::UnknownListener { listener }
+    );
+}
+
+#[test]
 fn rpc_descriptor_records_direction_schema_and_quota() {
     let descriptor = RpcDescriptor::new("chat.send_message", RpcDirection::ClientToServer)
         .with_payload_schema("schema://net/chat/send-message.v1")
@@ -133,6 +148,19 @@ fn rpc_descriptor_records_direction_schema_and_quota() {
     );
     assert_eq!(descriptor.max_calls_per_second, Some(24));
     assert_eq!(descriptor.max_payload_bytes, Some(2048));
+
+    assert_eq!(
+        RpcDescriptor::command("player.move").direction,
+        RpcDirection::ClientToServer
+    );
+    assert_eq!(
+        RpcDescriptor::client_rpc("chat.broadcast").direction,
+        RpcDirection::ServerToClient
+    );
+    assert_eq!(
+        RpcDescriptor::target_rpc("inventory.sync_one").direction,
+        RpcDirection::TargetClient
+    );
 }
 
 #[test]
@@ -164,28 +192,52 @@ fn net_runtime_dispatches_registered_http_route() {
 }
 
 #[test]
-fn net_runtime_serves_registered_http_route_over_real_socket() {
+fn net_runtime_dispatches_dynamic_http_route_handler() {
     let net = DefaultNetManager::default();
-    net.register_http_route(
-        NetHttpRouteDescriptor::new("/socket-health", [NetHttpMethod::Get]),
-        NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"socket-ok".to_vec())
-            .with_header("content-type", "text/plain"),
+    net.register_http_route_handler(
+        NetHttpRouteDescriptor::new("/echo", [NetHttpMethod::Post]),
+        |request| NetHttpResponseDescriptor::new(request.request, 201, request.body),
     )
     .unwrap();
-    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
-    let endpoint = net.listener_endpoint(listener).unwrap();
 
     let response = net
-        .send_http_request(NetHttpRequestDescriptor::new(
-            NetRequestId::new(17),
-            NetHttpMethod::Get,
-            format!("http://{}:{}/socket-health", endpoint.host, endpoint.port),
-        ))
+        .send_http_request(
+            NetHttpRequestDescriptor::new(
+                NetRequestId::new(31),
+                NetHttpMethod::Post,
+                "http://127.0.0.1/echo",
+            )
+            .with_body(b"payload".to_vec()),
+        )
         .unwrap();
 
-    assert_eq!(response.request, NetRequestId::new(17));
-    assert_eq!(response.status_code, 200);
-    assert_eq!(response.body, b"socket-ok");
+    assert_eq!(response.request, NetRequestId::new(31));
+    assert_eq!(response.status_code, 201);
+    assert_eq!(response.body, b"payload");
+}
+
+#[test]
+fn base_net_runtime_requires_http_feature_for_real_socket_backend() {
+    let net = DefaultNetManager::default();
+
+    assert_eq!(
+        net.listen_http(&NetEndpoint::new("127.0.0.1", 0))
+            .unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.http".to_string(),
+        }
+    );
+    assert_eq!(
+        net.send_http_request(NetHttpRequestDescriptor::new(
+            NetRequestId::new(17),
+            NetHttpMethod::Get,
+            "http://127.0.0.1:9/socket-health",
+        ))
+        .unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.http".to_string(),
+        }
+    );
 }
 
 #[test]
@@ -223,38 +275,24 @@ fn net_runtime_queues_websocket_frames_with_budget() {
 }
 
 #[test]
-fn net_runtime_connects_websocket_over_real_handshake() {
+fn base_net_runtime_requires_websocket_feature_for_real_handshake() {
     let net = DefaultNetManager::default();
-    let listener = net
-        .listen_websocket(&NetEndpoint::new("127.0.0.1", 0))
-        .unwrap();
-    let endpoint = net.listener_endpoint(listener).unwrap();
-    let connector = net.clone();
-    let client_thread = std::thread::spawn(move || {
-        connector
-            .connect_websocket(NetWebSocketConnectDescriptor::new(format!(
-                "ws://{}:{}/socket",
-                endpoint.host, endpoint.port
-            )))
-            .unwrap()
-    });
-    let server = accept_until_websocket(&net, listener);
-    let client = client_thread
-        .join()
-        .expect("websocket connect thread panicked");
 
-    net.send_websocket_frame(client, NetWebSocketFrame::Text("hello-real".to_string()))
-        .unwrap();
     assert_eq!(
-        poll_websocket_until(&net, server),
-        NetWebSocketFrame::Text("hello-real".to_string())
+        net.listen_websocket(&NetEndpoint::new("127.0.0.1", 0))
+            .unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.websocket".to_string(),
+        }
     );
-
-    net.send_websocket_frame(server, NetWebSocketFrame::Text("echo-real".to_string()))
-        .unwrap();
     assert_eq!(
-        poll_websocket_until(&net, client),
-        NetWebSocketFrame::Text("echo-real".to_string())
+        net.connect_websocket(NetWebSocketConnectDescriptor::new(
+            "ws://127.0.0.1:9/socket"
+        ))
+        .unwrap_err(),
+        NetError::ProtocolUnavailable {
+            capability: "runtime.feature.net.websocket".to_string(),
+        }
     );
 }
 
@@ -299,32 +337,4 @@ fn poll_tcp_until(
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     panic!("expected TCP payload");
-}
-
-fn accept_until_websocket(
-    net: &DefaultNetManager,
-    listener: zircon_runtime::core::framework::net::NetListenerId,
-) -> zircon_runtime::core::framework::net::NetConnectionId {
-    for _ in 0..100 {
-        let accepted = net.accept_websocket(listener, 4).unwrap();
-        if let Some(connection) = accepted.into_iter().next() {
-            return connection;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-    panic!("expected accepted WebSocket connection");
-}
-
-fn poll_websocket_until(
-    net: &DefaultNetManager,
-    connection: zircon_runtime::core::framework::net::NetConnectionId,
-) -> NetWebSocketFrame {
-    for _ in 0..100 {
-        let frames = net.poll_websocket_frames(connection, 4).unwrap();
-        if let Some(frame) = frames.into_iter().next() {
-            return frame;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(1));
-    }
-    panic!("expected WebSocket frame");
 }

@@ -13,6 +13,7 @@ mod package;
 mod presets;
 mod ray_tracing;
 mod service_types;
+mod timeline;
 
 pub use components::sound_component_descriptors;
 pub use config::SoundConfig;

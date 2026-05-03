@@ -7,14 +7,39 @@ use crate::extract::FrameHistoryBinding;
 use super::{render_pass_stage::RenderPassStage, renderer_feature_asset::RendererFeatureAsset};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct CompiledRenderPipelinePassStage {
+    pub pass_name: String,
+    pub stage: RenderPassStage,
+}
+
+impl CompiledRenderPipelinePassStage {
+    pub fn new(pass_name: impl Into<String>, stage: RenderPassStage) -> Self {
+        Self {
+            pass_name: pass_name.into(),
+            stage,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompiledRenderPipeline {
     pub handle: RenderPipelineHandle,
     pub name: String,
     pub renderer_name: String,
     pub stages: Vec<RenderPassStage>,
+    pub pass_stages: Vec<CompiledRenderPipelinePassStage>,
     pub enabled_features: Vec<RendererFeatureAsset>,
     pub required_extract_sections: Vec<String>,
     pub capability_requirements: Vec<RenderFeatureCapabilityRequirement>,
     pub history_bindings: Vec<FrameHistoryBinding>,
     pub graph: CompiledRenderGraph,
+}
+
+impl CompiledRenderPipeline {
+    pub fn pass_stage(&self, pass_name: &str) -> Option<RenderPassStage> {
+        self.pass_stages
+            .iter()
+            .find(|entry| entry.pass_name == pass_name)
+            .map(|entry| entry.stage)
+    }
 }

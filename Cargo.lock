@@ -6859,6 +6859,7 @@ dependencies = [
  "slint",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
+ "winit 0.31.0-beta.2",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]

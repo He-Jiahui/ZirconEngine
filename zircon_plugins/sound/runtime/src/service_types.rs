@@ -5,14 +5,17 @@ use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::asset::{AssetUri, ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId,
-    SoundAutomationCurve, SoundBackendState, SoundBackendStatus, SoundClipId, SoundClipInfo,
-    SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventInvocation,
-    SoundEffectDescriptor, SoundEffectId, SoundError, SoundExternalSourceBlock,
-    SoundImpulseResponseId, SoundListenerDescriptor, SoundListenerId, SoundMixBlock,
-    SoundMixerGraph, SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
+    SoundAutomationCurve, SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendState,
+    SoundBackendStatus, SoundClipId, SoundClipInfo, SoundDynamicEventCatalog,
+    SoundDynamicEventDelivery, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
+    SoundDynamicEventInvocation, SoundEffectDescriptor, SoundEffectId, SoundError,
+    SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
+    SoundListenerDescriptor, SoundListenerId, SoundMixBlock, SoundMixerGraph,
+    SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
     SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackId, SoundPlaybackSettings,
     SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
-    SoundSourceDescriptor, SoundSourceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
+    SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence, SoundTimelineSequenceAdvance,
+    SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
     SoundVolumeDescriptor, SoundVolumeId,
 };
 use zircon_runtime::core::CoreHandle;
@@ -22,19 +25,25 @@ use super::automation::{
     validate_automation_binding,
 };
 use super::descriptor_validation::{
-    validate_external_source_block, validate_listener_descriptor, validate_source_descriptor,
+    validate_external_source_block, validate_external_source_handle,
+    validate_hrtf_profile_descriptor, validate_listener_descriptor, validate_source_descriptor,
     validate_volume_descriptor,
 };
 use super::dynamic_events::{
-    register_dynamic_event, submit_dynamic_event, unregister_dynamic_event,
+    dispatch_dynamic_events, register_dynamic_event, register_dynamic_event_handler,
+    submit_dynamic_event, unregister_dynamic_event, unregister_dynamic_event_handler,
 };
 use super::engine::validation::{validate_effect, validate_graph};
 use super::engine::{ActivePlayback, LoadedClip, SoundEngineState, SourceVoice};
 use super::mixer_configuration::configure_mixer_graph;
+use super::output::available_output_backends;
 use super::presets::built_in_mixer_presets;
 use super::ray_tracing::{
     clear_ray_traced_impulse_response, refresh_ray_tracing_status,
     submit_ray_traced_impulse_response, validate_ray_tracing_status,
+};
+use super::timeline::{
+    advance_timeline_sequences, remove_timeline_sequence, schedule_timeline_sequence,
 };
 use super::SoundConfig;
 
@@ -198,6 +207,43 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             }
             Err(error) => {
                 state.output_device.record_error(&error);
+                Err(error)
+            }
+        }
+    }
+
+    fn available_output_backends(&self) -> Result<Vec<SoundBackendCapability>, SoundError> {
+        Ok(available_output_backends())
+    }
+
+    fn pull_output_backend_callback(&self) -> Result<SoundBackendCallbackBlock, SoundError> {
+        let config = self.config();
+        if !config.enabled {
+            return Err(SoundError::BackendUnavailable {
+                detail: "sound playback is disabled".to_string(),
+            });
+        }
+
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let frames = state.output_device.block_size_frames()?;
+        match state.render_mix(&config, frames) {
+            Ok(block) => {
+                let sample_count = block.samples.len();
+                let channel_count = block.channel_count as usize;
+                let rendered_frames = if channel_count == 0 {
+                    0
+                } else {
+                    sample_count / channel_count
+                };
+                let report = state.output_device.record_callback_block(
+                    frames,
+                    rendered_frames,
+                    sample_count,
+                );
+                Ok(SoundBackendCallbackBlock { report, block })
+            }
+            Err(error) => {
+                state.output_device.record_callback_error(frames, &error);
                 Err(error)
             }
         }
@@ -523,6 +569,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         handle: ExternalAudioSourceHandle,
         block: SoundExternalSourceBlock,
     ) -> Result<(), SoundError> {
+        validate_external_source_handle(&handle)?;
         validate_external_source_block(&block)?;
         self.state
             .lock()
@@ -533,6 +580,7 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
     }
 
     fn clear_external_source(&self, handle: &ExternalAudioSourceHandle) -> Result<(), SoundError> {
+        validate_external_source_handle(handle)?;
         self.state
             .lock()
             .expect("sound state mutex poisoned")
@@ -667,6 +715,41 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             .ok_or(SoundError::UnknownAutomationBinding { binding })
     }
 
+    fn schedule_timeline_sequence(
+        &self,
+        sequence: SoundTimelineSequence,
+    ) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        schedule_timeline_sequence(&mut state, sequence)
+    }
+
+    fn remove_timeline_sequence(
+        &self,
+        sequence: &SoundTimelineSequenceId,
+    ) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        remove_timeline_sequence(&mut state, sequence)
+    }
+
+    fn timeline_sequences(&self) -> Result<Vec<SoundTimelineSequence>, SoundError> {
+        Ok(self
+            .state
+            .lock()
+            .expect("sound state mutex poisoned")
+            .timeline_sequences
+            .iter()
+            .map(|playback| playback.sequence.clone())
+            .collect())
+    }
+
+    fn advance_timeline_sequences(
+        &self,
+        delta_seconds: f32,
+    ) -> Result<Vec<SoundTimelineSequenceAdvance>, SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        advance_timeline_sequences(&mut state, delta_seconds)
+    }
+
     fn dynamic_event_catalog(&self) -> Result<SoundDynamicEventCatalog, SoundError> {
         Ok(self
             .state
@@ -688,9 +771,41 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         let mut state = self.state.lock().expect("sound state mutex poisoned");
         unregister_dynamic_event(&mut state.dynamic_events, event_id)?;
         state
+            .dynamic_event_handlers
+            .retain(|handler| handler.event_id != event_id);
+        state
             .pending_dynamic_events
             .retain(|event| event.event_id != event_id);
         Ok(())
+    }
+
+    fn dynamic_event_handlers(
+        &self,
+    ) -> Result<Vec<SoundDynamicEventHandlerDescriptor>, SoundError> {
+        Ok(self
+            .state
+            .lock()
+            .expect("sound state mutex poisoned")
+            .dynamic_event_handlers
+            .clone())
+    }
+
+    fn register_dynamic_event_handler(
+        &self,
+        handler: SoundDynamicEventHandlerDescriptor,
+    ) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let catalog = state.dynamic_events.clone();
+        register_dynamic_event_handler(&catalog, &mut state.dynamic_event_handlers, handler)
+    }
+
+    fn unregister_dynamic_event_handler(
+        &self,
+        plugin_id: &str,
+        handler_id: &str,
+    ) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        unregister_dynamic_event_handler(&mut state.dynamic_event_handlers, plugin_id, handler_id)
     }
 
     fn submit_dynamic_event(
@@ -705,6 +820,15 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
     fn drain_dynamic_events(&self) -> Result<Vec<SoundDynamicEventInvocation>, SoundError> {
         let mut state = self.state.lock().expect("sound state mutex poisoned");
         Ok(state.pending_dynamic_events.drain(..).collect())
+    }
+
+    fn dispatch_dynamic_events(&self) -> Result<Vec<SoundDynamicEventDelivery>, SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let handlers = state.dynamic_event_handlers.clone();
+        Ok(dispatch_dynamic_events(
+            &handlers,
+            &mut state.pending_dynamic_events,
+        ))
     }
 
     fn set_impulse_response(
@@ -739,6 +863,41 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         let descriptors = state.ray_traced_impulse_responses.clone();
         refresh_ray_tracing_status(&mut state.ray_tracing, &descriptors);
         Ok(())
+    }
+
+    fn load_hrtf_profile(&self, profile: SoundHrtfProfileDescriptor) -> Result<(), SoundError> {
+        validate_hrtf_profile_descriptor(&profile)?;
+        self.state
+            .lock()
+            .expect("sound state mutex poisoned")
+            .hrtf_profiles
+            .insert(profile.profile_id.clone(), profile);
+        Ok(())
+    }
+
+    fn remove_hrtf_profile(&self, profile_id: &str) -> Result<(), SoundError> {
+        self.state
+            .lock()
+            .expect("sound state mutex poisoned")
+            .hrtf_profiles
+            .remove(profile_id)
+            .map(|_| ())
+            .ok_or_else(|| SoundError::UnknownHrtfProfile {
+                profile_id: profile_id.to_string(),
+            })
+    }
+
+    fn hrtf_profiles(&self) -> Result<Vec<SoundHrtfProfileDescriptor>, SoundError> {
+        let mut profiles = self
+            .state
+            .lock()
+            .expect("sound state mutex poisoned")
+            .hrtf_profiles
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        profiles.sort_by(|left, right| left.profile_id.cmp(&right.profile_id));
+        Ok(profiles)
     }
 
     fn set_ray_tracing_convolution_status(

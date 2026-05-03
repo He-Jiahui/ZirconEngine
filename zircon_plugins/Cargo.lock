@@ -347,7 +347,7 @@ dependencies = [
  "arrayvec",
  "log",
  "num-rational",
- "num-traits",
+ "num-traits 0.2.19",
  "pastey",
  "rayon",
  "thiserror 2.0.18",
@@ -681,7 +681,8 @@ checksum = "c673075a2e0e5f4a1dde27ce9dee1ea4558c7ffe648f576438a20ca1d2acc4b0"
 dependencies = [
  "iana-time-zone",
  "js-sys",
- "num-traits",
+ "num-traits 0.2.19",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -1133,6 +1134,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "edf234dd1594d6dd434a8fb8cada51ddbbc593e40e4a01556a0b31c62da2775b"
 
 [[package]]
+name = "dxf"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6bb070bbb077a936e2bdf95d4b39aa83e865b38c3a7054f71d704e0796da1821"
+dependencies = [
+ "byteorder",
+ "chrono",
+ "encoding_rs",
+ "enum_primitive",
+ "image",
+ "itertools 0.14.0",
+ "num",
+ "uuid",
+ "xmltree",
+]
+
+[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1152,6 +1170,15 @@ name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "66b7e2430c6dff6a955451e2cfc438f09cea1965a9d6f87f7e3b90decc014099"
+
+[[package]]
+name = "enum_primitive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be4551092f4d519593039259a9ed8daedf0da12e5109c5280338073eaeb81180"
+dependencies = [
+ "num-traits 0.1.43",
+]
 
 [[package]]
 name = "enumflags2"
@@ -1231,7 +1258,7 @@ version = "0.22.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1a05365e3b1c6d1650318537c7460c6923f1abdd272ad6842baa2b509957a06"
 dependencies = [
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -1860,7 +1887,7 @@ checksum = "6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b"
 dependencies = [
  "cfg-if",
  "crunchy",
- "num-traits",
+ "num-traits 0.2.19",
  "zerocopy",
 ]
 
@@ -2191,7 +2218,7 @@ dependencies = [
  "lyon_extra",
  "lyon_geom",
  "lyon_path",
- "num-traits",
+ "num-traits 0.2.19",
  "once_cell",
  "parley",
  "pin-project",
@@ -2279,7 +2306,7 @@ dependencies = [
  "i-slint-core",
  "integer-sqrt",
  "lyon_path",
- "num-traits",
+ "num-traits 0.2.19",
  "skrifa",
  "swash",
  "zeno",
@@ -2476,7 +2503,7 @@ dependencies = [
  "gif",
  "image-webp",
  "moxcms",
- "num-traits",
+ "num-traits 0.2.19",
  "png 0.18.1",
  "qoi",
  "ravif",
@@ -2572,7 +2599,7 @@ version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "276ec31bcb4a9ee45f58bec6f9ec700ae4cf4f4f8f2fa7e06cb406bd5ffdd770"
 dependencies = [
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -2962,7 +2989,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9815fac08e6fd96733a11dce4f9d15a3f338e96a2e2311ee21e1b738efc2bc0f"
 dependencies = [
  "lyon_path",
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -2983,7 +3010,7 @@ checksum = "4336502e29e32af93cf2dad2214ed6003c17ceb5bd499df77b1de663b9042b92"
 dependencies = [
  "arrayvec",
  "euclid",
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -2993,7 +3020,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c463f9c428b7fc5ec885dcd39ce4aa61e29111d0e33483f6f98c74e89d8621e"
 dependencies = [
  "lyon_geom",
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -3064,7 +3091,7 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
 dependencies = [
- "num-traits",
+ "num-traits 0.2.19",
  "pxfm",
 ]
 
@@ -3105,7 +3132,7 @@ dependencies = [
  "indexmap",
  "libm",
  "log",
- "num-traits",
+ "num-traits 0.2.19",
  "once_cell",
  "petgraph",
  "pp-rs",
@@ -3227,13 +3254,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "num"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35bd024e8b2ff75562e5f34e7f4905839deb4b22955ef5e73d2fea1b9813cb23"
+dependencies = [
+ "num-bigint",
+ "num-complex",
+ "num-integer",
+ "num-iter",
+ "num-rational",
+ "num-traits 0.2.19",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5e44f723f1133c9deac646763579fdb3ac745e418f2a7af9cd0c431da1f20b9"
 dependencies = [
  "num-integer",
- "num-traits",
+ "num-traits 0.2.19",
+]
+
+[[package]]
+name = "num-complex"
+version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73f88a1307638156682bada9d7604135552957b7818057dcef22705b4d509495"
+dependencies = [
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -3253,7 +3303,18 @@ version = "0.1.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7969661fd2958a5cb096e56c8e1ad0444ac2bbcd0061bd28660485a44879858f"
 dependencies = [
- "num-traits",
+ "num-traits 0.2.19",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1429034a0490724d0075ebb2bc9e875d6503c3cf69e235a8941aa757d83ef5bf"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -3264,7 +3325,16 @@ checksum = "f83d14da390562dca69fc84082e73e548e1ad308d24accdedd2720017cb37824"
 dependencies = [
  "num-bigint",
  "num-integer",
- "num-traits",
+ "num-traits 0.2.19",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92e5113e9fd4cc14ded8e499429f396a20f98c772a47cc8622a736e1ec843c31"
+dependencies = [
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -3713,7 +3783,7 @@ version = "5.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7d950ca161dc355eaf28f82b11345ed76c6e1f6eb1f4f4479e0323b9e2fbd0e"
 dependencies = [
- "num-traits",
+ "num-traits 0.2.19",
 ]
 
 [[package]]
@@ -4276,7 +4346,7 @@ dependencies = [
  "new_debug_unreachable",
  "noop_proc_macro",
  "num-derive",
- "num-traits",
+ "num-traits 0.2.19",
  "paste",
  "profiling",
  "rand",
@@ -4927,7 +4997,7 @@ dependencies = [
  "i-slint-core",
  "i-slint-core-macros",
  "i-slint-renderer-software",
- "num-traits",
+ "num-traits 0.2.19",
  "once_cell",
  "pin-weak",
  "slint-macros",
@@ -5990,7 +6060,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "666b7727c8875d6ab5db9533418d7c764233ac9c0cff1d469aec8fa127597be2"
 dependencies = [
  "aligned-vec",
- "num-traits",
+ "num-traits 0.2.19",
  "wasm-bindgen",
 ]
 
@@ -7369,6 +7439,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
 
 [[package]]
+name = "xmltree"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28b5d5751be424d8fc0eff399d8e762d4201eefc70fa780895059b9d68d73018"
+dependencies = [
+ "xml-rs",
+]
+
+[[package]]
 name = "xmlwriter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7588,6 +7667,7 @@ dependencies = [
  "slint",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
+ "winit 0.31.0-beta.2",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -7641,6 +7721,7 @@ dependencies = [
 name = "zircon_plugin_asset_importer_model_runtime"
 version = "0.1.0"
 dependencies = [
+ "dxf",
  "ply-rs-bw",
  "stl_io",
  "zircon_runtime",
@@ -7769,6 +7850,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_net_content_download_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_net_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_net_editor"
 version = "0.1.0"
 dependencies = [
@@ -7779,16 +7868,58 @@ dependencies = [
 ]
 
 [[package]]
-name = "zircon_plugin_net_runtime"
+name = "zircon_plugin_net_http_runtime"
 version = "0.1.0"
 dependencies = [
- "futures-util",
  "http-body-util",
  "hyper",
  "hyper-util",
  "reqwest",
  "tokio",
+ "zircon_plugin_net_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_net_reliable_udp_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_net_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_net_replication_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_net_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_net_rpc_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_net_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_net_runtime"
+version = "0.1.0"
+dependencies = [
+ "tokio",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_net_websocket_runtime"
+version = "0.1.0"
+dependencies = [
+ "futures-util",
+ "tokio",
  "tokio-tungstenite",
+ "zircon_plugin_net_runtime",
  "zircon_runtime",
 ]
 
@@ -7797,6 +7928,14 @@ name = "zircon_plugin_obj_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "tobj",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_opus_importer_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_plugin_audio_importer_runtime",
  "zircon_runtime",
 ]
 
@@ -8162,6 +8301,7 @@ dependencies = [
 name = "zircon_plugin_ui_document_importer_runtime"
 version = "0.1.0"
 dependencies = [
+ "bincode 1.3.3",
  "serde_json",
  "zircon_runtime",
  "zircon_runtime_interface",

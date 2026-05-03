@@ -15,8 +15,8 @@ mod tests {
     use super::*;
     use crate::core::framework::render::{
         RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
-        RenderPluginRendererOutputs, RenderVirtualGeometryPageAssignmentRecord,
-        RenderVirtualGeometryReadbackOutputs,
+        RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryReadbackOutputs,
     };
 
     #[test]
@@ -49,6 +49,23 @@ mod tests {
                     page_id: 42,
                     physical_slot: 3,
                 }],
+                ..RenderVirtualGeometryReadbackOutputs::default()
+            },
+            ..RenderPluginRendererOutputs::default()
+        });
+
+        assert!(outputs.has_virtual_geometry_gpu_readback());
+    }
+
+    #[test]
+    fn detects_node_cluster_cull_page_request_readback_outputs() {
+        let mut outputs = SceneRendererAdvancedPluginOutputs::default();
+        outputs.store_plugin_renderer_outputs(RenderPluginRendererOutputs {
+            virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                    page_request_ids: vec![300, 301],
+                    ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                },
                 ..RenderVirtualGeometryReadbackOutputs::default()
             },
             ..RenderPluginRendererOutputs::default()

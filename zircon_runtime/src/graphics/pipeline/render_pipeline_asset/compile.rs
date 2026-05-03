@@ -9,8 +9,8 @@ use crate::graphics::feature::{
     RenderFeatureDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
 };
 use crate::graphics::pipeline::declarations::{
-    CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererFeatureAsset,
+    CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions, RendererFeatureAsset,
 };
 
 use super::super::validation::{stage_pass_descriptors, validate_renderer_asset};
@@ -108,8 +108,13 @@ impl RenderPipelineAsset {
             }
         }
         let mut previous = None;
+        let mut pass_stages = Vec::new();
         for stage in &self.renderer.stages {
             for pass_descriptor in stage_pass_descriptors(*stage, &enabled_descriptors) {
+                pass_stages.push(CompiledRenderPipelinePassStage::new(
+                    pass_descriptor.pass_name.clone(),
+                    *stage,
+                ));
                 let pass = graph.add_pass_with_executor_and_declared_queue(
                     pass_descriptor.pass_name.clone(),
                     options.resolve_queue(pass_descriptor.queue),
@@ -210,6 +215,7 @@ impl RenderPipelineAsset {
             name: self.name.clone(),
             renderer_name: self.renderer.name.clone(),
             stages: self.renderer.stages.clone(),
+            pass_stages,
             enabled_features,
             required_extract_sections: required_extract_sections.into_iter().collect(),
             capability_requirements,

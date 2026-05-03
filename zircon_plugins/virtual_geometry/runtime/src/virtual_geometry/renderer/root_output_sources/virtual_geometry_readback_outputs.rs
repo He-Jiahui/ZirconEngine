@@ -1,7 +1,9 @@
 use crate::virtual_geometry::renderer::{
     VirtualGeometryGpuReadback, VirtualGeometryGpuReadbackCompletionParts,
 };
-use zircon_runtime::core::framework::render::RenderVirtualGeometryReadbackOutputs;
+use zircon_runtime::core::framework::render::{
+    RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+};
 
 #[derive(Default)]
 pub(super) struct VirtualGeometryReadbackOutputs {
@@ -14,6 +16,17 @@ impl VirtualGeometryReadbackOutputs {
         readback: Option<VirtualGeometryGpuReadback>,
     ) {
         self.gpu_readback = readback;
+    }
+
+    pub(in crate::virtual_geometry::renderer) fn store_node_cluster_cull_readback(
+        &mut self,
+        node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+    ) {
+        self.gpu_readback
+            .get_or_insert_with(|| {
+                VirtualGeometryGpuReadback::new(Vec::new(), Vec::new(), Vec::new(), Vec::new())
+            })
+            .replace_node_cluster_cull_readback(node_cluster_cull);
     }
 
     pub(in crate::virtual_geometry::renderer) fn has_gpu_readback(&self) -> bool {
@@ -77,6 +90,26 @@ mod tests {
         assert_eq!(neutral.page_replacements[0].old_page_id, 11);
         assert_eq!(neutral.page_replacements[0].new_page_id, 44);
         assert_eq!(neutral.page_replacements[0].physical_slot, 6);
+        assert_eq!(
+            outputs.take_neutral_readback_outputs(),
+            RenderVirtualGeometryReadbackOutputs::default()
+        );
+    }
+
+    #[test]
+    fn take_neutral_readback_outputs_projects_node_cluster_cull_without_gpu_completion() {
+        let mut outputs = VirtualGeometryReadbackOutputs::default();
+        outputs.store_node_cluster_cull_readback(
+            RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                page_request_ids: vec![300, 301],
+                ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+            },
+        );
+
+        let neutral = outputs.take_neutral_readback_outputs();
+
+        assert_eq!(neutral.node_cluster_cull.page_request_ids, vec![300, 301]);
+        assert!(neutral.page_table_entries.is_empty());
         assert_eq!(
             outputs.take_neutral_readback_outputs(),
             RenderVirtualGeometryReadbackOutputs::default()

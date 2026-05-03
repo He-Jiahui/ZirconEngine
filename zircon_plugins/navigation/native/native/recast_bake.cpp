@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <exception>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -270,96 +271,104 @@ extern "C" void zr_nav_recast_bake_triangle_mesh(
     std::uint32_t triangle_area_count,
     const ZrNavRecastBakeSettings* settings,
     ZrNavRecastBakeResult* out_result) {
-    reset_result(out_result);
-    if (out_result == nullptr) {
-        return;
-    }
-    if (vertices == nullptr || vertex_count == 0 || indices == nullptr || index_count < 3) {
-        set_error(out_result, "native Recast bake source mesh has no triangles");
-        return;
-    }
-    if (settings == nullptr) {
-        set_error(out_result, "native Recast bake settings are missing");
-        return;
-    }
+    try {
+        reset_result(out_result);
+        if (out_result == nullptr) {
+            return;
+        }
+        if (vertices == nullptr || vertex_count == 0 || indices == nullptr || index_count < 3) {
+            set_error(out_result, "native Recast bake source mesh has no triangles");
+            return;
+        }
+        if (settings == nullptr) {
+            set_error(out_result, "native Recast bake settings are missing");
+            return;
+        }
 
-    const char* error = nullptr;
-    std::vector<int> recast_indices;
-    if (!copy_indices(vertices, indices, index_count, vertex_count, &recast_indices, &error)) {
-        set_error(out_result, error);
-        return;
-    }
-    const std::uint32_t triangle_count = index_count / 3;
-    std::vector<unsigned char> areas = copy_areas(triangle_areas, triangle_area_count, triangle_count);
+        const char* error = nullptr;
+        std::vector<int> recast_indices;
+        if (!copy_indices(vertices, indices, index_count, vertex_count, &recast_indices, &error)) {
+            set_error(out_result, error);
+            return;
+        }
+        const std::uint32_t triangle_count = index_count / 3;
+        std::vector<unsigned char> areas = copy_areas(triangle_areas, triangle_area_count, triangle_count);
 
-    rcConfig config = {};
-    if (!make_config(vertices, static_cast<int>(vertex_count), *settings, &config, &error)) {
-        set_error(out_result, error);
-        return;
-    }
+        rcConfig config = {};
+        if (!make_config(vertices, static_cast<int>(vertex_count), *settings, &config, &error)) {
+            set_error(out_result, error);
+            return;
+        }
 
-    rcContext context;
-    RecastPtr<rcHeightfield, rcFreeHeightField> solid(rcAllocHeightfield(), rcFreeHeightField);
-    if (!solid || !rcCreateHeightfield(&context, *solid, config.width, config.height, config.bmin, config.bmax, config.cs, config.ch)) {
-        set_error(out_result, "native Recast bake could not create a heightfield");
-        return;
-    }
+        rcContext context;
+        RecastPtr<rcHeightfield, rcFreeHeightField> solid(rcAllocHeightfield(), rcFreeHeightField);
+        if (!solid || !rcCreateHeightfield(&context, *solid, config.width, config.height, config.bmin, config.bmax, config.cs, config.ch)) {
+            set_error(out_result, "native Recast bake could not create a heightfield");
+            return;
+        }
 
-    rcClearUnwalkableTriangles(
-        &context,
-        config.walkableSlopeAngle,
-        vertices,
-        static_cast<int>(vertex_count),
-        recast_indices.data(),
-        static_cast<int>(triangle_count),
-        areas.data());
-    if (!rcRasterizeTriangles(
+        rcClearUnwalkableTriangles(
             &context,
+            config.walkableSlopeAngle,
             vertices,
             static_cast<int>(vertex_count),
             recast_indices.data(),
-            areas.data(),
             static_cast<int>(triangle_count),
-            *solid,
-            config.walkableClimb)) {
-        set_error(out_result, "native Recast bake could not rasterize triangles");
-        return;
-    }
+            areas.data());
+        if (!rcRasterizeTriangles(
+                &context,
+                vertices,
+                static_cast<int>(vertex_count),
+                recast_indices.data(),
+                areas.data(),
+                static_cast<int>(triangle_count),
+                *solid,
+                config.walkableClimb)) {
+            set_error(out_result, "native Recast bake could not rasterize triangles");
+            return;
+        }
 
-    rcFilterLowHangingWalkableObstacles(&context, config.walkableClimb, *solid);
-    rcFilterLedgeSpans(&context, config.walkableHeight, config.walkableClimb, *solid);
-    rcFilterWalkableLowHeightSpans(&context, config.walkableHeight, *solid);
+        rcFilterLowHangingWalkableObstacles(&context, config.walkableClimb, *solid);
+        rcFilterLedgeSpans(&context, config.walkableHeight, config.walkableClimb, *solid);
+        rcFilterWalkableLowHeightSpans(&context, config.walkableHeight, *solid);
 
-    RecastPtr<rcCompactHeightfield, rcFreeCompactHeightfield> compact(rcAllocCompactHeightfield(), rcFreeCompactHeightfield);
-    if (!compact || !rcBuildCompactHeightfield(&context, config.walkableHeight, config.walkableClimb, *solid, *compact)) {
-        set_error(out_result, "native Recast bake could not build a compact heightfield");
-        return;
-    }
-    if (config.walkableRadius > 0 && !rcErodeWalkableArea(&context, config.walkableRadius, *compact)) {
-        set_error(out_result, "native Recast bake could not erode walkable area");
-        return;
-    }
-    if (!rcBuildDistanceField(&context, *compact)) {
-        set_error(out_result, "native Recast bake could not build a distance field");
-        return;
-    }
-    if (!rcBuildRegions(&context, *compact, 0, config.minRegionArea, config.mergeRegionArea)) {
-        set_error(out_result, "native Recast bake could not build regions");
-        return;
-    }
+        RecastPtr<rcCompactHeightfield, rcFreeCompactHeightfield> compact(rcAllocCompactHeightfield(), rcFreeCompactHeightfield);
+        if (!compact || !rcBuildCompactHeightfield(&context, config.walkableHeight, config.walkableClimb, *solid, *compact)) {
+            set_error(out_result, "native Recast bake could not build a compact heightfield");
+            return;
+        }
+        if (config.walkableRadius > 0 && !rcErodeWalkableArea(&context, config.walkableRadius, *compact)) {
+            set_error(out_result, "native Recast bake could not erode walkable area");
+            return;
+        }
+        if (!rcBuildDistanceField(&context, *compact)) {
+            set_error(out_result, "native Recast bake could not build a distance field");
+            return;
+        }
+        if (!rcBuildRegions(&context, *compact, 0, config.minRegionArea, config.mergeRegionArea)) {
+            set_error(out_result, "native Recast bake could not build regions");
+            return;
+        }
 
-    RecastPtr<rcContourSet, rcFreeContourSet> contours(rcAllocContourSet(), rcFreeContourSet);
-    if (!contours || !rcBuildContours(&context, *compact, config.maxSimplificationError, config.maxEdgeLen, *contours)) {
-        set_error(out_result, "native Recast bake could not build contours");
-        return;
-    }
+        RecastPtr<rcContourSet, rcFreeContourSet> contours(rcAllocContourSet(), rcFreeContourSet);
+        if (!contours || !rcBuildContours(&context, *compact, config.maxSimplificationError, config.maxEdgeLen, *contours)) {
+            set_error(out_result, "native Recast bake could not build contours");
+            return;
+        }
 
-    RecastPtr<rcPolyMesh, rcFreePolyMesh> poly_mesh(rcAllocPolyMesh(), rcFreePolyMesh);
-    if (!poly_mesh || !rcBuildPolyMesh(&context, *contours, config.maxVertsPerPoly, *poly_mesh)) {
-        set_error(out_result, "native Recast bake could not build a polygon mesh");
-        return;
+        RecastPtr<rcPolyMesh, rcFreePolyMesh> poly_mesh(rcAllocPolyMesh(), rcFreePolyMesh);
+        if (!poly_mesh || !rcBuildPolyMesh(&context, *contours, config.maxVertsPerPoly, *poly_mesh)) {
+            set_error(out_result, "native Recast bake could not build a polygon mesh");
+            return;
+        }
+        copy_poly_mesh_to_result(*poly_mesh, out_result);
+    } catch (const std::bad_alloc&) {
+        set_error(out_result, "native Recast bake allocation failed");
+    } catch (const std::exception& error) {
+        set_error(out_result, error.what());
+    } catch (...) {
+        set_error(out_result, "native Recast bake failed with an unknown native exception");
     }
-    copy_poly_mesh_to_result(*poly_mesh, out_result);
 }
 
 extern "C" void zr_nav_recast_free_bake_result(ZrNavRecastBakeResult* result) {

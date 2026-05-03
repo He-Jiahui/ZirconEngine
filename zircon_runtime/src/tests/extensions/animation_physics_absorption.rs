@@ -13,8 +13,7 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
         std::fs::read_to_string(repo_root.join("zircon_plugins/Cargo.toml")).unwrap_or_default();
     let physics_plugin_root = repo_root.join("zircon_plugins/physics");
     let physics_plugin_lib =
-        std::fs::read_to_string(physics_plugin_root.join("runtime/src/lib.rs"))
-            .unwrap_or_default();
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/lib.rs")).unwrap_or_default();
     let physics_plugin_module =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/module.rs"))
             .unwrap_or_default();
@@ -24,10 +23,9 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let physics_plugin_hook =
         std::fs::read_to_string(physics_plugin_root.join("runtime/src/scene_hook.rs"))
             .unwrap_or_default();
-    let framework_physics_manager = std::fs::read_to_string(
-        runtime_root.join("src/core/framework/physics/manager.rs"),
-    )
-    .unwrap_or_default();
+    let framework_physics_manager =
+        std::fs::read_to_string(runtime_root.join("src/core/framework/physics/manager.rs"))
+            .unwrap_or_default();
 
     assert!(
         !runtime_root.join("src/physics").exists(),
@@ -121,10 +119,9 @@ fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() 
     let animation_plugin_hook =
         std::fs::read_to_string(animation_plugin_root.join("runtime/src/scene_hook.rs"))
             .unwrap_or_default();
-    let framework_animation_manager = std::fs::read_to_string(
-        runtime_root.join("src/core/framework/animation/manager.rs"),
-    )
-    .unwrap_or_default();
+    let framework_animation_manager =
+        std::fs::read_to_string(runtime_root.join("src/core/framework/animation/manager.rs"))
+            .unwrap_or_default();
 
     assert!(
         !runtime_root.join("src/animation").exists(),

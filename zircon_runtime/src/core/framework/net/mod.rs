@@ -18,7 +18,7 @@ mod transport;
 mod websocket;
 
 pub use diagnostics::NetDiagnostics;
-pub use download::{NetDownloadChunk, NetDownloadManifest, NetDownloadStatus};
+pub use download::{NetDownloadChunk, NetDownloadManifest, NetDownloadProgress, NetDownloadStatus};
 pub use endpoint::NetEndpoint;
 pub use error::NetError;
 pub use event::NetEvent;
@@ -26,14 +26,27 @@ pub use http::{
     NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetHttpRouteDescriptor,
 };
 pub use ids::{
-    NetConnectionId, NetDownloadId, NetListenerId, NetRequestId, NetRouteId, NetSessionId,
+    NetConnectionId, NetDownloadId, NetListenerId, NetObjectId, NetRequestId, NetRouteId,
+    NetSessionId,
 };
 pub use manager::NetManager;
 pub use packet::NetPacket;
-pub use reliable::{ReliableDatagramConfig, ReliableDatagramStats};
-pub use rpc::{RpcDescriptor, RpcDirection};
-pub use session::{NetControlMessage, NetRuntimeMode};
+pub use reliable::{
+    ReliableDatagramAck, ReliableDatagramConfig, ReliableDatagramPacket,
+    ReliableDatagramSendReport, ReliableDatagramSendStatus, ReliableDatagramStats,
+};
+pub use rpc::{
+    RpcDescriptor, RpcDirection, RpcDispatchReport, RpcDispatchStatus, RpcInvocationDescriptor,
+    RpcPeerRole,
+};
+pub use session::{
+    NetControlMessage, NetRuntimeMode, NetSessionControlReport, NetSessionHandshakePolicy,
+    NetSessionHandshakeState, NetSessionInfo,
+};
 pub use socket_id::NetSocketId;
-pub use sync::{SyncAuthority, SyncComponentDescriptor, SyncFieldDescriptor};
+pub use sync::{
+    SyncAuthority, SyncComponentDescriptor, SyncDelta, SyncFieldDescriptor, SyncFieldValue,
+    SyncInterestDescriptor, SyncObjectSnapshot,
+};
 pub use transport::{NetConnectionState, NetSecurityPolicy, NetTransportKind};
 pub use websocket::{NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame};

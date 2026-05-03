@@ -32,8 +32,9 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::{
-    AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, InspectorSnapshot,
-    ProjectOverviewSnapshot, SceneEntry, WelcomePaneSnapshot, WorkbenchSnapshot,
+    AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot,
+    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
+    WelcomePaneSnapshot, WorkbenchSnapshot,
 };
 use crate::ui::workbench::startup::EditorSessionMode;
 use crate::ui::workbench::view::{
@@ -118,6 +119,32 @@ fn editor_data_fixture() -> EditorDataSnapshot {
         can_undo: true,
         can_redo: false,
     }
+}
+
+fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
+    let mut data = editor_data_fixture();
+    if let Some(inspector) = &mut data.inspector {
+        inspector
+            .plugin_components
+            .push(InspectorPluginComponentSnapshot {
+                component_id: "weather.Component.CloudLayer".to_string(),
+                display_name: "Cloud Layer".to_string(),
+                plugin_id: "weather".to_string(),
+                drawer_available: true,
+                drawer_ui_document: Some(
+                    "asset://weather/editor/cloud_layer.inspector.ui.toml".to_string(),
+                ),
+                drawer_controller: Some("weather.editor.CloudLayerInspectorController".to_string()),
+                drawer_template_id: Some("weather.cloud_layer.inspector".to_string()),
+                drawer_data_root: Some(
+                    "inspector.plugin_components.weather.Component.CloudLayer".to_string(),
+                ),
+                drawer_bindings: vec!["Weather.CloudLayer.Refresh".to_string()],
+                diagnostic: None,
+                properties: Vec::new(),
+            });
+    }
+    data
 }
 
 fn chrome_fixture() -> EditorChromeSnapshot {
@@ -418,15 +445,54 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             ("editor.build_export_desktop", PanePayload::BuildExportV1(payload)) => {
                 assert_eq!(payload.diagnostics, "export catalog ready");
                 assert_eq!(payload.targets.len(), 1);
+                assert_eq!(payload.targets[0].profile_name, "desktop_windows");
                 assert_eq!(payload.targets[0].platform, "Windows");
                 assert_eq!(payload.targets[0].status, "Ready");
+                assert_eq!(payload.targets[0].enabled_plugins, "3");
                 assert_eq!(payload.targets[0].native_dynamic_packages, "1");
+                assert_eq!(
+                    payload.targets[0].diagnostics,
+                    "native plugin package ready"
+                );
             }
             (unexpected_id, unexpected_payload) => panic!(
                 "builder for `{unexpected_id}` produced unexpected payload {unexpected_payload:?}"
             ),
         }
     }
+}
+
+#[test]
+fn inspector_payload_preserves_component_drawer_template_metadata() {
+    let chrome = EditorChromeSnapshot {
+        inspector: editor_data_with_drawer_fixture().inspector,
+        ..chrome_fixture()
+    };
+    let context = PanePayloadBuildContext::new(&chrome);
+    let body = build_pane_body_presentation(&pane_body_spec("editor.inspector"), &context);
+
+    let PanePayload::InspectorV1(payload) = body.payload else {
+        panic!("expected inspector payload");
+    };
+    let component = payload
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == "weather.Component.CloudLayer")
+        .expect("drawer component projected");
+
+    assert_eq!(
+        component.drawer_ui_document.as_deref(),
+        Some("asset://weather/editor/cloud_layer.inspector.ui.toml")
+    );
+    assert_eq!(
+        component.drawer_controller.as_deref(),
+        Some("weather.editor.CloudLayerInspectorController")
+    );
+    assert_eq!(
+        component.drawer_template_id.as_deref(),
+        Some("weather.cloud_layer.inspector")
+    );
+    assert_eq!(component.drawer_bindings, ["Weather.CloudLayer.Refresh"]);
 }
 
 #[test]
@@ -548,6 +614,16 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             BTreeMap::new()
         };
         let runtime_diagnostics = runtime_diagnostics_fixture();
+        let module_plugins = if descriptor_id == "editor.module_plugins" {
+            module_plugins_fixture()
+        } else {
+            ModulePluginsPaneViewData::default()
+        };
+        let build_export = if descriptor_id == "editor.build_export_desktop" {
+            build_export_fixture()
+        } else {
+            BuildExportPaneViewData::default()
+        };
 
         let pane = document_pane(
             &model,
@@ -555,9 +631,8 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             &BTreeMap::new(),
             &animation_panes,
             Some(&runtime_diagnostics),
-            &crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData::default(
-            ),
-            &crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData::default(),
+            &module_plugins,
+            &build_export,
         );
         let pane_presentation = pane
             .pane_presentation
@@ -586,6 +661,39 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
                     );
                 }
                 unexpected => panic!("expected runtime diagnostics payload, found {unexpected:?}"),
+            }
+        }
+        if descriptor_id == "editor.module_plugins" {
+            assert_eq!(
+                pane.native_body.module_plugins.diagnostics,
+                "plugin catalog ready"
+            );
+            match &pane_presentation.body.payload {
+                PanePayload::ModulePluginsV1(payload) => {
+                    assert_eq!(payload.diagnostics, "plugin catalog ready");
+                    assert_eq!(payload.plugins.len(), 1);
+                    assert_eq!(payload.plugins[0].plugin_id, "physics");
+                    assert_eq!(
+                        payload.plugins[0].primary_action_id,
+                        "Plugin.Disable.physics"
+                    );
+                }
+                unexpected => panic!("expected module plugins payload, found {unexpected:?}"),
+            }
+        }
+        if descriptor_id == "editor.build_export_desktop" {
+            assert_eq!(
+                pane.native_body.build_export.diagnostics,
+                "export catalog ready"
+            );
+            match &pane_presentation.body.payload {
+                PanePayload::BuildExportV1(payload) => {
+                    assert_eq!(payload.diagnostics, "export catalog ready");
+                    assert_eq!(payload.targets.len(), 1);
+                    assert_eq!(payload.targets[0].profile_name, "desktop_windows");
+                    assert_eq!(payload.targets[0].status, "Ready");
+                }
+                unexpected => panic!("expected build export payload, found {unexpected:?}"),
             }
         }
     }

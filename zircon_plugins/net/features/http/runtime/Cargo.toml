@@ -1,0 +1,15 @@
+[package]
+name = "zircon_plugin_net_http_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "HTTP runtime feature package for Zircon networking."
+
+[dependencies]
+http-body-util = "0.1"
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["http1", "server", "tokio"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+tokio = { version = "1", features = ["net", "rt"] }
+zircon_plugin_net_runtime = { path = "../../../runtime" }
+zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }

@@ -107,7 +107,7 @@ fn virtual_geometry_render_pass_executor_registrations() -> Vec<RenderPassExecut
     ]
 }
 
-fn test_render_pass_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+fn test_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Ok(())
 }
 

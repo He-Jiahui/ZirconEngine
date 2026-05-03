@@ -15,11 +15,18 @@ pub type ZrRuntimeCaptureFrameFnV1 = unsafe extern "C" fn(
     ZrRuntimeFrameRequestV1,
     *mut ZrRuntimeFrameV1,
 ) -> ZrStatus;
+pub type ZrRuntimeHostFetchFnV1 = unsafe extern "C" fn(
+    ZrRuntimeHostFetchRequestV1,
+    *mut ZrOwnedByteBuffer,
+) -> ZrStatus;
 
 pub const ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1: u32 = 1;
 pub const ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1: u32 = 2;
 pub const ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1: u32 = 3;
 pub const ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1: u32 = 4;
+pub const ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1: u32 = 5;
+pub const ZR_RUNTIME_EVENT_KIND_TOUCH_V1: u32 = 6;
+pub const ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1: u32 = 7;
 
 pub const ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1: u32 = 1;
 pub const ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1: u32 = 2;
@@ -28,12 +35,30 @@ pub const ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1: u32 = 3;
 pub const ZR_RUNTIME_BUTTON_STATE_PRESSED_V1: u32 = 1;
 pub const ZR_RUNTIME_BUTTON_STATE_RELEASED_V1: u32 = 2;
 
+pub const ZR_RUNTIME_LIFECYCLE_STATE_FOREGROUND_V1: u32 = 1;
+pub const ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1: u32 = 2;
+pub const ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1: u32 = 3;
+pub const ZR_RUNTIME_LIFECYCLE_STATE_RESUMED_V1: u32 = 4;
+pub const ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1: u32 = 5;
+
+pub const ZR_RUNTIME_TOUCH_PHASE_STARTED_V1: u32 = 1;
+pub const ZR_RUNTIME_TOUCH_PHASE_MOVED_V1: u32 = 2;
+pub const ZR_RUNTIME_TOUCH_PHASE_ENDED_V1: u32 = 3;
+pub const ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1: u32 = 4;
+
+pub const ZR_RUNTIME_KEY_ACTION_PRESSED_V1: u32 = 1;
+pub const ZR_RUNTIME_KEY_ACTION_RELEASED_V1: u32 = 2;
+pub const ZR_RUNTIME_KEY_ACTION_TEXT_V1: u32 = 3;
+
+pub const ZR_RUNTIME_FETCH_FLAG_STREAMING_V1: u32 = 1 << 0;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub struct ZrHostApiV1 {
     pub abi_version: u32,
     pub size_bytes: usize,
     pub diagnostics_sink: Option<unsafe extern "C" fn(ZrByteSlice)>,
+    pub fetch_resource: Option<ZrRuntimeHostFetchFnV1>,
 }
 
 impl ZrHostApiV1 {
@@ -42,6 +67,7 @@ impl ZrHostApiV1 {
             abi_version,
             size_bytes: core::mem::size_of::<Self>(),
             diagnostics_sink: None,
+            fetch_resource: None,
         }
     }
 }
@@ -95,6 +121,28 @@ pub struct ZrRuntimeViewportSizeV1 {
     pub height: u32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ZrRuntimeViewportMetricsV1 {
+    pub logical_size: ZrRuntimeViewportSizeV1,
+    pub device_scale_factor: f32,
+    pub physical_size: ZrRuntimeViewportSizeV1,
+}
+
+impl ZrRuntimeViewportMetricsV1 {
+    pub const fn new(
+        logical_size: ZrRuntimeViewportSizeV1,
+        device_scale_factor: f32,
+        physical_size: ZrRuntimeViewportSizeV1,
+    ) -> Self {
+        Self {
+            logical_size,
+            device_scale_factor,
+            physical_size,
+        }
+    }
+}
+
 impl ZrRuntimeViewportSizeV1 {
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
@@ -108,11 +156,15 @@ pub struct ZrRuntimeEventV1 {
     pub kind: u32,
     pub viewport: ZrRuntimeViewportHandle,
     pub size: ZrRuntimeViewportSizeV1,
+    pub metrics: ZrRuntimeViewportMetricsV1,
     pub x: f32,
     pub y: f32,
     pub delta: f32,
     pub button: u32,
     pub state: u32,
+    pub pointer_id: u64,
+    pub key_code: u32,
+    pub scan_code: u32,
     pub payload: ZrByteSlice,
 }
 
@@ -123,11 +175,19 @@ impl ZrRuntimeEventV1 {
             kind,
             viewport,
             size: ZrRuntimeViewportSizeV1::new(0, 0),
+            metrics: ZrRuntimeViewportMetricsV1::new(
+                ZrRuntimeViewportSizeV1::new(0, 0),
+                1.0,
+                ZrRuntimeViewportSizeV1::new(0, 0),
+            ),
             x: 0.0,
             y: 0.0,
             delta: 0.0,
             button: 0,
             state: 0,
+            pointer_id: 0,
+            key_code: 0,
+            scan_code: 0,
             payload: ZrByteSlice::empty(),
         }
     }
@@ -189,6 +249,69 @@ impl ZrRuntimeEventV1 {
         Self {
             delta,
             ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, viewport)
+        }
+    }
+
+    pub const fn lifecycle(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        state: u32,
+    ) -> Self {
+        Self {
+            state,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, viewport)
+        }
+    }
+
+    pub const fn touch(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        pointer_id: u64,
+        phase: u32,
+        x: f32,
+        y: f32,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            state: phase,
+            pointer_id,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_TOUCH_V1, viewport)
+        }
+    }
+
+    pub const fn keyboard(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        action: u32,
+        key_code: u32,
+        scan_code: u32,
+        key_text: ZrByteSlice,
+    ) -> Self {
+        Self {
+            button: action,
+            key_code,
+            scan_code,
+            payload: key_text,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, viewport)
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeHostFetchRequestV1 {
+    pub abi_version: u32,
+    pub uri: ZrByteSlice,
+    pub flags: u32,
+}
+
+impl ZrRuntimeHostFetchRequestV1 {
+    pub const fn new(abi_version: u32, uri: ZrByteSlice, flags: u32) -> Self {
+        Self {
+            abi_version,
+            uri,
+            flags,
         }
     }
 }

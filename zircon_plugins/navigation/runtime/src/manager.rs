@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use crate::component_json::parse_component;
+use crate::runtime_obstacles::{
+    collect_runtime_obstacles, distance_xz, node_intersects_obstacle, recast_carving_obstacles,
+    RuntimeObstacle,
+};
 use crate::settings_hash::navigation_settings_hash;
 use crate::settings_validation::validate_navigation_settings;
-use serde_json::Value;
 use zircon_plugin_navigation_recast::{RecastBackend, RecastBakeInput, RecastBakeMeshInput};
 use zircon_runtime::asset::{
     NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavigationSettingsAsset,
@@ -11,13 +15,13 @@ use zircon_runtime::asset::{
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavMeshBakeDiagnostic,
     NavMeshBakeDiagnosticSeverity, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
-    NavMeshModifierDescriptor, NavMeshModifierMode, NavMeshObstacleDescriptor,
-    NavMeshObstacleShape, NavMeshOffMeshLinkDescriptor, NavMeshSurfaceDescriptor,
-    NavMeshUseGeometry, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery,
-    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind,
-    NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
-    NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
-    NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
+    NavMeshModifierDescriptor, NavMeshModifierMode, NavMeshOffMeshLinkDescriptor,
+    NavMeshSurfaceDescriptor, NavMeshUseGeometry, NavPathQuery, NavPathResult, NavPathStatus,
+    NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError,
+    NavigationErrorKind, NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE,
+    NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
+    NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
+    NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::math::{Mat4, Quat, Real, Transform, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, NodeKind, SceneNode};
@@ -240,7 +244,7 @@ impl NavigationManager for DefaultNavigationManager {
             let current = transform.translation;
             let destination = Vec3::from_array(destination);
             let movement_target = match self.selected_asset(None) {
-                Ok(asset) => match self.backend.find_path(
+                Ok(asset) => match self.backend.find_path_with_obstacles(
                     &asset,
                     &NavPathQuery {
                         nav_mesh: None,
@@ -249,6 +253,7 @@ impl NavigationManager for DefaultNavigationManager {
                         agent_type: agent.agent_type.clone(),
                         area_mask: agent.area_mask,
                     },
+                    &recast_carving_obstacles(&obstacles),
                 ) {
                     Ok(path) if path.status != NavPathStatus::NoPath => path
                         .points
@@ -537,67 +542,6 @@ fn collect_collider_geometry(
     }
 }
 
-#[derive(Clone, Debug)]
-struct RuntimeObstacle {
-    entity: u64,
-    center: Vec3,
-    radius: Real,
-    carve: bool,
-    avoidance_enabled: bool,
-}
-
-fn collect_runtime_obstacles(world: &World) -> Vec<RuntimeObstacle> {
-    world
-        .nodes()
-        .iter()
-        .filter_map(|node| {
-            let value = world.dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)?;
-            let obstacle = parse_component::<NavMeshObstacleDescriptor>(value);
-            let transform = world.world_transform(node.id).unwrap_or(node.transform);
-            let center = transform
-                .matrix()
-                .transform_point3(Vec3::from_array(obstacle.center));
-            let radius = match obstacle.shape {
-                NavMeshObstacleShape::Box => {
-                    let size = Vec3::from_array(obstacle.size).abs();
-                    size.x.max(size.z) * 0.5
-                }
-                NavMeshObstacleShape::Capsule => obstacle.radius,
-            }
-            .max(0.05);
-            Some(RuntimeObstacle {
-                entity: node.id,
-                center,
-                radius,
-                carve: obstacle.carve,
-                avoidance_enabled: obstacle.avoidance_enabled,
-            })
-        })
-        .collect()
-}
-
-fn node_intersects_obstacle(
-    world: &World,
-    node: &SceneNode,
-    obstacles: &[RuntimeObstacle],
-) -> bool {
-    let position = world
-        .world_transform(node.id)
-        .map(|transform| transform.translation)
-        .unwrap_or(node.transform.translation);
-    let node_radius = match node.kind {
-        NodeKind::Cube | NodeKind::Mesh => 0.75,
-        NodeKind::Camera
-        | NodeKind::DirectionalLight
-        | NodeKind::PointLight
-        | NodeKind::SpotLight => 0.25,
-    };
-    obstacles.iter().any(|obstacle| {
-        obstacle.entity != node.id
-            && distance_xz(position, obstacle.center) <= obstacle.radius + node_radius
-    })
-}
-
 fn should_exclude_from_bake(world: &World, entity: u64) -> bool {
     world
         .dynamic_component(entity, NAV_MESH_SURFACE_COMPONENT_TYPE)
@@ -862,11 +806,6 @@ fn unsupported_bake_setting_diagnostics(
     diagnostics
 }
 
-fn distance_xz(left: Vec3, right: Vec3) -> Real {
-    let delta = left - right;
-    (delta.x * delta.x + delta.z * delta.z).sqrt()
-}
-
 fn count_obstacles(world: &World) -> usize {
     world
         .nodes()
@@ -968,38 +907,6 @@ pub fn count_navigation_components(world: &World) -> NavigationRuntimeStats {
         }
     }
     stats
-}
-
-fn parse_component<T>(value: &Value) -> T
-where
-    T: Default + serde::de::DeserializeOwned,
-{
-    serde_json::from_value(normalize_scene_property_json(value)).unwrap_or_default()
-}
-
-fn normalize_scene_property_json(value: &Value) -> Value {
-    match value {
-        Value::Object(object) if object.len() == 1 && object.contains_key("resource") => object
-            .get("resource")
-            .cloned()
-            .unwrap_or_else(|| Value::String(String::new())),
-        Value::Object(object) if object.len() == 1 && object.contains_key("entity") => {
-            object.get("entity").cloned().unwrap_or(Value::Null)
-        }
-        Value::Object(object) => Value::Object(
-            object
-                .iter()
-                .map(|(key, value)| (key.clone(), normalize_scene_property_json(value)))
-                .collect(),
-        ),
-        Value::Array(values) => Value::Array(
-            values
-                .iter()
-                .map(normalize_scene_property_json)
-                .collect::<Vec<_>>(),
-        ),
-        value => value.clone(),
-    }
 }
 
 pub fn default_agent_type() -> &'static str {

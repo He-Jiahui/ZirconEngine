@@ -1,0 +1,10 @@
+[package]
+name = "zircon_plugin_net_reliable_udp_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Reliable UDP runtime feature package for Zircon."
+
+[dependencies]
+zircon_plugin_net_runtime = { path = "../../../runtime" }
+zircon_runtime = { path = "../../../../../zircon_runtime", default-features = false }

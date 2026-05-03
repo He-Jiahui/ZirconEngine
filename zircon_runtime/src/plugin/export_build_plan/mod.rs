@@ -9,6 +9,7 @@ mod generated_files;
 mod main_template;
 mod materialize;
 mod native_plugin_load_manifest_template;
+mod platform_host_files;
 mod plugin_selection_template;
 
 pub use export_build_plan::ExportBuildPlan;

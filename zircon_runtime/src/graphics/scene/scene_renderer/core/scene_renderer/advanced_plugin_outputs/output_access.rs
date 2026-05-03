@@ -12,20 +12,10 @@ impl SceneRendererAdvancedPluginOutputs {
     pub(in crate::graphics::scene::scene_renderer::core) fn has_virtual_geometry_gpu_readback(
         &self,
     ) -> bool {
-        let outputs = &self.plugin_renderer_outputs_ref().virtual_geometry;
-        !outputs.page_table_entries.is_empty()
-            || !outputs.completed_page_assignments.is_empty()
-            || !outputs.page_replacements.is_empty()
-            || !outputs.selected_clusters.is_empty()
-            || !outputs.visbuffer64_entries.is_empty()
-            || !outputs.hardware_rasterization_records.is_empty()
-            || !outputs.node_cluster_cull.traversal_records.is_empty()
-            || !outputs.node_cluster_cull.child_work_items.is_empty()
-            || !outputs.node_cluster_cull.cluster_work_items.is_empty()
-            || !outputs
-                .node_cluster_cull
-                .launch_worklist_snapshots
-                .is_empty()
+        !self
+            .plugin_renderer_outputs_ref()
+            .virtual_geometry
+            .is_empty()
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn plugin_renderer_outputs(

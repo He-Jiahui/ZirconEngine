@@ -561,6 +561,11 @@ fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPa
                         display_name: component.display_name.clone(),
                         plugin_id: component.plugin_id.clone(),
                         drawer_available: component.drawer_available,
+                        drawer_ui_document: component.drawer_ui_document.clone(),
+                        drawer_controller: component.drawer_controller.clone(),
+                        drawer_template_id: component.drawer_template_id.clone(),
+                        drawer_data_root: component.drawer_data_root.clone(),
+                        drawer_bindings: component.drawer_bindings.clone(),
                         diagnostic: component.diagnostic.clone(),
                         properties: component
                             .properties

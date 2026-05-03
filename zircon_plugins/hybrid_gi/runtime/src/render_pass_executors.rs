@@ -173,31 +173,31 @@ const HISTORY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorContract 
 };
 
 pub(crate) fn hybrid_gi_scene_prepare_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &SCENE_PREPARE_CONTRACT)
 }
 
 pub(crate) fn hybrid_gi_trace_schedule_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &TRACE_SCHEDULE_CONTRACT)
 }
 
 pub(crate) fn hybrid_gi_resolve_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &RESOLVE_CONTRACT)
 }
 
 pub(crate) fn hybrid_gi_history_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &HISTORY_CONTRACT)
 }
 
 fn validate_context(
-    context: &RenderPassExecutionContext,
+    context: &RenderPassExecutionContext<'_>,
     contract: &RenderPassExecutorContract,
 ) -> Result<(), String> {
     if context.executor_id.as_str() != contract.executor_id {
@@ -344,7 +344,8 @@ mod tests {
                 .iter()
                 .find(|contract| contract.executor_id == registration.executor_id().as_str())
                 .expect("registration should map to an executor contract");
-            (registration.executor)(&context_for_contract(contract))
+            let mut context = context_for_contract(contract);
+            registration.execute(&mut context)
                 .unwrap_or_else(|error| panic!("{} failed: {error}", contract.executor_id));
         }
     }
@@ -354,7 +355,7 @@ mod tests {
         let mut context = context_for_contract(&TRACE_SCHEDULE_CONTRACT);
         context.queue = QueueLane::Graphics;
 
-        hybrid_gi_trace_schedule_executor(&context)
+        hybrid_gi_trace_schedule_executor(&mut context)
             .unwrap_or_else(|error| panic!("trace schedule fallback failed: {error}"));
     }
 
@@ -362,12 +363,12 @@ mod tests {
     fn hybrid_gi_read_only_scene_textures_accept_external_or_transient_graph_resources() {
         let mut scene_prepare = context_for_contract(&SCENE_PREPARE_CONTRACT);
         scene_prepare.resources[0].kind = RenderGraphResourceKind::TransientTexture;
-        hybrid_gi_scene_prepare_executor(&scene_prepare)
+        hybrid_gi_scene_prepare_executor(&mut scene_prepare)
             .unwrap_or_else(|error| panic!("scene-depth transient texture failed: {error}"));
 
         let mut history = context_for_contract(&HISTORY_CONTRACT);
         history.resources[0].kind = RenderGraphResourceKind::TransientTexture;
-        hybrid_gi_history_executor(&history)
+        hybrid_gi_history_executor(&mut history)
             .unwrap_or_else(|error| panic!("scene-color transient texture failed: {error}"));
     }
 
@@ -376,7 +377,7 @@ mod tests {
         let mut context = context_for_contract(&SCENE_PREPARE_CONTRACT);
         context.pass_name = "runtime-hybrid-gi-scene-prepare".to_string();
 
-        let error = hybrid_gi_scene_prepare_executor(&context).unwrap_err();
+        let error = hybrid_gi_scene_prepare_executor(&mut context).unwrap_err();
 
         assert!(
             error.contains("expected `hybrid-gi-scene-prepare`"),
@@ -389,7 +390,7 @@ mod tests {
         let mut context = context_for_contract(&SCENE_PREPARE_CONTRACT);
         context.resources[0].kind = RenderGraphResourceKind::TransientBuffer;
 
-        let error = hybrid_gi_scene_prepare_executor(&context).unwrap_err();
+        let error = hybrid_gi_scene_prepare_executor(&mut context).unwrap_err();
 
         assert!(error.contains("resource contract mismatch"), "{error}");
         assert!(error.contains("scene-depth"), "{error}");
@@ -400,12 +401,14 @@ mod tests {
         let mut context = context_for_contract(&RESOLVE_CONTRACT);
         context.queue = QueueLane::AsyncCopy;
 
-        let error = hybrid_gi_resolve_executor(&context).unwrap_err();
+        let error = hybrid_gi_resolve_executor(&mut context).unwrap_err();
 
         assert!(error.contains("incompatible queue"), "{error}");
     }
 
-    fn context_for_contract(contract: &RenderPassExecutorContract) -> RenderPassExecutionContext {
+    fn context_for_contract(
+        contract: &RenderPassExecutorContract,
+    ) -> RenderPassExecutionContext<'static> {
         RenderPassExecutionContext::with_declared_graph_metadata_and_resources(
             contract.pass_name,
             RenderPassExecutorId::new(contract.executor_id),

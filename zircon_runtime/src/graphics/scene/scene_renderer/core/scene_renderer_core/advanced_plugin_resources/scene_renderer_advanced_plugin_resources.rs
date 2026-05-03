@@ -1,7 +1,24 @@
+use crate::core::framework::render::RenderPluginRendererOutputs;
+use crate::graphics::scene::resources::ResourceStreamer;
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
+
+pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
+    Box<
+        dyn Fn(
+                &wgpu::Device,
+                &wgpu::Queue,
+                &mut wgpu::CommandEncoder,
+                &ResourceStreamer,
+                &ViewportRenderFrame,
+            ) -> Result<RenderPluginRendererOutputs, GraphicsError>
+            + Send
+            + Sync,
+    >;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources {
     capabilities: SceneRendererAdvancedPluginResourceCapabilities,
+    runtime_prepare_collectors: Vec<SceneRendererRuntimePrepareCollector>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -17,6 +34,7 @@ impl SceneRendererAdvancedPluginResources {
     ) -> Self {
         Self {
             capabilities: advanced_plugin_resource_capabilities(render_features),
+            runtime_prepare_collectors: Vec::new(),
         }
     }
 
@@ -29,7 +47,19 @@ impl SceneRendererAdvancedPluginResources {
                 virtual_geometry: true,
                 ..SceneRendererAdvancedPluginResourceCapabilities::default()
             },
+            runtime_prepare_collectors: Vec::new(),
         }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn register_runtime_prepare_collector(
+        &mut self,
+        collector: SceneRendererRuntimePrepareCollector,
+    ) {
+        self.runtime_prepare_collectors.push(collector);
+    }
+
+    pub(super) fn runtime_prepare_collectors(&self) -> &[SceneRendererRuntimePrepareCollector] {
+        &self.runtime_prepare_collectors
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn virtual_geometry_enabled(

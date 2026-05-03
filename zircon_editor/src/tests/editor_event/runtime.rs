@@ -1998,6 +1998,8 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
                 "asset://weather/editor/cloud_layer.inspector.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
+            .with_template_id("weather.cloud_layer.inspector")
+            .with_data_root("inspector.plugin_components.weather.Component.CloudLayer")
             .with_binding("Weather.CloudLayer.Refresh"),
         )
         .unwrap();
@@ -2019,6 +2021,11 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         drawer.controller(),
         "weather.editor.CloudLayerInspectorController"
     );
+    assert_eq!(drawer.template_id(), Some("weather.cloud_layer.inspector"));
+    assert_eq!(
+        drawer.data_root(),
+        Some("inspector.plugin_components.weather.Component.CloudLayer")
+    );
     assert_eq!(drawer.bindings(), ["Weather.CloudLayer.Refresh"]);
 
     let template = runtime
@@ -2029,6 +2036,170 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         template.ui_document(),
         "asset://weather/editor/cloud_layer.inspector.ui.toml"
     );
+}
+
+#[test]
+fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_component() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+    use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+    use zircon_runtime::plugin::ComponentTypeDescriptor;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_snapshot");
+    let component_type = "weather.Component.CloudLayer";
+    let selected_node = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("default selection")
+        .id;
+
+    {
+        let inner = runtime.runtime.lock_inner();
+        inner.state.world.with_world_mut(|scene| {
+            scene
+                .register_component_type(
+                    ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
+                        .with_property("coverage", "scalar", true),
+                )
+                .unwrap();
+            scene
+                .set_dynamic_component(selected_node, component_type, json!({ "coverage": 0.75 }))
+                .unwrap();
+        });
+    }
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(EditorOperationDescriptor::new(
+            operation_path,
+            "Refresh Cloud Layers",
+        ))
+        .unwrap();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                component_type,
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_template_id("weather.cloud_layer.inspector")
+            .with_data_root("inspector.plugin_components.weather.Component.CloudLayer")
+            .with_binding("Weather.CloudLayer.Refresh"),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension(extension)
+        .expect("register editor extension");
+
+    let snapshot = runtime.runtime.editor_snapshot();
+    let component = snapshot
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("dynamic component snapshot");
+
+    assert!(component.drawer_available);
+    assert_eq!(
+        component.drawer_ui_document.as_deref(),
+        Some("asset://weather/editor/cloud_layer.inspector.ui.toml")
+    );
+    assert_eq!(
+        component.drawer_controller.as_deref(),
+        Some("weather.editor.CloudLayerInspectorController")
+    );
+    assert_eq!(
+        component.drawer_template_id.as_deref(),
+        Some("weather.cloud_layer.inspector")
+    );
+    assert_eq!(component.drawer_bindings, ["Weather.CloudLayer.Refresh"]);
+    assert_eq!(component.diagnostic, None);
+    assert_eq!(
+        component.properties[0].field_id,
+        "weather.Component.CloudLayer.coverage"
+    );
+}
+
+#[test]
+fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+    use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+    use zircon_runtime::plugin::ComponentTypeDescriptor;
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_component_drawer_disabled");
+    let component_type = "weather.Component.CloudLayer";
+    let selected_node = runtime
+        .runtime
+        .editor_snapshot()
+        .inspector
+        .as_ref()
+        .expect("default selection")
+        .id;
+
+    {
+        let inner = runtime.runtime.lock_inner();
+        inner.state.world.with_world_mut(|scene| {
+            scene
+                .register_component_type(
+                    ComponentTypeDescriptor::new(component_type, "weather", "Cloud Layer")
+                        .with_property("coverage", "scalar", true),
+                )
+                .unwrap();
+            scene
+                .set_dynamic_component(selected_node, component_type, json!({ "coverage": 0.75 }))
+                .unwrap();
+        });
+    }
+
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation(EditorOperationDescriptor::new(
+            operation_path,
+            "Refresh Cloud Layers",
+        ))
+        .unwrap();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                component_type,
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_binding("Weather.CloudLayer.Refresh"),
+        )
+        .unwrap();
+    runtime
+        .runtime
+        .register_editor_extension_with_required_capabilities(
+            extension,
+            vec!["editor.extension.weather_authoring".to_string()],
+        )
+        .expect("register disabled extension");
+
+    let snapshot = runtime.runtime.editor_snapshot();
+    let component = snapshot
+        .inspector
+        .as_ref()
+        .expect("inspector")
+        .plugin_components
+        .iter()
+        .find(|component| component.component_id == component_type)
+        .expect("dynamic component snapshot");
+
+    assert!(!component.drawer_available);
+    assert_eq!(component.drawer_ui_document, None);
+    assert_eq!(component.drawer_controller, None);
+    assert!(component.diagnostic.as_deref().is_some_and(
+        |diagnostic| diagnostic.contains("enabled editor extension registers a drawer")
+    ));
 }
 
 #[test]
@@ -2281,6 +2452,28 @@ fn editor_extension_registry_rejects_invalid_component_drawer_operation_bindings
     assert_eq!(
         error.to_string(),
         "editor operation path `Weather.Refresh` is invalid"
+    );
+}
+
+#[test]
+fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+
+    let mut extension = EditorExtensionRegistry::default();
+    let error = extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                "weather.Component.CloudLayer",
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_template_id(" weather.cloud_layer.inspector"),
+        )
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor component drawer template id ` weather.cloud_layer.inspector` is invalid"
     );
 }
 

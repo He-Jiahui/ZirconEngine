@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn ray_traced_impulse_response_submission_feeds_convolution_and_status() {
     let sound = DefaultSoundManager::default();
-    let clip = sound.insert_clip_for_test(test_clip("res://sound/ray-ir.wav", &[1.0]));
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/ray-ir.wav", &[0.5]));
     let mut source = SoundSourceDescriptor::clip(clip);
     source.spatial.spatial_blend = 1.0;
     source.spatial.convolution_send = Some(SoundImpulseResponseId::new(91));
@@ -52,7 +52,7 @@ fn ray_traced_impulse_response_submission_feeds_convolution_and_status() {
         sound.ray_traced_impulse_responses().unwrap(),
         vec![descriptor]
     );
-    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[1.5, 1.5]);
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.75, 0.75]);
 }
 
 #[test]

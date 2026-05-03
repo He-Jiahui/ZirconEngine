@@ -24,6 +24,15 @@ pub struct SoundDynamicEventDescriptor {
     pub payload_schema: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SoundDynamicEventHandlerDescriptor {
+    pub plugin_id: String,
+    pub handler_id: String,
+    pub event_id: String,
+    pub display_name: String,
+    pub priority: i32,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundDynamicEventInvocation {
     pub event_id: String,
@@ -31,4 +40,10 @@ pub struct SoundDynamicEventInvocation {
     pub time_seconds: f32,
     pub payload_schema: String,
     pub payload: Vec<u8>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundDynamicEventDelivery {
+    pub handler: SoundDynamicEventHandlerDescriptor,
+    pub invocation: SoundDynamicEventInvocation,
 }

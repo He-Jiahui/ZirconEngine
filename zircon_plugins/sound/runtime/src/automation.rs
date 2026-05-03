@@ -139,7 +139,7 @@ pub(crate) fn validate_automation_binding(
     Ok(())
 }
 
-fn validate_automation_curve(curve: &SoundAutomationCurve) -> Result<(), SoundError> {
+pub(crate) fn validate_automation_curve(curve: &SoundAutomationCurve) -> Result<(), SoundError> {
     if curve.keyframes.is_empty() {
         return Err(SoundError::InvalidParameter(
             "automation curve requires at least one keyframe".to_string(),

@@ -12,8 +12,9 @@ mod ui;
 
 pub use core::SceneRenderer;
 pub use graph_execution::{
-    RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId,
-    RenderPassExecutorRegistration,
+    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    RenderPassGpuExecutionContext,
 };
 
 pub(crate) use core::{create_depth_texture, OFFSCREEN_FORMAT};

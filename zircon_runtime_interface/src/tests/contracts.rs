@@ -31,8 +31,13 @@ use crate::{
         tree::{UiInputPolicy, UiTree, UiTreeNode},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
-    ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrStatus,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
 };
 
 #[test]
@@ -132,6 +137,65 @@ fn runtime_events_use_fixed_repr_payload_fields() {
     assert_eq!(event.x, 12.0);
     assert_eq!(event.y, 34.0);
     assert!(event.payload.is_empty());
+}
+
+#[test]
+fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
+    let lifecycle = ZrRuntimeEventV1::lifecycle(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::invalid(),
+        ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    );
+    let touch = ZrRuntimeEventV1::touch(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        42,
+        ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+        13.0,
+        21.0,
+    );
+    let keyboard = ZrRuntimeEventV1::keyboard(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+        65,
+        30,
+        ZrByteSlice::from_static(b"KeyA"),
+    );
+    let metrics = ZrRuntimeViewportMetricsV1::new(
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+        2.0,
+        ZrRuntimeViewportSizeV1::new(2560, 1440),
+    );
+
+    assert_eq!(lifecycle.kind, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1);
+    assert_eq!(lifecycle.state, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1);
+    assert_eq!(touch.kind, ZR_RUNTIME_EVENT_KIND_TOUCH_V1);
+    assert_eq!(touch.pointer_id, 42);
+    assert_eq!(touch.state, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1);
+    assert_eq!(keyboard.kind, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1);
+    assert_eq!(keyboard.button, ZR_RUNTIME_KEY_ACTION_PRESSED_V1);
+    assert_eq!(keyboard.key_code, 65);
+    assert_eq!(unsafe { keyboard.payload.as_slice() }, b"KeyA");
+    assert_eq!(metrics.logical_size.width, 1280);
+    assert_eq!(metrics.device_scale_factor, 2.0);
+    assert_eq!(metrics.physical_size.height, 1440);
+}
+
+#[test]
+fn runtime_host_fetch_request_declares_streaming_resource_contract() {
+    let request = ZrRuntimeHostFetchRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrByteSlice::from_static(b"res://assets/zircon-project.toml"),
+        ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
+    );
+
+    assert_eq!(request.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(request.flags, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1);
+    assert_eq!(
+        unsafe { request.uri.as_slice() },
+        b"res://assets/zircon-project.toml"
+    );
 }
 
 #[test]

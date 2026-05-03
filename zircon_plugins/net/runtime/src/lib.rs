@@ -1,13 +1,15 @@
 pub const PLUGIN_ID: &str = "net";
 
-mod backend;
 mod config;
-mod http_backend;
+mod http;
 mod module;
 mod package;
+mod runtime_state;
 mod service_types;
+mod websocket;
 
 pub use config::NetConfig;
+pub use http::{HttpRouteHandler, HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
 pub use module::{
     module_descriptor, NetModule, NET_DRIVER_NAME, NET_MANAGER_NAME, NET_MODULE_NAME,
 };
@@ -16,6 +18,9 @@ pub use package::{
     NET_RUNTIME_EVENT_NAMESPACE,
 };
 pub use service_types::{DefaultNetManager, NetDriver, NetRuntimeManager};
+pub use websocket::{
+    WebSocketRuntimeBackend, WebSocketRuntimeConnection, WebSocketRuntimeListener,
+};
 
 #[cfg(test)]
 mod tests;
@@ -88,13 +93,5 @@ pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistratio
 }
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[
-        "runtime.plugin.net",
-        "runtime.feature.net.http",
-        "runtime.feature.net.websocket",
-        "runtime.feature.net.rpc",
-        "runtime.feature.net.replication",
-        "runtime.feature.net.reliable_udp",
-        "runtime.feature.net.cdn_download",
-    ]
+    &["runtime.plugin.net"]
 }

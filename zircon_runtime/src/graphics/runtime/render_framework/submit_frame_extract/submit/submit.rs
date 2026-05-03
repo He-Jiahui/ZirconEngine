@@ -44,7 +44,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         )
         .map_err(render_framework_backend_error)?;
     let frame_generation = frame.generation;
-    let runtime_feedback = collect_runtime_feedback(&mut state.renderer, &context);
+    let runtime_feedback = collect_runtime_feedback(&mut state.renderer, &context, &prepared);
     let record = state
         .viewports
         .get_mut(&viewport)

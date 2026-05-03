@@ -1,6 +1,8 @@
+use std::collections::BTreeMap;
+
 use crate::core::editor_event::runtime::editor_event_runtime_inner::EditorEventRuntimeInner;
 use crate::core::editor_event::EditorEventRuntime;
-use crate::core::editor_extension::EditorExtensionRegistry;
+use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
 use crate::ui::activity::{ActivityViewDescriptor, ActivityWindowDescriptor};
 use crate::ui::control::EditorUiControlService;
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -47,12 +49,31 @@ impl EditorEventRuntime {
         inner: &EditorEventRuntimeInner,
         descriptors: Vec<ViewDescriptor>,
     ) -> EditorChromeSnapshot {
+        let component_drawers = Self::active_component_drawers_locked(inner);
         EditorChromeSnapshot::build(
-            inner.state.snapshot(),
+            inner
+                .state
+                .snapshot_with_component_drawers(&component_drawers),
             &inner.manager.current_layout(),
             inner.manager.current_view_instances(),
             descriptors,
         )
+    }
+
+    pub(crate) fn active_component_drawers_locked(
+        inner: &EditorEventRuntimeInner,
+    ) -> BTreeMap<String, ComponentDrawerDescriptor> {
+        active_extension_registries(inner)
+            .into_iter()
+            .flat_map(|registry| {
+                registry
+                    .component_drawers()
+                    .into_iter()
+                    .cloned()
+                    .collect::<Vec<_>>()
+            })
+            .map(|descriptor| (descriptor.component_type().to_string(), descriptor))
+            .collect()
     }
 }
 

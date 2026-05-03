@@ -208,6 +208,31 @@ fn rust_owned_host_contract_declares_window_globals_and_projection_data() {
 }
 
 #[test]
+fn rust_owned_host_window_run_uses_native_event_loop() {
+    let window = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/host_contract/window.rs"
+    ));
+
+    for required in [
+        "winit::application::ApplicationHandler",
+        "EventLoop::new()?",
+        "run_app",
+        "WindowEvent::CloseRequested",
+    ] {
+        assert!(
+            window.contains(required),
+            "UiHostWindow::run should be backed by a native event loop and is missing `{required}`"
+        );
+    }
+
+    assert!(
+        !window.contains("pub(crate) fn run(&self) -> Result<(), PlatformError> {\n        self.show()\n    }"),
+        "UiHostWindow::run must not immediately return after marking the contract visible"
+    );
+}
+
+#[test]
 fn editor_ui_toml_assets_are_the_host_chrome_authority() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     for (relative, markers) in [

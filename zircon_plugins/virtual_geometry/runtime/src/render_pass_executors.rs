@@ -153,37 +153,37 @@ const DEBUG_OVERLAY_CONTRACT: RenderPassExecutorContract = RenderPassExecutorCon
 };
 
 pub(crate) fn virtual_geometry_prepare_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &PREPARE_CONTRACT)
 }
 
 pub(crate) fn virtual_geometry_node_cluster_cull_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &NODE_CLUSTER_CULL_CONTRACT)
 }
 
 pub(crate) fn virtual_geometry_page_feedback_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &PAGE_FEEDBACK_CONTRACT)
 }
 
 pub(crate) fn virtual_geometry_visbuffer_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &VISBUFFER_CONTRACT)
 }
 
 pub(crate) fn virtual_geometry_debug_overlay_executor(
-    context: &RenderPassExecutionContext,
+    context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
     validate_context(context, &DEBUG_OVERLAY_CONTRACT)
 }
 
 fn validate_context(
-    context: &RenderPassExecutionContext,
+    context: &RenderPassExecutionContext<'_>,
     contract: &RenderPassExecutorContract,
 ) -> Result<(), String> {
     if context.executor_id.as_str() != contract.executor_id {
@@ -288,7 +288,8 @@ mod tests {
                 .iter()
                 .find(|contract| contract.executor_id == registration.executor_id().as_str())
                 .expect("registration should map to an executor contract");
-            (registration.executor)(&context_for_contract(contract))
+            let mut context = context_for_contract(contract);
+            registration.execute(&mut context)
                 .unwrap_or_else(|error| panic!("{} failed: {error}", contract.executor_id));
         }
     }
@@ -310,7 +311,7 @@ mod tests {
         let mut context = context_for_contract(&PREPARE_CONTRACT);
         context.pass_name = "runtime-virtual-geometry-prepare".to_string();
 
-        let error = virtual_geometry_prepare_executor(&context).unwrap_err();
+        let error = virtual_geometry_prepare_executor(&mut context).unwrap_err();
 
         assert!(
             error.contains("expected `virtual-geometry-prepare`"),
@@ -323,7 +324,7 @@ mod tests {
         let mut context = context_for_contract(&VISBUFFER_CONTRACT);
         context.resources.pop();
 
-        let error = virtual_geometry_visbuffer_executor(&context).unwrap_err();
+        let error = virtual_geometry_visbuffer_executor(&mut context).unwrap_err();
 
         assert!(error.contains("resource contract mismatch"), "{error}");
         assert!(error.contains("scene-depth"), "{error}");
@@ -334,12 +335,14 @@ mod tests {
         let mut context = context_for_contract(&PREPARE_CONTRACT);
         context.queue = QueueLane::AsyncCompute;
 
-        let error = virtual_geometry_prepare_executor(&context).unwrap_err();
+        let error = virtual_geometry_prepare_executor(&mut context).unwrap_err();
 
         assert!(error.contains("incompatible queue"), "{error}");
     }
 
-    fn context_for_contract(contract: &RenderPassExecutorContract) -> RenderPassExecutionContext {
+    fn context_for_contract(
+        contract: &RenderPassExecutorContract,
+    ) -> RenderPassExecutionContext<'static> {
         RenderPassExecutionContext::with_declared_graph_metadata_and_resources(
             contract.pass_name,
             RenderPassExecutorId::new(contract.executor_id),

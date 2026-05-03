@@ -4,6 +4,6 @@ mod render_pipeline_asset;
 mod validation;
 
 pub use declarations::{
-    CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererAsset, RendererFeatureAsset, RendererFeatureSource,
+    CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset, RendererFeatureSource,
 };

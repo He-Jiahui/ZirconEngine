@@ -3,18 +3,19 @@ use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAttenuationMode, SoundAutomationBinding,
     SoundAutomationBindingId, SoundAutomationCurve, SoundAutomationKeyframe, SoundAutomationTarget,
     SoundChorusEffect, SoundClipId, SoundCompressorEffect, SoundConvolutionReverbEffect,
-    SoundDelayEffect, SoundDynamicEventDescriptor, SoundDynamicEventInvocation,
-    SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundError, SoundExternalSourceBlock,
-    SoundFilterEffect, SoundFilterMode, SoundFlangerEffect, SoundGainEffect,
-    SoundImpulseResponseId, SoundLimiterEffect, SoundListenerDescriptor, SoundListenerId,
-    SoundManager, SoundOutputDeviceDescriptor, SoundOutputDeviceId, SoundOutputDeviceState,
-    SoundPanStereoEffect, SoundParameterId, SoundPhaserEffect, SoundPlaybackSettings,
-    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus, SoundReverbEffect,
-    SoundSidechainInput, SoundSourceDescriptor, SoundSourceId, SoundSourceInput,
-    SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings, SoundTrackDescriptor,
-    SoundTrackId, SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape,
-    SoundWaveShaperEffect, AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE,
-    AUDIO_VOLUME_COMPONENT_TYPE,
+    SoundDelayEffect, SoundDynamicEventDescriptor, SoundDynamicEventHandlerDescriptor,
+    SoundDynamicEventInvocation, SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundError,
+    SoundExternalSourceBlock, SoundFilterEffect, SoundFilterMode, SoundFlangerEffect,
+    SoundGainEffect, SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundLimiterEffect,
+    SoundListenerDescriptor, SoundListenerId, SoundManager, SoundOutputDeviceDescriptor,
+    SoundOutputDeviceId, SoundOutputDeviceState, SoundPanStereoEffect, SoundParameterId,
+    SoundPhaserEffect, SoundPlaybackSettings, SoundRayTracedImpulseResponseDescriptor,
+    SoundRayTracingConvolutionStatus, SoundReverbEffect, SoundSidechainInput,
+    SoundSourceDescriptor, SoundSourceId, SoundSourceInput, SoundSourceParameterBinding,
+    SoundSourceSend, SoundSpatialSourceSettings, SoundTimelineAutomationTrack,
+    SoundTimelineSequence, SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId,
+    SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape, SoundWaveShaperEffect,
+    AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 
@@ -846,7 +847,20 @@ fn external_audio_source_block_routes_other_component_audio() {
 fn external_audio_source_lifecycle_reports_invalid_and_missing_blocks() {
     let sound = DefaultSoundManager::default();
     let handle = ExternalAudioSourceHandle::new("navigation.surface-noise");
+    let empty_handle = ExternalAudioSourceHandle::new(" ");
 
+    assert!(sound
+        .submit_external_source_block(
+            empty_handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 48_000,
+                channel_count: 1,
+                samples: vec![0.0],
+            },
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("external source handle"));
     assert!(sound
         .submit_external_source_block(
             handle.clone(),
@@ -887,6 +901,14 @@ fn external_audio_source_lifecycle_reports_invalid_and_missing_blocks() {
         )
         .unwrap();
     sound.clear_external_source(&handle).unwrap();
+    assert!(sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::External(empty_handle),
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("external source handle"));
     sound
         .create_source(SoundSourceDescriptor {
             input: SoundSourceInput::External(handle),
@@ -911,7 +933,7 @@ fn clip_and_external_inputs_resample_to_mixer_rate() {
 
     assert_samples_near(
         &sound.render_mix(4).unwrap().samples,
-        &[0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5],
+        &[0.25, 0.25, 0.375, 0.375, 0.5, 0.5, 0.5, 0.5],
     );
 
     let sound = DefaultSoundManager::default();
@@ -935,7 +957,7 @@ fn clip_and_external_inputs_resample_to_mixer_rate() {
 
     assert_samples_near(
         &sound.render_mix(4).unwrap().samples,
-        &[0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0],
+        &[0.5, 0.5, 0.75, 0.75, 1.0, 1.0, 1.0, 1.0],
     );
 }
 
@@ -971,6 +993,28 @@ fn audio_source_parameter_bindings_follow_synth_parameters() {
         .unwrap_err()
         .to_string()
         .contains("unsupported source parameter binding"));
+    assert!(sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::SynthParameter {
+                parameter: SoundParameterId::new(" "),
+                default_value: 0.0,
+            },
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("synth source input"));
+    assert!(sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::SynthParameter {
+                parameter: SoundParameterId::new("synth.bad_default"),
+                default_value: f32::NAN,
+            },
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("finite default"));
 }
 
 #[test]

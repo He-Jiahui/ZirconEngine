@@ -14,6 +14,10 @@ use zircon_runtime::RuntimeTargetMode;
 
 pub(super) const BUILD_EXPORT_ACTION_CONTROL_ID: &str = "BuildExportAction";
 
+mod output_folder;
+
+use output_folder::{pick_output_folder, reveal_path_in_file_browser, stable_picker_initial_dir};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum DesktopExportExecutionState {
     Exported,
@@ -142,7 +146,13 @@ pub(super) enum BuildExportAction<'a> {
         profile_name: &'a str,
         output_root: &'a str,
     },
+    ChooseOutput {
+        profile_name: &'a str,
+    },
     ClearOutput {
+        profile_name: &'a str,
+    },
+    RevealOutput {
         profile_name: &'a str,
     },
 }
@@ -166,6 +176,18 @@ pub(super) fn parse_build_export_action(action_id: &str) -> Option<BuildExportAc
     {
         return Some(BuildExportAction::ClearOutput { profile_name });
     }
+    if let Some(profile_name) = action_id
+        .strip_prefix("BuildExport.RevealOutput.")
+        .filter(|profile_name| !profile_name.trim().is_empty())
+    {
+        return Some(BuildExportAction::RevealOutput { profile_name });
+    }
+    if let Some(profile_name) = action_id
+        .strip_prefix("BuildExport.ChooseOutput.")
+        .filter(|profile_name| !profile_name.trim().is_empty())
+    {
+        return Some(BuildExportAction::ChooseOutput { profile_name });
+    }
     action_id
         .strip_prefix("BuildExport.SetOutput.")
         .and_then(|rest| rest.split_once('|'))
@@ -182,7 +204,7 @@ pub(super) fn parse_build_export_action(action_id: &str) -> Option<BuildExportAc
 }
 
 pub(super) fn desktop_export_profiles() -> Vec<ExportProfile> {
-    [
+    let desktop = [
         ("desktop_windows", ExportTargetPlatform::Windows),
         ("desktop_linux", ExportTargetPlatform::Linux),
         ("desktop_macos", ExportTargetPlatform::Macos),
@@ -194,8 +216,22 @@ pub(super) fn desktop_export_profiles() -> Vec<ExportProfile> {
             ExportPackagingStrategy::LibraryEmbed,
             ExportPackagingStrategy::NativeDynamic,
         ])
-    })
-    .collect()
+    });
+    let platform_scaffolds = [
+        ("mobile_android", ExportTargetPlatform::Android),
+        ("mobile_ios", ExportTargetPlatform::Ios),
+        ("browser_webgpu", ExportTargetPlatform::WebGpu),
+        ("browser_wasm", ExportTargetPlatform::Wasm),
+    ]
+    .into_iter()
+    .map(|(name, platform)| {
+        ExportProfile::new(name, RuntimeTargetMode::ClientRuntime, platform).with_strategies([
+            ExportPackagingStrategy::SourceTemplate,
+            ExportPackagingStrategy::LibraryEmbed,
+        ])
+    });
+
+    desktop.chain(platform_scaffolds).collect()
 }
 
 pub(super) fn desktop_export_profile(profile_name: &str) -> Option<ExportProfile> {
@@ -250,6 +286,7 @@ pub(super) struct DesktopExportJobSnapshot {
     pub(super) profile_name: String,
     pub(super) output_root: PathBuf,
     pub(super) phase: DesktopExportJobPhase,
+    pub(super) progress: Option<DesktopExportProgressSnapshot>,
 }
 
 impl DesktopExportJobSnapshot {
@@ -269,7 +306,35 @@ impl DesktopExportJobSnapshot {
                 "cancel requested; backend result will be ignored when it returns"
             }
         };
-        format!("Output: {}\nProgress: {phase}", self.output_root.display())
+        let mut lines = vec![
+            format!("Output: {}", self.output_root.display()),
+            format!("Progress: {phase}"),
+        ];
+        if let Some(progress) = &self.progress {
+            lines.push(progress.pane_diagnostic());
+        }
+        lines.join("\n")
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct DesktopExportProgressSnapshot {
+    pub(super) stage: String,
+    pub(super) percent: u8,
+    pub(super) message: String,
+}
+
+impl DesktopExportProgressSnapshot {
+    fn from_report(progress: crate::ui::host::EditorExportBuildProgress) -> Self {
+        Self {
+            stage: progress.stage,
+            percent: progress.percent,
+            message: progress.message,
+        }
+    }
+
+    fn pane_diagnostic(&self) -> String {
+        format!("Stage: {}% {} - {}", self.percent, self.stage, self.message)
     }
 }
 
@@ -305,6 +370,7 @@ struct DesktopExportActiveJob {
     profile_name: String,
     output_root: PathBuf,
     cancel_requested: Arc<AtomicBool>,
+    progress: Option<DesktopExportProgressSnapshot>,
 }
 
 #[derive(Debug)]
@@ -316,12 +382,24 @@ struct DesktopExportJobResult {
     result: Result<crate::ui::host::EditorExportBuildReport, String>,
 }
 
+#[derive(Debug)]
+struct DesktopExportJobProgress {
+    id: u64,
+    progress: DesktopExportProgressSnapshot,
+}
+
+#[derive(Debug)]
+enum DesktopExportJobMessage {
+    Progress(DesktopExportJobProgress),
+    Finished(DesktopExportJobResult),
+}
+
 pub(super) struct DesktopExportJobQueue {
     next_id: u64,
     pending: VecDeque<DesktopExportQueuedJob>,
     active: Option<DesktopExportActiveJob>,
-    sender: Sender<DesktopExportJobResult>,
-    receiver: Receiver<DesktopExportJobResult>,
+    sender: Sender<DesktopExportJobMessage>,
+    receiver: Receiver<DesktopExportJobMessage>,
 }
 
 impl Default for DesktopExportJobQueue {
@@ -353,6 +431,7 @@ impl DesktopExportJobQueue {
             profile_name: profile_name.clone(),
             output_root: output_root.clone(),
             phase: DesktopExportJobPhase::Queued,
+            progress: None,
         };
         self.pending.push_back(DesktopExportQueuedJob {
             id,
@@ -387,6 +466,7 @@ impl DesktopExportJobQueue {
                 } else {
                     DesktopExportJobPhase::Running
                 },
+                progress: active.progress.clone(),
             });
         }
         snapshots.extend(self.pending.iter().map(|pending| DesktopExportJobSnapshot {
@@ -394,6 +474,7 @@ impl DesktopExportJobQueue {
             profile_name: pending.profile_name.clone(),
             output_root: pending.output_root.clone(),
             phase: DesktopExportJobPhase::Queued,
+            progress: None,
         }));
         snapshots
     }
@@ -429,25 +510,42 @@ impl DesktopExportJobQueue {
                 profile_name: active.profile_name.clone(),
                 output_root: active.output_root.clone(),
                 phase: DesktopExportJobPhase::CancelRequested,
+                progress: active.progress.clone(),
             });
         }
 
         DesktopExportCancellation::NotFound
     }
 
-    pub(super) fn poll_completed(&mut self) -> Vec<DesktopExportExecutionSummary> {
+    pub(super) fn poll_updates(&mut self) -> (Vec<DesktopExportExecutionSummary>, bool) {
         let mut summaries = Vec::new();
-        while let Ok(result) = self.receiver.try_recv() {
-            if self
-                .active
-                .as_ref()
-                .is_some_and(|active| active.id == result.id)
-            {
-                self.active = None;
+        let mut changed = false;
+        while let Ok(message) = self.receiver.try_recv() {
+            match message {
+                DesktopExportJobMessage::Progress(progress) => {
+                    if let Some(active) = self
+                        .active
+                        .as_mut()
+                        .filter(|active| active.id == progress.id)
+                    {
+                        active.progress = Some(progress.progress);
+                        changed = true;
+                    }
+                }
+                DesktopExportJobMessage::Finished(result) => {
+                    if self
+                        .active
+                        .as_ref()
+                        .is_some_and(|active| active.id == result.id)
+                    {
+                        self.active = None;
+                    }
+                    summaries.push(desktop_export_summary_from_job_result(result));
+                    changed = true;
+                }
             }
-            summaries.push(desktop_export_summary_from_job_result(result));
         }
-        summaries
+        (summaries, changed)
     }
 
     pub(super) fn start_next(
@@ -466,30 +564,47 @@ impl DesktopExportJobQueue {
             profile_name: job.profile_name.clone(),
             output_root: job.output_root.clone(),
             phase: DesktopExportJobPhase::Running,
+            progress: Some(DesktopExportProgressSnapshot {
+                stage: "queued".to_string(),
+                percent: 0,
+                message: "Waiting for export runner to start".to_string(),
+            }),
         };
         self.active = Some(DesktopExportActiveJob {
             id: job.id,
             profile_name: job.profile_name.clone(),
             output_root: job.output_root.clone(),
             cancel_requested: job.cancel_requested.clone(),
+            progress: snapshot.progress.clone(),
         });
 
         let sender = self.sender.clone();
         thread::spawn(move || {
-            let result = editor_manager.execute_native_aware_export_build_with_cancellation(
-                &job.project_root,
-                &job.output_root,
-                &job.manifest,
-                &job.profile_name,
-                Some(job.cancel_requested.as_ref()),
-            );
-            let _ = sender.send(DesktopExportJobResult {
+            let progress_sender = sender.clone();
+            let job_id = job.id;
+            let result = editor_manager
+                .execute_native_aware_export_build_with_cancellation_and_progress(
+                    &job.project_root,
+                    &job.output_root,
+                    &job.manifest,
+                    &job.profile_name,
+                    Some(job.cancel_requested.as_ref()),
+                    move |progress| {
+                        let _ = progress_sender.send(DesktopExportJobMessage::Progress(
+                            DesktopExportJobProgress {
+                                id: job_id,
+                                progress: DesktopExportProgressSnapshot::from_report(progress),
+                            },
+                        ));
+                    },
+                );
+            let _ = sender.send(DesktopExportJobMessage::Finished(DesktopExportJobResult {
                 id: job.id,
                 profile_name: job.profile_name,
                 output_root: job.output_root,
                 cancel_requested: job.cancel_requested,
                 result,
-            });
+            }));
         });
         Some(snapshot)
     }
@@ -516,13 +631,12 @@ fn desktop_export_summary_from_job_result(
 
 impl SlintEditorHost {
     pub(super) fn poll_desktop_export_jobs(&mut self) {
-        let mut changed = false;
-        for summary in self.desktop_export_jobs.poll_completed() {
+        let (summaries, mut changed) = self.desktop_export_jobs.poll_updates();
+        for summary in summaries {
             let message = summary.status_message();
             self.desktop_export_reports
                 .insert(summary.profile_name.clone(), summary);
             self.set_status_line(message);
-            changed = true;
         }
         if let Some(started) = self
             .desktop_export_jobs
@@ -571,6 +685,12 @@ impl SlintEditorHost {
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} reset to project default"
                 ));
+            }
+            BuildExportAction::ChooseOutput { profile_name } => {
+                self.choose_desktop_export_output(profile_name);
+            }
+            BuildExportAction::RevealOutput { profile_name } => {
+                self.reveal_desktop_export_output(profile_name);
             }
         }
     }
@@ -637,6 +757,60 @@ impl SlintEditorHost {
         }
     }
 
+    fn choose_desktop_export_output(&mut self, profile_name: &str) {
+        let project_path = self.runtime.editor_snapshot().project_path;
+        let result = crate::ui::workbench::project::project_root_path(&project_path)
+            .map_err(|error| error.to_string())
+            .and_then(|project_root| {
+                let current_output =
+                    self.effective_desktop_export_output_root(&project_root, profile_name);
+                let initial_dir = stable_picker_initial_dir(&current_output, &project_root);
+                pick_output_folder(&initial_dir)
+            });
+
+        match result {
+            Ok(Some(output_root)) => {
+                self.desktop_export_output_overrides
+                    .insert(profile_name.to_string(), output_root.clone());
+                self.layout_dirty = true;
+                self.set_status_line(format!(
+                    "Desktop export output for {profile_name} set to {}",
+                    output_root.display()
+                ));
+            }
+            Ok(None) => self.set_status_line(format!(
+                "Desktop export output picker cancelled for {profile_name}"
+            )),
+            Err(error) => self.set_status_line(format!("Build/export action failed: {error}")),
+        }
+    }
+
+    fn reveal_desktop_export_output(&mut self, profile_name: &str) {
+        let project_path = self.runtime.editor_snapshot().project_path;
+        let result = crate::ui::workbench::project::project_root_path(&project_path)
+            .map_err(|error| error.to_string())
+            .and_then(|project_root| {
+                let output_root =
+                    self.effective_desktop_export_output_root(&project_root, profile_name);
+                std::fs::create_dir_all(&output_root).map_err(|error| {
+                    format!(
+                        "failed to create desktop export output folder {}: {error}",
+                        output_root.display()
+                    )
+                })?;
+                reveal_path_in_file_browser(&output_root)?;
+                Ok(output_root)
+            });
+
+        match result {
+            Ok(output_root) => self.set_status_line(format!(
+                "Desktop export output for {profile_name} opened -> {}",
+                output_root.display()
+            )),
+            Err(error) => self.set_status_line(format!("Build/export action failed: {error}")),
+        }
+    }
+
     pub(super) fn effective_desktop_export_output_root(
         &self,
         project_root: &Path,
@@ -677,11 +851,23 @@ mod tests {
             }
             _ => panic!("set-output action should parse"),
         }
+        match parse_build_export_action("BuildExport.ChooseOutput.desktop_windows") {
+            Some(BuildExportAction::ChooseOutput { profile_name }) => {
+                assert_eq!(profile_name, "desktop_windows");
+            }
+            _ => panic!("choose-output action should parse"),
+        }
         match parse_build_export_action("BuildExport.ClearOutput.desktop_windows") {
             Some(BuildExportAction::ClearOutput { profile_name }) => {
                 assert_eq!(profile_name, "desktop_windows");
             }
             _ => panic!("clear-output action should parse"),
+        }
+        match parse_build_export_action("BuildExport.RevealOutput.desktop_windows") {
+            Some(BuildExportAction::RevealOutput { profile_name }) => {
+                assert_eq!(profile_name, "desktop_windows");
+            }
+            _ => panic!("reveal-output action should parse"),
         }
         assert!(parse_build_export_action("BuildExport.Execute.").is_none());
         assert!(parse_build_export_action("BuildExport.Unknown.desktop_windows").is_none());
@@ -697,6 +883,26 @@ mod tests {
                 .join("zircon")
                 .join("desktop_linux")
         );
+    }
+
+    #[test]
+    fn build_export_profiles_include_mobile_and_browser_source_scaffolds() {
+        let profiles = desktop_export_profiles();
+        let android = profiles
+            .iter()
+            .find(|profile| profile.name == "mobile_android")
+            .expect("mobile Android export profile is projected");
+        let webgpu = profiles
+            .iter()
+            .find(|profile| profile.name == "browser_webgpu")
+            .expect("WebGPU export profile is projected");
+
+        assert_eq!(android.target_platform, ExportTargetPlatform::Android);
+        assert_eq!(webgpu.target_platform, ExportTargetPlatform::WebGpu);
+        assert!(android.uses_strategy(ExportPackagingStrategy::SourceTemplate));
+        assert!(android.uses_strategy(ExportPackagingStrategy::LibraryEmbed));
+        assert!(!android.uses_strategy(ExportPackagingStrategy::NativeDynamic));
+        assert!(!webgpu.uses_strategy(ExportPackagingStrategy::NativeDynamic));
     }
 
     #[test]
@@ -736,5 +942,41 @@ mod tests {
             other => panic!("expected pending cancellation, got {other:?}"),
         }
         assert!(!queue.is_profile_busy("desktop_linux"));
+    }
+
+    #[test]
+    fn desktop_export_job_snapshot_projects_stage_progress() {
+        let mut target =
+            crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData {
+                profile_name: "desktop_windows".into(),
+                status: "Ready".into(),
+                diagnostics: "".into(),
+                fatal: true,
+                ..Default::default()
+            };
+        let snapshot = DesktopExportJobSnapshot {
+            id: 7,
+            profile_name: "desktop_windows".to_string(),
+            output_root: PathBuf::from("Builds/windows"),
+            phase: DesktopExportJobPhase::Running,
+            progress: Some(DesktopExportProgressSnapshot {
+                stage: "cargo-build".to_string(),
+                percent: 72,
+                message: "Running generated SourceTemplate Cargo build".to_string(),
+            }),
+        };
+
+        apply_job_snapshot_to_target(&mut target, &snapshot);
+
+        assert_eq!(target.status.as_str(), "Running");
+        assert!(!target.fatal);
+        assert!(target
+            .diagnostics
+            .as_str()
+            .contains("Stage: 72% cargo-build"));
+        assert!(target
+            .diagnostics
+            .as_str()
+            .contains("Running generated SourceTemplate Cargo build"));
     }
 }

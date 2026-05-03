@@ -32,11 +32,12 @@ The editor-only package set is `material_editor`, `timeline_sequence`,
 `native_window_hosting`, `editor_build_export_desktop`, and
 `plugin_sdk_examples`.
 
-`physics` and `animation` are restored as runtime/editor plugin packages in this
-workspace. Their current runtime crates expose the shared runtime contracts and
-module descriptors from `zircon_runtime::{physics, animation}` while the deeper
-behavior move continues; catalog, export, and editor enablement treat them as
-external plugin packages.
+`physics` and `animation` are hard-cut runtime/editor plugin packages in this
+workspace. Their runtime crates own the concrete managers, module descriptors,
+and scene hooks, while `zircon_runtime` keeps shared framework DTOs, manager
+service names/resolvers, scene ECS authority, and the generic scene hook
+protocol. Catalog, export, and editor enablement treat both packages as external
+plugin packages.
 
 These packages are deliberately kept outside the root workspace so normal
 runtime/editor checks only build the minimal core unless an export profile or

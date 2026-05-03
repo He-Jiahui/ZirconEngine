@@ -72,7 +72,9 @@ impl HybridGiGpuCompletion {
             probe_colors_from_neutral_outputs(&completed_probe_ids, outputs.probe_irradiance_rgb);
         let probe_trace_lighting_rgb =
             probe_colors_from_neutral_outputs(&completed_probe_ids, outputs.probe_rt_lighting_rgb);
-        let scene_prepare = hybrid_gi_scene_prepare_readback_has_payload(&outputs.scene_prepare)
+        let scene_prepare = outputs
+            .scene_prepare
+            .has_runtime_feedback_payload()
             .then_some(outputs.scene_prepare);
 
         if cache_entries.is_empty()
@@ -115,20 +117,6 @@ fn probe_colors_from_neutral_outputs(
             )
         })
         .collect()
-}
-
-fn hybrid_gi_scene_prepare_readback_has_payload(
-    scene_prepare: &RenderHybridGiScenePrepareReadbackOutputs,
-) -> bool {
-    !scene_prepare.atlas_samples.is_empty()
-        || !scene_prepare.capture_samples.is_empty()
-        || !scene_prepare.voxel_samples.is_empty()
-        || !scene_prepare.voxel_occupancy.is_empty()
-        || !scene_prepare.voxel_occupancy_masks.is_empty()
-        || !scene_prepare.voxel_cells.is_empty()
-        || !scene_prepare.voxel_cell_samples.is_empty()
-        || !scene_prepare.voxel_cell_dominant_nodes.is_empty()
-        || !scene_prepare.voxel_cell_dominant_samples.is_empty()
 }
 
 #[cfg(test)]

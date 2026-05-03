@@ -1,6 +1,7 @@
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
+use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::{HybridGiRuntimePrepareInput, VirtualGeometryRuntimePrepareInput};
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prepare_runtime_submission(
@@ -8,18 +9,35 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
 ) -> PreparedRuntimeSubmission {
-    let hybrid_gi_evictable_probe_ids = prepare_hybrid_gi_runtime(state, viewport, context)
-        .map(|output| output.into_evictable_probe_ids())
-        .unwrap_or_default();
-    let virtual_geometry_evictable_page_ids =
-        prepare_virtual_geometry_runtime(state, viewport, context)
-            .map(|output| output.into_evictable_page_ids())
+    let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs) =
+        prepare_hybrid_gi_runtime(state, viewport, context)
+            .map(crate::HybridGiRuntimePrepareOutput::into_parts)
             .unwrap_or_default();
+    let (virtual_geometry_evictable_page_ids, virtual_geometry_renderer_outputs) =
+        prepare_virtual_geometry_runtime(state, viewport, context)
+            .map(crate::VirtualGeometryRuntimePrepareOutput::into_parts)
+            .unwrap_or_default();
+    let plugin_renderer_outputs = merge_prepare_plugin_renderer_outputs(
+        hybrid_gi_renderer_outputs,
+        virtual_geometry_renderer_outputs,
+    );
 
     PreparedRuntimeSubmission::new(
         hybrid_gi_evictable_probe_ids,
         virtual_geometry_evictable_page_ids,
+        plugin_renderer_outputs,
     )
+}
+
+fn merge_prepare_plugin_renderer_outputs(
+    hybrid_gi_outputs: RenderPluginRendererOutputs,
+    virtual_geometry_outputs: RenderPluginRendererOutputs,
+) -> RenderPluginRendererOutputs {
+    RenderPluginRendererOutputs {
+        hybrid_gi: hybrid_gi_outputs.hybrid_gi,
+        virtual_geometry: virtual_geometry_outputs.virtual_geometry,
+        ..RenderPluginRendererOutputs::default()
+    }
 }
 
 fn prepare_hybrid_gi_runtime(
@@ -95,4 +113,52 @@ fn prepare_virtual_geometry_runtime(
             .ensure_virtual_geometry_runtime(registration.provider())
             .prepare_frame(input),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::merge_prepare_plugin_renderer_outputs;
+    use crate::core::framework::render::{
+        RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
+        RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderVirtualGeometryReadbackOutputs,
+    };
+
+    #[test]
+    fn prepare_merge_keeps_only_hybrid_gi_and_virtual_geometry_sidebands() {
+        let merged = merge_prepare_plugin_renderer_outputs(
+            RenderPluginRendererOutputs {
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![11],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                particles: RenderParticleGpuReadbackOutputs {
+                    alive_count: 5,
+                    ..RenderParticleGpuReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+            RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                        page_request_ids: vec![300],
+                        ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                    },
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                particles: RenderParticleGpuReadbackOutputs {
+                    alive_count: 7,
+                    ..RenderParticleGpuReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+        );
+
+        assert_eq!(merged.hybrid_gi.completed_probe_ids, vec![11]);
+        assert_eq!(
+            merged.virtual_geometry.node_cluster_cull.page_request_ids,
+            vec![300]
+        );
+        assert!(merged.particles.is_empty());
+    }
 }

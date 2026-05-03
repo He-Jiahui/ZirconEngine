@@ -5,8 +5,10 @@ use zircon_runtime::core::{
 };
 use zircon_runtime::engine_module::{factory, qualified_name};
 
+mod component_json;
 mod components;
 mod manager;
+mod runtime_obstacles;
 mod settings_hash;
 mod settings_validation;
 
@@ -386,6 +388,60 @@ mod tests {
             world.world_transform(agent).unwrap().translation,
             Vec3::ZERO
         );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("no path")));
+    }
+
+    #[test]
+    fn carved_runtime_obstacle_blocks_agent_path_on_loaded_navmesh() {
+        let manager = DefaultNavigationManager::new();
+        let mut world = World::new();
+        for descriptor in navigation_component_descriptors() {
+            world.register_component_type(descriptor).unwrap();
+        }
+        let agent = world.spawn_node(NodeKind::Cube);
+        let obstacle = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(
+                agent,
+                Transform::from_translation(Vec3::new(-2.5, 0.0, 0.0)),
+            )
+            .unwrap();
+        world
+            .set_dynamic_component(
+                agent,
+                NAV_MESH_AGENT_COMPONENT_TYPE,
+                serde_json::to_value(NavMeshAgentDescriptor {
+                    destination: Some([2.5, 0.0, 0.0]),
+                    speed: 2.0,
+                    ..NavMeshAgentDescriptor::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        world
+            .set_dynamic_component(
+                obstacle,
+                NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+                json!({
+                    "shape": "box",
+                    "center": [0.0, 0.0, 0.0],
+                    "size": [1.5, 2.0, 2.5],
+                    "carve": true,
+                    "avoidance_enabled": false
+                }),
+            )
+            .unwrap();
+        manager
+            .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 3.0))
+            .unwrap();
+
+        let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+        assert_eq!(report.moved_agents, 0);
+        assert_eq!(report.blocked_agents, 1);
         assert!(report
             .diagnostics
             .iter()

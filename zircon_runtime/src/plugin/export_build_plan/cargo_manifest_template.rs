@@ -17,6 +17,15 @@ pub(super) fn cargo_manifest_template(
             linked_crate.crate_name, linked_crate.path
         ));
     }
+    match profile.target_platform.policy().host_kind {
+        crate::plugin::ExportPlatformHostKind::Desktop => {}
+        crate::plugin::ExportPlatformHostKind::MobileApp => {
+            contents.push_str("\n[lib]\ncrate-type = [\"cdylib\", \"staticlib\"]\n");
+        }
+        crate::plugin::ExportPlatformHostKind::Browser => {
+            contents.push_str("\n[lib]\ncrate-type = [\"cdylib\"]\n");
+        }
+    }
     contents
 }
 

@@ -1,5 +1,8 @@
 use std::io::Cursor;
 
+mod cad;
+
+use cad::import_dxf_model;
 use ply_rs_bw as ply;
 use zircon_runtime::asset::{
     cook_virtual_geometry_from_mesh, AssetImportContext, AssetImportError, AssetImportOutcome,
@@ -21,9 +24,14 @@ pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_asset_importer_model_runtime
 pub const MODULE_NAME: &str = "ModelImporterModule";
 pub const RUNTIME_CAPABILITY: &str = "runtime.plugin.asset_importer.model";
 pub const MESH_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.model.mesh";
+pub const CAD_IMPORTER_CAPABILITY: &str = "runtime.asset.importer.model.cad";
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &[RUNTIME_CAPABILITY, MESH_IMPORTER_CAPABILITY]
+    &[
+        RUNTIME_CAPABILITY,
+        MESH_IMPORTER_CAPABILITY,
+        CAD_IMPORTER_CAPABILITY,
+    ]
 }
 
 pub fn supported_targets() -> [RuntimeTargetMode; 2] {
@@ -53,10 +61,12 @@ pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
             .with_required_capabilities(["runtime.asset.importer.model.obj"]),
         descriptor("asset_importer.model.mesh", 110, ["ply", "stl"])
             .with_required_capabilities([MESH_IMPORTER_CAPABILITY]),
+        descriptor("asset_importer.model.cad", 110, ["dxf"])
+            .with_required_capabilities([CAD_IMPORTER_CAPABILITY]),
         descriptor(
             "asset_importer.model.optional_native_backend",
             80,
-            ["fbx", "dae", "3ds", "dxf", "usd", "usda", "usdc", "usdz"],
+            ["fbx", "dae", "3ds", "usd", "usda", "usdc", "usdz"],
         )
         .with_required_capabilities(["runtime.asset.importer.native"]),
     ]
@@ -117,6 +127,8 @@ pub fn register_runtime_extensions(
         match importer.id.as_str() {
             "asset_importer.model.mesh" => registry
                 .register_asset_importer(FunctionAssetImporter::new(importer, import_mesh_model))?,
+            "asset_importer.model.cad" => registry
+                .register_asset_importer(FunctionAssetImporter::new(importer, import_dxf_model))?,
             "asset_importer.model.gltf" => {
                 registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
                     importer,
@@ -132,7 +144,7 @@ pub fn register_runtime_extensions(
             "asset_importer.model.optional_native_backend" => {
                 registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
                     importer,
-                    "fbx/dae/3ds/dxf/usd import requires a NativeDynamic model backend",
+                    "fbx/dae/3ds/usd import requires a NativeDynamic model backend",
                 ))?;
             }
             _ => unreachable!("asset_importer_descriptors returns only known model importer ids"),
@@ -290,7 +302,7 @@ fn import_ply(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetI
     model_outcome(context, vec![primitive])
 }
 
-fn model_outcome(
+pub(crate) fn model_outcome(
     context: &AssetImportContext,
     primitives: Vec<ModelPrimitiveAsset>,
 ) -> Result<AssetImportOutcome, AssetImportError> {
@@ -300,7 +312,7 @@ fn model_outcome(
     })))
 }
 
-fn primitive_from_indexed_mesh(
+pub(crate) fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],
     texcoords: &[f32],
@@ -494,10 +506,13 @@ mod tests {
         assert!(manifest
             .capabilities
             .contains(&MESH_IMPORTER_CAPABILITY.to_string()));
+        assert!(manifest
+            .capabilities
+            .contains(&CAD_IMPORTER_CAPABILITY.to_string()));
     }
 
     #[test]
-    fn registration_contributes_stl_and_ply_importers() {
+    fn registration_contributes_stl_ply_and_dxf_importers() {
         let report = plugin_registration();
 
         assert!(report.is_success(), "{:?}", report.diagnostics);
@@ -506,7 +521,7 @@ mod tests {
             .modules()
             .iter()
             .any(|module| module.name == MODULE_NAME));
-        assert_eq!(report.extensions.asset_importers().descriptors().len(), 4);
+        assert_eq!(report.extensions.asset_importers().descriptors().len(), 5);
         assert_eq!(
             report
                 .extensions
@@ -517,6 +532,17 @@ mod tests {
                 .id
                 .as_str(),
             "asset_importer.model.mesh"
+        );
+        assert_eq!(
+            report
+                .extensions
+                .asset_importers()
+                .select(std::path::Path::new("mesh.dxf"))
+                .unwrap()
+                .descriptor()
+                .id
+                .as_str(),
+            "asset_importer.model.cad"
         );
     }
 
@@ -545,6 +571,21 @@ mod tests {
                 assert_eq!(model.primitives[0].vertices.len(), 3);
                 assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
                 assert_eq!(model.primitives[0].vertices[1].uv[0], 1.0);
+                assert!(model.primitives[0].virtual_geometry.is_some());
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn dxf_importer_decodes_3dface_triangle() {
+        let imported = import_fixture("triangle.dxf", ascii_dxf_3dface_fixture());
+
+        match imported {
+            ImportedAsset::Model(model) => {
+                assert_eq!(model.primitives.len(), 1);
+                assert_eq!(model.primitives[0].vertices.len(), 3);
+                assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
                 assert!(model.primitives[0].virtual_geometry.is_some());
             }
             other => panic!("unexpected imported asset: {other:?}"),
@@ -600,6 +641,46 @@ end_header
 1 0 0 0 0 1 1 0
 0 1 0 0 0 1 0 1
 3 0 1 2
+"#
+    }
+
+    fn ascii_dxf_3dface_fixture() -> &'static str {
+        r#"0
+SECTION
+2
+ENTITIES
+0
+3DFACE
+8
+0
+10
+0.0
+20
+0.0
+30
+0.0
+11
+1.0
+21
+0.0
+31
+0.0
+12
+0.0
+22
+1.0
+32
+0.0
+13
+0.0
+23
+1.0
+33
+0.0
+0
+ENDSEC
+0
+EOF
 "#
     }
 }

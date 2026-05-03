@@ -4,7 +4,7 @@ use thiserror::Error;
 use super::{
     ExternalAudioSourceHandle, SoundAutomationBindingId, SoundClipId, SoundEffectId,
     SoundImpulseResponseId, SoundListenerId, SoundParameterId, SoundPlaybackId, SoundSourceId,
-    SoundTrackId, SoundVolumeId,
+    SoundTimelineSequenceId, SoundTrackId, SoundVolumeId,
 };
 
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,10 +27,19 @@ pub enum SoundError {
     UnknownImpulseResponse {
         impulse_response: SoundImpulseResponseId,
     },
+    #[error("unknown HRTF profile `{profile_id}`")]
+    UnknownHrtfProfile { profile_id: String },
     #[error("unknown automation binding {binding:?}")]
     UnknownAutomationBinding { binding: SoundAutomationBindingId },
+    #[error("unknown timeline sequence {sequence:?}")]
+    UnknownTimelineSequence { sequence: SoundTimelineSequenceId },
     #[error("unknown dynamic sound event `{event_id}`")]
     UnknownDynamicEvent { event_id: String },
+    #[error("unknown dynamic sound event handler `{plugin_id}:{handler_id}`")]
+    UnknownDynamicEventHandler {
+        plugin_id: String,
+        handler_id: String,
+    },
     #[error("unknown send from track {track:?} to {target:?}")]
     UnknownSend {
         track: SoundTrackId,

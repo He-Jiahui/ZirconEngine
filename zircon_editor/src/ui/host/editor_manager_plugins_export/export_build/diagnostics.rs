@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use super::cargo_invocation::EditorExportCargoInvocation;
+use zircon_runtime::plugin::{ExportBuildPlan, ExportPlatformHostKind};
 
 pub(super) fn finalize_export_diagnostics(output_root: &Path, diagnostics: &mut Vec<String>) {
     normalize_export_diagnostics(diagnostics);
@@ -41,8 +42,20 @@ pub(super) fn cargo_invocation_diagnostics(
     cargo_invocation_diagnostics_with_label(invocation, "export cargo build")
 }
 
-pub(super) fn skipped_export_cargo_build_diagnostic() -> String {
-    "export cargo build skipped because no generated Cargo.toml was materialized".to_string()
+pub(super) fn skipped_export_cargo_build_diagnostic(plan: &ExportBuildPlan) -> String {
+    match plan.platform_policy.host_kind {
+        ExportPlatformHostKind::Desktop => {
+            "export cargo build skipped because no generated Cargo.toml was materialized".to_string()
+        }
+        ExportPlatformHostKind::MobileApp => format!(
+            "export cargo build skipped because target platform {} emits a mobile host scaffold that must be built by the platform package toolchain",
+            plan.profile.target_platform.as_str()
+        ),
+        ExportPlatformHostKind::Browser => format!(
+            "export cargo build skipped because target platform {} emits a browser host scaffold that must be built by the web/WASM package toolchain",
+            plan.profile.target_platform.as_str()
+        ),
+    }
 }
 
 pub(in super::super) fn cargo_invocation_diagnostics_with_label(

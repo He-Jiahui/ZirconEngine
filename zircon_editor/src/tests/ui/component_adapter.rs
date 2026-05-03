@@ -51,6 +51,20 @@ fn reflection_commit_envelope(field_path: &str, value: UiValue) -> UiComponentEv
     .with_component_id("ReflectionField")
 }
 
+fn component_drawer_press_envelope(
+    component_type: &str,
+    operation_path: &str,
+) -> UiComponentEventEnvelope {
+    UiComponentEventEnvelope::new(
+        "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        "RefreshButton",
+        UiComponentBindingTarget::new("component_drawer", operation_path)
+            .with_subject(component_type),
+        UiComponentEvent::Press { pressed: true },
+    )
+    .with_component_id("weather.cloud_layer.inspector")
+}
+
 #[test]
 fn inspector_component_adapter_value_changed_updates_selected_name_draft() {
     let _guard = env_lock().lock().unwrap();
@@ -169,6 +183,65 @@ fn reflection_component_adapter_updates_selected_entity_translation_vector() {
     assert_eq!(
         result.patches[0].state_values.get("transform.translation"),
         Some(&UiValue::Vec3([1.0, 2.0, 3.0]))
+    );
+}
+
+#[test]
+fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_component_drawer_adapter_operation");
+    let component_type = "weather.Component.CloudLayer";
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                component_type,
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_template_id("weather.cloud_layer.inspector")
+            .with_data_root("inspector.plugin_components.weather.Component.CloudLayer")
+            .with_binding("Scene.Node.CreateCube"),
+        )
+        .unwrap();
+    harness
+        .runtime
+        .register_editor_extension(extension)
+        .expect("component drawer extension should register");
+
+    let before = harness.runtime.editor_snapshot().scene_entries.len();
+    let result = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&component_drawer_press_envelope(
+            component_type,
+            "Scene.Node.CreateCube",
+        ))
+        .expect("declared component drawer operation should dispatch through host");
+
+    assert!(result.changed);
+    assert_eq!(result.mutation_source.as_deref(), Some("component_drawer"));
+    assert_eq!(
+        result.transaction_id.as_deref(),
+        Some("component_drawer:Scene.Node.CreateCube")
+    );
+    assert_eq!(harness.runtime.editor_snapshot().scene_entries.len(), before + 1);
+
+    let error = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&component_drawer_press_envelope(
+            component_type,
+            "Window.Layout.Reset",
+        ))
+        .unwrap_err();
+    assert_eq!(
+        error,
+        UiComponentAdapterError::RejectedInput {
+            domain: "component_drawer".to_string(),
+            path: "Window.Layout.Reset".to_string(),
+            reason: "operation is not declared by the enabled component drawer".to_string(),
+        }
     );
 }
 

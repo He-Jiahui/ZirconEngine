@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     SoundAutomationBindingId, SoundEffectId, SoundListenerId, SoundParameterId, SoundSourceId,
-    SoundTrackId, SoundVolumeId,
+    SoundTimelineSequenceId, SoundTrackId, SoundVolumeId,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -24,6 +24,50 @@ impl SoundAutomationCurve {
             keyframes: keyframes.into(),
         }
     }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundTimelineSequence {
+    pub id: SoundTimelineSequenceId,
+    pub duration_seconds: f32,
+    pub looping: bool,
+    pub tracks: Vec<SoundTimelineAutomationTrack>,
+}
+
+impl SoundTimelineSequence {
+    pub fn new(
+        id: SoundTimelineSequenceId,
+        duration_seconds: f32,
+        looping: bool,
+        tracks: Vec<SoundTimelineAutomationTrack>,
+    ) -> Self {
+        Self {
+            id,
+            duration_seconds,
+            looping,
+            tracks,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundTimelineAutomationTrack {
+    pub binding: SoundAutomationBindingId,
+    pub curve: SoundAutomationCurve,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundTimelineSequenceAdvance {
+    pub sequence: SoundTimelineSequenceId,
+    pub time_seconds: f32,
+    pub completed: bool,
+    pub samples: Vec<SoundTimelineAutomationSample>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundTimelineAutomationSample {
+    pub binding: SoundAutomationBindingId,
+    pub value: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

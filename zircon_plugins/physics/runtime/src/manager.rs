@@ -2,11 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::physics::{
-    PhysicsBackendState, PhysicsBackendStatus, PhysicsBodySyncState, PhysicsBodyType,
-    PhysicsColliderShape, PhysicsColliderSyncState, PhysicsContactEvent, PhysicsJointSyncState,
-    PhysicsJointType, PhysicsManager, PhysicsMaterialMetadata, PhysicsMaterialSyncState,
-    PhysicsRayCastHit, PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings,
-    PhysicsSimulationMode, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsBackendStatus, PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape,
+    PhysicsColliderSyncState, PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType,
+    PhysicsManager, PhysicsMaterialMetadata, PhysicsMaterialSyncState, PhysicsRayCastHit,
+    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsSimulationMode,
+    PhysicsWorldStepPlan, PhysicsWorldSyncState,
 };
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Quat, Real, Transform, Vec3};
@@ -14,10 +14,10 @@ use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::scene::components::{ColliderShape, JointKind, RigidBodyType};
 use zircon_runtime::scene::world::World;
 
+use crate::backend::{
+    default_backend_name, default_simulation_mode, physics_backend_status, select_runtime_backend,
+};
 use crate::query_contact::{collider_matches_query, compute_contact_events, ray_cast_collider};
-
-pub const JOLT_ENABLED: bool = cfg!(feature = "jolt");
-const JOLT_BACKEND_AVAILABLE: bool = false;
 
 pub type PhysicsTickPlan = PhysicsWorldStepPlan;
 
@@ -77,7 +77,9 @@ impl DefaultPhysicsManager {
         } else {
             1.0 / settings.fixed_hz as f32
         };
-        if settings.simulation_mode == PhysicsSimulationMode::Disabled || step_seconds <= 0.0 {
+        if !select_runtime_backend(&settings).allows_step(settings.simulation_mode)
+            || step_seconds <= 0.0
+        {
             return PhysicsWorldStepPlan {
                 steps: 0,
                 step_seconds,
@@ -318,12 +320,26 @@ impl PhysicsManager for DefaultPhysicsManager {
     }
 
     fn plan_world_step(&self, world: WorldHandle, delta_seconds: Real) -> PhysicsWorldStepPlan {
+        let settings = self.settings();
+        if !select_runtime_backend(&settings).allows_step(settings.simulation_mode) {
+            return PhysicsWorldStepPlan {
+                steps: 0,
+                step_seconds: configured_step_seconds(&settings),
+                remaining_seconds: 0.0,
+            };
+        }
+
         self.advance_clock(world, delta_seconds)
     }
 
     fn sync_world(&self, sync: PhysicsWorldSyncState) {
-        let sync = sanitize_world_sync_state(sync);
         let settings = self.settings();
+        if !select_runtime_backend(&settings).allows_sync() {
+            clear_world_state(sync.world, &self.synced_worlds, &self.contacts);
+            return;
+        }
+
+        let sync = sanitize_world_sync_state(sync);
         let contacts = compute_contact_events(&sync, &settings);
         self.synced_worlds
             .lock()
@@ -391,7 +407,10 @@ impl PhysicsManager for DefaultPhysicsManager {
         delta_seconds: Real,
     ) -> PhysicsSceneStepResult {
         let step_plan = self.plan_world_step(world_handle, delta_seconds);
-        integrate_builtin_physics_steps(world, step_plan);
+        let settings = self.settings();
+        if select_runtime_backend(&settings).allows_step(settings.simulation_mode) {
+            integrate_builtin_physics_steps(world, step_plan);
+        }
         self.sync_world(build_world_sync_state(world_handle, world));
         PhysicsSceneStepResult {
             step_plan,
@@ -491,18 +510,33 @@ fn normalized_ray_direction(direction: [Real; 3]) -> Option<Vec3> {
 
 fn default_settings() -> PhysicsSettings {
     PhysicsSettings {
-        backend: if JOLT_BACKEND_AVAILABLE {
-            "jolt".to_string()
-        } else {
-            "unconfigured".to_string()
-        },
-        simulation_mode: if JOLT_BACKEND_AVAILABLE {
-            PhysicsSimulationMode::Simulate
-        } else {
-            PhysicsSimulationMode::Disabled
-        },
+        backend: default_backend_name(),
+        simulation_mode: default_simulation_mode(),
         ..PhysicsSettings::default()
     }
+}
+
+fn configured_step_seconds(settings: &PhysicsSettings) -> Real {
+    if settings.fixed_hz == 0 {
+        0.0
+    } else {
+        1.0 / settings.fixed_hz as Real
+    }
+}
+
+fn clear_world_state(
+    world: WorldHandle,
+    synced_worlds: &Mutex<HashMap<WorldHandle, PhysicsWorldSyncState>>,
+    contacts: &Mutex<HashMap<WorldHandle, Vec<PhysicsContactEvent>>>,
+) {
+    synced_worlds
+        .lock()
+        .expect("physics sync mutex poisoned")
+        .remove(&world);
+    contacts
+        .lock()
+        .expect("physics contact mutex poisoned")
+        .remove(&world);
 }
 
 fn sanitize_world_sync_state(mut sync: PhysicsWorldSyncState) -> PhysicsWorldSyncState {
@@ -586,60 +620,6 @@ fn material_locator_sync_input_is_valid(locator: &Option<String>) -> bool {
     locator
         .as_deref()
         .is_none_or(|locator| !locator.trim().is_empty())
-}
-
-fn physics_backend_status(settings: &PhysicsSettings) -> PhysicsBackendStatus {
-    let requested_backend = settings.backend.clone();
-    let feature_gate = requested_backend
-        .eq_ignore_ascii_case("jolt")
-        .then_some("jolt".to_string());
-    if settings.simulation_mode == PhysicsSimulationMode::Disabled {
-        return PhysicsBackendStatus {
-            requested_backend,
-            active_backend: None,
-            state: PhysicsBackendState::Disabled,
-            detail: Some("physics simulation is disabled".to_string()),
-            simulation_mode: settings.simulation_mode,
-            feature_gate,
-        };
-    }
-
-    if requested_backend.eq_ignore_ascii_case("jolt") && !JOLT_BACKEND_AVAILABLE {
-        let detail = if JOLT_ENABLED {
-            "feature `jolt` is enabled, but no runtime Jolt backend is linked".to_string()
-        } else {
-            "feature `jolt` is not enabled; physics runs in downgrade mode".to_string()
-        };
-        return PhysicsBackendStatus {
-            requested_backend,
-            active_backend: None,
-            state: PhysicsBackendState::Unavailable,
-            detail: Some(detail),
-            simulation_mode: settings.simulation_mode,
-            feature_gate,
-        };
-    }
-
-    if requested_backend.trim().is_empty() || requested_backend.eq_ignore_ascii_case("unconfigured")
-    {
-        return PhysicsBackendStatus {
-            requested_backend,
-            active_backend: None,
-            state: PhysicsBackendState::Unavailable,
-            detail: Some("no physics backend is configured".to_string()),
-            simulation_mode: settings.simulation_mode,
-            feature_gate,
-        };
-    }
-
-    PhysicsBackendStatus {
-        active_backend: Some(requested_backend.clone()),
-        requested_backend,
-        state: PhysicsBackendState::Ready,
-        detail: None,
-        simulation_mode: settings.simulation_mode,
-        feature_gate,
-    }
 }
 
 fn combine_transforms(parent: Transform, local: Transform) -> Transform {

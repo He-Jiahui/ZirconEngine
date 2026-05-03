@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -9,48 +10,55 @@ use hyper::service::service_fn;
 use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
 use tokio::net::TcpListener;
+use zircon_plugin_net_runtime::{HttpRuntimeBackend, ManagedHttpListener, ManagedHttpRoute};
 use zircon_runtime::core::framework::net::{
-    NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
-    NetHttpRouteDescriptor, NetRequestId, NetRouteId,
+    NetEndpoint, NetError, NetHttpMethod, NetHttpRequestDescriptor, NetHttpResponseDescriptor,
+    NetRequestId, NetRouteId,
 };
 
-#[derive(Debug)]
-pub(crate) struct ManagedHttpListener {
-    pub local_endpoint: zircon_runtime::core::framework::net::NetEndpoint,
+#[derive(Clone, Debug, Default)]
+pub struct HyperReqwestHttpBackend;
+
+pub fn http_runtime_backend() -> Arc<dyn HttpRuntimeBackend> {
+    Arc::new(HyperReqwestHttpBackend)
 }
 
-#[derive(Debug)]
-pub(crate) struct ManagedHttpRoute {
-    pub route: NetHttpRouteDescriptor,
-    pub response: NetHttpResponseDescriptor,
-}
+impl HttpRuntimeBackend for HyperReqwestHttpBackend {
+    fn listen_http(
+        &self,
+        runtime: &tokio::runtime::Runtime,
+        bind: SocketAddr,
+        routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
+    ) -> Result<ManagedHttpListener, NetError> {
+        let listener = runtime
+            .block_on(TcpListener::bind(bind))
+            .map_err(|error| NetError::Io(error.to_string()))?;
+        let local_endpoint = listener
+            .local_addr()
+            .map(NetEndpoint::from)
+            .map_err(|error| NetError::Io(error.to_string()))?;
+        let abort_handle = runtime
+            .spawn(serve_http_listener(listener, routes))
+            .abort_handle();
+        Ok(ManagedHttpListener {
+            local_endpoint,
+            abort_handle: Some(abort_handle),
+        })
+    }
 
-pub(crate) fn path_from_http_url(url: &str) -> String {
-    if let Some((_, rest)) = url.split_once("://") {
-        match rest.find('/') {
-            Some(index) => rest[index..].to_string(),
-            None => "/".to_string(),
-        }
-    } else if url.starts_with('/') {
-        url.to_string()
-    } else {
-        format!("/{url}")
+    fn send_http_request(
+        &self,
+        runtime: &tokio::runtime::Runtime,
+        request: NetHttpRequestDescriptor,
+    ) -> Result<NetHttpResponseDescriptor, NetError> {
+        runtime.block_on(send_http_request(request))
     }
 }
 
-pub(crate) fn url_has_explicit_port(url: &str) -> bool {
-    let Some((_, rest)) = url.split_once("://") else {
-        return false;
-    };
-    let authority = rest.split('/').next().unwrap_or_default();
-    authority.rsplit_once(':').is_some_and(|(_, port)| {
-        !port.is_empty() && port.chars().all(|character| character.is_ascii_digit())
-    })
-}
-
-pub(crate) async fn send_http_request(
+async fn send_http_request(
     request: NetHttpRequestDescriptor,
 ) -> Result<NetHttpResponseDescriptor, NetError> {
+    validate_http_security_policy(&request)?;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_millis(request.timeout_ms))
         .use_rustls_tls()
@@ -88,7 +96,44 @@ pub(crate) async fn send_http_request(
     Ok(response)
 }
 
-pub(crate) async fn serve_http_listener(
+fn validate_http_security_policy(request: &NetHttpRequestDescriptor) -> Result<(), NetError> {
+    if request.security.certificate_pinning {
+        return Err(NetError::SecurityPolicyViolation {
+            reason: "HTTP certificate pinning is not configured".to_string(),
+        });
+    }
+
+    if request.security.tls_required
+        && !request.url.starts_with("https://")
+        && !(request.security.allow_insecure_loopback && http_url_is_loopback(&request.url))
+    {
+        return Err(NetError::SecurityPolicyViolation {
+            reason: "HTTP request requires HTTPS by security policy".to_string(),
+        });
+    }
+
+    Ok(())
+}
+
+fn http_url_is_loopback(url: &str) -> bool {
+    let Some(authority) = url
+        .strip_prefix("http://")
+        .or_else(|| url.strip_prefix("https://"))
+        .map(|rest| rest.split('/').next().unwrap_or_default())
+    else {
+        return false;
+    };
+    let host = authority
+        .rsplit_once('@')
+        .map(|(_, host)| host)
+        .unwrap_or(authority)
+        .split(':')
+        .next()
+        .unwrap_or_default();
+    matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
+}
+
+async fn serve_http_listener(
     listener: TcpListener,
     routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
 ) {
@@ -120,7 +165,15 @@ async fn handle_route_request(
             .expect("net HTTP routes mutex poisoned")
             .values()
             .find(|entry| entry.route.path == path && entry.route.methods.contains(&method))
-            .map(|entry| entry.response.clone().for_request(NetRequestId::new(0)))
+            .map(|entry| {
+                let request =
+                    NetHttpRequestDescriptor::new(NetRequestId::new(0), method, path.clone());
+                entry
+                    .handler
+                    .as_ref()
+                    .map(|handler| handler(request.clone()))
+                    .unwrap_or_else(|| entry.response.clone().for_request(request.request))
+            })
     });
 
     let response = match matched {
@@ -149,7 +202,7 @@ fn internal_server_error() -> Response<Full<Bytes>> {
         .expect("static HTTP response should build")
 }
 
-pub(crate) fn method_to_reqwest(method: NetHttpMethod) -> reqwest::Method {
+fn method_to_reqwest(method: NetHttpMethod) -> reqwest::Method {
     match method {
         NetHttpMethod::Get => reqwest::Method::GET,
         NetHttpMethod::Post => reqwest::Method::POST,

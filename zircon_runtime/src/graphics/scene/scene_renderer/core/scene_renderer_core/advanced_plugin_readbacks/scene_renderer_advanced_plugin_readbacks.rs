@@ -11,11 +11,27 @@ impl SceneRendererAdvancedPluginReadbacks {
         }
     }
 
-    #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn from_outputs(
         outputs: RenderPluginRendererOutputs,
     ) -> Self {
         Self { outputs }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn into_outputs(
+        self,
+    ) -> RenderPluginRendererOutputs {
+        self.outputs
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn is_empty(&self) -> bool {
+        self.outputs.is_empty()
+    }
+
+    #[cfg(test)]
+    pub(in crate::graphics::scene::scene_renderer::core) fn outputs_for_test(
+        &self,
+    ) -> &RenderPluginRendererOutputs {
+        &self.outputs
     }
 }
 
@@ -44,5 +60,7 @@ mod tests {
         let readbacks = SceneRendererAdvancedPluginReadbacks::from_outputs(outputs.clone());
 
         assert_eq!(readbacks.outputs, outputs);
+        assert!(!readbacks.is_empty());
+        assert!(SceneRendererAdvancedPluginReadbacks::new().is_empty());
     }
 }

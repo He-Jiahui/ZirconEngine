@@ -30,7 +30,11 @@ use zircon_runtime_interface::ui::component::{
 
 impl EditorEventRuntime {
     pub fn editor_snapshot(&self) -> EditorDataSnapshot {
-        self.lock_inner().state.snapshot()
+        let inner = self.lock_inner();
+        let component_drawers = Self::active_component_drawers_locked(&inner);
+        inner
+            .state
+            .snapshot_with_component_drawers(&component_drawers)
     }
 
     pub fn current_layout(&self) -> WorkbenchLayout {
@@ -81,6 +85,9 @@ impl EditorEventRuntime {
         &self,
         envelope: &UiComponentEventEnvelope,
     ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
+        if envelope.target.domain == "component_drawer" {
+            return self.dispatch_component_drawer_adapter_event(envelope);
+        }
         let mut inner = self.lock_inner();
         let manager = inner.manager.clone();
         let result =
@@ -93,6 +100,38 @@ impl EditorEventRuntime {
             Self::refresh_reflection_locked(&mut inner);
         }
         Ok(result)
+    }
+
+    fn dispatch_component_drawer_adapter_event(
+        &self,
+        envelope: &UiComponentEventEnvelope,
+    ) -> Result<UiComponentAdapterResult, UiComponentAdapterError> {
+        let component_type = envelope.target.subject.as_deref().ok_or_else(|| {
+            UiComponentAdapterError::MissingSource {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+                source_name: "subject".to_string(),
+            }
+        })?;
+        let drawer = self.component_drawer_descriptor(component_type);
+        let operation_path =
+            crate::ui::template_runtime::component_adapter::component_drawer::validate_component_drawer_envelope(
+                envelope,
+                drawer.as_ref(),
+            )?;
+        let (source, invocation) = crate::ui::template_runtime::component_adapter::component_drawer::component_drawer_operation_invocation(operation_path.clone());
+        self.invoke_operation(source, invocation).map_err(|error| {
+            UiComponentAdapterError::HostMutation {
+                domain: envelope.target.domain.clone(),
+                path: envelope.target.path.clone(),
+                reason: error,
+            }
+        })?;
+        Ok(
+            crate::ui::template_runtime::component_adapter::component_drawer::component_drawer_operation_result(
+                &operation_path,
+            ),
+        )
     }
 
     pub(crate) fn ui_component_data_sources(&self) -> Vec<UiComponentDataSourceDescriptor> {

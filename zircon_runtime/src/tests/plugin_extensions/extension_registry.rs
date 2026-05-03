@@ -1095,7 +1095,7 @@ impl RuntimePluginFeature for SoundTimelineFeaturePlugin {
     }
 }
 
-fn weather_render_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+fn weather_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Err("weather executor reached graph execution".to_string())
 }
 

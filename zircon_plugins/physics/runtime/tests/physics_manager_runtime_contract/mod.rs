@@ -59,6 +59,28 @@ fn empty_jolt_feature_slot_reports_unavailable_not_ready() {
     assert_eq!(status.feature_gate.as_deref(), Some("jolt"));
 }
 
+#[test]
+fn unknown_backend_reports_unavailable_not_ready() {
+    let runtime = create_runtime_with_scene_and_physics();
+    runtime
+        .resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)
+        .unwrap()
+        .store_settings(PhysicsSettings {
+            backend: "experimental".to_string(),
+            simulation_mode: PhysicsSimulationMode::Simulate,
+            ..PhysicsSettings::default()
+        })
+        .unwrap();
+
+    let status = resolve_physics_manager(&runtime.handle())
+        .unwrap()
+        .backend_status();
+
+    assert_eq!(status.requested_backend, "experimental");
+    assert_eq!(status.active_backend, None);
+    assert_eq!(status.state, PhysicsBackendState::Unavailable);
+}
+
 mod contact;
 mod query;
 mod step;

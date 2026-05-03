@@ -1,3 +1,4 @@
+use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -11,6 +12,13 @@ use super::super::{
 
 impl EditorState {
     pub fn snapshot(&self) -> EditorDataSnapshot {
+        self.snapshot_with_component_drawers(&BTreeMap::new())
+    }
+
+    pub(crate) fn snapshot_with_component_drawers(
+        &self,
+        component_drawers: &BTreeMap<String, ComponentDrawerDescriptor>,
+    ) -> EditorDataSnapshot {
         let selected = self.viewport_controller.selected_node();
         let (scene_entries, inspector) = self
             .world
@@ -26,6 +34,7 @@ impl EditorState {
                             scene,
                             id,
                             &self.inspector_dynamic_fields,
+                            component_drawers,
                         ),
                     });
                 let scene_entries = scene
@@ -72,6 +81,7 @@ fn inspector_plugin_components(
     scene: &Scene,
     node_id: NodeId,
     draft_fields: &BTreeMap<String, String>,
+    component_drawers: &BTreeMap<String, ComponentDrawerDescriptor>,
 ) -> Vec<InspectorPluginComponentSnapshot> {
     scene
         .dynamic_components_for_entity(node_id)
@@ -85,24 +95,58 @@ fn inspector_plugin_components(
             let display_name = descriptor
                 .map(|descriptor| descriptor.display_name.clone())
                 .unwrap_or_else(|| component_display_name(&component_id));
-            let drawer_available = descriptor.is_some();
-            let diagnostic = (!drawer_available).then(|| {
-                format!(
-                    "Plugin component drawer unavailable for `{component_id}`; serialized data stays protected until the plugin reloads."
-                )
-            });
-            let properties =
-                inspector_plugin_component_properties(&component_id, &component.value, descriptor, draft_fields);
+            let drawer = component_drawers.get(&component_id);
+            let drawer_available = descriptor.is_some() && drawer.is_some();
+            let diagnostic = inspector_plugin_component_diagnostic(
+                &component_id,
+                descriptor.is_some(),
+                drawer.is_some(),
+            );
+            let properties = inspector_plugin_component_properties(
+                &component_id,
+                &component.value,
+                descriptor,
+                draft_fields,
+            );
             InspectorPluginComponentSnapshot {
                 component_id,
                 display_name,
                 plugin_id,
                 drawer_available,
+                drawer_ui_document: drawer.map(|drawer| drawer.ui_document().to_string()),
+                drawer_controller: drawer.map(|drawer| drawer.controller().to_string()),
+                drawer_template_id: drawer
+                    .and_then(ComponentDrawerDescriptor::template_id)
+                    .map(str::to_string),
+                drawer_data_root: drawer
+                    .and_then(ComponentDrawerDescriptor::data_root)
+                    .map(str::to_string),
+                drawer_bindings: drawer
+                    .map(|drawer| drawer.bindings().to_vec())
+                    .unwrap_or_default(),
                 diagnostic,
                 properties,
             }
         })
         .collect()
+}
+
+fn inspector_plugin_component_diagnostic(
+    component_id: &str,
+    has_runtime_schema: bool,
+    has_editor_drawer: bool,
+) -> Option<String> {
+    if !has_runtime_schema {
+        return Some(format!(
+            "Plugin component drawer unavailable for `{component_id}`; serialized data stays protected until the plugin reloads."
+        ));
+    }
+    if !has_editor_drawer {
+        return Some(format!(
+            "Plugin component drawer unavailable for `{component_id}`; editing is protected until an enabled editor extension registers a drawer."
+        ));
+    }
+    None
 }
 
 fn inspector_plugin_component_properties(

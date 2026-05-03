@@ -268,6 +268,283 @@ fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
 }
 
 #[test]
+fn source_template_emits_mobile_and_browser_host_scaffolds() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            "src/lib.rs",
+            "platform/android/app/src/main/AndroidManifest.xml",
+            "platform/android/app/src/main/java/dev/zircon/export/MainActivity.kt",
+            "Android mobile asset host",
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            "src/lib.rs",
+            "platform/ios/ZirconRuntimeHost/Resources/Info.plist",
+            "platform/ios/ZirconRuntimeHost/Sources/ZirconRuntimeHostApp.swift",
+            "iOS mobile asset host",
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            "src/lib.rs",
+            "platform/webgpu/index.html",
+            "platform/webgpu/src/zircon_webgpu_host.js",
+            "WebGPU browser host",
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            "src/lib.rs",
+            "platform/wasm/index.html",
+            "platform/wasm/src/zircon_wasm_host.js",
+            "WASM browser host",
+        ),
+    ];
+
+    for (platform, runtime_entry, shell_file, launcher_file, host_label) in cases {
+        let profile_name = format!("{}-source", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Host Export Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+
+        assert_eq!(plan.platform_policy.target_platform, platform);
+        assert_eq!(
+            generated_file_purpose(&plan, runtime_entry),
+            format!("generated {host_label} runtime library entry point")
+        );
+        assert!(generated_file(&plan, runtime_entry).contains("zircon_export_start"));
+        assert!(generated_file(&plan, runtime_entry).contains(platform.as_str()));
+        assert!(!plan
+            .generated_files
+            .iter()
+            .any(|file| file.path == "src/main.rs"));
+        assert!(generated_file(&plan, shell_file).contains(&profile_name));
+        assert!(!generated_file(&plan, launcher_file).is_empty());
+        assert!(generated_file(&plan, "src/zircon_plugins.rs").contains("project_plugins"));
+        assert!(generated_file(&plan, "assets/zircon-project.toml")
+            .contains("Platform Host Export Test"));
+        assert!(plan
+            .generated_files
+            .iter()
+            .all(|file| file.path != "plugins/native_plugins.toml"));
+    }
+}
+
+#[test]
+fn source_template_emits_package_manifests_for_mobile_and_browser_hosts() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            [
+                "platform/android/settings.gradle.kts",
+                "platform/android/app/build.gradle.kts",
+                "platform/android/app/src/main/jniLibs/README.md",
+                "platform/android/package-export.ps1",
+            ],
+            [
+                "Android Gradle settings manifest",
+                "Android application packaging manifest",
+                "Android native library placement contract",
+                "Android release packaging script",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            [
+                "platform/ios/Package.swift",
+                "platform/ios/ZirconRuntimeHost/Resources/zircon-export.bundle.toml",
+                "platform/ios/ZirconRuntimeHost/Linking/zircon_runtime_native.h",
+                "platform/ios/package-export.ps1",
+            ],
+            [
+                "iOS Swift package manifest",
+                "iOS bundled resource manifest pointer",
+                "iOS Rust static library C header",
+                "iOS release packaging script",
+            ],
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            [
+                "platform/webgpu/package.json",
+                "platform/webgpu/vite.config.mjs",
+                "platform/webgpu/public/zircon-export.manifest.json",
+                "platform/webgpu/package-export.mjs",
+            ],
+            [
+                "WebGPU browser host package manifest",
+                "WebGPU browser host dev and release server config",
+                "WebGPU browser host fetch manifest",
+                "WebGPU browser host release packaging script",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            [
+                "platform/wasm/package.json",
+                "platform/wasm/vite.config.mjs",
+                "platform/wasm/public/zircon-export.manifest.json",
+                "platform/wasm/package-export.mjs",
+            ],
+            [
+                "WASM browser host package manifest",
+                "WASM browser host dev and release server config",
+                "WASM browser host fetch manifest",
+                "WASM browser host release packaging script",
+            ],
+        ),
+    ];
+
+    for (platform, paths, purposes) in cases {
+        let profile_name = format!("{}-package", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Package Export Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+
+        for (path, purpose) in paths.into_iter().zip(purposes) {
+            assert_eq!(generated_file_purpose(&plan, path), purpose);
+            assert!(
+                !generated_file(&plan, path).trim().is_empty(),
+                "{platform:?} generated `{path}` should have contents"
+            );
+        }
+    }
+}
+
+#[test]
+fn source_template_emits_signing_and_cdn_release_contracts() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            [
+                (
+                    "platform/android/signing.properties.example",
+                    "Android signing configuration contract",
+                    "ZR_ANDROID_KEYSTORE_PATH",
+                ),
+                (
+                    "platform/android/play-publish.json",
+                    "Android Play publishing metadata contract",
+                    "serviceAccountJson",
+                ),
+                (
+                    "platform/android/release-bundle.ps1",
+                    "Android signed release bundle script",
+                    "bundleRelease",
+                ),
+            ],
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            [
+                (
+                    "platform/ios/ExportOptions.plist",
+                    "iOS signing and export options contract",
+                    "provisioningProfiles",
+                ),
+                (
+                    "platform/ios/app-store-connect.env.example",
+                    "iOS App Store Connect credential contract",
+                    "ZR_APP_STORE_CONNECT_API_KEY_ID",
+                ),
+                (
+                    "platform/ios/archive-export.ps1",
+                    "iOS archive and export script",
+                    "xcodebuild",
+                ),
+            ],
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            [
+                (
+                    "platform/webgpu/public/_headers",
+                    "WebGPU browser host CDN cache headers",
+                    "immutable",
+                ),
+                (
+                    "platform/webgpu/public/zircon-export.cdn-manifest.json",
+                    "WebGPU browser host CDN deployment manifest",
+                    "assetIntegrity",
+                ),
+                (
+                    "platform/webgpu/deploy-cdn.mjs",
+                    "WebGPU browser host CDN deployment contract",
+                    "ZR_CDN_BASE_URL",
+                ),
+            ],
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            [
+                (
+                    "platform/wasm/public/_headers",
+                    "WASM browser host CDN cache headers",
+                    "immutable",
+                ),
+                (
+                    "platform/wasm/public/zircon-export.cdn-manifest.json",
+                    "WASM browser host CDN deployment manifest",
+                    "assetIntegrity",
+                ),
+                (
+                    "platform/wasm/deploy-cdn.mjs",
+                    "WASM browser host CDN deployment contract",
+                    "ZR_CDN_BASE_URL",
+                ),
+            ],
+        ),
+    ];
+
+    for (platform, expected_files) in cases {
+        let profile_name = format!("{}-release", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Release Export Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+
+        for (path, purpose, expected_contents) in expected_files {
+            assert_eq!(generated_file_purpose(&plan, path), purpose);
+            assert!(
+                generated_file(&plan, path).contains(expected_contents),
+                "{platform:?} generated `{path}` should contain `{expected_contents}`"
+            );
+        }
+    }
+}
+
+#[test]
 fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
     let mut manifest = ProjectManifest::new(
         "Editor Only Export Test",
@@ -1062,6 +1339,14 @@ fn generated_file<'a>(plan: &'a ExportBuildPlan, path: &str) -> &'a str {
         .iter()
         .find(|file| file.path == path)
         .map(|file| file.contents.as_str())
+        .unwrap_or_else(|| panic!("missing generated file {path}"))
+}
+
+fn generated_file_purpose(plan: &ExportBuildPlan, path: &str) -> String {
+    plan.generated_files
+        .iter()
+        .find(|file| file.path == path)
+        .map(|file| file.purpose.clone())
         .unwrap_or_else(|| panic!("missing generated file {path}"))
 }
 

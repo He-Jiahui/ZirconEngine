@@ -60,6 +60,10 @@ impl RenderVirtualGeometryReadbackOutputs {
             && self.hardware_rasterization_records.is_empty()
             && self.node_cluster_cull.is_empty()
     }
+
+    pub fn take_node_and_cluster_cull_page_request_ids(&mut self) -> Vec<u32> {
+        std::mem::take(&mut self.node_cluster_cull.page_request_ids)
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -69,6 +73,7 @@ pub struct RenderVirtualGeometryNodeClusterCullReadbackOutputs {
     pub cluster_work_items: Vec<RenderVirtualGeometryNodeAndClusterCullClusterWorkItem>,
     pub launch_worklist_snapshots:
         Vec<RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot>,
+    pub page_request_ids: Vec<u32>,
 }
 
 impl RenderVirtualGeometryNodeClusterCullReadbackOutputs {
@@ -77,6 +82,7 @@ impl RenderVirtualGeometryNodeClusterCullReadbackOutputs {
             && self.child_work_items.is_empty()
             && self.cluster_work_items.is_empty()
             && self.launch_worklist_snapshots.is_empty()
+            && self.page_request_ids.is_empty()
     }
 }
 
@@ -191,9 +197,14 @@ mod tests {
     use super::{
         RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
         RenderHybridGiScenePrepareSample, RenderParticleGpuReadbackOutputs,
-        RenderPluginRendererOutputs, RenderVirtualGeometryExecutionState,
+        RenderPluginRendererOutputs, RenderVirtualGeometryNodeAndClusterCullTraversalRecord,
         RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
         RenderVirtualGeometryVisBuffer64Entry,
+    };
+    use crate::core::framework::render::{
+        RenderVirtualGeometryExecutionState,
+        RenderVirtualGeometryNodeAndClusterCullTraversalChildSource,
+        RenderVirtualGeometryNodeAndClusterCullTraversalOp,
     };
 
     #[test]
@@ -233,7 +244,23 @@ mod tests {
     fn virtual_geometry_readback_outputs_report_node_cluster_cull_payloads() {
         let outputs = RenderVirtualGeometryReadbackOutputs {
             node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
-                traversal_records: vec![Default::default()],
+                traversal_records: vec![RenderVirtualGeometryNodeAndClusterCullTraversalRecord {
+                    op: RenderVirtualGeometryNodeAndClusterCullTraversalOp::VisitNode,
+                    child_source: RenderVirtualGeometryNodeAndClusterCullTraversalChildSource::None,
+                    instance_index: 0,
+                    entity: 0,
+                    cluster_array_index: 0,
+                    hierarchy_node_id: None,
+                    node_cluster_start: 0,
+                    node_cluster_count: 0,
+                    child_base: 0,
+                    child_count: 0,
+                    traversal_index: 0,
+                    cluster_budget: 0,
+                    page_budget: 0,
+                    forced_mip: None,
+                }],
+                page_request_ids: vec![300, 301],
                 ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
             },
             ..RenderVirtualGeometryReadbackOutputs::default()
@@ -241,6 +268,13 @@ mod tests {
 
         assert!(!outputs.node_cluster_cull.is_empty());
         assert!(!outputs.is_empty());
+
+        let mut outputs = outputs;
+        assert_eq!(
+            outputs.take_node_and_cluster_cull_page_request_ids(),
+            vec![300, 301]
+        );
+        assert!(outputs.node_cluster_cull.page_request_ids.is_empty());
 
         let outputs = RenderVirtualGeometryReadbackOutputs {
             visbuffer64_entries: vec![RenderVirtualGeometryVisBuffer64Entry {

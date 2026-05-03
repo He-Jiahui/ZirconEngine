@@ -1,3 +1,4 @@
+use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::{QueueLane, RenderGraphPassResourceAccess, RenderPassId};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -6,6 +7,7 @@ pub struct RenderGraphExecutionRecord {
     executed_executor_ids: Vec<String>,
     executed_queue_lanes: Vec<QueueLane>,
     executed_declared_queue_lanes: Vec<QueueLane>,
+    executed_pass_stages: Vec<Option<RenderPassStage>>,
     executed_pass_dependencies: Vec<Vec<RenderPassId>>,
     executed_pass_resources: Vec<Vec<RenderGraphPassResourceAccess>>,
 }
@@ -28,7 +30,8 @@ impl RenderGraphExecutionRecord {
         queue: QueueLane,
         resources: Vec<RenderGraphPassResourceAccess>,
     ) {
-        self.push_executed_pass_with_declared_queue_dependencies_and_resources(
+        self.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            None,
             pass_name,
             executor_id,
             queue,
@@ -46,7 +49,8 @@ impl RenderGraphExecutionRecord {
         declared_queue: QueueLane,
         resources: Vec<RenderGraphPassResourceAccess>,
     ) {
-        self.push_executed_pass_with_declared_queue_dependencies_and_resources(
+        self.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            None,
             pass_name,
             executor_id,
             queue,
@@ -65,10 +69,32 @@ impl RenderGraphExecutionRecord {
         dependencies: Vec<RenderPassId>,
         resources: Vec<RenderGraphPassResourceAccess>,
     ) {
+        self.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            None,
+            pass_name,
+            executor_id,
+            queue,
+            declared_queue,
+            dependencies,
+            resources,
+        );
+    }
+
+    pub fn push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+        &mut self,
+        stage: Option<RenderPassStage>,
+        pass_name: impl Into<String>,
+        executor_id: impl Into<String>,
+        queue: QueueLane,
+        declared_queue: QueueLane,
+        dependencies: Vec<RenderPassId>,
+        resources: Vec<RenderGraphPassResourceAccess>,
+    ) {
         self.executed_passes.push(pass_name.into());
         self.executed_executor_ids.push(executor_id.into());
         self.executed_queue_lanes.push(queue);
         self.executed_declared_queue_lanes.push(declared_queue);
+        self.executed_pass_stages.push(stage);
         self.executed_pass_dependencies.push(dependencies);
         self.executed_pass_resources.push(resources);
     }
@@ -79,6 +105,11 @@ impl RenderGraphExecutionRecord {
 
     pub fn executed_executor_ids(&self) -> &[String] {
         &self.executed_executor_ids
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn executed_pass_stages(&self) -> &[Option<RenderPassStage>] {
+        &self.executed_pass_stages
     }
 
     #[cfg_attr(not(test), allow(dead_code))]
@@ -113,10 +144,19 @@ impl RenderGraphExecutionRecord {
             .filter(|executed_queue| **executed_queue == queue)
             .count()
     }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn executed_stage_count(&self, stage: RenderPassStage) -> usize {
+        self.executed_pass_stages
+            .iter()
+            .filter(|executed_stage| **executed_stage == Some(stage))
+            .count()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::graphics::pipeline::RenderPassStage;
     use crate::render_graph::RenderPassId;
     use crate::render_graph::{
         QueueLane, RenderGraphPassResourceAccess, RenderGraphResourceAccessKind,
@@ -187,5 +227,24 @@ mod tests {
 
         assert_eq!(record.executed_pass_dependencies(), &[dependencies]);
         assert_eq!(record.executed_dependency_count(), 2);
+    }
+
+    #[test]
+    fn execution_record_preserves_renderer_stage_metadata() {
+        let mut record = RenderGraphExecutionRecord::default();
+
+        record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
+            Some(RenderPassStage::Transparent),
+            "particle-render",
+            "particle.transparent",
+            QueueLane::Graphics,
+            QueueLane::Graphics,
+            Vec::new(),
+            Vec::new(),
+        );
+
+        assert_eq!(record.executed_pass_stages(), &[Some(RenderPassStage::Transparent)]);
+        assert_eq!(record.executed_stage_count(RenderPassStage::Transparent), 1);
+        assert_eq!(record.executed_stage_count(RenderPassStage::PostProcess), 0);
     }
 }

@@ -6,7 +6,7 @@ mod renderer_asset;
 mod renderer_feature_asset;
 mod renderer_feature_source;
 
-pub use compiled_render_pipeline::CompiledRenderPipeline;
+pub use compiled_render_pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 pub use render_pass_stage::RenderPassStage;
 pub use render_pipeline_asset::RenderPipelineAsset;
 pub use render_pipeline_compile_options::RenderPipelineCompileOptions;

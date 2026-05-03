@@ -106,7 +106,7 @@ pub fn render_pass_executor_registration() -> RenderPassExecutorRegistration {
     RenderPassExecutorRegistration::new(EXECUTOR_ID, noop_render_executor)
 }
 
-fn noop_render_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+fn noop_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Ok(())
 }
 

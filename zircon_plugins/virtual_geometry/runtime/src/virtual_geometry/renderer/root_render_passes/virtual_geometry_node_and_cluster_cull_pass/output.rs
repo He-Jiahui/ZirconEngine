@@ -12,6 +12,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryNodeAndClusterCullInstanceWorkItem,
     RenderVirtualGeometryNodeAndClusterCullLaunchWorklistSnapshot,
     RenderVirtualGeometryNodeAndClusterCullSource,
+    RenderVirtualGeometryNodeClusterCullReadbackOutputs,
 };
 
 use super::store_parts::VirtualGeometryNodeAndClusterCullPassStoreParts;
@@ -168,6 +169,33 @@ impl VirtualGeometryNodeAndClusterCullPassOutput {
         &self,
     ) -> &[VirtualGeometryNodeAndClusterCullClusterWorkItem] {
         &self.cluster_work_items
+    }
+
+    pub(in crate::virtual_geometry::renderer) fn to_neutral_readback_outputs(
+        &self,
+    ) -> RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+            traversal_records: self
+                .traversal_records
+                .iter()
+                .copied()
+                .map(Into::into)
+                .collect(),
+            child_work_items: self
+                .child_work_items
+                .iter()
+                .copied()
+                .map(Into::into)
+                .collect(),
+            cluster_work_items: self
+                .cluster_work_items
+                .iter()
+                .copied()
+                .map(Into::into)
+                .collect(),
+            launch_worklist_snapshots: self.launch_worklist.clone().into_iter().collect(),
+            page_request_ids: self.page_request_ids.clone(),
+        }
     }
 
     #[cfg(test)]

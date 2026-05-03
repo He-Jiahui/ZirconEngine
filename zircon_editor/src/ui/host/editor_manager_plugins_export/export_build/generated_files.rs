@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-pub(super) fn should_invoke_cargo(generated_files: &[PathBuf]) -> bool {
+use zircon_runtime::plugin::{ExportBuildPlan, ExportPlatformHostKind};
+
+pub(super) fn should_invoke_cargo(plan: &ExportBuildPlan, generated_files: &[PathBuf]) -> bool {
+    if plan.platform_policy.host_kind != ExportPlatformHostKind::Desktop {
+        return false;
+    }
     generated_files
         .iter()
         .any(|path| path.file_name().and_then(|name| name.to_str()) == Some("Cargo.toml"))

@@ -39,3 +39,66 @@ impl Default for ReliableDatagramStats {
         }
     }
 }
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReliableDatagramPacket {
+    pub sequence: u64,
+    pub channel: String,
+    pub fragment_index: u16,
+    pub fragment_count: u16,
+    pub payload: Vec<u8>,
+}
+
+impl ReliableDatagramPacket {
+    pub fn new(sequence: u64, channel: impl Into<String>, payload: impl Into<Vec<u8>>) -> Self {
+        Self {
+            sequence,
+            channel: channel.into(),
+            fragment_index: 0,
+            fragment_count: 1,
+            payload: payload.into(),
+        }
+    }
+
+    pub fn with_fragment(mut self, fragment_index: u16, fragment_count: u16) -> Self {
+        self.fragment_index = fragment_index;
+        self.fragment_count = fragment_count;
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReliableDatagramAck {
+    pub sequence: u64,
+}
+
+impl ReliableDatagramAck {
+    pub fn new(sequence: u64) -> Self {
+        Self { sequence }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ReliableDatagramSendStatus {
+    Queued,
+    Fragmented,
+    PayloadTooLarge,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ReliableDatagramSendReport {
+    pub status: ReliableDatagramSendStatus,
+    pub packets: Vec<ReliableDatagramPacket>,
+}
+
+impl ReliableDatagramSendReport {
+    pub fn new(
+        status: ReliableDatagramSendStatus,
+        packets: impl IntoIterator<Item = ReliableDatagramPacket>,
+    ) -> Self {
+        Self {
+            status,
+            packets: packets.into_iter().collect(),
+        }
+    }
+}

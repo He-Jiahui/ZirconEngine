@@ -1,14 +1,15 @@
 pub const PLUGIN_ID: &str = "physics";
 pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 
+mod backend;
 mod manager;
 mod module;
 mod query_contact;
 mod scene_hook;
 
+pub use backend::JOLT_ENABLED;
 pub use manager::{
-    build_world_sync_state, integrate_builtin_physics_steps, DefaultPhysicsManager,
-    PhysicsTickPlan, JOLT_ENABLED,
+    build_world_sync_state, integrate_builtin_physics_steps, DefaultPhysicsManager, PhysicsTickPlan,
 };
 pub use module::{
     module_descriptor, PhysicsDriver, PhysicsModule, DEFAULT_PHYSICS_MANAGER_NAME,

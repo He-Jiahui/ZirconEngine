@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 
 use zircon_runtime::core::framework::sound::{
-    SoundError, SoundExternalSourceBlock, SoundListenerDescriptor, SoundMixerGraph,
-    SoundSourceDescriptor, SoundSourceInput, SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
+    ExternalAudioSourceHandle, SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor,
+    SoundListenerDescriptor, SoundMixerGraph, SoundSourceDescriptor, SoundSourceInput,
+    SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
 };
 
 use crate::engine::SoundEngineState;
@@ -48,11 +49,7 @@ pub(crate) fn validate_source_descriptor_for_tracks(
     validate_vec3("source velocity", source.velocity)?;
     validate_spatial_settings(source)?;
     validate_source_parameter_bindings(source)?;
-    if let SoundSourceInput::Clip(clip) = &source.input {
-        if !state.clips.contains_key(clip) {
-            return Err(SoundError::UnknownClip { clip: *clip });
-        }
-    }
+    validate_source_input(state, &source.input)?;
     if !track_ids.contains(&source.output_track) {
         return Err(SoundError::UnknownTrack {
             track: source.output_track,
@@ -67,6 +64,17 @@ pub(crate) fn validate_source_descriptor_for_tracks(
         if !track_ids.contains(&send.target) {
             return Err(SoundError::UnknownTrack { track: send.target });
         }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_external_source_handle(
+    handle: &ExternalAudioSourceHandle,
+) -> Result<(), SoundError> {
+    if handle.as_str().trim().is_empty() {
+        return Err(SoundError::InvalidParameter(
+            "external source handle must be non-empty".to_string(),
+        ));
     }
     Ok(())
 }
@@ -88,6 +96,74 @@ pub(crate) fn validate_external_source_block(
         return Err(SoundError::InvalidParameter(
             "external source block samples must contain whole frames".to_string(),
         ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_hrtf_profile_descriptor(
+    profile: &SoundHrtfProfileDescriptor,
+) -> Result<(), SoundError> {
+    if profile.profile_id.trim().is_empty() || profile.display_name.trim().is_empty() {
+        return Err(SoundError::InvalidParameter(
+            "HRTF profile requires a non-empty id and display name".to_string(),
+        ));
+    }
+    if profile.sample_rate_hz == 0 {
+        return Err(SoundError::InvalidParameter(
+            "HRTF profile sample rate must be non-zero".to_string(),
+        ));
+    }
+    if profile.left_kernel.is_empty() || profile.right_kernel.is_empty() {
+        return Err(SoundError::InvalidParameter(
+            "HRTF profile kernels must be non-empty".to_string(),
+        ));
+    }
+    if profile
+        .left_kernel
+        .iter()
+        .chain(profile.right_kernel.iter())
+        .any(|sample| !sample.is_finite())
+    {
+        return Err(SoundError::InvalidParameter(
+            "HRTF profile kernel samples must be finite".to_string(),
+        ));
+    }
+    if !profile
+        .left_kernel
+        .iter()
+        .chain(profile.right_kernel.iter())
+        .any(|sample| *sample != 0.0)
+    {
+        return Err(SoundError::InvalidParameter(
+            "HRTF profile requires at least one non-zero kernel sample".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+fn validate_source_input(
+    state: &SoundEngineState,
+    input: &SoundSourceInput,
+) -> Result<(), SoundError> {
+    match input {
+        SoundSourceInput::Clip(clip) => {
+            if !state.clips.contains_key(clip) {
+                return Err(SoundError::UnknownClip { clip: *clip });
+            }
+        }
+        SoundSourceInput::External(handle) => validate_external_source_handle(handle)?,
+        SoundSourceInput::SynthParameter {
+            parameter,
+            default_value,
+        } => {
+            if parameter.as_str().trim().is_empty() || !default_value.is_finite() {
+                return Err(SoundError::InvalidParameter(
+                    "synth source input requires a non-empty parameter id and finite default value"
+                        .to_string(),
+                ));
+            }
+        }
+        SoundSourceInput::Silence => {}
     }
     Ok(())
 }

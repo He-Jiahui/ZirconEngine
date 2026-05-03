@@ -33,11 +33,16 @@ related_code:
   - zircon_runtime/src/graphics/tests/project_render.rs
   - zircon_runtime/src/graphics/tests/m4_behavior_layers.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_plugins/asset_importers/model/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/cad.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/Cargo.toml
+  - zircon_plugins/opus_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
@@ -74,11 +79,16 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_plugins/asset_importers/model/runtime/Cargo.toml
+  - zircon_plugins/asset_importers/model/runtime/src/lib.rs
+  - zircon_plugins/asset_importers/model/runtime/src/cad.rs
   - zircon_plugins/asset_importers/data/runtime/Cargo.toml
   - zircon_plugins/asset_importers/data/runtime/src/lib.rs
   - zircon_plugins/audio_importer/plugin.toml
   - zircon_plugins/audio_importer/runtime/Cargo.toml
   - zircon_plugins/audio_importer/runtime/src/lib.rs
+  - zircon_plugins/opus_importer/runtime/Cargo.toml
+  - zircon_plugins/opus_importer/runtime/src/lib.rs
   - zircon_plugins/asset_importers/audio/runtime/src/lib.rs
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
@@ -93,8 +103,15 @@ implementation_files:
   - zircon_plugins/native_dynamic_fixture/native/src/lib.rs
 plan_sources:
   - user: 2026-05-02 Asset Importer 插件化补齐计划
+  - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
+  - docs/superpowers/specs/2026-05-03-opus-native-dynamic-importer-design.md
+  - docs/superpowers/plans/2026-05-03-opus-native-dynamic-importer.md
 tests:
+  - 2026-05-03 review correction: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_opus_importer_runtime --check (passed)
+  - 2026-05-03 review correction: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_opus_importer_runtime --lib --locked --jobs 1 (passed, 4 tests)
+  - 2026-05-03 review correction: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (passed)
+  - 2026-05-03 review correction: git diff --check (passed with CRLF normalization warnings only)
   - previously passed: cargo check -p zircon_runtime --locked
   - previously passed: cargo test -p zircon_runtime --locked asset
   - previously passed: cargo test -p zircon_runtime --locked plugin_extensions
@@ -155,6 +172,18 @@ tests:
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-model --message-format short --color never (passed, 4 tests)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-texture --message-format short --color never (passed, 7 tests)
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_texture_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-third-party-backends-texture-agg --message-format short --color never (passed, 1 test)
+  - 2026-05-03: cargo info dxf (used for DXF backend selection)
+  - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the DXF backend dependency)
+  - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime (passed)
+  - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-dxf-backend --message-format short --color never (passed, 5 tests)
+  - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-dxf-backend --message-format short --color never (passed again after extracting DXF into `src/cad.rs`, 5 tests)
+  - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_asset_importer_model_runtime --check (passed)
+  - 2026-05-03: cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (passed)
+  - 2026-05-03: git diff --check (passed with LF-to-CRLF warnings only)
+  - 2026-05-03: cargo info bincode (used for UI binary document backend selection)
+  - 2026-05-03: cargo generate-lockfile --manifest-path zircon_plugins\Cargo.toml (passed after adding the UI binary document backend dependency)
+  - 2026-05-03: cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime (passed)
+  - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-ui-binary-backend --message-format short --color never (passed, 8 tests)
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
@@ -190,19 +219,27 @@ Runtime tests that intentionally exercise these first-wave formats install expli
 
 The `asset_importer.data` runtime plugin now registers real TOML/JSON/YAML/XML `DataAsset`
 backends so project/plugin selection can move structured data loading out of the built-in fallback
-path. The `asset_importer.model` family plugin now registers real STL and PLY mesh interchange
-backends through `stl_io` and `ply-rs-bw`, emitting `ModelAsset` primitives with generated
-virtual-geometry metadata. The split `texture_importer` package decodes common image formats to
-RGBA8, parses DDS, KTX, KTX2, and ASTC container headers into `TexturePayload::Container`, and
-decodes PSD files through the Rust `psd` crate into flattened RGBA8 textures. The split
-`audio_importer` package decodes WAV directly and decodes MP3/OGG/Vorbis/FLAC/AIFF/AIF through
-Symphonia into `SoundAsset` f32 PCM. Opus remains a NativeDynamic/libopus backend gap. The
+path. The `asset_importer.model` family plugin now registers real STL, PLY, and DXF model backends.
+STL and PLY decode through `stl_io` and `ply-rs-bw`; DXF decodes through the `dxf` crate and imports
+`3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces. These paths emit `ModelAsset`
+primitives with generated virtual-geometry metadata. The DXF importer implementation is isolated in
+`asset_importers/model/runtime/src/cad.rs`, while the package root keeps descriptor and registration
+wiring. The split `texture_importer` package decodes common image formats to RGBA8, parses DDS, KTX,
+KTX2, and ASTC container headers into `TexturePayload::Container`, and decodes PSD files through the
+Rust `psd` crate into flattened RGBA8 textures. The split `audio_importer` package decodes WAV
+directly and decodes MP3/OGG/Vorbis/FLAC/AIFF/AIF through Symphonia into `SoundAsset` f32 PCM. Opus
+now has a split `opus_importer` package that owns the `.opus` `SoundAsset` importer slot and
+NativeDynamic/libopus command contract; importing still requires an installed native backend, and
+missing backend cases remain stable importer errors. The
 `asset_importer.shader` family package now owns a real Naga path for WGSL validation plus
 GLSL/vertex/fragment/compute and SPIR-V conversion into normalized WGSL `ShaderAsset` payloads. The
-split `ui_document_importer` package imports typed `.ui.toml` and serialized `.ui.json` documents;
-`.ui.json` uses the neutral UI DTO schema and rejects future schema versions instead of downgrading.
+split `ui_document_importer` package imports typed `.ui.toml`, serialized `.ui.json`, and binary
+`.zui`/`.uidoc` documents. `.ui.json` uses the neutral UI DTO schema and rejects future schema
+versions instead of downgrading. `.zui` and `.uidoc` use a `ZRUI001` container header plus a
+versioned bincode payload for the same DTO, then follow the same UI schema migration and validation
+policy.
 
-Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/DXF/USD-family model containers, cubemap/DXGI texture authoring formats, ZUI/UIDOC binary UI documents, Opus audio, and HLSL/CG/FX shader toolchains. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
+Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
 
 `TextureAsset` keeps the existing RGBA8 payload while reserving a container payload for future compressed formats. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
 
@@ -231,10 +268,12 @@ default diagnostic importer records a missing-backend error instead of silently 
 plain TOML data.
 
 The same package now routes `.ui.json` through `serde_json` into the neutral
-`UiAssetDocument` DTO. The importer applies the same UI source schema version policy as TOML current
-tree assets: supported older versions are bumped in memory to the current schema, current versions
-are validated as-is, and future versions fail import. `.zui` and `.uidoc` remain reserved binary
-document extensions until a codec backend is installed.
+`UiAssetDocument` DTO. `.zui` and `.uidoc` use the plugin's binary UI document container:
+`ZRUI001`, a little-endian container version, and a bincode-encoded `UiAssetDocument` payload. Both
+serialized paths apply the same UI source schema version policy as TOML current tree assets:
+supported older versions are bumped in memory to the current schema, current versions are validated
+as-is, and future versions fail import. Invalid binary headers, unsupported binary container
+versions, and malformed bincode payloads become import errors.
 
 `ProjectAssetManager` keeps a host-owned importer registry for plugin contributions that arrive
 before a project is open. `RuntimeExtensionRegistry::apply_asset_importers_to_project_asset_manager`

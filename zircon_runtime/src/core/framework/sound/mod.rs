@@ -16,10 +16,14 @@ mod playback;
 mod preset;
 mod status;
 
-pub use acoustics::{SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus};
+pub use acoustics::{
+    SoundHrtfProfileDescriptor, SoundRayTracedImpulseResponseDescriptor,
+    SoundRayTracingConvolutionStatus,
+};
 pub use automation::{
     SoundAutomationBinding, SoundAutomationCurve, SoundAutomationInterpolation,
-    SoundAutomationKeyframe, SoundAutomationTarget,
+    SoundAutomationKeyframe, SoundAutomationTarget, SoundTimelineAutomationSample,
+    SoundTimelineAutomationTrack, SoundTimelineSequence, SoundTimelineSequenceAdvance,
 };
 pub use components::{
     SoundAttenuationMode, SoundExternalSourceBlock, SoundListenerDescriptor, SoundSourceDescriptor,
@@ -35,7 +39,8 @@ pub use effects::{
 };
 pub use error::SoundError;
 pub use events::{
-    SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventInvocation,
+    SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventDescriptor,
+    SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
 };
 pub use graph::{
     SoundMixerGraph, SoundMixerSnapshot, SoundTrackControls, SoundTrackDescriptor, SoundTrackMeter,
@@ -44,12 +49,15 @@ pub use graph::{
 pub use ids::{
     ExternalAudioSourceHandle, SoundAutomationBindingId, SoundClipId, SoundEffectId,
     SoundImpulseResponseId, SoundListenerId, SoundNodeId, SoundOutputDeviceId, SoundParameterId,
-    SoundPlaybackId, SoundSourceId, SoundTrackId, SoundVolumeId,
+    SoundPlaybackId, SoundSourceId, SoundTimelineSequenceId, SoundTrackId, SoundVolumeId,
 };
 pub use manager::SoundManager;
 pub use mix::SoundMixBlock;
 pub use options::{SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality};
-pub use output::{SoundOutputDeviceDescriptor, SoundOutputDeviceState, SoundOutputDeviceStatus};
+pub use output::{
+    SoundBackendCallbackBlock, SoundBackendCallbackReport, SoundBackendCapability,
+    SoundOutputDeviceDescriptor, SoundOutputDeviceState, SoundOutputDeviceStatus,
+};
 pub use playback::{SoundClipInfo, SoundPlaybackSettings};
 pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};

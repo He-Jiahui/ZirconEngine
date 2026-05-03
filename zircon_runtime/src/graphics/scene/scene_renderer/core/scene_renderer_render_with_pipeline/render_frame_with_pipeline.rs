@@ -4,10 +4,6 @@ use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::render_graph::QueueLane;
 use crate::CompiledRenderPipeline;
 
-use super::super::super::graph_execution::{
-    RenderGraphExecutionRecord, RenderPassExecutionContext, RenderPassExecutorId,
-    RenderPassExecutorRegistry,
-};
 use super::super::runtime_features::runtime_features_from_pipeline;
 use super::super::scene_renderer::SceneRenderer;
 use super::super::scene_renderer_history::prepare_history_textures;
@@ -36,8 +32,6 @@ impl SceneRenderer {
         let size = viewport_size(frame);
         ensure_offscreen_target(&self.backend.device, &mut self.target, size);
         let runtime_features = runtime_features_from_pipeline(pipeline);
-        self.last_render_graph_execution =
-            execute_compiled_graph_passes(pipeline, &self.render_pass_executors)?;
 
         let runtime_outputs = {
             let (history_textures, history_available) = prepare_history_textures(
@@ -55,6 +49,8 @@ impl SceneRenderer {
                 &self.streamer,
                 frame,
                 target,
+                pipeline,
+                &self.render_pass_executors,
                 runtime_features,
                 history_textures,
                 history_available,
@@ -109,42 +105,4 @@ impl SceneRenderer {
         self.last_render_graph_execution
             .executed_queue_lane_count(queue)
     }
-}
-
-fn execute_compiled_graph_passes(
-    pipeline: &CompiledRenderPipeline,
-    registry: &RenderPassExecutorRegistry,
-) -> Result<RenderGraphExecutionRecord, GraphicsError> {
-    registry
-        .validate_compiled_pipeline(pipeline)
-        .map_err(GraphicsError::Asset)?;
-
-    let mut record = RenderGraphExecutionRecord::default();
-    for pass in pipeline.graph.passes().iter().filter(|pass| !pass.culled) {
-        let executor_id = pass
-            .executor_id
-            .as_ref()
-            .expect("compiled executable pass should be validated with an executor id");
-        let executor_id = RenderPassExecutorId::new(executor_id.clone());
-        let context =
-            RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
-                pass.name.clone(),
-                executor_id.clone(),
-                pass.queue,
-                pass.declared_queue,
-                pass.flags,
-                pass.dependencies.clone(),
-                pass.resources.clone(),
-            );
-        registry.execute(&context).map_err(GraphicsError::Asset)?;
-        record.push_executed_pass_with_declared_queue_dependencies_and_resources(
-            pass.name.clone(),
-            executor_id.as_str().to_string(),
-            pass.queue,
-            pass.declared_queue,
-            pass.dependencies.clone(),
-            pass.resources.clone(),
-        );
-    }
-    Ok(record)
 }

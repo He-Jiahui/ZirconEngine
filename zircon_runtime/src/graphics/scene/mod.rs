@@ -12,6 +12,7 @@ pub(crate) use scene_renderer::{
     GBUFFER_ALBEDO_FORMAT, NORMAL_FORMAT, OFFSCREEN_FORMAT,
 };
 pub use scene_renderer::{
-    RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId,
-    RenderPassExecutorRegistration,
+    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    RenderPassGpuExecutionContext,
 };

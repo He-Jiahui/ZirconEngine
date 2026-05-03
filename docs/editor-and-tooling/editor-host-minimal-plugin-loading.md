@@ -46,6 +46,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
@@ -97,6 +98,7 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
   - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/workbench/model/menu/view_menu.rs
   - zircon_editor/src/ui/workbench/view/view_registry_register_view.rs
@@ -110,6 +112,8 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - .codex/plans/zircon_plugins 全量插件化收敛规划.md
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
+  - docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md
+  - docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md
 tests:
   - zircon_app/src/entry/builtin_modules.rs
   - zircon_runtime/src/script/vm/tests.rs
@@ -129,6 +133,11 @@ tests:
   - cargo test -p zircon_editor --lib live_backend --locked --jobs 1
   - cargo test -p zircon_runtime --lib native_live_host --locked --jobs 1
   - cargo test -p zircon_editor --lib pane_payload_builders_emit_stable_body_metadata_for_first_wave_views --locked --jobs 1
+  - cargo test -p zircon_editor --lib module_plugins_pane_projects_visual_rows_and_action_buttons --locked --jobs 1
+  - cargo test -p zircon_editor --lib module_plugin_actions_parse_enable_policy_and_target_mode_updates --locked --jobs 1
+  - 2026-05-03 Milestone 4: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (passed with existing warnings)
+  - 2026-05-03 Milestone 4: focused Milestone 1-3 filters including Plugin Manager projection/action coverage (11/11 passed)
+  - 2026-05-03 Milestone 4: .\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput (passed build and test; existing warnings remain)
   - cargo test -p zircon_editor --lib inspector_pane_projects_editable_field_nodes_and_actions --locked --jobs 1
 doc_type: module-detail
 ---
@@ -166,13 +175,13 @@ doc_type: module-detail
 
 `EditorCapabilitySnapshot` 把最小 host 能力、当前启用的 builtin editor subsystem，以及通过 `EditorManager::set_editor_capabilities_enabled(...)` 显式启用的插件 capability 合并成 UI 可直接消费的快照。`editor_subsystems.rs` 只用内建 optional subsystem 集合计算 disabled subsystem，但不会丢弃插件注册报告贡献的自定义 capability；这些自定义 capability 会继续参与 view、menu、template 和 operation gate。`ViewDescriptor.required_capabilities` 是窗口可见和可打开的唯一门控依据；禁用插件后，registry 的 `list_descriptors()` 会隐藏对应 view，`open_descriptor()` 和 workspace restore 也会拒绝缺能力的 view。
 
-`editor.module_plugins` 是最小 host 的内置 activity view，用户侧标题固定为 `Plugin Manager`。它不依赖可选 subsystem，用来承载模块列表、启停动作、诊断和导出入口。默认 workbench fixture 会把它放进左下抽屉并保持折叠，同时通过 View 菜单暴露 `Plugin Manager` 入口；这样最小 host 启动时已经具备 Unity 式插件管理入口，但不会抢占默认 Project/Hierarchy 工作区。它展示 builtin runtime/editor catalog 与 native discovered packages 的合并状态；启停动作统一调用 `EditorManager::set_project_plugin_enabled(...)` 或 native-aware 变体。
+`editor.module_plugins` 是最小 host 的内置 activity view，用户侧标题固定为 `Plugin Manager`。它不依赖可选 subsystem，用来承载模块列表、启停动作、诊断和导出入口。默认 workbench fixture 会把它放进左下抽屉并保持折叠，同时通过 View 菜单暴露 `Plugin Manager` 入口；这样最小 host 启动时已经具备 Unity 式插件管理入口，但不会抢占默认 Project/Hierarchy 工作区。它展示 builtin runtime/editor catalog 与 native discovered packages 的合并状态；启停动作统一调用 `EditorManager::set_project_plugin_enabled(...)` 或 native-aware 变体。Milestone 4 复核确认 host data assembly 在项目 manifest 加载失败时不会阻断 pane：`SlintEditorHost::module_plugins_pane_data(...)` 会记录 pane 级诊断，然后用 fallback `ProjectManifest` 调 `EditorManager::plugin_status_report(...)` 生成 builtin catalog 行，保证 Plugin Manager 仍可打开并展示可恢复状态。
 
 Plugin Manager pane payload 现在为每个插件行稳定投影 `primary_action_label/id`、`packaging_action_label/id`、`target_modes_action_label/id`、`unload_action_label/id` 和 `hot_reload_action_label/id`。宿主生成的 action id 使用 `Plugin.Enable.<id>`、`Plugin.Disable.<id>`、`Plugin.Packaging.Next.<id>`、`Plugin.TargetModes.Next.<id>`、`Plugin.Unload.<id>` 和 `Plugin.HotReload.<id>`，Slint host 通过 `ModulePluginAction` 控件入口分发。Enable/Disable、packaging 和 target modes 会回写现有 project manifest；Unload/Hot Reload 会进入 `SlintEditorHost.module_plugin_live_host_backend` 持有的 `ModulePluginLiveHostBackend` adapter seam。默认 backend 现在是 runtime-owned `NativePluginLiveHost`：Hot Reload 会以当前 project root 递归发现 `plugin.toml`，通过 runtime 的 `NativePluginLoader::load_discovered_editor(...)` 加载 editor native package，并替换同 id 的已加载 library handle；Unload 会调用已加载插件的 editor behavior unload hook，然后释放 handle。该 runtime-owned host 同时提供从导出根目录 `plugins/native_plugins.toml` 批量装载 runtime/editor native packages 的入口，并在 runtime 路径返回 `RuntimePluginRegistrationReport`，让后续 runtime startup 可以持有同一组 live handles 而不是临时加载后丢弃动态库。若项目还没有构建 native dynamic library、插件没有 editor behavior、或没有先热重载过，backend 会返回具体诊断。`UnavailableModulePluginLiveHostBackend` 仍保留给测试和未来 mock/unavailable host 场景。必需插件的 primary action 会显示为 `Required` 且没有 action id，避免 UI 发起会被 manager 拒绝的禁用请求；诊断仍然随插件行和 pane 级 `payload_diagnostics` 一起投影。
 
 运行时启动现在通过 `NativePluginRuntimeBootstrap` 持有 `CoreHandle` 与 `NativePluginLiveHost`。`EntryRunner::bootstrap_with_native_plugins_from_export_root(...)` 会先让 live host 装载导出根目录中的 runtime native packages，再把同一份 host 产生的注册报告交给 runtime bootstrap；调用方持有该 bootstrap bundle 时，已经加载成功的 native dynamic library handle 会跟运行时一起存活。这个 bundle 直接暴露运行时行为入口：可以按插件查询或批量列出 `NativePluginRuntimeBehaviorDescriptor`，并通过 `invoke_runtime_plugin_command(...)`、`save_runtime_plugin_state(...)`、`restore_runtime_plugin_state(...)` 调用 ABI v2 的 command/state 表；也可以用 `dispatch_runtime_plugin_command(...)` 对所有已加载 runtime native 插件广播命令，用 `save_runtime_plugin_states(...)` / `restore_runtime_plugin_states(...)` 捕获和恢复插件状态快照。`enter_runtime_play_mode(...)` 与 `exit_runtime_play_mode(...)` 已经把状态快照和 `play-mode.enter` / `play-mode.exit` 广播组合成后端 contract。对应 report 提供 `is_clean(...)`、失败调用计数和聚合诊断，后续 Runtime Diagnostics 或播放模式 UI 可以直接消费这些结果。需要组装更长生命周期 session 的调用方也可以用 `into_parts(...)` 一次取出 `CoreHandle`、live host 和诊断。后续 runtime session 或播放模式调度层只需要消费这个 owner，而不需要重新加载动态库。
 
-Plugin Manager 的可视行渲染现在也进入 host contract。`ModulePluginsPaneData.nodes` 会包含静态 pane body 节点、`ModulePluginListSlotAnchor`，以及每个插件行的 `ModulePluginRow.<id>`、标题/状态/诊断文本和一组 `ModulePluginAction` button 节点。每个 button 的 `action_id` 直接使用上面的 stable action id，行节点的 `actions` 集合也带同一组 label/id，方便后续 Slint 或其它 host renderer 选择“按钮组”或“单独按钮”两种消费方式。
+Plugin Manager 的可视行渲染现在也进入 host contract。`ModulePluginsPaneData.nodes` 会包含静态 pane body 节点、`ModulePluginListSlotAnchor`，以及每个插件行的 `ModulePluginRow.<id>`、标题/状态/诊断文本和一组 `ModulePluginAction` button 节点。每个 button 的 `action_id` 直接使用上面的 stable action id，行节点的 `actions` 集合也带同一组 label/id，方便后续 Slint 或其它 host renderer 选择“按钮组”或“单独按钮”两种消费方式。Projection owner 已经拆到 `pane_data_conversion/module_plugins.rs`；Milestone 4 没有新增 host assembly 行为，因此没有继续扩大已经超过 1000 行的 `host_lifecycle.rs`，也没有触碰 `zircon_plugins/**` 或 runtime plugin loader/package internals。
 
 `editor.runtime_diagnostics` 仍然是可选 `editor.extension.runtime_diagnostics` subsystem 的 activity view。默认启用和默认 preview fixture 会把它放进右下抽屉并保持折叠，同时通过 View 菜单暴露 `Runtime Diagnostics` 入口；当该 subsystem 被配置禁用时，descriptor gate 和 workspace restore 仍然按 capability snapshot 隐藏或拒绝它。
 
@@ -247,5 +256,6 @@ Inspector host contract 先补上了插件 drawer 可见降级出口：当 pane 
 - `pane_payload_builders_emit_stable_body_metadata_for_first_wave_views` 验证 Plugin Manager pane payload 会携带插件行启用/禁用、打包策略切换、target mode 切换、Unload 和 Hot Reload action id。
 - `live_backend_dispatch_routes_unload_and_hot_reload_commands` 验证 Plugin Manager 的 Unload/Hot Reload action 会路由到可替换 live host backend seam；`runtime_native_live_backend_reports_missing_editor_package_on_hot_reload` 和 runtime `native_live_host_reports_missing_editor_package_on_hot_reload` 验证默认 runtime-owned native backend 在项目根缺失或 editor native package 不存在时会给出明确失败诊断；`native_live_host_loads_runtime_export_diagnostics_without_handles` 锁定从导出根目录加载 runtime native packages 时的诊断和注册报告 contract；`native_live_host_runtime_behavior_calls_report_unloaded_plugin` 锁定 runtime behavior descriptor、command、save-state 和 restore-state 在插件未加载时返回同一 live-host 诊断；`native_live_host_runtime_broadcasts_and_snapshots_empty_when_no_plugins_loaded` 与 `native_live_host_runtime_snapshot_restore_reports_unloaded_plugins` 锁定广播 command、play-mode 状态快照和卸载后 restore 诊断 contract；`native_live_host_treats_missing_unload_hook_as_noop_unload` 锁定缺少 unload callback/behavior table 时释放 handle 并保留诊断的降级策略。
 - `inspector_pane_projects_editable_field_nodes_and_actions` 和 `inspector_pane_marks_plugin_component_drawer_fallback` 锁定 Inspector host contract：字段节点必须带稳定 edit/commit action id，插件 drawer 不可用时必须投影 warning fallback。
+- Milestone 4 focused validation reran the usable-loop checks that cover Plugin Manager descriptors/menu/default layout, pane payload, row projection, and action parsing; all focused filters passed. The broader `cargo test -p zircon_editor --lib` run timed out after compiling and starting the full lib suite, so the accepted fresh crate-level evidence is the passing `validate-matrix.ps1 -Package zircon_editor` package build/test validator with existing warnings.
 
 当前 focused validation 命令记录在 frontmatter 的 `tests` 字段中。更大范围验收仍以 workspace CI 命令为准：`cargo build --workspace --locked --verbose` 和 `cargo test --workspace --locked --verbose`。

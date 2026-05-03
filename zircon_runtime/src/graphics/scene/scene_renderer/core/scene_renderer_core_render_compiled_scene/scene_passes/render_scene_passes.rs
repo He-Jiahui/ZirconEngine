@@ -1,25 +1,33 @@
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistry;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::types::ViewportRenderFrame;
+use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
+use crate::CompiledRenderPipeline;
 
 use super::super::super::super::mesh::MeshDraw;
 use super::super::super::super::post_process::SceneRuntimeFeatureFlags;
 use super::super::super::scene_renderer_core::SceneRendererCore;
+use super::super::render::execute_graph_stage::{execute_graph_stage, RenderGraphStageExecution};
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn render_scene_passes(
         &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
         target: &mut OffscreenTarget,
         runtime_features: SceneRuntimeFeatureFlags,
+        pipeline: &CompiledRenderPipeline,
+        render_pass_executors: &RenderPassExecutorRegistry,
+        graph_execution: &mut RenderGraphStageExecution<'_>,
         mesh_draws: &[MeshDraw],
         opaque_mesh_draws: &[&MeshDraw],
         transparent_mesh_draws: &[&MeshDraw],
-    ) {
+    ) -> Result<(), GraphicsError> {
         if runtime_features.deferred_lighting_enabled {
             self.overlay_renderer.record_preview_sky(
                 encoder,
@@ -61,6 +69,17 @@ impl SceneRendererCore {
                 streamer,
                 frame,
             );
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                RenderPassStage::Transparent,
+                device,
+                queue,
+                encoder,
+                frame,
+                &self.scene_bind_group,
+                graph_execution,
+            )?;
             if runtime_features.particle_rendering_enabled {
                 self.particle_renderer.record(
                     device,
@@ -94,6 +113,17 @@ impl SceneRendererCore {
                 streamer,
                 frame,
             );
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                RenderPassStage::Transparent,
+                device,
+                queue,
+                encoder,
+                frame,
+                &self.scene_bind_group,
+                graph_execution,
+            )?;
             if runtime_features.particle_rendering_enabled {
                 self.particle_renderer.record(
                     device,
@@ -105,5 +135,7 @@ impl SceneRendererCore {
                 );
             }
         }
+
+        Ok(())
     }
 }

@@ -479,6 +479,10 @@ pub struct ComponentDrawerDescriptor {
     component_type: String,
     ui_document: String,
     controller: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    template_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    data_root: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     bindings: Vec<String>,
 }
@@ -493,8 +497,20 @@ impl ComponentDrawerDescriptor {
             component_type: component_type.into(),
             ui_document: ui_document.into(),
             controller: controller.into(),
+            template_id: None,
+            data_root: None,
             bindings: Vec::new(),
         }
+    }
+
+    pub fn with_template_id(mut self, template_id: impl Into<String>) -> Self {
+        self.template_id = Some(template_id.into());
+        self
+    }
+
+    pub fn with_data_root(mut self, data_root: impl Into<String>) -> Self {
+        self.data_root = Some(data_root.into());
+        self
     }
 
     pub fn with_binding(mut self, binding: impl Into<String>) -> Self {
@@ -514,6 +530,14 @@ impl ComponentDrawerDescriptor {
         &self.controller
     }
 
+    pub fn template_id(&self) -> Option<&str> {
+        self.template_id.as_deref()
+    }
+
+    pub fn data_root(&self) -> Option<&str> {
+        self.data_root.as_deref()
+    }
+
     pub fn bindings(&self) -> &[String] {
         &self.bindings
     }
@@ -522,6 +546,12 @@ impl ComponentDrawerDescriptor {
 fn validate_component_drawer_bindings(
     descriptor: &ComponentDrawerDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
+    if let Some(template_id) = descriptor.template_id() {
+        validate_contribution_id("component drawer template", template_id)?;
+    }
+    if let Some(data_root) = descriptor.data_root() {
+        validate_contribution_id("component drawer data root", data_root)?;
+    }
     for binding in descriptor.bindings() {
         EditorOperationPath::parse(binding.clone())
             .map_err(EditorExtensionRegistryError::Operation)?;

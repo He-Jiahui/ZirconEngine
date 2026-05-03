@@ -25,3 +25,13 @@ pub struct SoundRayTracedImpulseResponseDescriptor {
     pub rays_traced: usize,
     pub samples: Vec<f32>,
 }
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundHrtfProfileDescriptor {
+    pub profile_id: String,
+    pub display_name: String,
+    pub sample_rate_hz: u32,
+    pub left_kernel: Vec<f32>,
+    pub right_kernel: Vec<f32>,
+    pub notes: Vec<String>,
+}

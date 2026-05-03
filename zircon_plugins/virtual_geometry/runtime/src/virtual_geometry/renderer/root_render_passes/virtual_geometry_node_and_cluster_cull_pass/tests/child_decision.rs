@@ -923,6 +923,19 @@ fn node_and_cluster_cull_pass_requests_missing_child_cluster_pages() {
         &[20],
         "expected child decision to request the missing page for a visible mip-matching child cluster instead of silently dropping it"
     );
+    let neutral_readback = output.to_neutral_readback_outputs();
+    assert_eq!(
+        neutral_readback.page_request_ids,
+        vec![20],
+        "expected the production neutral readback projection to preserve pass-local page requests for runtime feedback ingestion"
+    );
+    assert!(
+        neutral_readback
+            .traversal_records
+            .iter()
+            .any(|record| record.hierarchy_node_id == Some(7)),
+        "expected neutral readback to carry the typed child traversal records alongside page requests"
+    );
     assert_eq!(output.page_request_count(), 1);
     assert!(
         output.page_request_buffer().is_some(),

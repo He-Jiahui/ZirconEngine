@@ -186,24 +186,30 @@ pub fn particle_render_pass_executor_registrations() -> Vec<RenderPassExecutorRe
     ]
 }
 
-fn particle_gpu_spawn_update_executor(context: &RenderPassExecutionContext) -> Result<(), String> {
+fn particle_gpu_spawn_update_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
     validate_context(context, &SPAWN_UPDATE_CONTRACT)
 }
 
-fn particle_gpu_compact_alive_executor(context: &RenderPassExecutionContext) -> Result<(), String> {
+fn particle_gpu_compact_alive_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
     validate_context(context, &COMPACT_CONTRACT)
 }
 
-fn particle_gpu_indirect_args_executor(context: &RenderPassExecutionContext) -> Result<(), String> {
+fn particle_gpu_indirect_args_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
     validate_context(context, &INDIRECT_CONTRACT)
 }
 
-fn particle_transparent_executor(context: &RenderPassExecutionContext) -> Result<(), String> {
+fn particle_transparent_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     validate_context(context, &TRANSPARENT_CONTRACT)
 }
 
 fn validate_context(
-    context: &RenderPassExecutionContext,
+    context: &RenderPassExecutionContext<'_>,
     contract: &RenderPassExecutorContract,
 ) -> Result<(), String> {
     if context.executor_id.as_str() != contract.executor_id {

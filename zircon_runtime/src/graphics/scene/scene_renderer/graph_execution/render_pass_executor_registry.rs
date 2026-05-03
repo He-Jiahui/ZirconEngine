@@ -1,15 +1,17 @@
 use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use crate::graphics::RenderFeatureDescriptor;
 use crate::CompiledRenderPipeline;
 
+use super::render_pass_executor_registration::{render_pass_executor_from_fn, RenderPassExecutor};
 use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration};
 
-pub type RenderPassExecutorFn = fn(&RenderPassExecutionContext) -> Result<(), String>;
+pub type RenderPassExecutorFn = fn(&mut RenderPassExecutionContext<'_>) -> Result<(), String>;
 
 #[derive(Clone, Default)]
 pub struct RenderPassExecutorRegistry {
-    executors: BTreeMap<RenderPassExecutorId, RenderPassExecutorFn>,
+    executors: BTreeMap<RenderPassExecutorId, Arc<dyn RenderPassExecutor>>,
 }
 
 impl RenderPassExecutorRegistry {
@@ -56,7 +58,15 @@ impl RenderPassExecutorRegistry {
         &mut self,
         id: RenderPassExecutorId,
         executor: RenderPassExecutorFn,
-    ) -> Option<RenderPassExecutorFn> {
+    ) -> Option<Arc<dyn RenderPassExecutor>> {
+        self.register_executor(id, render_pass_executor_from_fn(executor))
+    }
+
+    pub fn register_executor(
+        &mut self,
+        id: RenderPassExecutorId,
+        executor: Arc<dyn RenderPassExecutor>,
+    ) -> Option<Arc<dyn RenderPassExecutor>> {
         self.executors.insert(id, executor)
     }
 
@@ -65,7 +75,7 @@ impl RenderPassExecutorRegistry {
         registrations: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     ) {
         for registration in registrations {
-            self.register(registration.executor_id, registration.executor);
+            self.register_executor(registration.executor_id, registration.executor);
         }
     }
 
@@ -74,14 +84,14 @@ impl RenderPassExecutorRegistry {
         self.executors.contains_key(id)
     }
 
-    pub fn execute(&self, context: &RenderPassExecutionContext) -> Result<(), String> {
+    pub fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
         let executor = self.executors.get(&context.executor_id).ok_or_else(|| {
             format!(
                 "render pass executor `{}` is not registered",
                 context.executor_id
             )
         })?;
-        executor(context)
+        executor.execute(context)
     }
 
     pub fn validate_compiled_pipeline(
@@ -127,7 +137,7 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "shadow.map",
 ];
 
-fn noop_render_pass_executor(_context: &RenderPassExecutionContext) -> Result<(), String> {
+fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Ok(())
 }
 
@@ -164,7 +174,7 @@ mod tests {
     fn registry_rejects_unregistered_executor_ids() {
         let registry = RenderPassExecutorRegistry::default();
         let error = registry
-            .execute(&RenderPassExecutionContext::new(
+            .execute(&mut RenderPassExecutionContext::new(
                 "custom-pass",
                 RenderPassExecutorId::new("custom.executor"),
             ))
@@ -338,7 +348,7 @@ mod tests {
         );
 
         let error = registry
-            .execute(&RenderPassExecutionContext::new(
+            .execute(&mut RenderPassExecutionContext::new(
                 "plugin-virtual-geometry-registry",
                 RenderPassExecutorId::new("virtual-geometry.prepare"),
             ))
@@ -356,6 +366,7 @@ mod tests {
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
             stages: Vec::new(),
+            pass_stages: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
@@ -382,6 +393,7 @@ mod tests {
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
             stages: Vec::new(),
+            pass_stages: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
@@ -422,6 +434,7 @@ mod tests {
             name: "custom pipeline".to_string(),
             renderer_name: "custom renderer".to_string(),
             stages: Vec::new(),
+            pass_stages: Vec::new(),
             enabled_features: Vec::new(),
             required_extract_sections: Vec::new(),
             capability_requirements: Vec::new(),
@@ -463,7 +476,7 @@ mod tests {
     }
 
     fn explicit_virtual_geometry_executor(
-        context: &RenderPassExecutionContext,
+        context: &mut RenderPassExecutionContext<'_>,
     ) -> Result<(), String> {
         if context.executor_id.as_str() == "virtual-geometry.prepare" {
             return Err("explicit virtual geometry executor called".to_string());

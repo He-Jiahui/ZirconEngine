@@ -23,3 +23,4 @@ define_net_id!(NetSessionId);
 define_net_id!(NetRequestId);
 define_net_id!(NetRouteId);
 define_net_id!(NetDownloadId);
+define_net_id!(NetObjectId);

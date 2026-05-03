@@ -32,6 +32,11 @@ pub struct InspectorPluginComponentPayload {
     pub display_name: String,
     pub plugin_id: String,
     pub drawer_available: bool,
+    pub drawer_ui_document: Option<String>,
+    pub drawer_controller: Option<String>,
+    pub drawer_template_id: Option<String>,
+    pub drawer_data_root: Option<String>,
+    pub drawer_bindings: Vec<String>,
     pub diagnostic: Option<String>,
     pub properties: Vec<InspectorPluginComponentPropertyPayload>,
 }

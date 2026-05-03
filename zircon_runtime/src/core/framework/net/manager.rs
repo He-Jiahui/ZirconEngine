@@ -21,6 +21,7 @@ pub trait NetManager: Send + Sync {
     fn close_socket(&self, socket: NetSocketId) -> Result<(), NetError>;
     fn listen_tcp(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError>;
     fn listener_endpoint(&self, listener: NetListenerId) -> Result<NetEndpoint, NetError>;
+    fn close_listener(&self, listener: NetListenerId) -> Result<(), NetError>;
     fn accept_tcp(
         &self,
         listener: NetListenerId,

@@ -110,6 +110,19 @@ impl SoundAutomationBindingId {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SoundTimelineSequenceId(String);
+
+impl SoundTimelineSequenceId {
+    pub fn new(raw: impl Into<String>) -> Self {
+        Self(raw.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SoundImpulseResponseId(u64);
 

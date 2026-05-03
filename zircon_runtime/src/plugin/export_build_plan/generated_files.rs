@@ -5,8 +5,8 @@ use crate::{
 
 use super::asset_manifest_template::asset_manifest_template;
 use super::cargo_manifest_template::cargo_manifest_template;
-use super::main_template::main_template;
 use super::native_plugin_load_manifest_template::native_plugin_load_manifest_template;
+use super::platform_host_files::platform_host_files;
 use super::plugin_selection_template::plugin_selection_template;
 use super::{ExportGeneratedFile, ExportLinkedRuntimeCrate};
 
@@ -37,11 +37,6 @@ pub(super) fn generated_files_for_profile(
             contents: cargo_manifest_template(profile, linked_runtime_crates),
         },
         ExportGeneratedFile {
-            path: "src/main.rs".to_string(),
-            purpose: "generated platform runtime entry point".to_string(),
-            contents: main_template(profile, !native_dynamic_packages.is_empty()),
-        },
-        ExportGeneratedFile {
             path: "src/zircon_plugins.rs".to_string(),
             purpose: "generated plugin selection code".to_string(),
             contents: plugin_selection_template(
@@ -56,6 +51,10 @@ pub(super) fn generated_files_for_profile(
             contents: asset_manifest_template(manifest),
         },
     ]);
+    files.extend(platform_host_files(
+        profile,
+        !native_dynamic_packages.is_empty(),
+    ));
     files
 }
 

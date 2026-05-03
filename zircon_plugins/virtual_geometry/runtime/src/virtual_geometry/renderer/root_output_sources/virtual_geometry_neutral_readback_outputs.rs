@@ -138,6 +138,7 @@ mod tests {
         );
         assert_eq!(outputs.hardware_rasterization_records, hardware_records);
         assert_eq!(outputs.node_cluster_cull, node_cluster_cull);
+        assert_eq!(outputs.node_cluster_cull.page_request_ids, vec![300, 301]);
     }
 
     #[test]
@@ -214,6 +215,7 @@ mod tests {
                 forced_mip: None,
             }],
             launch_worklist_snapshots: Vec::new(),
+            page_request_ids: vec![300, 301],
         }
     }
 }

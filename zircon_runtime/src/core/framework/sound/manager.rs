@@ -1,15 +1,20 @@
 use super::{
     ExternalAudioSourceHandle, SoundAutomationBinding, SoundAutomationBindingId,
-    SoundAutomationCurve, SoundBackendStatus, SoundClipId, SoundClipInfo, SoundEffectDescriptor,
-    SoundEffectId, SoundError, SoundExternalSourceBlock, SoundImpulseResponseId,
+    SoundAutomationCurve, SoundBackendCallbackBlock, SoundBackendCapability, SoundBackendStatus,
+    SoundClipId, SoundClipInfo, SoundEffectDescriptor, SoundEffectId, SoundError,
+    SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
     SoundListenerDescriptor, SoundListenerId, SoundMixBlock, SoundMixerGraph,
     SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
     SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackId, SoundPlaybackSettings,
     SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
-    SoundSourceDescriptor, SoundSourceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
+    SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence, SoundTimelineSequenceAdvance,
+    SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
     SoundVolumeDescriptor, SoundVolumeId,
 };
-use super::{SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventInvocation};
+use super::{
+    SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventDescriptor,
+    SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
+};
 
 pub trait SoundManager: Send + Sync {
     fn backend_name(&self) -> String;
@@ -22,6 +27,8 @@ pub trait SoundManager: Send + Sync {
     fn stop_output_device(&self) -> Result<(), SoundError>;
     fn output_device_status(&self) -> Result<SoundOutputDeviceStatus, SoundError>;
     fn render_output_device_block(&self) -> Result<SoundMixBlock, SoundError>;
+    fn available_output_backends(&self) -> Result<Vec<SoundBackendCapability>, SoundError>;
+    fn pull_output_backend_callback(&self) -> Result<SoundBackendCallbackBlock, SoundError>;
     fn load_clip(&self, locator: &str) -> Result<SoundClipId, SoundError>;
     fn clip_info(&self, clip: SoundClipId) -> Result<SoundClipInfo, SoundError>;
     fn play_clip(
@@ -80,17 +87,40 @@ pub trait SoundManager: Send + Sync {
         time_seconds: f32,
     ) -> Result<f32, SoundError>;
     fn unbind_automation(&self, binding: SoundAutomationBindingId) -> Result<(), SoundError>;
+    fn schedule_timeline_sequence(&self, sequence: SoundTimelineSequence)
+        -> Result<(), SoundError>;
+    fn remove_timeline_sequence(
+        &self,
+        sequence: &SoundTimelineSequenceId,
+    ) -> Result<(), SoundError>;
+    fn timeline_sequences(&self) -> Result<Vec<SoundTimelineSequence>, SoundError>;
+    fn advance_timeline_sequences(
+        &self,
+        delta_seconds: f32,
+    ) -> Result<Vec<SoundTimelineSequenceAdvance>, SoundError>;
     fn dynamic_event_catalog(&self) -> Result<SoundDynamicEventCatalog, SoundError>;
     fn register_dynamic_event(
         &self,
         descriptor: SoundDynamicEventDescriptor,
     ) -> Result<(), SoundError>;
     fn unregister_dynamic_event(&self, event_id: &str) -> Result<(), SoundError>;
+    fn dynamic_event_handlers(&self)
+        -> Result<Vec<SoundDynamicEventHandlerDescriptor>, SoundError>;
+    fn register_dynamic_event_handler(
+        &self,
+        handler: SoundDynamicEventHandlerDescriptor,
+    ) -> Result<(), SoundError>;
+    fn unregister_dynamic_event_handler(
+        &self,
+        plugin_id: &str,
+        handler_id: &str,
+    ) -> Result<(), SoundError>;
     fn submit_dynamic_event(
         &self,
         invocation: SoundDynamicEventInvocation,
     ) -> Result<(), SoundError>;
     fn drain_dynamic_events(&self) -> Result<Vec<SoundDynamicEventInvocation>, SoundError>;
+    fn dispatch_dynamic_events(&self) -> Result<Vec<SoundDynamicEventDelivery>, SoundError>;
     fn set_impulse_response(
         &self,
         impulse_response: SoundImpulseResponseId,
@@ -100,6 +130,9 @@ pub trait SoundManager: Send + Sync {
         &self,
         impulse_response: SoundImpulseResponseId,
     ) -> Result<(), SoundError>;
+    fn load_hrtf_profile(&self, profile: SoundHrtfProfileDescriptor) -> Result<(), SoundError>;
+    fn remove_hrtf_profile(&self, profile_id: &str) -> Result<(), SoundError>;
+    fn hrtf_profiles(&self) -> Result<Vec<SoundHrtfProfileDescriptor>, SoundError>;
     fn set_ray_tracing_convolution_status(
         &self,
         status: SoundRayTracingConvolutionStatus,

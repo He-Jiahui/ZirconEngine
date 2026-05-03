@@ -2,6 +2,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use slint::{CloseRequestResponse, PhysicalPosition, PhysicalSize, PlatformError};
+use winit::application::ApplicationHandler;
+use winit::event::WindowEvent;
+use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::window::{Window, WindowAttributes, WindowId};
 
 use super::data::{FrameRect, HostWindowBootstrapData, HostWindowPresentationData};
 use super::globals::{HostContractGlobal, HostContractState};
@@ -39,7 +43,9 @@ impl UiHostWindow {
     }
 
     pub(crate) fn run(&self) -> Result<(), PlatformError> {
-        self.show()
+        let event_loop = EventLoop::new().map_err(platform_error)?;
+        let app = UiHostWindowEventLoop::new(self.clone_strong());
+        event_loop.run_app(app).map_err(platform_error)
     }
 
     pub(crate) fn window(&self) -> HostWindowHandle {
@@ -119,6 +125,96 @@ impl HostWindowHandle {
         let size = self.size();
         Ok(HostWindowSnapshot::blank(size.width, size.height))
     }
+}
+
+struct UiHostWindowEventLoop {
+    host: UiHostWindow,
+    window: Option<Box<dyn Window>>,
+}
+
+impl UiHostWindowEventLoop {
+    fn new(host: UiHostWindow) -> Self {
+        Self { host, window: None }
+    }
+
+    fn sync_host_window_state(&self, window: &dyn Window) {
+        let size = window.surface_size();
+        let mut state = self.host.state.borrow_mut();
+        state.window_size = PhysicalSize::new(size.width, size.height);
+        state.window_visible = true;
+        state.window_maximized = window.is_maximized();
+        if let Ok(position) = window.outer_position() {
+            state.window_position = PhysicalPosition::new(position.x, position.y);
+        }
+    }
+}
+
+impl ApplicationHandler for UiHostWindowEventLoop {
+    fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
+
+        let size = self.host.window().size();
+        let window_attributes = WindowAttributes::default()
+            .with_title("Zircon Editor")
+            .with_surface_size(winit::dpi::LogicalSize::new(
+                size.width as f64,
+                size.height as f64,
+            ));
+        let window = match event_loop.create_window(window_attributes) {
+            Ok(window) => window,
+            Err(_) => {
+                event_loop.exit();
+                return;
+            }
+        };
+        self.sync_host_window_state(window.as_ref());
+        self.window = Some(window);
+    }
+
+    fn window_event(
+        &mut self,
+        event_loop: &dyn ActiveEventLoop,
+        _window_id: WindowId,
+        event: WindowEvent,
+    ) {
+        match event {
+            WindowEvent::CloseRequested => {
+                let response = self
+                    .host
+                    .state
+                    .borrow()
+                    .close_requested
+                    .as_ref()
+                    .map(|callback| callback())
+                    .unwrap_or(CloseRequestResponse::HideWindow);
+                if matches!(response, CloseRequestResponse::HideWindow) {
+                    self.host.state.borrow_mut().window_visible = false;
+                    event_loop.exit();
+                }
+            }
+            WindowEvent::SurfaceResized(size) => {
+                self.host.window().set_size(PhysicalSize::new(size.width, size.height));
+            }
+            WindowEvent::Moved(position) => {
+                self.host
+                    .window()
+                    .set_position(PhysicalPosition::new(position.x, position.y));
+            }
+            _ => {}
+        }
+    }
+
+    fn about_to_wait(&mut self, _event_loop: &dyn ActiveEventLoop) {
+        if let Some(window) = self.window.as_ref() {
+            self.sync_host_window_state(window.as_ref());
+        }
+    }
+}
+
+fn platform_error(error: impl std::fmt::Display) -> PlatformError {
+    PlatformError::Other(error.to_string())
 }
 
 pub(crate) struct HostWindowSnapshot {

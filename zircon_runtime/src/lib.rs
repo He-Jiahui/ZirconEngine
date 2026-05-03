@@ -39,12 +39,12 @@ pub(crate) use graphics::scene::{
 #[allow(unused_imports)]
 pub(crate) use graphics::{
     backend, extract, feature, material, pipeline, runtime, types, visibility,
-    BuiltinRenderFeature, CompiledRenderPipeline, FrameHistoryAccess, FrameHistoryBinding,
-    FrameHistoryHandle, FrameHistorySlot, GraphicsError, HybridGiGpuCompletion,
-    HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput, HybridGiRuntimePrepareOutput,
-    HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration, HybridGiRuntimeState,
-    HybridGiRuntimeStats, HybridGiRuntimeUpdate, MaterialDomain, OfflineBakeOutput,
-    OfflineBakeSettings, RenderFeature, RenderFeatureCapabilityRequirement,
+    BuiltinRenderFeature, CompiledRenderPipeline, CompiledRenderPipelinePassStage,
+    FrameHistoryAccess, FrameHistoryBinding, FrameHistoryHandle, FrameHistorySlot, GraphicsError,
+    HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
+    HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
+    HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate, MaterialDomain,
+    OfflineBakeOutput, OfflineBakeSettings, RenderFeature, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
     RenderFeatureResourceKind, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
     RendererAsset, RendererFeatureAsset, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,

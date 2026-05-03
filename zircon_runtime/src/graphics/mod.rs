@@ -29,8 +29,8 @@ pub use hybrid_gi_runtime_provider::{
 };
 pub use material::MaterialDomain;
 pub use pipeline::{
-    CompiledRenderPipeline, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererAsset, RendererFeatureAsset, RendererFeatureSource,
+    CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset, RendererFeatureSource,
 };
 pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,
@@ -42,8 +42,9 @@ pub use runtime_builtin_graphics::{
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;
 pub use scene::{
-    RenderPassExecutionContext, RenderPassExecutorFn, RenderPassExecutorId,
-    RenderPassExecutorRegistration, SceneRenderer,
+    RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
+    RenderPassExecutorFn, RenderPassExecutorId, RenderPassExecutorRegistration,
+    RenderPassGpuExecutionContext, SceneRenderer,
 };
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
 pub(crate) use types::ViewportRenderFrame;

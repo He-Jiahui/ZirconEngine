@@ -121,6 +121,17 @@ impl RecastBackend {
                 "navigation bake source mesh references a missing vertex",
             ));
         }
+        if input
+            .vertices
+            .iter()
+            .flat_map(|vertex| vertex.iter())
+            .any(|coordinate| !coordinate.is_finite())
+        {
+            return Err(NavigationError::new(
+                NavigationErrorKind::BakeFailed,
+                "navigation bake source mesh contains non-finite vertex coordinates",
+            ));
+        }
 
         let mut flat_vertices = Vec::with_capacity(input.vertices.len() * 3);
         for vertex in &input.vertices {

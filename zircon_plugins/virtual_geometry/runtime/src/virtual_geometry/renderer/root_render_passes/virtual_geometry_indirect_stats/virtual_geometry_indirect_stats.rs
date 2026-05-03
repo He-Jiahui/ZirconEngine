@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometrySelectedCluster,
-    RenderVirtualGeometrySelectedClusterSource,
+    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+    RenderVirtualGeometrySelectedCluster, RenderVirtualGeometrySelectedClusterSource,
 };
 
 use super::super::virtual_geometry_hardware_rasterization_pass::VirtualGeometryHardwareRasterizationPassOutput;
@@ -146,5 +146,12 @@ impl VirtualGeometryIndirectStats {
             execution_args_buffer: self.execution_args_buffer,
             execution_authority_buffer: self.execution_authority_buffer,
         }
+    }
+
+    pub(in crate::virtual_geometry::renderer) fn node_and_cluster_cull_readback_outputs(
+        &self,
+    ) -> RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+        self.node_and_cluster_cull_pass
+            .to_neutral_readback_outputs()
     }
 }

@@ -17,6 +17,7 @@ use super::diagnostics::{
     finalize_export_diagnostics, skipped_export_cargo_build_diagnostic,
 };
 use super::generated_files::{should_invoke_cargo, should_probe_exported_native_manifest};
+use super::progress::EditorExportBuildProgress;
 use super::report::EditorExportBuildReport;
 
 impl EditorManager {
@@ -67,10 +68,50 @@ impl EditorManager {
         profile_name: &str,
         cancel_requested: Option<&AtomicBool>,
     ) -> Result<EditorExportBuildReport, String> {
+        self.execute_native_aware_export_build_with_cancellation_and_progress(
+            project_root,
+            output_root,
+            manifest,
+            profile_name,
+            cancel_requested,
+            |_| {},
+        )
+    }
+
+    pub(crate) fn execute_native_aware_export_build_with_cancellation_and_progress<F>(
+        &self,
+        project_root: impl AsRef<Path>,
+        output_root: impl AsRef<Path>,
+        manifest: &ProjectManifest,
+        profile_name: &str,
+        cancel_requested: Option<&AtomicBool>,
+        mut progress: F,
+    ) -> Result<EditorExportBuildReport, String>
+    where
+        F: FnMut(EditorExportBuildProgress),
+    {
+        emit_export_progress(
+            &mut progress,
+            "discover-native-packages",
+            5,
+            "Discovering native dynamic plugin packages",
+        );
         let native_report =
             NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
+        emit_export_progress(
+            &mut progress,
+            "resolve-export-plan",
+            12,
+            format!("Resolving desktop export plan {profile_name}"),
+        );
         let plan =
             self.generate_native_aware_export_plan(project_root.as_ref(), manifest, profile_name)?;
+        emit_export_progress(
+            &mut progress,
+            "prepare-native-packages",
+            25,
+            "Preparing native dynamic plugin packages",
+        );
         let native_preparation = prepare_native_dynamic_packages_with_cancellation(
             output_root.as_ref(),
             &plan,
@@ -84,6 +125,12 @@ impl EditorManager {
                 cleanup_diagnostics,
             ));
         }
+        emit_export_progress(
+            &mut progress,
+            "materialize-export",
+            45,
+            "Writing export files and plugin package payloads",
+        );
         let materialized = plan
             .materialize_with_native_packages(&native_preparation.plugin_root, output_root.as_ref())
             .map_err(|error| error.to_string())?;
@@ -94,6 +141,12 @@ impl EditorManager {
                 cleanup_diagnostics,
             ));
         }
+        emit_export_progress(
+            &mut progress,
+            "cleanup-native-staging",
+            58,
+            "Cleaning temporary native dynamic staging directories",
+        );
         let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
         if export_cancellation_requested(cancel_requested) {
             return Err(cancelled_export_error(
@@ -101,12 +154,24 @@ impl EditorManager {
                 cleanup_diagnostics,
             ));
         }
-        let cargo_invocation = if should_invoke_cargo(&materialized.generated_files) {
+        let cargo_invocation = if should_invoke_cargo(&plan, &materialized.generated_files) {
+            emit_export_progress(
+                &mut progress,
+                "cargo-build",
+                72,
+                "Running generated SourceTemplate Cargo build",
+            );
             Some(invoke_cargo_build_with_cancellation(
                 output_root.as_ref(),
                 cancel_requested,
             )?)
         } else {
+            emit_export_progress(
+                &mut progress,
+                "cargo-build-skipped",
+                72,
+                "Skipping Cargo build because no generated Cargo.toml was materialized",
+            );
             None
         };
         let mut diagnostics = native_report.diagnostics.clone();
@@ -123,6 +188,12 @@ impl EditorManager {
         let fatal_diagnostics = materialized.fatal_diagnostics;
         diagnostics.extend(cleanup_diagnostics);
         if should_probe_exported_native_manifest(&materialized.generated_files) {
+            emit_export_progress(
+                &mut progress,
+                "probe-exported-native-manifest",
+                88,
+                "Validating exported native plugin load manifest",
+            );
             let exported_native_report = exported_native_load_report_for_profile(
                 output_root.as_ref(),
                 plan.profile.target_mode,
@@ -134,9 +205,21 @@ impl EditorManager {
         if let Some(cargo_invocation) = &cargo_invocation {
             diagnostics.extend(cargo_invocation_diagnostics(cargo_invocation));
         } else {
-            diagnostics.push(skipped_export_cargo_build_diagnostic());
+            diagnostics.push(skipped_export_cargo_build_diagnostic(&plan));
         }
+        emit_export_progress(
+            &mut progress,
+            "write-export-diagnostics",
+            96,
+            "Writing export diagnostics report",
+        );
         finalize_export_diagnostics(output_root.as_ref(), &mut diagnostics);
+        emit_export_progress(
+            &mut progress,
+            "complete",
+            100,
+            "Desktop export build finished",
+        );
         Ok(EditorExportBuildReport {
             plan,
             invoked_cargo: cargo_invocation.is_some(),
@@ -160,7 +243,7 @@ impl EditorManager {
         let materialized = plan
             .materialize(output_root)
             .map_err(|error| error.to_string())?;
-        let cargo_invocation = if should_invoke_cargo(&materialized.generated_files) {
+        let cargo_invocation = if should_invoke_cargo(&plan, &materialized.generated_files) {
             Some(invoke_cargo_build(output_root)?)
         } else {
             None
@@ -171,7 +254,7 @@ impl EditorManager {
             cargo_invocation
                 .as_ref()
                 .map(cargo_invocation_diagnostics)
-                .unwrap_or_else(|| vec![skipped_export_cargo_build_diagnostic()]),
+                .unwrap_or_else(|| vec![skipped_export_cargo_build_diagnostic(&plan)]),
         );
         finalize_export_diagnostics(output_root, &mut diagnostics);
         Ok(EditorExportBuildReport {
@@ -185,6 +268,15 @@ impl EditorManager {
             fatal_diagnostics,
         })
     }
+}
+
+fn emit_export_progress(
+    progress: &mut impl FnMut(EditorExportBuildProgress),
+    stage: impl Into<String>,
+    percent: u8,
+    message: impl Into<String>,
+) {
+    progress(EditorExportBuildProgress::new(stage, percent, message));
 }
 
 fn exported_native_load_report_for_profile(

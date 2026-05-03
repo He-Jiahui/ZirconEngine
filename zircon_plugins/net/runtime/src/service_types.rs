@@ -1,103 +1,34 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use futures_util::StreamExt;
 use tokio::net::{TcpListener, TcpStream, UdpSocket};
-use tokio::runtime::{Builder, Runtime};
 use tokio::time::timeout;
-use tokio_tungstenite::tungstenite::client::IntoClientRequest;
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetDiagnostics, NetEndpoint, NetError, NetEvent,
     NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetListenerId,
-    NetPacket, NetRouteId, NetRuntimeMode, NetSocketId, NetTransportKind, NetWebSocketCloseReason,
-    NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetPacket, NetRequestId, NetRouteId, NetRuntimeMode, NetSocketId, NetTransportKind,
+    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
 };
 
-use crate::backend::{
-    read_websocket_frames, LoopbackWebSocketConnection, ManagedWebSocketConnection,
-    ManagedWebSocketListener, NetworkWebSocketConnection,
+use crate::http::{HttpRouteHandler, ManagedHttpRoute};
+use crate::runtime_state::{
+    ManagedTcpConnection, ManagedTcpListener, ManagedUdpSocket, NetRuntimeState,
 };
-use crate::http_backend::{ManagedHttpListener, ManagedHttpRoute};
+use crate::websocket::{
+    LoopbackWebSocketConnection, ManagedWebSocketConnection, WebSocketRuntimeBackend,
+};
+
+use crate::HttpRuntimeBackend;
 
 const TCP_ACCEPT_POLL_TIMEOUT: Duration = Duration::from_millis(1);
 const WEBSOCKET_ACCEPT_POLL_TIMEOUT: Duration = Duration::from_millis(1);
 
 #[derive(Clone, Debug, Default)]
 pub struct NetDriver;
-
-#[derive(Debug)]
-struct ManagedUdpSocket {
-    socket: UdpSocket,
-    local_endpoint: NetEndpoint,
-}
-
-#[derive(Debug)]
-struct ManagedTcpListener {
-    listener: TcpListener,
-    local_endpoint: NetEndpoint,
-}
-
-#[derive(Debug)]
-struct ManagedTcpConnection {
-    stream: TcpStream,
-    _local_endpoint: NetEndpoint,
-    _remote_endpoint: NetEndpoint,
-    state: NetConnectionState,
-}
-
-struct NetRuntimeState {
-    runtime: Runtime,
-    mode: NetRuntimeMode,
-    next_socket_id: AtomicU64,
-    next_listener_id: AtomicU64,
-    next_connection_id: AtomicU64,
-    next_route_id: AtomicU64,
-    udp_sockets: Mutex<HashMap<NetSocketId, ManagedUdpSocket>>,
-    tcp_listeners: Mutex<HashMap<NetListenerId, ManagedTcpListener>>,
-    http_listeners: Mutex<HashMap<NetListenerId, ManagedHttpListener>>,
-    websocket_listeners: Mutex<HashMap<NetListenerId, ManagedWebSocketListener>>,
-    tcp_connections: Mutex<HashMap<NetConnectionId, ManagedTcpConnection>>,
-    http_routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
-    websocket_connections: Mutex<HashMap<NetConnectionId, ManagedWebSocketConnection>>,
-    events: Arc<Mutex<VecDeque<NetEvent>>>,
-}
-
-impl NetRuntimeState {
-    fn new(mode: NetRuntimeMode) -> Self {
-        Self {
-            runtime: Builder::new_multi_thread()
-                .enable_io()
-                .enable_time()
-                .thread_name("zircon-net-runtime")
-                .build()
-                .expect("failed to create net Tokio runtime"),
-            mode,
-            next_socket_id: AtomicU64::new(0),
-            next_listener_id: AtomicU64::new(0),
-            next_connection_id: AtomicU64::new(0),
-            next_route_id: AtomicU64::new(0),
-            udp_sockets: Mutex::new(HashMap::new()),
-            tcp_listeners: Mutex::new(HashMap::new()),
-            http_listeners: Mutex::new(HashMap::new()),
-            websocket_listeners: Mutex::new(HashMap::new()),
-            tcp_connections: Mutex::new(HashMap::new()),
-            http_routes: Arc::new(Mutex::new(HashMap::new())),
-            websocket_connections: Mutex::new(HashMap::new()),
-            events: Arc::new(Mutex::new(VecDeque::new())),
-        }
-    }
-
-    fn push_event(&self, event: NetEvent) {
-        self.events
-            .lock()
-            .expect("net events mutex poisoned")
-            .push_back(event);
-    }
-}
 
 #[derive(Clone)]
 pub struct DefaultNetManager {
@@ -111,6 +42,72 @@ impl DefaultNetManager {
         Self {
             state: Arc::new(NetRuntimeState::new(mode)),
         }
+    }
+
+    pub fn with_http_backend(self, backend: Arc<dyn HttpRuntimeBackend>) -> Self {
+        *self
+            .state
+            .http_backend
+            .lock()
+            .expect("net HTTP backend mutex poisoned") = Some(backend);
+        self
+    }
+
+    pub fn with_websocket_backend(self, backend: Arc<dyn WebSocketRuntimeBackend>) -> Self {
+        *self
+            .state
+            .websocket_backend
+            .lock()
+            .expect("net WebSocket backend mutex poisoned") = Some(backend);
+        self
+    }
+
+    pub fn register_http_route_handler(
+        &self,
+        route: NetHttpRouteDescriptor,
+        handler: impl Fn(NetHttpRequestDescriptor) -> NetHttpResponseDescriptor + Send + Sync + 'static,
+    ) -> Result<NetRouteId, NetError> {
+        let route_id = self.next_route_id();
+        self.state
+            .http_routes
+            .lock()
+            .expect("net HTTP routes mutex poisoned")
+            .insert(
+                route_id,
+                ManagedHttpRoute {
+                    route: route.clone(),
+                    response: NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, Vec::new()),
+                    handler: Some(Arc::new(handler) as HttpRouteHandler),
+                },
+            );
+        self.state.push_event(NetEvent::HttpRouteRegistered {
+            route: route_id,
+            path: route.path,
+            methods: route.methods,
+        });
+        Ok(route_id)
+    }
+
+    fn http_backend(&self) -> Result<Arc<dyn HttpRuntimeBackend>, NetError> {
+        self.state
+            .http_backend
+            .lock()
+            .expect("net HTTP backend mutex poisoned")
+            .clone()
+            .ok_or_else(|| NetError::ProtocolUnavailable {
+                capability: "runtime.feature.net.http".to_string(),
+            })
+    }
+
+    fn websocket_backend(&self) -> Result<Arc<dyn WebSocketRuntimeBackend>, NetError> {
+        self.state
+            .websocket_backend
+            .lock()
+            .expect("net WebSocket backend mutex poisoned")
+            .clone()
+            .ok_or_else(|| NetError::ProtocolUnavailable {
+                capability: "runtime.feature.net.websocket".to_string(),
+            })
     }
 
     fn next_socket_id(&self) -> NetSocketId {
@@ -155,7 +152,26 @@ impl std::fmt::Debug for DefaultNetManager {
 
 impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
     fn backend_name(&self) -> String {
-        "tokio-net".to_string()
+        let mut name = "tokio-net".to_string();
+        if self
+            .state
+            .http_backend
+            .lock()
+            .expect("net HTTP backend mutex poisoned")
+            .is_some()
+        {
+            name.push_str("+http");
+        }
+        if self
+            .state
+            .websocket_backend
+            .lock()
+            .expect("net WebSocket backend mutex poisoned")
+            .is_some()
+        {
+            name.push_str("+websocket");
+        }
+        name
     }
 
     fn runtime_mode(&self) -> NetRuntimeMode {
@@ -326,7 +342,44 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
             .lock()
             .expect("net WebSocket listeners mutex poisoned")
             .get(&listener)
-            .map(|entry| entry.local_endpoint.clone())
+            .map(|entry| entry.local_endpoint())
+            .ok_or(NetError::UnknownListener { listener })
+    }
+
+    fn close_listener(&self, listener: NetListenerId) -> Result<(), NetError> {
+        if self
+            .state
+            .tcp_listeners
+            .lock()
+            .expect("net TCP listeners mutex poisoned")
+            .remove(&listener)
+            .is_some()
+        {
+            return Ok(());
+        }
+
+        if self
+            .state
+            .http_listeners
+            .lock()
+            .expect("net HTTP listeners mutex poisoned")
+            .remove(&listener)
+            .map(|entry| {
+                if let Some(abort_handle) = entry.abort_handle {
+                    abort_handle.abort();
+                }
+            })
+            .is_some()
+        {
+            return Ok(());
+        }
+
+        self.state
+            .websocket_listeners
+            .lock()
+            .expect("net WebSocket listeners mutex poisoned")
+            .remove(&listener)
+            .map(|_| ())
             .ok_or(NetError::UnknownListener { listener })
     }
 
@@ -568,6 +621,7 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
                 ManagedHttpRoute {
                     response,
                     route: route.clone(),
+                    handler: None,
                 },
             );
         self.state.push_event(NetEvent::HttpRouteRegistered {
@@ -590,32 +644,19 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
 
     fn listen_http(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError> {
         let bind_addr = bind.to_socket_addr()?;
-        let listener = self
-            .state
-            .runtime
-            .block_on(TcpListener::bind(bind_addr))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = listener
-            .local_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
+        let backend = self.http_backend()?;
+        let listener = backend.listen_http(
+            &self.state.runtime,
+            bind_addr,
+            self.state.http_routes.clone(),
+        )?;
+        let local_endpoint = listener.local_endpoint.clone();
         let listener_id = self.next_listener_id();
         self.state
             .http_listeners
             .lock()
             .expect("net HTTP listeners mutex poisoned")
-            .insert(
-                listener_id,
-                ManagedHttpListener {
-                    local_endpoint: local_endpoint.clone(),
-                },
-            );
-        self.state
-            .runtime
-            .spawn(crate::http_backend::serve_http_listener(
-                listener,
-                self.state.http_routes.clone(),
-            ));
+            .insert(listener_id, listener);
         self.state.push_event(NetEvent::ListenerStarted {
             listener: listener_id,
             transport: NetTransportKind::Http,
@@ -628,84 +669,56 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
         &self,
         request: NetHttpRequestDescriptor,
     ) -> Result<NetHttpResponseDescriptor, NetError> {
-        let path = crate::http_backend::path_from_http_url(&request.url);
+        let path = crate::http::path_from_http_url(&request.url);
         let routes = self
             .state
             .http_routes
             .lock()
             .expect("net HTTP routes mutex poisoned");
-        if !crate::http_backend::url_has_explicit_port(&request.url) {
+        if !crate::http::url_has_explicit_port(&request.url) {
             if let Some(response) = routes
                 .values()
                 .find(|entry| {
                     entry.route.path == path && entry.route.methods.contains(&request.method)
                 })
-                .map(|entry| entry.response.clone().for_request(request.request))
+                .map(|entry| {
+                    entry
+                        .handler
+                        .as_ref()
+                        .map(|handler| handler(request.clone()))
+                        .unwrap_or_else(|| entry.response.clone().for_request(request.request))
+                })
             {
                 return Ok(response);
             }
         }
         drop(routes);
-        self.state
-            .runtime
-            .block_on(crate::http_backend::send_http_request(request))
+        self.http_backend()?
+            .send_http_request(&self.state.runtime, request)
     }
 
     fn connect_websocket(
         &self,
         descriptor: NetWebSocketConnectDescriptor,
     ) -> Result<NetConnectionId, NetError> {
+        let backend = self.websocket_backend()?;
         let connection = self.next_connection_id();
         self.state.push_event(NetEvent::ConnectionStateChanged {
             connection,
             transport: NetTransportKind::WebSocket,
             state: NetConnectionState::Connecting,
         });
-        let mut request = descriptor
-            .url
-            .as_str()
-            .into_client_request()
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        for (name, value) in &descriptor.headers {
-            let name = tokio_tungstenite::tungstenite::http::header::HeaderName::from_bytes(
-                name.as_bytes(),
-            )
-            .map_err(|error| NetError::Io(error.to_string()))?;
-            let value = tokio_tungstenite::tungstenite::http::HeaderValue::from_str(value)
-                .map_err(|error| NetError::Io(error.to_string()))?;
-            request.headers_mut().insert(name, value);
-        }
-        if !descriptor.protocols.is_empty() {
-            let protocols = descriptor.protocols.join(", ");
-            let value = tokio_tungstenite::tungstenite::http::HeaderValue::from_str(&protocols)
-                .map_err(|error| NetError::Io(error.to_string()))?;
-            request.headers_mut().insert(
-                tokio_tungstenite::tungstenite::http::header::SEC_WEBSOCKET_PROTOCOL,
-                value,
-            );
-        }
-        let timeout_duration = Duration::from_millis(descriptor.timeout_ms);
-        let (stream, _) = self
-            .state
-            .runtime
-            .block_on(async {
-                timeout(timeout_duration, tokio_tungstenite::connect_async(request)).await
-            })
-            .map_err(|_| NetError::Io("websocket connect timed out".to_string()))?
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let (sink, stream) = stream.split();
-        let (network, read_half) = NetworkWebSocketConnection::client(sink, stream);
-        let state = network.state.clone();
-        let inbound = network.inbound.clone();
+        let network = backend.connect_websocket(
+            &self.state.runtime,
+            connection,
+            descriptor,
+            self.state.events.clone(),
+        )?;
         self.state
             .websocket_connections
             .lock()
             .expect("net WebSocket connections mutex poisoned")
             .insert(connection, ManagedWebSocketConnection::Network(network));
-        let events = self.state.events.clone();
-        self.state.runtime.spawn(read_websocket_frames(
-            connection, read_half, state, inbound, events,
-        ));
         self.state.push_event(NetEvent::ConnectionStateChanged {
             connection,
             transport: NetTransportKind::WebSocket,
@@ -717,26 +730,15 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
     fn listen_websocket(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError> {
         let bind_addr = bind.to_socket_addr()?;
         let listener = self
-            .state
-            .runtime
-            .block_on(TcpListener::bind(bind_addr))
-            .map_err(|error| NetError::Io(error.to_string()))?;
-        let local_endpoint = listener
-            .local_addr()
-            .map(Self::endpoint_from_addr)
-            .map_err(|error| NetError::Io(error.to_string()))?;
+            .websocket_backend()?
+            .listen_websocket(&self.state.runtime, bind_addr)?;
+        let local_endpoint = listener.local_endpoint();
         let listener_id = self.next_listener_id();
         self.state
             .websocket_listeners
             .lock()
             .expect("net WebSocket listeners mutex poisoned")
-            .insert(
-                listener_id,
-                ManagedWebSocketListener {
-                    listener,
-                    local_endpoint: local_endpoint.clone(),
-                },
-            );
+            .insert(listener_id, listener);
         self.state.push_event(NetEvent::ListenerStarted {
             listener: listener_id,
             transport: NetTransportKind::WebSocket,
@@ -763,41 +765,25 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
             .ok_or(NetError::UnknownListener { listener })?;
         let mut accepted = Vec::new();
         while accepted.len() < max_connections {
-            let accept_result = self.state.runtime.block_on(async {
-                timeout(
-                    WEBSOCKET_ACCEPT_POLL_TIMEOUT,
-                    listener_entry.listener.accept(),
-                )
-                .await
-            });
-            let (stream, remote_addr) = match accept_result {
-                Ok(Ok(accepted)) => accepted,
-                Ok(Err(error)) => return Err(NetError::Io(error.to_string())),
-                Err(_) => break,
-            };
-            let websocket = self
-                .state
-                .runtime
-                .block_on(tokio_tungstenite::accept_async(stream))
-                .map_err(|error| NetError::Io(error.to_string()))?;
             let connection = self.next_connection_id();
-            let (sink, stream) = websocket.split();
-            let (network, read_half) = NetworkWebSocketConnection::server(sink, stream);
-            let state = network.state.clone();
-            let inbound = network.inbound.clone();
+            let Some((remote_endpoint, network)) = listener_entry.accept_websocket(
+                &self.state.runtime,
+                connection,
+                self.state.events.clone(),
+                WEBSOCKET_ACCEPT_POLL_TIMEOUT,
+            )?
+            else {
+                break;
+            };
             self.state
                 .websocket_connections
                 .lock()
                 .expect("net WebSocket connections mutex poisoned")
                 .insert(connection, ManagedWebSocketConnection::Network(network));
-            let events = self.state.events.clone();
-            self.state.runtime.spawn(read_websocket_frames(
-                connection, read_half, state, inbound, events,
-            ));
             self.state.push_event(NetEvent::ConnectionAccepted {
                 listener,
                 connection,
-                remote: Self::endpoint_from_addr(remote_addr),
+                remote: remote_endpoint,
             });
             self.state.push_event(NetEvent::ConnectionStateChanged {
                 connection,
@@ -859,7 +845,7 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
             .lock()
             .expect("net WebSocket connections mutex poisoned");
         if let Some(ManagedWebSocketConnection::Network(entry)) = websockets.get(&connection) {
-            return self.state.runtime.block_on(entry.send(frame));
+            return entry.send(&self.state.runtime, frame);
         }
         let peer = websockets
             .get(&connection)

@@ -46,11 +46,11 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/runtime/mod.rs
-  - zircon_runtime/src/animation/sequence/mod.rs
-  - zircon_runtime/src/physics/mod.rs
-  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/scene_hook.rs
   - zircon_runtime/src/scene/world/property_access.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
@@ -106,11 +106,11 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/overlay/icon_source/viewport_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
-  - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/runtime/mod.rs
-  - zircon_runtime/src/animation/sequence/mod.rs
-  - zircon_runtime/src/physics/mod.rs
-  - zircon_runtime/src/physics/runtime/mod.rs
+  - zircon_plugins/animation/runtime/src/manager.rs
+  - zircon_plugins/animation/runtime/src/sequence.rs
+  - zircon_plugins/animation/runtime/src/scene_hook.rs
+  - zircon_plugins/physics/runtime/src/manager.rs
+  - zircon_plugins/physics/runtime/src/scene_hook.rs
   - zircon_runtime/src/scene/world/property_access.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/pending_completion/ordered_evictable_pages_for_target.rs
   - zircon_runtime/src/scene/world/render.rs
