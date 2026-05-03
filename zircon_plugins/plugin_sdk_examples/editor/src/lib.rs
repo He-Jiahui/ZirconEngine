@@ -8,7 +8,8 @@ use zircon_editor::core::editor_operation::{
     EditorOperationDescriptor, EditorOperationPath, UndoableEditorOperation,
 };
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest,
+    RuntimeTargetMode,
 };
 
 pub const PLUGIN_ID: &str = "plugin_sdk_examples";

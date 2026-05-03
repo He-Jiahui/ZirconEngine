@@ -113,6 +113,19 @@
     "persistence_key_policy": "editor.module_plugins"
   },
   {
+    "descriptor_id": "editor.build_export_desktop",
+    "kind": "ActivityView",
+    "default_title": "Desktop Export",
+    "icon_key": "build-export",
+    "multi_instance": false,
+    "dock_policy": "DrawerOrDocument",
+    "preferred_drawer_slot": "BottomRight",
+    "preferred_host": {
+      "Drawer": "BottomRight"
+    },
+    "persistence_key_policy": "editor.build_export_desktop"
+  },
+  {
     "descriptor_id": "editor.prefab",
     "kind": "ActivityWindow",
     "default_title": "Prefab Editor",

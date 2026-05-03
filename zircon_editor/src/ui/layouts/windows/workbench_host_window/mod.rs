@@ -23,16 +23,17 @@ pub(crate) use floating_windows::collect_floating_windows;
 pub(crate) use frame_rect::frame_rect;
 pub(crate) use host_data::{
     AnimationEditorPaneViewData, AssetBrowserPaneViewData, AssetsActivityPaneViewData,
-    ConsolePaneViewData, FloatingWindowData, FrameRect, HierarchyPaneViewData,
-    HostBottomDockSurfaceData, HostChromeControlFrameData, HostChromeTabData,
-    HostDocumentDockSurfaceData, HostFloatingWindowLayerData, HostMenuChromeData,
-    HostMenuChromeItemData, HostMenuChromeMenuData, HostNativeFloatingWindowSurfaceData,
-    HostPageChromeData, HostResizeLayerData, HostSideDockSurfaceData, HostStatusBarData,
-    HostTabDragOverlayData, HostWindowLayoutData, HostWindowSceneData, HostWindowShellData,
-    HostWindowSurfaceData, HostWindowSurfaceMetricsData, HostWindowSurfaceOrchestrationData,
-    InspectorPaneViewData, ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize,
-    PaneData, PaneNativeBodyData, ProjectOverviewData, ProjectOverviewPaneViewData, SceneNodeData,
-    TabData,
+    BuildExportPaneViewData, BuildExportTargetViewData, ConsolePaneViewData, FloatingWindowData,
+    FrameRect, HierarchyPaneViewData, HostBottomDockSurfaceData, HostChromeControlFrameData,
+    HostChromeTabData, HostDocumentDockSurfaceData, HostFloatingWindowLayerData,
+    HostMenuChromeData, HostMenuChromeItemData, HostMenuChromeMenuData,
+    HostNativeFloatingWindowSurfaceData, HostPageChromeData, HostResizeLayerData,
+    HostSideDockSurfaceData, HostStatusBarData, HostTabDragOverlayData, HostWindowLayoutData,
+    HostWindowSceneData, HostWindowShellData, HostWindowSurfaceData, HostWindowSurfaceMetricsData,
+    HostWindowSurfaceOrchestrationData, InspectorPaneViewData,
+    InspectorPluginComponentPropertyViewData, InspectorPluginComponentViewData,
+    ModulePluginStatusViewData, ModulePluginsPaneViewData, PaneContentSize, PaneData,
+    PaneNativeBodyData, ProjectOverviewData, ProjectOverviewPaneViewData, SceneNodeData, TabData,
 };
 #[allow(unused_imports)]
 pub(crate) use pane_payload::PanePayload;

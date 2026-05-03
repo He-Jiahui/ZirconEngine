@@ -8,6 +8,100 @@ pub enum ExportTargetPlatform {
     Windows,
     Linux,
     Macos,
+    Android,
+    Ios,
+    WebGpu,
+    Wasm,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportPlatformHostKind {
+    Desktop,
+    MobileApp,
+    Browser,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportPlatformResourceStrategy {
+    FilesystemBundle,
+    MobileAssetBundle,
+    BrowserFetch,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExportPlatformPluginStrategy {
+    NativeDynamicAllowed,
+    StaticSourceOrVmOnly,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExportPlatformPolicy {
+    pub target_platform: ExportTargetPlatform,
+    pub host_kind: ExportPlatformHostKind,
+    pub resource_strategy: ExportPlatformResourceStrategy,
+    pub plugin_strategy: ExportPlatformPluginStrategy,
+    pub supports_native_dynamic: bool,
+}
+
+impl Default for ExportPlatformPolicy {
+    fn default() -> Self {
+        ExportTargetPlatform::Windows.policy()
+    }
+}
+
+impl ExportTargetPlatform {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Windows => "windows",
+            Self::Linux => "linux",
+            Self::Macos => "macos",
+            Self::Android => "android",
+            Self::Ios => "ios",
+            Self::WebGpu => "web_gpu",
+            Self::Wasm => "wasm",
+        }
+    }
+
+    pub fn is_desktop(self) -> bool {
+        matches!(self, Self::Windows | Self::Linux | Self::Macos)
+    }
+
+    pub fn supports_native_dynamic(self) -> bool {
+        self.policy().supports_native_dynamic
+    }
+
+    pub fn policy(self) -> ExportPlatformPolicy {
+        let (host_kind, resource_strategy, plugin_strategy) = match self {
+            Self::Windows | Self::Linux | Self::Macos => (
+                ExportPlatformHostKind::Desktop,
+                ExportPlatformResourceStrategy::FilesystemBundle,
+                ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            ),
+            Self::Android | Self::Ios => (
+                ExportPlatformHostKind::MobileApp,
+                ExportPlatformResourceStrategy::MobileAssetBundle,
+                ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            ),
+            Self::WebGpu | Self::Wasm => (
+                ExportPlatformHostKind::Browser,
+                ExportPlatformResourceStrategy::BrowserFetch,
+                ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            ),
+        };
+        ExportPlatformPolicy {
+            target_platform: self,
+            host_kind,
+            resource_strategy,
+            plugin_strategy,
+            supports_native_dynamic: matches!(
+                plugin_strategy,
+                ExportPlatformPluginStrategy::NativeDynamicAllowed
+            ),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

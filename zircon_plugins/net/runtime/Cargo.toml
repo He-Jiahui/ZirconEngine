@@ -6,5 +6,11 @@ license.workspace = true
 description = "Network runtime plugin package for Zircon."
 
 [dependencies]
+futures-util = { version = "0.3", features = ["sink"] }
+http-body-util = "0.1"
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["http1", "server", "tokio"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 tokio = { version = "1", features = ["io-util", "net", "rt-multi-thread", "sync", "time"] }
+tokio-tungstenite = { version = "0.28", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

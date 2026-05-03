@@ -2,8 +2,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{
-    SoundAutomationBindingId, SoundClipId, SoundEffectId, SoundListenerId, SoundParameterId,
-    SoundPlaybackId, SoundSourceId, SoundTrackId, SoundVolumeId,
+    ExternalAudioSourceHandle, SoundAutomationBindingId, SoundClipId, SoundEffectId,
+    SoundImpulseResponseId, SoundListenerId, SoundParameterId, SoundPlaybackId, SoundSourceId,
+    SoundTrackId, SoundVolumeId,
 };
 
 #[derive(Clone, Debug, Error, PartialEq, Eq, Serialize, Deserialize)]
@@ -22,10 +23,14 @@ pub enum SoundError {
     UnknownTrack { track: SoundTrackId },
     #[error("unknown effect {effect:?}")]
     UnknownEffect { effect: SoundEffectId },
-    #[error("unknown automation binding {binding:?}")]
-    UnknownAutomationBinding {
-        binding: SoundAutomationBindingId,
+    #[error("unknown impulse response {impulse_response:?}")]
+    UnknownImpulseResponse {
+        impulse_response: SoundImpulseResponseId,
     },
+    #[error("unknown automation binding {binding:?}")]
+    UnknownAutomationBinding { binding: SoundAutomationBindingId },
+    #[error("unknown dynamic sound event `{event_id}`")]
+    UnknownDynamicEvent { event_id: String },
     #[error("unknown send from track {track:?} to {target:?}")]
     UnknownSend {
         track: SoundTrackId,
@@ -33,6 +38,8 @@ pub enum SoundError {
     },
     #[error("unknown source {source_id:?}")]
     UnknownSource { source_id: SoundSourceId },
+    #[error("unknown external audio source {handle:?}")]
+    UnknownExternalSource { handle: ExternalAudioSourceHandle },
     #[error("unknown listener {listener:?}")]
     UnknownListener { listener: SoundListenerId },
     #[error("unknown volume {volume:?}")]

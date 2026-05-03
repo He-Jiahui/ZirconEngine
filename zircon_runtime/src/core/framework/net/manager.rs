@@ -1,7 +1,8 @@
 use super::{
     NetConnectionId, NetConnectionState, NetDiagnostics, NetEndpoint, NetError, NetEvent,
     NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetListenerId,
-    NetPacket, NetRouteId, NetRuntimeMode, NetSocketId, NetWebSocketFrame,
+    NetPacket, NetRouteId, NetRuntimeMode, NetSocketId, NetWebSocketConnectDescriptor,
+    NetWebSocketFrame,
 };
 
 pub trait NetManager: Send + Sync {
@@ -37,10 +38,21 @@ pub trait NetManager: Send + Sync {
         response: NetHttpResponseDescriptor,
     ) -> Result<NetRouteId, NetError>;
     fn unregister_http_route(&self, route: NetRouteId) -> Result<(), NetError>;
+    fn listen_http(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError>;
     fn send_http_request(
         &self,
         request: NetHttpRequestDescriptor,
     ) -> Result<NetHttpResponseDescriptor, NetError>;
+    fn connect_websocket(
+        &self,
+        descriptor: NetWebSocketConnectDescriptor,
+    ) -> Result<NetConnectionId, NetError>;
+    fn listen_websocket(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError>;
+    fn accept_websocket(
+        &self,
+        listener: NetListenerId,
+        max_connections: usize,
+    ) -> Result<Vec<NetConnectionId>, NetError>;
     fn open_websocket_loopback(&self) -> Result<(NetConnectionId, NetConnectionId), NetError>;
     fn send_websocket_frame(
         &self,

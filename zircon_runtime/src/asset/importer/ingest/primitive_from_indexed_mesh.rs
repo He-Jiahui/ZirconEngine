@@ -1,11 +1,16 @@
+#[cfg(test)]
 use crate::core::math::{Vec2, Vec3};
 
+#[cfg(test)]
 use super::generate_normals::generate_normals;
-use crate::asset::assets::{ModelAsset, ModelPrimitiveAsset};
-use crate::asset::{
-    cook_virtual_geometry_from_mesh, AssetImportError, MeshVertex, VirtualGeometryCookConfig,
-};
+use crate::asset::assets::ModelAsset;
+#[cfg(test)]
+use crate::asset::assets::ModelPrimitiveAsset;
+use crate::asset::{cook_virtual_geometry_from_mesh, VirtualGeometryCookConfig};
+#[cfg(test)]
+use crate::asset::{AssetImportError, MeshVertex};
 
+#[cfg(test)]
 pub(super) fn primitive_from_indexed_mesh(
     positions: &[f32],
     normals: &[f32],

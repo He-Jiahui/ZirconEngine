@@ -70,6 +70,10 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::RuntimeDiagnostics));
+    assert!(bottom_right
+        .tabs
+        .iter()
+        .any(|tab| tab.content_kind == ViewContentKind::BuildExport));
 
     match &model.document {
         DocumentWorkspaceModel::Workbench { workspace, .. } => match workspace {
@@ -206,6 +210,13 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         .expect("runtime diagnostics tab");
     assert_eq!(runtime_diagnostics_tab.title, "Runtime Diagnostics");
     assert!(!runtime_diagnostics_tab.closeable);
+    let build_export_tab = bottom_right
+        .tabs
+        .iter()
+        .find(|tab| tab.content_kind == ViewContentKind::BuildExport)
+        .expect("desktop export tab");
+    assert_eq!(build_export_tab.title, "Desktop Export");
+    assert!(!build_export_tab.closeable);
 
     assert_eq!(
         model
@@ -257,6 +268,16 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
                     action,
                     MenuAction::OpenView(descriptor_id)
                         if descriptor_id.0 == "editor.runtime_diagnostics"
+                )
+            })
+    }));
+    assert!(view_menu.items.iter().any(|item| {
+        item.label == "Desktop Export"
+            && item.action.as_ref().is_some_and(|action| {
+                matches!(
+                    action,
+                    MenuAction::OpenView(descriptor_id)
+                        if descriptor_id.0 == "editor.build_export_desktop"
                 )
             })
     }));

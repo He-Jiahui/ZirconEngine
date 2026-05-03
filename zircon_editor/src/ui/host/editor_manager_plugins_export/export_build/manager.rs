@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::{
@@ -8,9 +9,9 @@ use zircon_runtime::{
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::super::native_dynamic_export_preparation::{
-    cleanup_native_dynamic_preparation, prepare_native_dynamic_packages,
+    cleanup_native_dynamic_preparation, prepare_native_dynamic_packages_with_cancellation,
 };
-use super::cargo_build::invoke_cargo_build;
+use super::cargo_build::{invoke_cargo_build, invoke_cargo_build_with_cancellation};
 use super::diagnostics::{
     cargo_invocation_diagnostics, cargo_invocation_diagnostics_with_label,
     finalize_export_diagnostics, skipped_export_cargo_build_diagnostic,
@@ -49,18 +50,62 @@ impl EditorManager {
         manifest: &ProjectManifest,
         profile_name: &str,
     ) -> Result<EditorExportBuildReport, String> {
+        self.execute_native_aware_export_build_with_cancellation(
+            project_root,
+            output_root,
+            manifest,
+            profile_name,
+            None,
+        )
+    }
+
+    pub(crate) fn execute_native_aware_export_build_with_cancellation(
+        &self,
+        project_root: impl AsRef<Path>,
+        output_root: impl AsRef<Path>,
+        manifest: &ProjectManifest,
+        profile_name: &str,
+        cancel_requested: Option<&AtomicBool>,
+    ) -> Result<EditorExportBuildReport, String> {
         let native_report =
             NativePluginLoader.discover(self.plugin_directory(project_root.as_ref()));
         let plan =
             self.generate_native_aware_export_plan(project_root.as_ref(), manifest, profile_name)?;
-        let native_preparation =
-            prepare_native_dynamic_packages(output_root.as_ref(), &plan, &native_report)?;
+        let native_preparation = prepare_native_dynamic_packages_with_cancellation(
+            output_root.as_ref(),
+            &plan,
+            &native_report,
+            cancel_requested,
+        )?;
+        if export_cancellation_requested(cancel_requested) {
+            let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
+            return Err(cancelled_export_error(
+                "native dynamic package preparation",
+                cleanup_diagnostics,
+            ));
+        }
         let materialized = plan
             .materialize_with_native_packages(&native_preparation.plugin_root, output_root.as_ref())
             .map_err(|error| error.to_string())?;
+        if export_cancellation_requested(cancel_requested) {
+            let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
+            return Err(cancelled_export_error(
+                "export materialization",
+                cleanup_diagnostics,
+            ));
+        }
         let cleanup_diagnostics = cleanup_native_dynamic_preparation(&native_preparation);
+        if export_cancellation_requested(cancel_requested) {
+            return Err(cancelled_export_error(
+                "export cleanup",
+                cleanup_diagnostics,
+            ));
+        }
         let cargo_invocation = if should_invoke_cargo(&materialized.generated_files) {
-            Some(invoke_cargo_build(output_root.as_ref())?)
+            Some(invoke_cargo_build_with_cancellation(
+                output_root.as_ref(),
+                cancel_requested,
+            )?)
         } else {
             None
         };
@@ -153,6 +198,21 @@ fn exported_native_load_report_for_profile(
         RuntimeTargetMode::EditorHost => {
             NativePluginLoader.load_editor_from_load_manifest(output_root)
         }
+    }
+}
+
+fn export_cancellation_requested(cancel_requested: Option<&AtomicBool>) -> bool {
+    cancel_requested.is_some_and(|cancel_requested| cancel_requested.load(Ordering::SeqCst))
+}
+
+fn cancelled_export_error(stage: &str, cleanup_diagnostics: Vec<String>) -> String {
+    if cleanup_diagnostics.is_empty() {
+        format!("desktop export cancelled during {stage}")
+    } else {
+        format!(
+            "desktop export cancelled during {stage}; cleanup diagnostics: {}",
+            cleanup_diagnostics.join("; ")
+        )
     }
 }
 

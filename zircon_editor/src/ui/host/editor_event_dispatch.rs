@@ -28,7 +28,7 @@ impl EditorEventRuntime {
         event: EditorEvent,
         operation: Option<(EditorOperationPath, String, bool, Value, Option<String>)>,
     ) -> Result<EditorEventRecord, String> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         inner.next_event_id += 1;
         inner.next_sequence += 1;
 

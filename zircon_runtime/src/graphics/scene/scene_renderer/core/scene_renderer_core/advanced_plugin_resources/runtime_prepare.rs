@@ -12,6 +12,10 @@ impl SceneRendererAdvancedPluginResources {
         _streamer: &ResourceStreamer,
         _frame: &ViewportRenderFrame,
     ) -> Result<SceneRendererAdvancedPluginReadbacks, GraphicsError> {
+        if !self.virtual_geometry_enabled() && !self.hybrid_gi_enabled() {
+            return Ok(SceneRendererAdvancedPluginReadbacks::new());
+        }
+
         Ok(SceneRendererAdvancedPluginReadbacks::new())
     }
 }

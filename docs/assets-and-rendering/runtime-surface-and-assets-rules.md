@@ -54,6 +54,7 @@ This document captures the runtime-side structure rules introduced by the worksp
 ## Crate Root Rules
 
 - `zircon_runtime/src/lib.rs` stays a structural entry and registration surface.
+- Plugin package manifests, export-plan DTOs, native plugin ABI/load types, runtime extension registries, runtime plugin catalogs, and plugin UI/component descriptors are owned by `zircon_runtime::plugin`; callers must import them from that namespace instead of the `zircon_runtime` crate root.
 - The workspace root manifest keeps only dependencies still used by root members; generated Slint build seams such as `slint-build` are not retained after the Rust-owned host cutover.
 - `graphics/mod.rs` stays a narrow runtime-facing export layer, not a deep implementation barrel.
 - Internal convenience flattening is tolerated only when it stays crate-private and does not re-create a public compatibility surface.

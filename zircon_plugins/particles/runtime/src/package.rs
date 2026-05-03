@@ -1,6 +1,6 @@
 use zircon_runtime::{
-    plugin::PluginDependencyManifest, plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
-    plugin::PluginPackageManifest,
+    plugin::PluginDependencyManifest, plugin::PluginEventCatalogManifest,
+    plugin::PluginOptionManifest, plugin::PluginPackageManifest,
 };
 
 use crate::component::particle_component_descriptors;

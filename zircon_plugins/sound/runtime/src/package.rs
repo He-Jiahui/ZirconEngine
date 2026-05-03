@@ -1,6 +1,6 @@
 use zircon_runtime::{
-    plugin::PluginDependencyManifest, plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
-    plugin::PluginPackageManifest,
+    plugin::PluginDependencyManifest, plugin::PluginEventCatalogManifest,
+    plugin::PluginOptionManifest, plugin::PluginPackageManifest,
 };
 
 use crate::components::sound_component_descriptors;
@@ -46,6 +46,7 @@ pub fn sound_options() -> Vec<PluginOptionManifest> {
         PluginOptionManifest::new("sound.max_voices", "Max Voices", "integer", "128"),
         PluginOptionManifest::new("sound.max_tracks", "Max Tracks", "integer", "64"),
         PluginOptionManifest::new("sound.hrtf_enabled", "HRTF", "bool", "false"),
+        PluginOptionManifest::new("sound.hrtf_profile", "HRTF Profile", "string", "default"),
         PluginOptionManifest::new(
             "sound.convolution_enabled",
             "Convolution Reverb",
@@ -53,12 +54,37 @@ pub fn sound_options() -> Vec<PluginOptionManifest> {
             "true",
         ),
         PluginOptionManifest::new(
+            "sound.convolution_budget.max_impulse_responses",
+            "Max Impulse Responses",
+            "integer",
+            "32",
+        ),
+        PluginOptionManifest::new(
+            "sound.convolution_budget.max_partition_frames",
+            "Max Convolution Partition Frames",
+            "integer",
+            "1024",
+        ),
+        PluginOptionManifest::new(
+            "sound.convolution_budget.rays_per_update",
+            "Convolution Rays Per Update",
+            "integer",
+            "0",
+        )
+        .with_required_capability("runtime.capability.ray_query"),
+        PluginOptionManifest::new(
             "sound.ray_tracing_quality",
             "Ray Tracing Quality",
             "enum",
             "disabled",
         )
         .with_required_capability("runtime.capability.ray_query"),
+        PluginOptionManifest::new(
+            "sound.default_mixer_preset",
+            "Default Mixer Preset",
+            "string",
+            "sound://mixer/default",
+        ),
         PluginOptionManifest::new(
             "sound.timeline_integration",
             "Timeline Automation",

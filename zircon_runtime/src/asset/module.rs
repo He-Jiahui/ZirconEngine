@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
+use crate::asset::AssetImporterRegistry;
 use crate::core::manager::ResourceManagerHandle;
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode,
@@ -13,10 +14,25 @@ pub const PROJECT_ASSET_MANAGER_NAME: &str = "AssetModule.Manager.ProjectAssetMa
 pub const ASSET_MANAGER_NAME: &str = "AssetModule.Manager.AssetManager";
 pub const RESOURCE_MANAGER_NAME: &str = crate::core::manager::RESOURCE_MANAGER_NAME;
 
-#[derive(Clone, Copy, Debug, Default)]
-pub struct AssetModule;
+#[derive(Clone, Debug, Default)]
+pub struct AssetModule {
+    asset_importers: AssetImporterRegistry,
+}
+
+impl AssetModule {
+    pub fn with_asset_importers(asset_importers: AssetImporterRegistry) -> Self {
+        Self { asset_importers }
+    }
+}
 
 pub fn module_descriptor() -> ModuleDescriptor {
+    module_descriptor_with_asset_importers(AssetImporterRegistry::default())
+}
+
+fn module_descriptor_with_asset_importers(
+    asset_importers: AssetImporterRegistry,
+) -> ModuleDescriptor {
+    let manager_asset_importers = asset_importers.clone();
     ModuleDescriptor::new(
         ASSET_MODULE_NAME,
         "Asynchronous asset I/O and CPU-side decoding",
@@ -35,10 +51,14 @@ pub fn module_descriptor() -> ModuleDescriptor {
         ),
         StartupMode::Immediate,
         Vec::new(),
-        factory(|_| {
-            Ok(Arc::new(ProjectAssetManager::new(
+        factory(move |_| {
+            let manager = ProjectAssetManager::new(
                 std::thread::available_parallelism().map_or(2, |n| n.get().max(2) - 1),
-            )) as ServiceObject)
+            );
+            for importer in manager_asset_importers.importers() {
+                manager.register_asset_importer_arc(importer)?;
+            }
+            Ok(Arc::new(manager) as ServiceObject)
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -81,6 +101,6 @@ impl EngineModule for AssetModule {
     }
 
     fn descriptor(&self) -> ModuleDescriptor {
-        module_descriptor()
+        module_descriptor_with_asset_importers(self.asset_importers.clone())
     }
 }

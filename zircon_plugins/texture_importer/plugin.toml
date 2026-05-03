@@ -9,6 +9,8 @@ supported_platforms = ["windows", "linux", "macos"]
 capabilities = [
     "runtime.plugin.texture_importer",
     "runtime.asset.importer.texture.image",
+    "runtime.asset.importer.texture.container",
+    "runtime.asset.importer.texture.psd",
 ]
 asset_roots = []
 content_roots = []
@@ -41,10 +43,28 @@ importer_version = 1
 required_capabilities = ["runtime.asset.importer.texture.image"]
 
 [[asset_importers]]
-id = "texture_importer.optional_container"
+id = "texture_importer.container"
 plugin_id = "texture_importer"
 priority = 90
-source_extensions = ["psd", "dds", "ktx", "ktx2", "astc", "cubemap", "dxgi"]
+source_extensions = ["dds", "ktx", "ktx2", "astc"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.container"]
+
+[[asset_importers]]
+id = "texture_importer.psd"
+plugin_id = "texture_importer"
+priority = 100
+source_extensions = ["psd"]
+output_kind = "Texture"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.texture.psd"]
+
+[[asset_importers]]
+id = "texture_importer.optional_native_container"
+plugin_id = "texture_importer"
+priority = 80
+source_extensions = ["cubemap", "dxgi"]
 output_kind = "Texture"
 importer_version = 1
 required_capabilities = ["runtime.asset.importer.native"]
@@ -57,4 +77,6 @@ target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.texture_importer",
     "runtime.asset.importer.texture.image",
+    "runtime.asset.importer.texture.container",
+    "runtime.asset.importer.texture.psd",
 ]

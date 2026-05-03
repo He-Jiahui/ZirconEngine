@@ -7,3 +7,6 @@ description = "Animation runtime plugin package for Zircon."
 
 [dependencies]
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+zircon_plugin_physics_runtime = { path = "../../physics/runtime" }

@@ -1,9 +1,11 @@
 use crate::core::framework::scene::WorldHandle;
 use crate::core::math::Real;
+use crate::scene::World;
 
 use super::{
     PhysicsBackendStatus, PhysicsContactEvent, PhysicsMaterialMetadata, PhysicsRayCastHit,
-    PhysicsRayCastQuery, PhysicsSettings, PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsWorldStepPlan,
+    PhysicsWorldSyncState,
 };
 
 pub trait PhysicsManager: Send + Sync {
@@ -16,4 +18,16 @@ pub trait PhysicsManager: Send + Sync {
     fn synchronized_world(&self, world: WorldHandle) -> Option<PhysicsWorldSyncState>;
     fn ray_cast(&self, query: &PhysicsRayCastQuery) -> Option<PhysicsRayCastHit>;
     fn drain_contacts(&self, world: WorldHandle) -> Vec<PhysicsContactEvent>;
+    fn tick_scene_world(
+        &self,
+        world_handle: WorldHandle,
+        _world: &mut World,
+        delta_seconds: Real,
+    ) -> PhysicsSceneStepResult {
+        let step_plan = self.plan_world_step(world_handle, delta_seconds);
+        PhysicsSceneStepResult {
+            step_plan,
+            contacts: self.drain_contacts(world_handle),
+        }
+    }
 }

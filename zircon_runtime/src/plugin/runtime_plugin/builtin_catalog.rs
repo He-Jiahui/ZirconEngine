@@ -1,6 +1,6 @@
 use crate::{
-    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency, plugin::PluginModuleManifest, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
+    plugin::PluginModuleManifest, RuntimePluginId, RuntimeTargetMode,
 };
 
 use super::RuntimePluginDescriptor;
@@ -122,6 +122,72 @@ impl RuntimePluginDescriptor {
                 ][..],
             ),
             (
+                "gltf_importer",
+                "glTF Importer",
+                RuntimePluginId::GltfImporter,
+                "zircon_plugin_gltf_importer_runtime",
+                "runtime.plugin.gltf_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
+                "obj_importer",
+                "OBJ Importer",
+                RuntimePluginId::ObjImporter,
+                "zircon_plugin_obj_importer_runtime",
+                "runtime.plugin.obj_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
+                "texture_importer",
+                "Texture Importer",
+                RuntimePluginId::TextureImporter,
+                "zircon_plugin_texture_importer_runtime",
+                "runtime.plugin.texture_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
+                "audio_importer",
+                "Audio Importer",
+                RuntimePluginId::AudioImporter,
+                "zircon_plugin_audio_importer_runtime",
+                "runtime.plugin.audio_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
+                "shader_wgsl_importer",
+                "WGSL Shader Importer",
+                RuntimePluginId::ShaderWgslImporter,
+                "zircon_plugin_shader_wgsl_importer_runtime",
+                "runtime.plugin.shader_wgsl_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
+                "ui_document_importer",
+                "UI Document Importer",
+                RuntimePluginId::UiDocumentImporter,
+                "zircon_plugin_ui_document_importer_runtime",
+                "runtime.plugin.ui_document_importer",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
                 "rendering",
                 "Rendering",
                 RuntimePluginId::Rendering,
@@ -167,7 +233,26 @@ impl RuntimePluginDescriptor {
             "animation" => {
                 descriptor.with_capability("runtime.feature.animation.timeline_event_track")
             }
+            "terrain" | "tilemap_2d" | "prefab_tools" => descriptor.with_category("authoring"),
             "physics" => descriptor.with_capability("runtime.capability.physics.raycast"),
+            "gltf_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.model.gltf"),
+            "obj_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.model.obj"),
+            "texture_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.texture.image"),
+            "audio_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.audio.wav"),
+            "shader_wgsl_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.shader.wgsl"),
+            "ui_document_importer" => descriptor
+                .with_category("asset_importer")
+                .with_capability("runtime.asset.importer.ui_document"),
             "sound" => descriptor
                 .with_optional_feature(sound_timeline_animation_track_feature())
                 .with_optional_feature(sound_ray_traced_convolution_reverb_feature()),

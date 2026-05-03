@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::fs;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::{Mutex, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::editor_event::{
@@ -74,10 +73,11 @@ impl ChildWindowHostHarness {
             .show()
             .expect("root workbench shell should show in the test backend");
 
-        let state = EditorState::with_default_selection(
+        let mut state = EditorState::with_default_selection(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
         );
+        state.mark_project_open();
         let manager = core
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();
@@ -229,13 +229,8 @@ impl Drop for ChildWindowHostHarness {
     }
 }
 
-fn env_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
-
 fn lock_env() -> std::sync::MutexGuard<'static, ()> {
-    env_lock()
+    crate::tests::support::env_lock()
         .lock()
         .unwrap_or_else(|poison| poison.into_inner())
 }

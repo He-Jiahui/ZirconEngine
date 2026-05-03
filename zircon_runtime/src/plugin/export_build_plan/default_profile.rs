@@ -1,4 +1,4 @@
-use crate::{ExportProfile, ExportTargetPlatform, RuntimeTargetMode};
+use crate::{plugin::ExportProfile, plugin::ExportTargetPlatform, RuntimeTargetMode};
 
 pub(super) fn default_profile(profile_name: &str) -> Option<ExportProfile> {
     match profile_name {

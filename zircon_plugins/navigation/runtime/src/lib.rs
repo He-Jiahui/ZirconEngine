@@ -7,6 +7,8 @@ use zircon_runtime::engine_module::{factory, qualified_name};
 
 mod components;
 mod manager;
+mod settings_hash;
+mod settings_validation;
 
 pub use components::navigation_component_descriptors;
 pub use manager::{count_navigation_components, default_agent_type, DefaultNavigationManager};
@@ -186,14 +188,15 @@ pub fn runtime_capabilities() -> &'static [&'static str] {
 #[cfg(test)]
 mod tests {
     use serde_json::json;
-    use zircon_runtime::asset::NavMeshAsset;
+    use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavigationSettingsAsset};
     use zircon_runtime::core::framework::navigation::{
-        NavMeshAgentDescriptor, NavMeshBakeRequest, NavPathQuery, NavPathStatus, NavigationManager,
-        AREA_JUMP, NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
+        NavMeshAgentDescriptor, NavMeshBakeRequest, NavPathQuery, NavPathStatus,
+        NavigationAreaSettings, NavigationManager, AREA_JUMP, AREA_WALKABLE, DEFAULT_AGENT_TYPE,
+        NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_MODIFIER_COMPONENT_TYPE,
         NAV_MESH_OBSTACLE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
         NAV_MESH_SURFACE_COMPONENT_TYPE,
     };
-    use zircon_runtime::core::math::{Transform, Vec3};
+    use zircon_runtime::core::math::{Real, Transform, Vec3};
     use zircon_runtime::core::CoreRuntime;
     use zircon_runtime::scene::components::NodeKind;
     use zircon_runtime::scene::world::World;
@@ -303,6 +306,132 @@ mod tests {
     }
 
     #[test]
+    fn navigation_manager_applies_basic_obstacle_avoidance_and_stats() {
+        let manager = DefaultNavigationManager::new();
+        let mut world = World::new();
+        for descriptor in navigation_component_descriptors() {
+            world.register_component_type(descriptor).unwrap();
+        }
+        let agent = world.spawn_node(NodeKind::Cube);
+        let obstacle = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+            .unwrap();
+        world
+            .set_dynamic_component(
+                agent,
+                NAV_MESH_AGENT_COMPONENT_TYPE,
+                serde_json::to_value(NavMeshAgentDescriptor {
+                    destination: Some([4.0, 0.0, 0.0]),
+                    speed: 2.0,
+                    ..NavMeshAgentDescriptor::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        world
+            .set_dynamic_component(
+                obstacle,
+                NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+                json!({
+                    "shape": "capsule",
+                    "center": [1.0, 0.0, 0.2],
+                    "radius": 1.0,
+                    "avoidance_enabled": true
+                }),
+            )
+            .unwrap();
+
+        let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+        let transform = world.world_transform(agent).unwrap();
+        let stats = manager.stats();
+
+        assert_eq!(report.moved_agents, 1);
+        assert!(transform.translation.x > 0.0);
+        assert!(transform.translation.z < 0.0);
+        assert_eq!(stats.active_agents, 1);
+        assert_eq!(stats.active_obstacles, 1);
+    }
+
+    #[test]
+    fn loaded_navmesh_no_path_blocks_agent_instead_of_direct_fallback() {
+        let manager = DefaultNavigationManager::new();
+        let mut world = World::new();
+        world
+            .register_component_type(navigation_component_descriptors()[2].clone())
+            .unwrap();
+        let agent = world.spawn_node(NodeKind::Cube);
+        world
+            .update_transform(agent, Transform::from_translation(Vec3::ZERO))
+            .unwrap();
+        world
+            .set_dynamic_component(
+                agent,
+                NAV_MESH_AGENT_COMPONENT_TYPE,
+                serde_json::to_value(NavMeshAgentDescriptor {
+                    destination: Some([8.0, 0.0, 0.0]),
+                    speed: 2.0,
+                    ..NavMeshAgentDescriptor::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        manager.load_nav_mesh(two_island_navmesh(false)).unwrap();
+
+        let report = manager.tick_world_agents(&mut world, 0.5).unwrap();
+
+        assert_eq!(report.moved_agents, 0);
+        assert_eq!(report.blocked_agents, 1);
+        assert_eq!(
+            world.world_transform(agent).unwrap().translation,
+            Vec3::ZERO
+        );
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.contains("no path")));
+    }
+
+    #[test]
+    fn default_navmesh_selection_uses_first_loaded_handle() {
+        let manager = DefaultNavigationManager::new();
+        let first = manager.load_nav_mesh(two_island_navmesh(false)).unwrap();
+        let second = manager.load_nav_mesh(two_island_navmesh(true)).unwrap();
+        assert!(first.0 < second.0);
+
+        let result = manager
+            .find_path(NavPathQuery::new([0.0, 0.0, 0.0], [8.0, 0.0, 0.0]))
+            .unwrap();
+
+        assert_eq!(result.status, NavPathStatus::NoPath);
+    }
+
+    #[test]
+    fn invalid_navigation_settings_are_rejected() {
+        let manager = DefaultNavigationManager::new();
+        let mut duplicate_area = NavigationSettingsAsset::default();
+        duplicate_area.areas.push(NavigationAreaSettings {
+            id: AREA_WALKABLE,
+            name: "duplicate".to_string(),
+            cost: 1.0,
+            walkable: true,
+        });
+
+        let error = manager
+            .load_navigation_settings(duplicate_area)
+            .unwrap_err();
+
+        assert_eq!(
+            error.kind,
+            zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration
+        );
+
+        let mut bad_cost = NavigationSettingsAsset::default();
+        bad_cost.areas[0].cost = Real::NAN;
+        assert!(manager.load_navigation_settings(bad_cost).is_err());
+    }
+
+    #[test]
     fn navigation_dynamic_component_descriptor_accepts_vec_and_resource_json() {
         let mut world = World::new();
         let entity = world.spawn_node(NodeKind::Cube);
@@ -355,7 +484,8 @@ mod tests {
         );
         assert_eq!(report.surfaces, 1);
         assert_eq!(report.source_triangles, 2);
-        assert_eq!(report.baked_polygons, 2);
+        assert!(report.baked_polygons > 0);
+        assert_eq!(report.tiles, 1);
     }
 
     #[test]
@@ -417,5 +547,132 @@ mod tests {
             .iter()
             .all(|polygon| polygon.area == AREA_JUMP));
         assert_eq!(asset.off_mesh_links.len(), 1);
+    }
+
+    #[test]
+    fn bake_surface_respects_disabled_link_generation_and_settings_hash() {
+        let manager = DefaultNavigationManager::new();
+        let mut world = World::new();
+        for descriptor in navigation_component_descriptors() {
+            world.register_component_type(descriptor).unwrap();
+        }
+        let surface = world.spawn_node(NodeKind::Cube);
+        let link = world.spawn_node(NodeKind::Cube);
+        world
+            .set_dynamic_component(
+                surface,
+                NAV_MESH_SURFACE_COMPONENT_TYPE,
+                json!({
+                    "enabled": true,
+                    "generate_links": false,
+                    "override_voxel_size": 0.25
+                }),
+            )
+            .unwrap();
+        world
+            .set_dynamic_component(
+                link,
+                NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
+                json!({
+                    "activated": true,
+                    "agent_type": "humanoid",
+                    "start_local_point": [0.0, 0.0, 0.0],
+                    "end_local_point": [2.0, 0.0, 0.0]
+                }),
+            )
+            .unwrap();
+
+        let first = manager
+            .bake_surface(&world, NavMeshBakeRequest::default())
+            .unwrap();
+        let first_asset = first.asset.unwrap();
+        let mut settings = manager.active_settings();
+        settings.areas.push(NavigationAreaSettings {
+            id: 7,
+            name: "mud".to_string(),
+            cost: 5.0,
+            walkable: true,
+        });
+        manager.load_navigation_settings(settings).unwrap();
+        let second_asset = manager
+            .bake_surface(&world, NavMeshBakeRequest::default())
+            .unwrap()
+            .asset
+            .unwrap();
+
+        assert!(first_asset.off_mesh_links.is_empty());
+        assert_ne!(first_asset.settings_hash, 0);
+        assert_ne!(first_asset.settings_hash, second_asset.settings_hash);
+        assert!(first
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("advanced Recast bake knobs")));
+    }
+
+    #[test]
+    fn carved_obstacle_removes_static_bake_source() {
+        let manager = DefaultNavigationManager::new();
+        let mut world = World::new();
+        for descriptor in navigation_component_descriptors() {
+            world.register_component_type(descriptor).unwrap();
+        }
+        let surface = world.spawn_node(NodeKind::Cube);
+        let obstacle = world.spawn_node(NodeKind::Cube);
+        world
+            .set_dynamic_component(surface, NAV_MESH_SURFACE_COMPONENT_TYPE, json!({}))
+            .unwrap();
+        world
+            .set_dynamic_component(
+                obstacle,
+                NAV_MESH_OBSTACLE_COMPONENT_TYPE,
+                json!({
+                    "shape": "box",
+                    "size": [2.0, 2.0, 2.0],
+                    "carve": true
+                }),
+            )
+            .unwrap();
+
+        let report = manager
+            .bake_surface(&world, NavMeshBakeRequest::default())
+            .unwrap();
+        let asset = report.asset.unwrap();
+
+        assert_eq!(report.source_triangles, 0);
+        assert!(asset.is_empty());
+        assert!(report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message.contains("carved")));
+    }
+
+    fn two_island_navmesh(with_link: bool) -> NavMeshAsset {
+        let mut asset = NavMeshAsset::from_triangle_mesh(
+            DEFAULT_AGENT_TYPE,
+            vec![
+                [-1.0, 0.0, -1.0],
+                [1.0, 0.0, -1.0],
+                [1.0, 0.0, 1.0],
+                [-1.0, 0.0, 1.0],
+                [7.0, 0.0, -1.0],
+                [9.0, 0.0, -1.0],
+                [9.0, 0.0, 1.0],
+                [7.0, 0.0, 1.0],
+            ],
+            vec![0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7],
+            AREA_WALKABLE,
+        );
+        if with_link {
+            asset.off_mesh_links.push(NavMeshLinkAsset {
+                start: [1.0, 0.0, 0.0],
+                end: [7.0, 0.0, 0.0],
+                width: 0.5,
+                bidirectional: true,
+                area: AREA_JUMP,
+                cost_override: None,
+                traversal_mode: Default::default(),
+            });
+        }
+        asset
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::PluginModuleKind, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginSelection,
+    plugin::ExportPackagingStrategy, plugin::PluginModuleKind,
+    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection,
 };
 
 use super::RuntimePluginDescriptor;

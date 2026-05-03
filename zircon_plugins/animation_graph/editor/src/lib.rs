@@ -3,7 +3,9 @@ use std::collections::BTreeSet;
 use zircon_editor::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodeDescriptor, GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{AssetEditorDescriptor, ComponentDrawerDescriptor};
+use zircon_editor::core::editor_extension::{
+    AssetEditorDescriptor, ComponentDrawerDescriptor, EditorMenuItemDescriptor,
+};
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -103,16 +105,33 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open_graph.clone(), "Open Animation Graph")
+                .with_menu_path("Plugins/Animation Graph/Open Graph")
+                .with_payload_schema_id("animation_graph.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(
                 open_state_machine.clone(),
                 "Open Animation State Machine",
             )
+            .with_menu_path("Plugins/Animation Graph/Open State Machine")
+            .with_payload_schema_id("animation_graph.open_state_machine.v1")
             .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(validate.clone(), "Validate Animation Graph")
+                .with_menu_path("Plugins/Animation Graph/Validate")
+                .with_payload_schema_id("animation_graph.validate.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(compile.clone(), "Compile Animation Graph")
+                .with_menu_path("Plugins/Animation Graph/Compile")
+                .with_payload_schema_id("animation_graph.compile.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Animation Graph/Open Graph", &open_graph),
+            menu_item(
+                "Plugins/Animation Graph/Open State Machine",
+                &open_state_machine,
+            ),
+            menu_item("Plugins/Animation Graph/Validate", &validate),
+            menu_item("Plugins/Animation Graph/Compile", &compile),
         ],
         asset_editors: vec![
             AssetEditorDescriptor::new(
@@ -389,14 +408,45 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid animation graph operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
     use zircon_runtime::asset::{
         AnimationStateAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
     };
     use zircon_runtime::asset::{AssetReference, AssetUri};
     use zircon_runtime::core::framework::animation::AnimationParameterValue;
+
+    #[test]
+    fn animation_graph_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry =
+            zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("animation graph authoring registration");
+        let operation = operation("AnimationGraph.Authoring.Compile");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("compile operation registered");
+
+        assert_eq!(
+            descriptor.menu_path(),
+            Some("Plugins/Animation Graph/Compile")
+        );
+        assert_eq!(
+            descriptor.payload_schema_id(),
+            Some("animation_graph.compile.v1")
+        );
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Animation Graph/Compile" && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn animation_graph_compile_returns_output_source_for_valid_graph() {

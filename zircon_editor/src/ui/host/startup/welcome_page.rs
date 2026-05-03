@@ -8,7 +8,7 @@ use super::welcome_view::{welcome_view_descriptor, welcome_view_instance};
 
 impl EditorUiHost {
     pub(crate) fn show_welcome_page(&self) -> Result<(), EditorError> {
-        let mut registry = self.view_registry.lock().unwrap();
+        let mut registry = self.lock_view_registry();
         if registry
             .descriptor(&ViewDescriptorId::new(WELCOME_DESCRIPTOR_ID))
             .is_none()

@@ -282,6 +282,10 @@ fn generate_normals(positions: &[f32], indices: &[u32]) -> Vec<f32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use zircon_runtime::asset::AssetUri;
 
     #[test]
     fn package_declares_gltf_importer() {
@@ -313,5 +317,111 @@ mod tests {
             .descriptors()
             .iter()
             .any(|importer| importer.id == "gltf_importer.gltf"));
+    }
+
+    #[test]
+    fn importer_decodes_triangle_gltf_into_model_asset() {
+        let root = unique_temp_root("gltf_importer_decode");
+        fs::create_dir_all(&root).unwrap();
+        let gltf_path = write_triangle_gltf(&root);
+        let source_bytes = fs::read(&gltf_path).unwrap();
+        let outcome = import_gltf(&AssetImportContext::new(
+            gltf_path,
+            AssetUri::parse("res://models/triangle.gltf").unwrap(),
+            source_bytes,
+            toml::Table::new(),
+        ))
+        .unwrap();
+
+        match outcome.imported_asset {
+            ImportedAsset::Model(model) => {
+                assert_eq!(model.primitives.len(), 1);
+                assert_eq!(model.primitives[0].vertices.len(), 3);
+                assert_eq!(model.primitives[0].indices, vec![0, 1, 2]);
+                let virtual_geometry = model.primitives[0]
+                    .virtual_geometry
+                    .as_ref()
+                    .expect("plugin importer should cook virtual geometry");
+                assert_eq!(
+                    virtual_geometry.debug.source_hint.as_deref(),
+                    Some("res://models/triangle.gltf")
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn unique_temp_root(label: &str) -> PathBuf {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        std::env::temp_dir().join(format!("zircon_plugin_{label}_{unique}"))
+    }
+
+    fn write_triangle_gltf(root: &Path) -> PathBuf {
+        let buffer_path = root.join("triangle.bin");
+        let gltf_path = root.join("triangle.gltf");
+
+        let mut bytes = Vec::new();
+        for value in [
+            0.0_f32, 0.0, 0.0, //
+            1.0, 0.0, 0.0, //
+            0.0, 1.0, 0.0,
+        ] {
+            bytes.extend_from_slice(&value.to_le_bytes());
+        }
+        for index in [0_u16, 1, 2] {
+            bytes.extend_from_slice(&index.to_le_bytes());
+        }
+        fs::write(&buffer_path, bytes).unwrap();
+
+        fs::write(
+            &gltf_path,
+            r#"{
+  "asset": { "version": "2.0" },
+  "buffers": [
+    { "uri": "triangle.bin", "byteLength": 42 }
+  ],
+  "bufferViews": [
+    { "buffer": 0, "byteOffset": 0, "byteLength": 36, "target": 34962 },
+    { "buffer": 0, "byteOffset": 36, "byteLength": 6, "target": 34963 }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 3,
+      "type": "VEC3",
+      "min": [0.0, 0.0, 0.0],
+      "max": [1.0, 1.0, 0.0]
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5123,
+      "count": 3,
+      "type": "SCALAR"
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": { "POSITION": 0 },
+          "indices": 1
+        }
+      ]
+    }
+  ],
+  "nodes": [{ "mesh": 0 }],
+  "scenes": [{ "nodes": [0] }],
+  "scene": 0
+}"#,
+        )
+        .unwrap();
+
+        gltf_path
     }
 }

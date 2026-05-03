@@ -4,9 +4,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::asset::{AssetUri, ProjectManifest};
 use crate::{
-    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
-    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimePluginCatalog, RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportPlatformHostKind,
+    plugin::ExportPlatformPluginStrategy, plugin::ExportPlatformResourceStrategy,
+    plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
+    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog,
+    RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]
@@ -116,6 +118,156 @@ fn export_plan_treats_animation_as_external_native_dynamic_package() {
 }
 
 #[test]
+fn mobile_and_web_targets_reject_native_dynamic_packaging() {
+    assert!(!ExportTargetPlatform::Android.supports_native_dynamic());
+    assert!(!ExportTargetPlatform::Ios.supports_native_dynamic());
+    assert!(!ExportTargetPlatform::WebGpu.supports_native_dynamic());
+    assert!(!ExportTargetPlatform::Wasm.supports_native_dynamic());
+
+    let web_policy = ExportTargetPlatform::WebGpu.policy();
+    assert_eq!(web_policy.host_kind, ExportPlatformHostKind::Browser);
+    assert_eq!(
+        web_policy.resource_strategy,
+        ExportPlatformResourceStrategy::BrowserFetch
+    );
+    assert_eq!(
+        web_policy.plugin_strategy,
+        ExportPlatformPluginStrategy::StaticSourceOrVmOnly
+    );
+
+    for platform in [
+        ExportTargetPlatform::Android,
+        ExportTargetPlatform::Ios,
+        ExportTargetPlatform::WebGpu,
+        ExportTargetPlatform::Wasm,
+    ] {
+        let mut manifest = ProjectManifest::new(
+            "Mobile Web Export Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.plugins = ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin(
+                RuntimePluginId::Sound,
+                true,
+                true,
+            )
+            .with_runtime_crate("zircon_plugin_sound_runtime")
+            .with_packaging(ExportPackagingStrategy::NativeDynamic)],
+        };
+        let profile_name = format!("native-{}", platform.as_str());
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategies([ExportPackagingStrategy::NativeDynamic])];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+
+        assert_eq!(plan.platform_policy.target_platform, platform);
+        assert_eq!(
+            plan.platform_policy.plugin_strategy,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly
+        );
+        assert!(
+            plan.native_dynamic_packages.is_empty(),
+            "{platform:?} should not export native dynamic packages"
+        );
+        assert!(plan.has_fatal_diagnostics());
+        assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic.contains(
+            &format!(
+                "export profile {profile_name} enables NativeDynamic but target platform {} does not support dynamic libraries",
+                platform.as_str()
+            )
+        )));
+        assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic.contains(
+            &format!(
+                "plugin sound uses NativeDynamic packaging but target platform {} does not support dynamic libraries",
+                platform.as_str()
+            )
+        )));
+        assert!(plan
+            .generated_files
+            .iter()
+            .all(|file| file.path != "plugins/native_plugins.toml"));
+    }
+}
+
+#[test]
+fn platform_target_policy_matches_host_resource_and_plugin_strategy() {
+    let all_cases = [
+        (
+            ExportTargetPlatform::Windows,
+            ExportPlatformHostKind::Desktop,
+            ExportPlatformResourceStrategy::FilesystemBundle,
+            ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            true,
+        ),
+        (
+            ExportTargetPlatform::Linux,
+            ExportPlatformHostKind::Desktop,
+            ExportPlatformResourceStrategy::FilesystemBundle,
+            ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            true,
+        ),
+        (
+            ExportTargetPlatform::Macos,
+            ExportPlatformHostKind::Desktop,
+            ExportPlatformResourceStrategy::FilesystemBundle,
+            ExportPlatformPluginStrategy::NativeDynamicAllowed,
+            true,
+        ),
+        (
+            ExportTargetPlatform::Android,
+            ExportPlatformHostKind::MobileApp,
+            ExportPlatformResourceStrategy::MobileAssetBundle,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            ExportPlatformHostKind::MobileApp,
+            ExportPlatformResourceStrategy::MobileAssetBundle,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            ExportPlatformHostKind::Browser,
+            ExportPlatformResourceStrategy::BrowserFetch,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            ExportPlatformHostKind::Browser,
+            ExportPlatformResourceStrategy::BrowserFetch,
+            ExportPlatformPluginStrategy::StaticSourceOrVmOnly,
+            false,
+        ),
+    ];
+    let requested_platform = std::env::var("ZR_EXPORT_CONTRACT_PLATFORM")
+        .ok()
+        .map(|value| export_target_platform_from_ci_name(&value));
+
+    for (platform, host_kind, resource_strategy, plugin_strategy, supports_native_dynamic) in
+        all_cases
+    {
+        if requested_platform.is_some_and(|requested| requested != platform) {
+            continue;
+        }
+        let policy = platform.policy();
+        assert_eq!(policy.target_platform, platform);
+        assert_eq!(policy.host_kind, host_kind);
+        assert_eq!(policy.resource_strategy, resource_strategy);
+        assert_eq!(policy.plugin_strategy, plugin_strategy);
+        assert_eq!(policy.supports_native_dynamic, supports_native_dynamic);
+        assert_eq!(platform.supports_native_dynamic(), supports_native_dynamic);
+    }
+}
+
+#[test]
 fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
     let mut manifest = ProjectManifest::new(
         "Editor Only Export Test",
@@ -150,6 +302,94 @@ fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
     assert!(!plugin_source.contains("runtime_diagnostics_runtime::plugin_registration()"));
     assert!(!plugin_source.contains("runtime_diagnostics_editor::plugin_registration()"));
     assert!(!cargo_manifest.contains("zircon_plugin_runtime_diagnostics_editor"));
+}
+
+#[test]
+fn source_template_links_runtime_backed_authoring_and_excludes_editor_only_authoring() {
+    let mut manifest = ProjectManifest::new(
+        "Authoring Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins =
+        RuntimePluginCatalog::builtin().complete_project_manifest(&ProjectPluginManifest {
+            selections: vec![
+                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Terrain, true, false),
+                ProjectPluginSelection::runtime_plugin(RuntimePluginId::Tilemap2d, true, false),
+                ProjectPluginSelection::runtime_plugin(RuntimePluginId::PrefabTools, true, false),
+                ProjectPluginSelection {
+                    id: "material_editor".to_string(),
+                    enabled: true,
+                    required: false,
+                    target_modes: vec![RuntimeTargetMode::EditorHost],
+                    packaging: ExportPackagingStrategy::LibraryEmbed,
+                    runtime_crate: None,
+                    editor_crate: Some("zircon_plugin_material_editor_editor".to_string()),
+                    features: Vec::new(),
+                },
+                ProjectPluginSelection {
+                    id: "timeline_sequence".to_string(),
+                    enabled: true,
+                    required: false,
+                    target_modes: vec![RuntimeTargetMode::EditorHost],
+                    packaging: ExportPackagingStrategy::LibraryEmbed,
+                    runtime_crate: None,
+                    editor_crate: Some("zircon_plugin_timeline_sequence_editor".to_string()),
+                    features: Vec::new(),
+                },
+                ProjectPluginSelection {
+                    id: "animation_graph".to_string(),
+                    enabled: true,
+                    required: false,
+                    target_modes: vec![RuntimeTargetMode::EditorHost],
+                    packaging: ExportPackagingStrategy::LibraryEmbed,
+                    runtime_crate: None,
+                    editor_crate: Some("zircon_plugin_animation_graph_editor".to_string()),
+                    features: Vec::new(),
+                },
+            ],
+        });
+    manifest.export_profiles = vec![ExportProfile::new(
+        "editor",
+        RuntimeTargetMode::EditorHost,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "editor").unwrap();
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+    let cargo_manifest = generated_file(&plan, "Cargo.toml");
+
+    assert!(plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_terrain_runtime".to_string()));
+    assert!(plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_tilemap_2d_runtime".to_string()));
+    assert!(plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_prefab_tools_runtime".to_string()));
+    assert!(!plan
+        .linked_runtime_crates
+        .iter()
+        .any(|crate_name| crate_name.contains("material_editor")
+            || crate_name.contains("timeline_sequence")
+            || crate_name.contains("animation_graph")));
+    assert!(plugin_source.contains("zircon_plugin_terrain_runtime::plugin_registration()"));
+    assert!(plugin_source.contains("zircon_plugin_tilemap_2d_runtime::plugin_registration()"));
+    assert!(plugin_source.contains("zircon_plugin_prefab_tools_runtime::plugin_registration()"));
+    assert!(!plugin_source.contains("zircon_plugin_material_editor_editor::plugin_registration()"));
+    assert!(
+        !plugin_source.contains("zircon_plugin_timeline_sequence_editor::plugin_registration()")
+    );
+    assert!(!plugin_source.contains("zircon_plugin_animation_graph_editor::plugin_registration()"));
+    assert!(cargo_manifest.contains("zircon_plugin_terrain_runtime"));
+    assert!(cargo_manifest.contains("zircon_plugin_tilemap_2d_runtime"));
+    assert!(cargo_manifest.contains("zircon_plugin_prefab_tools_runtime"));
+    assert!(!cargo_manifest.contains("zircon_plugin_material_editor_editor"));
+    assert!(!cargo_manifest.contains("zircon_plugin_timeline_sequence_editor"));
+    assert!(!cargo_manifest.contains("zircon_plugin_animation_graph_editor"));
 }
 
 #[test]
@@ -269,6 +509,9 @@ fn source_template_with_native_dynamic_merges_native_loader_reports() {
     );
     assert!(main_source
         .contains("registrations.extend(native_report.runtime_plugin_registration_reports())"));
+    assert!(main_source.contains(
+        "feature_registrations.extend(native_report.runtime_plugin_feature_registration_reports())"
+    ));
     assert!(plugin_source.contains("zircon_plugin_sound_runtime::plugin_registration()"));
     assert!(
         !plugin_source.contains("zircon_plugin_virtual_geometry_runtime::plugin_registration()")
@@ -325,6 +568,145 @@ fn source_template_links_active_optional_feature_runtime_crates() {
     assert!(main_source.contains("zircon_plugins::runtime_plugin_feature_registrations()"));
     assert!(main_source
         .contains("EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations"));
+}
+
+#[test]
+fn source_template_links_external_feature_provider_runtime_crates() {
+    let mut manifest = ProjectManifest::new(
+        "External Feature Provider Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_runtime_crate("zircon_plugin_sound_runtime")
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true)
+                        .with_provider_package_id("sound_timeline_animation_track")
+                        .with_runtime_crate("zircon_plugin_sound_timeline_animation_runtime"),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false)
+                .with_runtime_crate("zircon_plugin_animation_runtime"),
+            external_feature_provider_selection("sound_timeline_animation_track", true),
+        ],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategy(ExportPackagingStrategy::SourceTemplate)
+    .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let plugin_source = generated_file(&plan, "src/zircon_plugins.rs");
+    let cargo_manifest = generated_file(&plan, "Cargo.toml");
+
+    assert!(plan
+        .linked_runtime_crates
+        .contains(&"zircon_plugin_sound_timeline_animation_runtime".to_string()));
+    assert!(
+        cargo_manifest.contains(
+            "zircon_plugin_sound_timeline_animation_runtime = { path = \"../../zircon_plugins/sound_timeline_animation_track/runtime\" }"
+        ),
+        "{cargo_manifest}"
+    );
+    assert!(plugin_source
+        .contains("zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration()"));
+    assert!(plugin_source.contains(
+        "zircon_plugin_sound_timeline_animation_runtime::plugin_feature_registration().with_provider_package_id(\"sound_timeline_animation_track\")"
+    ));
+    assert!(!plan
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("feature is not declared by the plugin catalog")));
+}
+
+#[test]
+fn native_dynamic_exports_external_feature_provider_package_without_native_owner() {
+    let mut manifest = ProjectManifest::new(
+        "External Native Feature Provider Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true)
+                        .with_provider_package_id("sound_timeline_animation_track")
+                        .with_packaging(ExportPackagingStrategy::NativeDynamic),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false),
+            external_feature_provider_selection("sound_timeline_animation_track", true),
+        ],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+        ExportPackagingStrategy::NativeDynamic,
+    ])];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+    let native_manifest = generated_file(&plan, "plugins/native_plugins.toml");
+
+    assert_eq!(
+        plan.native_dynamic_packages,
+        vec!["sound_timeline_animation_track".to_string()]
+    );
+    assert!(native_manifest.contains("id = \"sound_timeline_animation_track\""));
+    assert!(!plan
+        .diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.contains("owner plugin sound is not NativeDynamic")));
+}
+
+#[test]
+fn source_template_reports_native_dynamic_feature_without_native_owner_as_fatal_when_required() {
+    let mut manifest = ProjectManifest::new(
+        "Native Dynamic Feature Export Test",
+        AssetUri::parse("res://scenes/main.zscene").unwrap(),
+        1,
+    );
+    manifest.plugins = ProjectPluginManifest {
+        selections: vec![
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Sound, true, false)
+                .with_feature(
+                    ProjectPluginFeatureSelection::new("sound.timeline_animation_track")
+                        .enabled(true)
+                        .required(true)
+                        .with_packaging(ExportPackagingStrategy::NativeDynamic),
+                ),
+            ProjectPluginSelection::runtime_plugin(RuntimePluginId::Animation, true, false),
+        ],
+    };
+    manifest.export_profiles = vec![ExportProfile::new(
+        "client",
+        RuntimeTargetMode::ClientRuntime,
+        ExportTargetPlatform::Windows,
+    )
+    .with_strategies([
+        ExportPackagingStrategy::SourceTemplate,
+        ExportPackagingStrategy::LibraryEmbed,
+        ExportPackagingStrategy::NativeDynamic,
+    ])];
+
+    let plan = ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap();
+
+    assert!(plan.diagnostics.iter().any(|diagnostic| diagnostic.contains(
+        "optional feature sound.timeline_animation_track uses NativeDynamic packaging but owner plugin sound is not NativeDynamic"
+    )));
+    assert!(plan.fatal_diagnostics.iter().any(|diagnostic| diagnostic.contains(
+        "optional feature sound.timeline_animation_track uses NativeDynamic packaging but owner plugin sound is not NativeDynamic"
+    )));
 }
 
 #[test]
@@ -683,6 +1065,19 @@ fn generated_file<'a>(plan: &'a ExportBuildPlan, path: &str) -> &'a str {
         .unwrap_or_else(|| panic!("missing generated file {path}"))
 }
 
+fn export_target_platform_from_ci_name(value: &str) -> ExportTargetPlatform {
+    match value {
+        "windows" => ExportTargetPlatform::Windows,
+        "linux" => ExportTargetPlatform::Linux,
+        "macos" => ExportTargetPlatform::Macos,
+        "android" => ExportTargetPlatform::Android,
+        "ios" => ExportTargetPlatform::Ios,
+        "web_gpu" => ExportTargetPlatform::WebGpu,
+        "wasm" => ExportTargetPlatform::Wasm,
+        other => panic!("unknown export target platform {other}"),
+    }
+}
+
 fn native_dynamic_plan() -> ExportBuildPlan {
     let mut manifest = ProjectManifest::new(
         "Native Dynamic Materialize Test",
@@ -705,6 +1100,22 @@ fn native_dynamic_plan() -> ExportBuildPlan {
     )
     .with_strategies([ExportPackagingStrategy::NativeDynamic])];
     ExportBuildPlan::from_project_manifest(&manifest, "client").unwrap()
+}
+
+fn external_feature_provider_selection(package_id: &str, enabled: bool) -> ProjectPluginSelection {
+    ProjectPluginSelection {
+        id: package_id.to_string(),
+        enabled,
+        required: false,
+        target_modes: vec![
+            RuntimeTargetMode::ClientRuntime,
+            RuntimeTargetMode::EditorHost,
+        ],
+        packaging: ExportPackagingStrategy::LibraryEmbed,
+        runtime_crate: None,
+        editor_crate: None,
+        features: Vec::new(),
+    }
 }
 
 fn sound_plugin_manifest() -> &'static str {

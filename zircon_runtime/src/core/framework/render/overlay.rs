@@ -89,6 +89,28 @@ pub struct SceneGizmoOverlayExtract {
     pub pick_shapes: Vec<OverlayPickShape>,
 }
 
+impl SceneGizmoOverlayExtract {
+    pub fn new(
+        owner: EntityId,
+        kind: SceneGizmoKind,
+        selected: bool,
+        lines: Vec<OverlayLineSegment>,
+        wire_shapes: Vec<OverlayWireShape>,
+        icons: Vec<OverlayBillboardIcon>,
+        pick_shapes: Vec<OverlayPickShape>,
+    ) -> Self {
+        Self {
+            owner,
+            kind,
+            selected,
+            lines,
+            wire_shapes,
+            icons,
+            pick_shapes,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct SelectionHighlightExtract {
     pub owner: EntityId,

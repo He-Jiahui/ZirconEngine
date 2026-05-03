@@ -49,6 +49,29 @@ impl ParticleAnimationEvent {
         }
     }
 
+    pub fn timed_emission_begin(entity: EntityId) -> Self {
+        Self {
+            entity,
+            handle: None,
+            kind: ParticleAnimationEventKind::TimedEmissionBegin,
+            bindings: Vec::new(),
+        }
+    }
+
+    pub fn timed_emission_end(entity: EntityId) -> Self {
+        Self {
+            entity,
+            handle: None,
+            kind: ParticleAnimationEventKind::TimedEmissionEnd,
+            bindings: Vec::new(),
+        }
+    }
+
+    pub fn with_handle(mut self, handle: ParticleEmitterHandle) -> Self {
+        self.handle = Some(handle);
+        self
+    }
+
     pub fn with_binding(mut self, binding: ParticleAnimationBinding) -> Self {
         self.bindings.push(binding);
         self

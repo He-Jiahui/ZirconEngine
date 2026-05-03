@@ -20,6 +20,7 @@ pub(super) fn side_pane(
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
 ) -> PaneData {
     let stack = slots
         .iter()
@@ -66,6 +67,7 @@ pub(super) fn side_pane(
         animation_panes.get(&tab.instance_id.0),
         runtime_diagnostics,
         module_plugins,
+        build_export,
     )
 }
 
@@ -82,6 +84,7 @@ pub(crate) fn document_pane(
     >,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
 ) -> PaneData {
     let tab = model
         .document_tabs
@@ -104,6 +107,7 @@ pub(crate) fn document_pane(
         animation_panes.get(&tab.instance_id.0),
         runtime_diagnostics,
         module_plugins,
+        build_export,
     )
 }
 
@@ -120,6 +124,7 @@ pub(super) fn pane_from_tab(
     animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
 ) -> PaneData {
     let (subtitle, info, show_toolbar) = pane_metadata(kind, snapshot, chrome);
     let viewport = match kind {
@@ -188,6 +193,7 @@ pub(super) fn pane_from_tab(
         Some(&animation_pane),
         runtime_diagnostics,
         module_plugins,
+        build_export,
     );
 
     PaneData {
@@ -216,6 +222,7 @@ pub(super) fn pane_from_tab(
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
             module_plugins: module_plugins.clone(),
+            build_export: build_export.clone(),
             ui_asset: ui_asset_pane,
             animation: animation_pane_data(animation_pane),
         },
@@ -312,6 +319,7 @@ pub(super) fn blank_pane() -> PaneData {
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
             module_plugins: ModulePluginsPaneViewData::default(),
+            build_export: BuildExportPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
             animation: animation_pane_data(
                 crate::ui::animation_editor::AnimationEditorPanePresentation::default(),
@@ -334,6 +342,7 @@ fn build_pane_presentation(
     animation_pane: Option<&crate::ui::animation_editor::AnimationEditorPanePresentation>,
     runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
     module_plugins: &ModulePluginsPaneViewData,
+    build_export: &BuildExportPaneViewData,
 ) -> Option<PanePresentation> {
     let pane_template = snapshot.and_then(|snapshot| snapshot.pane_template.as_ref())?;
     let mut context = PanePayloadBuildContext::new(chrome);
@@ -344,6 +353,7 @@ fn build_pane_presentation(
         context = context.with_runtime_diagnostics(runtime_diagnostics);
     }
     context = context.with_module_plugins(module_plugins);
+    context = context.with_build_export(build_export);
 
     Some(PanePresentation::new(
         PaneShellPresentation::new(
@@ -450,6 +460,11 @@ fn pane_metadata(
             "Builtin and native plugin packages".to_string(),
             false,
         ),
+        ViewContentKind::BuildExport => (
+            "Desktop Targets".to_string(),
+            "Windows, Linux, and macOS export plans".to_string(),
+            false,
+        ),
         ViewContentKind::PrefabEditor => (
             payload_path(snapshot).unwrap_or_else(|| "Prefab Workspace".to_string()),
             "Prefab editor host slot is ready. Asset-specific tooling is still placeholder.".into(),
@@ -511,40 +526,58 @@ fn hierarchy_pane_data(chrome: &EditorChromeSnapshot) -> HierarchyPaneViewData {
 }
 
 fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPaneViewData {
+    let inspector = chrome.inspector.as_ref();
     InspectorPaneViewData {
         nodes: Default::default(),
         info: SharedString::from(info),
-        inspector_name: chrome
-            .inspector
-            .as_ref()
+        inspector_name: inspector
             .map(|inspector| inspector.name.clone())
             .unwrap_or_default()
             .into(),
-        inspector_parent: chrome
-            .inspector
-            .as_ref()
+        inspector_parent: inspector
             .map(|inspector| inspector.parent.clone())
             .unwrap_or_default()
             .into(),
-        inspector_x: chrome
-            .inspector
-            .as_ref()
+        inspector_x: inspector
             .map(|inspector| inspector.translation[0].clone())
             .unwrap_or_default()
             .into(),
-        inspector_y: chrome
-            .inspector
-            .as_ref()
+        inspector_y: inspector
             .map(|inspector| inspector.translation[1].clone())
             .unwrap_or_default()
             .into(),
-        inspector_z: chrome
-            .inspector
-            .as_ref()
+        inspector_z: inspector
             .map(|inspector| inspector.translation[2].clone())
             .unwrap_or_default()
             .into(),
         delete_enabled: chrome.inspector.is_some(),
+        plugin_components: inspector
+            .map(|inspector| {
+                inspector
+                    .plugin_components
+                    .iter()
+                    .map(|component| super::InspectorPluginComponentViewData {
+                        component_id: component.component_id.clone(),
+                        display_name: component.display_name.clone(),
+                        plugin_id: component.plugin_id.clone(),
+                        drawer_available: component.drawer_available,
+                        diagnostic: component.diagnostic.clone(),
+                        properties: component
+                            .properties
+                            .iter()
+                            .map(|property| super::InspectorPluginComponentPropertyViewData {
+                                field_id: property.field_id.clone(),
+                                name: property.name.clone(),
+                                label: property.label.clone(),
+                                value: property.value.clone(),
+                                value_kind: property.value_kind.clone(),
+                                editable: property.editable,
+                            })
+                            .collect(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default(),
     }
 }
 
@@ -591,6 +624,7 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
         ViewContentKind::RuntimeDiagnostics => "RuntimeDiagnostics",
         ViewContentKind::ModulePlugins => "ModulePlugins",
+        ViewContentKind::BuildExport => "BuildExport",
         ViewContentKind::Placeholder => "Placeholder",
     }
 }

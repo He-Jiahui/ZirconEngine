@@ -8,13 +8,16 @@ use super::super::errors::asset_error_message;
 use super::ProjectAssetManager;
 use crate::asset::project::ProjectManager;
 use crate::asset::worker_pool::AssetWorkerPool;
-use crate::asset::{AssetId, AssetImporterHandler, AssetUri, ShaderAsset};
+#[cfg(test)]
+use crate::asset::AssetImporter;
+use crate::asset::{AssetId, AssetImporterHandler, AssetImporterRegistry, AssetUri, ShaderAsset};
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
         Self {
             default_worker_count: default_worker_count_for_system(),
             project: Arc::new(RwLock::new(None)),
+            asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher: Arc::new(Mutex::new(None)),
@@ -27,6 +30,7 @@ impl ProjectAssetManager {
         Self {
             default_worker_count: default_worker_count.max(1),
             project: Arc::new(RwLock::new(None)),
+            asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
             watcher: Arc::new(Mutex::new(None)),
@@ -49,13 +53,46 @@ impl ProjectAssetManager {
         &self,
         importer: impl AssetImporterHandler + 'static,
     ) -> Result<(), CoreError> {
+        self.register_asset_importer_arc(Arc::new(importer))
+    }
+
+    pub fn register_asset_importer_arc(
+        &self,
+        importer: Arc<dyn AssetImporterHandler>,
+    ) -> Result<(), CoreError> {
+        {
+            let project = self.project_read();
+            if let Some(project) = project.as_ref() {
+                let mut active_registry = project.importer().registry().clone();
+                active_registry
+                    .register_arc(importer.clone())
+                    .map_err(|error| asset_error_message(error.to_string()))?;
+            }
+        }
+
+        self.asset_importers
+            .write()
+            .expect("asset importer registry lock poisoned")
+            .register_arc(importer.clone())
+            .map_err(|error| asset_error_message(error.to_string()))?;
+
         let mut project = self.project_write();
-        let Some(project) = project.as_mut() else {
-            return Err(asset_error_message("no project is currently open"));
-        };
-        project
-            .register_asset_importer(importer)
-            .map_err(|error| asset_error_message(error.to_string()))
+        if let Some(project) = project.as_mut() {
+            project
+                .register_asset_importer_arc(importer)
+                .map_err(|error| asset_error_message(error.to_string()))?;
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn register_first_wave_plugin_fixture_importers_for_test(
+        &self,
+    ) -> Result<(), CoreError> {
+        for importer in AssetImporter::first_wave_plugin_fixture_importers_for_test() {
+            self.register_asset_importer(importer)?;
+        }
+        Ok(())
     }
 
     pub fn resolve_asset_id(&self, uri: &AssetUri) -> Option<AssetId> {

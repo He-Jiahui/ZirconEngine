@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::asset::AssetImporterRegistry;
 use crate::engine_module::EngineModule;
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
@@ -38,6 +39,12 @@ pub enum RuntimePluginId {
     Terrain,
     Tilemap2d,
     PrefabTools,
+    GltfImporter,
+    ObjImporter,
+    TextureImporter,
+    AudioImporter,
+    ShaderWgslImporter,
+    UiDocumentImporter,
     Rendering,
     VirtualGeometry,
     HybridGi,
@@ -57,6 +64,12 @@ impl RuntimePluginId {
             Self::Terrain => "terrain",
             Self::Tilemap2d => "tilemap_2d",
             Self::PrefabTools => "prefab_tools",
+            Self::GltfImporter => "gltf_importer",
+            Self::ObjImporter => "obj_importer",
+            Self::TextureImporter => "texture_importer",
+            Self::AudioImporter => "audio_importer",
+            Self::ShaderWgslImporter => "shader_wgsl_importer",
+            Self::UiDocumentImporter => "ui_document_importer",
             Self::Rendering => "rendering",
             Self::VirtualGeometry => "virtual_geometry",
             Self::HybridGi => "hybrid_gi",
@@ -76,6 +89,12 @@ impl RuntimePluginId {
             Self::Terrain => "Terrain",
             Self::Tilemap2d => "Tilemap2d",
             Self::PrefabTools => "PrefabTools",
+            Self::GltfImporter => "GltfImporter",
+            Self::ObjImporter => "ObjImporter",
+            Self::TextureImporter => "TextureImporter",
+            Self::AudioImporter => "AudioImporter",
+            Self::ShaderWgslImporter => "ShaderWgslImporter",
+            Self::UiDocumentImporter => "UiDocumentImporter",
             Self::Rendering => "Rendering",
             Self::VirtualGeometry => "VirtualGeometry",
             Self::HybridGi => "HybridGi",
@@ -95,6 +114,14 @@ impl RuntimePluginId {
             "terrain" => Some(Self::Terrain),
             "tilemap_2d" | "tilemap" | "tile_map_2d" => Some(Self::Tilemap2d),
             "prefab_tools" | "prefab" | "prefabs" => Some(Self::PrefabTools),
+            "gltf_importer" | "gltf" | "glb_importer" => Some(Self::GltfImporter),
+            "obj_importer" | "obj" | "wavefront_obj" => Some(Self::ObjImporter),
+            "texture_importer" | "image_importer" => Some(Self::TextureImporter),
+            "audio_importer" | "sound_importer" | "wav_importer" => Some(Self::AudioImporter),
+            "shader_wgsl_importer" | "wgsl_importer" => Some(Self::ShaderWgslImporter),
+            "ui_document_importer" | "ui_importer" | "ui_asset_importer" => {
+                Some(Self::UiDocumentImporter)
+            }
             "rendering" | "renderer" | "graphics" => Some(Self::Rendering),
             "vg" | "virtual_geometry" => Some(Self::VirtualGeometry),
             "gi" | "hybrid_gi" => Some(Self::HybridGi),
@@ -155,28 +182,42 @@ pub fn runtime_core_modules() -> Vec<Arc<dyn EngineModule>> {
 }
 
 fn runtime_core_modules_for_target(target: RuntimeTargetMode) -> Vec<Arc<dyn EngineModule>> {
-    runtime_core_modules_for_target_with_render_features(target, &[], &[], &[])
+    runtime_core_modules_for_target_with_render_features(
+        target,
+        &AssetImporterRegistry::default(),
+        &[],
+        &[],
+        &[],
+        &[],
+    )
 }
 
 fn runtime_core_modules_for_target_with_render_features(
     target: RuntimeTargetMode,
+    asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
     render_pass_executors: &[RenderPassExecutorRegistration],
+    hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(foundation::FoundationModule),
         Arc::new(platform::PlatformModule),
         Arc::new(input::InputModule),
-        Arc::new(asset::AssetModule),
+        Arc::new(asset::AssetModule::with_asset_importers(
+            asset_importers.clone(),
+        )),
         Arc::new(scene::SceneModule),
     ];
     if target != RuntimeTargetMode::ServerRuntime {
-        modules.push(Arc::new(graphics::GraphicsModule::with_render_extensions(
-            render_features.iter().cloned(),
-            render_pass_executors.iter().cloned(),
-            virtual_geometry_runtime_providers.iter().cloned(),
-        )));
+        modules.push(Arc::new(
+            graphics::GraphicsModule::with_render_extensions_and_runtime_providers(
+                render_features.iter().cloned(),
+                render_pass_executors.iter().cloned(),
+                hybrid_gi_runtime_providers.iter().cloned(),
+                virtual_geometry_runtime_providers.iter().cloned(),
+            ),
+        ));
     }
     modules.push(Arc::new(script::ScriptModule));
     modules
@@ -202,6 +243,8 @@ pub fn runtime_modules_for_target_with_linked_plugins(
         target,
         manifest_override,
         linked_plugin_ids,
+        &AssetImporterRegistry::default(),
+        &[],
         &[],
         &[],
         &[],
@@ -238,6 +281,16 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
                 .cloned()
         })
         .collect::<Vec<_>>();
+    let hybrid_gi_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .hybrid_gi_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
     let virtual_geometry_runtime_providers = registrations
         .iter()
         .flat_map(|registration| {
@@ -248,14 +301,23 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
                 .cloned()
         })
         .collect::<Vec<_>>();
-    runtime_modules_for_target_with_linked_plugins_and_render_features(
+    let (asset_importers, asset_importer_errors) = asset_importers_from_extension_registries(
+        registrations
+            .iter()
+            .map(|registration| &registration.extensions),
+    );
+    let mut report = runtime_modules_for_target_with_linked_plugins_and_render_features(
         target,
         manifest_override,
         linked_plugin_ids,
+        &asset_importers,
         &render_features,
         &render_pass_executors,
+        &hybrid_gi_runtime_providers,
         &virtual_geometry_runtime_providers,
-    )
+    );
+    report.errors.extend(asset_importer_errors);
+    report
 }
 
 pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'a>(
@@ -325,6 +387,27 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
                 }),
         )
         .collect::<Vec<_>>();
+    let hybrid_gi_runtime_providers = active_registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .hybrid_gi_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| {
+                    registration
+                        .extensions
+                        .hybrid_gi_runtime_providers()
+                        .iter()
+                        .cloned()
+                }),
+        )
+        .collect::<Vec<_>>();
     let virtual_geometry_runtime_providers = active_registrations
         .iter()
         .flat_map(|registration| {
@@ -346,12 +429,24 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
                 }),
         )
         .collect::<Vec<_>>();
+    let (asset_importers, asset_importer_errors) = asset_importers_from_extension_registries(
+        active_registrations
+            .iter()
+            .map(|registration| &registration.extensions)
+            .chain(
+                active_feature_registrations
+                    .iter()
+                    .map(|registration| &registration.extensions),
+            ),
+    );
     let mut report = runtime_modules_for_target_with_linked_plugins_and_render_features(
         target,
         Some(&manifest),
         linked_plugin_ids,
+        &asset_importers,
         &render_features,
         &render_pass_executors,
+        &hybrid_gi_runtime_providers,
         &virtual_geometry_runtime_providers,
     );
     for blocked in feature_report.blocked_features {
@@ -362,6 +457,7 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
         }
     }
     report.errors.extend(feature_report.diagnostics);
+    report.errors.extend(asset_importer_errors);
     report
 }
 
@@ -369,8 +465,10 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     target: RuntimeTargetMode,
     manifest_override: Option<&ProjectPluginManifest>,
     linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
     render_pass_executors: &[RenderPassExecutorRegistration],
+    hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
     let linked_plugin_ids = linked_plugin_ids
@@ -380,8 +478,10 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     let mut report =
         RuntimeModuleLoadReport::new(runtime_core_modules_for_target_with_render_features(
             target,
+            asset_importers,
             render_features,
             render_pass_executors,
+            hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
         ));
     let manifest = manifest_with_mode_baseline(target, manifest_override);
@@ -431,6 +531,21 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
         }
     }
     report
+}
+
+fn asset_importers_from_extension_registries<'a>(
+    registries: impl IntoIterator<Item = &'a crate::plugin::RuntimeExtensionRegistry>,
+) -> (AssetImporterRegistry, Vec<String>) {
+    let mut asset_importers = AssetImporterRegistry::default();
+    let mut errors = Vec::new();
+    for registry in registries {
+        for importer in registry.asset_importers().importers() {
+            if let Err(error) = asset_importers.register_arc(importer) {
+                errors.push(format!("asset importer registration failed: {error}"));
+            }
+        }
+    }
+    (asset_importers, errors)
 }
 
 pub fn manifest_with_mode_baseline(
@@ -541,6 +656,30 @@ fn module_for_plugin(
         }
         RuntimePluginId::PrefabTools => {
             warnings.push(externalized_runtime_plugin_message("prefab_tools"));
+            None
+        }
+        RuntimePluginId::GltfImporter => {
+            warnings.push(externalized_runtime_plugin_message("gltf_importer"));
+            None
+        }
+        RuntimePluginId::ObjImporter => {
+            warnings.push(externalized_runtime_plugin_message("obj_importer"));
+            None
+        }
+        RuntimePluginId::TextureImporter => {
+            warnings.push(externalized_runtime_plugin_message("texture_importer"));
+            None
+        }
+        RuntimePluginId::AudioImporter => {
+            warnings.push(externalized_runtime_plugin_message("audio_importer"));
+            None
+        }
+        RuntimePluginId::ShaderWgslImporter => {
+            warnings.push(externalized_runtime_plugin_message("shader_wgsl_importer"));
+            None
+        }
+        RuntimePluginId::UiDocumentImporter => {
+            warnings.push(externalized_runtime_plugin_message("ui_document_importer"));
             None
         }
         RuntimePluginId::Rendering => {

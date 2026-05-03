@@ -2,6 +2,7 @@ id = "sound"
 version = "0.1.0"
 display_name = "Sound"
 description = "Optional runtime audio and editor sound authoring package."
+content_roots = ["editor"]
 default_packaging = ["source_template", "library_embed"]
 
 [[dependencies]]
@@ -67,10 +68,35 @@ value_type = "bool"
 default_value = "false"
 
 [[options]]
+key = "sound.hrtf_profile"
+display_name = "HRTF Profile"
+value_type = "string"
+default_value = "default"
+
+[[options]]
 key = "sound.convolution_enabled"
 display_name = "Convolution Reverb"
 value_type = "bool"
 default_value = "true"
+
+[[options]]
+key = "sound.convolution_budget.max_impulse_responses"
+display_name = "Max Impulse Responses"
+value_type = "integer"
+default_value = "32"
+
+[[options]]
+key = "sound.convolution_budget.max_partition_frames"
+display_name = "Max Convolution Partition Frames"
+value_type = "integer"
+default_value = "1024"
+
+[[options]]
+key = "sound.convolution_budget.rays_per_update"
+display_name = "Convolution Rays Per Update"
+value_type = "integer"
+default_value = "0"
+required_capability = "runtime.capability.ray_query"
 
 [[options]]
 key = "sound.ray_tracing_quality"
@@ -78,6 +104,12 @@ display_name = "Ray Tracing Quality"
 value_type = "enum"
 default_value = "disabled"
 required_capability = "runtime.capability.ray_query"
+
+[[options]]
+key = "sound.default_mixer_preset"
+display_name = "Default Mixer Preset"
+value_type = "string"
+default_value = "sound://mixer/default"
 
 [[options]]
 key = "sound.timeline_integration"

@@ -123,6 +123,7 @@ fn animation_pane(
             asset_browser: Default::default(),
             project_overview: Default::default(),
             module_plugins: Default::default(),
+            build_export: Default::default(),
             ui_asset: Default::default(),
             animation: AnimationEditorPaneViewData {
                 nodes: slint::ModelRc::default(),

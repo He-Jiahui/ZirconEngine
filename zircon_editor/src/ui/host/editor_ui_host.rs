@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use zircon_runtime::core::CoreHandle;
 
@@ -35,6 +35,50 @@ pub(super) struct EditorUiHost {
 }
 
 impl EditorUiHost {
+    fn recover_lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+        mutex
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub(super) fn lock_view_registry(&self) -> MutexGuard<'_, ViewRegistry> {
+        Self::recover_lock(&self.view_registry)
+    }
+
+    pub(super) fn lock_window_host_manager(&self) -> MutexGuard<'_, WindowHostManager> {
+        Self::recover_lock(&self.window_host_manager)
+    }
+
+    pub(super) fn lock_session(&self) -> MutexGuard<'_, EditorSessionState> {
+        Self::recover_lock(&self.session)
+    }
+
+    pub(super) fn lock_animation_editor_sessions(
+        &self,
+    ) -> MutexGuard<'_, BTreeMap<ViewInstanceId, AnimationEditorWorkspaceEntry>> {
+        Self::recover_lock(&self.animation_editor_sessions)
+    }
+
+    pub(super) fn lock_ui_asset_sessions(
+        &self,
+    ) -> MutexGuard<'_, BTreeMap<ViewInstanceId, UiAssetWorkspaceEntry>> {
+        Self::recover_lock(&self.ui_asset_sessions)
+    }
+
+    pub(super) fn lock_ui_asset_workspace_watcher(
+        &self,
+    ) -> MutexGuard<'_, Option<UiAssetWorkspaceWatcher>> {
+        Self::recover_lock(&self.ui_asset_workspace_watcher)
+    }
+
+    pub(super) fn lock_subsystem_report(&self) -> MutexGuard<'_, EditorSubsystemReport> {
+        Self::recover_lock(&self.subsystem_report)
+    }
+
+    pub(super) fn lock_capability_snapshot(&self) -> MutexGuard<'_, EditorCapabilitySnapshot> {
+        Self::recover_lock(&self.capability_snapshot)
+    }
+
     pub(super) fn new(core: CoreHandle) -> Self {
         let minimal_report = editor_host_minimal_contract().self_check();
         let subsystem_report = editor_subsystem_report_from_core(&core);
@@ -70,8 +114,8 @@ impl EditorUiHost {
         let subsystem_report = editor_subsystem_report_from_core(&self.core);
         let snapshot =
             EditorCapabilitySnapshot::from_reports(&self.minimal_report, &subsystem_report);
-        *self.subsystem_report.lock().unwrap() = subsystem_report;
-        *self.capability_snapshot.lock().unwrap() = snapshot.clone();
+        *self.lock_subsystem_report() = subsystem_report;
+        *self.lock_capability_snapshot() = snapshot.clone();
         self.register_builtin_views()?;
         Ok(snapshot)
     }

@@ -33,7 +33,7 @@ pub(crate) fn apply_inspector_component_envelope(
             reason: format!("inspector adapter requires subject {SELECTED_ENTITY_SUBJECT}"),
         });
     }
-    validate_field_path(envelope)?;
+    validate_field_path(state, envelope)?;
 
     match &envelope.event {
         UiComponentEvent::ValueChanged { property, value }
@@ -50,13 +50,17 @@ pub(crate) fn apply_inspector_component_envelope(
     }
 }
 
-fn validate_field_path(envelope: &UiComponentEventEnvelope) -> Result<(), UiComponentAdapterError> {
+fn validate_field_path(
+    state: &EditorState,
+    envelope: &UiComponentEventEnvelope,
+) -> Result<(), UiComponentAdapterError> {
     match envelope.target.path.as_str() {
         "name"
         | "parent"
         | "transform.translation.x"
         | "transform.translation.y"
         | "transform.translation.z" => Ok(()),
+        other if state.can_edit_dynamic_component_field(other) => Ok(()),
         _ => Err(UiComponentAdapterError::UnsupportedTargetPath {
             domain: envelope.target.domain.clone(),
             path: envelope.target.path.clone(),

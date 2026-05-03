@@ -2,9 +2,10 @@ use std::collections::{HashMap, HashSet};
 
 use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::core::framework::sound::{
-    SoundAttenuationMode, SoundError, SoundImpulseResponseId, SoundListenerDescriptor,
-    SoundMixBlock, SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceInput,
-    SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
+    ExternalAudioSourceHandle, SoundAttenuationMode, SoundError, SoundExternalSourceBlock,
+    SoundImpulseResponseId, SoundListenerDescriptor, SoundMixBlock, SoundParameterId,
+    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceInput, SoundTrackId,
+    SoundVolumeDescriptor, SoundVolumeShape,
 };
 
 use crate::SoundConfig;
@@ -12,10 +13,14 @@ use crate::SoundConfig;
 use super::dsp::{apply_track_controls, apply_track_effects, meter_for};
 use super::state::{ActivePlayback, SoundEngineState, SourceVoice};
 use super::validation::{track_render_order, validate_graph};
+use super::SoundEffectStateKey;
 
 const OCCLUSION_FALLBACK_GAIN: f32 = 0.7;
 const SPEED_OF_SOUND_METERS_PER_SECOND: f32 = 343.0;
 const MAX_DOPPLER_PREVIEW_GAIN_OFFSET: f32 = 0.1;
+const HRTF_PREVIEW_GAIN_MIN: f32 = 0.5;
+const HRTF_PREVIEW_GAIN_MAX: f32 = 1.5;
+const HRTF_PREVIEW_MAX_DELAY_FRAMES: usize = 64;
 
 impl SoundEngineState {
     pub(crate) fn render_mix(
@@ -27,6 +32,8 @@ impl SoundEngineState {
             return Err(SoundError::InvalidMixRequest { frames });
         }
         validate_graph(&self.graph)?;
+        sync_runtime_states(self);
+        self.latency_frames = latency_frames_for_graph(&self.graph);
 
         let channels = config.channel_count.max(1) as usize;
         let samples_len = frames.saturating_mul(channels);
@@ -63,9 +70,12 @@ impl SoundEngineState {
                     &pre_effect_sidechain_buffers,
                     &post_effect_sidechain_buffers,
                     &self.impulse_responses,
+                    track_id,
+                    &mut self.effect_states,
                 );
             }
-            apply_track_controls(&mut buffer, channels, track.controls);
+            let track_state = self.track_states.entry(track_id).or_default();
+            apply_track_controls(&mut buffer, channels, track.controls, track_state);
             post_effect_sidechain_buffers.insert(track_id, buffer.clone());
             meters.push(meter_for(track_id, &buffer, channels));
 
@@ -163,17 +173,20 @@ impl SoundEngineState {
         track_buffers: &mut HashMap<SoundTrackId, Vec<f32>>,
     ) {
         let clips = self.clips.clone();
+        let external_sources = self.external_sources.clone();
         let parameters = self.parameters.clone();
         let listeners = self.listeners.values().cloned().collect::<Vec<_>>();
         let volumes = self.volumes.values().cloned().collect::<Vec<_>>();
         let impulse_responses = self.impulse_responses.clone();
         let ray_tracing = self.ray_tracing.clone();
         for voice in self.sources.values_mut() {
-            if !voice.descriptor.playing {
+            let source_descriptor =
+                source_descriptor_with_parameter_bindings(&voice.descriptor, &parameters);
+            if !source_descriptor.playing {
                 continue;
             }
-            let output_track = if track_buffers.contains_key(&voice.descriptor.output_track) {
-                voice.descriptor.output_track
+            let output_track = if track_buffers.contains_key(&source_descriptor.output_track) {
+                source_descriptor.output_track
             } else {
                 SoundTrackId::master()
             };
@@ -183,7 +196,9 @@ impl SoundEngineState {
                 channels,
                 frames,
                 voice,
+                &source_descriptor,
                 &clips,
+                &external_sources,
                 &parameters,
                 config,
             );
@@ -195,7 +210,7 @@ impl SoundEngineState {
                 &mut source_buffer,
                 channels,
                 config.sample_rate_hz,
-                &voice.descriptor,
+                &source_descriptor,
                 active_listener_for(&listeners, output_track),
                 &volumes,
                 &impulse_responses,
@@ -204,7 +219,7 @@ impl SoundEngineState {
             if let Some(destination) = track_buffers.get_mut(&output_track) {
                 add_scaled(destination, &source_buffer, 1.0);
             }
-            for send in &voice.descriptor.sends {
+            for send in &source_descriptor.sends {
                 if let Some(destination) = track_buffers.get_mut(&send.target) {
                     let source = if send.pre_spatial {
                         &dry_source_buffer
@@ -233,30 +248,104 @@ fn accepts_direct_input(track: SoundTrackId, solo_tracks: &HashSet<SoundTrackId>
     solo_tracks.is_empty() || solo_tracks.contains(&track)
 }
 
+fn sync_runtime_states(state: &mut SoundEngineState) {
+    let track_ids = state
+        .graph
+        .tracks
+        .iter()
+        .map(|track| track.id)
+        .collect::<HashSet<_>>();
+    let effect_keys = state
+        .graph
+        .tracks
+        .iter()
+        .flat_map(|track| {
+            track
+                .effects
+                .iter()
+                .map(move |effect| SoundEffectStateKey::new(track.id, effect.id))
+        })
+        .collect::<HashSet<_>>();
+
+    state
+        .track_states
+        .retain(|track, _| track_ids.contains(track));
+    for track in &track_ids {
+        state.track_states.entry(*track).or_default();
+    }
+    state
+        .effect_states
+        .retain(|effect, _| effect_keys.contains(effect));
+}
+
+fn latency_frames_for_graph(
+    graph: &zircon_runtime::core::framework::sound::SoundMixerGraph,
+) -> usize {
+    graph
+        .tracks
+        .iter()
+        .map(|track| {
+            let effect_latency = track
+                .effects
+                .iter()
+                .filter(|effect| effect.enabled && !effect.bypass)
+                .map(effect_latency_frames)
+                .max()
+                .unwrap_or_default();
+            track.controls.delay_frames.max(effect_latency)
+        })
+        .max()
+        .unwrap_or_default()
+}
+
+fn effect_latency_frames(
+    effect: &zircon_runtime::core::framework::sound::SoundEffectDescriptor,
+) -> usize {
+    match &effect.kind {
+        zircon_runtime::core::framework::sound::SoundEffectKind::Delay(delay) => delay.delay_frames,
+        zircon_runtime::core::framework::sound::SoundEffectKind::Reverb(reverb) => {
+            reverb.pre_delay_frames.max(reverb.tail_frames)
+        }
+        zircon_runtime::core::framework::sound::SoundEffectKind::ConvolutionReverb(convolution) => {
+            convolution.latency_frames
+        }
+        zircon_runtime::core::framework::sound::SoundEffectKind::Flanger(flanger) => {
+            flanger.delay_frames + flanger.depth_frames
+        }
+        zircon_runtime::core::framework::sound::SoundEffectKind::Chorus(chorus) => {
+            chorus.delay_frames + chorus.depth_frames.saturating_mul(chorus.voices as usize)
+        }
+        _ => 0,
+    }
+}
+
 fn mix_clip_playback(
     destination: &mut [f32],
     output_channels: usize,
     frames: usize,
     clip: &SoundAsset,
     playback: &mut ActivePlayback,
-    _config: &SoundConfig,
+    config: &SoundConfig,
 ) -> bool {
     let clip_channels = clip.channel_count as usize;
     let frame_count = clip.frame_count();
     if frame_count == 0 || clip_channels == 0 {
         return true;
     }
+    let step = resample_step(clip.sample_rate_hz, config.sample_rate_hz);
 
     for frame_index in 0..frames {
-        if playback.cursor_frame >= frame_count {
-            if playback.looped {
-                playback.cursor_frame = 0;
-            } else {
-                return true;
-            }
-        }
+        let Some(source_frame_index) = next_source_frame_index(
+            &mut playback.cursor_position,
+            frame_count,
+            step,
+            playback.looped,
+        ) else {
+            playback.cursor_frame = frame_count;
+            return true;
+        };
 
-        let clip_frame_offset = playback.cursor_frame * clip_channels;
+        let clip_frame_offset = source_frame_index * clip_channels;
         let clip_frame = &clip.samples[clip_frame_offset..clip_frame_offset + clip_channels];
         let output_offset = frame_index * output_channels;
         for channel in 0..output_channels {
@@ -277,7 +366,7 @@ fn mix_clip_playback(
             }
             destination[output_offset + channel] += sample;
         }
-        playback.cursor_frame += 1;
+        playback.cursor_frame = playback.cursor_position.floor() as usize;
     }
 
     false
@@ -288,11 +377,13 @@ fn mix_source_voice(
     output_channels: usize,
     frames: usize,
     voice: &mut SourceVoice,
+    descriptor: &SoundSourceDescriptor,
     clips: &HashMap<zircon_runtime::core::framework::sound::SoundClipId, super::LoadedClip>,
+    external_sources: &HashMap<ExternalAudioSourceHandle, SoundExternalSourceBlock>,
     parameters: &HashMap<zircon_runtime::core::framework::sound::SoundParameterId, f32>,
     config: &SoundConfig,
 ) {
-    match &voice.descriptor.input {
+    match &descriptor.input {
         SoundSourceInput::Clip(clip_id) => {
             let Some(clip) = clips.get(clip_id) else {
                 return;
@@ -300,9 +391,10 @@ fn mix_source_voice(
             let mut playback = ActivePlayback {
                 clip: *clip_id,
                 cursor_frame: voice.cursor_frame,
-                gain: voice.descriptor.gain,
-                looped: voice.descriptor.looped,
-                output_track: voice.descriptor.output_track,
+                cursor_position: voice.cursor_position,
+                gain: descriptor.gain,
+                looped: descriptor.looped,
+                output_track: descriptor.output_track,
                 pan: 0.0,
             };
             mix_clip_playback(
@@ -314,6 +406,23 @@ fn mix_source_voice(
                 config,
             );
             voice.cursor_frame = playback.cursor_frame;
+            voice.cursor_position = playback.cursor_position;
+        }
+        SoundSourceInput::External(handle) => {
+            let Some(block) = external_sources.get(handle) else {
+                return;
+            };
+            mix_external_source_block(
+                destination,
+                output_channels,
+                frames,
+                block,
+                descriptor.gain,
+                descriptor.looped,
+                config.sample_rate_hz,
+                &mut voice.cursor_frame,
+                &mut voice.cursor_position,
+            );
         }
         SoundSourceInput::SynthParameter {
             parameter,
@@ -325,11 +434,120 @@ fn mix_source_voice(
                 .unwrap_or(*default_value)
                 .clamp(-1.0, 1.0);
             for sample in destination {
-                *sample += value * voice.descriptor.gain;
+                *sample += value * descriptor.gain;
             }
         }
-        SoundSourceInput::External(_) | SoundSourceInput::Silence => {}
+        SoundSourceInput::Silence => {}
     }
+}
+
+fn source_descriptor_with_parameter_bindings(
+    descriptor: &SoundSourceDescriptor,
+    parameters: &HashMap<SoundParameterId, f32>,
+) -> SoundSourceDescriptor {
+    let mut resolved = descriptor.clone();
+    for binding in &descriptor.parameter_bindings {
+        let Some(value) = parameters.get(&binding.synth_parameter).copied() else {
+            continue;
+        };
+        apply_source_bound_parameter(&mut resolved, binding.source_parameter.as_str(), value);
+    }
+    resolved
+}
+
+fn apply_source_bound_parameter(source: &mut SoundSourceDescriptor, parameter: &str, value: f32) {
+    match parameter {
+        "gain" => source.gain = value,
+        "playing" => source.playing = bool_from_parameter(value),
+        "looped" => source.looped = bool_from_parameter(value),
+        "position_x" => source.position[0] = value,
+        "position_y" => source.position[1] = value,
+        "position_z" => source.position[2] = value,
+        "forward_x" => source.forward[0] = value,
+        "forward_y" => source.forward[1] = value,
+        "forward_z" => source.forward[2] = value,
+        "velocity_x" => source.velocity[0] = value,
+        "velocity_y" => source.velocity[1] = value,
+        "velocity_z" => source.velocity[2] = value,
+        "spatial_blend" => source.spatial.spatial_blend = value,
+        "min_distance" => source.spatial.min_distance = value,
+        "max_distance" => source.spatial.max_distance = value,
+        "cone_inner_degrees" => source.spatial.cone_inner_degrees = value,
+        "cone_outer_degrees" => source.spatial.cone_outer_degrees = value,
+        "doppler_factor" => source.spatial.doppler_factor = value,
+        "occlusion_enabled" => source.spatial.occlusion_enabled = bool_from_parameter(value),
+        _ => {}
+    }
+}
+
+fn bool_from_parameter(value: f32) -> bool {
+    value >= 0.5
+}
+
+fn mix_external_source_block(
+    destination: &mut [f32],
+    output_channels: usize,
+    frames: usize,
+    block: &SoundExternalSourceBlock,
+    gain: f32,
+    looped: bool,
+    output_sample_rate_hz: u32,
+    cursor_frame: &mut usize,
+    cursor_position: &mut f64,
+) {
+    let source_channels = block.channel_count as usize;
+    if source_channels == 0 {
+        return;
+    }
+    let frame_count = block.samples.len() / source_channels;
+    if frame_count == 0 {
+        return;
+    }
+    let step = resample_step(block.sample_rate_hz, output_sample_rate_hz);
+
+    for frame_index in 0..frames {
+        let Some(source_frame_index) =
+            next_source_frame_index(cursor_position, frame_count, step, looped)
+        else {
+            *cursor_frame = frame_count;
+            return;
+        };
+
+        let source_frame_offset = source_frame_index * source_channels;
+        let source_frame =
+            &block.samples[source_frame_offset..source_frame_offset + source_channels];
+        let output_offset = frame_index * output_channels;
+        for channel in 0..output_channels {
+            destination[output_offset + channel] +=
+                sample_for_output_channel(source_frame, channel, output_channels) * gain;
+        }
+        *cursor_frame = cursor_position.floor() as usize;
+    }
+}
+
+fn resample_step(source_sample_rate_hz: u32, output_sample_rate_hz: u32) -> f64 {
+    source_sample_rate_hz.max(1) as f64 / output_sample_rate_hz.max(1) as f64
+}
+
+fn next_source_frame_index(
+    cursor_position: &mut f64,
+    frame_count: usize,
+    step: f64,
+    looped: bool,
+) -> Option<usize> {
+    if frame_count == 0 {
+        return None;
+    }
+    if *cursor_position >= frame_count as f64 {
+        if looped {
+            *cursor_position %= frame_count as f64;
+        } else {
+            return None;
+        }
+    }
+    let frame_index = cursor_position.floor() as usize;
+    *cursor_position += step;
+    Some(frame_index.min(frame_count - 1))
 }
 
 fn sample_for_output_channel(
@@ -370,7 +588,8 @@ fn apply_source_environment(
     let mut pan = 0.0;
 
     if let Some(listener) = listener {
-        let spatial = spatial_profile(source, listener);
+        let spatial = spatial_profile(source, listener, sample_rate_hz);
+        apply_hrtf_preview(buffer, channels, spatial);
         gain *= spatial.gain;
         pan = spatial.pan;
     }
@@ -432,17 +651,26 @@ fn active_listener_for(
 struct SpatialProfile {
     gain: f32,
     pan: f32,
+    left_ear_gain: f32,
+    right_ear_gain: f32,
+    left_delay_frames: usize,
+    right_delay_frames: usize,
 }
 
 fn spatial_profile(
     source: &SoundSourceDescriptor,
     listener: &SoundListenerDescriptor,
+    sample_rate_hz: u32,
 ) -> SpatialProfile {
     let blend = source.spatial.spatial_blend.clamp(0.0, 1.0);
     if blend <= 0.0 {
         return SpatialProfile {
             gain: 1.0,
             pan: 0.0,
+            left_ear_gain: 1.0,
+            right_ear_gain: 1.0,
+            left_delay_frames: 0,
+            right_delay_frames: 0,
         };
     }
 
@@ -463,10 +691,100 @@ fn spatial_profile(
     let doppler = doppler_preview_gain(source, listener, offset);
     let listener_right = normalize3(cross3(listener.up, listener.forward));
     let direction = normalize3(offset);
+    let hrtf = hrtf_preview_profile(source, listener, sample_rate_hz, blend);
 
     SpatialProfile {
         gain: ((1.0 - blend) + attenuation * blend) * cone * occlusion * doppler,
         pan: dot3(direction, listener_right).clamp(-1.0, 1.0) * blend,
+        left_ear_gain: hrtf.left_gain,
+        right_ear_gain: hrtf.right_gain,
+        left_delay_frames: hrtf.left_delay_frames,
+        right_delay_frames: hrtf.right_delay_frames,
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct HrtfPreviewProfile {
+    left_gain: f32,
+    right_gain: f32,
+    left_delay_frames: usize,
+    right_delay_frames: usize,
+}
+
+fn hrtf_preview_profile(
+    source: &SoundSourceDescriptor,
+    listener: &SoundListenerDescriptor,
+    sample_rate_hz: u32,
+    blend: f32,
+) -> HrtfPreviewProfile {
+    if listener
+        .hrtf_profile
+        .as_deref()
+        .unwrap_or_default()
+        .is_empty()
+    {
+        return HrtfPreviewProfile {
+            left_gain: 1.0,
+            right_gain: 1.0,
+            left_delay_frames: 0,
+            right_delay_frames: 0,
+        };
+    }
+
+    let left_ear = add3(listener.position, listener.left_ear_offset);
+    let right_ear = add3(listener.position, listener.right_ear_offset);
+    let left_distance = length3(sub3(source.position, left_ear)).max(0.0001);
+    let right_distance = length3(sub3(source.position, right_ear)).max(0.0001);
+    let average_distance = (left_distance + right_distance) * 0.5;
+    let left_gain =
+        (average_distance / left_distance).clamp(HRTF_PREVIEW_GAIN_MIN, HRTF_PREVIEW_GAIN_MAX);
+    let right_gain =
+        (average_distance / right_distance).clamp(HRTF_PREVIEW_GAIN_MIN, HRTF_PREVIEW_GAIN_MAX);
+    let delay_frames = (((left_distance - right_distance).abs() / SPEED_OF_SOUND_METERS_PER_SECOND)
+        * sample_rate_hz.max(1) as f32)
+        .round() as usize;
+    let delay_frames = delay_frames.min(HRTF_PREVIEW_MAX_DELAY_FRAMES);
+    let (left_delay_frames, right_delay_frames) = if left_distance > right_distance {
+        (delay_frames, 0)
+    } else {
+        (0, delay_frames)
+    };
+
+    HrtfPreviewProfile {
+        left_gain: 1.0 + (left_gain - 1.0) * blend,
+        right_gain: 1.0 + (right_gain - 1.0) * blend,
+        left_delay_frames,
+        right_delay_frames,
+    }
+}
+
+fn apply_hrtf_preview(buffer: &mut [f32], channels: usize, spatial: SpatialProfile) {
+    if channels < 2 {
+        return;
+    }
+    if spatial.left_ear_gain == 1.0
+        && spatial.right_ear_gain == 1.0
+        && spatial.left_delay_frames == 0
+        && spatial.right_delay_frames == 0
+    {
+        return;
+    }
+
+    let dry = buffer.to_vec();
+    let frames = buffer.len() / channels;
+    for frame in 0..frames {
+        let left = frame
+            .checked_sub(spatial.left_delay_frames)
+            .and_then(|source_frame| dry.get(source_frame * channels))
+            .copied()
+            .unwrap_or_default();
+        let right = frame
+            .checked_sub(spatial.right_delay_frames)
+            .and_then(|source_frame| dry.get(source_frame * channels + 1))
+            .copied()
+            .unwrap_or_default();
+        buffer[frame * channels] = left * spatial.left_ear_gain;
+        buffer[frame * channels + 1] = right * spatial.right_ear_gain;
     }
 }
 
@@ -686,6 +1004,10 @@ fn apply_source_pan(buffer: &mut [f32], channels: usize, pan: f32) {
 
 fn sub3(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+
+fn add3(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+    [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
 }
 
 fn dot3(a: [f32; 3], b: [f32; 3]) -> f32 {

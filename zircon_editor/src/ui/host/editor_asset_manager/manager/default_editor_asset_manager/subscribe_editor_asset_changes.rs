@@ -9,10 +9,7 @@ impl DefaultEditorAssetManager {
         &self,
     ) -> ChannelReceiver<EditorAssetChangeRecord> {
         let (sender, receiver) = unbounded();
-        self.change_subscribers
-            .lock()
-            .expect("editor asset subscriber lock poisoned")
-            .push(sender);
+        self.lock_change_subscribers().push(sender);
         receiver
     }
 }

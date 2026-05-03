@@ -8,6 +8,8 @@ mod scene_entry;
 
 pub use editor_chrome_snapshot::EditorChromeSnapshot;
 pub use editor_data_snapshot::EditorDataSnapshot;
-pub use inspector_snapshot::InspectorSnapshot;
+pub use inspector_snapshot::{
+    InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot, InspectorSnapshot,
+};
 pub use project_overview_snapshot::ProjectOverviewSnapshot;
 pub use scene_entry::SceneEntry;

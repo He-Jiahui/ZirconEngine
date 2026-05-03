@@ -37,7 +37,9 @@ pub use overlay::{
 pub use plugin_renderer_outputs::{
     RenderHybridGiCacheEntryRecord, RenderHybridGiReadbackOutputs,
     RenderHybridGiScenePrepareReadbackOutputs, RenderHybridGiScenePrepareSample,
-    RenderHybridGiVoxelCellRecord, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+    RenderHybridGiVoxelCellDominantNodeRecord, RenderHybridGiVoxelCellRecord,
+    RenderHybridGiVoxelCellSampleRecord, RenderHybridGiVoxelOccupancyMaskRecord,
+    RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
@@ -45,11 +47,12 @@ pub use scene_extract::{
     PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,
     RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshSnapshot,
-    RenderParticleSpriteSnapshot, RenderPointLightSnapshot, RenderReflectionProbeSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
-    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
-    RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
+    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPointLightSnapshot,
+    RenderReflectionProbeSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderSpotLightSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
+    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
+    SceneViewportRenderPacket,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use virtual_geometry_debug_snapshot::{

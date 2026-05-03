@@ -1,5 +1,6 @@
 //! Undoable editor commands that mutate the ECS world.
 
+use zircon_runtime::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use zircon_runtime::scene::components::{NodeKind, NodeRecord};
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::Transform;
@@ -10,6 +11,8 @@ pub(crate) enum EditorCommand {
     CreateNode(CreateNodeCommand),
     DeleteNode(DeleteNodeCommand),
     UpdateNode(UpdateNodeCommand),
+    SetSceneProperty(SetScenePropertyCommand),
+    Batch(BatchEditorCommand),
 }
 
 impl EditorCommand {
@@ -98,11 +101,30 @@ impl EditorCommand {
         .map(Self::UpdateNode))
     }
 
+    pub(crate) fn set_scene_property(
+        scene: &mut Scene,
+        selected: Option<NodeId>,
+        node_id: NodeId,
+        property_path: ComponentPropertyPath,
+        after: ScenePropertyValue,
+    ) -> Result<Option<Self>, String> {
+        Ok(
+            SetScenePropertyCommand::capture(scene, selected, node_id, property_path, after)?
+                .map(Self::SetSceneProperty),
+        )
+    }
+
+    pub(crate) fn batch(commands: Vec<Self>) -> Option<Self> {
+        BatchEditorCommand::new(commands)
+    }
+
     pub(crate) fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
         match self {
             Self::CreateNode(command) => command.apply(scene),
             Self::DeleteNode(command) => command.apply(scene),
             Self::UpdateNode(command) => command.apply(scene),
+            Self::SetSceneProperty(command) => command.apply(scene),
+            Self::Batch(command) => command.apply(scene),
         }
     }
 
@@ -111,6 +133,8 @@ impl EditorCommand {
             Self::CreateNode(command) => command.undo(scene),
             Self::DeleteNode(command) => command.undo(scene),
             Self::UpdateNode(command) => command.undo(scene),
+            Self::SetSceneProperty(command) => command.undo(scene),
+            Self::Batch(command) => command.undo(scene),
         }
     }
 
@@ -119,6 +143,8 @@ impl EditorCommand {
             Self::CreateNode(command) => command.node_id(),
             Self::DeleteNode(command) => command.node_id(),
             Self::UpdateNode(command) => command.node_id(),
+            Self::SetSceneProperty(command) => command.node_id(),
+            Self::Batch(command) => command.node_id(),
         }
     }
 
@@ -127,7 +153,51 @@ impl EditorCommand {
             Self::CreateNode(command) => Some(command.node_id()),
             Self::DeleteNode(command) => command.selection_after,
             Self::UpdateNode(command) => command.selection_after,
+            Self::SetSceneProperty(command) => command.selection_after,
+            Self::Batch(command) => command.selection_after(),
         }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct BatchEditorCommand {
+    commands: Vec<EditorCommand>,
+}
+
+impl BatchEditorCommand {
+    fn new(commands: Vec<EditorCommand>) -> Option<EditorCommand> {
+        let mut commands = commands.into_iter().collect::<Vec<_>>();
+        match commands.len() {
+            0 => None,
+            1 => commands.pop(),
+            _ => Some(EditorCommand::Batch(Self { commands })),
+        }
+    }
+
+    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
+        let mut selection = None;
+        for command in &self.commands {
+            selection = command.apply(scene)?;
+        }
+        Ok(selection)
+    }
+
+    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
+        let mut selection = None;
+        for command in self.commands.iter().rev() {
+            selection = command.undo(scene)?;
+        }
+        Ok(selection)
+    }
+
+    fn node_id(&self) -> NodeId {
+        self.commands[0].target_node()
+    }
+
+    fn selection_after(&self) -> Option<NodeId> {
+        self.commands
+            .last()
+            .and_then(EditorCommand::selection_after)
     }
 }
 
@@ -390,4 +460,54 @@ fn normalize_edit_state(mut state: NodeEditState) -> Result<NodeEditState, Strin
         return Err("node name cannot be empty".to_string());
     }
     Ok(state)
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct SetScenePropertyCommand {
+    node_id: NodeId,
+    property_path: ComponentPropertyPath,
+    before: ScenePropertyValue,
+    after: ScenePropertyValue,
+    selection_before: Option<NodeId>,
+    pub(crate) selection_after: Option<NodeId>,
+}
+
+impl SetScenePropertyCommand {
+    fn capture(
+        scene: &mut Scene,
+        selected: Option<NodeId>,
+        node_id: NodeId,
+        property_path: ComponentPropertyPath,
+        after: ScenePropertyValue,
+    ) -> Result<Option<Self>, String> {
+        let before = scene.property(node_id, &property_path)?;
+        if before == after {
+            return Ok(None);
+        }
+        if !scene.set_property(node_id, &property_path, after.clone())? {
+            return Ok(None);
+        }
+        Ok(Some(Self {
+            node_id,
+            property_path,
+            before,
+            after,
+            selection_before: selected,
+            selection_after: Some(node_id),
+        }))
+    }
+
+    fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
+        scene.set_property(self.node_id, &self.property_path, self.after.clone())?;
+        Ok(self.selection_after)
+    }
+
+    fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
+        scene.set_property(self.node_id, &self.property_path, self.before.clone())?;
+        Ok(self.selection_before)
+    }
+
+    fn node_id(&self) -> NodeId {
+        self.node_id
+    }
 }

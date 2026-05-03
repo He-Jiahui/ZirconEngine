@@ -11,6 +11,8 @@ pub struct NavMeshAsset {
     pub version: u32,
     pub agent_type: String,
     pub settings_hash: u64,
+    #[serde(default = "default_navigation_area_costs")]
+    pub area_costs: Vec<NavMeshAreaCostAsset>,
     pub vertices: Vec<[Real; 3]>,
     pub indices: Vec<u32>,
     pub polygons: Vec<NavMeshPolygonAsset>,
@@ -26,6 +28,7 @@ impl NavMeshAsset {
             version: Self::VERSION,
             agent_type: agent_type.into(),
             settings_hash: 0,
+            area_costs: default_navigation_area_costs(),
             vertices: Vec::new(),
             indices: Vec::new(),
             polygons: Vec::new(),
@@ -40,6 +43,7 @@ impl NavMeshAsset {
             version: Self::VERSION,
             agent_type: agent_type.into(),
             settings_hash: 0,
+            area_costs: default_navigation_area_costs(),
             vertices: vec![
                 [-half_extent, 0.0, -half_extent],
                 [half_extent, 0.0, -half_extent],
@@ -112,6 +116,7 @@ impl NavMeshAsset {
             version: Self::VERSION,
             agent_type: agent_type.into(),
             settings_hash: 0,
+            area_costs: default_navigation_area_costs(),
             vertices,
             indices: valid_indices,
             tiles: vec![NavMeshTileAsset {
@@ -154,6 +159,25 @@ impl NavMeshAsset {
             })
             .collect()
     }
+
+    pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
+        bincode::serialize(self).map_err(|error| error.to_string())
+    }
+
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+        bincode::deserialize(bytes).map_err(|error| error.to_string())
+    }
+}
+
+fn default_navigation_area_costs() -> Vec<NavMeshAreaCostAsset> {
+    default_navigation_areas()
+        .into_iter()
+        .map(|area| NavMeshAreaCostAsset {
+            area: area.id,
+            cost: area.cost,
+            walkable: area.walkable,
+        })
+        .collect()
 }
 
 fn nav_mesh_asset_bounds(vertices: &[[Real; 3]]) -> Option<([Real; 3], [Real; 3])> {
@@ -201,6 +225,13 @@ pub struct NavMeshLinkAsset {
     pub area: NavAreaId,
     pub cost_override: Option<Real>,
     pub traversal_mode: NavLinkTraversalMode,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NavMeshAreaCostAsset {
+    pub area: NavAreaId,
+    pub cost: Real,
+    pub walkable: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

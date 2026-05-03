@@ -39,8 +39,8 @@ pub use model::{
     VirtualGeometryRootClusterRangeAsset,
 };
 pub use navigation::{
-    NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset, NavMeshPolygonAsset,
-    NavMeshTileAsset, NavigationSettingsAsset,
+    NavMeshAreaCostAsset, NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset,
+    NavMeshPolygonAsset, NavMeshTileAsset, NavigationSettingsAsset,
 };
 pub use physics_material::PhysicsMaterialAsset;
 pub use scene::{

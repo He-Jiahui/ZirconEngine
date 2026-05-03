@@ -1,5 +1,6 @@
 use super::VirtualGeometryGpuReadback;
 use zircon_runtime::core::framework::render::{
+    RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometrySelectedCluster,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
     RenderVirtualGeometryVisBuffer64Source,
@@ -10,6 +11,7 @@ impl VirtualGeometryGpuReadback {
         &mut self,
         hardware_rasterization_record_count: u32,
         hardware_rasterization_source: RenderVirtualGeometryHardwareRasterizationSource,
+        hardware_rasterization_records: Vec<RenderVirtualGeometryHardwareRasterizationRecord>,
         selected_cluster_count: u32,
         selected_cluster_source: RenderVirtualGeometrySelectedClusterSource,
         selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
@@ -20,6 +22,7 @@ impl VirtualGeometryGpuReadback {
     ) {
         self.hardware_rasterization_record_count = hardware_rasterization_record_count;
         self.hardware_rasterization_source = hardware_rasterization_source;
+        self.hardware_rasterization_records = hardware_rasterization_records;
         self.selected_cluster_count = selected_cluster_count;
         self.selected_cluster_source = selected_cluster_source;
         self.selected_clusters = selected_clusters;
@@ -33,6 +36,9 @@ impl VirtualGeometryGpuReadback {
         &mut self,
         hardware_rasterization_record_count: u32,
         hardware_rasterization_source: RenderVirtualGeometryHardwareRasterizationSource,
+        fallback_hardware_rasterization_records: Vec<
+            RenderVirtualGeometryHardwareRasterizationRecord,
+        >,
         selected_cluster_count: u32,
         selected_cluster_source: RenderVirtualGeometrySelectedClusterSource,
         fallback_selected_clusters: Vec<RenderVirtualGeometrySelectedCluster>,
@@ -43,6 +49,9 @@ impl VirtualGeometryGpuReadback {
     ) {
         self.hardware_rasterization_record_count = hardware_rasterization_record_count;
         self.hardware_rasterization_source = hardware_rasterization_source;
+        if self.hardware_rasterization_records.is_empty() {
+            self.hardware_rasterization_records = fallback_hardware_rasterization_records;
+        }
         self.selected_cluster_count = selected_cluster_count;
         self.selected_cluster_source = selected_cluster_source;
         if self.selected_clusters.is_empty() {

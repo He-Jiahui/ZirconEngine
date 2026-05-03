@@ -13,8 +13,9 @@ impl HybridGiRuntimeState {
             .scene_representation()
             .surface_cache()
             .page_contents_snapshot();
-        self.scene_representation_mut()
-            .voxel_scene_mut()
-            .apply_surface_cache_page_contents(&surface_cache_page_contents);
+        let voxel_cells = resources.voxel_cells();
+        let voxel_scene = self.scene_representation_mut().voxel_scene_mut();
+        voxel_scene.apply_surface_cache_page_contents(&surface_cache_page_contents);
+        voxel_scene.apply_scene_prepare_voxel_cells(voxel_cells);
     }
 }

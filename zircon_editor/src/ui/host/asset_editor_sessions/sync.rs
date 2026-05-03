@@ -8,7 +8,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
         let (title, dirty, payload) = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -19,7 +19,7 @@ impl EditorUiHost {
                     .map_err(|error| EditorError::UiAsset(error.to_string()))?,
             )
         };
-        let mut session = self.session.lock().unwrap();
+        let mut session = self.lock_session();
         let instance = session
             .open_view_instances
             .get_mut(instance_id)

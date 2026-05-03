@@ -1,10 +1,18 @@
 use std::path::Path;
-use std::process::Command;
+use std::sync::atomic::AtomicBool;
 
+use super::super::super::export_cargo_process::invoke_cargo_process;
 use super::cargo_invocation::EditorExportCargoInvocation;
 
 pub(super) fn invoke_cargo_build(
     output_root: &Path,
+) -> Result<EditorExportCargoInvocation, String> {
+    invoke_cargo_build_with_cancellation(output_root, None)
+}
+
+pub(super) fn invoke_cargo_build_with_cancellation(
+    output_root: &Path,
+    cancel_requested: Option<&AtomicBool>,
 ) -> Result<EditorExportCargoInvocation, String> {
     let manifest_path = output_root.join("Cargo.toml");
     if !manifest_path.exists() {
@@ -27,21 +35,11 @@ pub(super) fn invoke_cargo_build(
         manifest_path.display().to_string(),
         "--locked".to_string(),
     ];
-    let output = Command::new(&cargo)
-        .args(&args)
-        .current_dir(output_root)
-        .output()
-        .map_err(|error| format!("failed to invoke cargo for export build: {error}"))?;
-
-    let mut command = Vec::with_capacity(args.len() + 1);
-    command.push(cargo);
-    command.extend(args);
-
-    Ok(EditorExportCargoInvocation {
-        command,
-        status_code: output.status.code(),
-        success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-    })
+    invoke_cargo_process(
+        cargo,
+        args,
+        Some(output_root),
+        cancel_requested,
+        "export build",
+    )
 }

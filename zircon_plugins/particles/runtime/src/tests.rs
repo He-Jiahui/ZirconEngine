@@ -1,7 +1,8 @@
 use zircon_runtime::core::math::{Transform, Vec3, Vec4};
+use zircon_runtime::core::resource::{MaterialMarker, ResourceHandle, ResourceId, TextureMarker};
 use zircon_runtime::core::CoreRuntime;
-use zircon_runtime::render_graph::QueueLane;
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
+use zircon_runtime::render_graph::QueueLane;
 
 use super::*;
 
@@ -191,6 +192,216 @@ fn extract_sorts_sprites_back_to_front_when_camera_is_known() {
 }
 
 #[test]
+fn cpu_extract_preserves_material_texture_rotation_bounds_and_sort_metadata() {
+    let material = ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+        "particles/material/spark",
+    ));
+    let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+        "particles/texture/spark",
+    ));
+    let mut emitter = ParticleEmitterAsset::sprite("metadata")
+        .with_spawn_rate(0.0)
+        .with_burst(ParticleBurst::new(0.0, 1))
+        .with_initial_rotation(ParticleScalarRange::constant(0.5))
+        .with_initial_angular_velocity(ParticleScalarRange::constant(2.0))
+        .with_material(material)
+        .with_texture(texture);
+    emitter.initial_size = ParticleScalarRange::constant(2.0);
+    let asset = ParticleSystemAsset::new("metadata").with_emitters(vec![emitter]);
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(33, asset))
+        .unwrap();
+
+    manager.tick(0.25).unwrap();
+    let snapshot = manager.snapshot();
+    let sprite = snapshot.sprites.first().expect("one sprite should spawn");
+
+    assert_eq!(sprite.material, Some(material));
+    assert_eq!(sprite.texture, Some(texture));
+    assert_approx_eq(sprite.rotation, 1.0);
+
+    let extract = manager.build_extract(Some(Vec3::new(0.0, 0.0, -8.0)));
+    assert_eq!(
+        extract.sort_camera_position,
+        Some(Vec3::new(0.0, 0.0, -8.0))
+    );
+    assert_eq!(extract.bounds.len(), 1);
+    assert_eq!(extract.bounds[0].entity, 33);
+    assert_eq!(extract.bounds[0].center, sprite.position);
+    assert_approx_eq(extract.bounds[0].radius, 3.0_f32.sqrt());
+    assert_eq!(extract.sprites[0].material, Some(material));
+    assert_eq!(extract.sprites[0].texture, Some(texture));
+}
+
+#[test]
+fn physics_modules_noop_without_capability_and_apply_external_force_when_enabled() {
+    let asset =
+        ParticleSystemAsset::new("physics").with_emitters(vec![ParticleEmitterAsset::sprite(
+            "force",
+        )
+        .with_spawn_rate(0.0)
+        .with_lifetime(ParticleScalarRange::constant(2.0))
+        .with_burst(ParticleBurst::new(0.0, 1))
+        .with_physics(ParticlePhysicsOptions::disabled().with_external_force(Vec3::Y))]);
+
+    let missing = ParticlesManager::default();
+    missing
+        .instantiate(ParticleSystemComponent::new(41, asset.clone()))
+        .unwrap();
+    missing.tick(1.0).unwrap();
+    let missing_snapshot = missing.snapshot();
+    assert_approx_eq(missing_snapshot.sprites[0].position.y, 0.0);
+    assert!(missing_snapshot.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("particle physics modules are running as no-op")
+    }));
+
+    let enabled =
+        ParticlesManager::with_capabilities(&[crate::service::PARTICLES_PHYSICS_CAPABILITY]);
+    enabled
+        .instantiate(ParticleSystemComponent::new(42, asset))
+        .unwrap();
+    enabled.tick(1.0).unwrap();
+    let enabled_snapshot = enabled.snapshot();
+    assert_approx_eq(enabled_snapshot.sprites[0].position.y, 1.0);
+    assert!(!enabled_snapshot.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("particle physics modules are running as no-op")
+    }));
+}
+
+#[test]
+fn enabling_physics_capability_after_instantiate_updates_existing_instances() {
+    let asset =
+        ParticleSystemAsset::new("late-physics").with_emitters(vec![ParticleEmitterAsset::sprite(
+            "force",
+        )
+        .with_spawn_rate(0.0)
+        .with_lifetime(ParticleScalarRange::constant(3.0))
+        .with_burst(ParticleBurst::new(0.0, 1))
+        .with_physics(ParticlePhysicsOptions::disabled().with_external_force(Vec3::Y))]);
+    let manager = ParticlesManager::default();
+    manager
+        .instantiate(ParticleSystemComponent::new(43, asset))
+        .unwrap();
+
+    manager.tick(1.0).unwrap();
+    assert_approx_eq(manager.snapshot().sprites[0].position.y, 0.0);
+
+    manager.enable_capability(crate::service::PARTICLES_PHYSICS_CAPABILITY);
+    manager.tick(1.0).unwrap();
+
+    assert_approx_eq(manager.snapshot().sprites[0].position.y, 1.0);
+}
+
+#[test]
+fn animation_events_are_diagnostic_noops_without_capability_and_control_emission_when_enabled() {
+    let asset =
+        ParticleSystemAsset::new("animation").with_emitters(vec![ParticleEmitterAsset::sprite(
+            "anim",
+        )
+        .with_spawn_rate(4.0)
+        .with_lifetime(ParticleScalarRange::constant(4.0))
+        .with_max_particles(4)
+        .with_animation_binding(ParticleAnimationBinding::new(
+            "emission.rate",
+            "Run/Speed",
+            0.5,
+        ))]);
+    let missing = ParticlesManager::default();
+    let missing_handle = missing
+        .instantiate(ParticleSystemComponent::new(51, asset.clone()))
+        .unwrap();
+
+    missing
+        .apply_animation_event(ParticleAnimationEvent::spawn_once(51).with_handle(missing_handle))
+        .unwrap();
+    let missing_snapshot = missing.snapshot();
+    assert!(missing_snapshot.sprites.is_empty());
+    assert!(missing_snapshot.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("particle animation bindings are disabled")
+    }));
+    assert!(missing_snapshot.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("animation-controlled particle event")
+    }));
+
+    let enabled =
+        ParticlesManager::with_capabilities(&[crate::service::PARTICLES_ANIMATION_CAPABILITY]);
+    let enabled_handle = enabled
+        .instantiate(ParticleSystemComponent::new(52, asset).with_playing(false))
+        .unwrap();
+    enabled
+        .apply_animation_event(ParticleAnimationEvent::spawn_once(52).with_handle(enabled_handle))
+        .unwrap();
+    assert_eq!(enabled.snapshot().emitters[0].live_particles, 1);
+
+    enabled
+        .apply_animation_event(
+            ParticleAnimationEvent::timed_emission_begin(52).with_handle(enabled_handle),
+        )
+        .unwrap();
+    enabled.tick(0.25).unwrap();
+    assert_eq!(enabled.snapshot().emitters[0].live_particles, 2);
+
+    enabled
+        .apply_animation_event(
+            ParticleAnimationEvent::timed_emission_end(52).with_handle(enabled_handle),
+        )
+        .unwrap();
+    enabled.tick(1.0).unwrap();
+    assert_eq!(enabled.snapshot().emitters[0].live_particles, 2);
+}
+
+#[test]
+fn instantiate_rejects_non_finite_emitter_settings() {
+    let mut emitter = ParticleEmitterAsset::sprite("invalid");
+    emitter.spawn_rate_per_second = f32::NAN;
+    let asset = ParticleSystemAsset::new("invalid").with_emitters(vec![emitter]);
+    let manager = ParticlesManager::default();
+
+    let error = manager
+        .instantiate(ParticleSystemComponent::new(61, asset))
+        .unwrap_err();
+
+    assert!(
+        matches!(error, ParticleSimulationError::InvalidAsset(message) if message.contains("non-finite scalar"))
+    );
+}
+
+#[test]
+fn instantiate_rejects_non_finite_bursts_and_animation_bindings() {
+    let burst_asset = ParticleSystemAsset::new("invalid-burst")
+        .with_emitters(vec![ParticleEmitterAsset::sprite("invalid-burst")
+            .with_burst(ParticleBurst::new(f32::NAN, 1))]);
+    let manager = ParticlesManager::default();
+    let burst_error = manager
+        .instantiate(ParticleSystemComponent::new(62, burst_asset))
+        .unwrap_err();
+    assert!(
+        matches!(burst_error, ParticleSimulationError::InvalidAsset(message) if message.contains("non-finite burst"))
+    );
+
+    let mut binding = ParticleAnimationBinding::new("emission.rate", "Run/Speed", 0.5);
+    binding.normalized_progress = f32::NAN;
+    let binding_asset = ParticleSystemAsset::new("invalid-binding").with_emitters(vec![
+        ParticleEmitterAsset::sprite("invalid-binding").with_animation_binding(binding),
+    ]);
+    let binding_error = manager
+        .instantiate(ParticleSystemComponent::new(63, binding_asset))
+        .unwrap_err();
+    assert!(
+        matches!(binding_error, ParticleSimulationError::InvalidAsset(message) if message.contains("non-finite animation binding"))
+    );
+}
+
+#[test]
 fn gpu_backend_uses_shared_layout_and_records_cpu_fallback() {
     let asset = ParticleSystemAsset::new("gpu")
         .with_backend(ParticleSimulationBackend::Gpu)
@@ -304,6 +515,7 @@ fn gpu_counter_readback_decodes_renderer_outputs_and_cpu_parity() {
     assert_eq!(outputs.spawned_total, 3);
     assert_eq!(outputs.indirect_draw_args, [6, 5, 0, 0]);
     assert_eq!(outputs.per_emitter_spawned, vec![2, 1]);
+    assert!(!outputs.is_empty());
 
     let parity = ParticleGpuCpuParityReport::compare_counts(5, 3, &readback);
     assert!(parity.matches());
@@ -376,7 +588,7 @@ fn gpu_layout_clamps_capacity_and_reports_diagnostic() {
 #[test]
 fn optional_physics_and_animation_helpers_report_missing_capabilities() {
     let status = ParticleOptionalFeatureStatus::from_capabilities(
-        "runtime.plugin.physics",
+        crate::service::PARTICLES_PHYSICS_CAPABILITY,
         &["runtime.plugin.particles"],
     );
     assert!(!status.is_available());
@@ -385,6 +597,13 @@ fn optional_physics_and_animation_helpers_report_missing_capabilities() {
     assert_eq!(binding.normalized_progress, 1.0);
     let event = ParticleAnimationEvent::spawn_once(12).with_binding(binding);
     assert_eq!(event.kind, ParticleAnimationEventKind::SpawnOnce);
+}
+
+fn assert_approx_eq(actual: f32, expected: f32) {
+    assert!(
+        (actual - expected).abs() <= 1.0e-4,
+        "expected {actual} to be approximately {expected}"
+    );
 }
 
 fn spawn_rate_asset(spawn_rate: f32, max_particles: u32) -> ParticleSystemAsset {

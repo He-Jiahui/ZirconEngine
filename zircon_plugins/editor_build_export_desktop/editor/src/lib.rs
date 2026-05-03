@@ -10,7 +10,8 @@ use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
 use zircon_runtime::{
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginPackageManifest,
+    RuntimeTargetMode,
 };
 
 pub const PLUGIN_ID: &str = "editor_build_export_desktop";

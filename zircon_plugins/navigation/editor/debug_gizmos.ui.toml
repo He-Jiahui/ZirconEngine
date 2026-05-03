@@ -1,0 +1,42 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "navigation.debug_gizmos"
+version = 1
+display_name = "Navigation Debug Gizmos"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "navigation_debug_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "NavigationDebugRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "navigation_debug_layers"
+kind = "native"
+type = "Space"
+control_id = "NavigationDebugLayers"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[components]

@@ -4,13 +4,14 @@ use crate::asset::{
 };
 use crate::core::{ManagerDescriptor, ModuleDescriptor};
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
     ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
-    RuntimeExtensionRegistryError, UiComponentDescriptor,
+    RuntimeExtensionRegistryError, SceneRuntimeHookRegistration, UiComponentDescriptor,
 };
+use crate::scene::components::SystemStage;
 use std::sync::Arc;
 
 use super::RuntimeExtensionRegistry;
@@ -101,6 +102,25 @@ impl RuntimeExtensionRegistry {
             );
         }
         self.virtual_geometry_runtime_providers.push(registration);
+        Ok(())
+    }
+
+    pub fn register_hybrid_gi_runtime_provider(
+        &mut self,
+        registration: HybridGiRuntimeProviderRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .hybrid_gi_runtime_providers
+            .iter()
+            .any(|existing| existing.provider_id() == registration.provider_id())
+        {
+            return Err(
+                RuntimeExtensionRegistryError::DuplicateHybridGiRuntimeProvider(
+                    registration.provider_id().to_string(),
+                ),
+            );
+        }
+        self.hybrid_gi_runtime_providers.push(registration);
         Ok(())
     }
 
@@ -235,5 +255,74 @@ impl RuntimeExtensionRegistry {
         self.asset_importers
             .register_arc(importer)
             .map_err(|error| RuntimeExtensionRegistryError::AssetImporter(error.to_string()))
+    }
+
+    pub fn register_scene_hook(
+        &mut self,
+        registration: SceneRuntimeHookRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        validate_scene_hook_registration(&registration)?;
+        let id = registration.descriptor().id.as_str();
+        if self
+            .scene_hooks
+            .iter()
+            .any(|existing| existing.descriptor().id == id)
+        {
+            return Err(RuntimeExtensionRegistryError::DuplicateSceneHook(
+                id.to_string(),
+            ));
+        }
+        self.scene_hooks.push(registration);
+        sort_scene_hooks(&mut self.scene_hooks);
+        Ok(())
+    }
+}
+
+fn validate_scene_hook_registration(
+    registration: &SceneRuntimeHookRegistration,
+) -> Result<(), RuntimeExtensionRegistryError> {
+    let descriptor = registration.descriptor();
+    if descriptor.id.trim().is_empty() || descriptor.id.trim() != descriptor.id {
+        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(
+            descriptor.id.clone(),
+        ));
+    }
+    if descriptor.plugin_id.trim().is_empty() || descriptor.plugin_id.trim() != descriptor.plugin_id
+    {
+        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(
+            descriptor.plugin_id.clone(),
+        ));
+    }
+    let expected_prefix = format!("{}.", descriptor.plugin_id);
+    if !descriptor.id.starts_with(&expected_prefix) {
+        return Err(RuntimeExtensionRegistryError::InvalidSceneHook(format!(
+            "scene hook {} must be prefixed by plugin id {}",
+            descriptor.id, descriptor.plugin_id
+        )));
+    }
+    Ok(())
+}
+
+fn sort_scene_hooks(hooks: &mut [SceneRuntimeHookRegistration]) {
+    hooks.sort_by(|left, right| {
+        scene_stage_rank(left.descriptor().stage)
+            .cmp(&scene_stage_rank(right.descriptor().stage))
+            .then(left.descriptor().order.cmp(&right.descriptor().order))
+            .then(
+                left.descriptor()
+                    .id
+                    .as_str()
+                    .cmp(right.descriptor().id.as_str()),
+            )
+    });
+}
+
+fn scene_stage_rank(stage: SystemStage) -> usize {
+    match stage {
+        SystemStage::PreUpdate => 0,
+        SystemStage::FixedUpdate => 1,
+        SystemStage::Update => 2,
+        SystemStage::LateUpdate => 3,
+        SystemStage::RenderExtract => 4,
     }
 }

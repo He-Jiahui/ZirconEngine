@@ -22,6 +22,7 @@ pub(crate) const PANE_ANIMATION_SEQUENCE_BODY_DOCUMENT_ID: &str = "pane.animatio
 pub(crate) const PANE_ANIMATION_GRAPH_BODY_DOCUMENT_ID: &str = "pane.animation.graph.body";
 pub(crate) const PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID: &str = "pane.runtime.diagnostics.body";
 pub(crate) const PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID: &str = "pane.module_plugins.body";
+pub(crate) const PANE_BUILD_EXPORT_BODY_DOCUMENT_ID: &str = "pane.build_export_desktop.body";
 const BUILTIN_HOST_TEMPLATE_ROOT: &str = "/assets/ui/editor/host/";
 const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
 const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
@@ -44,7 +45,7 @@ fn builtin_editor_template_path(relative: &str) -> PathBuf {
         .join(relative)
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 21] {
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 22] {
     [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
@@ -129,6 +130,10 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 21] {
         (
             PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID,
             builtin_host_template_path("module_plugins_body.ui.toml"),
+        ),
+        (
+            PANE_BUILD_EXPORT_BODY_DOCUMENT_ID,
+            builtin_host_template_path("build_export_desktop_body.ui.toml"),
         ),
     ]
 }

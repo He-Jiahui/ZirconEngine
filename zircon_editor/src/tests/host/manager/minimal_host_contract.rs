@@ -223,6 +223,110 @@ fn editor_manager_feature_dependency_enablement_turns_on_unique_provider_feature
 }
 
 #[test]
+fn editor_manager_plugin_status_lists_rendering_owner_features_and_defaults() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_rendering_optional_feature_status");
+    let runtime = editor_runtime_with_disabled_subsystems_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let mut manifest = zircon_runtime::asset::project::ProjectManifest::new(
+        "Rendering Optional Feature Status",
+        zircon_runtime::asset::AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+        1,
+    );
+
+    manager
+        .set_project_plugin_enabled(&mut manifest, "rendering", true)
+        .expect("rendering plugin should be selectable from builtin catalogs");
+
+    let status = manager.plugin_status_report(&manifest);
+    let rendering = status
+        .plugins
+        .iter()
+        .find(|plugin| plugin.plugin_id == "rendering")
+        .expect("rendering plugin should be projected into the plugin manager status");
+
+    assert!(rendering.enabled);
+    assert_eq!(rendering.optional_features.len(), 8);
+    assert!(rendering
+        .editor_capabilities
+        .contains(&"editor.extension.rendering_authoring".to_string()));
+    assert_eq!(
+        rendering
+            .optional_features
+            .iter()
+            .map(|feature| feature.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "rendering.post_process",
+            "rendering.ssao",
+            "rendering.decals",
+            "rendering.reflection_probes",
+            "rendering.baked_lighting",
+            "rendering.ray_tracing_policy",
+            "rendering.shader_graph",
+            "rendering.vfx_graph",
+        ]
+    );
+    assert_eq!(
+        rendering
+            .optional_features
+            .iter()
+            .filter(|feature| feature.enabled)
+            .map(|feature| feature.id.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "rendering.post_process",
+            "rendering.ssao",
+            "rendering.reflection_probes",
+            "rendering.baked_lighting",
+        ]
+    );
+
+    let shader_graph = rendering
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "rendering.shader_graph")
+        .expect("shader graph feature status");
+    assert!(!shader_graph.enabled);
+    assert!(shader_graph.available);
+    assert_eq!(
+        shader_graph.runtime_crate.as_deref(),
+        Some("zircon_plugin_rendering_shader_graph_runtime")
+    );
+    assert_eq!(
+        shader_graph.editor_crate.as_deref(),
+        Some("zircon_plugin_rendering_shader_graph_editor")
+    );
+
+    let vfx_graph = rendering
+        .optional_features
+        .iter()
+        .find(|feature| feature.id == "rendering.vfx_graph")
+        .expect("vfx graph feature status");
+    assert!(!vfx_graph.enabled);
+    assert!(!vfx_graph.available);
+    assert!(vfx_graph.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "particles"
+            && dependency.capability == "runtime.plugin.particles"
+            && !dependency.primary
+            && !dependency.plugin_enabled
+            && !dependency.capability_available
+    }));
+    assert!(vfx_graph.dependencies.iter().any(|dependency| {
+        dependency.plugin_id == "rendering"
+            && dependency.capability == "runtime.feature.rendering.shader_graph"
+            && !dependency.primary
+            && dependency.plugin_enabled
+            && !dependency.capability_available
+    }));
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
 fn editor_manager_registers_minimal_host_capabilities_as_vm_handles_when_script_is_available() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_minimal_host_vm");
@@ -679,6 +783,45 @@ capabilities = ["runtime.feature.native_tool.timeline_bridge"]
         .diagnostics
         .iter()
         .any(|message| message.contains("library is missing")));
+
+    let dependency_report = manager
+        .enable_native_aware_project_plugin_feature_dependencies(
+            &project_root,
+            &mut manifest,
+            "native_tool",
+            "native_tool.timeline_bridge",
+        )
+        .expect("native optional feature dependencies should use native catalog");
+    assert_eq!(
+        dependency_report.enabled_dependency_plugins,
+        vec!["native_tool".to_string()]
+    );
+    assert!(dependency_report
+        .project_selection
+        .features
+        .iter()
+        .any(|feature| {
+            feature.id == "native_tool.timeline_bridge"
+                && !feature.enabled
+                && feature.runtime_crate.as_deref()
+                    == Some("zircon_plugin_native_tool_timeline_bridge_runtime")
+        }));
+
+    let feature_report = manager
+        .set_native_aware_project_plugin_feature_enabled(
+            &project_root,
+            &mut manifest,
+            "native_tool",
+            "native_tool.timeline_bridge",
+            true,
+        )
+        .expect("native optional feature should enable after dependencies");
+    assert!(feature_report.enabled);
+    assert!(feature_report
+        .project_selection
+        .features
+        .iter()
+        .any(|feature| feature.id == "native_tool.timeline_bridge" && feature.enabled));
 
     let enabled = manager
         .set_native_aware_project_plugin_enabled(&project_root, &mut manifest, "native_tool", true)

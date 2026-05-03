@@ -36,4 +36,4 @@ pub use session::{NetControlMessage, NetRuntimeMode};
 pub use socket_id::NetSocketId;
 pub use sync::{SyncAuthority, SyncComponentDescriptor, SyncFieldDescriptor};
 pub use transport::{NetConnectionState, NetSecurityPolicy, NetTransportKind};
-pub use websocket::{NetWebSocketCloseReason, NetWebSocketFrame};
+pub use websocket::{NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame};

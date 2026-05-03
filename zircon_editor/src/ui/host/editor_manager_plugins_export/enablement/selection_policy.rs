@@ -1,7 +1,9 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::{ExportPackagingStrategy, ProjectPluginSelection, RuntimeTargetMode};
+use zircon_runtime::{
+    plugin::ExportPackagingStrategy, plugin::ProjectPluginSelection, RuntimeTargetMode,
+};
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::reports::EditorPluginSelectionUpdateReport;

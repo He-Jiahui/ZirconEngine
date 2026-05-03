@@ -82,6 +82,12 @@ fn builtin_pane_views_expose_template_metadata() {
             PaneInteractionMode::HybridNativeSlot,
         ),
         (
+            "editor.build_export_desktop",
+            PanePayloadKind::BuildExportV1,
+            PaneRouteNamespace::Diagnostics,
+            PaneInteractionMode::HybridNativeSlot,
+        ),
+        (
             "editor.ui_component_showcase",
             PanePayloadKind::UiComponentShowcaseV1,
             PaneRouteNamespace::UiComponentShowcase,

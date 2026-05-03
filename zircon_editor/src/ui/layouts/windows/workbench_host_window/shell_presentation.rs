@@ -37,6 +37,7 @@ impl ShellPresentation {
         >,
         runtime_diagnostics: Option<&RuntimeDiagnosticsSnapshot>,
         module_plugins: &ModulePluginsPaneViewData,
+        build_export: &BuildExportPaneViewData,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) -> Self {
         let left_tabs = collect_tabs(
@@ -111,6 +112,7 @@ impl ShellPresentation {
                     animation_panes,
                     runtime_diagnostics,
                     module_plugins,
+                    build_export,
                     floating_window_projection_bundle,
                 )),
                 left_pane: side_pane(
@@ -121,6 +123,7 @@ impl ShellPresentation {
                     animation_panes,
                     runtime_diagnostics,
                     module_plugins,
+                    build_export,
                 ),
                 right_pane: side_pane(
                     model,
@@ -133,6 +136,7 @@ impl ShellPresentation {
                     animation_panes,
                     runtime_diagnostics,
                     module_plugins,
+                    build_export,
                 ),
                 bottom_pane: side_pane(
                     model,
@@ -145,6 +149,7 @@ impl ShellPresentation {
                     animation_panes,
                     runtime_diagnostics,
                     module_plugins,
+                    build_export,
                 ),
                 document_pane: document_pane(
                     model,
@@ -153,6 +158,7 @@ impl ShellPresentation {
                     animation_panes,
                     runtime_diagnostics,
                     module_plugins,
+                    build_export,
                 ),
             },
             welcome,

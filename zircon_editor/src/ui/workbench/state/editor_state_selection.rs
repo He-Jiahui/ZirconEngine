@@ -1,3 +1,4 @@
+use zircon_runtime::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use zircon_runtime_interface::math::Transform;
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
@@ -49,8 +50,10 @@ impl EditorState {
             translation: zircon_runtime_interface::math::Vec3::new(x, y, z),
             ..current.transform
         };
+        let dynamic_updates = self.prepare_dynamic_component_updates(node_id)?;
         let selected = self.viewport_controller.selected_node();
-        let command = self
+        let mut commands = Vec::new();
+        if let Some(command) = self
             .world
             .try_with_world_mut(|scene| {
                 EditorCommand::update_node(
@@ -62,14 +65,57 @@ impl EditorState {
                     transform,
                 )
             })
-            .ok_or_else(no_project_open)??;
-        let Some(command) = command else {
+            .ok_or_else(no_project_open)??
+        {
+            commands.push(command);
+        }
+
+        for (property_path, value) in dynamic_updates {
+            if let Some(command) = self
+                .world
+                .try_with_world_mut(|scene| {
+                    EditorCommand::set_scene_property(
+                        scene,
+                        selected,
+                        node_id,
+                        property_path,
+                        value,
+                    )
+                })
+                .ok_or_else(no_project_open)??
+            {
+                commands.push(command);
+            }
+        }
+
+        let Some(command) = EditorCommand::batch(commands) else {
             return Ok(false);
         };
         self.history.push(command);
         self.sync_selection_state();
         self.status_line = format!("Applied inspector changes to node {node_id}");
         Ok(true)
+    }
+
+    fn prepare_dynamic_component_updates(
+        &self,
+        node_id: zircon_runtime::scene::NodeId,
+    ) -> Result<Vec<(ComponentPropertyPath, ScenePropertyValue)>, String> {
+        let updates = self.inspector_dynamic_fields.clone();
+        self.world
+            .try_with_world(|scene| {
+                updates
+                    .into_iter()
+                    .map(|(field_id, value)| {
+                        let property_path = ComponentPropertyPath::parse(&field_id)
+                            .map_err(|error| error.to_string())?;
+                        let current = scene.property(node_id, &property_path)?;
+                        let value = scene_property_value_from_text(&value, &current)?;
+                        Ok((property_path, value))
+                    })
+                    .collect()
+            })
+            .ok_or_else(no_project_open)?
     }
 
     pub fn import_mesh_asset(
@@ -112,6 +158,7 @@ impl EditorState {
             });
         if let Some(node) = selected_state {
             let translation = node.transform.translation;
+            self.inspector_dynamic_fields.clear();
             self.name_field = node.name;
             self.parent_field = node
                 .parent
@@ -129,5 +176,50 @@ impl EditorState {
         self.name_field.clear();
         self.parent_field.clear();
         self.transform_fields = [String::new(), String::new(), String::new()];
+        self.inspector_dynamic_fields.clear();
+    }
+}
+
+fn scene_property_value_from_text(
+    value: &str,
+    current: &ScenePropertyValue,
+) -> Result<ScenePropertyValue, String> {
+    match current {
+        ScenePropertyValue::Bool(_) => parse_bool(value).map(ScenePropertyValue::Bool),
+        ScenePropertyValue::Integer(_) => value
+            .trim()
+            .parse::<i64>()
+            .map(ScenePropertyValue::Integer)
+            .map_err(|_| format!("Inspector property value `{value}` must be a signed integer")),
+        ScenePropertyValue::Unsigned(_) => value
+            .trim()
+            .parse::<u64>()
+            .map(ScenePropertyValue::Unsigned)
+            .map_err(|_| format!("Inspector property value `{value}` must be an unsigned integer")),
+        ScenePropertyValue::Scalar(_) => value
+            .trim()
+            .parse::<f32>()
+            .map(ScenePropertyValue::Scalar)
+            .map_err(|_| format!("Inspector property value `{value}` must be a number")),
+        ScenePropertyValue::String(_) => Ok(ScenePropertyValue::String(value.to_string())),
+        ScenePropertyValue::Enum(_) => Ok(ScenePropertyValue::Enum(value.to_string())),
+        ScenePropertyValue::Resource(_) => Ok(ScenePropertyValue::Resource(value.to_string())),
+        ScenePropertyValue::Vec2(_)
+        | ScenePropertyValue::Vec3(_)
+        | ScenePropertyValue::Vec4(_)
+        | ScenePropertyValue::Quaternion(_)
+        | ScenePropertyValue::Entity(_)
+        | ScenePropertyValue::AnimationParameter(_) => Err(
+            "Inspector component drawer only supports scalar, bool, string, enum, and resource fields"
+                .to_string(),
+        ),
+    }
+}
+
+fn parse_bool(value: &str) -> Result<bool, String> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "true" | "1" | "yes" | "on" => Ok(true),
+        "false" | "0" | "no" | "off" => Ok(false),
+        _ => Err(format!("Inspector property value `{value}` must be a bool")),
     }
 }

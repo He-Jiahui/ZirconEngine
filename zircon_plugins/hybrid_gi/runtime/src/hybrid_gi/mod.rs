@@ -4,14 +4,25 @@ mod extract_payloads;
 mod extract_registration;
 mod gpu_completion;
 #[cfg(test)]
+#[path = "test_sources/hybrid_gi_render_framework_stats.rs"]
+mod hybrid_gi_render_framework_stats;
+#[cfg(test)]
+#[path = "test_sources/hybrid_gi_renderer_test_promotion_guard.rs"]
+mod hybrid_gi_renderer_test_promotion_guard;
+#[cfg(test)]
 #[path = "test_sources/hybrid_gi_runtime.rs"]
 mod hybrid_gi_runtime_tests;
+#[cfg(test)]
+#[path = "test_sources/hybrid_gi_scene_prepare_material_fixtures.rs"]
+mod hybrid_gi_scene_prepare_material_fixtures;
 #[cfg(test)]
 #[path = "test_sources/hybrid_gi_scene_representation.rs"]
 mod hybrid_gi_scene_representation_tests;
 #[cfg(test)]
 #[path = "test_sources/hybrid_gi_visibility.rs"]
 mod hybrid_gi_visibility_tests;
+// Broad moved renderer snapshots stay unwired until their old runtime-owner
+// imports are migrated to plugin-local types and public neutral runtime seams.
 mod pending_completion;
 mod plan_ingestion;
 mod prepare_frame;

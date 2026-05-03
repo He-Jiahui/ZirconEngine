@@ -15,10 +15,11 @@ use super::resolve_history_handle::resolve_history_handle;
 pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
-    frame: ViewportRenderFrame,
+    mut frame: ViewportRenderFrame,
 ) -> Result<(), RenderFrameworkError> {
     let context =
         build_frame_submission_context(server, viewport, &frame.extract, frame.ui.as_ref())?;
+    apply_effective_advanced_extracts_to_runtime_frame(&mut frame, &context);
     let mut state = server.state.lock().unwrap();
     let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
@@ -48,4 +49,14 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);
     Ok(())
+}
+
+fn apply_effective_advanced_extracts_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.extract.geometry.virtual_geometry = context.virtual_geometry_extract().cloned();
+    if !context.hybrid_gi_enabled() {
+        frame.extract.lighting.hybrid_global_illumination = None;
+    }
 }

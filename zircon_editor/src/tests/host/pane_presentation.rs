@@ -22,9 +22,10 @@ use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
 use crate::ui::layouts::views::blank_viewport_chrome;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, document_pane, ModulePluginStatusViewData,
-    ModulePluginsPaneViewData, PaneActionPresentation, PaneEmptyStatePresentation, PanePayload,
-    PanePayloadBuildContext, PanePresentation, PaneShellPresentation,
+    build_pane_body_presentation, document_pane, BuildExportPaneViewData,
+    BuildExportTargetViewData, ModulePluginStatusViewData, ModulePluginsPaneViewData,
+    PaneActionPresentation, PaneEmptyStatePresentation, PanePayload, PanePayloadBuildContext,
+    PanePresentation, PaneShellPresentation,
 };
 use crate::ui::workbench::layout::{
     ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
@@ -100,6 +101,7 @@ fn editor_data_fixture() -> EditorDataSnapshot {
             name: "Root".to_string(),
             parent: "Scene".to_string(),
             translation: ["1.0".to_string(), "2.0".to_string(), "3.0".to_string()],
+            plugin_components: Vec::new(),
         }),
         status_line: "Console ready".to_string(),
         hovered_axis: None,
@@ -244,6 +246,25 @@ fn module_plugins_fixture() -> ModulePluginsPaneViewData {
     }
 }
 
+fn build_export_fixture() -> BuildExportPaneViewData {
+    BuildExportPaneViewData {
+        targets: crate::ui::layouts::common::model_rc(vec![BuildExportTargetViewData {
+            profile_name: "desktop_windows".into(),
+            platform: "Windows".into(),
+            target_mode: "ClientRuntime".into(),
+            strategies: "SourceTemplate, LibraryEmbed, NativeDynamic".into(),
+            status: "Ready".into(),
+            enabled_plugins: "3".into(),
+            linked_runtime_crates: "2".into(),
+            native_dynamic_packages: "1".into(),
+            generated_files: "5".into(),
+            diagnostics: "native plugin package ready".into(),
+            fatal: false,
+        }]),
+        diagnostics: "export catalog ready".into(),
+    }
+}
+
 #[test]
 fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
     let _guard = crate::tests::support::env_lock()
@@ -253,10 +274,12 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
     let animation = animation_fixture();
     let runtime_diagnostics = runtime_diagnostics_fixture();
     let module_plugins = module_plugins_fixture();
+    let build_export = build_export_fixture();
     let context = PanePayloadBuildContext::new(&chrome)
         .with_animation_pane(&animation)
         .with_runtime_diagnostics(&runtime_diagnostics)
-        .with_module_plugins(&module_plugins);
+        .with_module_plugins(&module_plugins)
+        .with_build_export(&build_export);
 
     let cases = [
         (
@@ -293,6 +316,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             "editor.module_plugins",
             "pane.module_plugins.body",
             PanePayloadKind::ModulePluginsV1,
+        ),
+        (
+            "editor.build_export_desktop",
+            "pane.build_export_desktop.body",
+            PanePayloadKind::BuildExportV1,
         ),
     ];
 
@@ -387,6 +415,13 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     "Plugin.HotReload.physics"
                 );
             }
+            ("editor.build_export_desktop", PanePayload::BuildExportV1(payload)) => {
+                assert_eq!(payload.diagnostics, "export catalog ready");
+                assert_eq!(payload.targets.len(), 1);
+                assert_eq!(payload.targets[0].platform, "Windows");
+                assert_eq!(payload.targets[0].status, "Ready");
+                assert_eq!(payload.targets[0].native_dynamic_packages, "1");
+            }
             (unexpected_id, unexpected_payload) => panic!(
                 "builder for `{unexpected_id}` produced unexpected payload {unexpected_payload:?}"
             ),
@@ -470,6 +505,10 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             "pane.runtime.diagnostics.body",
         ),
         ("editor.module_plugins", "pane.module_plugins.body"),
+        (
+            "editor.build_export_desktop",
+            "pane.build_export_desktop.body",
+        ),
     ];
 
     for (descriptor_id, document_id) in cases {
@@ -518,6 +557,7 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
             Some(&runtime_diagnostics),
             &crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData::default(
             ),
+            &crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData::default(),
         );
         let pane_presentation = pane
             .pane_presentation

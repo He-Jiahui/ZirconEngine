@@ -1,21 +1,35 @@
 use zircon_runtime::asset::{AssetUri, SoundAsset};
 use zircon_runtime::core::framework::sound::{
-    SoundAttenuationMode, SoundAutomationBinding, SoundAutomationBindingId, SoundAutomationTarget,
+    ExternalAudioSourceHandle, SoundAttenuationMode, SoundAutomationBinding,
+    SoundAutomationBindingId, SoundAutomationCurve, SoundAutomationKeyframe, SoundAutomationTarget,
     SoundChorusEffect, SoundClipId, SoundCompressorEffect, SoundConvolutionReverbEffect,
-    SoundDelayEffect, SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundFilterEffect,
-    SoundFilterMode, SoundFlangerEffect, SoundGainEffect, SoundImpulseResponseId,
-    SoundLimiterEffect, SoundListenerDescriptor, SoundListenerId, SoundManager,
+    SoundDelayEffect, SoundDynamicEventDescriptor, SoundDynamicEventInvocation,
+    SoundEffectDescriptor, SoundEffectId, SoundEffectKind, SoundError, SoundExternalSourceBlock,
+    SoundFilterEffect, SoundFilterMode, SoundFlangerEffect, SoundGainEffect,
+    SoundImpulseResponseId, SoundLimiterEffect, SoundListenerDescriptor, SoundListenerId,
+    SoundManager, SoundOutputDeviceDescriptor, SoundOutputDeviceId, SoundOutputDeviceState,
     SoundPanStereoEffect, SoundParameterId, SoundPhaserEffect, SoundPlaybackSettings,
-    SoundReverbEffect, SoundSidechainInput, SoundSourceDescriptor, SoundSourceInput,
-    SoundSourceSend, SoundSpatialSourceSettings, SoundTrackDescriptor, SoundTrackId,
-    SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape, SoundWaveShaperEffect,
-    AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
+    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus, SoundReverbEffect,
+    SoundSidechainInput, SoundSourceDescriptor, SoundSourceId, SoundSourceInput,
+    SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings, SoundTrackDescriptor,
+    SoundTrackId, SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId, SoundVolumeShape,
+    SoundWaveShaperEffect, AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE,
+    AUDIO_VOLUME_COMPONENT_TYPE,
 };
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 
 use super::{
     runtime_plugin, DefaultSoundManager, SOUND_DYNAMIC_EVENT_NAMESPACE, SOUND_MODULE_NAME,
 };
+
+mod automation_curve;
+mod dsp_state;
+mod dynamic_events;
+mod graph_config;
+mod output_device;
+mod presets;
+mod ray_tracing;
+mod spatial;
 
 #[test]
 fn sound_plugin_registration_contributes_runtime_module_components_options_and_events() {
@@ -55,6 +69,33 @@ fn sound_plugin_registration_contributes_runtime_module_components_options_and_e
         .plugin_options()
         .iter()
         .any(|option| option.key == "sound.ray_tracing_quality"));
+    for option_key in [
+        "sound.backend",
+        "sound.sample_rate_hz",
+        "sound.channel_count",
+        "sound.block_size_frames",
+        "sound.max_voices",
+        "sound.max_tracks",
+        "sound.hrtf_enabled",
+        "sound.hrtf_profile",
+        "sound.convolution_enabled",
+        "sound.convolution_budget.max_impulse_responses",
+        "sound.convolution_budget.max_partition_frames",
+        "sound.convolution_budget.rays_per_update",
+        "sound.ray_tracing_quality",
+        "sound.default_mixer_preset",
+        "sound.timeline_integration",
+        "sound.dynamic_events_enabled",
+    ] {
+        assert!(
+            report
+                .package_manifest
+                .options
+                .iter()
+                .any(|option| option.key == option_key),
+            "missing sound option {option_key}"
+        );
+    }
     assert!(report
         .package_manifest
         .dependencies
@@ -401,6 +442,85 @@ fn static_convolution_impulse_response_processes_master_track() {
 }
 
 #[test]
+fn impulse_response_lifecycle_can_invalidate_static_convolution_cache() {
+    let sound = DefaultSoundManager::default();
+    let parameter = SoundParameterId::new("ir.input");
+    let impulse_response = SoundImpulseResponseId::new(44);
+    sound.set_parameter(parameter.clone(), 1.0).unwrap();
+    sound
+        .set_impulse_response(impulse_response, vec![0.5])
+        .unwrap();
+    sound
+        .add_or_update_effect(
+            SoundTrackId::master(),
+            SoundEffectDescriptor::new(
+                SoundEffectId::new(44),
+                "Invalidate IR",
+                SoundEffectKind::ConvolutionReverb(SoundConvolutionReverbEffect {
+                    impulse_response,
+                    fallback_to_algorithmic: false,
+                    latency_frames: 0,
+                }),
+            ),
+        )
+        .unwrap();
+    sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::SynthParameter {
+                parameter,
+                default_value: 0.0,
+            },
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap();
+
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.5, 0.5]);
+    sound.remove_impulse_response(impulse_response).unwrap();
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[1.0, 1.0]);
+    assert!(matches!(
+        sound.remove_impulse_response(impulse_response).unwrap_err(),
+        SoundError::UnknownImpulseResponse { .. }
+    ));
+}
+
+#[test]
+fn ray_tracing_convolution_status_is_visible_and_validated() {
+    let sound = DefaultSoundManager::default();
+
+    sound
+        .set_ray_tracing_convolution_status(
+            SoundRayTracingConvolutionStatus::WaitingForGeometryProvider,
+        )
+        .unwrap();
+    assert_eq!(
+        sound.mixer_snapshot().unwrap().ray_tracing,
+        SoundRayTracingConvolutionStatus::WaitingForGeometryProvider
+    );
+
+    sound
+        .set_ray_tracing_convolution_status(SoundRayTracingConvolutionStatus::RayTraced {
+            cached_cells: 2,
+            rays_per_update: 64,
+        })
+        .unwrap();
+    assert_eq!(
+        sound.mixer_snapshot().unwrap().ray_tracing,
+        SoundRayTracingConvolutionStatus::RayTraced {
+            cached_cells: 2,
+            rays_per_update: 64,
+        }
+    );
+    assert!(sound
+        .set_ray_tracing_convolution_status(SoundRayTracingConvolutionStatus::RayTraced {
+            cached_cells: 2,
+            rays_per_update: 0,
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("ray"));
+}
+
+#[test]
 fn dsp_bypass_wet_dry_delay_pan_phase_and_limiter_are_deterministic() {
     let mut wet_gain = test_effect(SoundEffectKind::Gain(SoundGainEffect { gain: 0.0 }));
     wet_gain.wet = 0.25;
@@ -573,6 +693,287 @@ fn synth_parameter_source_and_timeline_binding_are_visible_in_snapshot() {
 }
 
 #[test]
+fn automation_binding_applies_values_to_synth_track_and_effect_targets() {
+    let sound = DefaultSoundManager::default();
+    let synth_parameter = SoundParameterId::new("synth.amp");
+    let source = SoundSourceDescriptor {
+        input: SoundSourceInput::SynthParameter {
+            parameter: synth_parameter.clone(),
+            default_value: 0.0,
+        },
+        ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+    };
+    sound.create_source(source).unwrap();
+
+    let synth_binding = SoundAutomationBindingId::new(10);
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: synth_binding,
+            timeline_track_path: "Root/Synth:sound.synth.amp".to_string(),
+            target: SoundAutomationTarget::SynthParameter(synth_parameter.clone()),
+            parameter: SoundParameterId::new("value"),
+        })
+        .unwrap();
+    sound.apply_automation_value(synth_binding, 0.4).unwrap();
+    assert_sample_near(sound.parameter_value(&synth_parameter).unwrap(), 0.4);
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.4, 0.4]);
+
+    let track_binding = SoundAutomationBindingId::new(11);
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: track_binding,
+            timeline_track_path: "Root/Master:sound.master.gain".to_string(),
+            target: SoundAutomationTarget::Track(SoundTrackId::master()),
+            parameter: SoundParameterId::new("gain"),
+        })
+        .unwrap();
+    sound.apply_automation_value(track_binding, 0.5).unwrap();
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.2, 0.2]);
+
+    let effect_id = SoundEffectId::new(88);
+    sound
+        .add_or_update_effect(
+            SoundTrackId::master(),
+            SoundEffectDescriptor::new(
+                effect_id,
+                "Automated Gain",
+                SoundEffectKind::Gain(SoundGainEffect { gain: 0.0 }),
+            ),
+        )
+        .unwrap();
+    let effect_binding = SoundAutomationBindingId::new(12);
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: effect_binding,
+            timeline_track_path: "Root/Master/AutomatedGain:sound.effect.wet".to_string(),
+            target: SoundAutomationTarget::Effect {
+                track: SoundTrackId::master(),
+                effect: effect_id,
+            },
+            parameter: SoundParameterId::new("wet"),
+        })
+        .unwrap();
+    sound.apply_automation_value(effect_binding, 0.5).unwrap();
+
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.1, 0.1]);
+}
+
+#[test]
+fn automation_binding_reports_invalid_paths_and_targets_cleanly() {
+    let sound = DefaultSoundManager::default();
+
+    let missing = sound
+        .apply_automation_value(SoundAutomationBindingId::new(999), 0.1)
+        .unwrap_err();
+    assert!(matches!(
+        missing,
+        SoundError::UnknownAutomationBinding { .. }
+    ));
+    assert!(sound
+        .bind_automation(SoundAutomationBinding {
+            id: SoundAutomationBindingId::new(20),
+            timeline_track_path: " ".to_string(),
+            target: SoundAutomationTarget::Track(SoundTrackId::master()),
+            parameter: SoundParameterId::new("gain"),
+        })
+        .unwrap_err()
+        .to_string()
+        .contains("timeline track path"));
+
+    let unsupported_binding = SoundAutomationBindingId::new(21);
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: unsupported_binding,
+            timeline_track_path: "Root/Master:sound.master.unknown".to_string(),
+            target: SoundAutomationTarget::Track(SoundTrackId::master()),
+            parameter: SoundParameterId::new("unknown_parameter"),
+        })
+        .unwrap();
+    assert!(sound
+        .apply_automation_value(unsupported_binding, 1.0)
+        .unwrap_err()
+        .to_string()
+        .contains("unsupported sound automation parameter"));
+
+    let unknown_source_binding = SoundAutomationBindingId::new(22);
+    sound
+        .bind_automation(SoundAutomationBinding {
+            id: unknown_source_binding,
+            timeline_track_path: "Root/Source:sound.source.gain".to_string(),
+            target: SoundAutomationTarget::Source(SoundSourceId::new(404)),
+            parameter: SoundParameterId::new("gain"),
+        })
+        .unwrap();
+    assert!(matches!(
+        sound
+            .apply_automation_value(unknown_source_binding, 0.25)
+            .unwrap_err(),
+        SoundError::UnknownSource { .. }
+    ));
+}
+
+#[test]
+fn external_audio_source_block_routes_other_component_audio() {
+    let sound = DefaultSoundManager::default();
+    let handle = ExternalAudioSourceHandle::new("particles.wind-bed");
+    sound
+        .submit_external_source_block(
+            handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 48_000,
+                channel_count: 1,
+                samples: vec![0.25, 0.5],
+            },
+        )
+        .unwrap();
+    let source_id = sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::External(handle),
+            gain: 0.5,
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap();
+
+    let first_mix = sound.render_mix(2).unwrap();
+    let second_mix = sound.render_mix(1).unwrap();
+
+    assert_eq!(source_id.raw(), 1);
+    assert_samples_near(&first_mix.samples, &[0.125, 0.125, 0.25, 0.25]);
+    assert_samples_near(&second_mix.samples, &[0.0, 0.0]);
+}
+
+#[test]
+fn external_audio_source_lifecycle_reports_invalid_and_missing_blocks() {
+    let sound = DefaultSoundManager::default();
+    let handle = ExternalAudioSourceHandle::new("navigation.surface-noise");
+
+    assert!(sound
+        .submit_external_source_block(
+            handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 48_000,
+                channel_count: 0,
+                samples: vec![0.0],
+            },
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("channel count"));
+    assert!(sound
+        .submit_external_source_block(
+            handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 48_000,
+                channel_count: 1,
+                samples: vec![f32::NAN],
+            },
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("finite"));
+    assert!(matches!(
+        sound.clear_external_source(&handle).unwrap_err(),
+        SoundError::UnknownExternalSource { .. }
+    ));
+
+    sound
+        .submit_external_source_block(
+            handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 48_000,
+                channel_count: 1,
+                samples: vec![0.75],
+            },
+        )
+        .unwrap();
+    sound.clear_external_source(&handle).unwrap();
+    sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::External(handle),
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap();
+
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.0, 0.0]);
+}
+
+#[test]
+fn clip_and_external_inputs_resample_to_mixer_rate() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip_with_rate(
+        "res://sound/resampled.wav",
+        24_000,
+        &[0.25, 0.5],
+    ));
+    sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    assert_samples_near(
+        &sound.render_mix(4).unwrap().samples,
+        &[0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5],
+    );
+
+    let sound = DefaultSoundManager::default();
+    let handle = ExternalAudioSourceHandle::new("synth.low-rate");
+    sound
+        .submit_external_source_block(
+            handle.clone(),
+            SoundExternalSourceBlock {
+                sample_rate_hz: 24_000,
+                channel_count: 1,
+                samples: vec![0.5, 1.0],
+            },
+        )
+        .unwrap();
+    sound
+        .create_source(SoundSourceDescriptor {
+            input: SoundSourceInput::External(handle),
+            ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+        })
+        .unwrap();
+
+    assert_samples_near(
+        &sound.render_mix(4).unwrap().samples,
+        &[0.5, 0.5, 0.5, 0.5, 1.0, 1.0, 1.0, 1.0],
+    );
+}
+
+#[test]
+fn audio_source_parameter_bindings_follow_synth_parameters() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/bound-source.wav", &[1.0, 1.0]));
+    let gain_parameter = SoundParameterId::new("synth.source_gain");
+    sound.set_parameter(gain_parameter.clone(), 0.25).unwrap();
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.parameter_bindings.push(SoundSourceParameterBinding {
+        source_parameter: SoundParameterId::new("gain"),
+        synth_parameter: gain_parameter.clone(),
+    });
+    sound.create_source(source).unwrap();
+
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.25, 0.25]);
+    sound.set_parameter(gain_parameter, 0.5).unwrap();
+    assert_samples_near(&sound.render_mix(1).unwrap().samples, &[0.5, 0.5]);
+
+    let mut invalid_source = SoundSourceDescriptor {
+        input: SoundSourceInput::Silence,
+        ..SoundSourceDescriptor::clip(SoundClipId::new(999))
+    };
+    invalid_source
+        .parameter_bindings
+        .push(SoundSourceParameterBinding {
+            source_parameter: SoundParameterId::new("not_a_source_parameter"),
+            synth_parameter: SoundParameterId::new("synth.invalid"),
+        });
+    assert!(sound
+        .create_source(invalid_source)
+        .unwrap_err()
+        .to_string()
+        .contains("unsupported source parameter binding"));
+}
+
+#[test]
 fn spatial_source_uses_active_listener_for_attenuation_pan_and_occlusion() {
     let sound = DefaultSoundManager::default();
     let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial.wav", &[1.0]));
@@ -675,9 +1076,13 @@ fn source_sends_can_tap_pre_spatial_signal() {
 }
 
 fn test_clip(uri: &str, mono_samples: &[f32]) -> SoundAsset {
+    test_clip_with_rate(uri, 48_000, mono_samples)
+}
+
+fn test_clip_with_rate(uri: &str, sample_rate_hz: u32, mono_samples: &[f32]) -> SoundAsset {
     SoundAsset {
         uri: AssetUri::parse(uri).unwrap(),
-        sample_rate_hz: 48_000,
+        sample_rate_hz,
         channel_count: 1,
         samples: mono_samples.to_vec(),
     }

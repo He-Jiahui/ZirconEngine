@@ -41,9 +41,13 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
     assert!(reset.undoable().is_some());
 
     for (path, menu_path) in [
+        ("File.Project.Open", "File/Open Project"),
+        ("File.Project.Save", "File/Save Project"),
+        ("Window.Layout.Save", "Window/Save Layout"),
         ("Runtime.PlayMode.Enter", "Play/Enter Play Mode"),
         ("Runtime.PlayMode.Exit", "Play/Exit Play Mode"),
         ("View.PluginManager.Open", "View/Plugin Manager"),
+        ("View.BuildExport.Open", "View/Desktop Export"),
         ("Inspector.Field.ApplyBatch", "Inspector/Apply Changes"),
     ] {
         let descriptor = registry

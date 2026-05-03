@@ -23,10 +23,13 @@ pub(in crate::graphics::scene::scene_renderer::particle) fn build_particle_verti
             sprite.color.z * sprite.intensity,
             sprite.color.w.clamp(0.0, 1.0),
         );
-        let top_left = sprite.position - right * half + up * half;
-        let top_right = sprite.position + right * half + up * half;
-        let bottom_left = sprite.position - right * half - up * half;
-        let bottom_right = sprite.position + right * half - up * half;
+        let sin = sprite.rotation.sin();
+        let cos = sprite.rotation.cos();
+        let rotated = |x: f32, y: f32| right * (x * cos - y * sin) + up * (x * sin + y * cos);
+        let top_left = sprite.position + rotated(-half, half);
+        let top_right = sprite.position + rotated(half, half);
+        let bottom_left = sprite.position + rotated(-half, -half);
+        let bottom_right = sprite.position + rotated(half, -half);
         vertices.extend_from_slice(&[
             ParticleVertex::new(top_left, color),
             ParticleVertex::new(bottom_left, color),

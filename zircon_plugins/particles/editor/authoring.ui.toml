@@ -1,0 +1,138 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "particles.authoring"
+version = 1
+display_name = "Particles Authoring"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "particles_authoring_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "ParticlesAuthoringRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "particles_authoring_toolbar"
+kind = "native"
+type = "Space"
+control_id = "ParticlesAuthoringToolbar"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "particles_authoring_content"
+kind = "native"
+type = "HorizontalBox"
+control_id = "ParticlesAuthoringContent"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 6.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "particles_emitter_list"
+kind = "native"
+type = "Space"
+control_id = "ParticlesEmitterList"
+
+[root.children.node.children.node.layout.width]
+min = 220.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "particles_module_stack"
+kind = "native"
+type = "Space"
+control_id = "ParticlesModuleStack"
+
+[root.children.node.children.node.layout.width]
+min = 260.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "particles_curve_editor_column"
+kind = "native"
+type = "VerticalBox"
+control_id = "ParticlesCurveEditorColumn"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "particles_curve_editor"
+kind = "native"
+type = "Space"
+control_id = "ParticlesCurveEditor"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "particles_diagnostics_panel"
+kind = "native"
+type = "Space"
+control_id = "ParticlesDiagnosticsPanel"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 96.0
+preferred = 96.0
+max = 96.0
+stretch = "Fixed"
+
+[components]

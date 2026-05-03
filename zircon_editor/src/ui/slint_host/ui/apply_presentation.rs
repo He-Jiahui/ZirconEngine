@@ -40,6 +40,7 @@ pub(crate) fn apply_presentation(
     >,
     runtime_diagnostics: Option<&zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
     module_plugins: &host_window::ModulePluginsPaneViewData,
+    build_export: &host_window::BuildExportPaneViewData,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
@@ -54,6 +55,7 @@ pub(crate) fn apply_presentation(
         animation_panes,
         runtime_diagnostics,
         module_plugins,
+        build_export,
         floating_window_projection_bundle,
     );
     let document_pane_shows_viewport_toolbar =
@@ -524,6 +526,13 @@ fn to_host_contract_module_plugins_pane(
     pane_data_conversion::to_host_contract_module_plugins_pane_from_host_pane(data, pane_size)
 }
 
+fn to_host_contract_build_export_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::BuildExportPaneData {
+    pane_data_conversion::to_host_contract_build_export_pane_from_host_pane(data, pane_size)
+}
+
 fn to_host_contract_ui_asset_pane(
     data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
 ) -> host_contract::UiAssetEditorPaneData {
@@ -540,6 +549,7 @@ fn to_host_contract_pane(
     let console = to_host_contract_console_pane(&data, pane_size);
     let animation = to_host_contract_animation_editor_pane(&data, pane_size);
     let module_plugins = to_host_contract_module_plugins_pane(&data, pane_size);
+    let build_export = to_host_contract_build_export_pane(&data, pane_size);
     let pane_kind = data.kind.to_string();
     let project_overview = if pane_kind == "UiComponentShowcase" {
         component_showcase_runtime.map_or_else(
@@ -585,6 +595,7 @@ fn to_host_contract_pane(
         ),
         project_overview,
         module_plugins,
+        build_export,
         ui_asset: to_host_contract_ui_asset_pane(data.native_body.ui_asset),
         animation,
     }

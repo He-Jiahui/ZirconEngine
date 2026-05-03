@@ -87,7 +87,8 @@
       "slot": "BottomRight",
       "tab_stack": {
         "tabs": [
-          "editor.runtime_diagnostics#1"
+          "editor.runtime_diagnostics#1",
+          "editor.build_export_desktop#1"
         ],
         "active_tab": "editor.runtime_diagnostics#1"
       },

@@ -11,10 +11,11 @@ pub(crate) fn hybrid_gi_render_feature_descriptor() -> RenderFeatureDescriptor {
 pub(crate) fn pluginized_wgpu_render_framework_with_asset_manager(
     asset_manager: Arc<ProjectAssetManager>,
 ) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
+    WgpuRenderFramework::new_with_plugin_render_extensions(
         asset_manager,
         [hybrid_gi_render_feature_descriptor()],
         crate::render_pass_executor_registrations(),
+        [crate::hybrid_gi_runtime_provider_registration()],
         Vec::new(),
     )
     .unwrap()

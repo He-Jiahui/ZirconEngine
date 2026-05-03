@@ -24,6 +24,13 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
             ))
             .unwrap();
     }
+    let schema_operation = EditorOperationPath::parse("Authoring.Material.SchemaCompile").unwrap();
+    registry
+        .register_operation(
+            EditorOperationDescriptor::new(schema_operation.clone(), "Compile With Schema")
+                .with_payload_schema_id("material_editor.compile_graph.v1"),
+        )
+        .unwrap();
     registry
         .register_asset_creation_template(
             AssetCreationTemplateDescriptor::new(
@@ -110,6 +117,26 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
         registry.timeline_track_types()[0].required_capabilities(),
         &["editor.extension.timeline_sequence_authoring".to_string()]
     );
+    assert_eq!(
+        registry
+            .operations()
+            .descriptor(&schema_operation)
+            .and_then(EditorOperationDescriptor::payload_schema_id),
+        Some("material_editor.compile_graph.v1")
+    );
+    let schema_operation_toml = toml::to_string(
+        registry
+            .operations()
+            .descriptor(&schema_operation)
+            .expect("schema operation descriptor"),
+    )
+    .expect("operation descriptor toml");
+    let decoded_schema_operation: EditorOperationDescriptor =
+        toml::from_str(&schema_operation_toml).expect("operation descriptor roundtrip");
+    assert_eq!(
+        decoded_schema_operation.payload_schema_id(),
+        Some("material_editor.compile_graph.v1")
+    );
 }
 
 #[test]
@@ -130,4 +157,20 @@ fn authoring_registry_rejects_duplicate_graph_node_ids() {
     assert!(error
         .to_string()
         .contains("graph node output already registered"));
+}
+
+#[test]
+fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
+    let mut registry = EditorExtensionRegistry::default();
+    let operation = EditorOperationPath::parse("Authoring.Material.Compile").unwrap();
+    let error = registry
+        .register_operation(
+            EditorOperationDescriptor::new(operation, "Compile Material")
+                .with_payload_schema_id("material_editor. compile.v1"),
+        )
+        .unwrap_err();
+
+    assert!(error
+        .to_string()
+        .contains("operation payload schema id `material_editor. compile.v1` is invalid"));
 }

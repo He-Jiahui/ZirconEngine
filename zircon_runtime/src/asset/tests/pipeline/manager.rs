@@ -45,7 +45,7 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
     );
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let changes = manager.subscribe_asset_changes();
     let project = manager
         .open_project(root.to_string_lossy().as_ref())
@@ -121,7 +121,7 @@ fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
         .join("nanite_teapot.model.toml");
     fs::write(&model_path, expected_model.to_toml_string().unwrap()).unwrap();
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -165,7 +165,7 @@ fn asset_manager_watcher_reimports_modified_assets() {
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let changes = manager.subscribe_asset_changes();
     manager
         .open_project(root.to_string_lossy().as_ref())
@@ -228,7 +228,7 @@ fn resource_server_reports_resource_records_for_project_assets() {
     );
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -294,7 +294,7 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -365,7 +365,7 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -424,7 +424,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let asset_changes = manager.subscribe_asset_changes();
     manager
         .open_project(root.to_string_lossy().as_ref())
@@ -493,7 +493,7 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let asset_changes = manager.subscribe_asset_changes();
     manager
         .open_project(root.to_string_lossy().as_ref())
@@ -574,7 +574,7 @@ fn asset_manager_acquire_release_unloads_and_rehydrates_runtime_resources() {
     );
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let manager = ProjectAssetManager::default();
+    let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -683,4 +683,12 @@ fn sample_virtual_geometry_model_asset() -> ModelAsset {
             }),
         }],
     }
+}
+
+fn project_asset_manager_with_first_wave_plugin_fixtures() -> ProjectAssetManager {
+    let manager = ProjectAssetManager::default();
+    manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    manager
 }

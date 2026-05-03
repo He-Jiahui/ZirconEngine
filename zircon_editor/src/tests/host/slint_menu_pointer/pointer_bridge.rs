@@ -76,7 +76,7 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
         },
     );
 
-    let moved = bridge.handle_move(UiPoint::new(240.0, 110.0)).unwrap();
+    let moved = bridge.handle_move(UiPoint::new(280.0, 110.0)).unwrap();
     assert_eq!(
         moved.route,
         Some(HostMenuPointerRoute::MenuItem {
@@ -90,7 +90,7 @@ fn shared_menu_pointer_bridge_scrolls_window_popup_using_shared_scroll_state() {
 
     bridge.sync(window_menu_layout(10), moved.state);
     let scrolled = bridge
-        .handle_scroll(UiPoint::new(240.0, 110.0), 96.0)
+        .handle_scroll(UiPoint::new(280.0, 110.0), 96.0)
         .unwrap();
     assert_eq!(scrolled.route, Some(HostMenuPointerRoute::PopupSurface(5)));
     assert!(scrolled.state.popup_scroll_offset > 0.0);
@@ -112,7 +112,7 @@ fn shared_menu_pointer_bridge_recomputes_hovered_item_after_window_popup_scroll(
     );
 
     let scrolled = bridge
-        .handle_scroll(UiPoint::new(240.0, 110.0), 420.0)
+        .handle_scroll(UiPoint::new(280.0, 110.0), 420.0)
         .unwrap();
 
     assert_eq!(scrolled.state.hovered_menu_index, Some(5));

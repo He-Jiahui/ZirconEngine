@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -55,7 +56,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
         "res://materials/grid.material.toml",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -112,7 +113,7 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
         "res://materials/flat_green.material.toml",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -176,7 +177,7 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
         "res://materials/grid.material.toml",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -258,7 +259,7 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
         "res://shaders/flat_black.wgsl",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -392,7 +393,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         "res://shaders/flat_gray.wgsl",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -501,7 +502,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
         "res://shaders/flat_white.wgsl",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -636,7 +637,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         "res://materials/forward_green.material.toml",
     );
 
-    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
     asset_manager
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
@@ -716,11 +717,25 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
 }
 
 fn unique_temp_project_root(label: &str) -> PathBuf {
+    static NEXT_TEMP_PROJECT_ID: AtomicU64 = AtomicU64::new(1);
+
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("zircon_graphics_{label}_{unique}"))
+    let process_id = std::process::id();
+    let sequence = NEXT_TEMP_PROJECT_ID.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!(
+        "zircon_graphics_{label}_{process_id}_{sequence}_{unique}"
+    ))
+}
+
+fn project_asset_manager_with_first_wave_plugin_importers() -> Arc<ProjectAssetManager> {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    asset_manager
 }
 
 fn write_valid_wgsl(path: PathBuf) {

@@ -1,6 +1,8 @@
 pub const PLUGIN_ID: &str = "net";
 
+mod backend;
 mod config;
+mod http_backend;
 mod module;
 mod package;
 mod service_types;

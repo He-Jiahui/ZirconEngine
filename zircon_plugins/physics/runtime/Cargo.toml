@@ -5,5 +5,9 @@ edition.workspace = true
 license.workspace = true
 description = "Physics runtime plugin package for Zircon."
 
+[features]
+default = []
+jolt = []
+
 [dependencies]
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

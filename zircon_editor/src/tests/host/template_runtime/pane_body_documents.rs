@@ -297,6 +297,12 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "ModulePluginsPaneBody",
             "ModulePluginsPaneBody/FocusModulePlugins",
         ),
+        (
+            "editor.build_export_desktop",
+            "pane.build_export_desktop.body",
+            "BuildExportPaneBody",
+            "BuildExportPaneBody/FocusBuildExport",
+        ),
     ];
 
     for (descriptor_id, document_id, component_id, binding_id) in cases {
@@ -363,6 +369,11 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
             "module_plugins_body.ui.toml",
             "ModulePluginsPaneBody",
             "module_plugin_list_slot",
+        ),
+        (
+            "build_export_desktop_body.ui.toml",
+            "BuildExportPaneBody",
+            "build_export_targets_slot",
         ),
     ];
 
@@ -433,6 +444,11 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
         (
             "pane.module_plugins.body",
             "ModulePluginsPaneBody/FocusModulePlugins",
+            "DockCommand",
+        ),
+        (
+            "pane.build_export_desktop.body",
+            "BuildExportPaneBody/FocusBuildExport",
             "DockCommand",
         ),
     ];

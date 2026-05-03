@@ -56,7 +56,7 @@ pub fn editor_plugin() -> TextureEditorPlugin {
     TextureEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::PluginPackageManifest {
+pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(
         &editor_plugin(),
         zircon_plugin_texture_runtime::package_manifest(),

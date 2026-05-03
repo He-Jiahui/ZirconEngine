@@ -1,10 +1,20 @@
 pub const PLUGIN_ID: &str = "animation";
+pub const ANIMATION_PLAYBACK_CONFIG_KEY: &str = "animation.playback_settings";
 
-pub use zircon_runtime::animation::{
-    module_descriptor, AnimationDriver, AnimationModule, DefaultAnimationManager,
-    ANIMATION_DRIVER_NAME, ANIMATION_MANAGER_NAME, ANIMATION_MODULE_NAME,
-    ANIMATION_PLAYBACK_CONFIG_KEY, DEFAULT_ANIMATION_MANAGER_NAME,
+mod manager;
+mod module;
+mod scene_hook;
+mod sequence;
+
+pub use manager::DefaultAnimationManager;
+pub use module::{
+    module_descriptor, AnimationDriver, AnimationModule, ANIMATION_DRIVER_NAME,
+    ANIMATION_MODULE_NAME, DEFAULT_ANIMATION_MANAGER_NAME,
 };
+pub use scene_hook::{scene_hook_registration, AnimationSceneRuntimeHook};
+pub use sequence::apply_sequence_to_world;
+pub use zircon_runtime::core::framework::animation::AnimationSequenceApplyReport;
+pub use zircon_runtime::core::manager::ANIMATION_MANAGER_NAME;
 
 #[derive(Clone, Debug)]
 pub struct AnimationRuntimePlugin {
@@ -28,7 +38,8 @@ impl zircon_runtime::plugin::RuntimePlugin for AnimationRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
+        registry.register_module(module_descriptor())?;
+        registry.register_scene_hook(scene_hook_registration())
     }
 }
 

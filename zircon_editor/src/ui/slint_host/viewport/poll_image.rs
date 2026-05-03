@@ -5,7 +5,7 @@ use super::slint_viewport_controller::SlintViewportController;
 
 impl SlintViewportController {
     pub(crate) fn poll_image(&self) -> Option<Image> {
-        let mut shared = self.shared.lock().unwrap();
+        let mut shared = self.lock_shared();
         let Some(viewport) = shared.viewport.map(|viewport| viewport.handle) else {
             return shared.latest_image.clone();
         };

@@ -1,7 +1,7 @@
 use crate::core::ModuleDescriptor;
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry,
+    plugin::ExportPackagingStrategy, plugin::PluginModuleKind, plugin::PluginPackageManifest,
+    plugin::ProjectPluginSelection, plugin::RuntimeExtensionRegistry,
 };
 
 use super::RuntimePlugin;

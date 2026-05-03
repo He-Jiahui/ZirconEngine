@@ -891,7 +891,10 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
         stats.last_virtual_geometry_replaced_page_count, 0,
         "plugin-owned VG residency replacement pressure should not leak through runtime stats after the hard cutover"
     );
-    assert_eq!(stats.last_virtual_geometry_indirect_draw_count, 0);
+    assert_eq!(
+        stats.last_virtual_geometry_indirect_draw_count, 2,
+        "the no-RT flagship path should still report renderer-produced VG execution draws"
+    );
     assert_eq!(stats.last_virtual_geometry_indirect_segment_count, 0);
     assert_eq!(stats.last_virtual_geometry_indirect_buffer_count, 0);
     assert_eq!(stats.last_hybrid_gi_active_probe_count, 0);

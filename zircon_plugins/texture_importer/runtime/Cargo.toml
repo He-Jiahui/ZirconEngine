@@ -7,4 +7,5 @@ description = "Texture asset importer runtime plugin package for Zircon."
 
 [dependencies]
 image = "0.25.10"
+psd = "0.3.5"
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }

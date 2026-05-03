@@ -7,6 +7,7 @@ pub enum PanePayload {
     AnimationGraphV1(AnimationGraphPanePayload),
     RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload),
     ModulePluginsV1(ModulePluginsPanePayload),
+    BuildExportV1(BuildExportPanePayload),
     UiComponentShowcaseV1(UiComponentShowcasePanePayload),
 }
 
@@ -22,6 +23,27 @@ pub struct InspectorPanePayload {
     pub parent: String,
     pub translation: [String; 3],
     pub delete_enabled: bool,
+    pub plugin_components: Vec<InspectorPluginComponentPayload>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InspectorPluginComponentPayload {
+    pub component_id: String,
+    pub display_name: String,
+    pub plugin_id: String,
+    pub drawer_available: bool,
+    pub diagnostic: Option<String>,
+    pub properties: Vec<InspectorPluginComponentPropertyPayload>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct InspectorPluginComponentPropertyPayload {
+    pub field_id: String,
+    pub name: String,
+    pub label: String,
+    pub value: String,
+    pub value_kind: String,
+    pub editable: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -105,6 +127,27 @@ pub struct ModulePluginStatusPayload {
     pub unload_action_id: String,
     pub hot_reload_action_label: String,
     pub hot_reload_action_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BuildExportPanePayload {
+    pub diagnostics: String,
+    pub targets: Vec<BuildExportTargetPayload>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BuildExportTargetPayload {
+    pub profile_name: String,
+    pub platform: String,
+    pub target_mode: String,
+    pub strategies: String,
+    pub status: String,
+    pub enabled_plugins: String,
+    pub linked_runtime_crates: String,
+    pub native_dynamic_packages: String,
+    pub generated_files: String,
+    pub diagnostics: String,
+    pub fatal: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::runtime_state::VirtualGeometryRuntimeState;
 
@@ -72,8 +72,26 @@ impl VirtualGeometryRuntimeState {
         &mut self,
         mut retain: impl FnMut(&u32, &u32) -> bool,
     ) {
-        self.page_parent_pages
-            .retain(|page_id, parent_page_id| retain(page_id, parent_page_id));
+        let mut removed_page_ids = BTreeSet::new();
+        self.page_parent_pages.retain(|page_id, parent_page_id| {
+            let keep = retain(page_id, parent_page_id);
+            if !keep {
+                removed_page_ids.insert(*page_id);
+            }
+            keep
+        });
+        // Dropping a parent page also invalidates descendants whose parent link would dangle.
+        while !removed_page_ids.is_empty() {
+            let mut removed_child_page_ids = BTreeSet::new();
+            self.page_parent_pages.retain(|page_id, parent_page_id| {
+                let keep = !removed_page_ids.contains(parent_page_id);
+                if !keep {
+                    removed_child_page_ids.insert(*page_id);
+                }
+                keep
+            });
+            removed_page_ids = removed_child_page_ids;
+        }
         self.page_child_pages = page_child_pages_from_parent_pages(&self.page_parent_pages);
     }
 }

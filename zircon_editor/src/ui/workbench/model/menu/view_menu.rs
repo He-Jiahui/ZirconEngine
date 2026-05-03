@@ -23,6 +23,7 @@ fn builtin_view_menu_items() -> Vec<MenuItemModel> {
         ("Console", "editor.console"),
         ("Runtime Diagnostics", "editor.runtime_diagnostics"),
         ("Plugin Manager", "editor.module_plugins"),
+        ("Desktop Export", "editor.build_export_desktop"),
         ("Prefab Editor", "editor.prefab"),
         ("Asset Browser", "editor.asset_browser"),
     ]

@@ -1,6 +1,8 @@
 ---
 related_code:
+  - zircon_runtime/src/plugin/mod.rs
   - zircon_runtime/src/plugin/package_manifest/mod.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
@@ -12,7 +14,10 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
 implementation_files:
+  - zircon_runtime/src/plugin/mod.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_dependency_manifest.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_event_manifest.rs
@@ -24,6 +29,7 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_registration_report.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
 plan_sources:
   - user: 2026-05-03 review follow-up for plugin workspace compile failure
   - user: 2026-05-02 sound plugin mixer/spatial/convolution/timeline core implementation request
@@ -34,6 +40,7 @@ tests:
   - cargo check -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short (passed from zircon_plugins workspace with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout)
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short (passed from zircon_plugins workspace with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout; 8 sound tests passed)
   - cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-independent-plugin-physics --color never
+  - 2026-05-03: cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed with existing runtime warnings after re-exporting PluginPackageKind, preserving feature diagnostics, and restoring external feature export helpers)
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
 doc_type: module-detail
@@ -63,6 +70,17 @@ These fields are generic because sound is not the only plugin that needs optiona
 `RuntimeExtensionRegistry` mirrors options, event catalogs, manifest-declared components, UI components, and asset importer descriptors during linked plugin registration so runtime/editor hosts can discover them alongside modules, managers, render features, pass executors, and runtime providers. If a plugin has already registered a real importer backend with the same importer id, the manifest descriptor is treated as the public descriptor for that backend and the registration report does not add the diagnostic-only placeholder.
 
 Package manifests and feature manifests expose the same `with_default_packaging(...)` builder shape. That lets standalone plugin packages, such as editor-only export plugins, override the package-level default export strategy without reaching into the public struct fields or relying on feature-bundle builders by mistake.
+
+`PluginPackageKind` is part of the top-level `crate::plugin` public surface. Native plugin load
+projection and runtime catalog feature-definition logic both consume it through that surface, so
+the package-kind enum must be re-exported next to `PluginPackageManifest` rather than only from the
+private package-manifest subtree.
+
+External optional-feature providers are resolved during export planning from the completed project
+plugin manifest. Enabled owner selections contribute external feature packages only when the feature
+is enabled, target-compatible, and carries a provider package id that differs from the owner plugin.
+This prevents disabled catalog defaults from leaking extra native or linked feature packages into a
+desktop export plan.
 
 ## Constraints
 

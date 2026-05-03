@@ -366,6 +366,8 @@ pub struct RenderStats {
     pub last_hybrid_gi_pending_update_count: usize,
     pub last_hybrid_gi_scheduled_trace_region_count: usize,
     pub last_hybrid_gi_scene_card_count: usize,
+    pub last_hybrid_gi_scene_screen_probe_count: usize,
+    pub last_hybrid_gi_scene_radiance_cache_entry_count: usize,
     pub last_hybrid_gi_surface_cache_resident_page_count: usize,
     pub last_hybrid_gi_surface_cache_dirty_page_count: usize,
     pub last_hybrid_gi_surface_cache_feedback_card_count: usize,

@@ -6,4 +6,6 @@ license.workspace = true
 description = "Model asset importer runtime plugin package for Zircon."
 
 [dependencies]
+ply-rs-bw = "4.0.0"
+stl_io = "0.11.0"
 zircon_runtime = { path = "../../../../zircon_runtime", default-features = false }

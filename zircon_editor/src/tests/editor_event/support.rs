@@ -73,10 +73,11 @@ impl EventRuntimeHarness {
 
         std::env::remove_var("ZIRCON_CONFIG_PATH");
 
-        let state = EditorState::with_default_selection(
+        let mut state = EditorState::with_default_selection(
             DefaultLevelManager::default().create_default_level(),
             UVec2::new(1280, 720),
         );
+        state.mark_project_open();
         let manager = core
             .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
             .unwrap();

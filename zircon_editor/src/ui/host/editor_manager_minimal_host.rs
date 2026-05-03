@@ -16,11 +16,11 @@ impl EditorManager {
     }
 
     pub fn subsystem_report(&self) -> EditorSubsystemReport {
-        self.host.subsystem_report.lock().unwrap().clone()
+        self.host.lock_subsystem_report().clone()
     }
 
     pub fn capability_snapshot(&self) -> EditorCapabilitySnapshot {
-        self.host.capability_snapshot.lock().unwrap().clone()
+        self.host.lock_capability_snapshot().clone()
     }
 
     pub fn load_vm_extension_package(

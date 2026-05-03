@@ -53,3 +53,52 @@ jobs:
 
       - name: Check plugin workspace
         run: cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --verbose
+
+      - name: Build plugin workspace
+        run: cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+
+      - name: Run plugin workspace tests
+        run: cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose
+
+  export-platform-contract:
+    name: Export platform contract (${{ matrix.export-platform }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        export-platform: [windows, linux, macos, android, ios, web_gpu, wasm]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Linux system dependencies (runtime export contract)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libfontconfig-dev \
+            libudev-dev \
+            libinput-dev \
+            libdbus-1-dev \
+            libx11-dev \
+            libx11-xcb-dev \
+            libxcursor-dev \
+            libxcb1-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libwayland-dev \
+            xinput \
+            libasound2-dev
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check export policy for ${{ matrix.export-platform }}
+        env:
+          ZR_EXPORT_CONTRACT_PLATFORM: ${{ matrix.export-platform }}
+        run: cargo test -p zircon_runtime platform_target_policy_matches_host_resource_and_plugin_strategy --locked --verbose

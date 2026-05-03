@@ -167,26 +167,21 @@ pub(super) fn update_virtual_geometry_stats(
         .stats
         .last_virtual_geometry_node_and_cluster_cull_page_request_count = 0;
     state.stats.last_virtual_geometry_selected_cluster_source = virtual_geometry_extract
-        .map(|_| RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections)
+        .map(|_| selected_cluster_source_for_execution(execution_stats.segment_count > 0))
         .unwrap_or_default();
-    state.stats.last_virtual_geometry_selected_cluster_count = context
-        .visibility_context()
-        .virtual_geometry_visible_clusters
-        .len();
+    state.stats.last_virtual_geometry_selected_cluster_count = execution_stats.cluster_count;
     state.stats.last_virtual_geometry_visbuffer64_source = virtual_geometry_extract
-        .map(|_| RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections)
+        .map(|_| visbuffer64_source_for_execution(execution_stats.segment_count > 0))
         .unwrap_or_default();
-    state.stats.last_virtual_geometry_visbuffer64_entry_count = context
-        .visibility_context()
-        .virtual_geometry_visible_clusters
-        .len();
+    state.stats.last_virtual_geometry_visbuffer64_entry_count = execution_stats.cluster_count;
     state
         .stats
-        .last_virtual_geometry_hardware_rasterization_source =
-        RenderVirtualGeometryHardwareRasterizationSource::Unavailable;
+        .last_virtual_geometry_hardware_rasterization_source = virtual_geometry_extract
+        .map(|_| hardware_rasterization_source_for_execution(execution_stats.segment_count > 0))
+        .unwrap_or_default();
     state
         .stats
-        .last_virtual_geometry_hardware_rasterization_record_count = 0;
+        .last_virtual_geometry_hardware_rasterization_record_count = execution_stats.segment_count;
 }
 
 pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
@@ -296,6 +291,7 @@ fn visible_entity_count_from_extract(
 #[derive(Clone, Copy, Debug, Default)]
 struct VirtualGeometryExecutionStats {
     segment_count: usize,
+    cluster_count: usize,
     page_count: usize,
     resident_segment_count: usize,
     pending_segment_count: usize,
@@ -324,20 +320,63 @@ fn virtual_geometry_execution_stats(
     let mut stats = VirtualGeometryExecutionStats::default();
 
     for segment in &context.visibility_context().virtual_geometry_draw_segments {
-        stats.segment_count += 1;
         if !seen_pages.insert(segment.page_id) {
             stats.repeated_draw_count += 1;
         }
-        all_pages.insert(segment.page_id);
         match execution_state_for_page(segment.page_id, &resident_pages, &requested_pages) {
-            RenderVirtualGeometryExecutionState::Resident => stats.resident_segment_count += 1,
-            RenderVirtualGeometryExecutionState::PendingUpload => stats.pending_segment_count += 1,
+            RenderVirtualGeometryExecutionState::Resident => {
+                stats.resident_segment_count += 1;
+            }
+            RenderVirtualGeometryExecutionState::PendingUpload => {
+                stats.pending_segment_count += 1;
+            }
             RenderVirtualGeometryExecutionState::Missing => stats.missing_segment_count += 1,
         }
+        if execution_state_for_page(segment.page_id, &resident_pages, &requested_pages)
+            == RenderVirtualGeometryExecutionState::Missing
+        {
+            continue;
+        }
+
+        stats.segment_count += 1;
+        stats.cluster_count = stats
+            .cluster_count
+            .saturating_add(segment.cluster_span_count as usize);
+        all_pages.insert(segment.page_id);
     }
 
     stats.page_count = all_pages.len();
     stats
+}
+
+fn selected_cluster_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometrySelectedClusterSource {
+    if has_execution_selections {
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly
+    }
+}
+
+fn hardware_rasterization_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometryHardwareRasterizationSource {
+    if has_execution_selections {
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathClearOnly
+    }
+}
+
+fn visbuffer64_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometryVisBuffer64Source {
+    if has_execution_selections {
+        RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly
+    }
 }
 
 fn execution_state_for_page(

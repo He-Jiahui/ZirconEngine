@@ -11,8 +11,8 @@ pub use asset::{
     AssetSurfaceMode, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
 };
 pub use data::{
-    EditorChromeSnapshot, EditorDataSnapshot, InspectorSnapshot, ProjectOverviewSnapshot,
-    SceneEntry,
+    EditorChromeSnapshot, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
+    InspectorPluginComponentSnapshot, InspectorSnapshot, ProjectOverviewSnapshot, SceneEntry,
 };
 pub use workbench::{
     ActivityDrawerSnapshot, DocumentWorkspaceSnapshot, FloatingWindowSnapshot, MainPageSnapshot,

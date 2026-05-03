@@ -65,13 +65,19 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/test_support/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect_cpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_renderer_test_promotion_guard.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_nanite_cpu.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_page_request.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/page_metadata.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_snapshot.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/mod.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/runtime_feedback.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/prepare_input.rs
@@ -97,6 +103,7 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
@@ -110,9 +117,12 @@ related_code:
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/cluster_ids_for_entity.rs
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_count.rs
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_ordinal.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_model_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/automatic_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_asset_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_neutral_readback_outputs.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_readback_outputs.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection/collect.rs
@@ -162,6 +172,8 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/scene_renderer_advanced_plugin_resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core/advanced_plugin_resources/build_mesh_draws.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_cull.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_neutral_readback_outputs.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_output_sources/virtual_geometry_readback_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/debug_snapshot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/mod.rs
@@ -199,6 +211,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_order.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/read_mesh_draw_submission_records.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/store_last_runtime_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_virtual_geometry_readback_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/take_gpu_completion_parts.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/shaders/virtual_geometry_indirect_args.wgsl
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_resources/virtual_geometry_gpu_resources/new/mod.rs
@@ -215,6 +228,7 @@ related_code:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/accessors.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/completion.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback_completion_parts.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/node_cluster_cull_writeback.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/render_path_writeback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_hierarchy_rt_lighting/runtime_rt_sources.rs
@@ -302,12 +316,18 @@ implementation_files:
   - zircon_plugins/virtual_geometry/runtime/src/test_support/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/test_support/render_feature_fixtures.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/mod.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect_cpu.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_renderer_test_promotion_guard.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_page_request.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_state/page_metadata.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/declarations/virtual_geometry_runtime_snapshot.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/plan_ingestion.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/prepare_frame/pending_page_requests.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/snapshot.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/mod.rs
+  - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/extract_output.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/gpu_completion.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/runtime_feedback.rs
   - zircon_runtime/src/graphics/virtual_geometry_runtime_provider/prepare_input.rs
@@ -332,6 +352,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record.rs
   - zircon_runtime/src/graphics/runtime/render_framework/query_virtual_geometry_debug_snapshot/query_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/virtual_geometry_stats.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/build_mesh_draws/build/build_mesh_draw_build_context.rs
@@ -345,8 +366,9 @@ implementation_files:
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/cluster_ids_for_entity.rs
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_count.rs
   - zircon_runtime/src/graphics/visibility/planning/build_virtual_geometry_plan/ordering/virtual_geometry_cluster_ordinal.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_load_model_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/automatic_extract.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_asset_access.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/mod.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/root_render_passes/virtual_geometry_executed_cluster_selection_pass/seed_backed_execution_selection.rs
@@ -366,6 +388,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer/scene_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/reset_last_runtime_outputs.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_runtime_outputs/take_last_virtual_geometry_readback_outputs.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/debug_snapshot.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/last_state/gpu_readback/read_cull_input_snapshot.rs
@@ -417,6 +440,7 @@ implementation_files:
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/accessors.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/completion.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback_completion_parts.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/node_cluster_cull_writeback.rs
   - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/renderer/gpu_readback/readback/virtual_geometry_gpu_readback/render_path_writeback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/hybrid_gi_temporal_signature.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/encode_hybrid_gi_probes/runtime_parent_chain.rs
@@ -516,6 +540,8 @@ tests:
   - zircon_plugins/virtual_geometry/runtime/src/lib.rs
   - zircon_plugins/virtual_geometry/runtime/src/render_pass_executors.rs
   - zircon_plugins/virtual_geometry/runtime/src/test_support/render_feature_fixtures.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_renderer_test_promotion_guard.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_gpu.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_node_and_cluster_cull_execution.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs
@@ -542,14 +568,30 @@ tests:
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib render_pass_executor --locked --offline --jobs 1 --message-format short --color never -- --nocapture
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib plugin_extensions --locked --offline --jobs 1 --message-format short --color never -- --nocapture
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib advanced_plugin_readbacks --locked --offline --jobs 1 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib render_pass_executor --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 10 passed, 0 failed)
+  - cargo test -p zircon_runtime --lib plugin_extensions --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 74 passed, 0 failed)
+  - cargo test -p zircon_runtime --lib advanced_plugin_readbacks --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 2 passed, 0 failed)
   - cargo check --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
   - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --message-format short --color never -- --nocapture
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime render_framework_stats_follow_public_virtual_geometry_execution_segments --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 1 passed, 0 failed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime render_framework_stats_expose_node_and_cluster_cull_worklist_counts --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-vg-hgi-m0-guards --message-format short --color never -- --exact --nocapture (superseded by the full D-target 72-test package rerun)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime retaining_parent_pages_rebuilds_child_index_without_stale_children --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 1 passed, 0 failed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 66 passed, 0 failed)
+  - cargo fmt --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime -p zircon_plugin_hybrid_gi_runtime (passed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture (passed: 72 passed, 0 failed)
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo build --workspace --locked --verbose --jobs 1 --message-format short --color never
   - CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test --workspace --locked --verbose --jobs 1 --message-format short --color never
   - rustfmt --edition 2021 zircon_runtime\tests\support\mod.rs
   - cargo clean --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode (removed 2700 files, 2.5 GiB after E drive free space fell below the 50 GB Cargo threshold)
   - cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (passed with existing runtime warnings after the shared VG fixture moved to the 4-argument constructor path)
+  - cargo clean --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode and cargo clean --target-dir E:\cargo-targets\zircon-runtime-interface-boundary (removed 4.4 GiB and 14.0 GiB before the warmed VG compile rerun)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never (passed with existing runtime warnings after transient moving-source failures no longer reproduced)
+  - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run (passed with existing runtime warnings and produced the integration-test executable)
+  - cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture (passed with existing runtime warnings: 3 passed, 0 failed, 4 ignored)
+  - rustfmt --edition 2021 --check zircon_plugins\virtual_geometry\runtime\src\virtual_geometry\test_sources\virtual_geometry_render_framework_stats.rs
+  - stale-owner search gate for SceneRenderer, ViewportRenderFrame, render_frame_with_pipeline, crate::asset, crate::core, crate::scene, and deleted runtime VG owner paths under zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs
+  - scoped stale-owner search gate for deleted runtime graphics owner paths under zircon_plugins/virtual_geometry/runtime/src/virtual_geometry and zircon_plugins/hybrid_gi/runtime/src/hybrid_gi
   - git diff --check
 doc_type: module-detail
 ---
@@ -560,7 +602,7 @@ doc_type: module-detail
 
 Virtual Geometry 最初通过 `BuiltinRenderFeature::VirtualGeometry` 声明 prepare、node/cluster cull、page feedback、visbuffer/hardware fallback、debug overlay 等 RenderGraph pass descriptor；Stage 4 插件化后，这些高级 pass 不再由基础 renderer 隐式打开，而是由 linked `virtual_geometry` render descriptor 加上 `VirtualGeometry` capability gate 进入 compiled graph。重型 runtime state、Nanite CPU reference 与 page residency host 已物理迁到 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/`；`zircon_runtime` 只保留中立 render DTO、asset/cook、base renderer、debug snapshot surface、descriptor/capability gate，以及 `graphics::virtual_geometry_runtime_provider` 里的 provider/state/feedback/prepare/stat contracts。当前 base submit path 会通过 linked plugin registration 创建 erased `VirtualGeometryRuntimeState`，再把 extract、visibility plan、visible clusters、draw segments、renderer GPU completion、visibility feedback 和 page requests 交给 `PluginVirtualGeometryRuntimeProvider`，所以 concrete residency/slot/pending/hot-frontier state 仍归插件 crate，而 render framework 只保存中立 trait object。
 
-因此 public integration contracts 也不能再用裸 `WgpuRenderFramework::new(...)` 加 `with_virtual_geometry(true)` 作为高级 VG 前提。`zircon_runtime/tests/support/mod.rs` 现在提供 `virtual_geometry_wgpu_render_framework(...)`，让 debug snapshot、stats、execution snapshot 和 visbuffer overlay integration tests 走与 production plugin cutover 一致的 descriptor-linked framework setup，而不是重新引入旧 built-in feature identity。2026-05-03 follow-up 继续收紧这个 fixture：它不再只传 render feature descriptor，而是把 descriptor-linked render features、fixture-owned no-op `RenderPassExecutorRegistration`s 和最小 `VirtualGeometryRuntimeProviderRegistration` 一起传给 `WgpuRenderFramework::new_with_plugin_render_features(...)`，保持 public integration contracts 经过当前 4-argument plugin-renderer constructor seam。该修复已格式化，并通过 `cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never` scoped type-check gate；workspace-test green 仍未声明。
+因此 public integration contracts 也不能再用裸 `WgpuRenderFramework::new(...)` 加 `with_virtual_geometry(true)` 作为高级 VG 前提。`zircon_runtime/tests/support/mod.rs` 现在提供 `virtual_geometry_wgpu_render_framework(...)`，让 debug snapshot、stats、execution snapshot 和 visbuffer overlay integration tests 走与 production plugin cutover 一致的 descriptor-linked framework setup，而不是重新引入旧 built-in feature identity。2026-05-03 follow-up 继续收紧这个 fixture：它不再只传 render feature descriptor，而是把 descriptor-linked render features、fixture-owned no-op `RenderPassExecutorRegistration`s 和最小 `VirtualGeometryRuntimeProviderRegistration` 一起传给 `WgpuRenderFramework::new_with_plugin_render_features(...)`，保持 public integration contracts 经过当前 4-argument plugin-renderer constructor seam。该修复已格式化，并通过 `cargo check -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never`、`cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never --no-run`、以及完整 focused rerun `cargo test -p zircon_runtime --test virtual_geometry_debug_snapshot_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-package-cache-opencode --message-format short --color never -- --test-threads=1 --nocapture` scoped gates；最后一项为 3 passed、0 failed、4 ignored。workspace-test green 仍未声明。
 
 ## 2026-05-01 Virtual Geometry Owner Cutover
 
@@ -588,7 +630,13 @@ The 2026-05-02 neutral renderer follow-up now wires `root_state_readbacks` from 
 
 Latest 2026-05-02 closeout evidence keeps this VG slice scoped to renderer ownership rather than workspace green. Runtime executor registration and neutral readback storage passed focused validation with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-render-workspace-validation cargo test -p zircon_runtime --lib render_pass_executor --locked --offline --jobs 1 --message-format short --color never -- --nocapture` (10 passed, 0 failed), `cargo test -p zircon_runtime --lib plugin_extensions ...` (warnings only), and `cargo test -p zircon_runtime --lib advanced_plugin_readbacks ...` (warnings only). The VG package rerun on the same isolated renderer target passed `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --message-format short --color never -- --nocapture`; prior accepted package evidence for this wired scope was 52 passed and 0 failed. Workspace build passed on that target, but `cargo test --workspace` stopped in `zircon_editor` because active UI/runtime-interface identities disagree for `UiPointerDispatchEffect`, `ResourceLocator`, `ResourceRecord`, `ResourceEvent`, and `UiTreeId`; that blocker is owned by active UI/editor lanes and is not accepted as a VG renderer failure.
 
-Deferred VG renderer test promotion remains intentionally blocked until moved test sources stop depending on stale runtime-owner fixtures such as `crate::asset`, `crate::core`, `crate::scene`, direct `SceneRenderer`, direct `ViewportRenderFrame`, and old readback helper paths. No compatibility owner path or old runtime scene-renderer VG facade was restored for this closeout.
+2026-05-03 的 D 盘目标目录刷新把第一条 public `RenderFramework` 统计回归挂回插件 crate，而不是恢复旧 runtime graphics test owner。`virtual_geometry_render_framework_stats.rs` 通过插件本地 `pluginized_wgpu_render_framework_with_asset_manager(...)` 创建 descriptor/provider-linked framework，fixture 显式 authored 一个 resident VG cluster/page；因此 `RenderStats.last_virtual_geometry_indirect_draw_count` 现在锁定为 public visibility-owned execution segment count `1`，而不是旧的 two-primitive model draw-count 假设。相同验证还暴露了更低层的 page metadata support bug：`retain_page_parent_pages(...)` 删除父页时只修剪直接 parent link，没有递归丢弃本轮被删除父页下面的 descendants。修复后它会先记录被移除 page，再递归删除 parent 已经消失的 child links，最后重建 `page_child_pages`。刷新验证使用 `D:\zircon-render-workspace-validation`：`render_framework_stats_follow_public_virtual_geometry_execution_segments` 1/1 通过，`retaining_parent_pages_rebuilds_child_index_without_stale_children` 1/1 通过，完整 `zircon_plugin_virtual_geometry_runtime --lib` 66/66 通过；同一 D target 上 runtime `render_pass_executor` 10/10、`plugin_extensions` 74/74、`advanced_plugin_readbacks` 2/2 也通过。workspace build/test green 没有在这轮重新声明。
+
+Deferred VG renderer test promotion remains intentionally blocked until moved test sources stop depending on stale runtime-owner fixtures such as `crate::asset`, `crate::core`, `crate::scene`, direct `SceneRenderer`, direct `ViewportRenderFrame`, and old readback helper paths. `virtual_geometry_renderer_test_promotion_guard.rs` now pins that rule in the plugin test tree: broad moved renderer snapshots stay unwired unless they first move to plugin-local types and public neutral runtime seams. The already promoted `virtual_geometry_render_framework_stats.rs` is deliberately outside that guard because it uses the public `RenderFramework` path and plugin fixture constructor instead of direct `SceneRenderer`/`ViewportRenderFrame` access. The 2026-05-03 M0 continuation promoted one more public-seam regression into that same file: `render_framework_stats_expose_repeated_virtual_geometry_execution_draws` submits an authored two-entity, same-resident-page VG extract through `RenderFramework::submit_frame_extract(...)` and asserts public `RenderStats` reports two execution segments/draws, one unique execution page, one repeated draw, and two selected clusters. This narrows the old `virtual_geometry_execution_stats.rs` coverage without wiring that stale source or reopening renderer-private readback helpers.
+
+The same M0 continuation now adds `render_framework_stats_expose_node_and_cluster_cull_worklist_counts` to the promoted public stats file. It authors a hierarchical VG instance entirely through neutral `RenderVirtualGeometryExtract` DTOs, submits through `RenderFramework::submit_frame_extract(...)`, and asserts public `RenderStats` exposes NodeAndClusterCull source, startup record count, dispatch groups, instance seed/work item counts, cluster work item count, hierarchy child-id table count, child work item count, and traversal record count. This promotes the useful inspection intent from the deferred `virtual_geometry_node_and_cluster_cull_execution.rs` area without wiring that stale renderer snapshot, without direct renderer readback, and without reopening `SceneRenderer` / `ViewportRenderFrame` as plugin contracts. The later full D-target plugin package rerun covers this regression through the promoted stats module. No compatibility owner path or old runtime scene-renderer VG facade was restored for this closeout.
+
+The 2026-05-03 renderer closeout then moved the remaining safe VG validation into plugin-local public seams and reran the full VG plugin package on `D:\zircon-render-workspace-validation`. `virtual_geometry_unified_indirect_cpu.rs` carries the CPU-only fallback regression `virtual_geometry_unified_indirect_synthesizes_fallback_cluster_slices_when_segments_are_absent`, so the useful part of the older unified-indirect snapshot is covered without wiring direct renderer readback access. `virtual_geometry_imported_extract.rs` now imports `res://models/imported_triangle.model.toml` through the built-in model importer instead of relying on an external OBJ importer lane, and the promoted stats fixtures use built-in `builtin://cube` / default material handles where they submit authored extracts directly through public `RenderFramework`. The closeout command `cargo test --manifest-path "zircon_plugins\Cargo.toml" -p zircon_plugin_virtual_geometry_runtime --lib --locked --offline --jobs 1 --target-dir "D:\zircon-render-workspace-validation" --message-format short --color never -- --nocapture` passed with 72 tests and 0 failures after formatting. The remaining deferred VG renderer snapshots are still guarded because they name stale `crate::asset`, `crate::core`, `crate::scene`, direct `SceneRenderer` / `ViewportRenderFrame`, or old readback-helper assumptions; package green for the promoted seams is not a claim that those broad snapshots are ready to wire.
 
 ## What This Slice Adds
 
@@ -625,7 +673,7 @@ Validation for this slice is `zircon_runtime/src/asset/tests/virtual_geometry_co
 
 The importer bridge now makes that cook seed the default asset-ingest authority for imported model primitives. `primitive_from_indexed_mesh(...)` attaches cooked `VirtualGeometryAsset` data for OBJ and GLTF primitives while preserving the base vertices and indices as fallback/render comparison data. `.model.toml` imports call the same cook path only for primitives that do not already contain `virtual_geometry`, so authored or previously cooked payloads remain authoritative while uncooked model TOML files are backfilled deterministically from their stored mesh data. The cook debug metadata records the resource URI as `source_hint`, allowing the automatic extract and CPU-reference debug streams to trace live VG instances back to the imported model asset.
 
-The paired extraction proof now lives under the Virtual Geometry runtime plugin owner rather than restoring the deleted `zircon_runtime::graphics::runtime::virtual_geometry` path. `build_virtual_geometry_automatic_extract_from_meshes_with_debug(...)` already loads `ModelAsset` values and collects primitives with `virtual_geometry`. The new plugin-owned regression path imports an OBJ through `AssetImporter`, feeds the resulting cooked `ModelAsset` through the mesh-based automatic extract helper, and asserts that the synthesized `RenderVirtualGeometryInstance` carries the scene entity, source model id, source hint, non-empty clusters/pages, and CPU-reference debug instance. This proves scene extraction can source live VG instances from cooked imported assets without adding SRP/RHI/pass-resource changes or compatibility re-exports.
+The paired extraction proof now lives under the Virtual Geometry runtime plugin owner rather than restoring the deleted `zircon_runtime::graphics::runtime::virtual_geometry` path. `build_virtual_geometry_automatic_extract_from_meshes_with_debug(...)` already loads `ModelAsset` values and collects primitives with `virtual_geometry`. The plugin-owned regression path imports an uncooked `.model.toml` through `AssetImporter`, lets the built-in model importer backfill the cooked `ModelAsset`, feeds that asset through the mesh-based automatic extract helper, and asserts that the synthesized `RenderVirtualGeometryInstance` carries the scene entity, source model id, source hint, non-empty clusters/pages, and CPU-reference debug instance. This proves scene extraction can source live VG instances from cooked imported assets without adding SRP/RHI/pass-resource changes, external importer dev-dependencies, or compatibility re-exports.
 
 The newest N1 continuation adds `format_virtual_geometry_cook_inspection_dump(...)` in `zircon_runtime/src/asset/virtual_geometry_cook/inspection_dump.rs`. The dump is intentionally text and deterministic so teaching tools, acceptance logs, and later CPU-reference comparisons can inspect cooked data without linking renderer-private debug helpers. It writes:
 
@@ -741,7 +789,7 @@ This slice now also covers the first N2-to-N5 bridge step: automatic synthesis o
 - transforms cluster bounds from local mesh space into world space using the mesh instance transform, and
 - seeds initial resident pages from `root_page_table` with deterministic cluster/page budgets derived from the CPU reference plus the cooked root lineage.
 
-`zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_virtual_geometry/automatic_extract.rs` provides the renderer-side host hook that resolves model assets through the current asset manager and feeds them into the Nanite automatic-extract helper.
+The renderer-side host hook is now provider-owned instead of a restored runtime VG module. `VirtualGeometryRuntimeProvider::build_extract_from_meshes(...)` accepts neutral `RenderMeshSnapshot` rows plus a runtime-supplied `ModelAsset` loader, and returns `VirtualGeometryRuntimeExtractOutput` with the production extract, CPU reference instances, and BVH visualization instances. `build_frame_submission_context/build.rs` calls that provider only when the Virtual Geometry feature is enabled and the incoming frame has no authored `geometry.virtual_geometry`; `scene_renderer_asset_access.rs` exposes the current asset manager for that loader without making `zircon_runtime` depend on `zircon_plugins`.
 
 The helper input DTO now follows the same owner-boundary rule as the runtime request DTOs. `VirtualGeometryAutomaticExtractInstance` is constructed through `VirtualGeometryAutomaticExtractInstance::new(...)`, so tests and renderer-side synthesis no longer rely on the input field layout when passing entity, optional source model, transform, and cooked `VirtualGeometryAsset` into the flattening path.
 
@@ -762,7 +810,7 @@ That automatic path now returns one internal bundle instead of only the flattene
 
 `VirtualGeometryAutomaticExtractOutput` now keeps those bundle fields private as well. Submit-frame synthesis reads them through `extract()`, `cpu_reference_instances()`, and `bvh_visualization_instances()`, while the test-only resolver can consume the production extract with `into_extract()`. That bundle keeps the production VG path and the teaching/debug BVH path sourced from one cooked-asset walk instead of rebuilding two separate traversals at the render-framework layer or depending on the bundle field names.
 
-That renderer-side bridge now also consumes the prepared-model cache instead of blindly reloading `ModelAsset` from the asset manager every frame. `PreparedModel` retains an `Arc<ModelAsset>` beside the GPU resource, and `ResourceStreamer::load_model_asset(...)` now prefers that cached asset when the prepared revision still matches the current resource revision. If the asset revision changed, it falls back to the asset manager so hot-reimported cooked VG data can still refresh correctly.
+The provider seam deliberately receives a loader closure instead of direct renderer internals. The current host implementation clones the active `ProjectAssetManager` from `SceneRenderer` and lets the plugin request `ModelAsset` values by `ResourceId`; this keeps cooked asset lookup runtime-owned while all VG flattening, CPU reference projection, and BVH visualization construction stay plugin-owned.
 
 The automatic Nanite extract path now also fills the new extract-side metadata:
 
@@ -775,7 +823,7 @@ The automatic Nanite extract path now also fills the new extract-side metadata:
 `zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs` now uses that hook before building `VisibilityContext`:
 
 - if the feature is disabled, nothing changes;
-- if the caller already authored `geometry.virtual_geometry`, that payload still wins untouched;
+- if the caller already authored `geometry.virtual_geometry`, that payload still wins, with the viewport debug override applied through the existing neutral debug field;
 - if the feature is enabled and the authored payload is absent, the render framework synthesizes the VG extract from cooked model assets and feeds the supplemented extract into visibility planning and runtime submission.
 
 This keeps the current M5 host/runtime structure intact while letting cooked Nanite-like data participate in the production VG visibility/page workflow.
@@ -1182,6 +1230,14 @@ This slice is locked by two focused tests:
   - proves those stats clear back to defaults once the effective VG payload disappears
 - `zircon_runtime/src/graphics/tests/virtual_geometry_execution_stats.rs`
   - proves the public selected-cluster count stays execution-compacted and does not expand back to the repeated indirect-draw workload
+- `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_render_framework_stats.rs`
+  - proves the plugin-local public `RenderFramework` fixture exposes resident execution segment stats through neutral `RenderStats`
+  - proves repeated same-page VG execution draws compact to one unique execution page while preserving execution segment count, repeated-draw count, and selected-cluster count without direct `SceneRenderer` or `ViewportRenderFrame` access
+  - proves neutral authored hierarchy and instance DTOs expose NodeAndClusterCull worklist/source/count stats through public `RenderStats` without direct renderer readback access
+- `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_unified_indirect_cpu.rs`
+  - proves the CPU-only unified-indirect fallback synthesizes fallback cluster slices when explicit segments are absent, without wiring the stale full renderer snapshot
+- `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources/virtual_geometry_imported_extract.rs`
+  - proves imported VG extract fixtures use built-in `.model.toml` import so the plugin package stays `--locked --offline` without owning external importer dev-dependencies
 - `zircon_runtime/src/graphics/tests/virtual_geometry_gpu.rs`
   - proves the new renderer-owned cull-input buffer exists and decodes correctly even on direct renderer paths with no framework snapshot and no uploader readback
   - proves the first pass-owned `NodeAndClusterCull` startup buffer decodes back to the same packed cull-input DTO as the renderer-owned cull-input seam
@@ -1310,7 +1366,7 @@ Focused validation completed for this slice:
 - `cargo test -p zircon_runtime --test virtual_geometry_visibility_debug_contract -- --nocapture`
 - `cargo test -p zircon_runtime --test virtual_geometry_stats_contract -- --nocapture`
 - `cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_state --test virtual_geometry_stats_contract -- --nocapture --exact`
-- `cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b render_framework_stats_expose_actual_virtual_geometry_execution_compaction --lib -- --nocapture`
+- `cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_virtual_geometry_runtime render_framework_stats_follow_public_virtual_geometry_execution_segments --locked --offline --jobs 1 --target-dir D:\zircon-render-workspace-validation --message-format short --color never -- --nocapture`
 - `cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b --test virtual_geometry_execution_snapshot_contract -- --nocapture`
 - `cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b virtual_geometry_visbuffer64_buffer_exists_without_snapshot_or_gpu_readback --lib -- --nocapture`
 - `cargo test -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b virtual_geometry_visbuffer64_clear_only_source_exists_without_cluster_selections --lib -- --nocapture`
@@ -1392,7 +1448,7 @@ The newest continuation consumes the typed `node_and_cluster_cull_global_state` 
 
 Focused validation for this convergence stayed green on `F:\cargo-targets\zircon-codex-b` with `cull_input_snapshot_roundtrips_through_gpu_word_layout`, `node_and_cluster_cull_`, the direct renderer regression `virtual_geometry_cull_input_buffer_exists_without_snapshot_or_gpu_readback`, `virtual_geometry_debug_snapshot_contract`, and a final `cargo check -p zircon_runtime --locked --target-dir F:\cargo-targets\zircon-codex-b --lib`. The integration-test rerun also exposed an unrelated Hybrid GI scene-truth revision-chain compile drift: `runtime_parent_chain.rs` now owns dedicated `support + revision` lineage helpers, and `hybrid_gi_temporal_signature.rs` consumes those instead of overloading the older `support + quality` helpers. That repair is support-only, but it keeps the shared `zircon_runtime` compile/test path open for the VG contract work above.
 
-The newest continuation closes the matching debug-override gap on the automatic cooked-VG path. `build_frame_submission_context/build.rs` now passes `extract.geometry.virtual_geometry_debug` into `SceneRenderer::synthesize_virtual_geometry_extract(...)`, `scene_renderer_virtual_geometry/automatic_extract.rs` forwards that override through a dedicated `build_virtual_geometry_automatic_extract_from_meshes_with_debug(...)` entry point, and `nanite/automatic_extract.rs` now maps the public render debug state into `VirtualGeometryCpuReferenceConfig` before constructing `VirtualGeometryCpuReferenceFrame`. This matters because the automatic CPU-reference/BVH inspection surfaces are supposed to be the N2 teaching/debug truth for cooked assets; before this fix, they always used default config and could silently disagree with the effective extract whenever `forced_mip` was set. `render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forced_mip_override` now locks the intended contract: a resident cluster that fails `forced_mip` stays resident in BVH visualization but drops out of the selected-cluster set.
+The newest continuation closes the matching debug-override gap on the automatic cooked-VG path. `build_frame_submission_context/build.rs` now passes `extract.geometry.virtual_geometry_debug` into `VirtualGeometryRuntimeProvider::build_extract_from_meshes(...)`; the VG plugin provider forwards that override through `build_virtual_geometry_automatic_extract_from_meshes_with_debug(...)`, and `nanite/automatic_extract.rs` maps the public render debug state into `VirtualGeometryCpuReferenceConfig` before constructing `VirtualGeometryCpuReferenceFrame`. This matters because the automatic CPU-reference/BVH inspection surfaces are supposed to be the N2 teaching/debug truth for cooked assets; before this fix, they always used default config and could silently disagree with the effective extract whenever `forced_mip` was set. `provider_builds_neutral_extract_output_from_cooked_model_meshes` and the runtime-level provider synthesis contract now lock the intended provider boundary without restoring the deleted runtime-owned automatic-extract module.
 
 The newest follow-up closes the remaining public-state mismatch on that same path. `nanite/automatic_extract.rs` now converts `VirtualGeometryCpuReferenceConfig` back into `RenderVirtualGeometryDebugState` when it builds the returned `VirtualGeometryAutomaticExtractOutput`, so `output.extract.debug` no longer drifts back to defaults while `cpu_reference_instances` and `bvh_visualization_instances` already reflect the requested override. The new unit test `virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract_debug_in_sync` locks that contract for the mesh-snapshot/model-resolver synthesis seam.
 
@@ -1475,6 +1531,10 @@ The 2026-05-02 M1 cook follow-up adds explicit page dependency metadata to `Virt
 The 2026-05-03 CPU-reference follow-up consumes that cooked page graph inside the VG plugin without moving mutable streaming state back into `zircon_runtime`. `VirtualGeometryCpuReferenceFrame` now carries a deterministic page dependency map sourced from `VirtualGeometryAsset.page_dependencies`, with a cluster-lineage fallback for older hand-authored fixtures that have not been recooked. `build_virtual_geometry_automatic_extract_from_meshes_with_debug(...)` projects the map into the neutral `RenderVirtualGeometryCpuReferencePageDependencyEntry` list on `RenderVirtualGeometryCpuReferenceInstance`, so direct debug snapshot queries and plugin-owned automatic extract tests can inspect parent/child page relationships next to page-to-cluster, mip, depth, loaded, and selected worklists. This remains a debug/readback DTO surface only: page priority, age/LRU, pending upload completion, root page-table readback, and runtime upload authority are still the next M2 residency-manager layer.
 
 The follow-up VG residency slice now gives the plugin runtime state an explicit child-page index derived from its parent-page map. `VirtualGeometryRuntimeState::replace_page_parent_pages(...)` and `retain_page_parent_pages(...)` rebuild the sorted child graph immediately, `page_descendant_ids(...)` gives pending-request prioritization and eviction hot-lineage checks one shared traversal source, and runtime stats now expose `last_virtual_geometry_page_dependency_count` as a neutral profile counter. This still uses the current `RenderVirtualGeometryExtract` cluster lineage as the production input so broad extract DTO changes are avoided; the new cooked page graph and CPU debug graph are ready to replace that lineage-derived input once M2 promotes dependency metadata into prepare/runtime submission.
+
+The latest neutral-readback follow-up gives the VG plugin owner the same one-shot handoff shape as HGI. `virtual_geometry_neutral_readback_outputs.rs` projects plugin-private `VirtualGeometryGpuReadback` into the runtime-neutral `RenderVirtualGeometryReadbackOutputs` DTO for page-table pairs, completed page assignments/replacements, selected clusters, and VisBuffer64 entries, while `VirtualGeometryReadbackOutputs::take_neutral_readback_outputs(...)` consumes the stored GPU readback after projection. Runtime feedback now reads only the neutral last-output through `SceneRenderer::take_last_virtual_geometry_readback_outputs(...)`; `VirtualGeometryGpuCompletion::from_readback_outputs(...)` converts the page-table and completion streams into the existing VG residency completion owner, and `collect_runtime_feedback(...)` feeds that owner into `VirtualGeometryRuntimeFeedback` beside visibility feedback. The renderer-owned `has_virtual_geometry_gpu_readback()` predicate now also treats completion-only assignment/replacement payloads and future NodeAndClusterCull/hardware-raster neutral fields as real VG readback, so residency feedback does not rely on selected-cluster or VisBuffer64 debug data being present.
+
+The follow-up readback-payload slice removes the previous typed-payload hole inside `VirtualGeometryGpuReadback` itself. `render_path_writeback.rs` now stores `RenderVirtualGeometryHardwareRasterizationRecord` rows beside the source/count, `node_cluster_cull_writeback.rs` stores a neutral `RenderVirtualGeometryNodeClusterCullReadbackOutputs` package, and `virtual_geometry_neutral_readback_outputs.rs` copies both into `RenderVirtualGeometryReadbackOutputs`. This means the one-shot neutral handoff can now represent page residency completion, selected clusters, VisBuffer64, hardware-raster records, and NodeAndClusterCull traversal/worklist data without asking runtime code to inspect VG plugin-private owners. This is still a handoff seam, not a full resource-execution closeout: `SceneRendererAdvancedPluginResources::execute_runtime_prepare_passes(...)` must still be replaced by real plugin resource execution, and the pass outputs still need to be wired into these readback writeback methods during the actual renderer producer path.
 
 ## Next Expected Layers
 

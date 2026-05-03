@@ -62,6 +62,8 @@ pub struct EditorOperationDescriptor {
     path: EditorOperationPath,
     display_name: String,
     menu_path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    payload_schema_id: Option<String>,
     callable_from_remote: bool,
     undoable: Option<UndoableEditorOperation>,
     event: Option<EditorEvent>,
@@ -75,6 +77,7 @@ impl EditorOperationDescriptor {
             path,
             display_name: display_name.into(),
             menu_path: None,
+            payload_schema_id: None,
             callable_from_remote: true,
             undoable: None,
             event: None,
@@ -84,6 +87,11 @@ impl EditorOperationDescriptor {
 
     pub fn with_menu_path(mut self, menu_path: impl Into<String>) -> Self {
         self.menu_path = Some(menu_path.into());
+        self
+    }
+
+    pub fn with_payload_schema_id(mut self, schema_id: impl Into<String>) -> Self {
+        self.payload_schema_id = Some(schema_id.into());
         self
     }
 
@@ -124,6 +132,10 @@ impl EditorOperationDescriptor {
 
     pub fn menu_path(&self) -> Option<&str> {
         self.menu_path.as_deref()
+    }
+
+    pub fn payload_schema_id(&self) -> Option<&str> {
+        self.payload_schema_id.as_deref()
     }
 
     pub fn callable_from_remote(&self) -> bool {
@@ -169,6 +181,7 @@ impl EditorOperationRegistry {
             ));
         }
         validate_operation_menu_path(&descriptor)?;
+        validate_operation_payload_schema_id(&descriptor)?;
         self.descriptors.insert(descriptor.path.clone(), descriptor);
         Ok(())
     }
@@ -348,6 +361,7 @@ pub enum EditorOperationRegistryError {
     DuplicateOperation(EditorOperationPath),
     InvalidOperationPath(String),
     InvalidOperationMenuPath(String),
+    InvalidOperationPayloadSchemaId(String),
     MissingOperation(EditorOperationPath),
     OperationNotCallableFromRemote(EditorOperationPath),
     OperationHasNoHandler(EditorOperationPath),
@@ -364,6 +378,12 @@ impl fmt::Display for EditorOperationRegistryError {
             }
             Self::InvalidOperationMenuPath(path) => {
                 write!(formatter, "editor operation menu path `{path}` is invalid")
+            }
+            Self::InvalidOperationPayloadSchemaId(schema_id) => {
+                write!(
+                    formatter,
+                    "editor operation payload schema id `{schema_id}` is invalid"
+                )
             }
             Self::MissingOperation(path) => {
                 write!(formatter, "editor operation {path} is not registered")
@@ -401,10 +421,47 @@ fn validate_operation_menu_path(
     Ok(())
 }
 
+fn validate_operation_payload_schema_id(
+    descriptor: &EditorOperationDescriptor,
+) -> Result<(), EditorOperationRegistryError> {
+    if let Some(schema_id) = descriptor.payload_schema_id() {
+        let segments = schema_id.split('.').collect::<Vec<_>>();
+        let valid = segments
+            .iter()
+            .all(|segment| !segment.is_empty() && segment.chars().all(operation_path_char));
+        if !valid || segments.len() < MIN_OPERATION_PATH_SEGMENTS {
+            return Err(
+                EditorOperationRegistryError::InvalidOperationPayloadSchemaId(
+                    schema_id.to_string(),
+                ),
+            );
+        }
+    }
+    Ok(())
+}
+
 const MIN_MENU_PATH_SEGMENTS: usize = 2;
 
 fn builtin_operation_descriptors() -> Vec<EditorOperationDescriptor> {
     let mut operations = vec![
+        operation(
+            "File.Project.Open",
+            "Open Project",
+            "File/Open Project",
+            EditorEvent::WorkbenchMenu(MenuAction::OpenProject),
+        ),
+        operation(
+            "File.Project.Save",
+            "Save Project",
+            "File/Save Project",
+            EditorEvent::WorkbenchMenu(MenuAction::SaveProject),
+        ),
+        operation(
+            "Window.Layout.Save",
+            "Save Layout",
+            "Window/Save Layout",
+            EditorEvent::WorkbenchMenu(MenuAction::SaveLayout),
+        ),
         operation(
             "Window.Layout.Reset",
             "Reset Layout",
@@ -524,6 +581,12 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "Open Plugin Manager",
             "View/Plugin Manager",
             "editor.module_plugins",
+        ),
+        (
+            "View.BuildExport.Open",
+            "Open Desktop Export",
+            "View/Desktop Export",
+            "editor.build_export_desktop",
         ),
         (
             "View.Prefab.Open",

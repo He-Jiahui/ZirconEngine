@@ -607,6 +607,17 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 }),
             ),
         ),
+        (
+            "BuildExportPaneBody/FocusBuildExport".to_string(),
+            EditorUiBinding::new(
+                "BuildExportPaneBody",
+                "FocusBuildExport",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
+                    instance_id: "editor.build_export_desktop#1".to_string(),
+                }),
+            ),
+        ),
     ]);
     bindings.extend(showcase_template_bindings());
     bindings

@@ -20,6 +20,8 @@ pub struct ProjectPluginFeatureSelection {
     pub runtime_crate: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub editor_crate: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_package_id: Option<String>,
 }
 
 impl ProjectPluginFeatureSelection {
@@ -32,6 +34,7 @@ impl ProjectPluginFeatureSelection {
             packaging: ExportPackagingStrategy::LibraryEmbed,
             runtime_crate: None,
             editor_crate: None,
+            provider_package_id: None,
         }
     }
 
@@ -52,6 +55,11 @@ impl ProjectPluginFeatureSelection {
 
     pub fn with_editor_crate(mut self, crate_name: impl Into<String>) -> Self {
         self.editor_crate = Some(crate_name.into());
+        self
+    }
+
+    pub fn with_provider_package_id(mut self, package_id: impl Into<String>) -> Self {
+        self.provider_package_id = Some(package_id.into());
         self
     }
 
@@ -79,10 +87,25 @@ impl ProjectPluginFeatureSelection {
     }
 
     pub fn runtime_crate_path(&self, owner_plugin_id: &str) -> String {
+        if let Some(provider_package_id) = self.external_provider_package_id(owner_plugin_id) {
+            return format!("{provider_package_id}/runtime");
+        }
         format!(
             "{owner_plugin_id}/features/{}/runtime",
             feature_directory_slug(&self.id)
         )
+    }
+
+    pub fn provider_package_id_or_owner<'a>(&'a self, owner_plugin_id: &'a str) -> &'a str {
+        self.provider_package_id
+            .as_deref()
+            .unwrap_or(owner_plugin_id)
+    }
+
+    pub fn external_provider_package_id<'a>(&'a self, owner_plugin_id: &str) -> Option<&'a str> {
+        self.provider_package_id
+            .as_deref()
+            .filter(|provider_package_id| *provider_package_id != owner_plugin_id)
     }
 }
 

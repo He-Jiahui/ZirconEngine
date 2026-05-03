@@ -9,6 +9,7 @@ supported_platforms = ["windows", "linux", "macos"]
 capabilities = [
     "runtime.plugin.audio_importer",
     "runtime.asset.importer.audio.wav",
+    "runtime.asset.importer.audio.codec",
 ]
 asset_roots = []
 content_roots = []
@@ -24,10 +25,19 @@ importer_version = 1
 required_capabilities = ["runtime.asset.importer.audio.wav"]
 
 [[asset_importers]]
-id = "audio_importer.optional_codec"
+id = "audio_importer.codec"
 plugin_id = "audio_importer"
 priority = 90
-source_extensions = ["mp3", "ogg", "flac", "aif", "aiff", "opus"]
+source_extensions = ["mp3", "ogg", "flac", "aif", "aiff"]
+output_kind = "Sound"
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.audio.codec"]
+
+[[asset_importers]]
+id = "audio_importer.opus"
+plugin_id = "audio_importer"
+priority = 80
+source_extensions = ["opus"]
 output_kind = "Sound"
 importer_version = 1
 required_capabilities = ["runtime.asset.importer.native"]
@@ -40,4 +50,5 @@ target_modes = ["client_runtime", "editor_host"]
 capabilities = [
     "runtime.plugin.audio_importer",
     "runtime.asset.importer.audio.wav",
+    "runtime.asset.importer.audio.codec",
 ]

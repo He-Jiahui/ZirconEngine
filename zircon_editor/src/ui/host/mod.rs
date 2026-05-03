@@ -32,6 +32,7 @@ mod editor_runtime_client;
 mod editor_session_state;
 mod editor_subsystems;
 mod editor_ui_host;
+mod export_cargo_process;
 mod host_capability_bridge;
 mod layout_commands;
 mod layout_hosts;

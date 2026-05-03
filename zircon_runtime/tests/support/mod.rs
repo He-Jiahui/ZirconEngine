@@ -1,13 +1,20 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::core::framework::render::{
+    RenderMeshSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPageDependency,
+};
+use zircon_runtime::core::resource::ResourceId;
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
     RenderPassExecutionContext, RenderPassExecutorRegistration, RenderPassStage,
-    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
-    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
-    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
-    VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate, WgpuRenderFramework,
+    VirtualGeometryRuntimeExtractOutput, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
+    WgpuRenderFramework,
 };
 use zircon_runtime::render_graph::QueueLane;
 
@@ -117,6 +124,68 @@ struct TestVirtualGeometryRuntimeProvider;
 impl VirtualGeometryRuntimeProvider for TestVirtualGeometryRuntimeProvider {
     fn create_state(&self) -> Box<dyn VirtualGeometryRuntimeState> {
         Box::<TestVirtualGeometryRuntimeState>::default()
+    }
+
+    fn build_extract_from_meshes(
+        &self,
+        meshes: &[RenderMeshSnapshot],
+        debug: Option<RenderVirtualGeometryDebugState>,
+        load_model: &mut dyn FnMut(ResourceId) -> Option<zircon_runtime::asset::ModelAsset>,
+    ) -> Option<VirtualGeometryRuntimeExtractOutput> {
+        let mesh = meshes.first()?;
+        let model = load_model(mesh.model.id())?;
+        if !model
+            .primitives
+            .iter()
+            .any(|primitive| primitive.virtual_geometry.is_some())
+        {
+            return None;
+        }
+        let debug = debug.unwrap_or_default();
+        let lod_level = debug.forced_mip.unwrap_or(0);
+        Some(VirtualGeometryRuntimeExtractOutput::new(
+            RenderVirtualGeometryExtract {
+                cluster_budget: 1,
+                page_budget: 1,
+                clusters: vec![RenderVirtualGeometryCluster {
+                    entity: mesh.node_id,
+                    cluster_id: 1,
+                    hierarchy_node_id: Some(0),
+                    page_id: 1,
+                    lod_level,
+                    parent_cluster_id: None,
+                    bounds_center: mesh.transform.translation,
+                    bounds_radius: 100.0,
+                    screen_space_error: 1.0,
+                }],
+                hierarchy_nodes: Vec::new(),
+                hierarchy_child_ids: Vec::new(),
+                pages: vec![RenderVirtualGeometryPage {
+                    page_id: 1,
+                    resident: true,
+                    size_bytes: 4096,
+                }],
+                page_dependencies: vec![RenderVirtualGeometryPageDependency {
+                    page_id: 1,
+                    parent_page_id: None,
+                    child_page_ids: Vec::new(),
+                }],
+                instances: vec![RenderVirtualGeometryInstance {
+                    entity: mesh.node_id,
+                    source_model: Some(mesh.model.id()),
+                    transform: mesh.transform,
+                    cluster_offset: 0,
+                    cluster_count: 1,
+                    page_offset: 0,
+                    page_count: 1,
+                    mesh_name: Some("TestProviderAutomaticMesh".to_string()),
+                    source_hint: Some("runtime-test-provider".to_string()),
+                }],
+                debug,
+            },
+            Vec::new(),
+            Vec::new(),
+        ))
     }
 }
 

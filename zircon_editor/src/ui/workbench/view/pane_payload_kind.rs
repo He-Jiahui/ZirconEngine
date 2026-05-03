@@ -9,5 +9,6 @@ pub enum PanePayloadKind {
     AnimationGraphV1,
     RuntimeDiagnosticsV1,
     ModulePluginsV1,
+    BuildExportV1,
     UiComponentShowcaseV1,
 }

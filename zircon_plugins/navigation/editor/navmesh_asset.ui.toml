@@ -1,0 +1,42 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "navigation.navmesh_asset"
+version = 1
+display_name = "NavMesh Asset"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "navigation_navmesh_asset_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "NavigationNavMeshAssetRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "navigation_navmesh_asset_summary"
+kind = "native"
+type = "Space"
+control_id = "NavigationNavMeshAssetSummary"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[components]

@@ -456,6 +456,23 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
     );
     assert_eq!(snapshot.bvh_visualization_instances, Vec::new());
 
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("vg-debug-snapshot-disabled")
+                .with_virtual_geometry(false)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )
+        .expect("non-vg quality profile should be accepted");
     let mut cleared_extract = world.to_render_frame_extract();
     cleared_extract.apply_viewport_size(viewport_size);
     server
@@ -468,6 +485,131 @@ fn render_framework_exposes_virtual_geometry_debug_snapshot_for_effective_visibl
             .expect("snapshot query should succeed"),
         None
     );
+}
+
+#[test]
+fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract() {
+    let root = unique_temp_project_root("vg_provider_automatic_extract");
+    let paths = ProjectPaths::from_root(&root).expect("project paths should resolve");
+    paths
+        .ensure_layout()
+        .expect("project layout should be created");
+    ProjectManifest::new(
+        "VirtualGeometryProviderAutomaticExtract",
+        AssetUri::parse("res://scenes/main.scene.toml").expect("scene uri should parse"),
+        1,
+    )
+    .save(paths.manifest_path())
+    .expect("manifest should save");
+    fs::create_dir_all(paths.assets_root().join("models"))
+        .expect("model directory should be created");
+    fs::create_dir_all(paths.assets_root().join("scenes"))
+        .expect("scene directory should be created");
+    fs::write(
+        paths
+            .assets_root()
+            .join("models")
+            .join("provider_vg.model.toml"),
+        sample_virtual_geometry_model_asset()
+            .to_toml_string()
+            .expect("model asset should serialize"),
+    )
+    .expect("model asset should write");
+    fs::write(
+        paths.assets_root().join("scenes").join("main.scene.toml"),
+        SceneAsset {
+            entities: Vec::new(),
+        }
+        .to_toml_string()
+        .expect("scene asset should serialize"),
+    )
+    .expect("scene asset should write");
+
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    asset_manager
+        .open_project(root.to_string_lossy().as_ref())
+        .expect("project should open");
+    let model_id = asset_manager
+        .resolve_asset_id(
+            &AssetUri::parse("res://models/provider_vg.model.toml")
+                .expect("model uri should parse"),
+        )
+        .expect("model resource id should resolve");
+    let material_id = asset_manager
+        .resolve_asset_id(
+            &AssetUri::parse("builtin://material/default")
+                .expect("builtin material uri should parse"),
+        )
+        .expect("builtin material resource id should resolve");
+    let server = support::virtual_geometry_wgpu_render_framework(asset_manager);
+    let viewport_size = UVec2::new(320, 240);
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(viewport_size))
+        .expect("viewport should be created");
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("vg-provider-automatic-extract")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )
+        .expect("quality profile should be accepted");
+
+    let mut snapshot: RenderSceneSnapshot = World::new().to_render_snapshot();
+    snapshot.scene.meshes = vec![RenderMeshSnapshot {
+        node_id: 901,
+        transform: Transform::default(),
+        model: ResourceHandle::<ModelMarker>::new(model_id),
+        material: ResourceHandle::<MaterialMarker>::new(material_id),
+        tint: Vec4::ONE,
+        mobility: Mobility::Dynamic,
+        render_layer_mask: default_render_layer_mask(),
+    }];
+    snapshot.virtual_geometry_debug = Some(RenderVirtualGeometryDebugState {
+        forced_mip: Some(3),
+        visualize_visbuffer: true,
+        ..RenderVirtualGeometryDebugState::default()
+    });
+    let mut extract =
+        RenderFrameExtract::from_snapshot(RenderWorldSnapshotHandle::new(901), snapshot);
+    extract.apply_viewport_size(viewport_size);
+    extract.geometry.virtual_geometry = None;
+
+    server
+        .submit_frame_extract(viewport, extract)
+        .expect("automatic provider virtual geometry submission should succeed");
+
+    let snapshot = server
+        .query_virtual_geometry_debug_snapshot()
+        .expect("snapshot query should succeed")
+        .expect("provider-generated virtual geometry snapshot should be present");
+    assert_eq!(snapshot.instances.len(), 1);
+    assert_eq!(
+        snapshot.instances[0].mesh_name.as_deref(),
+        Some("TestProviderAutomaticMesh")
+    );
+    assert_eq!(snapshot.debug.forced_mip, Some(3));
+    assert_eq!(
+        snapshot.page_dependencies,
+        vec![RenderVirtualGeometryPageDependency {
+            page_id: 1,
+            parent_page_id: None,
+            child_page_ids: Vec::new(),
+        }]
+    );
+    assert_eq!(snapshot.selected_clusters.len(), 1);
+    assert_eq!(snapshot.selected_clusters[0].cluster_id, 1);
+
+    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -655,10 +797,10 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
                 entity: mesh,
                 cluster_array_index: 1,
                 hierarchy_node_id: Some(72),
-                node_cluster_start: 0,
-                node_cluster_count: 0,
+                node_cluster_start: 1,
+                node_cluster_count: 1,
                 child_base: 0,
-                child_count: 0,
+                child_count: 1,
                 traversal_index: 2,
                 cluster_budget: 1,
                 page_budget: 1,
@@ -672,8 +814,8 @@ fn render_framework_exposes_node_and_cluster_cull_page_request_ids_in_debug_snap
                 entity: mesh,
                 cluster_array_index: 1,
                 hierarchy_node_id: Some(72),
-                node_cluster_start: 0,
-                node_cluster_count: 0,
+                node_cluster_start: 1,
+                node_cluster_count: 1,
                 child_base: 0,
                 child_count: 1,
                 traversal_index: 3,

@@ -22,8 +22,8 @@ impl SceneRendererAdvancedPluginReadbacks {
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
-        RenderVirtualGeometryReadbackOutputs,
+        RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
+        RenderPluginRendererOutputs, RenderVirtualGeometryReadbackOutputs,
     };
 
     #[test]
@@ -38,6 +38,13 @@ mod tests {
                 hybrid_gi: RenderHybridGiReadbackOutputs {
                     completed_probe_ids: vec![7, 9],
                     ..RenderHybridGiReadbackOutputs::default()
+                },
+                particles: RenderParticleGpuReadbackOutputs {
+                    alive_count: 5,
+                    spawned_total: 3,
+                    debug_flags: 7,
+                    per_emitter_spawned: vec![2, 1],
+                    indirect_draw_args: [6, 5, 0, 0],
                 },
                 ..RenderPluginRendererOutputs::default()
             });
@@ -57,6 +64,13 @@ mod tests {
                 .hybrid_gi
                 .completed_probe_ids,
             vec![7, 9]
+        );
+        assert_eq!(
+            outputs
+                .plugin_renderer_outputs()
+                .particles
+                .indirect_draw_args,
+            [6, 5, 0, 0]
         );
     }
 }

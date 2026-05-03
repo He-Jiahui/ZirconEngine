@@ -1,14 +1,16 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
-    import_gltf, import_material, import_model, import_obj, import_physics_material, import_scene,
-    import_shader, import_sound, import_texture, import_ui_asset,
+    import_material, import_model, import_physics_material, import_scene, import_shader,
 };
+#[cfg(test)]
+use super::{import_gltf, import_obj, import_sound, import_texture, import_ui_asset};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
 };
 
 const BUILTIN_IMPORTER_PLUGIN_ID: &str = "zircon.builtin.asset_importers";
+const PLUGIN_REQUIRED_IMPORTER_PLUGIN_ID: &str = "zircon.runtime.plugin_required_importers";
 
 #[derive(Clone, Debug)]
 pub struct AssetImporter {
@@ -145,11 +147,15 @@ impl AssetImporter {
             .with_full_suffixes([".navigation.toml"]),
             import_authoring_asset::import_navigation_settings,
         )?;
-        self.register_function(
-            descriptor("zircon.builtin.toml.ui", AssetKind::UiLayout, 1)
-                .with_full_suffixes([".ui.toml"])
-                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
-            import_ui_asset::import_ui_asset,
+        self.register_optional(
+            plugin_required_descriptor(
+                "zircon.plugin_required.ui_document.ui_toml",
+                AssetKind::UiLayout,
+                1,
+            )
+            .with_full_suffixes([".ui.toml"])
+            .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
+            "ui document importer plugin is not installed",
         )?;
 
         self.register_function(
@@ -198,14 +204,18 @@ impl AssetImporter {
             import_animation_asset::import_animation_asset,
         )?;
 
-        self.register_function(
-            descriptor("zircon.builtin.texture.image", AssetKind::Texture, 1)
-                .with_source_extensions([
-                    "png", "jpg", "jpeg", "bmp", "tga", "tiff", "tif", "gif", "webp", "hdr", "exr",
-                    "qoi", "pnm", "pbm", "pgm", "ppm",
-                ])
-                .with_required_capabilities(["runtime.asset.importer.texture.image"]),
-            import_texture::import_texture,
+        self.register_optional(
+            plugin_required_descriptor(
+                "zircon.plugin_required.texture.image",
+                AssetKind::Texture,
+                1,
+            )
+            .with_source_extensions([
+                "png", "jpg", "jpeg", "bmp", "tga", "tiff", "tif", "gif", "webp", "hdr", "exr",
+                "qoi", "pnm", "pbm", "pgm", "ppm",
+            ])
+            .with_required_capabilities(["runtime.asset.importer.texture.image"]),
+            "texture image importer plugin is not installed",
         )?;
         for (id, extension) in [
             ("zircon.optional.texture.psd", "psd"),
@@ -224,11 +234,11 @@ impl AssetImporter {
             )?;
         }
 
-        self.register_function(
-            descriptor("zircon.builtin.shader.wgsl", AssetKind::Shader, 1)
+        self.register_optional(
+            plugin_required_descriptor("zircon.plugin_required.shader.wgsl", AssetKind::Shader, 1)
                 .with_source_extensions(["wgsl"])
                 .with_required_capabilities(["runtime.asset.importer.shader.wgsl"]),
-            import_shader::import_shader,
+            "wgsl shader importer plugin is not installed",
         )?;
         self.register_function(
             descriptor("zircon.builtin.shader.glsl", AssetKind::Shader, 1)
@@ -249,17 +259,17 @@ impl AssetImporter {
             "hlsl/cg shader importer requires a NativeDynamic shader toolchain backend",
         )?;
 
-        self.register_function(
-            descriptor("zircon.builtin.model.obj", AssetKind::Model, 1)
+        self.register_optional(
+            plugin_required_descriptor("zircon.plugin_required.model.obj", AssetKind::Model, 1)
                 .with_source_extensions(["obj"])
                 .with_required_capabilities(["runtime.asset.importer.model.obj"]),
-            import_obj::import_obj,
+            "obj model importer plugin is not installed",
         )?;
-        self.register_function(
-            descriptor("zircon.builtin.model.gltf", AssetKind::Model, 1)
+        self.register_optional(
+            plugin_required_descriptor("zircon.plugin_required.model.gltf", AssetKind::Model, 1)
                 .with_source_extensions(["gltf", "glb"])
                 .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
-            import_gltf::import_gltf,
+            "glTF model importer plugin is not installed",
         )?;
         for extension in [
             "fbx", "dae", "3ds", "dxf", "ply", "stl", "usd", "usda", "usdc", "usdz",
@@ -276,11 +286,11 @@ impl AssetImporter {
             )?;
         }
 
-        self.register_function(
-            descriptor("zircon.builtin.audio.wav", AssetKind::Sound, 1)
+        self.register_optional(
+            plugin_required_descriptor("zircon.plugin_required.audio.wav", AssetKind::Sound, 1)
                 .with_source_extensions(["wav"])
                 .with_required_capabilities(["runtime.asset.importer.audio.wav"]),
-            import_sound::import_sound,
+            "wav audio importer plugin is not installed",
         )?;
         for extension in ["mp3", "ogg", "flac", "aif", "aiff", "opus"] {
             self.register_optional(
@@ -319,6 +329,76 @@ impl AssetImporter {
             .register(DiagnosticOnlyAssetImporter::new(descriptor, message))
             .map_err(AssetImportError::from)
     }
+
+    #[cfg(test)]
+    pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
+        vec![
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor(
+                    "ui_document_importer.typed_toml",
+                    "ui_document_importer",
+                    AssetKind::UiLayout,
+                )
+                .with_full_suffixes([".ui.toml"])
+                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle])
+                .with_required_capabilities(["runtime.asset.importer.ui_document"]),
+                import_ui_asset::import_ui_asset,
+            ),
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor(
+                    "texture_importer.image",
+                    "texture_importer",
+                    AssetKind::Texture,
+                )
+                .with_source_extensions([
+                    "png", "jpg", "jpeg", "bmp", "tga", "tiff", "tif", "gif", "webp", "hdr", "exr",
+                    "qoi", "pnm", "pbm", "pgm", "ppm",
+                ])
+                .with_required_capabilities(["runtime.asset.importer.texture.image"]),
+                import_texture::import_texture,
+            ),
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor(
+                    "shader_wgsl_importer.wgsl",
+                    "shader_wgsl_importer",
+                    AssetKind::Shader,
+                )
+                .with_source_extensions(["wgsl"])
+                .with_required_capabilities(["runtime.asset.importer.shader.wgsl"]),
+                import_shader::import_shader,
+            ),
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor("obj_importer.obj", "obj_importer", AssetKind::Model)
+                    .with_source_extensions(["obj"])
+                    .with_required_capabilities(["runtime.asset.importer.model.obj"]),
+                import_obj::import_obj,
+            ),
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor("gltf_importer.gltf", "gltf_importer", AssetKind::Model)
+                    .with_source_extensions(["gltf", "glb"])
+                    .with_required_capabilities(["runtime.asset.importer.model.gltf"]),
+                import_gltf::import_gltf,
+            ),
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor("audio_importer.wav", "audio_importer", AssetKind::Sound)
+                    .with_source_extensions(["wav"])
+                    .with_required_capabilities(["runtime.asset.importer.audio.wav"]),
+                import_sound::import_sound,
+            ),
+        ]
+    }
+
+    #[cfg(test)]
+    pub(crate) fn register_first_wave_plugin_fixture_importers_for_test(
+        &mut self,
+    ) -> Result<(), AssetImportError> {
+        for importer in Self::first_wave_plugin_fixture_importers_for_test() {
+            self.registry
+                .register(importer)
+                .map_err(AssetImportError::from)?;
+        }
+        Ok(())
+    }
 }
 
 fn descriptor(
@@ -332,4 +412,26 @@ fn descriptor(
         output_kind,
         importer_version,
     )
+}
+
+fn plugin_required_descriptor(
+    id: impl Into<String>,
+    output_kind: AssetKind,
+    importer_version: u32,
+) -> AssetImporterDescriptor {
+    AssetImporterDescriptor::new(
+        id,
+        PLUGIN_REQUIRED_IMPORTER_PLUGIN_ID,
+        output_kind,
+        importer_version,
+    )
+}
+
+#[cfg(test)]
+fn plugin_fixture_descriptor(
+    id: impl Into<String>,
+    plugin_id: impl Into<String>,
+    output_kind: AssetKind,
+) -> AssetImporterDescriptor {
+    AssetImporterDescriptor::new(id, plugin_id, output_kind, 1).with_priority(120)
 }

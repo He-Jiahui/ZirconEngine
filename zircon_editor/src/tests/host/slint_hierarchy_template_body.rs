@@ -119,6 +119,7 @@ fn hierarchy_pane() -> crate::ui::layouts::windows::workbench_host_window::PaneD
             asset_browser: Default::default(),
             project_overview: Default::default(),
             module_plugins: Default::default(),
+            build_export: Default::default(),
             ui_asset: Default::default(),
             animation: Default::default(),
         },

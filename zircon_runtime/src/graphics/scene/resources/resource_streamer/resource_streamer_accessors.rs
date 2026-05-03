@@ -1,4 +1,5 @@
 use crate::asset::assets::AlphaMode;
+use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::TextureAsset;
 use std::sync::Arc;
 
@@ -9,6 +10,10 @@ use super::super::{GpuModelResource, GpuTextureResource, MaterialCaptureSeed, Ma
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
+    pub(crate) fn asset_manager(&self) -> Arc<ProjectAssetManager> {
+        self.asset_manager.clone()
+    }
+
     pub(crate) fn model(&self, id: &ResourceId) -> Option<&Arc<GpuModelResource>> {
         self.models.get(id).map(|prepared| &prepared.resource)
     }

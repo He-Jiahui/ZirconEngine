@@ -7,10 +7,11 @@ use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 use super::{
     DisplayMode, PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderParticleSpriteSnapshot,
-    RenderPointLightSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderParticleBoundsSnapshot,
+    RenderParticleSpriteSnapshot, RenderPointLightSnapshot, RenderReflectionProbeSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
+    ViewportCameraSnapshot,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -87,6 +88,8 @@ pub struct DebugOverlayExtract {
 pub struct ParticleExtract {
     pub emitters: Vec<EntityId>,
     pub sprites: Vec<RenderParticleSpriteSnapshot>,
+    pub bounds: Vec<RenderParticleBoundsSnapshot>,
+    pub sort_camera_position: Option<crate::core::math::Vec3>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

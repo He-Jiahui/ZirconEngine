@@ -1,10 +1,13 @@
 use zircon_runtime::core::framework::render::RenderParticleSpriteSnapshot;
 use zircon_runtime::core::framework::scene::EntityId;
-use zircon_runtime::core::math::{Real, Transform};
+use zircon_runtime::core::math::{is_finite_vec3, is_finite_vec4, Real, Transform, Vec3};
 
 use crate::asset::{evaluate_color_curve, evaluate_scalar_curve};
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
-use crate::{ParticleCoordinateSpace, ParticleEmitterAsset, ParticleSimulationBackend};
+use crate::{
+    ParticleColorKey, ParticleCoordinateSpace, ParticleEmitterAsset, ParticleScalarKey,
+    ParticleShape, ParticleSimulationBackend,
+};
 
 use super::pool::{CpuParticlePool, InitialParticle};
 use super::{ParticleRng, ParticleSimulationError};
@@ -25,6 +28,7 @@ pub(crate) struct ParticleSystemInstance {
     pub playing: bool,
     pub age_seconds: Real,
     pub fallback_to_cpu: bool,
+    physics_enabled: bool,
     emitters: Vec<ParticleEmitterInstance>,
 }
 
@@ -33,6 +37,7 @@ impl ParticleSystemInstance {
         handle: ParticleEmitterHandle,
         component: ParticleSystemComponent,
         fallback_to_cpu: bool,
+        physics_enabled: bool,
     ) -> Result<Self, ParticleSimulationError> {
         validate_component(&component)?;
         let seed = component.asset.seed ^ handle.raw();
@@ -42,7 +47,7 @@ impl ParticleSystemInstance {
             .iter()
             .enumerate()
             .map(|(index, emitter)| {
-                ParticleEmitterInstance::new(index as u32, emitter.clone(), seed)
+                ParticleEmitterInstance::new(index as u32, emitter.clone(), seed, physics_enabled)
             })
             .collect();
         Ok(Self {
@@ -51,6 +56,7 @@ impl ParticleSystemInstance {
             component,
             age_seconds: 0.0,
             fallback_to_cpu,
+            physics_enabled,
             emitters,
         })
     }
@@ -124,6 +130,33 @@ impl ParticleSystemInstance {
     pub(crate) fn entity(&self) -> EntityId {
         self.component.entity
     }
+
+    pub(crate) fn requires_physics(&self) -> bool {
+        self.emitters
+            .iter()
+            .any(|emitter| emitter.asset.physics.is_enabled())
+    }
+
+    pub(crate) fn set_physics_enabled(&mut self, physics_enabled: bool) {
+        self.physics_enabled = physics_enabled;
+        for emitter in &mut self.emitters {
+            emitter.physics_enabled = physics_enabled;
+        }
+    }
+
+    pub(crate) fn requires_animation(&self) -> bool {
+        self.emitters
+            .iter()
+            .any(|emitter| !emitter.asset.animation_bindings.is_empty())
+    }
+
+    pub(crate) fn trigger_burst_now(&mut self) {
+        let transform = self.component.transform;
+        let entity = self.component.entity;
+        for emitter in &mut self.emitters {
+            emitter.spawn_explicit(1, transform, entity);
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -134,10 +167,16 @@ struct ParticleEmitterInstance {
     spawn_accumulator: Real,
     next_burst_index: usize,
     rng: ParticleRng,
+    physics_enabled: bool,
 }
 
 impl ParticleEmitterInstance {
-    fn new(emitter_index: u32, mut asset: ParticleEmitterAsset, system_seed: u64) -> Self {
+    fn new(
+        emitter_index: u32,
+        mut asset: ParticleEmitterAsset,
+        system_seed: u64,
+        physics_enabled: bool,
+    ) -> Self {
         asset
             .bursts
             .sort_by(|a, b| a.time_seconds.max(0.0).total_cmp(&b.time_seconds.max(0.0)));
@@ -150,6 +189,7 @@ impl ParticleEmitterInstance {
             spawn_accumulator: 0.0,
             next_burst_index: 0,
             rng: ParticleRng::new(rng_seed),
+            physics_enabled,
         }
     }
 
@@ -192,6 +232,15 @@ impl ParticleEmitterInstance {
         let live = self.pool.live_count() as u32;
         let available = self.asset.max_particles.saturating_sub(live);
         for _ in 0..spawn_count.min(available) {
+            let initial = self.initial_particle(transform, entity);
+            self.pool.spawn(initial);
+        }
+    }
+
+    fn spawn_explicit(&mut self, count: u32, transform: Transform, entity: EntityId) {
+        let live = self.pool.live_count() as u32;
+        let available = self.asset.max_particles.saturating_sub(live);
+        for _ in 0..count.min(available) {
             let initial = self.initial_particle(transform, entity);
             self.pool.spawn(initial);
         }
@@ -240,9 +289,19 @@ impl ParticleEmitterInstance {
             }
             let normalized_age = (self.pool.age[index] / self.pool.lifetime[index]).clamp(0.0, 1.0);
             self.pool.previous_position[index] = self.pool.position[index];
-            self.pool.velocity[index] += self.asset.gravity * dt;
+            let external_force = if self.physics_enabled {
+                self.asset.physics.external_force
+            } else {
+                Vec3::ZERO
+            };
+            self.pool.velocity[index] += (self.asset.gravity + external_force) * dt;
             let drag_factor = (1.0 - self.asset.drag.max(0.0) * dt).clamp(0.0, 1.0);
-            self.pool.velocity[index] *= drag_factor;
+            let damping_factor = if self.physics_enabled && self.asset.physics.collision_enabled {
+                1.0 - self.asset.physics.damping.clamp(0.0, 1.0)
+            } else {
+                1.0
+            };
+            self.pool.velocity[index] *= drag_factor * damping_factor;
             self.pool.position[index] += self.pool.velocity[index] * dt;
             self.pool.rotation[index] += self.pool.angular_velocity[index] * dt;
             self.pool.size[index] = self.pool.initial_size[index]
@@ -272,8 +331,11 @@ impl ParticleEmitterInstance {
                 entity,
                 position,
                 size: self.pool.size[index],
+                rotation: self.pool.rotation[index],
                 color: self.pool.color[index],
                 intensity: 1.0,
+                material: self.asset.material,
+                texture: self.asset.texture,
             });
         }
     }
@@ -294,17 +356,120 @@ fn validate_component(component: &ParticleSystemComponent) -> Result<(), Particl
         if emitter.max_particles == 0 {
             continue;
         }
-        if !emitter.spawn_rate_per_second.is_finite()
-            || !emitter.lifetime.min.is_finite()
-            || !emitter.lifetime.max.is_finite()
-            || !emitter.initial_size.min.is_finite()
-            || !emitter.initial_size.max.is_finite()
+        if !finite_scalar_range(emitter.lifetime)
+            || !finite_scalar_range(emitter.initial_size)
+            || !finite_scalar_range(emitter.initial_rotation)
+            || !finite_scalar_range(emitter.initial_angular_velocity)
+            || !emitter.spawn_rate_per_second.is_finite()
+            || !emitter.drag.is_finite()
+            || !emitter.physics.bounce.is_finite()
+            || !emitter.physics.damping.is_finite()
         {
             return Err(ParticleSimulationError::InvalidAsset(format!(
                 "emitter {} contains non-finite scalar settings",
                 emitter.id
             )));
         }
+        if !finite_vec3_range(emitter.initial_velocity)
+            || !is_finite_vec3(emitter.gravity)
+            || !is_finite_vec3(emitter.physics.external_force)
+            || !is_finite_vec4(emitter.start_color)
+        {
+            return Err(ParticleSimulationError::InvalidAsset(format!(
+                "emitter {} contains non-finite vector settings",
+                emitter.id
+            )));
+        }
+        validate_shape(emitter.id.as_str(), emitter.shape)?;
+        validate_bursts(emitter.id.as_str(), &emitter.bursts)?;
+        validate_animation_bindings(emitter.id.as_str(), &emitter.animation_bindings)?;
+        validate_scalar_keys(emitter.id.as_str(), &emitter.size_over_lifetime)?;
+        validate_color_keys(emitter.id.as_str(), &emitter.color_over_lifetime)?;
     }
     Ok(())
+}
+
+fn finite_scalar_range(range: crate::ParticleScalarRange) -> bool {
+    range.min.is_finite() && range.max.is_finite()
+}
+
+fn finite_vec3_range(range: crate::ParticleVec3Range) -> bool {
+    is_finite_vec3(range.min) && is_finite_vec3(range.max)
+}
+
+fn validate_shape(emitter_id: &str, shape: ParticleShape) -> Result<(), ParticleSimulationError> {
+    let valid = match shape {
+        ParticleShape::Point => true,
+        ParticleShape::Sphere { radius } => radius.is_finite(),
+        ParticleShape::Box { half_extents } => is_finite_vec3(half_extents),
+        ParticleShape::Cone { radius, height } => radius.is_finite() && height.is_finite(),
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(ParticleSimulationError::InvalidAsset(format!(
+            "emitter {emitter_id} contains non-finite shape settings"
+        )))
+    }
+}
+
+fn validate_scalar_keys(
+    emitter_id: &str,
+    keys: &[ParticleScalarKey],
+) -> Result<(), ParticleSimulationError> {
+    if keys
+        .iter()
+        .all(|key| key.t.is_finite() && key.value.is_finite())
+    {
+        Ok(())
+    } else {
+        Err(ParticleSimulationError::InvalidAsset(format!(
+            "emitter {emitter_id} contains non-finite size curve keys"
+        )))
+    }
+}
+
+fn validate_bursts(
+    emitter_id: &str,
+    bursts: &[crate::ParticleBurst],
+) -> Result<(), ParticleSimulationError> {
+    if bursts.iter().all(|burst| burst.time_seconds.is_finite()) {
+        Ok(())
+    } else {
+        Err(ParticleSimulationError::InvalidAsset(format!(
+            "emitter {emitter_id} contains non-finite burst settings"
+        )))
+    }
+}
+
+fn validate_animation_bindings(
+    emitter_id: &str,
+    bindings: &[crate::ParticleAnimationBinding],
+) -> Result<(), ParticleSimulationError> {
+    if bindings
+        .iter()
+        .all(|binding| binding.normalized_progress.is_finite())
+    {
+        Ok(())
+    } else {
+        Err(ParticleSimulationError::InvalidAsset(format!(
+            "emitter {emitter_id} contains non-finite animation binding settings"
+        )))
+    }
+}
+
+fn validate_color_keys(
+    emitter_id: &str,
+    keys: &[ParticleColorKey],
+) -> Result<(), ParticleSimulationError> {
+    if keys
+        .iter()
+        .all(|key| key.t.is_finite() && is_finite_vec4(key.value))
+    {
+        Ok(())
+    } else {
+        Err(ParticleSimulationError::InvalidAsset(format!(
+            "emitter {emitter_id} contains non-finite color curve keys"
+        )))
+    }
 }

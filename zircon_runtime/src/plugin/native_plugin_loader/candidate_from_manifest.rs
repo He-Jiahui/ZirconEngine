@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::{PluginModuleKind, PluginPackageManifest};
+use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 use super::dynamic_library_name::dynamic_library_file_name;
 use super::{NativePluginCandidate, NativePluginLoadReport};
@@ -105,6 +105,14 @@ fn native_library_crate_name<'a>(
         if let Some(module) = manifest
             .modules
             .iter()
+            .find(|module| module.kind == *module_kind)
+        {
+            return Some(module.crate_name.as_str());
+        }
+        if let Some(module) = manifest
+            .feature_extensions
+            .iter()
+            .flat_map(|feature| feature.modules.iter())
             .find(|module| module.kind == *module_kind)
         {
             return Some(module.crate_name.as_str());

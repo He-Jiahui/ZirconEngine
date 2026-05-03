@@ -1,3 +1,4 @@
+mod extract_output;
 mod gpu_completion;
 mod prepare_input;
 mod prepare_output;
@@ -8,6 +9,7 @@ mod runtime_state;
 mod runtime_stats;
 mod runtime_update;
 
+pub use extract_output::VirtualGeometryRuntimeExtractOutput;
 pub use gpu_completion::VirtualGeometryGpuCompletion;
 pub use prepare_input::VirtualGeometryRuntimePrepareInput;
 pub use prepare_output::VirtualGeometryRuntimePrepareOutput;

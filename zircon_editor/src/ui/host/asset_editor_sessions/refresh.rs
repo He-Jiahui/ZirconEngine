@@ -38,7 +38,7 @@ impl EditorUiHost {
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
         let (source_path, route) = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -48,7 +48,7 @@ impl EditorUiHost {
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let session = rebuild_ui_asset_session_from_source(route, source.clone())?;
         {
-            let mut sessions = self.ui_asset_sessions.lock().unwrap();
+            let mut sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -76,7 +76,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<Option<UiAssetDiffSnapshot>, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -100,7 +100,7 @@ impl EditorUiHost {
         changed_asset_ids: &BTreeSet<String>,
     ) -> Result<BTreeSet<ViewInstanceId>, EditorError> {
         let entries = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             sessions
                 .iter()
                 .filter_map(|(instance_id, entry)| {
@@ -118,7 +118,7 @@ impl EditorUiHost {
             let external_source = match fs::read_to_string(&source_path) {
                 Ok(source) => source,
                 Err(error) if error.kind() == ErrorKind::NotFound => {
-                    let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                    let mut sessions = self.lock_ui_asset_sessions();
                     let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                         EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                     })?;
@@ -138,7 +138,7 @@ impl EditorUiHost {
             };
             let external_hash = ui_asset_source_hash(&external_source);
             let (route, should_reload) = {
-                let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                let mut sessions = self.lock_ui_asset_sessions();
                 let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                     EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                 })?;
@@ -170,7 +170,7 @@ impl EditorUiHost {
             if should_reload {
                 let session = rebuild_ui_asset_session_from_source(route, external_source.clone())?;
                 {
-                    let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                    let mut sessions = self.lock_ui_asset_sessions();
                     let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                         EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                     })?;
@@ -193,7 +193,7 @@ impl EditorUiHost {
         changed_asset_ids: &BTreeSet<String>,
     ) -> Result<BTreeSet<ViewInstanceId>, EditorError> {
         let dependencies = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             sessions
                 .iter()
                 .filter_map(|(instance_id, entry)| {
@@ -219,7 +219,7 @@ impl EditorUiHost {
         let mut sync_instances = BTreeSet::new();
         for (instance_id, matching) in dependencies {
             let (widget_refs, style_refs) = {
-                let sessions = self.ui_asset_sessions.lock().unwrap();
+                let sessions = self.lock_ui_asset_sessions();
                 let entry = sessions.get(&instance_id).ok_or_else(|| {
                     EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                 })?;
@@ -227,7 +227,7 @@ impl EditorUiHost {
             };
             match self.collect_ui_asset_imports_lossy(&widget_refs, &style_refs) {
                 Ok((widget_docs, style_docs)) => {
-                    let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                    let mut sessions = self.lock_ui_asset_sessions();
                     let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                         EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                     })?;
@@ -242,7 +242,7 @@ impl EditorUiHost {
                     }
                 }
                 Err(errors) => {
-                    let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                    let mut sessions = self.lock_ui_asset_sessions();
                     let entry = sessions.get_mut(&instance_id).ok_or_else(|| {
                         EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                     })?;

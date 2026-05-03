@@ -7,6 +7,8 @@ pub(super) struct HybridGiStatSnapshot {
     pending_update_count: usize,
     scheduled_trace_region_count: usize,
     scene_card_count: usize,
+    scene_screen_probe_count: usize,
+    scene_radiance_cache_entry_count: usize,
     surface_cache_resident_page_count: usize,
     surface_cache_dirty_page_count: usize,
     surface_cache_feedback_card_count: usize,
@@ -43,6 +45,8 @@ impl HybridGiStatSnapshot {
         pending_update_count: usize,
         scheduled_trace_region_count: usize,
         scene_card_count: usize,
+        scene_screen_probe_count: usize,
+        scene_radiance_cache_entry_count: usize,
         surface_cache_resident_page_count: usize,
         surface_cache_dirty_page_count: usize,
         surface_cache_feedback_card_count: usize,
@@ -58,6 +62,8 @@ impl HybridGiStatSnapshot {
             pending_update_count,
             scheduled_trace_region_count,
             scene_card_count,
+            scene_screen_probe_count,
+            scene_radiance_cache_entry_count,
             surface_cache_resident_page_count,
             surface_cache_dirty_page_count,
             surface_cache_feedback_card_count,
@@ -87,6 +93,14 @@ impl HybridGiStatSnapshot {
 
     pub(super) fn scene_card_count(&self) -> usize {
         self.scene_card_count
+    }
+
+    pub(super) fn scene_screen_probe_count(&self) -> usize {
+        self.scene_screen_probe_count
+    }
+
+    pub(super) fn scene_radiance_cache_entry_count(&self) -> usize {
+        self.scene_radiance_cache_entry_count
     }
 
     pub(super) fn surface_cache_resident_page_count(&self) -> usize {

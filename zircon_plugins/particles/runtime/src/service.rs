@@ -6,11 +6,15 @@ use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Real, Vec3};
 
 use crate::component::{ParticleEmitterHandle, ParticleSystemComponent};
+use crate::interop::{ParticleAnimationEvent, ParticleAnimationEventKind};
 use crate::render::{
     build_particle_extract, ParticleGpuFallbackDiagnostic, ParticleGpuFallbackReason,
 };
 use crate::simulation::{ParticleSimulationError, ParticleSystemInstance};
-use crate::ParticleSimulationBackend;
+use crate::{ParticleSimulationBackend, PARTICLES_RUNTIME_CAPABILITY};
+
+pub const PARTICLES_PHYSICS_CAPABILITY: &str = "runtime.feature.particles.physics";
+pub const PARTICLES_ANIMATION_CAPABILITY: &str = "runtime.feature.particles.animation_control";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ParticleRuntimeDiagnosticSeverity {
@@ -65,6 +69,7 @@ struct ParticlesManagerState {
     next_handle: u64,
     instances: BTreeMap<ParticleEmitterHandle, ParticleSystemInstance>,
     diagnostics: Vec<ParticleRuntimeDiagnostic>,
+    capabilities: Vec<String>,
 }
 
 impl Default for ParticlesManagerState {
@@ -73,11 +78,34 @@ impl Default for ParticlesManagerState {
             next_handle: 1,
             instances: BTreeMap::new(),
             diagnostics: Vec::new(),
+            capabilities: vec![PARTICLES_RUNTIME_CAPABILITY.to_string()],
         }
     }
 }
 
 impl ParticlesManager {
+    pub fn with_capabilities<S: AsRef<str>>(capabilities: &[S]) -> Self {
+        let mut state = ParticlesManagerState::default();
+        for capability in capabilities {
+            push_unique(&mut state.capabilities, capability.as_ref().to_string());
+        }
+        Self {
+            state: Arc::new(Mutex::new(state)),
+        }
+    }
+
+    pub fn enable_capability(&self, capability: impl Into<String>) {
+        let mut state = self.lock_state();
+        let capability = capability.into();
+        let enables_physics = capability == PARTICLES_PHYSICS_CAPABILITY;
+        push_unique(&mut state.capabilities, capability);
+        if enables_physics {
+            for instance in state.instances.values_mut() {
+                instance.set_physics_enabled(true);
+            }
+        }
+    }
+
     pub fn instantiate(
         &self,
         component: ParticleSystemComponent,
@@ -86,7 +114,12 @@ impl ParticlesManager {
         let handle = ParticleEmitterHandle::new(state.next_handle);
         state.next_handle = state.next_handle.saturating_add(1).max(1);
         let fallback_to_cpu = component.backend() == ParticleSimulationBackend::Gpu;
-        let instance = ParticleSystemInstance::new(handle, component, fallback_to_cpu)?;
+        let physics_enabled = state
+            .capabilities
+            .iter()
+            .any(|capability| capability == PARTICLES_PHYSICS_CAPABILITY);
+        let instance =
+            ParticleSystemInstance::new(handle, component, fallback_to_cpu, physics_enabled)?;
         if fallback_to_cpu {
             let diagnostic = ParticleGpuFallbackDiagnostic::new(
                 handle,
@@ -98,6 +131,7 @@ impl ParticlesManager {
                 diagnostic.message,
             ));
         }
+        push_optional_feature_diagnostics(&mut state, handle, &instance);
         state.instances.insert(handle, instance);
         Ok(handle)
     }
@@ -160,6 +194,44 @@ impl ParticlesManager {
         Ok(())
     }
 
+    pub fn apply_animation_event(
+        &self,
+        event: ParticleAnimationEvent,
+    ) -> Result<(), ParticleSimulationError> {
+        let mut state = self.lock_state();
+        if !state
+            .capabilities
+            .iter()
+            .any(|capability| capability == PARTICLES_ANIMATION_CAPABILITY)
+        {
+            state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+                event.handle,
+                format!(
+                    "animation-controlled particle event {:?} for entity {} ignored because capability `{}` is unavailable",
+                    event.kind, event.entity, PARTICLES_ANIMATION_CAPABILITY
+                ),
+            ));
+            return Ok(());
+        }
+        let Some(handle) = event.handle.or_else(|| {
+            state.instances.iter().find_map(|(handle, instance)| {
+                (instance.entity() == event.entity).then_some(*handle)
+            })
+        }) else {
+            return Ok(());
+        };
+        let instance = state
+            .instances
+            .get_mut(&handle)
+            .ok_or(ParticleSimulationError::UnknownHandle(handle.raw()))?;
+        match event.kind {
+            ParticleAnimationEventKind::SpawnOnce => instance.trigger_burst_now(),
+            ParticleAnimationEventKind::TimedEmissionBegin => instance.play(),
+            ParticleAnimationEventKind::TimedEmissionEnd => instance.pause(),
+        }
+        Ok(())
+    }
+
     pub fn snapshot(&self) -> ParticleRuntimeSnapshot {
         let state = self.lock_state();
         let mut snapshot = ParticleRuntimeSnapshot {
@@ -204,5 +276,45 @@ impl ParticlesManager {
 
     fn lock_state(&self) -> std::sync::MutexGuard<'_, ParticlesManagerState> {
         self.state.lock().expect("particles manager mutex poisoned")
+    }
+}
+
+fn push_unique(values: &mut Vec<String>, value: String) {
+    if !values.iter().any(|existing| existing == &value) {
+        values.push(value);
+        values.sort();
+    }
+}
+
+fn push_optional_feature_diagnostics(
+    state: &mut ParticlesManagerState,
+    handle: ParticleEmitterHandle,
+    instance: &ParticleSystemInstance,
+) {
+    if instance.requires_physics()
+        && !state
+            .capabilities
+            .iter()
+            .any(|capability| capability == PARTICLES_PHYSICS_CAPABILITY)
+    {
+        state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+            Some(handle),
+            format!(
+                "particle physics modules are running as no-op because capability `{PARTICLES_PHYSICS_CAPABILITY}` is unavailable"
+            ),
+        ));
+    }
+    if instance.requires_animation()
+        && !state
+            .capabilities
+            .iter()
+            .any(|capability| capability == PARTICLES_ANIMATION_CAPABILITY)
+    {
+        state.diagnostics.push(ParticleRuntimeDiagnostic::warning(
+            Some(handle),
+            format!(
+                "particle animation bindings are disabled because capability `{PARTICLES_ANIMATION_CAPABILITY}` is unavailable"
+            ),
+        ));
     }
 }

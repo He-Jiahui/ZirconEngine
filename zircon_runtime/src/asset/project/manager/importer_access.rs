@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::asset::{AssetImportError, AssetImporter, AssetImporterHandler};
+use crate::asset::{AssetImportError, AssetImporter, AssetImporterHandler, AssetImporterRegistry};
 
 use super::ProjectManager;
 
@@ -31,5 +31,23 @@ impl ProjectManager {
             .registry_mut()
             .register_arc(importer)
             .map_err(AssetImportError::from)
+    }
+
+    pub fn register_asset_importers_from_registry(
+        &mut self,
+        registry: &AssetImporterRegistry,
+    ) -> Result<(), AssetImportError> {
+        for importer in registry.importers() {
+            self.register_asset_importer_arc(importer)?;
+        }
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn register_first_wave_plugin_fixture_importers_for_test(
+        &mut self,
+    ) -> Result<(), AssetImportError> {
+        self.importer
+            .register_first_wave_plugin_fixture_importers_for_test()
     }
 }

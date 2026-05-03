@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::asset::{NavMeshAsset, NavigationSettingsAsset};
 use crate::core::framework::render::{
-    OverlayLineSegment, OverlayPickShape, SceneGizmoKind, SceneGizmoOverlayExtract,
+    OverlayLineSegment, OverlayPickShape, SceneGizmoKind,
+    SceneGizmoOverlayExtract as SceneGizmoOverlay,
 };
 use crate::core::framework::scene::EntityId;
 use crate::core::math::Real;
@@ -116,7 +117,7 @@ pub fn default_navigation_areas() -> Vec<NavigationAreaSettings> {
     ]
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NavMeshCollectMode {
     AllObjects,
@@ -131,7 +132,7 @@ impl Default for NavMeshCollectMode {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum NavMeshUseGeometry {
     RenderMeshes,
@@ -551,11 +552,7 @@ impl NavigationGizmoSnapshot {
         }
     }
 
-    pub fn to_scene_gizmo_overlay(
-        &self,
-        owner: EntityId,
-        selected: bool,
-    ) -> SceneGizmoOverlayExtract {
+    pub fn to_scene_gizmo_overlay(&self, owner: EntityId, selected: bool) -> SceneGizmoOverlay {
         let mut lines = Vec::new();
         for triangle in &self.triangles {
             let color = navigation_area_color(triangle.area);
@@ -588,15 +585,15 @@ impl NavigationGizmoSnapshot {
                 thickness: 0.08,
             });
         }
-        SceneGizmoOverlayExtract {
+        SceneGizmoOverlay::new(
             owner,
-            kind: SceneGizmoKind::NavigationMesh,
+            SceneGizmoKind::NavigationMesh,
             selected,
             lines,
-            wire_shapes: Vec::new(),
-            icons: Vec::new(),
+            Vec::new(),
+            Vec::new(),
             pick_shapes,
-        }
+        )
     }
 }
 

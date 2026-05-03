@@ -61,9 +61,13 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
 }
 
 pub fn tilemap_component_descriptor() -> zircon_runtime::plugin::ComponentTypeDescriptor {
-    zircon_runtime::plugin::ComponentTypeDescriptor::new(TILEMAP_COMPONENT_TYPE, PLUGIN_ID, "Tilemap 2D")
-        .with_property("tilemap", "asset_ref", true)
-        .with_property("material", "asset_ref", false)
+    zircon_runtime::plugin::ComponentTypeDescriptor::new(
+        TILEMAP_COMPONENT_TYPE,
+        PLUGIN_ID,
+        "Tilemap 2D",
+    )
+    .with_property("tilemap", "asset_ref", true)
+    .with_property("material", "asset_ref", false)
 }
 
 pub fn tilemap_importer_descriptors() -> Vec<zircon_runtime::asset::AssetImporterDescriptor> {
@@ -82,7 +86,8 @@ pub fn runtime_plugin() -> Tilemap2dRuntimePlugin {
 }
 
 pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    let mut manifest = zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
+    let mut manifest = runtime_plugin_descriptor()
+        .package_manifest()
         .with_component(tilemap_component_descriptor());
     for importer in tilemap_importer_descriptors() {
         manifest = manifest.with_asset_importer(importer);

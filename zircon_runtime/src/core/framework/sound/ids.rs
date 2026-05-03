@@ -149,6 +149,23 @@ impl ExternalAudioSourceHandle {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct SoundOutputDeviceId(String);
+
+impl SoundOutputDeviceId {
+    pub fn new(raw: impl Into<String>) -> Self {
+        Self(raw.into())
+    }
+
+    pub fn default_system() -> Self {
+        Self("sound.output.default".to_string())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SoundPlaybackId(u64);
 

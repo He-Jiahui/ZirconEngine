@@ -2,7 +2,9 @@ use std::ffi::{c_char, CStr, CString};
 
 use libloading::Library;
 
-use crate::{PluginModuleKind, PluginModuleManifest, PluginPackageManifest};
+use crate::{
+    plugin::PluginModuleKind, plugin::PluginModuleManifest, plugin::PluginPackageManifest,
+};
 
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = 2;

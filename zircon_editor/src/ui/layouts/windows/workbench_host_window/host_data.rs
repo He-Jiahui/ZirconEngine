@@ -98,6 +98,7 @@ pub(crate) struct PaneNativeBodyData {
     pub asset_browser: AssetBrowserPaneViewData,
     pub project_overview: ProjectOverviewPaneViewData,
     pub module_plugins: ModulePluginsPaneViewData,
+    pub build_export: BuildExportPaneViewData,
     pub ui_asset: UiAssetEditorPanePresentation,
     pub animation: AnimationEditorPaneViewData,
 }
@@ -118,6 +119,27 @@ pub(crate) struct InspectorPaneViewData {
     pub inspector_y: SharedString,
     pub inspector_z: SharedString,
     pub delete_enabled: bool,
+    pub plugin_components: Vec<InspectorPluginComponentViewData>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct InspectorPluginComponentViewData {
+    pub component_id: String,
+    pub display_name: String,
+    pub plugin_id: String,
+    pub drawer_available: bool,
+    pub diagnostic: Option<String>,
+    pub properties: Vec<InspectorPluginComponentPropertyViewData>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct InspectorPluginComponentPropertyViewData {
+    pub field_id: String,
+    pub name: String,
+    pub label: String,
+    pub value: String,
+    pub value_kind: String,
+    pub editable: bool,
 }
 
 #[derive(Clone, Default)]
@@ -174,6 +196,27 @@ pub(crate) struct ModulePluginStatusViewData {
 #[derive(Clone, Default)]
 pub(crate) struct ModulePluginsPaneViewData {
     pub plugins: ModelRc<ModulePluginStatusViewData>,
+    pub diagnostics: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct BuildExportTargetViewData {
+    pub profile_name: SharedString,
+    pub platform: SharedString,
+    pub target_mode: SharedString,
+    pub strategies: SharedString,
+    pub status: SharedString,
+    pub enabled_plugins: SharedString,
+    pub linked_runtime_crates: SharedString,
+    pub native_dynamic_packages: SharedString,
+    pub generated_files: SharedString,
+    pub diagnostics: SharedString,
+    pub fatal: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct BuildExportPaneViewData {
+    pub targets: ModelRc<BuildExportTargetViewData>,
     pub diagnostics: SharedString,
 }
 

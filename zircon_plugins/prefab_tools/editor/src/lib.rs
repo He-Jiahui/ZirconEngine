@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use zircon_editor::core::editor_authoring_extension::AssetCreationTemplateDescriptor;
 use zircon_editor::core::editor_extension::{
     AssetEditorDescriptor, ComponentDrawerDescriptor, EditorExtensionRegistry,
+    EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
@@ -98,15 +99,32 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(create.clone(), "Create Prefab From Selection")
+                .with_menu_path("Plugins/Prefab Tools/Create From Selection")
+                .with_payload_schema_id("prefab_tools.create_from_selection.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(open.clone(), "Open Prefab")
+                .with_menu_path("Plugins/Prefab Tools/Open Prefab Asset")
+                .with_payload_schema_id("prefab_tools.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(apply, "Apply Prefab Overrides")
+            EditorOperationDescriptor::new(apply.clone(), "Apply Prefab Overrides")
+                .with_menu_path("Plugins/Prefab Tools/Apply Overrides")
+                .with_payload_schema_id("prefab_tools.apply_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(revert, "Revert Prefab Overrides")
+            EditorOperationDescriptor::new(revert.clone(), "Revert Prefab Overrides")
+                .with_menu_path("Plugins/Prefab Tools/Revert Overrides")
+                .with_payload_schema_id("prefab_tools.revert_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(break_instance, "Break Prefab Instance")
+            EditorOperationDescriptor::new(break_instance.clone(), "Break Prefab Instance")
+                .with_menu_path("Plugins/Prefab Tools/Break Instance")
+                .with_payload_schema_id("prefab_tools.break_instance.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Prefab Tools/Create From Selection", &create),
+            menu_item("Plugins/Prefab Tools/Open Prefab Asset", &open),
+            menu_item("Plugins/Prefab Tools/Apply Overrides", &apply),
+            menu_item("Plugins/Prefab Tools/Revert Overrides", &revert),
+            menu_item("Plugins/Prefab Tools/Break Instance", &break_instance),
         ],
         asset_editors: vec![AssetEditorDescriptor::new(
             "prefab.asset",
@@ -225,10 +243,40 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid prefab operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
     use zircon_runtime::asset::{AssetReference, AssetUri};
+
+    #[test]
+    fn prefab_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry = EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("prefab authoring registration");
+        let operation = operation("PrefabTools.Authoring.ApplyOverrides");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("apply overrides operation registered");
+
+        assert_eq!(
+            descriptor.menu_path(),
+            Some("Plugins/Prefab Tools/Apply Overrides")
+        );
+        assert_eq!(
+            descriptor.payload_schema_id(),
+            Some("prefab_tools.apply_overrides.v1")
+        );
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Prefab Tools/Apply Overrides" && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn prefab_override_precedence_keeps_last_override_for_same_property() {

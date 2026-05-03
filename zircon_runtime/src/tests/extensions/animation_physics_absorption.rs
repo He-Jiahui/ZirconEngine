@@ -1,40 +1,61 @@
 #[test]
-fn physics_domain_keeps_runtime_contract_and_has_plugin_package() {
+fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
         .parent()
         .expect("runtime crate should have a workspace parent");
     let runtime_manifest =
         std::fs::read_to_string(runtime_root.join("Cargo.toml")).unwrap_or_default();
+    let runtime_lib = std::fs::read_to_string(runtime_root.join("src/lib.rs")).unwrap_or_default();
     let workspace_manifest =
         std::fs::read_to_string(runtime_root.join("../Cargo.toml")).unwrap_or_default();
     let plugin_workspace_manifest =
         std::fs::read_to_string(repo_root.join("zircon_plugins/Cargo.toml")).unwrap_or_default();
     let physics_plugin_root = repo_root.join("zircon_plugins/physics");
-    let physics_root = runtime_root.join("src/physics");
-    let physics_mod = std::fs::read_to_string(physics_root.join("mod.rs")).unwrap_or_default();
-    let physics_module =
-        std::fs::read_to_string(physics_root.join("module.rs")).unwrap_or_default();
-    let physics_runtime =
-        std::fs::read_to_string(physics_root.join("runtime/mod.rs")).unwrap_or_default();
+    let physics_plugin_lib =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/lib.rs"))
+            .unwrap_or_default();
+    let physics_plugin_module =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/module.rs"))
+            .unwrap_or_default();
+    let physics_plugin_manager =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/manager.rs"))
+            .unwrap_or_default();
+    let physics_plugin_hook =
+        std::fs::read_to_string(physics_plugin_root.join("runtime/src/scene_hook.rs"))
+            .unwrap_or_default();
+    let framework_physics_manager = std::fs::read_to_string(
+        runtime_root.join("src/core/framework/physics/manager.rs"),
+    )
+    .unwrap_or_default();
 
     assert!(
-        physics_root.join("mod.rs").exists(),
-        "physics shared runtime contract should remain under zircon_runtime/src/physics"
+        !runtime_root.join("src/physics").exists(),
+        "zircon_runtime should not keep concrete physics runtime files after plugin cutover"
     );
     assert!(
-        !runtime_root.join("src/physics.rs").exists(),
-        "zircon_runtime should keep physics folder-backed, not in a flat root file"
+        !runtime_lib.contains("pub mod physics"),
+        "zircon_runtime crate root should not export a concrete physics module"
     );
     assert!(
-        physics_mod.contains("pub mod runtime") && physics_mod.contains("mod module"),
-        "physics root should stay structural and delegate to module/runtime children"
+        runtime_root
+            .join("src/core/framework/physics/scene_step_result.rs")
+            .exists(),
+        "runtime framework should keep neutral physics scene-step DTOs"
     );
     assert!(
-        physics_module.contains("PhysicsDriver")
-            && physics_module.contains("PhysicsManagerHandle")
-            && physics_runtime.contains("impl PhysicsManager for DefaultPhysicsManager"),
-        "physics runtime contract should keep driver wiring, manager handle wiring, and the framework manager implementation available to its plugin package"
+        framework_physics_manager.contains("fn tick_scene_world"),
+        "runtime framework should expose the neutral PhysicsManager scene tick contract"
+    );
+    assert!(
+        physics_plugin_module.contains("PhysicsDriver")
+            && physics_plugin_module.contains("PhysicsManagerHandle")
+            && physics_plugin_module.contains("module_descriptor")
+            && physics_plugin_manager.contains("impl PhysicsManager for DefaultPhysicsManager")
+            && physics_plugin_manager.contains("tick_scene_world")
+            && physics_plugin_hook.contains("PhysicsSceneRuntimeHook")
+            && physics_plugin_lib.contains("register_scene_hook(scene_hook_registration())"),
+        "physics plugin should own module wiring, manager behavior, and scene hook registration"
     );
     assert!(
         !runtime_manifest.contains("zircon_physics"),
@@ -43,6 +64,10 @@ fn physics_domain_keeps_runtime_contract_and_has_plugin_package() {
     assert!(
         !workspace_manifest.contains("\"zircon_physics\""),
         "workspace Cargo.toml should not list a legacy zircon_physics crate"
+    );
+    assert!(
+        !runtime_manifest.contains("zircon_plugin_physics_runtime"),
+        "zircon_runtime must not depend on the physics plugin crate"
     );
     assert!(
         !runtime_root.join("../zircon_physics/Cargo.toml").exists(),
@@ -68,45 +93,67 @@ fn physics_domain_keeps_runtime_contract_and_has_plugin_package() {
 }
 
 #[test]
-fn animation_domain_keeps_runtime_contract_and_has_plugin_package() {
+fn animation_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     let runtime_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     let repo_root = runtime_root
         .parent()
         .expect("runtime crate should have a workspace parent");
     let runtime_manifest =
         std::fs::read_to_string(runtime_root.join("Cargo.toml")).unwrap_or_default();
+    let runtime_lib = std::fs::read_to_string(runtime_root.join("src/lib.rs")).unwrap_or_default();
     let workspace_manifest =
         std::fs::read_to_string(runtime_root.join("../Cargo.toml")).unwrap_or_default();
     let plugin_workspace_manifest =
         std::fs::read_to_string(repo_root.join("zircon_plugins/Cargo.toml")).unwrap_or_default();
     let animation_plugin_root = repo_root.join("zircon_plugins/animation");
-    let animation_root = runtime_root.join("src/animation");
-    let animation_mod = std::fs::read_to_string(animation_root.join("mod.rs")).unwrap_or_default();
-    let animation_module =
-        std::fs::read_to_string(animation_root.join("module.rs")).unwrap_or_default();
-    let animation_runtime =
-        std::fs::read_to_string(animation_root.join("runtime/mod.rs")).unwrap_or_default();
-    let animation_sequence =
-        std::fs::read_to_string(animation_root.join("sequence/mod.rs")).unwrap_or_default();
+    let animation_plugin_lib =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/lib.rs"))
+            .unwrap_or_default();
+    let animation_plugin_module =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/module.rs"))
+            .unwrap_or_default();
+    let animation_plugin_manager =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/manager.rs"))
+            .unwrap_or_default();
+    let animation_plugin_sequence =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/sequence.rs"))
+            .unwrap_or_default();
+    let animation_plugin_hook =
+        std::fs::read_to_string(animation_plugin_root.join("runtime/src/scene_hook.rs"))
+            .unwrap_or_default();
+    let framework_animation_manager = std::fs::read_to_string(
+        runtime_root.join("src/core/framework/animation/manager.rs"),
+    )
+    .unwrap_or_default();
 
     assert!(
-        animation_root.join("mod.rs").exists(),
-        "animation shared runtime contract should remain under zircon_runtime/src/animation"
+        !runtime_root.join("src/animation").exists(),
+        "zircon_runtime should not keep concrete animation runtime files after plugin cutover"
     );
     assert!(
-        !runtime_root.join("src/animation.rs").exists(),
-        "zircon_runtime should keep animation folder-backed, not in a flat root file"
+        !runtime_lib.contains("pub mod animation"),
+        "zircon_runtime crate root should not export a concrete animation module"
     );
     assert!(
-        animation_mod.contains("pub mod runtime") && animation_mod.contains("pub mod sequence"),
-        "animation root should stay structural and delegate to runtime/sequence children"
+        runtime_root
+            .join("src/core/framework/animation/sequence_apply_report.rs")
+            .exists(),
+        "runtime framework should keep neutral animation sequence apply DTOs"
     );
     assert!(
-        animation_module.contains("AnimationDriver")
-            && animation_module.contains("AnimationManagerHandle")
-            && animation_runtime.contains("impl AnimationManager for DefaultAnimationManager")
-            && animation_sequence.contains("apply_sequence_to_world"),
-        "animation runtime contract should keep driver wiring, manager implementation, and sequence application available to its plugin package"
+        framework_animation_manager.contains("fn apply_sequence_to_world"),
+        "runtime framework should expose the neutral AnimationManager sequence apply contract"
+    );
+    assert!(
+        animation_plugin_module.contains("AnimationDriver")
+            && animation_plugin_module.contains("AnimationManagerHandle")
+            && animation_plugin_module.contains("module_descriptor")
+            && animation_plugin_manager.contains("impl AnimationManager for DefaultAnimationManager")
+            && animation_plugin_manager.contains("apply_sequence_to_world")
+            && animation_plugin_sequence.contains("apply_sequence_to_world")
+            && animation_plugin_hook.contains("AnimationSceneRuntimeHook")
+            && animation_plugin_lib.contains("register_scene_hook(scene_hook_registration())"),
+        "animation plugin should own module wiring, manager behavior, sequence application, and scene hook registration"
     );
     assert!(
         !runtime_manifest.contains("zircon_animation"),
@@ -115,6 +162,10 @@ fn animation_domain_keeps_runtime_contract_and_has_plugin_package() {
     assert!(
         !workspace_manifest.contains("\"zircon_animation\""),
         "workspace Cargo.toml should not list a legacy zircon_animation crate"
+    );
+    assert!(
+        !runtime_manifest.contains("zircon_plugin_animation_runtime"),
+        "zircon_runtime must not depend on the animation plugin crate"
     );
     assert!(
         !runtime_root.join("../zircon_animation/Cargo.toml").exists(),

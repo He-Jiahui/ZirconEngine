@@ -10,7 +10,8 @@ fn main() {
         .include(vendor.join("Detour/Include"))
         .include(vendor.join("DetourCrowd/Include"))
         .include(vendor.join("DetourTileCache/Include"))
-        .file("native/recast_bridge.cpp");
+        .file("native/recast_bridge.cpp")
+        .file("native/recast_bake.cpp");
 
     for directory in [
         vendor.join("Recast/Source"),
@@ -30,6 +31,8 @@ fn main() {
     build.compile("zircon_navigation_recast_bridge");
 
     println!("cargo:rerun-if-changed=native/recast_bridge.cpp");
+    println!("cargo:rerun-if-changed=native/recast_bridge.h");
+    println!("cargo:rerun-if-changed=native/recast_bake.cpp");
     println!("cargo:rerun-if-changed=vendor/recastnavigation");
 }
 

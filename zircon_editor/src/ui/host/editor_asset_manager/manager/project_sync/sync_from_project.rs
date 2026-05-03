@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use zircon_runtime::asset::importer::AssetImportError;
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::project::{AssetMetaDocument, PreviewState};
+use zircon_runtime::core::resource::ResourceState;
 
 use crate::ui::host::editor_asset_manager::{editor_meta_path_for_source, EditorAssetMetaDocument};
 use crate::ui::host::editor_asset_manager::{
@@ -32,8 +33,12 @@ impl DefaultEditorAssetManager {
             let editor_meta_path = editor_meta_path_for_source(&source_path);
             let editor_meta = EditorAssetMetaDocument::load_or_default(&editor_meta_path)?;
             let preview_state = meta.preview_state;
-            let imported = project.load_artifact_by_id(metadata.id())?;
-            let direct_references = direct_references(&imported);
+            let direct_references = if metadata.state == ResourceState::Ready {
+                let imported = project.load_artifact_by_id(metadata.id())?;
+                direct_references(&imported)
+            } else {
+                Vec::new()
+            };
             let preview_artifact_path =
                 preview_cache.path_for(&PreviewArtifactKey::thumbnail(meta.asset_uuid));
             let file_name = source_path
@@ -108,5 +113,64 @@ impl DefaultEditorAssetManager {
         };
         self.broadcast(change);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+    use zircon_runtime::asset::AssetUri;
+
+    use super::*;
+
+    #[test]
+    fn sync_from_project_keeps_error_assets_without_artifacts_in_catalog() {
+        let root = unique_temp_project_root("sync_error_asset_without_artifact");
+        let paths = ProjectPaths::from_root(&root).unwrap();
+        paths.ensure_layout().unwrap();
+        ProjectManifest::new(
+            "BrokenAssetProject",
+            AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+        let material_path = paths
+            .assets_root()
+            .join("materials")
+            .join("broken.material.toml");
+        fs::create_dir_all(material_path.parent().unwrap()).unwrap();
+        fs::write(&material_path, "not valid toml = [").unwrap();
+
+        let mut project = ProjectManager::open(&root).unwrap();
+        let records = project.scan_and_import().unwrap();
+        assert!(records.iter().any(
+            |record| record.state == ResourceState::Error && record.artifact_locator.is_none()
+        ));
+
+        let manager = DefaultEditorAssetManager::new();
+        manager.sync_from_project(project).unwrap();
+        let catalog = manager.catalog_snapshot_record();
+        let broken = catalog
+            .assets
+            .iter()
+            .find(|asset| asset.locator == "res://materials/broken.material.toml")
+            .expect("broken material remains visible in editor catalog");
+        assert!(!broken.diagnostics.is_empty());
+        assert!(broken.direct_reference_uuids.is_empty());
+
+        let _ = fs::remove_dir_all(root);
+    }
+
+    fn unique_temp_project_root(label: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time after unix epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!("zircon_editor_{label}_{nanos}"))
     }
 }

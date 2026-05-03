@@ -24,6 +24,10 @@ pub(super) fn update_hybrid_gi_stats(
     state.stats.last_hybrid_gi_scheduled_trace_region_count =
         hybrid_gi_stats.scheduled_trace_region_count();
     state.stats.last_hybrid_gi_scene_card_count = hybrid_gi_stats.scene_card_count();
+    state.stats.last_hybrid_gi_scene_screen_probe_count =
+        hybrid_gi_stats.scene_screen_probe_count();
+    state.stats.last_hybrid_gi_scene_radiance_cache_entry_count =
+        hybrid_gi_stats.scene_radiance_cache_entry_count();
     state.stats.last_hybrid_gi_surface_cache_resident_page_count =
         hybrid_gi_stats.surface_cache_resident_page_count();
     state.stats.last_hybrid_gi_surface_cache_dirty_page_count =
@@ -53,6 +57,8 @@ pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
     state.stats.last_hybrid_gi_pending_update_count = 0;
     state.stats.last_hybrid_gi_scheduled_trace_region_count = 0;
     state.stats.last_hybrid_gi_scene_card_count = 0;
+    state.stats.last_hybrid_gi_scene_screen_probe_count = 0;
+    state.stats.last_hybrid_gi_scene_radiance_cache_entry_count = 0;
     state.stats.last_hybrid_gi_surface_cache_resident_page_count = 0;
     state.stats.last_hybrid_gi_surface_cache_dirty_page_count = 0;
     state.stats.last_hybrid_gi_surface_cache_feedback_card_count = 0;

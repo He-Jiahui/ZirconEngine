@@ -20,6 +20,7 @@ impl VirtualGeometryGpuReadback {
             hardware_rasterization_record_count: 0,
             hardware_rasterization_source:
                 RenderVirtualGeometryHardwareRasterizationSource::Unavailable,
+            hardware_rasterization_records: Vec::new(),
             selected_cluster_count: 0,
             selected_cluster_source: RenderVirtualGeometrySelectedClusterSource::Unavailable,
             selected_clusters: Vec::new(),
@@ -27,6 +28,7 @@ impl VirtualGeometryGpuReadback {
             visbuffer64_source: RenderVirtualGeometryVisBuffer64Source::Unavailable,
             visbuffer64_clear_value: 0,
             visbuffer64_entries: Vec::new(),
+            node_cluster_cull: Default::default(),
         }
     }
 

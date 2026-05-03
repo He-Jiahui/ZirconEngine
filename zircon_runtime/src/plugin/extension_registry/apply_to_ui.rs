@@ -1,5 +1,5 @@
+use crate::plugin::RuntimeExtensionRegistryError;
 use crate::ui::component::UiComponentDescriptorRegistry;
-use crate::RuntimeExtensionRegistryError;
 
 use super::RuntimeExtensionRegistry;
 

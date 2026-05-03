@@ -3,6 +3,7 @@ use zircon_editor::core::editor_authoring_extension::{
 };
 use zircon_editor::core::editor_extension::{
     AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
+    EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
@@ -98,15 +99,32 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(import_tiled.clone(), "Import Tiled Tilemap")
+                .with_menu_path("Plugins/Tilemap 2D/Import Tiled")
+                .with_payload_schema_id("tilemap_2d.import_tiled.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(create_tilemap.clone(), "Create Tilemap")
+                .with_menu_path("Plugins/Tilemap 2D/Create Tilemap")
+                .with_payload_schema_id("tilemap_2d.create_tilemap.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(create_tileset.clone(), "Create Tileset")
+                .with_menu_path("Plugins/Tilemap 2D/Create Tileset")
+                .with_payload_schema_id("tilemap_2d.create_tileset.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(open.clone(), "Open Tilemap")
+                .with_menu_path("Plugins/Tilemap 2D/Open Tilemap Asset")
+                .with_payload_schema_id("tilemap_2d.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(paint.clone(), "Paint Tilemap")
+                .with_menu_path("Plugins/Tilemap 2D/Paint")
+                .with_payload_schema_id("tilemap_2d.paint.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Tilemap 2D/Import Tiled", &import_tiled),
+            menu_item("Plugins/Tilemap 2D/Create Tilemap", &create_tilemap),
+            menu_item("Plugins/Tilemap 2D/Create Tileset", &create_tileset),
+            menu_item("Plugins/Tilemap 2D/Open Tilemap Asset", &open),
+            menu_item("Plugins/Tilemap 2D/Paint", &paint),
         ],
         asset_importers: vec![AssetImporterDescriptor::new(
             "tilemap_2d.tiled.importer",
@@ -253,10 +271,35 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid tilemap operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
     use zircon_runtime::asset::{AssetReference, AssetUri, TileMapLayerAsset};
+
+    #[test]
+    fn tilemap_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry =
+            zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("tilemap authoring registration");
+        let operation = operation("Tilemap2d.Authoring.Paint");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("paint operation registered");
+
+        assert_eq!(descriptor.menu_path(), Some("Plugins/Tilemap 2D/Paint"));
+        assert_eq!(descriptor.payload_schema_id(), Some("tilemap_2d.paint.v1"));
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Tilemap 2D/Paint" && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn tilemap_editor_validation_accepts_supported_projection_and_layer_size() {

@@ -12,7 +12,7 @@ impl SlintViewportController {
         ui: Option<UiRenderExtract>,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
-        let mut shared = self.shared.lock().unwrap();
+        let mut shared = self.lock_shared();
         let viewport = shared.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         let ui = merge_ui_with_world_space_submissions(ui, &shared.last_world_space_ui_surfaces);
@@ -29,7 +29,7 @@ impl SlintViewportController {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
-        let mut shared = self.shared.lock().unwrap();
+        let mut shared = self.lock_shared();
         let viewport = shared.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         shared

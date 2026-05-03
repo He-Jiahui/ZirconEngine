@@ -10,7 +10,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
         let (title, dirty, payload) = {
-            let sessions = self.animation_editor_sessions.lock().unwrap();
+            let sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
                     "missing animation editor session {}",

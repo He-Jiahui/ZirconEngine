@@ -18,7 +18,7 @@ impl EditorEventRuntime {
     ) -> Result<EditorEventRecord, String> {
         let event_source = editor_event_source(source.clone());
         let descriptor = {
-            let inner = self.inner.lock().unwrap();
+            let inner = self.lock_inner();
             let descriptor = match inner
                 .operation_registry
                 .descriptor(&invocation.operation_id)
@@ -149,7 +149,7 @@ impl EditorEventRuntime {
             }
             EditorOperationControlRequest::ListOperations => {
                 let operations = {
-                    let inner = self.inner.lock().unwrap();
+                    let inner = self.lock_inner();
                     let enabled_capabilities = inner
                         .manager
                         .capability_snapshot()

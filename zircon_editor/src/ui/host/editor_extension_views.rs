@@ -61,7 +61,7 @@ impl EditorUiHost {
             .iter()
             .map(|descriptor| extension_view_descriptor(descriptor, required_capabilities))
             .collect::<Vec<_>>();
-        let mut registry = self.view_registry.lock().unwrap();
+        let mut registry = self.lock_view_registry();
         validate_extension_view_descriptors(&registry, &views)?;
         for view in views {
             registry
@@ -79,7 +79,7 @@ impl EditorUiHost {
             .iter()
             .map(|descriptor| extension_view_descriptor(descriptor, &[]))
             .collect::<Vec<_>>();
-        let registry = self.view_registry.lock().unwrap();
+        let registry = self.lock_view_registry();
         validate_extension_view_descriptors(&registry, &views)
     }
 }

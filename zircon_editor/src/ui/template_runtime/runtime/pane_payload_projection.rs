@@ -282,6 +282,52 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
                 ),
             );
         }
+        PanePayload::BuildExportV1(payload) => {
+            root.attributes.insert(
+                "payload_diagnostics".to_string(),
+                Value::String(payload.diagnostics.clone()),
+            );
+            root.attributes.insert(
+                "payload_target_count".to_string(),
+                Value::Integer(i64::try_from(payload.targets.len()).unwrap_or(i64::MAX)),
+            );
+            root.attributes.insert(
+                "payload_targets".to_string(),
+                Value::Array(
+                    payload
+                        .targets
+                        .iter()
+                        .map(|target| {
+                            let mut table = Table::new();
+                            table.insert(
+                                "profile_name".to_string(),
+                                Value::String(target.profile_name.clone()),
+                            );
+                            table.insert(
+                                "platform".to_string(),
+                                Value::String(target.platform.clone()),
+                            );
+                            table.insert(
+                                "target_mode".to_string(),
+                                Value::String(target.target_mode.clone()),
+                            );
+                            table.insert(
+                                "strategies".to_string(),
+                                Value::String(target.strategies.clone()),
+                            );
+                            table
+                                .insert("status".to_string(), Value::String(target.status.clone()));
+                            table.insert(
+                                "diagnostics".to_string(),
+                                Value::String(target.diagnostics.clone()),
+                            );
+                            table.insert("fatal".to_string(), Value::Boolean(target.fatal));
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+        }
         PanePayload::UiComponentShowcaseV1(payload) => {
             root.attributes.insert(
                 "payload_state_summary".to_string(),
@@ -338,6 +384,9 @@ fn hybrid_slot_anchor(body: &PaneBodyPresentation) -> Option<(&'static str, &'st
         )),
         PanePayload::ModulePluginsV1(_) => {
             Some(("ModulePluginListSlotAnchor", "module_plugin_list_slot"))
+        }
+        PanePayload::BuildExportV1(_) => {
+            Some(("BuildExportTargetsSlotAnchor", "build_export_targets_slot"))
         }
         _ => None,
     }

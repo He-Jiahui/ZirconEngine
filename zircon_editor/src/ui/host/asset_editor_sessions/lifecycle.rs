@@ -16,7 +16,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<UiAssetEditorReflectionModel, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let sessions = self.ui_asset_sessions.lock().unwrap();
+        let sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -34,7 +34,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<UiAssetEditorPanePresentation, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let sessions = self.ui_asset_sessions.lock().unwrap();
+        let sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -54,7 +54,7 @@ impl EditorUiHost {
     ) -> Result<Option<ViewInstanceId>, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
         let selected_reference = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -73,7 +73,7 @@ impl EditorUiHost {
     ) -> Result<Option<ViewInstanceId>, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
         let selected_reference = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -116,7 +116,7 @@ impl EditorUiHost {
         let preview_size = preview_size_for_preset(route.preview_preset);
         let session = UiAssetEditorSession::from_source(route, source.clone(), preview_size)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        self.ui_asset_sessions.lock().unwrap().insert(
+        self.lock_ui_asset_sessions().insert(
             instance.instance_id.clone(),
             UiAssetWorkspaceEntry::new(source_path, source, session),
         );
@@ -128,18 +128,11 @@ impl EditorUiHost {
         &self,
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
-        if self
-            .ui_asset_sessions
-            .lock()
-            .unwrap()
-            .contains_key(instance_id)
-        {
+        if self.lock_ui_asset_sessions().contains_key(instance_id) {
             return Ok(());
         }
         let instance = self
-            .session
-            .lock()
-            .unwrap()
+            .lock_session()
             .open_view_instances
             .get(instance_id)
             .cloned()

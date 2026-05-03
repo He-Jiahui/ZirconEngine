@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform, RuntimeTargetMode, plugin::UiComponentDescriptor,
+    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::UiComponentDescriptor,
+    RuntimeTargetMode,
 };
 
 use super::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginModuleManifest, PluginOptionManifest,
+    PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -16,6 +17,8 @@ pub struct PluginPackageManifest {
     pub version: String,
     #[serde(default = "default_sdk_api_version")]
     pub sdk_api_version: String,
+    #[serde(default)]
+    pub package_kind: PluginPackageKind,
     pub display_name: String,
     #[serde(default = "default_plugin_category")]
     pub category: String,
@@ -47,6 +50,8 @@ pub struct PluginPackageManifest {
     pub asset_importers: Vec<AssetImporterDescriptor>,
     #[serde(default)]
     pub optional_features: Vec<PluginFeatureBundleManifest>,
+    #[serde(default)]
+    pub feature_extensions: Vec<PluginFeatureBundleManifest>,
     #[serde(default)]
     pub default_packaging: Vec<ExportPackagingStrategy>,
 }

@@ -1,5 +1,5 @@
+use crate::plugin::RuntimeExtensionRegistryError;
 use crate::scene::World;
-use crate::RuntimeExtensionRegistryError;
 
 use super::RuntimeExtensionRegistry;
 

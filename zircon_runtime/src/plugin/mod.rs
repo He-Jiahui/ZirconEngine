@@ -8,12 +8,16 @@ mod native_plugin_loader;
 mod package_manifest;
 mod project_plugin_manifest;
 mod runtime_plugin;
+mod scene_hook;
 mod ui_component_descriptor;
 
 pub use component_type_descriptor::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 pub use core_profiles::{EditorCoreProfile, RuntimeCoreProfile};
 pub use export_build_plan::{ExportBuildPlan, ExportGeneratedFile, ExportMaterializeReport};
-pub use export_profile::{ExportPackagingStrategy, ExportProfile, ExportTargetPlatform};
+pub use export_profile::{
+    ExportPackagingStrategy, ExportPlatformHostKind, ExportPlatformPluginStrategy,
+    ExportPlatformPolicy, ExportPlatformResourceStrategy, ExportProfile, ExportTargetPlatform,
+};
 pub use extension_registry::RuntimeExtensionRegistry;
 pub use extension_registry_error::RuntimeExtensionRegistryError;
 pub use native_plugin_loader::{
@@ -38,7 +42,7 @@ pub use native_plugin_loader::{
 pub use package_manifest::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginEventManifest,
     PluginFeatureBundleManifest, PluginFeatureDependency, PluginModuleKind, PluginModuleManifest,
-    PluginOptionManifest, PluginPackageManifest,
+    PluginOptionManifest, PluginPackageKind, PluginPackageManifest,
 };
 pub use project_plugin_manifest::{
     ProjectPluginFeatureSelection, ProjectPluginManifest, ProjectPluginSelection,
@@ -47,5 +51,9 @@ pub use runtime_plugin::{
     RuntimeExtensionCatalogReport, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginFeature, RuntimePluginFeatureBlock, RuntimePluginFeatureDependencyReport,
     RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+};
+pub use scene_hook::{
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration,
 };
 pub use ui_component_descriptor::UiComponentDescriptor;

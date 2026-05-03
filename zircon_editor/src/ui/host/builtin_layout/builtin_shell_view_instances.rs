@@ -65,6 +65,14 @@ pub(super) fn builtin_shell_view_instances(
             host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
         },
         ViewInstance {
+            instance_id: ViewInstanceId::new("editor.build_export_desktop#1"),
+            descriptor_id: ViewDescriptorId::new("editor.build_export_desktop"),
+            title: "Desktop Export".to_string(),
+            serializable_payload: serde_json::Value::Null,
+            dirty: false,
+            host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
+        },
+        ViewInstance {
             instance_id: ViewInstanceId::new("editor.game#1"),
             descriptor_id: ViewDescriptorId::new("editor.game"),
             title: "Game".to_string(),

@@ -2,11 +2,12 @@ use crate::asset::AssetImporterRegistry;
 use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{
-    plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest, plugin::PluginOptionManifest,
+    plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest,
+    plugin::PluginOptionManifest, plugin::SceneRuntimeHookRegistration,
     plugin::UiComponentDescriptor,
 };
 
@@ -27,6 +28,10 @@ impl RuntimeExtensionRegistry {
 
     pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         &self.render_pass_executors
+    }
+
+    pub fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {
+        &self.hybrid_gi_runtime_providers
     }
 
     pub fn virtual_geometry_runtime_providers(
@@ -53,5 +58,9 @@ impl RuntimeExtensionRegistry {
 
     pub fn asset_importers(&self) -> &AssetImporterRegistry {
         &self.asset_importers
+    }
+
+    pub fn scene_hooks(&self) -> &[SceneRuntimeHookRegistration] {
+        &self.scene_hooks
     }
 }

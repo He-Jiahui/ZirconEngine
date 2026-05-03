@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::rhi::RenderDevice;
@@ -29,8 +29,28 @@ impl WgpuRenderFramework {
             Item = VirtualGeometryRuntimeProviderRegistration,
         >,
     ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            Vec::new(),
+            virtual_geometry_runtime_providers,
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
+        let hybrid_gi_runtime_providers =
+            hybrid_gi_runtime_providers.into_iter().collect::<Vec<_>>();
         let virtual_geometry_runtime_providers = virtual_geometry_runtime_providers
             .into_iter()
             .collect::<Vec<_>>();
@@ -45,6 +65,7 @@ impl WgpuRenderFramework {
                 next_viewport_id: 1,
                 next_history_id: 1,
                 pipelines: create_default_pipelines(&render_features),
+                hybrid_gi_runtime_provider: hybrid_gi_runtime_providers.first().cloned(),
                 virtual_geometry_runtime_provider: virtual_geometry_runtime_providers
                     .first()
                     .cloned(),

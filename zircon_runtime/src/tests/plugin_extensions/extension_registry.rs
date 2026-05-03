@@ -9,8 +9,10 @@ use crate::core::math::UVec2;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind, ServiceObject, StartupMode};
 use crate::engine_module::{factory, qualified_name};
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutionContext, RenderPassExecutorId,
-    RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
+    HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput, HybridGiRuntimePrepareOutput,
+    HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration, HybridGiRuntimeState,
+    HybridGiRuntimeUpdate, RenderFeatureDescriptor, RenderPassExecutionContext,
+    RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
     VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
     VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
@@ -22,13 +24,17 @@ use crate::plugin::{
     PluginOptionManifest, PluginPackageManifest, ProjectPluginFeatureSelection,
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginCatalog, RuntimePluginDescriptor,
     RuntimePluginFeature, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
-    UiComponentDescriptor,
+    SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
+    SceneRuntimeHookRegistration, UiComponentDescriptor,
 };
-use crate::scene::{components::NodeKind, World};
+use crate::scene::{components::NodeKind, components::SystemStage, World};
 use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::RenderFeaturePassDescriptor;
 use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
-use crate::{plugin::ProjectPluginManifest, plugin::ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode};
+use crate::{
+    plugin::ExportPackagingStrategy, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    RuntimePluginId, RuntimeTargetMode,
+};
 use zircon_runtime_interface::ui::component::{UiComponentCategory, UiSlotSchema, UiValue};
 
 #[test]
@@ -91,6 +97,120 @@ fn runtime_extension_registry_collects_plugin_module_and_render_feature_contribu
     assert_eq!(registry.modules().len(), 1);
     assert_eq!(registry.modules()[0].name, module.name);
     assert_eq!(registry.render_features(), &[render_feature]);
+}
+
+#[test]
+fn runtime_extension_registry_collects_scene_hook_contributions_in_stage_order() {
+    let mut registry = RuntimeExtensionRegistry::default();
+
+    registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.scene.update-late",
+            SystemStage::Update,
+            20,
+        ))
+        .expect("late update hook contribution");
+    registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.scene.fixed",
+            SystemStage::FixedUpdate,
+            0,
+        ))
+        .expect("fixed hook contribution");
+    registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.scene.update-early",
+            SystemStage::Update,
+            -10,
+        ))
+        .expect("early update hook contribution");
+
+    let hook_ids = registry
+        .scene_hooks()
+        .iter()
+        .map(|hook| hook.descriptor().id.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        hook_ids,
+        vec![
+            "weather.scene.fixed",
+            "weather.scene.update-early",
+            "weather.scene.update-late",
+        ]
+    );
+}
+
+#[test]
+fn runtime_extension_registry_rejects_duplicate_and_invalid_scene_hooks() {
+    let mut registry = RuntimeExtensionRegistry::default();
+
+    registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.scene.update",
+            SystemStage::Update,
+            0,
+        ))
+        .expect("first hook contribution");
+    let duplicate = registry
+        .register_scene_hook(scene_hook_registration(
+            "weather.scene.update",
+            SystemStage::Update,
+            1,
+        ))
+        .unwrap_err();
+    assert!(duplicate
+        .to_string()
+        .contains("scene hook weather.scene.update already registered"));
+
+    let invalid = registry
+        .register_scene_hook(SceneRuntimeHookRegistration::new(
+            SceneRuntimeHookDescriptor::new("cloud.scene.update", "weather", SystemStage::Update),
+            NoopSceneHook,
+        ))
+        .unwrap_err();
+    assert!(invalid
+        .to_string()
+        .contains("scene hook cloud.scene.update must be prefixed by plugin id weather"));
+}
+
+#[test]
+fn level_tick_dispatches_installed_scene_hooks_in_schedule_order() {
+    let runtime = crate::core::CoreRuntime::new();
+    runtime
+        .register_module(crate::scene::module_descriptor())
+        .unwrap();
+    runtime
+        .activate_module(crate::scene::SCENE_MODULE_NAME)
+        .unwrap();
+
+    let mut registry = RuntimeExtensionRegistry::default();
+    registry
+        .register_scene_hook(recording_scene_hook_registration(
+            "weather.scene.update",
+            SystemStage::Update,
+            0,
+            "update",
+        ))
+        .expect("update hook contribution");
+    registry
+        .register_scene_hook(recording_scene_hook_registration(
+            "weather.scene.pre-update",
+            SystemStage::PreUpdate,
+            0,
+            "pre-update",
+        ))
+        .expect("pre-update hook contribution");
+    runtime
+        .install_scene_runtime_hooks(&registry)
+        .expect("install scene hooks into core runtime");
+
+    let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
+    level.tick(&runtime.handle(), 1.0 / 60.0).unwrap();
+
+    assert_eq!(
+        level.registered_subsystems(),
+        vec!["pre-update".to_string(), "update".to_string()]
+    );
 }
 
 #[test]
@@ -232,6 +352,24 @@ fn runtime_extension_registry_collects_virtual_geometry_runtime_provider_contrib
 }
 
 #[test]
+fn runtime_extension_registry_collects_hybrid_gi_runtime_provider_contributions() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let provider = HybridGiRuntimeProviderRegistration::new(
+        "weather.hybrid_gi",
+        std::sync::Arc::new(NoopHybridGiRuntimeProvider),
+    );
+
+    registry
+        .register_hybrid_gi_runtime_provider(provider.clone())
+        .expect("provider contribution");
+
+    assert_eq!(
+        registry.hybrid_gi_runtime_providers()[0].provider_id(),
+        provider.provider_id()
+    );
+}
+
+#[test]
 fn runtime_extension_registry_rejects_duplicate_module_and_render_feature_names() {
     let mut registry = RuntimeExtensionRegistry::default();
     let manager = ManagerDescriptor::new(
@@ -304,6 +442,20 @@ fn runtime_extension_registry_rejects_duplicate_module_and_render_feature_names(
     assert!(duplicate_provider
         .to_string()
         .contains("virtual geometry runtime provider weather.virtual_geometry already registered"));
+
+    let hybrid_gi_provider = HybridGiRuntimeProviderRegistration::new(
+        "weather.hybrid_gi",
+        std::sync::Arc::new(NoopHybridGiRuntimeProvider),
+    );
+    registry
+        .register_hybrid_gi_runtime_provider(hybrid_gi_provider.clone())
+        .expect("first hybrid GI provider");
+    let duplicate_hybrid_gi_provider = registry
+        .register_hybrid_gi_runtime_provider(hybrid_gi_provider)
+        .unwrap_err();
+    assert!(duplicate_hybrid_gi_provider
+        .to_string()
+        .contains("hybrid GI runtime provider weather.hybrid_gi already registered"));
 }
 
 #[test]
@@ -338,6 +490,15 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
     assert_eq!(
         report.registry.virtual_geometry_runtime_providers()[0].provider_id(),
         "weather.virtual_geometry"
+    );
+    assert_eq!(
+        report.registry.hybrid_gi_runtime_providers()[0].provider_id(),
+        "weather.hybrid_gi"
+    );
+    assert_eq!(report.registry.scene_hooks().len(), 1);
+    assert_eq!(
+        report.registry.scene_hooks()[0].descriptor().id.as_str(),
+        "weather.scene.update"
     );
 }
 
@@ -444,6 +605,34 @@ fn runtime_plugin_catalog_reports_duplicate_feature_runtime_registrations() {
         .any(|diagnostic| diagnostic.contains(
             "duplicate optional feature id sound.timeline_animation_track registered at runtime"
         )));
+}
+
+#[test]
+fn runtime_plugin_catalog_reports_conflicting_feature_defaults_between_package_and_runtime() {
+    let feature = SoundTimelineFeaturePlugin;
+    let declared_feature = feature
+        .manifest()
+        .with_default_packaging([ExportPackagingStrategy::NativeDynamic])
+        .enabled_by_default(true);
+    let mut catalog = RuntimePluginCatalog::from_descriptors([RuntimePluginDescriptor::new(
+        "sound",
+        "Sound",
+        RuntimePluginId::Sound,
+        "zircon_plugin_sound_runtime",
+    )
+    .with_optional_feature(declared_feature)]);
+    catalog.register_feature(&feature);
+
+    let report = catalog.feature_dependency_report(
+        &ProjectPluginManifest {
+            selections: Vec::new(),
+        },
+        RuntimeTargetMode::ClientRuntime,
+    );
+
+    assert!(report.diagnostics.iter().any(|diagnostic| diagnostic.contains(
+        "optional feature id sound.timeline_animation_track has conflicting package manifest and runtime registration"
+    )));
 }
 
 #[test]
@@ -807,8 +996,61 @@ impl RuntimePlugin for WeatherRuntimePlugin {
                 std::sync::Arc::new(NoopVirtualGeometryRuntimeProvider),
             ),
         )?;
+        registry.register_hybrid_gi_runtime_provider(HybridGiRuntimeProviderRegistration::new(
+            "weather.hybrid_gi",
+            std::sync::Arc::new(NoopHybridGiRuntimeProvider),
+        ))?;
+        registry.register_scene_hook(scene_hook_registration(
+            "weather.scene.update",
+            SystemStage::Update,
+            0,
+        ))?;
         Ok(())
     }
+}
+
+#[derive(Debug)]
+struct NoopSceneHook;
+
+impl SceneRuntimeHook for NoopSceneHook {
+    fn run(&self, _context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+struct RecordingSceneHook {
+    label: &'static str,
+}
+
+impl SceneRuntimeHook for RecordingSceneHook {
+    fn run(&self, context: SceneRuntimeHookContext<'_>) -> Result<(), crate::core::CoreError> {
+        context.level.register_subsystem(self.label);
+        Ok(())
+    }
+}
+
+fn scene_hook_registration(
+    id: &str,
+    stage: SystemStage,
+    order: i32,
+) -> SceneRuntimeHookRegistration {
+    SceneRuntimeHookRegistration::new(
+        SceneRuntimeHookDescriptor::new(id, "weather", stage).with_order(order),
+        NoopSceneHook,
+    )
+}
+
+fn recording_scene_hook_registration(
+    id: &str,
+    stage: SystemStage,
+    order: i32,
+    label: &'static str,
+) -> SceneRuntimeHookRegistration {
+    SceneRuntimeHookRegistration::new(
+        SceneRuntimeHookDescriptor::new(id, "weather", stage).with_order(order),
+        RecordingSceneHook { label },
+    )
 }
 
 #[derive(Debug)]
@@ -910,6 +1152,30 @@ impl VirtualGeometryRuntimeState for NoopVirtualGeometryRuntimeState {
         _feedback: VirtualGeometryRuntimeFeedback,
     ) -> VirtualGeometryRuntimeUpdate {
         VirtualGeometryRuntimeUpdate::default()
+    }
+}
+
+#[derive(Debug)]
+struct NoopHybridGiRuntimeProvider;
+
+impl HybridGiRuntimeProvider for NoopHybridGiRuntimeProvider {
+    fn create_state(&self) -> Box<dyn HybridGiRuntimeState> {
+        Box::new(NoopHybridGiRuntimeState)
+    }
+}
+
+struct NoopHybridGiRuntimeState;
+
+impl HybridGiRuntimeState for NoopHybridGiRuntimeState {
+    fn prepare_frame(
+        &mut self,
+        _input: HybridGiRuntimePrepareInput<'_>,
+    ) -> HybridGiRuntimePrepareOutput {
+        HybridGiRuntimePrepareOutput::default()
+    }
+
+    fn update_after_render(&mut self, _feedback: HybridGiRuntimeFeedback) -> HybridGiRuntimeUpdate {
+        HybridGiRuntimeUpdate::default()
     }
 }
 

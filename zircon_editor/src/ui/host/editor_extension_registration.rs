@@ -30,7 +30,7 @@ impl EditorEventRuntime {
         extension: EditorExtensionRegistry,
         required_capabilities: Vec<String>,
     ) -> Result<(), EditorExtensionRegistryError> {
-        let mut inner = self.inner.lock().unwrap();
+        let mut inner = self.lock_inner();
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
         let mut operation_registry = inner.operation_registry.clone();
         for operation in extension.operations().descriptors().cloned() {

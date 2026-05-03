@@ -1,12 +1,17 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::asset::{
+    AssetImportContext, AssetImporterDescriptor, AssetImporterHandler, AssetKind, DataAssetFormat,
+    ImportedAsset, NativeAssetImporterHandler,
+};
 use crate::{
-    NativePluginLoader, PluginModuleKind, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
-    ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
-    ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
+    plugin::NativePluginLoader, plugin::PluginModuleKind,
+    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+    plugin::ZIRCON_NATIVE_PLUGIN_STATUS_OK, plugin::ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
 };
 
 #[test]
@@ -151,6 +156,44 @@ fn native_loader_discovers_editor_only_native_package() {
     assert!(runtime_report
         .runtime_plugin_registration_reports()
         .is_empty());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn native_loader_discovers_feature_extension_package_from_feature_runtime_module() {
+    let root = temp_export_root("native-feature-extension");
+    let plugin_root = root.join("sound_timeline_animation_track");
+    fs::create_dir_all(&plugin_root).unwrap();
+    fs::write(
+        plugin_root.join("plugin.toml"),
+        feature_extension_plugin_manifest(),
+    )
+    .unwrap();
+
+    let report = NativePluginLoader.discover(&root);
+
+    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    assert_eq!(report.discovered.len(), 1);
+    assert_eq!(
+        report.discovered[0].plugin_id,
+        "sound_timeline_animation_track"
+    );
+    assert!(report.discovered[0]
+        .library_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("zircon_plugin_sound_timeline_animation_runtime"));
+    assert!(report.runtime_plugin_registration_reports().is_empty());
+
+    let feature_reports = report.runtime_plugin_feature_registration_reports();
+    assert_eq!(feature_reports.len(), 1);
+    assert_eq!(
+        feature_reports[0].provider_package_id.as_deref(),
+        Some("sound_timeline_animation_track")
+    );
+    assert_eq!(feature_reports[0].manifest.owner_plugin_id, "sound");
 
     let _ = fs::remove_dir_all(root);
 }
@@ -494,6 +537,67 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     let _ = fs::remove_dir_all(package_root);
 }
 
+#[test]
+fn native_loader_fixture_can_import_data_asset_through_native_importer_handler() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-import-target");
+    let package_root = temp_export_root("native-dynamic-fixture-import-package");
+    let plugin_root = package_root.join("native_dynamic_fixture");
+    let native_root = plugin_root.join("native");
+    fs::create_dir_all(&native_root).unwrap();
+
+    let library_path = build_native_dynamic_fixture(&fixture_target);
+    fs::copy(
+        &library_path,
+        native_root.join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        )),
+    )
+    .unwrap();
+    fs::copy(
+        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
+        plugin_root.join("plugin.toml"),
+    )
+    .unwrap();
+
+    let mut report = NativePluginLoader.load_discovered_runtime(&package_root);
+    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    let plugin = Arc::new(report.loaded.pop().expect("fixture native plugin loaded"));
+    let descriptor = AssetImporterDescriptor::new(
+        "native_dynamic_fixture.data_json",
+        "native_dynamic_fixture",
+        AssetKind::Data,
+        1,
+    )
+    .with_source_extensions(["nativejson"]);
+    let importer = NativeAssetImporterHandler::new(descriptor, plugin);
+    let context = AssetImportContext::new(
+        "weather.nativejson".into(),
+        crate::asset::AssetUri::parse("res://assets/weather.nativejson").unwrap(),
+        br#"{"temperature":21,"condition":"clear"}"#.to_vec(),
+        Default::default(),
+    );
+
+    let outcome = importer.import(&context).expect("native data import");
+    let imported_asset = outcome.imported_asset;
+    let diagnostics = outcome.diagnostics;
+
+    match imported_asset {
+        ImportedAsset::Data(data) => {
+            assert_eq!(data.format, DataAssetFormat::Json);
+            assert_eq!(data.text, r#"{"temperature":21,"condition":"clear"}"#);
+            assert_eq!(data.canonical_json["temperature"], 21);
+            assert_eq!(data.canonical_json["condition"], "clear");
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
+    assert!(diagnostics
+        .iter()
+        .any(|diagnostic| diagnostic.message.contains("weather.nativejson")));
+
+    let _ = fs::remove_dir_all(fixture_target);
+    let _ = fs::remove_dir_all(package_root);
+}
+
 fn runtime_plugin_manifest() -> &'static str {
     r#"
 id = "weather"
@@ -535,6 +639,33 @@ crate_name = "zircon_plugin_split_tool_runtime"
 name = "split_tool.editor"
 kind = "editor"
 crate_name = "zircon_plugin_split_tool_editor"
+"#
+}
+
+fn feature_extension_plugin_manifest() -> &'static str {
+    r#"
+id = "sound_timeline_animation_track"
+version = "0.1.0"
+package_kind = "feature_extension"
+display_name = "Sound Timeline Animation Track Provider"
+
+[[feature_extensions]]
+id = "sound.timeline_animation_track"
+display_name = "Sound Timeline Animation Track"
+owner_plugin_id = "sound"
+capabilities = ["runtime.feature.sound.timeline_animation_track"]
+
+[[feature_extensions.dependencies]]
+plugin_id = "sound"
+capability = "runtime.plugin.sound"
+primary = true
+
+[[feature_extensions.modules]]
+name = "sound.timeline_animation_track.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_sound_timeline_animation_runtime"
+target_modes = ["client_runtime"]
+capabilities = ["runtime.feature.sound.timeline_animation_track"]
 "#
 }
 

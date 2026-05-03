@@ -17,4 +17,13 @@ fn menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects() {
     assert!(effects.render_dirty);
     assert!(!effects.layout_dirty);
     assert!(!effects.sync_asset_workspace);
+    assert_eq!(
+        harness
+            .runtime
+            .operation_stack()
+            .undo_stack()
+            .last()
+            .map(|entry| entry.operation_id.as_str()),
+        Some("Scene.Node.CreateCube")
+    );
 }

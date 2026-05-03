@@ -1,10 +1,17 @@
 pub const PLUGIN_ID: &str = "sound";
 
+mod automation;
 mod components;
 mod config;
+mod descriptor_validation;
+mod dynamic_events;
 mod engine;
+mod mixer_configuration;
 mod module;
+mod output;
 mod package;
+mod presets;
+mod ray_tracing;
 mod service_types;
 
 pub use components::sound_component_descriptors;

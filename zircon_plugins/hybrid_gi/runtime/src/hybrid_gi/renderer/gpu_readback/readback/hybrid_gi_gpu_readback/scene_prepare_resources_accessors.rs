@@ -7,7 +7,6 @@ impl HybridGiScenePrepareResourcesSnapshot {
         self.card_capture_request_count
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_ids(&self) -> &[u32] {
         &self.voxel_clipmap_ids
     }
@@ -30,32 +29,26 @@ impl HybridGiScenePrepareResourcesSnapshot {
         &self.capture_slot_rgba_samples
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_rgba_samples(&self) -> &[(u32, [u8; 4])] {
         &self.voxel_clipmap_rgba_samples
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_occupancy_masks(&self) -> &[(u32, u64)] {
         &self.voxel_clipmap_occupancy_masks
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_cell_rgba_samples(&self) -> &[(u32, u32, [u8; 4])] {
         &self.voxel_clipmap_cell_rgba_samples
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_cell_occupancy_counts(&self) -> &[(u32, u32, u32)] {
         &self.voxel_clipmap_cell_occupancy_counts
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_cell_dominant_node_ids(&self) -> &[(u32, u32, u64)] {
         &self.voxel_clipmap_cell_dominant_node_ids
     }
 
-    #[cfg(test)]
     pub(crate) fn voxel_clipmap_cell_dominant_rgba_samples(&self) -> &[(u32, u32, [u8; 4])] {
         &self.voxel_clipmap_cell_dominant_rgba_samples
     }

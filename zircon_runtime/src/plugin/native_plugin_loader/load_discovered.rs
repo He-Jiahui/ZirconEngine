@@ -5,7 +5,7 @@ use libloading::Library;
 use super::candidate_from_manifest::native_library_paths_for_candidate;
 use super::native_plugin_abi::{call_native_plugin_entry, probe_native_plugin_descriptor};
 use super::{LoadedNativePlugin, NativePluginLoadReport, NativePluginLoader};
-use crate::{PluginModuleKind, PluginPackageManifest};
+use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 impl NativePluginLoader {
     pub fn load_discovered_all(&self, root: impl AsRef<Path>) -> NativePluginLoadReport {

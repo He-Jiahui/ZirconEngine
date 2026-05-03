@@ -7,7 +7,10 @@ use crate::ui::workbench::state::EditorState;
 
 pub(super) fn test_state() -> EditorState {
     let manager = DefaultLevelManager::default();
-    EditorState::with_default_selection(manager.create_default_level(), UVec2::new(1280, 720))
+    let mut state =
+        EditorState::with_default_selection(manager.create_default_level(), UVec2::new(1280, 720));
+    state.mark_project_open();
+    state
 }
 
 pub(super) fn cube_id(state: &EditorState) -> NodeId {

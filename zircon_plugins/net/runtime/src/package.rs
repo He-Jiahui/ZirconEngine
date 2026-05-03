@@ -1,6 +1,7 @@
 use zircon_runtime::{
-    plugin::PluginEventCatalogManifest, plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
-    plugin::PluginModuleManifest, plugin::PluginOptionManifest, plugin::PluginPackageManifest, RuntimeTargetMode,
+    plugin::PluginEventCatalogManifest, plugin::PluginFeatureBundleManifest,
+    plugin::PluginFeatureDependency, plugin::PluginModuleManifest, plugin::PluginOptionManifest,
+    plugin::PluginPackageManifest, RuntimeTargetMode,
 };
 
 pub const NET_RUNTIME_EVENT_NAMESPACE: &str = "net.runtime_events";

@@ -1,0 +1,93 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "sound.audio_volume.drawer"
+version = 1
+display_name = "AudioVolume"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "sound_audio_volume_drawer_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "SoundAudioVolumeDrawerRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 4.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_volume_shape_priority_row"
+kind = "native"
+type = "Space"
+control_id = "SoundVolumeShapePriorityRow"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_volume_gain_filter_row"
+kind = "native"
+type = "Space"
+control_id = "SoundVolumeGainFilterRow"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_volume_reverb_convolution_row"
+kind = "native"
+type = "Space"
+control_id = "SoundVolumeReverbConvolutionRow"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 52.0
+preferred = 52.0
+max = 52.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_volume_crossfade_row"
+kind = "native"
+type = "Space"
+control_id = "SoundVolumeCrossfadeRow"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 26.0
+preferred = 26.0
+max = 26.0
+stretch = "Fixed"
+
+[components]

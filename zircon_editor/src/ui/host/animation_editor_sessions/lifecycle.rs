@@ -11,7 +11,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<AnimationEditorPanePresentation, EditorError> {
         self.ensure_animation_editor_session(instance_id)?;
-        let sessions = self.animation_editor_sessions.lock().unwrap();
+        let sessions = self.lock_animation_editor_sessions();
         let entry = sessions.get(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!(
                 "missing animation editor session {}",
@@ -37,7 +37,7 @@ impl EditorUiHost {
             })?;
         let session = AnimationEditorSession::from_path(std::path::Path::new(source_path))
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        self.animation_editor_sessions.lock().unwrap().insert(
+        self.lock_animation_editor_sessions().insert(
             instance.instance_id.clone(),
             AnimationEditorWorkspaceEntry {
                 source_path: std::path::PathBuf::from(source_path),
@@ -52,17 +52,13 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
         if self
-            .animation_editor_sessions
-            .lock()
-            .unwrap()
+            .lock_animation_editor_sessions()
             .contains_key(instance_id)
         {
             return Ok(());
         }
         let instance = self
-            .session
-            .lock()
-            .unwrap()
+            .lock_session()
             .open_view_instances
             .get(instance_id)
             .cloned()

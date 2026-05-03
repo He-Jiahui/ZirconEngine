@@ -25,11 +25,20 @@ importer_version = 1
 required_capabilities = ["runtime.asset.importer.ui_document"]
 
 [[asset_importers]]
-id = "ui_document_importer.serialized_document"
+id = "ui_document_importer.serialized_json"
 plugin_id = "ui_document_importer"
-priority = 100
-source_extensions = ["zui", "uidoc"]
+priority = 110
 full_suffixes = [".ui.json"]
+output_kind = "UiLayout"
+additional_output_kinds = ["UiWidget", "UiStyle"]
+importer_version = 1
+required_capabilities = ["runtime.asset.importer.ui_document"]
+
+[[asset_importers]]
+id = "ui_document_importer.serialized_binary"
+plugin_id = "ui_document_importer"
+priority = 90
+source_extensions = ["zui", "uidoc"]
 output_kind = "UiLayout"
 additional_output_kinds = ["UiWidget", "UiStyle"]
 importer_version = 1

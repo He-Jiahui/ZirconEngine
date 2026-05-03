@@ -5,6 +5,8 @@ use zircon_runtime::core::framework::sound::{
     SoundTrackControls, SoundTrackId, SoundTrackMeter,
 };
 
+use super::{SoundEffectRuntimeState, SoundEffectStateKey, SoundTrackRuntimeState};
+
 pub(crate) fn apply_track_effects(
     buffer: &mut [f32],
     channels: usize,
@@ -13,12 +15,17 @@ pub(crate) fn apply_track_effects(
     pre_effect_sidechain_buffers: &HashMap<SoundTrackId, Vec<f32>>,
     post_effect_sidechain_buffers: &HashMap<SoundTrackId, Vec<f32>>,
     impulse_responses: &HashMap<SoundImpulseResponseId, Vec<f32>>,
+    track: SoundTrackId,
+    effect_states: &mut HashMap<SoundEffectStateKey, SoundEffectRuntimeState>,
 ) {
     for effect in effects {
         if !effect.enabled || effect.bypass {
             continue;
         }
         let dry = buffer.to_vec();
+        let state = effect_states
+            .entry(SoundEffectStateKey::new(track, effect.id))
+            .or_default();
         match &effect.kind {
             SoundEffectKind::Gain(gain) => multiply(buffer, gain.gain),
             SoundEffectKind::Filter(filter) => filter_block(
@@ -34,10 +41,11 @@ pub(crate) fn apply_track_effects(
                 reverb.pre_delay_frames,
                 reverb.tail_frames,
                 reverb.damping,
+                &mut state.reverb_history,
             ),
             SoundEffectKind::ConvolutionReverb(convolution) => {
                 if let Some(ir) = impulse_responses.get(&convolution.impulse_response) {
-                    convolve_block(buffer, channels, ir);
+                    convolve_block(buffer, channels, ir, &mut state.convolution_history);
                 } else if convolution.fallback_to_algorithmic {
                     reverb_block(
                         buffer,
@@ -45,6 +53,7 @@ pub(crate) fn apply_track_effects(
                         convolution.latency_frames,
                         convolution.latency_frames.max(8),
                         0.35,
+                        &mut state.reverb_history,
                     );
                 }
             }
@@ -63,10 +72,14 @@ pub(crate) fn apply_track_effects(
                 compressor_block(
                     buffer,
                     channels,
+                    sample_rate_hz,
                     compressor.threshold_db,
                     compressor.ratio,
+                    compressor.attack_ms,
+                    compressor.release_ms,
                     compressor.makeup_gain_db,
                     sidechain,
+                    &mut state.compressor_gain,
                 );
             }
             SoundEffectKind::WaveShaper(shaper) => waveshape(buffer, shaper.drive),
@@ -78,6 +91,8 @@ pub(crate) fn apply_track_effects(
                 flanger.depth_frames,
                 flanger.rate_hz,
                 flanger.feedback,
+                &mut state.modulation_history,
+                &mut state.modulated_delay_phase,
             ),
             SoundEffectKind::Phaser(phaser) => phaser_block(
                 buffer,
@@ -86,6 +101,7 @@ pub(crate) fn apply_track_effects(
                 phaser.rate_hz,
                 phaser.depth,
                 phaser.phase_offset,
+                &mut state.phaser_phase,
             ),
             SoundEffectKind::Chorus(chorus) => modulated_delay(
                 buffer,
@@ -95,10 +111,16 @@ pub(crate) fn apply_track_effects(
                 chorus.depth_frames.saturating_mul(chorus.voices as usize),
                 chorus.rate_hz,
                 0.0,
+                &mut state.modulation_history,
+                &mut state.modulated_delay_phase,
             ),
-            SoundEffectKind::Delay(delay) => {
-                delay_block(buffer, channels, delay.delay_frames, delay.feedback)
-            }
+            SoundEffectKind::Delay(delay) => delay_block(
+                buffer,
+                channels,
+                delay.delay_frames,
+                delay.feedback,
+                &mut state.delay_line,
+            ),
             SoundEffectKind::PanStereo(pan) => pan_stereo(
                 buffer,
                 channels,
@@ -119,13 +141,20 @@ pub(crate) fn apply_track_controls(
     buffer: &mut [f32],
     channels: usize,
     controls: SoundTrackControls,
+    state: &mut SoundTrackRuntimeState,
 ) {
     if controls.mute {
         buffer.fill(0.0);
         return;
     }
     if controls.delay_frames > 0 {
-        delay_block(buffer, channels, controls.delay_frames, 0.0);
+        delay_block(
+            buffer,
+            channels,
+            controls.delay_frames,
+            0.0,
+            &mut state.control_delay_line,
+        );
     }
     pan_stereo(
         buffer,
@@ -218,31 +247,46 @@ fn filter_block(
 fn compressor_block(
     buffer: &mut [f32],
     channels: usize,
+    sample_rate_hz: u32,
     threshold_db: f32,
     ratio: f32,
+    attack_ms: f32,
+    release_ms: f32,
     makeup_gain_db: f32,
     sidechain: Option<&[f32]>,
+    gain_state: &mut f32,
 ) {
     let threshold = db_to_gain(threshold_db);
     let makeup = db_to_gain(makeup_gain_db);
     let frames = buffer.len() / channels;
+    let attack = smoothing_coefficient(attack_ms, sample_rate_hz);
+    let release = smoothing_coefficient(release_ms, sample_rate_hz);
+    let mut gain = if gain_state.is_finite() && *gain_state > 0.0 {
+        *gain_state
+    } else {
+        1.0
+    };
     for frame in 0..frames {
         let level = if let Some(sidechain) = sidechain {
             frame_level(sidechain, channels, frame)
         } else {
             frame_level(buffer, channels, frame)
         };
-        let gain = if level > threshold && threshold > 0.0 {
+        let target_gain = if level > threshold && threshold > 0.0 {
             let over = level / threshold;
             let compressed = over.powf((1.0 / ratio.max(1.0)) - 1.0);
             compressed.clamp(0.0, 1.0)
         } else {
             1.0
-        } * makeup;
+        };
+        let smoothing = if target_gain < gain { attack } else { release };
+        gain = target_gain + (gain - target_gain) * smoothing;
+        let output_gain = gain * makeup;
         for channel in 0..channels {
-            buffer[frame * channels + channel] *= gain;
+            buffer[frame * channels + channel] *= output_gain;
         }
     }
+    *gain_state = gain;
 }
 
 fn frame_level(buffer: &[f32], channels: usize, frame: usize) -> f32 {
@@ -263,6 +307,14 @@ fn db_to_gain(db: f32) -> f32 {
     10.0_f32.powf(db / 20.0)
 }
 
+fn smoothing_coefficient(time_ms: f32, sample_rate_hz: u32) -> f32 {
+    if time_ms <= 0.0 {
+        return 0.0;
+    }
+    let samples = (time_ms / 1000.0) * sample_rate_hz.max(1) as f32;
+    (-1.0 / samples.max(1.0)).exp()
+}
+
 fn waveshape(buffer: &mut [f32], drive: f32) {
     let drive = drive.max(0.0) + 1.0;
     let normalizer = drive.tanh().max(0.0001);
@@ -271,21 +323,19 @@ fn waveshape(buffer: &mut [f32], drive: f32) {
     }
 }
 
-fn delay_block(buffer: &mut [f32], channels: usize, delay_frames: usize, feedback: f32) {
+fn delay_block(
+    buffer: &mut [f32],
+    channels: usize,
+    delay_frames: usize,
+    feedback: f32,
+    state: &mut super::dsp_state::SoundDelayLineState,
+) {
     if delay_frames == 0 {
         return;
     }
-    let original = buffer.to_vec();
-    for frame in 0..(buffer.len() / channels) {
-        for channel in 0..channels {
-            let index = frame * channels + channel;
-            let delayed = frame
-                .checked_sub(delay_frames)
-                .and_then(|source_frame| original.get(source_frame * channels + channel))
-                .copied()
-                .unwrap_or_default();
-            buffer[index] = delayed + original[index] * feedback.clamp(0.0, 0.99);
-        }
+    let delay_samples = delay_frames.saturating_mul(channels);
+    for sample in buffer.iter_mut() {
+        *sample = state.next(*sample, delay_samples, feedback);
     }
 }
 
@@ -295,6 +345,7 @@ fn reverb_block(
     pre_delay_frames: usize,
     tail_frames: usize,
     damping: f32,
+    history: &mut super::dsp_state::SoundHistoryState,
 ) {
     let original = buffer.to_vec();
     let taps = [
@@ -302,21 +353,26 @@ fn reverb_block(
         tail_frames.max(2) / 2,
         tail_frames.max(3),
     ];
+    let max_tap = taps.iter().copied().max().unwrap_or_default();
     for frame in 0..(buffer.len() / channels) {
         for channel in 0..channels {
             let mut wet = 0.0;
             for (tap_index, tap) in taps.iter().copied().enumerate() {
-                if let Some(source_frame) = frame.checked_sub(tap) {
-                    wet += original[source_frame * channels + channel]
-                        * damping.clamp(0.0, 0.99).powi(tap_index as i32 + 1);
-                }
+                wet += history.sample(&original, channels, frame, channel, tap)
+                    * damping.clamp(0.0, 0.99).powi(tap_index as i32 + 1);
             }
             buffer[frame * channels + channel] += wet;
         }
     }
+    history.remember(&original, max_tap, channels);
 }
 
-fn convolve_block(buffer: &mut [f32], channels: usize, impulse_response: &[f32]) {
+fn convolve_block(
+    buffer: &mut [f32],
+    channels: usize,
+    impulse_response: &[f32],
+    history: &mut super::dsp_state::SoundHistoryState,
+) {
     if impulse_response.is_empty() {
         return;
     }
@@ -326,13 +382,16 @@ fn convolve_block(buffer: &mut [f32], channels: usize, impulse_response: &[f32])
         for channel in 0..channels {
             let mut sum = 0.0;
             for (tap, coefficient) in impulse_response.iter().copied().enumerate() {
-                if let Some(source_frame) = frame.checked_sub(tap) {
-                    sum += original[source_frame * channels + channel] * coefficient;
-                }
+                sum += history.sample(&original, channels, frame, channel, tap) * coefficient;
             }
             buffer[frame * channels + channel] = sum;
         }
     }
+    history.remember(
+        &original,
+        impulse_response.len().saturating_sub(1),
+        channels,
+    );
 }
 
 fn modulated_delay(
@@ -343,23 +402,24 @@ fn modulated_delay(
     depth_frames: usize,
     rate_hz: f32,
     feedback: f32,
+    history: &mut super::dsp_state::SoundHistoryState,
+    phase: &mut f32,
 ) {
     let original = buffer.to_vec();
     let frames = buffer.len() / channels;
+    let rate_per_frame = rate_hz.max(0.0) / sample_rate_hz.max(1) as f32;
+    let max_delay = base_delay_frames.saturating_add(depth_frames);
     for frame in 0..frames {
-        let phase = frame as f32 * rate_hz.max(0.0) / sample_rate_hz.max(1) as f32;
-        let modulation = ((phase * std::f32::consts::TAU).sin() * 0.5 + 0.5) * depth_frames as f32;
+        let modulation = ((*phase * std::f32::consts::TAU).sin() * 0.5 + 0.5) * depth_frames as f32;
         let delay = base_delay_frames + modulation.round() as usize;
         for channel in 0..channels {
-            let delayed = frame
-                .checked_sub(delay)
-                .and_then(|source_frame| original.get(source_frame * channels + channel))
-                .copied()
-                .unwrap_or_default();
+            let delayed = history.sample(&original, channels, frame, channel, delay);
             let index = frame * channels + channel;
             buffer[index] = original[index] + delayed * (0.5 + feedback.clamp(0.0, 0.95) * 0.5);
         }
+        *phase = (*phase + rate_per_frame).fract();
     }
+    history.remember(&original, max_delay, channels);
 }
 
 fn phaser_block(
@@ -369,15 +429,17 @@ fn phaser_block(
     rate_hz: f32,
     depth: f32,
     phase_offset: f32,
+    phase_state: &mut f32,
 ) {
     let frames = buffer.len() / channels;
+    let rate_per_frame = rate_hz.max(0.0) / sample_rate_hz.max(1) as f32;
     for frame in 0..frames {
-        let phase = (frame as f32 * rate_hz.max(0.0) / sample_rate_hz.max(1) as f32 + phase_offset)
-            * std::f32::consts::TAU;
+        let phase = (*phase_state + phase_offset).fract() * std::f32::consts::TAU;
         let gain = 1.0 - depth.clamp(0.0, 1.0) * (phase.sin() * 0.5 + 0.5);
         for channel in 0..channels {
             buffer[frame * channels + channel] *= gain;
         }
+        *phase_state = (*phase_state + rate_per_frame).fract();
     }
 }
 

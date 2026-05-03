@@ -86,7 +86,8 @@ pub fn runtime_plugin() -> PrefabToolsRuntimePlugin {
 }
 
 pub fn runtime_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
-    let mut manifest = zircon_runtime::plugin::RuntimePlugin::package_manifest(&runtime_plugin())
+    let mut manifest = runtime_plugin_descriptor()
+        .package_manifest()
         .with_component(prefab_instance_component_descriptor());
     for importer in prefab_importer_descriptors() {
         manifest = manifest.with_asset_importer(importer);

@@ -1,3 +1,4 @@
+mod asset_importer_install;
 mod dynamic_components;
 mod export_build_plan;
 mod extension_registry;

@@ -1,4 +1,4 @@
-use zircon_runtime::NativePluginLoadReport;
+use zircon_runtime::plugin::NativePluginLoadReport;
 
 pub(super) fn native_load_state(report: &NativePluginLoadReport, plugin_id: &str) -> String {
     let loaded_plugins = report

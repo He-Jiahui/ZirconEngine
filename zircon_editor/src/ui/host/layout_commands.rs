@@ -16,12 +16,12 @@ impl EditorUiHost {
                 return self.load_preset(&name);
             }
             LayoutCommand::ResetToDefault => {
-                let mut session = self.session.lock().unwrap();
-                let mut registry = self.view_registry.lock().unwrap();
-                let snapshot = self.capability_snapshot.lock().unwrap().clone();
+                let mut session = self.lock_session();
+                let mut registry = self.lock_view_registry();
+                let snapshot = self.lock_capability_snapshot().clone();
                 ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
-                self.animation_editor_sessions.lock().unwrap().clear();
-                self.ui_asset_sessions.lock().unwrap().clear();
+                self.lock_animation_editor_sessions().clear();
+                self.lock_ui_asset_sessions().clear();
                 session.layout = self.layout_manager.default_layout();
                 self.recompute_session_metadata(&mut session);
                 return Ok(true);
@@ -29,7 +29,7 @@ impl EditorUiHost {
             _ => {}
         }
 
-        let mut session = self.session.lock().unwrap();
+        let mut session = self.lock_session();
         let diff = self
             .layout_manager
             .apply(&mut session.layout, cmd)
@@ -43,7 +43,7 @@ impl EditorUiHost {
         descriptor_id: ViewDescriptorId,
         target_host: Option<ViewHost>,
     ) -> Result<ViewInstanceId, EditorError> {
-        let mut registry = self.view_registry.lock().unwrap();
+        let mut registry = self.lock_view_registry();
         let instance = registry
             .open_descriptor(descriptor_id)
             .map_err(EditorError::Registry)?;
@@ -61,20 +61,10 @@ impl EditorUiHost {
             instance_id: instance_id.clone(),
         })?;
         if changed {
-            self.session
-                .lock()
-                .unwrap()
-                .open_view_instances
-                .remove(instance_id);
-            self.animation_editor_sessions
-                .lock()
-                .unwrap()
-                .remove(instance_id);
-            self.ui_asset_sessions.lock().unwrap().remove(instance_id);
-            self.view_registry
-                .lock()
-                .unwrap()
-                .remove_instance(instance_id);
+            self.lock_session().open_view_instances.remove(instance_id);
+            self.lock_animation_editor_sessions().remove(instance_id);
+            self.lock_ui_asset_sessions().remove(instance_id);
+            self.lock_view_registry().remove_instance(instance_id);
         }
         Ok(changed)
     }
@@ -95,9 +85,7 @@ impl EditorUiHost {
             new_window: window_id.clone(),
         })?;
         if changed {
-            self.window_host_manager
-                .lock()
-                .unwrap()
+            self.lock_window_host_manager()
                 .open_native_window(window_id, None);
         }
         Ok(changed)
@@ -109,9 +97,7 @@ impl EditorUiHost {
         drop_target: ViewHost,
     ) -> Result<bool, EditorError> {
         let previous_floating_window = self
-            .session
-            .lock()
-            .unwrap()
+            .lock_session()
             .open_view_instances
             .get(instance_id)
             .and_then(|instance| match &instance.host {
@@ -131,9 +117,7 @@ impl EditorUiHost {
                     .iter()
                     .any(|window| window.window_id == window_id);
                 if !window_still_exists {
-                    self.window_host_manager
-                        .lock()
-                        .unwrap()
+                    self.lock_window_host_manager()
                         .reattach_window(&window_id, &drop_target);
                 }
             }
@@ -147,7 +131,7 @@ impl EditorUiHost {
         target: ViewHost,
     ) -> Result<ViewInstanceId, EditorError> {
         {
-            let mut session = self.session.lock().unwrap();
+            let mut session = self.lock_session();
             session
                 .open_view_instances
                 .insert(instance.instance_id.clone(), instance.clone());
@@ -161,9 +145,7 @@ impl EditorUiHost {
     }
 
     pub(super) fn non_closeable_instance(&self, instance_id: &ViewInstanceId) -> bool {
-        self.session
-            .lock()
-            .unwrap()
+        self.lock_session()
             .open_view_instances
             .get(instance_id)
             .is_some_and(|instance| {

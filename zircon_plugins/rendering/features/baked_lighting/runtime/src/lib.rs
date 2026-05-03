@@ -29,8 +29,11 @@ pub fn runtime_plugin_feature() -> RenderingBakedLightingRuntimeFeature {
     RenderingBakedLightingRuntimeFeature
 }
 
-pub fn plugin_feature_registration() -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
-    zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(&runtime_plugin_feature())
+pub fn plugin_feature_registration(
+) -> zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport {
+    zircon_runtime::plugin::RuntimePluginFeatureRegistrationReport::from_feature(
+        &runtime_plugin_feature(),
+    )
 }
 
 pub fn feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {

@@ -45,7 +45,7 @@ struct WorldRuntimeState {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct AnimationStateTransitionRuntime {
+pub struct AnimationStateTransitionRuntime {
     pub from_state: String,
     pub to_state: String,
     pub duration_seconds: Real,
@@ -109,7 +109,7 @@ impl LevelSystem {
         self.runtime_state.lock().unwrap().physics_contacts.clone()
     }
 
-    pub(crate) fn record_physics_step(
+    pub fn record_physics_step(
         &self,
         physics_step_plan: PhysicsWorldStepPlan,
         physics_contacts: Vec<PhysicsContactEvent>,
@@ -132,7 +132,7 @@ impl LevelSystem {
         self.runtime_state.lock().unwrap().animation_poses.clone()
     }
 
-    pub(crate) fn animation_playback_times(
+    pub fn animation_playback_times(
         &self,
     ) -> (
         BTreeMap<EntityId, Real>,
@@ -147,14 +147,11 @@ impl LevelSystem {
         )
     }
 
-    pub(crate) fn record_animation_poses(
-        &self,
-        animation_poses: BTreeMap<EntityId, AnimationPoseOutput>,
-    ) {
+    pub fn record_animation_poses(&self, animation_poses: BTreeMap<EntityId, AnimationPoseOutput>) {
         self.runtime_state.lock().unwrap().animation_poses = animation_poses;
     }
 
-    pub(crate) fn record_animation_playback_times(
+    pub fn record_animation_playback_times(
         &self,
         animation_graph_times: BTreeMap<EntityId, Real>,
         animation_state_machine_times: BTreeMap<EntityId, Real>,

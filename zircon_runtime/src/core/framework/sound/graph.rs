@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    SoundAutomationBinding, SoundDynamicEventCatalog, SoundEffectDescriptor, SoundSourceDescriptor,
-    SoundTrackId,
+    SoundAutomationBinding, SoundDynamicEventCatalog, SoundEffectDescriptor,
+    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundTrackId,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -133,15 +133,4 @@ impl SoundTrackMeter {
             rms_right: 0.0,
         }
     }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SoundRayTracingConvolutionStatus {
-    Disabled,
-    WaitingForGeometryProvider,
-    StaticImpulseResponse,
-    RayTraced {
-        cached_cells: usize,
-        rays_per_update: usize,
-    },
 }

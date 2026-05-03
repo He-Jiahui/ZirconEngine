@@ -1,24 +1,29 @@
 //! Sound framework contracts for runtime audio graphs, scene components, and mixing.
 
+mod acoustics;
 mod automation;
 mod components;
 mod effects;
 mod error;
+mod events;
 mod graph;
 mod ids;
 mod manager;
 mod mix;
 mod options;
+mod output;
 mod playback;
+mod preset;
 mod status;
 
+pub use acoustics::{SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus};
 pub use automation::{
-    SoundAutomationBinding, SoundAutomationTarget, SoundDynamicEventCatalog,
-    SoundDynamicEventDescriptor,
+    SoundAutomationBinding, SoundAutomationCurve, SoundAutomationInterpolation,
+    SoundAutomationKeyframe, SoundAutomationTarget,
 };
 pub use components::{
-    SoundAttenuationMode, SoundListenerDescriptor, SoundSourceDescriptor, SoundSourceInput,
-    SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,
+    SoundAttenuationMode, SoundExternalSourceBlock, SoundListenerDescriptor, SoundSourceDescriptor,
+    SoundSourceInput, SoundSourceParameterBinding, SoundSourceSend, SoundSpatialSourceSettings,
     SoundVolumeDescriptor, SoundVolumeShape, AUDIO_LISTENER_COMPONENT_TYPE,
     AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
 };
@@ -29,17 +34,22 @@ pub use effects::{
     SoundReverbEffect, SoundSidechainInput, SoundWaveShaperEffect,
 };
 pub use error::SoundError;
+pub use events::{
+    SoundDynamicEventCatalog, SoundDynamicEventDescriptor, SoundDynamicEventInvocation,
+};
 pub use graph::{
-    SoundMixerGraph, SoundMixerSnapshot, SoundRayTracingConvolutionStatus, SoundTrackControls,
-    SoundTrackDescriptor, SoundTrackMeter, SoundTrackSend,
+    SoundMixerGraph, SoundMixerSnapshot, SoundTrackControls, SoundTrackDescriptor, SoundTrackMeter,
+    SoundTrackSend,
 };
 pub use ids::{
     ExternalAudioSourceHandle, SoundAutomationBindingId, SoundClipId, SoundEffectId,
-    SoundImpulseResponseId, SoundListenerId, SoundNodeId, SoundParameterId, SoundPlaybackId,
-    SoundSourceId, SoundTrackId, SoundVolumeId,
+    SoundImpulseResponseId, SoundListenerId, SoundNodeId, SoundOutputDeviceId, SoundParameterId,
+    SoundPlaybackId, SoundSourceId, SoundTrackId, SoundVolumeId,
 };
 pub use manager::SoundManager;
 pub use mix::SoundMixBlock;
 pub use options::{SoundConvolutionBudget, SoundPluginOptions, SoundRayTracingQuality};
+pub use output::{SoundOutputDeviceDescriptor, SoundOutputDeviceState, SoundOutputDeviceStatus};
 pub use playback::{SoundClipInfo, SoundPlaybackSettings};
+pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};

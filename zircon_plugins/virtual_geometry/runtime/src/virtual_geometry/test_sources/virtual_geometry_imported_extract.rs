@@ -2,12 +2,14 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use zircon_runtime::asset::{AssetImporter, AssetUri, ImportedAsset};
+use zircon_runtime::asset::{
+    AssetImporter, AssetUri, ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
+};
 use zircon_runtime::core::framework::render::{
     RenderMeshSnapshot, RenderVirtualGeometryDebugState,
 };
 use zircon_runtime::core::framework::scene::Mobility;
-use zircon_runtime::core::math::Transform;
+use zircon_runtime::core::math::{Transform, Vec2, Vec3};
 use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
 use crate::virtual_geometry::build_virtual_geometry_automatic_extract_from_meshes_with_debug;
@@ -16,23 +18,20 @@ use crate::virtual_geometry::build_virtual_geometry_automatic_extract_from_meshe
 fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
     let root = unique_temp_graphics_root("vg_imported_extract");
     fs::create_dir_all(&root).unwrap();
-    let obj_path = root.join("triangle.obj");
+    let model_uri = AssetUri::parse("res://models/imported_triangle.model.toml").unwrap();
+    let model_path = root.join("imported_triangle.model.toml");
     fs::write(
-        &obj_path,
-        "\
-v 0.0 0.0 0.0
-v 1.0 0.0 0.0
-v 0.0 1.0 0.0
-f 1 2 3
-",
+        &model_path,
+        uncooked_triangle_model_asset(model_uri.clone())
+            .to_toml_string()
+            .unwrap(),
     )
     .unwrap();
-    let model_uri = AssetUri::parse("res://models/imported_triangle.obj").unwrap();
     let imported = AssetImporter::default()
-        .import_from_source(&obj_path, &model_uri)
+        .import_from_source(&model_path, &model_uri)
         .unwrap();
     let ImportedAsset::Model(model) = imported else {
-        panic!("expected imported OBJ to produce a model asset");
+        panic!("expected imported model TOML to produce a model asset");
     };
     let model_label = model_uri.to_string();
     let model_id = ResourceId::from_stable_label(&model_label);
@@ -71,6 +70,21 @@ f 1 2 3
     assert_eq!(output.cpu_reference_instances()[0].entity, 77);
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn uncooked_triangle_model_asset(uri: AssetUri) -> ModelAsset {
+    ModelAsset {
+        uri,
+        primitives: vec![ModelPrimitiveAsset {
+            vertices: vec![
+                MeshVertex::new(Vec3::ZERO, Vec3::Y, Vec2::ZERO),
+                MeshVertex::new(Vec3::X, Vec3::Y, Vec2::X),
+                MeshVertex::new(Vec3::Y, Vec3::Y, Vec2::Y),
+            ],
+            indices: vec![0, 1, 2],
+            virtual_geometry: None,
+        }],
+    }
 }
 
 fn unique_temp_graphics_root(label: &str) -> PathBuf {

@@ -1,6 +1,10 @@
 use std::collections::BTreeMap;
 
-use crate::{plugin::PluginModuleKind, plugin::PluginPackageManifest, plugin::RuntimePluginRegistrationReport};
+use crate::{
+    plugin::PluginFeatureBundleManifest, plugin::PluginModuleKind, plugin::PluginPackageKind,
+    plugin::PluginPackageManifest, plugin::RuntimePluginFeatureRegistrationReport,
+    plugin::RuntimePluginRegistrationReport,
+};
 
 use super::{LoadedNativePlugin, NativePluginCandidate};
 
@@ -56,7 +60,10 @@ impl NativePluginLoadReport {
     pub fn runtime_plugin_registration_reports(&self) -> Vec<RuntimePluginRegistrationReport> {
         self.package_manifests()
             .into_iter()
-            .filter(has_runtime_module)
+            .filter(|manifest| {
+                manifest.package_kind != PluginPackageKind::FeatureExtension
+                    && has_runtime_module(manifest)
+            })
             .map(|manifest| {
                 let plugin_id = manifest.id.clone();
                 let mut report = RuntimePluginRegistrationReport::from_native_package_manifest(
@@ -68,6 +75,38 @@ impl NativePluginLoadReport {
                 report.diagnostics.sort();
                 report.diagnostics.dedup();
                 report
+            })
+            .collect()
+    }
+
+    pub fn runtime_plugin_feature_registration_reports(
+        &self,
+    ) -> Vec<RuntimePluginFeatureRegistrationReport> {
+        self.package_manifests()
+            .into_iter()
+            .flat_map(|manifest| {
+                let plugin_id = manifest.id.clone();
+                runtime_feature_manifests(&manifest)
+                    .into_iter()
+                    .filter(has_runtime_feature_module)
+                    .map(move |feature| {
+                        let provider_package_id = if feature.owner_plugin_id == plugin_id {
+                            None
+                        } else {
+                            Some(plugin_id.clone())
+                        };
+                        let mut report =
+                            RuntimePluginFeatureRegistrationReport::from_native_feature_manifest(
+                                feature,
+                                provider_package_id,
+                            );
+                        report
+                            .diagnostics
+                            .extend(self.diagnostics_for_runtime_plugin(&plugin_id));
+                        report.diagnostics.sort();
+                        report.diagnostics.dedup();
+                        report
+                    })
             })
             .collect()
     }
@@ -177,6 +216,19 @@ fn has_runtime_module(manifest: &PluginPackageManifest) -> bool {
         .any(|module| module.kind == PluginModuleKind::Runtime)
 }
 
+fn has_runtime_feature_module(feature: &crate::plugin::PluginFeatureBundleManifest) -> bool {
+    feature
+        .modules
+        .iter()
+        .any(|module| module.kind == PluginModuleKind::Runtime)
+}
+
+fn runtime_feature_manifests(manifest: &PluginPackageManifest) -> Vec<PluginFeatureBundleManifest> {
+    let mut features = manifest.optional_features.clone();
+    features.extend(manifest.feature_extensions.iter().cloned());
+    features
+}
+
 fn runtime_only_package_manifest(mut manifest: PluginPackageManifest) -> PluginPackageManifest {
     manifest
         .modules
@@ -207,11 +259,18 @@ fn merge_package_manifest(
     if !manifest.description.is_empty() {
         existing.description = manifest.description;
     }
+    if manifest.package_kind != PluginPackageKind::Standard {
+        existing.package_kind = manifest.package_kind;
+    }
     push_unique(&mut existing.modules, manifest.modules);
     push_unique(&mut existing.components, manifest.components);
     push_unique(&mut existing.ui_components, manifest.ui_components);
     push_unique(&mut existing.asset_importers, manifest.asset_importers);
     push_unique(&mut existing.optional_features, manifest.optional_features);
+    push_unique(
+        &mut existing.feature_extensions,
+        manifest.feature_extensions,
+    );
     push_unique(&mut existing.default_packaging, manifest.default_packaging);
 }
 
@@ -226,13 +285,14 @@ fn push_unique<T: PartialEq>(target: &mut Vec<T>, source: Vec<T>) {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
+    use std::path::PathBuf;
 
     use crate::{
-        plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency, plugin::PluginModuleKind,
-        plugin::PluginModuleManifest, plugin::PluginPackageManifest,
+        plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
+        plugin::PluginModuleKind, plugin::PluginModuleManifest, plugin::PluginPackageManifest,
     };
 
-    use super::merge_package_manifest;
+    use super::{merge_package_manifest, NativePluginCandidate, NativePluginLoadReport};
 
     #[test]
     fn native_manifest_merge_preserves_runtime_and_editor_entry_modules() {
@@ -311,5 +371,121 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(feature_ids.contains(&"split_native.runtime_tools"));
         assert!(feature_ids.contains(&"split_native.editor_tools"));
+    }
+
+    #[test]
+    fn native_load_report_projects_optional_features_as_runtime_feature_registrations() {
+        let feature = PluginFeatureBundleManifest::new(
+            "split_native.runtime_tools",
+            "Runtime Tools",
+            "split_native",
+        )
+        .with_dependency(PluginFeatureDependency::primary(
+            "split_native",
+            "runtime.plugin.split_native",
+        ))
+        .with_capability("runtime.feature.split_native.runtime_tools")
+        .with_runtime_module(
+            PluginModuleManifest::runtime(
+                "split_native.runtime_tools.runtime",
+                "zircon_plugin_split_native_runtime_tools_runtime",
+            )
+            .with_capabilities(["runtime.feature.split_native.runtime_tools"]),
+        )
+        .with_editor_module(PluginModuleManifest::editor(
+            "split_native.runtime_tools.editor",
+            "zircon_plugin_split_native_runtime_tools_editor",
+        ));
+        let report = NativePluginLoadReport {
+            discovered: vec![NativePluginCandidate {
+                plugin_id: "split_native".to_string(),
+                package_manifest: PluginPackageManifest::new("split_native", "Split Native")
+                    .with_runtime_module(
+                        PluginModuleManifest::runtime(
+                            "split_native.runtime",
+                            "zircon_plugin_split_native_runtime",
+                        )
+                        .with_capabilities(["runtime.plugin.split_native"]),
+                    )
+                    .with_optional_feature(feature.clone()),
+                manifest_path: PathBuf::from("split_native/plugin.toml"),
+                library_path: PathBuf::from("split_native/native/libsplit_native.so"),
+            }],
+            loaded: Vec::new(),
+            diagnostics: Vec::new(),
+        };
+
+        let feature_reports = report.runtime_plugin_feature_registration_reports();
+
+        assert_eq!(feature_reports.len(), 1);
+        assert_eq!(feature_reports[0].manifest, feature);
+        assert_eq!(
+            feature_reports[0]
+                .project_selection
+                .runtime_crate
+                .as_deref(),
+            Some("zircon_plugin_split_native_runtime_tools_runtime")
+        );
+        assert_eq!(feature_reports[0].extensions.modules().len(), 1);
+        assert_eq!(
+            feature_reports[0].extensions.modules()[0].name,
+            "split_native.runtime_tools.runtime"
+        );
+    }
+
+    #[test]
+    fn native_load_report_projects_feature_extension_packages_as_runtime_feature_registrations() {
+        let feature = PluginFeatureBundleManifest::new(
+            "sound.timeline_animation_track",
+            "Sound Timeline Animation Track",
+            "sound",
+        )
+        .with_dependency(PluginFeatureDependency::primary(
+            "sound",
+            "runtime.plugin.sound",
+        ))
+        .with_capability("runtime.feature.sound.timeline_animation_track")
+        .with_runtime_module(
+            PluginModuleManifest::runtime(
+                "sound.timeline_animation_track.runtime",
+                "zircon_plugin_sound_timeline_animation_runtime",
+            )
+            .with_capabilities(["runtime.feature.sound.timeline_animation_track"]),
+        );
+        let report = NativePluginLoadReport {
+            discovered: vec![NativePluginCandidate {
+                plugin_id: "sound_timeline_animation_track".to_string(),
+                package_manifest: PluginPackageManifest::new(
+                    "sound_timeline_animation_track",
+                    "Sound Timeline Animation Track Provider",
+                )
+                .as_feature_extension()
+                .with_feature_extension(feature.clone()),
+                manifest_path: PathBuf::from("sound_timeline_animation_track/plugin.toml"),
+                library_path: PathBuf::from(
+                    "sound_timeline_animation_track/native/libsound_timeline_animation_track.so",
+                ),
+            }],
+            loaded: Vec::new(),
+            diagnostics: Vec::new(),
+        };
+
+        assert!(report.runtime_plugin_registration_reports().is_empty());
+
+        let feature_reports = report.runtime_plugin_feature_registration_reports();
+
+        assert_eq!(feature_reports.len(), 1);
+        assert_eq!(feature_reports[0].manifest, feature);
+        assert_eq!(
+            feature_reports[0].provider_package_id.as_deref(),
+            Some("sound_timeline_animation_track")
+        );
+        assert_eq!(
+            feature_reports[0]
+                .project_selection
+                .provider_package_id
+                .as_deref(),
+            Some("sound_timeline_animation_track")
+        );
     }
 }

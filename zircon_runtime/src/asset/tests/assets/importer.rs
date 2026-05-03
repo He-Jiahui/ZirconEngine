@@ -14,6 +14,7 @@ use crate::asset::{
     ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
+use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
 
 #[test]
 fn importer_subtree_uses_ingest_namespace_without_service_shell() {
@@ -65,7 +66,7 @@ fn importer_decodes_png_and_jpeg_textures() {
     .save_with_format(&jpg_path, ImageFormat::Jpeg)
     .unwrap();
 
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
     let png = importer
         .import_from_source(
             &png_path,
@@ -116,7 +117,7 @@ id = "main"
     .unwrap();
     fs::write(&plain_path, "answer = 42").unwrap();
 
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
     let typed = importer
         .import_from_source(
             &typed_path,
@@ -163,6 +164,67 @@ fn importer_registry_rejects_unknown_typed_toml_instead_of_plain_data_fallback()
             .contains("typed toml asset suffix `.ability.toml` has no registered importer"),
         "unexpected error: {error}"
     );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_default_reports_missing_first_wave_plugin_backend() {
+    let root = unique_temp_project_root("missing_first_wave_plugin_importer");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("checker.png");
+    fs::write(&path, b"not decoded by the diagnostic importer").unwrap();
+
+    let error = AssetImporter::default()
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://textures/checker.png").unwrap(),
+        )
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("texture image importer plugin is not installed"),
+        "unexpected error: {error}"
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_reports_ui_toml_schema_migration() {
+    let root = unique_temp_project_root("ui_toml_migration");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("legacy.ui.toml");
+    fs::write(&path, version_one_ui_layout_toml()).unwrap();
+
+    let outcome = importer_with_first_wave_plugin_fixtures()
+        .import_with_settings(
+            &path,
+            &AssetUri::parse("res://ui/legacy.ui.toml").unwrap(),
+            Default::default(),
+        )
+        .unwrap();
+
+    let migration = outcome
+        .migration_report
+        .expect("ui importer should report source schema migration");
+    assert_eq!(migration.source_schema_version, Some(1));
+    assert_eq!(
+        migration.target_schema_version,
+        UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
+    );
+    assert!(migration.summary.contains("SourceVersionBumped"));
+    match outcome.imported_asset {
+        ImportedAsset::UiLayout(layout) => {
+            assert_eq!(
+                layout.document.asset.version,
+                UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
+            );
+        }
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
 
     let _ = fs::remove_dir_all(root);
 }
@@ -236,7 +298,7 @@ fn importer_validates_wgsl_and_reports_errors() {
     fs::write(&valid_path, valid_wgsl()).unwrap();
     fs::write(&invalid_path, "@vertex fn vs_main( {").unwrap();
 
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
     let valid = importer
         .import_from_source(
             &valid_path,
@@ -282,7 +344,7 @@ f 1/1/1 2/2/1 3/3/1
     .unwrap();
 
     let gltf_path = write_triangle_gltf(&root);
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
 
     let obj = importer
         .import_from_source(
@@ -368,7 +430,7 @@ fn importer_preserves_gltf_skinning_channels_on_model_vertices() {
     let root = unique_temp_project_root("skinned_model_import");
     fs::create_dir_all(&root).unwrap();
     let gltf_path = write_skinned_triangle_gltf(&root);
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
 
     let gltf = importer
         .import_from_source(
@@ -447,6 +509,30 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
 fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.4, 0.2, 1.0);
 }
+"#
+}
+
+fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
+    let mut importer = AssetImporter::default();
+    importer
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    importer
+}
+
+fn version_one_ui_layout_toml() -> &'static str {
+    r#"
+[asset]
+kind = "layout"
+id = "legacy.layout"
+version = 1
+display_name = "Legacy Layout"
+
+[root]
+node_id = "legacy_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "LegacyRoot"
 "#
 }
 

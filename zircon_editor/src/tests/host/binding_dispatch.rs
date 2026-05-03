@@ -17,7 +17,9 @@ use crate::ui::binding_dispatch::{
     dispatch_selection_binding, dispatch_welcome_binding, AnimationHostEvent, AssetHostEvent,
     WelcomeHostEvent,
 };
+use serde_json::json;
 use zircon_runtime::core::framework::animation::AnimationTrackPath;
+use zircon_runtime::plugin::ComponentTypeDescriptor;
 use zircon_runtime_interface::math::UVec2;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
@@ -54,6 +56,95 @@ fn inspector_binding_applies_batch_changes_to_editor_state() {
                 zircon_runtime_interface::math::Vec3::new(4.0, 5.0, 6.0)
             );
         });
+}
+
+#[test]
+fn inspector_binding_applies_dynamic_plugin_component_fields_with_undo_history() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    state.world.with_world_mut(|scene| {
+        scene
+            .register_component_type(
+                ComponentTypeDescriptor::new(
+                    "weather.Component.CloudLayer",
+                    "weather",
+                    "Cloud Layer",
+                )
+                .with_property("coverage", "scalar", true),
+            )
+            .unwrap();
+        scene
+            .set_dynamic_component(
+                cube,
+                "weather.Component.CloudLayer",
+                json!({ "coverage": 0.25 }),
+            )
+            .unwrap();
+    });
+
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            vec![InspectorFieldChange::new(
+                "weather.Component.CloudLayer.coverage",
+                UiBindingValue::string("0.90"),
+            )],
+        ),
+    );
+
+    assert!(apply_inspector_binding(&mut state, &binding).unwrap());
+    state.world.with_world(|scene| {
+        assert_eq!(
+            scene.dynamic_component(cube, "weather.Component.CloudLayer"),
+            Some(&json!({ "coverage": 0.9 }))
+        );
+    });
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    state.world.with_world(|scene| {
+        assert_eq!(
+            scene.dynamic_component(cube, "weather.Component.CloudLayer"),
+            Some(&json!({ "coverage": 0.25 }))
+        );
+    });
+}
+
+#[test]
+fn inspector_binding_rejects_dynamic_plugin_component_field_when_schema_is_unloaded() {
+    let mut state = support::test_state();
+    let cube = support::cube_id(&state);
+    state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
+    state.world.with_world_mut(|scene| {
+        scene
+            .set_dynamic_component(
+                cube,
+                "weather.Component.CloudLayer",
+                json!({ "coverage": 0.25 }),
+            )
+            .unwrap();
+    });
+
+    let binding = EditorUiBinding::new(
+        "InspectorView",
+        "ApplyBatchButton",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::inspector_field_batch(
+            "entity://selected",
+            vec![InspectorFieldChange::new(
+                "weather.Component.CloudLayer.coverage",
+                UiBindingValue::string("0.90"),
+            )],
+        ),
+    );
+
+    let error = apply_inspector_binding(&mut state, &binding).unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("unsupported inspector field weather.Component.CloudLayer.coverage"));
 }
 
 #[test]
@@ -610,7 +701,12 @@ mod support {
 
     pub fn test_state() -> EditorState {
         let manager = DefaultLevelManager::default();
-        EditorState::with_default_selection(manager.create_default_level(), UVec2::new(1280, 720))
+        let mut state = EditorState::with_default_selection(
+            manager.create_default_level(),
+            UVec2::new(1280, 720),
+        );
+        state.mark_project_open();
+        state
     }
 
     pub fn cube_id(state: &EditorState) -> NodeId {

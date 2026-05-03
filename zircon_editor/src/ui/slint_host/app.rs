@@ -103,6 +103,7 @@ mod asset_surface_pointer_state;
 mod asset_tree_pointer;
 mod assets;
 pub(crate) mod backend_refresh;
+mod build_export_actions;
 mod callback_wiring;
 mod detail_scroll_pointer;
 mod helpers;
@@ -180,6 +181,9 @@ struct SlintEditorHost {
     runtime_client: SharedEditorRuntimeClient,
     editor_manager: Arc<EditorManager>,
     module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
+    desktop_export_reports: BTreeMap<String, build_export_actions::DesktopExportExecutionSummary>,
+    desktop_export_jobs: build_export_actions::DesktopExportJobQueue,
+    desktop_export_output_overrides: BTreeMap<String, std::path::PathBuf>,
     viewport: SlintViewportController,
     asset_server: Arc<dyn AssetManager>,
     editor_asset_server: Arc<dyn EditorAssetManagerContract>,

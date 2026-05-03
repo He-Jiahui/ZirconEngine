@@ -169,6 +169,7 @@ fn apply_presentation(
         animation_panes,
         runtime_diagnostics,
         &host_window::ModulePluginsPaneViewData::default(),
+        &host_window::BuildExportPaneViewData::default(),
         shared_root_frames,
         floating_window_projection_bundle,
         None,
@@ -189,6 +190,7 @@ fn document_pane(
         animation_panes,
         runtime_diagnostics,
         &host_window::ModulePluginsPaneViewData::default(),
+        &host_window::BuildExportPaneViewData::default(),
     )
 }
 
@@ -209,6 +211,7 @@ fn collect_floating_windows(
         animation_panes,
         runtime_diagnostics,
         &host_window::ModulePluginsPaneViewData::default(),
+        &host_window::BuildExportPaneViewData::default(),
         floating_window_projection_bundle,
     )
 }
@@ -338,6 +341,7 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
             asset_browser: host_window::AssetBrowserPaneViewData::default(),
             project_overview: host_window::ProjectOverviewPaneViewData::default(),
             module_plugins: host_window::ModulePluginsPaneViewData::default(),
+            build_export: host_window::BuildExportPaneViewData::default(),
             ui_asset: UiAssetEditorPanePresentation::default(),
             animation: host_window::AnimationEditorPaneViewData::default(),
         },
@@ -1277,6 +1281,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
         inspector_y: "2.0".into(),
         inspector_z: "3.0".into(),
         delete_enabled: true,
+        plugin_components: Vec::new(),
     };
     scene.bottom_dock.pane.native_body.console = host_window::ConsolePaneViewData {
         nodes: model_rc(vec![crate::ui::layouts::views::ViewTemplateNodeData {

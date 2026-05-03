@@ -76,6 +76,17 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
         EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode)
     );
     assert_eq!(
+        harness
+            .runtime
+            .journal()
+            .records()
+            .last()
+            .unwrap()
+            .operation_id
+            .as_deref(),
+        Some("Runtime.PlayMode.Enter")
+    );
+    assert_eq!(
         harness.runtime.editor_snapshot().session_mode,
         crate::ui::workbench::startup::EditorSessionMode::Playing
     );
@@ -94,6 +105,17 @@ fn builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations() {
     assert_eq!(
         harness.runtime.journal().records().last().unwrap().event,
         EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode)
+    );
+    assert_eq!(
+        harness
+            .runtime
+            .journal()
+            .records()
+            .last()
+            .unwrap()
+            .operation_id
+            .as_deref(),
+        Some("Runtime.PlayMode.Exit")
     );
     assert_eq!(
         harness.runtime.editor_snapshot().session_mode,

@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    plugin::PluginFeatureBundleManifest, plugin::PluginModuleKind, plugin::PluginPackageManifest,
-    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError, plugin::RuntimePlugin, plugin::RuntimePluginFeature,
-    RuntimeTargetMode,
+    plugin::PluginFeatureBundleManifest, plugin::PluginModuleKind, plugin::PluginPackageKind,
+    plugin::PluginPackageManifest, plugin::ProjectPluginFeatureSelection,
+    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError, plugin::RuntimePlugin,
+    plugin::RuntimePluginFeature, RuntimeTargetMode,
 };
 
 use super::runtime_plugin_feature_registration_report::project_selection_from_feature_manifest;
@@ -127,14 +128,23 @@ impl RuntimePluginCatalog {
                 }
             }
         }
-        let feature_definitions = self.feature_definition_map().definitions;
+        let feature_definitions = self.feature_definition_map();
         for selection in &mut completed.selections {
             let owner_id = selection.id.clone();
-            for feature in feature_definitions
-                .values()
-                .filter(|feature| feature.owner_plugin_id == owner_id)
-            {
-                complete_owner_feature_selection(selection, feature);
+            for feature_key in &feature_definitions.definition_order {
+                let Some(feature_definition) = feature_definitions.definitions.get(feature_key)
+                else {
+                    continue;
+                };
+                let feature = &feature_definition.manifest;
+                if feature.owner_plugin_id != owner_id {
+                    continue;
+                }
+                complete_owner_feature_selection(
+                    selection,
+                    feature,
+                    feature_definition.external_provider_for_owner(),
+                );
             }
         }
         completed
@@ -170,17 +180,18 @@ impl RuntimePluginCatalog {
             self.base_capabilities_for_target(&enabled_plugins, target);
         let active_features = active_feature_selections(&completed);
         let mut report = RuntimePluginFeatureDependencyReport {
-            diagnostics: feature_definitions.diagnostics,
+            diagnostics: feature_definitions.diagnostics.clone(),
             ..RuntimePluginFeatureDependencyReport::default()
         };
 
         let mut pending = Vec::new();
         for active in active_features {
-            if feature_definitions
-                .definitions
-                .contains_key(active.feature.id.as_str())
+            if let Some(feature_definition) = feature_definitions.definition_for_selection(&active)
             {
-                pending.push(active);
+                pending.push(PendingFeatureSelection {
+                    active,
+                    definition_key: feature_definition.key.clone(),
+                });
             } else {
                 report.blocked_features.push(RuntimePluginFeatureBlock {
                     feature_id: active.feature.id.clone(),
@@ -200,12 +211,11 @@ impl RuntimePluginCatalog {
                 let active = &pending[index];
                 let feature = feature_definitions
                     .definitions
-                    .get(active.feature.id.as_str())
+                    .get(&active.definition_key)
                     .expect("unknown features removed before dependency resolution");
                 let status = feature_status(
                     feature,
-                    active.feature,
-                    &active.owner_plugin_id,
+                    active.active.feature,
                     target,
                     &plugin_selections,
                     &enabled_plugins,
@@ -213,43 +223,52 @@ impl RuntimePluginCatalog {
                 );
                 if status.is_available() {
                     let active = pending.remove(index);
-                    report.available_features.push(active.feature.id.clone());
+                    report
+                        .available_features
+                        .push(active.active.feature.id.clone());
                     extend_unique(
                         &mut available_capabilities,
-                        feature_capabilities_for_target(feature, target),
+                        feature_capabilities_for_target(&feature.manifest, target),
                     );
                     made_progress = true;
                 } else if status.is_immediately_blocked() {
                     let active = pending.remove(index);
                     report
                         .blocked_features
-                        .push(status.into_block(active.feature));
+                        .push(status.into_block(active.active.feature));
                 } else {
                     index += 1;
                 }
             }
         }
 
+        let unresolved_feature_ids = pending
+            .iter()
+            .map(|active| active.definition_key.clone())
+            .collect::<HashSet<_>>();
         for active in pending {
             let feature = feature_definitions
                 .definitions
-                .get(active.feature.id.as_str())
+                .get(&active.definition_key)
                 .expect("unknown features removed before dependency resolution");
             let mut status = feature_status(
                 feature,
-                active.feature,
-                &active.owner_plugin_id,
+                active.active.feature,
                 target,
                 &plugin_selections,
                 &enabled_plugins,
                 &available_capabilities,
             );
-            if status.is_waiting_for_feature_capability(feature, &feature_definitions.definitions) {
+            if status.is_waiting_for_feature_capability(
+                &feature_definitions.definitions,
+                &unresolved_feature_ids,
+                target,
+            ) {
                 status.cycle = true;
             }
             report
                 .blocked_features
-                .push(status.into_block(active.feature));
+                .push(status.into_block(active.active.feature));
         }
 
         report
@@ -310,11 +329,14 @@ impl RuntimePluginCatalog {
             diagnostics.push(diagnostic);
         }
         for feature_id in &feature_report.available_features {
-            if let Some(registration) = self
-                .feature_registrations
-                .iter()
-                .find(|registration| registration.manifest.id == *feature_id)
-            {
+            if let Some(registration) = self.feature_registrations.iter().find(|registration| {
+                registration.manifest.id == *feature_id
+                    && feature_registration_matches_project_selection(
+                        registration,
+                        &completed,
+                        feature_id,
+                    )
+            }) {
                 merge_feature_extensions(
                     registration,
                     &mut registry,
@@ -341,33 +363,42 @@ impl RuntimePluginCatalog {
     fn feature_definition_map(&self) -> FeatureDefinitionMap {
         let mut definitions = HashMap::new();
         let mut diagnostics = Vec::new();
+        let mut definition_order = Vec::new();
         let mut declared_feature_ids = HashSet::new();
         let mut registered_feature_ids = HashSet::new();
         for registration in &self.registrations {
-            for feature in &registration.package_manifest.optional_features {
-                declared_feature_ids.insert(feature.id.clone());
+            for feature_definition in package_feature_definitions(&registration.package_manifest) {
+                let key = feature_definition.key.clone();
+                declared_feature_ids.insert(key.clone());
                 if definitions
-                    .insert(feature.id.clone(), feature.clone())
+                    .insert(key.clone(), feature_definition)
                     .is_some()
                 {
                     diagnostics.push(format!(
-                        "duplicate optional feature id {} declared in plugin catalog",
-                        feature.id
+                        "duplicate optional feature provider {} declared in plugin catalog",
+                        key
                     ));
+                } else {
+                    definition_order.push(key);
                 }
             }
         }
         for registration in &self.feature_registrations {
-            if !registered_feature_ids.insert(registration.manifest.id.clone()) {
+            let feature_definition = FeatureDefinition::from_runtime_registration(registration);
+            let key = feature_definition.key.clone();
+            if !registered_feature_ids.insert(key.clone()) {
                 diagnostics.push(format!(
-                    "duplicate optional feature id {} registered at runtime",
-                    registration.manifest.id
+                    "duplicate optional feature id {} registered at runtime (provider {})",
+                    registration.manifest.id, feature_definition.provider_package_id
                 ));
                 continue;
             }
-            if declared_feature_ids.contains(&registration.manifest.id) {
-                if let Some(declared) = definitions.get(&registration.manifest.id) {
-                    if !feature_definition_registration_matches(declared, &registration.manifest) {
+            if declared_feature_ids.contains(&key) {
+                if let Some(declared) = definitions.get(&key) {
+                    if !feature_definition_registration_matches(
+                        &declared.manifest,
+                        &registration.manifest,
+                    ) {
                         diagnostics.push(format!(
                             "optional feature id {} has conflicting package manifest and runtime registration",
                             registration.manifest.id
@@ -377,21 +408,21 @@ impl RuntimePluginCatalog {
                 continue;
             }
             if definitions
-                .insert(
-                    registration.manifest.id.clone(),
-                    registration.manifest.clone(),
-                )
+                .insert(key.clone(), feature_definition)
                 .is_some()
             {
                 diagnostics.push(format!(
-                    "duplicate optional feature id {} declared or registered in plugin catalog",
-                    registration.manifest.id
+                    "duplicate optional feature provider {} declared or registered in plugin catalog",
+                    key
                 ));
+            } else {
+                definition_order.push(key);
             }
         }
         FeatureDefinitionMap {
             definitions,
             diagnostics,
+            definition_order,
         }
     }
 
@@ -500,14 +531,92 @@ impl RuntimeExtensionCatalogReport {
 
 #[derive(Clone, Debug)]
 struct FeatureDefinitionMap {
-    definitions: HashMap<String, PluginFeatureBundleManifest>,
+    definitions: HashMap<String, FeatureDefinition>,
     diagnostics: Vec<String>,
+    definition_order: Vec<String>,
+}
+
+impl FeatureDefinitionMap {
+    fn definition_for_selection(
+        &self,
+        active: &ActiveFeatureSelection<'_>,
+    ) -> Option<&FeatureDefinition> {
+        let requested_provider = active
+            .feature
+            .provider_package_id
+            .as_deref()
+            .unwrap_or(active.owner_plugin_id.as_str());
+        let preferred_key = feature_definition_key(&active.feature.id, requested_provider);
+        if let Some(definition) = self.definitions.get(&preferred_key) {
+            return Some(definition);
+        }
+        if active.feature.provider_package_id.is_some() {
+            return None;
+        }
+        self.definitions
+            .values()
+            .filter(|definition| definition.manifest.id == active.feature.id)
+            .single()
+    }
+}
+
+trait SingleDefinition<'a> {
+    fn single(self) -> Option<&'a FeatureDefinition>;
+}
+
+impl<'a, I> SingleDefinition<'a> for I
+where
+    I: Iterator<Item = &'a FeatureDefinition>,
+{
+    fn single(mut self) -> Option<&'a FeatureDefinition> {
+        let value = self.next()?;
+        if self.next().is_some() {
+            return None;
+        }
+        Some(value)
+    }
+}
+
+#[derive(Clone, Debug)]
+struct FeatureDefinition {
+    key: String,
+    manifest: PluginFeatureBundleManifest,
+    provider_package_id: String,
+}
+
+impl FeatureDefinition {
+    fn new(manifest: PluginFeatureBundleManifest, provider_package_id: String) -> Self {
+        let key = feature_definition_key(&manifest.id, &provider_package_id);
+        Self {
+            key,
+            manifest,
+            provider_package_id,
+        }
+    }
+
+    fn from_runtime_registration(registration: &RuntimePluginFeatureRegistrationReport) -> Self {
+        Self::new(
+            registration.manifest.clone(),
+            registration.provider_package_id_or_owner().to_string(),
+        )
+    }
+
+    fn external_provider_for_owner(&self) -> Option<&str> {
+        (self.provider_package_id != self.manifest.owner_plugin_id)
+            .then_some(self.provider_package_id.as_str())
+    }
 }
 
 #[derive(Clone, Debug)]
 struct ActiveFeatureSelection<'a> {
     owner_plugin_id: String,
     feature: &'a ProjectPluginFeatureSelection,
+}
+
+#[derive(Clone, Debug)]
+struct PendingFeatureSelection<'a> {
+    active: ActiveFeatureSelection<'a>,
+    definition_key: String,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -536,20 +645,18 @@ impl FeatureStatus {
 
     fn is_waiting_for_feature_capability(
         &self,
-        feature: &PluginFeatureBundleManifest,
-        definitions: &HashMap<String, PluginFeatureBundleManifest>,
+        definitions: &HashMap<String, FeatureDefinition>,
+        unresolved_feature_ids: &HashSet<String>,
+        target: RuntimeTargetMode,
     ) -> bool {
         !self.missing_capabilities.is_empty()
             && self.missing_plugins.is_empty()
             && !self.target_unsupported
             && !self.invalid_owner_dependency
             && self.missing_capabilities.iter().all(|capability| {
-                definitions.values().any(|candidate| {
-                    candidate.id != feature.id
-                        && candidate
-                            .capabilities
-                            .iter()
-                            .any(|provided| provided == capability)
+                definitions.iter().any(|(key, candidate)| {
+                    unresolved_feature_ids.contains(key)
+                        && feature_declares_capability_for_target(candidate, capability, target)
                 })
             })
     }
@@ -578,13 +685,73 @@ fn feature_definition_registration_matches(
         && declared.dependencies == registered.dependencies
         && declared.modules == registered.modules
         && declared.capabilities == registered.capabilities
+        && declared.default_packaging == registered.default_packaging
+        && declared.enabled_by_default == registered.enabled_by_default
+}
+
+fn package_feature_definitions(package_manifest: &PluginPackageManifest) -> Vec<FeatureDefinition> {
+    let mut definitions = Vec::new();
+    for feature in &package_manifest.optional_features {
+        let provider_package_id = if package_manifest.package_kind
+            == PluginPackageKind::FeatureExtension
+            || feature.owner_plugin_id != package_manifest.id
+        {
+            package_manifest.id.clone()
+        } else {
+            feature.owner_plugin_id.clone()
+        };
+        definitions.push(FeatureDefinition::new(feature.clone(), provider_package_id));
+    }
+    for feature in &package_manifest.feature_extensions {
+        definitions.push(FeatureDefinition::new(
+            feature.clone(),
+            package_manifest.id.clone(),
+        ));
+    }
+    definitions
+}
+
+fn feature_definition_key(feature_id: &str, provider_package_id: &str) -> String {
+    format!("{feature_id}@{provider_package_id}")
+}
+
+fn feature_registration_matches_project_selection(
+    registration: &RuntimePluginFeatureRegistrationReport,
+    manifest: &ProjectPluginManifest,
+    feature_id: &str,
+) -> bool {
+    let Some((owner_selection, feature_selection)) = feature_selection(manifest, feature_id) else {
+        return false;
+    };
+    registration.provider_package_id_or_owner()
+        == feature_selection.provider_package_id_or_owner(&owner_selection.id)
+}
+
+fn feature_selection<'a>(
+    manifest: &'a ProjectPluginManifest,
+    feature_id: &str,
+) -> Option<(
+    &'a ProjectPluginSelection,
+    &'a ProjectPluginFeatureSelection,
+)> {
+    manifest.selections.iter().find_map(|selection| {
+        selection
+            .features
+            .iter()
+            .find(|feature| feature.id == feature_id)
+            .map(|feature| (selection, feature))
+    })
 }
 
 fn complete_owner_feature_selection(
     owner_selection: &mut ProjectPluginSelection,
     feature: &PluginFeatureBundleManifest,
+    provider_package_id: Option<&str>,
 ) {
-    let catalog_selection = project_selection_from_feature_manifest(feature);
+    let mut catalog_selection = project_selection_from_feature_manifest(feature);
+    if let Some(provider_package_id) = provider_package_id {
+        catalog_selection.provider_package_id = Some(provider_package_id.to_string());
+    }
     if let Some(selection) = owner_selection
         .features
         .iter_mut()
@@ -598,6 +765,9 @@ fn complete_owner_feature_selection(
         }
         if selection.target_modes.is_empty() {
             selection.target_modes = catalog_selection.target_modes;
+        }
+        if selection.provider_package_id.is_none() {
+            selection.provider_package_id = catalog_selection.provider_package_id;
         }
         return;
     }
@@ -620,27 +790,36 @@ fn active_feature_selections(manifest: &ProjectPluginManifest) -> Vec<ActiveFeat
 }
 
 fn feature_status(
-    feature: &PluginFeatureBundleManifest,
+    feature_definition: &FeatureDefinition,
     selection: &ProjectPluginFeatureSelection,
-    selected_owner_plugin_id: &str,
     target: RuntimeTargetMode,
     plugin_selections: &HashMap<&str, &ProjectPluginSelection>,
     enabled_plugins: &HashSet<String>,
     available_capabilities: &HashSet<String>,
 ) -> FeatureStatus {
+    let feature = &feature_definition.manifest;
     let mut status = FeatureStatus {
         feature_id: feature.id.clone(),
         owner_plugin_id: feature.owner_plugin_id.clone(),
         ..FeatureStatus::default()
     };
-    if selected_owner_plugin_id != feature.owner_plugin_id {
-        push_unique(&mut status.missing_plugins, feature.owner_plugin_id.clone());
-    }
     if !owner_dependency_is_valid(feature) {
         status.invalid_owner_dependency = true;
     }
     if !plugin_is_enabled_for_target(&feature.owner_plugin_id, plugin_selections, enabled_plugins) {
         push_unique(&mut status.missing_plugins, feature.owner_plugin_id.clone());
+    }
+    if feature_definition.provider_package_id != feature.owner_plugin_id
+        && !plugin_is_enabled_for_target(
+            &feature_definition.provider_package_id,
+            plugin_selections,
+            enabled_plugins,
+        )
+    {
+        push_unique(
+            &mut status.missing_plugins,
+            feature_definition.provider_package_id.clone(),
+        );
     }
     if !feature_manifest_supports_target(feature, target) || !selection.supports_target(target) {
         status.target_unsupported = true;
@@ -707,6 +886,30 @@ fn feature_capabilities_for_target(
             })
             .flat_map(|module| module.capabilities.iter().cloned()),
     )
+}
+
+fn feature_declares_capability_for_target(
+    feature_definition: &FeatureDefinition,
+    capability: &str,
+    target: RuntimeTargetMode,
+) -> bool {
+    let feature = &feature_definition.manifest;
+    feature
+        .capabilities
+        .iter()
+        .any(|provided| provided == capability)
+        || feature
+            .modules
+            .iter()
+            .filter(move |module| {
+                module.target_modes.is_empty() || module.target_modes.contains(&target)
+            })
+            .any(|module| {
+                module
+                    .capabilities
+                    .iter()
+                    .any(|provided| provided == capability)
+            })
 }
 
 fn merge_runtime_extensions(
@@ -804,6 +1007,13 @@ fn merge_extension_registry_contributions(
             fatal_diagnostics,
         );
     }
+    for provider in extensions.hybrid_gi_runtime_providers() {
+        push_runtime_extension_result(
+            registry.register_hybrid_gi_runtime_provider(provider.clone()),
+            diagnostics,
+            fatal_diagnostics,
+        );
+    }
     for component in extensions.components() {
         push_runtime_extension_result(
             registry.register_component(component.clone()),
@@ -835,6 +1045,13 @@ fn merge_extension_registry_contributions(
     for importer in extensions.asset_importers().importers() {
         push_runtime_extension_result(
             registry.register_asset_importer_arc(importer),
+            diagnostics,
+            fatal_diagnostics,
+        );
+    }
+    for hook in extensions.scene_hooks() {
+        push_runtime_extension_result(
+            registry.register_scene_hook(hook.clone()),
             diagnostics,
             fatal_diagnostics,
         );

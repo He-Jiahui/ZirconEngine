@@ -1,4 +1,4 @@
-use zircon_runtime::{PluginModuleKind, PluginPackageManifest};
+use zircon_runtime::{plugin::PluginModuleKind, plugin::PluginPackageManifest};
 
 pub(super) fn module_crate(
     package: &PluginPackageManifest,

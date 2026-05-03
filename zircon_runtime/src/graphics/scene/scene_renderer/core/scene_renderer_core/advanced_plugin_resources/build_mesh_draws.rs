@@ -13,6 +13,7 @@ impl SceneRendererAdvancedPluginResources {
         frame: &ViewportRenderFrame,
         virtual_geometry_enabled: bool,
     ) -> BuiltMeshDraws {
+        let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
         build_mesh_draws(
             device,
             encoder,

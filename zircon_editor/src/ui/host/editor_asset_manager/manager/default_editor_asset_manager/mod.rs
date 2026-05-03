@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::ChannelSender;
@@ -33,6 +33,14 @@ impl Default for DefaultEditorAssetManager {
 }
 
 impl DefaultEditorAssetManager {
+    pub(super) fn lock_change_subscribers(
+        &self,
+    ) -> MutexGuard<'_, Vec<ChannelSender<EditorAssetChangeRecord>>> {
+        self.change_subscribers
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
     pub fn new() -> Self {
         Self {
             state: Arc::new(RwLock::new(EditorAssetState::default())),

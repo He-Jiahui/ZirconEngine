@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::NativePluginLoader;
+use zircon_runtime::plugin::NativePluginLoader;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::editor_capabilities_for_package;

@@ -13,6 +13,7 @@ pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
         "editor.assets" => "AssetsView".to_string(),
         "editor.console" => "ConsoleView".to_string(),
         "editor.runtime_diagnostics" => "RuntimeDiagnosticsView".to_string(),
+        "editor.build_export_desktop" => "BuildExportView".to_string(),
         "editor.prefab" => "PrefabEditorWindow".to_string(),
         "editor.asset_browser" => "AssetBrowserWindow".to_string(),
         _ => activity.instance_id.clone(),
@@ -52,6 +53,7 @@ pub(super) fn content_kind_name(kind: ViewContentKind) -> &'static str {
         ViewContentKind::AnimationGraphEditor => "animation_graph_editor",
         ViewContentKind::RuntimeDiagnostics => "runtime_diagnostics",
         ViewContentKind::ModulePlugins => "module_plugins",
+        ViewContentKind::BuildExport => "build_export",
         ViewContentKind::Placeholder => "placeholder",
     }
 }

@@ -1,11 +1,13 @@
 use crate::{
-    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy,
-    plugin::ExportTargetPlatform, RuntimeTargetMode, plugin::UiComponentDescriptor,
+    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor,
+    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::UiComponentDescriptor,
+    RuntimeTargetMode,
 };
 
 use super::{
     PluginDependencyManifest, PluginEventCatalogManifest, PluginFeatureBundleManifest,
-    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageManifest,
+    PluginModuleKind, PluginModuleManifest, PluginOptionManifest, PluginPackageKind,
+    PluginPackageManifest,
 };
 
 impl PluginModuleManifest {
@@ -73,6 +75,7 @@ impl PluginPackageManifest {
             id: id.into(),
             version: "0.1.0".to_string(),
             sdk_api_version: "0.1.0".to_string(),
+            package_kind: PluginPackageKind::Standard,
             display_name: display_name.into(),
             category: "uncategorized".to_string(),
             description: String::new(),
@@ -89,6 +92,7 @@ impl PluginPackageManifest {
             ui_components: Vec::new(),
             asset_importers: Vec::new(),
             optional_features: Vec::new(),
+            feature_extensions: Vec::new(),
             default_packaging: vec![
                 ExportPackagingStrategy::SourceTemplate,
                 ExportPackagingStrategy::LibraryEmbed,
@@ -103,6 +107,16 @@ impl PluginPackageManifest {
 
     pub fn with_sdk_api_version(mut self, sdk_api_version: impl Into<String>) -> Self {
         self.sdk_api_version = sdk_api_version.into();
+        self
+    }
+
+    pub fn with_package_kind(mut self, package_kind: PluginPackageKind) -> Self {
+        self.package_kind = package_kind;
+        self
+    }
+
+    pub fn as_feature_extension(mut self) -> Self {
+        self.package_kind = PluginPackageKind::FeatureExtension;
         self
     }
 
@@ -226,6 +240,11 @@ impl PluginPackageManifest {
 
     pub fn with_optional_feature(mut self, feature: PluginFeatureBundleManifest) -> Self {
         self.optional_features.push(feature);
+        self
+    }
+
+    pub fn with_feature_extension(mut self, feature: PluginFeatureBundleManifest) -> Self {
+        self.feature_extensions.push(feature);
         self
     }
 

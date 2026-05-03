@@ -1,11 +1,13 @@
 use std::path::Path;
-use std::process::Command;
+use std::sync::atomic::AtomicBool;
 
 use super::super::editor_manager_plugins_export::EditorExportCargoInvocation;
+use super::super::export_cargo_process::invoke_cargo_process;
 
-pub(super) fn invoke_native_cargo_build(
+pub(super) fn invoke_native_cargo_build_with_cancellation(
     manifest_path: &Path,
     target_dir: &Path,
+    cancel_requested: Option<&AtomicBool>,
 ) -> Result<EditorExportCargoInvocation, String> {
     let cargo = std::env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
     let args = vec![
@@ -16,20 +18,5 @@ pub(super) fn invoke_native_cargo_build(
         "--target-dir".to_string(),
         target_dir.display().to_string(),
     ];
-    let output = Command::new(&cargo)
-        .args(&args)
-        .output()
-        .map_err(|error| format!("failed to invoke cargo for native dynamic plugin: {error}"))?;
-
-    let mut command = Vec::with_capacity(args.len() + 1);
-    command.push(cargo);
-    command.extend(args);
-
-    Ok(EditorExportCargoInvocation {
-        command,
-        status_code: output.status.code(),
-        success: output.status.success(),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-    })
+    invoke_cargo_process(cargo, args, None, cancel_requested, "native dynamic plugin")
 }

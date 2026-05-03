@@ -26,6 +26,11 @@ const MODULE_PLUGIN_BUTTON_HEIGHT: f32 = 24.0;
 const MODULE_PLUGIN_BUTTON_GAP: f32 = 6.0;
 const MODULE_PLUGIN_MIN_BUTTON_WIDTH: f32 = 56.0;
 const MODULE_PLUGIN_MAX_BUTTON_WIDTH: f32 = 92.0;
+const BUILD_EXPORT_ROW_HEIGHT: f32 = 118.0;
+const BUILD_EXPORT_ROW_GAP: f32 = 8.0;
+const BUILD_EXPORT_ROW_PADDING: f32 = 8.0;
+const BUILD_EXPORT_BUTTON_HEIGHT: f32 = 24.0;
+const BUILD_EXPORT_BUTTON_WIDTH: f32 = 84.0;
 const INSPECTOR_FIELD_ROW_HEIGHT: f32 = 28.0;
 const INSPECTOR_FIELD_ROW_GAP: f32 = 6.0;
 const INSPECTOR_FIELD_PADDING: f32 = 8.0;
@@ -181,6 +186,39 @@ pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane(
         nodes: model_rc(nodes),
         plugins: map_model_rc(&native.plugins, to_host_contract_module_plugin_status),
         diagnostics: native.diagnostics.clone(),
+    }
+}
+
+pub(crate) fn to_host_contract_build_export_pane_from_host_pane(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+) -> host_contract::BuildExportPaneData {
+    let native = &data.native_body.build_export;
+    let mut nodes = build_export_template_projection(data, content_size).unwrap_or_default();
+    nodes.extend(build_export_target_row_nodes(native, &nodes, content_size));
+
+    host_contract::BuildExportPaneData {
+        nodes: model_rc(nodes),
+        targets: map_model_rc(&native.targets, to_host_contract_build_export_target),
+        diagnostics: native.diagnostics.clone(),
+    }
+}
+
+fn to_host_contract_build_export_target(
+    data: crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData,
+) -> host_contract::BuildExportTargetData {
+    host_contract::BuildExportTargetData {
+        profile_name: data.profile_name,
+        platform: data.platform,
+        target_mode: data.target_mode,
+        strategies: data.strategies,
+        status: data.status,
+        enabled_plugins: data.enabled_plugins,
+        linked_runtime_crates: data.linked_runtime_crates,
+        native_dynamic_packages: data.native_dynamic_packages,
+        generated_files: data.generated_files,
+        diagnostics: data.diagnostics,
+        fatal: data.fatal,
     }
 }
 
@@ -350,6 +388,33 @@ fn inspector_template_projection(
         y: inspector_y.clone(),
         z: inspector_z.clone(),
         delete_enabled,
+        plugin_components: payload
+            .plugin_components
+            .iter()
+            .map(|component| {
+                crate::ui::layouts::windows::workbench_host_window::InspectorPluginComponentViewData {
+                    component_id: component.component_id.clone(),
+                    display_name: component.display_name.clone(),
+                    plugin_id: component.plugin_id.clone(),
+                    drawer_available: component.drawer_available,
+                    diagnostic: component.diagnostic.clone(),
+                    properties: component
+                        .properties
+                        .iter()
+                        .map(|property| {
+                            crate::ui::layouts::windows::workbench_host_window::InspectorPluginComponentPropertyViewData {
+                                field_id: property.field_id.clone(),
+                                name: property.name.clone(),
+                                label: property.label.clone(),
+                                value: property.value.clone(),
+                                value_kind: property.value_kind.clone(),
+                                editable: property.editable,
+                            }
+                        })
+                        .collect(),
+                }
+            })
+            .collect(),
     };
     let mut nodes = host_model
         .nodes
@@ -379,6 +444,8 @@ struct InspectorVisualFields {
     y: String,
     z: String,
     delete_enabled: bool,
+    plugin_components:
+        Vec<crate::ui::layouts::windows::workbench_host_window::InspectorPluginComponentViewData>,
 }
 
 impl InspectorVisualFields {
@@ -393,6 +460,7 @@ impl InspectorVisualFields {
             y: data.inspector_y.to_string(),
             z: data.inspector_z.to_string(),
             delete_enabled: data.delete_enabled,
+            plugin_components: data.plugin_components.clone(),
         }
     }
 
@@ -510,6 +578,13 @@ fn inspector_field_nodes(
     ));
 
     let mut next_y = vector_y + INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP;
+    let plugin_nodes =
+        inspector_plugin_component_nodes(fields, start_x, next_y, field_width, field_disabled);
+    if !plugin_nodes.is_empty() {
+        next_y += inspector_plugin_component_height(fields);
+        nodes.extend(plugin_nodes);
+    }
+
     if let Some(message) = inspector_plugin_component_fallback_message(&fields.info) {
         let mut diagnostic = inspector_node(
             "inspector_plugin_component_fallback",
@@ -583,7 +658,157 @@ fn inspector_field_panel_height(fields: &InspectorVisualFields) -> f32 {
         + base_rows * INSPECTOR_FIELD_ROW_HEIGHT
         + (base_rows + diagnostic_rows) * INSPECTOR_FIELD_ROW_GAP
         + diagnostic_rows * INSPECTOR_FIELD_ROW_HEIGHT
+        + inspector_plugin_component_height(fields)
         + INSPECTOR_ACTION_BUTTON_HEIGHT
+}
+
+fn inspector_plugin_component_nodes(
+    fields: &InspectorVisualFields,
+    x: f32,
+    mut y: f32,
+    width: f32,
+    field_disabled: bool,
+) -> Vec<host_contract::TemplatePaneNodeData> {
+    let mut nodes = Vec::new();
+    for component in &fields.plugin_components {
+        let component_key = inspector_component_key(&component.component_id);
+        let mut header = inspector_node(
+            format!("inspector_plugin_component_header_{component_key}"),
+            format!("PluginComponentHeader:{}", component.component_id),
+            "Label",
+            component.display_name.clone(),
+            host_contract::TemplateNodeFrameData {
+                x,
+                y,
+                width,
+                height: 20.0,
+            },
+        );
+        header.text_tone = if component.drawer_available {
+            "strong".into()
+        } else {
+            "warning".into()
+        };
+        nodes.push(header);
+        y += 20.0 + INSPECTOR_FIELD_ROW_GAP;
+
+        if let Some(diagnostic) = &component.diagnostic {
+            let mut diagnostic_node = inspector_node(
+                format!("inspector_plugin_component_diagnostic_{component_key}"),
+                format!("PluginComponentDiagnostic:{}", component.component_id),
+                "Diagnostic",
+                "Plugin component protected",
+                host_contract::TemplateNodeFrameData {
+                    x,
+                    y,
+                    width,
+                    height: INSPECTOR_FIELD_ROW_HEIGHT,
+                },
+            );
+            diagnostic_node.value_text = diagnostic.clone().into();
+            diagnostic_node.validation_level = "warning".into();
+            diagnostic_node.validation_message = diagnostic.clone().into();
+            diagnostic_node.text_tone = "warning".into();
+            diagnostic_node.disabled = true;
+            nodes.push(diagnostic_node);
+            y += INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP;
+        }
+
+        for property in &component.properties {
+            let control_id = inspector_dynamic_component_control_id(&property.field_id);
+            let disabled = field_disabled || !component.drawer_available || !property.editable;
+            let mut node = if inspector_numeric_kind(&property.value_kind) {
+                inspector_number_field_node(
+                    &inspector_component_key(&property.field_id),
+                    &control_id,
+                    property.label.as_str(),
+                    &property.value,
+                    &format!("InspectorView/{control_id}"),
+                    x,
+                    y,
+                    width,
+                    disabled,
+                )
+            } else {
+                inspector_text_field_node(
+                    &inspector_component_key(&property.field_id),
+                    &control_id,
+                    property.label.as_str(),
+                    &property.value,
+                    &format!("InspectorView/{control_id}"),
+                    x,
+                    y,
+                    width,
+                    disabled,
+                )
+            };
+            if !component.drawer_available {
+                node.validation_level = "warning".into();
+                node.validation_message = component
+                    .diagnostic
+                    .clone()
+                    .unwrap_or_else(|| "Plugin component drawer unavailable".to_string())
+                    .into();
+            }
+            nodes.push(node);
+            y += INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP;
+        }
+    }
+    nodes
+}
+
+fn inspector_plugin_component_height(fields: &InspectorVisualFields) -> f32 {
+    fields
+        .plugin_components
+        .iter()
+        .map(|component| {
+            let diagnostic_rows = if component.diagnostic.is_some() {
+                1.0
+            } else {
+                0.0
+            };
+            20.0 + INSPECTOR_FIELD_ROW_GAP
+                + diagnostic_rows * (INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP)
+                + component.properties.len() as f32
+                    * (INSPECTOR_FIELD_ROW_HEIGHT + INSPECTOR_FIELD_ROW_GAP)
+        })
+        .sum()
+}
+
+fn inspector_dynamic_component_control_id(field_id: &str) -> String {
+    format!("DynamicComponentField:{field_id}")
+}
+
+fn inspector_component_key(value: &str) -> String {
+    value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn inspector_numeric_kind(value_kind: &str) -> bool {
+    matches!(
+        value_kind.to_ascii_lowercase().as_str(),
+        "number"
+            | "float"
+            | "scalar"
+            | "real"
+            | "double"
+            | "integer"
+            | "int"
+            | "signed"
+            | "unsigned"
+            | "u32"
+            | "u64"
+            | "i32"
+            | "i64"
+    )
 }
 
 fn inspector_body_frame(
@@ -818,6 +1043,195 @@ fn module_plugins_template_projection(
     }
 
     project_pane_template_nodes(&presentation.body, content_size)
+}
+
+fn build_export_template_projection(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+) -> Option<Vec<host_contract::TemplatePaneNodeData>> {
+    let presentation = data.pane_presentation.as_ref()?;
+    if !matches!(
+        &presentation.body.payload,
+        crate::ui::layouts::windows::workbench_host_window::PanePayload::BuildExportV1(_)
+    ) {
+        return None;
+    }
+
+    project_pane_template_nodes(&presentation.body, content_size)
+}
+
+fn build_export_target_row_nodes(
+    data: &crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData,
+    template_nodes: &[host_contract::TemplatePaneNodeData],
+    content_size: PaneContentSize,
+) -> Vec<host_contract::TemplatePaneNodeData> {
+    let list_frame = template_nodes
+        .iter()
+        .find(|node| {
+            matches!(
+                node.control_id.as_str(),
+                "BuildExportTargetsSlotAnchor" | "BuildExportTargetsPanel"
+            )
+        })
+        .map(|node| node.frame.clone())
+        .unwrap_or_else(|| host_contract::TemplateNodeFrameData {
+            x: 0.0,
+            y: 0.0,
+            width: content_size.width.max(0.0),
+            height: content_size.height.max(0.0),
+        });
+    let list_width = list_frame.width.max(content_size.width).max(0.0);
+    let mut nodes = Vec::new();
+
+    for row in 0..data.targets.row_count() {
+        let Some(target) = data.targets.row_data(row) else {
+            continue;
+        };
+        let platform_id = target.platform.to_string().to_ascii_lowercase();
+        let row_y = list_frame.y + row as f32 * (BUILD_EXPORT_ROW_HEIGHT + BUILD_EXPORT_ROW_GAP);
+        let export_busy = matches!(
+            target.status.as_str(),
+            "Queued" | "Running" | "Cancel requested"
+        );
+        let action_label = if export_busy { "Cancel" } else { "Export" };
+        let action_id = if export_busy {
+            format!("BuildExport.Cancel.{}", target.profile_name)
+        } else {
+            format!("BuildExport.Execute.{}", target.profile_name)
+        };
+        let mut row_node = module_plugin_node(
+            format!("build_export_row_{platform_id}"),
+            format!("BuildExportRow.{platform_id}"),
+            "Panel",
+            target.profile_name.to_string(),
+            host_contract::TemplateNodeFrameData {
+                x: list_frame.x,
+                y: row_y,
+                width: list_width,
+                height: BUILD_EXPORT_ROW_HEIGHT,
+            },
+        );
+        row_node.surface_variant = if target.fatal {
+            "diagnostic-error".into()
+        } else {
+            "build-export-row".into()
+        };
+        row_node.corner_radius = 6.0;
+        row_node.border_width = 1.0;
+        row_node.actions = model_rc(vec![host_contract::TemplatePaneActionData {
+            label: action_label.into(),
+            action_id: action_id.clone().into(),
+        }]);
+        nodes.push(row_node);
+
+        nodes.push(module_plugin_node(
+            format!("build_export_title_{platform_id}"),
+            format!("BuildExportTitle.{platform_id}"),
+            "Label",
+            format!("{} | {}", target.platform, target.status),
+            host_contract::TemplateNodeFrameData {
+                x: list_frame.x + BUILD_EXPORT_ROW_PADDING,
+                y: row_y + 8.0,
+                width: (list_width - BUILD_EXPORT_ROW_PADDING * 2.0).max(0.0),
+                height: 20.0,
+            },
+        ));
+
+        let mut strategy = module_plugin_node(
+            format!("build_export_strategy_{platform_id}"),
+            format!("BuildExportStrategy.{platform_id}"),
+            "Label",
+            format!("{} | {}", target.target_mode, target.strategies),
+            host_contract::TemplateNodeFrameData {
+                x: list_frame.x + BUILD_EXPORT_ROW_PADDING,
+                y: row_y + 30.0,
+                width: (list_width - BUILD_EXPORT_ROW_PADDING * 2.0).max(0.0),
+                height: 18.0,
+            },
+        );
+        strategy.text_tone = "muted".into();
+        nodes.push(strategy);
+
+        let mut counts = module_plugin_node(
+            format!("build_export_counts_{platform_id}"),
+            format!("BuildExportCounts.{platform_id}"),
+            "Label",
+            format!(
+                "plugins {} | linked {} | native {} | files {}",
+                target.enabled_plugins,
+                target.linked_runtime_crates,
+                target.native_dynamic_packages,
+                target.generated_files
+            ),
+            host_contract::TemplateNodeFrameData {
+                x: list_frame.x + BUILD_EXPORT_ROW_PADDING,
+                y: row_y + 48.0,
+                width: (list_width - BUILD_EXPORT_ROW_PADDING * 2.0).max(0.0),
+                height: 18.0,
+            },
+        );
+        counts.text_tone = "muted".into();
+        nodes.push(counts);
+
+        if !target.diagnostics.is_empty() {
+            let mut diagnostics = module_plugin_node(
+                format!("build_export_diagnostics_{platform_id}"),
+                format!("BuildExportDiagnostics.{platform_id}"),
+                "Label",
+                target.diagnostics.to_string(),
+                host_contract::TemplateNodeFrameData {
+                    x: list_frame.x + BUILD_EXPORT_ROW_PADDING,
+                    y: row_y + 66.0,
+                    width: (list_width - BUILD_EXPORT_ROW_PADDING * 2.0).max(0.0),
+                    height: 18.0,
+                },
+            );
+            diagnostics.text_tone = if target.fatal { "danger" } else { "muted" }.into();
+            nodes.push(diagnostics);
+        }
+
+        nodes.push(build_export_action_button_node(
+            &platform_id,
+            action_label,
+            &action_id,
+            row_y,
+            list_frame.x,
+            list_width,
+            target.fatal,
+        ));
+    }
+
+    nodes
+}
+
+fn build_export_action_button_node(
+    platform_id: &str,
+    label: &str,
+    action_id: &str,
+    row_y: f32,
+    row_x: f32,
+    row_width: f32,
+    disabled: bool,
+) -> host_contract::TemplatePaneNodeData {
+    let mut node = module_plugin_node(
+        format!("build_export_action_{platform_id}"),
+        "BuildExportAction",
+        "Button",
+        label,
+        host_contract::TemplateNodeFrameData {
+            x: row_x + row_width - BUILD_EXPORT_ROW_PADDING - BUILD_EXPORT_BUTTON_WIDTH,
+            y: row_y + BUILD_EXPORT_ROW_HEIGHT
+                - BUILD_EXPORT_ROW_PADDING
+                - BUILD_EXPORT_BUTTON_HEIGHT,
+            width: BUILD_EXPORT_BUTTON_WIDTH,
+            height: BUILD_EXPORT_BUTTON_HEIGHT,
+        },
+    );
+    node.dispatch_kind = "build_export".into();
+    node.action_id = action_id.into();
+    node.button_variant = "primary".into();
+    node.disabled = disabled;
+    node
 }
 
 fn module_plugin_row_nodes(
@@ -1081,7 +1495,8 @@ mod inspector_pane_tests {
     use crate::ui::layouts::common::model_rc;
     use crate::ui::layouts::views::blank_viewport_chrome;
     use crate::ui::layouts::windows::workbench_host_window::{
-        InspectorPaneViewData, PaneData, PaneNativeBodyData,
+        InspectorPaneViewData, InspectorPluginComponentPropertyViewData,
+        InspectorPluginComponentViewData, PaneData, PaneNativeBodyData,
     };
     use slint::{Model, ModelRc};
 
@@ -1141,6 +1556,74 @@ mod inspector_pane_tests {
         assert!(fallback.disabled);
     }
 
+    #[test]
+    fn inspector_pane_projects_plugin_component_drawer_fields_and_unload_degradation() {
+        let mut pane = inspector_pane_fixture("scene entity selected");
+        pane.native_body.inspector.plugin_components = vec![
+            InspectorPluginComponentViewData {
+                component_id: "weather.Component.CloudLayer".to_string(),
+                display_name: "Cloud Layer".to_string(),
+                plugin_id: "weather".to_string(),
+                drawer_available: true,
+                diagnostic: None,
+                properties: vec![InspectorPluginComponentPropertyViewData {
+                    field_id: "weather.Component.CloudLayer.coverage".to_string(),
+                    name: "coverage".to_string(),
+                    label: "Coverage".to_string(),
+                    value: "0.75".to_string(),
+                    value_kind: "scalar".to_string(),
+                    editable: true,
+                }],
+            },
+            InspectorPluginComponentViewData {
+                component_id: "particles.Component.Emitter".to_string(),
+                display_name: "Emitter".to_string(),
+                plugin_id: "particles".to_string(),
+                drawer_available: false,
+                diagnostic: Some(
+                    "Plugin component drawer unavailable for `particles.Component.Emitter`; serialized data stays protected until the plugin reloads."
+                        .to_string(),
+                ),
+                properties: vec![InspectorPluginComponentPropertyViewData {
+                    field_id: "particles.Component.Emitter.rate".to_string(),
+                    name: "rate".to_string(),
+                    label: "Rate".to_string(),
+                    value: "12".to_string(),
+                    value_kind: "integer".to_string(),
+                    editable: false,
+                }],
+            },
+        ];
+
+        let data = to_host_contract_inspector_pane_from_host_pane(
+            &pane,
+            PaneContentSize::new(360.0, 320.0),
+        );
+
+        let coverage = find_node(
+            &data.nodes,
+            "DynamicComponentField:weather.Component.CloudLayer.coverage",
+        );
+        assert_eq!(coverage.role.as_str(), "NumberField");
+        assert_eq!(coverage.value_text.as_str(), "0.75");
+        assert_eq!(
+            coverage.edit_action_id.as_str(),
+            "InspectorView/DynamicComponentField:weather.Component.CloudLayer.coverage"
+        );
+        assert!(!coverage.disabled);
+
+        let degraded = find_node(
+            &data.nodes,
+            "DynamicComponentField:particles.Component.Emitter.rate",
+        );
+        assert!(degraded.disabled);
+        assert_eq!(degraded.validation_level.as_str(), "warning");
+        assert!(degraded
+            .validation_message
+            .as_str()
+            .contains("serialized data stays protected"));
+    }
+
     fn find_node(
         nodes: &ModelRc<host_contract::TemplatePaneNodeData>,
         control_id: &str,
@@ -1180,6 +1663,7 @@ mod inspector_pane_tests {
                     inspector_y: "2.50".into(),
                     inspector_z: "3.75".into(),
                     delete_enabled: true,
+                    plugin_components: Vec::new(),
                 },
                 ..PaneNativeBodyData::default()
             },
@@ -1311,6 +1795,161 @@ mod module_plugin_pane_tests {
     }
 }
 
+#[cfg(test)]
+mod build_export_pane_tests {
+    use super::*;
+    use crate::ui::layouts::common::model_rc;
+    use crate::ui::layouts::views::blank_viewport_chrome;
+    use crate::ui::layouts::windows::workbench_host_window::{
+        BuildExportPaneViewData, BuildExportTargetViewData, PaneData, PaneNativeBodyData,
+    };
+    use slint::Model;
+
+    #[test]
+    fn build_export_pane_projects_desktop_target_rows() {
+        let pane = PaneData {
+            id: "editor.build_export_desktop#1".into(),
+            slot: "bottom_right".into(),
+            kind: "BuildExport".into(),
+            title: "Desktop Export".into(),
+            icon_key: "build-export".into(),
+            subtitle: "Desktop Targets".into(),
+            info: "Windows, Linux, and macOS export plans".into(),
+            show_empty: false,
+            empty_title: "".into(),
+            empty_body: "".into(),
+            primary_action_label: "".into(),
+            primary_action_id: "".into(),
+            secondary_action_label: "".into(),
+            secondary_action_id: "".into(),
+            secondary_hint: "".into(),
+            show_toolbar: false,
+            viewport: blank_viewport_chrome(),
+            native_body: PaneNativeBodyData {
+                build_export: BuildExportPaneViewData {
+                    targets: model_rc(vec![BuildExportTargetViewData {
+                        profile_name: "desktop_windows".into(),
+                        platform: "Windows".into(),
+                        target_mode: "ClientRuntime".into(),
+                        strategies: "SourceTemplate, LibraryEmbed, NativeDynamic".into(),
+                        status: "Ready".into(),
+                        enabled_plugins: "2".into(),
+                        linked_runtime_crates: "1".into(),
+                        native_dynamic_packages: "1".into(),
+                        generated_files: "5".into(),
+                        diagnostics: "native plugin package ready".into(),
+                        fatal: false,
+                    }]),
+                    diagnostics: "export ready".into(),
+                },
+                ..PaneNativeBodyData::default()
+            },
+            pane_presentation: None,
+        };
+        let data = to_host_contract_build_export_pane_from_host_pane(
+            &pane,
+            PaneContentSize::new(520.0, 180.0),
+        );
+
+        assert_eq!(data.targets.row_count(), 1);
+        let row_node = (0..data.nodes.row_count())
+            .filter_map(|row| data.nodes.row_data(row))
+            .find(|node| node.control_id.as_str() == "BuildExportRow.windows")
+            .expect("desktop export target row should be projected");
+        assert_eq!(row_node.text.to_string(), "desktop_windows");
+        assert_eq!(row_node.actions.row_count(), 1);
+        assert_eq!(
+            row_node.actions.row_data(0).map(|action| action.action_id),
+            Some("BuildExport.Execute.desktop_windows".into())
+        );
+        let counts = (0..data.nodes.row_count())
+            .filter_map(|row| data.nodes.row_data(row))
+            .find(|node| node.control_id.as_str() == "BuildExportCounts.windows")
+            .expect("desktop export target counts should be projected");
+        assert!(counts.text.to_string().contains("native 1"));
+        let action = (0..data.nodes.row_count())
+            .filter_map(|row| data.nodes.row_data(row))
+            .find(|node| node.control_id.as_str() == "BuildExportAction")
+            .expect("desktop export target action should be projected");
+        assert_eq!(
+            action.action_id.as_str(),
+            "BuildExport.Execute.desktop_windows"
+        );
+        assert!(!action.disabled);
+    }
+
+    #[test]
+    fn build_export_running_target_projects_cancel_action() {
+        let pane = PaneData {
+            id: "editor.build_export_desktop#1".into(),
+            slot: "bottom_right".into(),
+            kind: "BuildExport".into(),
+            title: "Desktop Export".into(),
+            icon_key: "build-export".into(),
+            subtitle: "Desktop Targets".into(),
+            info: "Windows, Linux, and macOS export plans".into(),
+            show_empty: false,
+            empty_title: "".into(),
+            empty_body: "".into(),
+            primary_action_label: "".into(),
+            primary_action_id: "".into(),
+            secondary_action_label: "".into(),
+            secondary_action_id: "".into(),
+            secondary_hint: "".into(),
+            show_toolbar: false,
+            viewport: blank_viewport_chrome(),
+            native_body: PaneNativeBodyData {
+                build_export: BuildExportPaneViewData {
+                    targets: model_rc(vec![BuildExportTargetViewData {
+                        profile_name: "desktop_linux".into(),
+                        platform: "Linux".into(),
+                        target_mode: "ClientRuntime".into(),
+                        strategies: "SourceTemplate, LibraryEmbed, NativeDynamic".into(),
+                        status: "Running".into(),
+                        enabled_plugins: "2".into(),
+                        linked_runtime_crates: "1".into(),
+                        native_dynamic_packages: "1".into(),
+                        generated_files: "5".into(),
+                        diagnostics: "Progress: export backend is running".into(),
+                        fatal: false,
+                    }]),
+                    diagnostics: "export ready".into(),
+                },
+                ..PaneNativeBodyData::default()
+            },
+            pane_presentation: None,
+        };
+        let data = to_host_contract_build_export_pane_from_host_pane(
+            &pane,
+            PaneContentSize::new(520.0, 180.0),
+        );
+
+        let row_node = (0..data.nodes.row_count())
+            .filter_map(|row| data.nodes.row_data(row))
+            .find(|node| node.control_id.as_str() == "BuildExportRow.linux")
+            .expect("running desktop export target row should be projected");
+        assert_eq!(row_node.actions.row_count(), 1);
+        let row_action = row_node
+            .actions
+            .row_data(0)
+            .expect("running row should expose cancel action");
+        assert_eq!(row_action.label.as_str(), "Cancel");
+        assert_eq!(
+            row_action.action_id.as_str(),
+            "BuildExport.Cancel.desktop_linux"
+        );
+        let button = (0..data.nodes.row_count())
+            .filter_map(|row| data.nodes.row_data(row))
+            .find(|node| node.control_id.as_str() == "BuildExportAction")
+            .expect("running desktop export action should be projected");
+        assert_eq!(button.text.as_str(), "Cancel");
+        assert_eq!(
+            button.action_id.as_str(),
+            "BuildExport.Cancel.desktop_linux"
+        );
+    }
+}
+
 fn project_pane_template_nodes(
     body: &crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation,
     content_size: PaneContentSize,
@@ -1345,6 +1984,8 @@ fn host_template_node_with_content_fallback(
             | Some("AnimationGraphCanvasSlotAnchor")
             | Some("ModulePluginListPanel")
             | Some("ModulePluginListSlotAnchor")
+            | Some("BuildExportTargetsPanel")
+            | Some("BuildExportTargetsSlotAnchor")
     ) && node.frame.width <= 0.0
         && node.frame.height <= 0.0
     {

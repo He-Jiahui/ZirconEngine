@@ -64,6 +64,7 @@ pub fn register_authoring_extensions(
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EditorAuthoringContributionBatch {
     pub operations: Vec<EditorOperationDescriptor>,
+    pub menu_items: Vec<EditorMenuItemDescriptor>,
     pub asset_importers: Vec<AssetImporterDescriptor>,
     pub asset_editors: Vec<AssetEditorDescriptor>,
     pub component_drawers: Vec<ComponentDrawerDescriptor>,
@@ -81,6 +82,9 @@ pub fn register_authoring_contribution_batch(
 ) -> Result<(), EditorExtensionRegistryError> {
     for operation in batch.operations {
         registry.register_operation(operation)?;
+    }
+    for menu_item in batch.menu_items {
+        registry.register_menu_item(menu_item)?;
     }
     for importer in batch.asset_importers {
         registry.register_asset_importer(importer)?;
@@ -135,4 +139,144 @@ pub fn register_authoring_surface(
         operation_path,
     ))?;
     registry.register_view(view)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use zircon_editor::core::editor_authoring_extension::{
+        GraphNodeDescriptor, GraphPinDescriptor,
+    };
+    use zircon_editor::core::editor_operation::EditorOperationPath;
+
+    fn operation(path: &str) -> EditorOperationPath {
+        EditorOperationPath::parse(path).expect("valid test operation path")
+    }
+
+    #[test]
+    fn authoring_batch_registers_menu_items_payload_schemas_and_all_descriptor_families() {
+        let import = operation("Support.Authoring.Import");
+        let open = operation("Support.Authoring.Open");
+        let validate = operation("Support.Authoring.Validate");
+        let compile = operation("Support.Authoring.Compile");
+        let create = operation("Support.Authoring.Create");
+        let activate = operation("Support.Authoring.ActivateTool");
+        let mut registry = EditorExtensionRegistry::default();
+
+        register_authoring_contribution_batch(
+            &mut registry,
+            EditorAuthoringContributionBatch {
+                operations: vec![
+                    EditorOperationDescriptor::new(import.clone(), "Import Support Asset")
+                        .with_menu_path("Plugins/Support/Import")
+                        .with_payload_schema_id("support.import.v1"),
+                    EditorOperationDescriptor::new(open.clone(), "Open Support Asset"),
+                    EditorOperationDescriptor::new(validate.clone(), "Validate Support Asset"),
+                    EditorOperationDescriptor::new(compile.clone(), "Compile Support Asset"),
+                    EditorOperationDescriptor::new(create.clone(), "Create Support Asset"),
+                    EditorOperationDescriptor::new(activate.clone(), "Activate Support Tool"),
+                ],
+                menu_items: vec![EditorMenuItemDescriptor::new(
+                    "Plugins/Support/Import",
+                    import.clone(),
+                )
+                .with_required_capabilities(["editor.extension.support_authoring"])],
+                asset_importers: vec![AssetImporterDescriptor::new(
+                    "support.asset.importer",
+                    "Support Asset",
+                    import.clone(),
+                )
+                .with_source_extension("support")
+                .with_output_kind("support.asset")],
+                asset_editors: vec![AssetEditorDescriptor::new(
+                    "support.asset",
+                    "support.authoring",
+                    "Support Asset",
+                    open.clone(),
+                )],
+                component_drawers: vec![ComponentDrawerDescriptor::new(
+                    "support.Component",
+                    "plugins://support/editor/component.ui.toml",
+                    "support.editor.component",
+                )
+                .with_binding(validate.as_str())],
+                asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(
+                    "support.template.asset",
+                    "Support Asset",
+                    "support.asset",
+                    create,
+                )],
+                viewport_tool_modes: vec![ViewportToolModeDescriptor::new(
+                    "support.tool.paint",
+                    "Paint Support",
+                    "support.authoring",
+                    activate,
+                )],
+                graph_editors: vec![GraphEditorDescriptor::new(
+                    "support.graph",
+                    "support.authoring",
+                    "Support Graph",
+                    open.clone(),
+                    validate,
+                )
+                .with_compile_operation(compile)],
+                graph_node_palettes: vec![GraphNodePaletteDescriptor::new(
+                    "support.palette",
+                    "support.graph",
+                )
+                .with_node(
+                    GraphNodeDescriptor::new("output", "Output", "Graph")
+                        .with_input(GraphPinDescriptor::new("value", "float").required(true)),
+                )],
+                timeline_editors: vec![TimelineEditorDescriptor::new(
+                    "support.timeline",
+                    "support.authoring",
+                    "Support Timeline",
+                    open,
+                )
+                .with_track_type("support.track.event")],
+                timeline_track_types: vec![TimelineTrackDescriptor::new(
+                    "support.track.event",
+                    "Event",
+                    "event",
+                )],
+            },
+        )
+        .expect("authoring contribution batch registration");
+
+        assert_eq!(
+            registry
+                .operations()
+                .descriptor(&import)
+                .and_then(EditorOperationDescriptor::payload_schema_id),
+            Some("support.import.v1")
+        );
+        let support_capabilities = vec!["editor.extension.support_authoring".to_string()];
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Support/Import"
+                && item.operation() == &import
+                && item.required_capabilities() == support_capabilities.as_slice()
+        }));
+        assert_eq!(registry.asset_importers()[0].id(), "support.asset.importer");
+        assert_eq!(registry.asset_editors()[0].asset_kind(), "support.asset");
+        assert_eq!(
+            registry.component_drawers()[0].component_type(),
+            "support.Component"
+        );
+        assert_eq!(
+            registry.asset_creation_templates()[0].id(),
+            "support.template.asset"
+        );
+        assert_eq!(registry.viewport_tool_modes()[0].id(), "support.tool.paint");
+        assert_eq!(registry.graph_editors()[0].asset_kind(), "support.graph");
+        assert_eq!(registry.graph_node_palettes()[0].id(), "support.palette");
+        assert_eq!(
+            registry.timeline_editors()[0].asset_kind(),
+            "support.timeline"
+        );
+        assert_eq!(
+            registry.timeline_track_types()[0].id(),
+            "support.track.event"
+        );
+    }
 }

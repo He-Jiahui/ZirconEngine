@@ -1,5 +1,7 @@
 use crate::core::math::{Real, Transform, Vec3, Vec4};
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+use crate::core::resource::{
+    MaterialMarker, ModelMarker, ResourceHandle, ResourceId, TextureMarker,
+};
 
 use crate::core::framework::scene::{EntityId, Mobility};
 
@@ -360,8 +362,11 @@ pub struct RenderParticleSpriteSnapshot {
     pub entity: EntityId,
     pub position: Vec3,
     pub size: Real,
+    pub rotation: Real,
     pub color: Vec4,
     pub intensity: Real,
+    pub material: Option<ResourceHandle<MaterialMarker>>,
+    pub texture: Option<ResourceHandle<TextureMarker>>,
 }
 
 impl Default for RenderParticleSpriteSnapshot {
@@ -370,10 +375,20 @@ impl Default for RenderParticleSpriteSnapshot {
             entity: 0,
             position: Vec3::ZERO,
             size: 0.0,
+            rotation: 0.0,
             color: Vec4::ZERO,
             intensity: 0.0,
+            material: None,
+            texture: None,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RenderParticleBoundsSnapshot {
+    pub entity: EntityId,
+    pub center: Vec3,
+    pub radius: Real,
 }
 
 #[derive(Clone, Debug, PartialEq)]

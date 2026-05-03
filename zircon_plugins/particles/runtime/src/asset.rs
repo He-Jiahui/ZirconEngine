@@ -1,5 +1,7 @@
 use zircon_runtime::core::math::{Real, Vec3, Vec4};
+use zircon_runtime::core::resource::{MaterialMarker, ResourceHandle, TextureMarker};
 
+use crate::interop::{ParticleAnimationBinding, ParticlePhysicsOptions};
 use crate::simulation::ParticleRng;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -187,6 +189,10 @@ pub struct ParticleEmitterAsset {
     pub drag: Real,
     pub shape: ParticleShape,
     pub coordinate_space: ParticleCoordinateSpace,
+    pub material: Option<ResourceHandle<MaterialMarker>>,
+    pub texture: Option<ResourceHandle<TextureMarker>>,
+    pub physics: ParticlePhysicsOptions,
+    pub animation_bindings: Vec<ParticleAnimationBinding>,
     pub color_over_lifetime: Vec<ParticleColorKey>,
     pub size_over_lifetime: Vec<ParticleScalarKey>,
 }
@@ -229,6 +235,16 @@ impl ParticleEmitterAsset {
         self
     }
 
+    pub fn with_initial_rotation(mut self, rotation: ParticleScalarRange) -> Self {
+        self.initial_rotation = rotation.normalized();
+        self
+    }
+
+    pub fn with_initial_angular_velocity(mut self, angular_velocity: ParticleScalarRange) -> Self {
+        self.initial_angular_velocity = angular_velocity.normalized();
+        self
+    }
+
     pub fn with_gravity(mut self, gravity: Vec3) -> Self {
         self.gravity = gravity;
         self
@@ -236,6 +252,31 @@ impl ParticleEmitterAsset {
 
     pub fn with_drag(mut self, drag: Real) -> Self {
         self.drag = drag.max(0.0);
+        self
+    }
+
+    pub fn with_coordinate_space(mut self, coordinate_space: ParticleCoordinateSpace) -> Self {
+        self.coordinate_space = coordinate_space;
+        self
+    }
+
+    pub fn with_material(mut self, material: ResourceHandle<MaterialMarker>) -> Self {
+        self.material = Some(material);
+        self
+    }
+
+    pub fn with_texture(mut self, texture: ResourceHandle<TextureMarker>) -> Self {
+        self.texture = Some(texture);
+        self
+    }
+
+    pub fn with_physics(mut self, physics: ParticlePhysicsOptions) -> Self {
+        self.physics = physics;
+        self
+    }
+
+    pub fn with_animation_binding(mut self, binding: ParticleAnimationBinding) -> Self {
+        self.animation_bindings.push(binding);
         self
     }
 
@@ -267,6 +308,10 @@ impl Default for ParticleEmitterAsset {
             drag: 0.0,
             shape: ParticleShape::Point,
             coordinate_space: ParticleCoordinateSpace::Local,
+            material: None,
+            texture: None,
+            physics: ParticlePhysicsOptions::disabled(),
+            animation_bindings: Vec::new(),
             color_over_lifetime: vec![
                 ParticleColorKey::new(0.0, Vec4::ONE),
                 ParticleColorKey::new(1.0, Vec4::ONE),
@@ -303,6 +348,11 @@ impl ParticleSystemAsset {
 
     pub fn with_seed(mut self, seed: u64) -> Self {
         self.seed = seed;
+        self
+    }
+
+    pub fn with_looped(mut self, looped: bool) -> Self {
+        self.looped = looped;
         self
     }
 

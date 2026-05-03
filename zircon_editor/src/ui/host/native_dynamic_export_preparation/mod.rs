@@ -7,4 +7,4 @@ mod prepare;
 mod staging;
 
 pub(super) use cleanup::cleanup_native_dynamic_preparation;
-pub(super) use prepare::prepare_native_dynamic_packages;
+pub(super) use prepare::prepare_native_dynamic_packages_with_cancellation;

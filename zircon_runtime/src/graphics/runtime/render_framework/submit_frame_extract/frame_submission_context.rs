@@ -1,6 +1,8 @@
 use crate::core::framework::render::{
-    RenderHybridGiExtract, RenderPipelineHandle, RenderVirtualGeometryBvhVisualizationInstance,
-    RenderVirtualGeometryCpuReferenceInstance, RenderVirtualGeometryExtract,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
+    RenderPipelineHandle, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
+    RenderVirtualGeometryExtract,
 };
 use crate::core::math::UVec2;
 
@@ -31,6 +33,10 @@ pub(super) struct FrameSubmissionContext {
     hybrid_gi_extract: Option<RenderHybridGiExtract>,
     hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
     hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
+    scene_meshes: Vec<RenderMeshSnapshot>,
+    scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
+    scene_point_lights: Vec<RenderPointLightSnapshot>,
+    scene_spot_lights: Vec<RenderSpotLightSnapshot>,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
     virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     virtual_geometry_bvh_visualization_instances:
@@ -54,6 +60,10 @@ impl FrameSubmissionContext {
         hybrid_gi_extract: Option<RenderHybridGiExtract>,
         hybrid_gi_update_plan: Option<VisibilityHybridGiUpdatePlan>,
         hybrid_gi_feedback: Option<VisibilityHybridGiFeedback>,
+        scene_meshes: Vec<RenderMeshSnapshot>,
+        scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
+        scene_point_lights: Vec<RenderPointLightSnapshot>,
+        scene_spot_lights: Vec<RenderSpotLightSnapshot>,
         virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
         virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
         virtual_geometry_bvh_visualization_instances: Vec<
@@ -95,6 +105,10 @@ impl FrameSubmissionContext {
             hybrid_gi_extract,
             hybrid_gi_update_plan,
             hybrid_gi_feedback,
+            scene_meshes,
+            scene_directional_lights,
+            scene_point_lights,
+            scene_spot_lights,
             virtual_geometry_extract,
             virtual_geometry_cpu_reference_instances,
             virtual_geometry_bvh_visualization_instances,
@@ -146,6 +160,22 @@ impl FrameSubmissionContext {
 
     pub(super) fn hybrid_gi_feedback(&self) -> Option<&VisibilityHybridGiFeedback> {
         self.hybrid_gi_feedback.as_ref()
+    }
+
+    pub(super) fn scene_meshes(&self) -> &[RenderMeshSnapshot] {
+        &self.scene_meshes
+    }
+
+    pub(super) fn scene_directional_lights(&self) -> &[RenderDirectionalLightSnapshot] {
+        &self.scene_directional_lights
+    }
+
+    pub(super) fn scene_point_lights(&self) -> &[RenderPointLightSnapshot] {
+        &self.scene_point_lights
+    }
+
+    pub(super) fn scene_spot_lights(&self) -> &[RenderSpotLightSnapshot] {
+        &self.scene_spot_lights
     }
 
     pub(super) fn virtual_geometry_extract(&self) -> Option<&RenderVirtualGeometryExtract> {

@@ -63,19 +63,17 @@ impl EditorUiHost {
         &self,
     ) -> Result<(), EditorError> {
         let Some(project_root) = self.current_project_root()? else {
-            *self.ui_asset_workspace_watcher.lock().unwrap() = None;
+            *self.lock_ui_asset_workspace_watcher() = None;
             return Ok(());
         };
         let watcher = UiAssetWorkspaceWatcher::start(project_root).ok();
-        *self.ui_asset_workspace_watcher.lock().unwrap() = watcher;
+        *self.lock_ui_asset_workspace_watcher() = watcher;
         Ok(())
     }
 
     pub fn poll_ui_asset_workspace_watcher(&self) -> Result<Vec<String>, EditorError> {
         let changed_asset_ids = self
-            .ui_asset_workspace_watcher
-            .lock()
-            .unwrap()
+            .lock_ui_asset_workspace_watcher()
             .as_ref()
             .map(UiAssetWorkspaceWatcher::drain_changed_asset_ids)
             .unwrap_or_default();

@@ -41,11 +41,30 @@ impl ProjectManager {
             let previous_meta = meta.clone();
             let import_settings = meta.import_settings.clone();
             let config_hash = config_hash_for_settings(&import_settings);
+            let asset_id = AssetId::from_asset_uuid_label(meta.asset_uuid, uri.label());
+
+            if let Some(metadata) = self.restore_imported_artifact(
+                &uri,
+                &mut meta,
+                meta_exists,
+                &previous_meta,
+                source_hash.clone(),
+                source_mtime_unix_ms,
+                config_hash.clone(),
+                descriptor.as_ref(),
+                fallback_kind,
+                asset_id,
+            )? {
+                registry.upsert(metadata.clone());
+                asset_ids_by_uuid.insert(meta.asset_uuid, asset_id);
+                asset_uuids_by_id.insert(asset_id, meta.asset_uuid);
+                imported.push(metadata);
+                continue;
+            }
+
             let import_result =
                 self.importer
                     .import_bytes(&file, &uri, source_bytes, import_settings);
-            let asset_id = AssetId::from_asset_uuid_label(meta.asset_uuid, uri.label());
-
             let metadata = match import_result {
                 Ok(outcome) => self.finish_successful_import(
                     &uri,
@@ -86,6 +105,59 @@ impl ProjectManager {
     }
 
     #[allow(clippy::too_many_arguments)]
+    fn restore_imported_artifact(
+        &self,
+        uri: &crate::asset::AssetUri,
+        meta: &mut crate::asset::project::AssetMetaDocument,
+        meta_exists: bool,
+        previous_meta: &crate::asset::project::AssetMetaDocument,
+        source_hash: String,
+        source_mtime_unix_ms: u64,
+        config_hash: String,
+        descriptor: Option<&AssetImporterDescriptor>,
+        fallback_kind: AssetKind,
+        asset_id: AssetId,
+    ) -> Result<Option<ResourceRecord>, AssetImportError> {
+        if meta.preview_state != PreviewState::Ready
+            || meta.source_hash != source_hash
+            || meta.config_hash != config_hash
+            || !importer_contract_matches(meta, descriptor)
+        {
+            return Ok(None);
+        }
+
+        let Some(artifact_uri) = meta.artifact_locator.clone() else {
+            return Ok(None);
+        };
+        if self
+            .artifact_store
+            .read(&self.paths, &artifact_uri)
+            .is_err()
+        {
+            return Ok(None);
+        }
+
+        meta.primary_locator = uri.clone();
+        if meta.kind == AssetKind::Data && descriptor.is_some() {
+            meta.kind = fallback_kind;
+        }
+        meta.source_mtime_unix_ms = source_mtime_unix_ms;
+        if !meta_exists || meta != previous_meta {
+            meta.save(meta_path_for_source(&self.source_path_for_uri(uri)?))?;
+        }
+
+        Ok(Some(
+            ResourceRecord::new(asset_id, meta.kind, uri.clone())
+                .with_source_hash(source_hash)
+                .with_importer_id(meta.importer_id.clone())
+                .with_importer_version(meta.importer_version)
+                .with_config_hash(config_hash)
+                .with_artifact_locator(artifact_uri)
+                .with_state(ResourceState::Ready),
+        ))
+    }
+
+    #[allow(clippy::too_many_arguments)]
     fn finish_successful_import(
         &self,
         uri: &crate::asset::AssetUri,
@@ -105,21 +177,26 @@ impl ProjectManager {
             meta.source_schema_version = migration.source_schema_version;
             meta.target_schema_version = Some(migration.target_schema_version);
             meta.migration_summary = migration.summary.clone();
+        } else {
+            clear_schema_migration_metadata(meta);
         }
         meta.primary_locator = uri.clone();
         meta.kind = kind;
+        meta.config_hash = config_hash.clone();
         meta.source_hash = source_hash.clone();
         meta.source_mtime_unix_ms = source_mtime_unix_ms;
         meta.preview_state = PreviewState::Ready;
-        if !meta_exists || meta != previous_meta {
-            meta.save(meta_path_for_source(&self.source_path_for_uri(uri)?))?;
-        }
 
         let artifact_uri = self.artifact_store.write(
             &self.paths,
             &ResourceRecord::new(asset_id, kind, uri.clone()),
             &outcome.imported_asset,
         )?;
+        meta.artifact_locator = Some(artifact_uri.clone());
+        if !meta_exists || meta != previous_meta {
+            meta.save(meta_path_for_source(&self.source_path_for_uri(uri)?))?;
+        }
+
         Ok(ResourceRecord::new(asset_id, kind, uri.clone())
             .with_source_hash(source_hash)
             .with_importer_id(meta.importer_id.clone())
@@ -146,8 +223,11 @@ impl ProjectManager {
         error: AssetImportError,
     ) -> Result<ResourceRecord, AssetImportError> {
         apply_importer_metadata(meta, descriptor);
+        clear_schema_migration_metadata(meta);
         meta.primary_locator = uri.clone();
         meta.kind = kind;
+        meta.artifact_locator = None;
+        meta.config_hash = config_hash.clone();
         meta.source_hash = source_hash.clone();
         meta.source_mtime_unix_ms = source_mtime_unix_ms;
         meta.preview_state = PreviewState::Error;
@@ -165,6 +245,12 @@ impl ProjectManager {
     }
 }
 
+fn clear_schema_migration_metadata(meta: &mut crate::asset::project::AssetMetaDocument) {
+    meta.source_schema_version = None;
+    meta.target_schema_version = None;
+    meta.migration_summary.clear();
+}
+
 fn apply_importer_metadata(
     meta: &mut crate::asset::project::AssetMetaDocument,
     descriptor: Option<&AssetImporterDescriptor>,
@@ -176,6 +262,18 @@ fn apply_importer_metadata(
         meta.importer_id.clear();
         meta.importer_version = 0;
     }
+}
+
+fn importer_contract_matches(
+    meta: &crate::asset::project::AssetMetaDocument,
+    descriptor: Option<&AssetImporterDescriptor>,
+) -> bool {
+    descriptor
+        .map(|descriptor| {
+            meta.importer_id == descriptor.id
+                && meta.importer_version == descriptor.importer_version
+        })
+        .unwrap_or_else(|| !meta.importer_id.is_empty())
 }
 
 fn config_hash_for_settings(settings: &toml::Table) -> String {

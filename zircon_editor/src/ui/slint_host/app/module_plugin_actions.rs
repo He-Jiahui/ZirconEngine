@@ -1,6 +1,8 @@
 use super::*;
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::{plugin::ExportPackagingStrategy, plugin::NativePluginLiveHost, RuntimeTargetMode};
+use zircon_runtime::{
+    plugin::ExportPackagingStrategy, plugin::NativePluginLiveHost, RuntimeTargetMode,
+};
 
 impl SlintEditorHost {
     pub(super) fn dispatch_module_plugin_action(&mut self, action_id: &str) {
@@ -81,12 +83,15 @@ impl SlintEditorHost {
                         feature_id,
                         enabled,
                     } => {
-                        let report = self.editor_manager.set_project_plugin_feature_enabled(
-                            &mut manifest,
-                            plugin_id,
-                            feature_id,
-                            enabled,
-                        )?;
+                        let report = self
+                            .editor_manager
+                            .set_native_aware_project_plugin_feature_enabled(
+                                &project_root,
+                                &mut manifest,
+                                plugin_id,
+                                feature_id,
+                                enabled,
+                            )?;
                         let state = if report.enabled {
                             "enabled"
                         } else {
@@ -103,7 +108,8 @@ impl SlintEditorHost {
                     } => {
                         let report = self
                             .editor_manager
-                            .enable_project_plugin_feature_dependencies(
+                            .enable_native_aware_project_plugin_feature_dependencies(
+                                &project_root,
                                 &mut manifest,
                                 plugin_id,
                                 feature_id,

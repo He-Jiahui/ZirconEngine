@@ -22,6 +22,7 @@ pub(super) fn build_runtime_frame(
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
     let _ = prepared;
+    let extract = apply_effective_advanced_extracts(extract, context);
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let extract = augment_virtual_geometry_debug_overlays(
         extract,
@@ -31,6 +32,17 @@ pub(super) fn build_runtime_frame(
     ViewportRenderFrame::from_extract(extract, context.size())
         .with_ui(ui)
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
+}
+
+fn apply_effective_advanced_extracts(
+    mut extract: RenderFrameExtract,
+    context: &FrameSubmissionContext,
+) -> RenderFrameExtract {
+    extract.geometry.virtual_geometry = context.virtual_geometry_extract().cloned();
+    if !context.hybrid_gi_enabled() {
+        extract.lighting.hybrid_global_illumination = None;
+    }
+    extract
 }
 
 fn augment_virtual_geometry_debug_overlays(

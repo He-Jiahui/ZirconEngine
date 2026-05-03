@@ -11,7 +11,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<(), EditorError> {
         let (widget_refs, style_refs) = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -39,7 +39,7 @@ impl EditorUiHost {
             )?;
         }
 
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;

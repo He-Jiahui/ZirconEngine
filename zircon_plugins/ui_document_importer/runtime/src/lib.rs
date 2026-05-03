@@ -1,15 +1,20 @@
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset, UiLayoutAsset, UiStyleAsset,
-    UiWidgetAsset,
+    AssetSchemaMigrationReport, DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAsset,
+    UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
 };
 use zircon_runtime::core::ModuleDescriptor;
+use zircon_runtime::ui::template::{
+    UiAssetDocumentRuntimeExt, UiAssetLoader, UiAssetSchemaVersionPolicy,
+    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+};
 use zircon_runtime::{
     plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::PluginModuleManifest,
     plugin::PluginPackageManifest, plugin::ProjectPluginSelection,
     plugin::RuntimeExtensionRegistry, plugin::RuntimeExtensionRegistryError,
     plugin::RuntimePluginRegistrationReport, RuntimeTargetMode,
 };
+use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
 
 pub const PLUGIN_ID: &str = "ui_document_importer";
 pub const RUNTIME_CRATE_NAME: &str = "zircon_plugin_ui_document_importer_runtime";
@@ -43,9 +48,9 @@ pub fn module_descriptor() -> ModuleDescriptor {
 pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
     vec![
         ui_descriptor("ui_document_importer.typed_toml", 120).with_full_suffixes([".ui.toml"]),
-        ui_descriptor("ui_document_importer.serialized_document", 100)
-            .with_source_extensions(["zui", "uidoc"])
-            .with_full_suffixes([".ui.json"]),
+        ui_descriptor("ui_document_importer.serialized_json", 110).with_full_suffixes([".ui.json"]),
+        ui_descriptor("ui_document_importer.serialized_binary", 90)
+            .with_source_extensions(["zui", "uidoc"]),
     ]
 }
 
@@ -100,16 +105,20 @@ pub fn register_runtime_extensions(
 ) -> Result<(), RuntimeExtensionRegistryError> {
     registry.register_module(module_descriptor())?;
     for importer in asset_importer_descriptors() {
-        if importer.id == "ui_document_importer.typed_toml" {
-            registry.register_asset_importer(FunctionAssetImporter::new(
-                importer,
-                import_ui_toml_document,
-            ))?;
-        } else {
-            registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
-                importer,
-                "serialized UI document importers require a UI document codec backend",
-            ))?;
+        match importer.id.as_str() {
+            "ui_document_importer.typed_toml" => registry.register_asset_importer(
+                FunctionAssetImporter::new(importer, import_ui_toml_document),
+            )?,
+            "ui_document_importer.serialized_json" => registry.register_asset_importer(
+                FunctionAssetImporter::new(importer, import_ui_json_document),
+            )?,
+            "ui_document_importer.serialized_binary" => {
+                registry.register_asset_importer(DiagnosticOnlyAssetImporter::new(
+                    importer,
+                    "zui/uidoc binary UI documents require a UI document codec backend",
+                ))?;
+            }
+            _ => unreachable!("asset_importer_descriptors returns only known UI importer ids"),
         }
     }
     Ok(())
@@ -119,19 +128,75 @@ pub fn import_ui_toml_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_text()?;
-    if let Ok(asset) = UiLayoutAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiLayout(asset)));
+    let migration = UiAssetLoader::load_toml_str_with_migration_report(&document)
+        .map_err(|error| AssetImportError::Parse(error.to_string()))?;
+    let migration_report = AssetSchemaMigrationReport {
+        source_schema_version: migration.report.source_schema_version,
+        target_schema_version: migration.report.target_schema_version,
+        summary: format!(
+            "ui asset schema {:?}; steps: {:?}",
+            migration.report.source_kind, migration.report.steps
+        ),
+    };
+
+    ui_document_outcome(migration.document, migration_report)
+}
+
+pub fn import_ui_json_document(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let mut document: UiAssetDocument =
+        serde_json::from_slice(&context.source_bytes).map_err(|error| {
+            AssetImportError::Parse(format!(
+                "parse ui asset json {}: {error}",
+                context.source_path.display()
+            ))
+        })?;
+    let source_version = document.asset.version;
+    if !UiAssetSchemaVersionPolicy::is_supported_source_schema(source_version) {
+        return Err(AssetImportError::SchemaMigration(format!(
+            "ui asset {} uses unsupported schema version {}; current supported version is {}",
+            document.asset.id, source_version, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
+        )));
     }
-    if let Ok(asset) = UiWidgetAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiWidget(asset)));
-    }
-    if let Ok(asset) = UiStyleAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiStyle(asset)));
-    }
-    Err(AssetImportError::Parse(format!(
-        "parse ui asset toml {}: unsupported or mismatched [asset.kind]",
-        context.source_path.display()
-    )))
+
+    document.asset.version = UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
+    document
+        .validate_tree_authority()
+        .map_err(|error| AssetImportError::Parse(error.to_string()))?;
+
+    let summary = if UiAssetSchemaVersionPolicy::requires_source_schema_migration(source_version) {
+        format!(
+            "ui asset schema json tree; source version bumped from {source_version} to {UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION}"
+        )
+    } else {
+        "ui asset schema json tree; validated current version".to_string()
+    };
+    let migration_report = AssetSchemaMigrationReport {
+        source_schema_version: Some(source_version),
+        target_schema_version: UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
+        summary,
+    };
+
+    ui_document_outcome(document, migration_report)
+}
+
+fn ui_document_outcome(
+    document: UiAssetDocument,
+    migration_report: AssetSchemaMigrationReport,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let outcome = match document.asset.kind {
+        UiAssetKind::Layout => {
+            AssetImportOutcome::new(ImportedAsset::UiLayout(UiLayoutAsset { document }))
+        }
+        UiAssetKind::Widget => {
+            AssetImportOutcome::new(ImportedAsset::UiWidget(UiWidgetAsset { document }))
+        }
+        UiAssetKind::Style => {
+            AssetImportOutcome::new(ImportedAsset::UiStyle(UiStyleAsset { document }))
+        }
+    };
+    Ok(outcome.with_migration_report(migration_report))
 }
 
 fn ui_descriptor(id: impl Into<String>, priority: i32) -> AssetImporterDescriptor {
@@ -169,7 +234,7 @@ mod tests {
             .modules()
             .iter()
             .any(|module| module.name == MODULE_NAME));
-        assert_eq!(report.extensions.asset_importers().descriptors().len(), 2);
+        assert_eq!(report.extensions.asset_importers().descriptors().len(), 3);
     }
 
     #[test]
@@ -198,5 +263,82 @@ id = "main"
             imported,
             zircon_runtime::asset::ImportedAsset::UiLayout(_)
         ));
+    }
+
+    #[test]
+    fn serialized_json_importer_decodes_ui_layout_asset() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("layout.ui.json"))
+            .unwrap();
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "layout.ui.json".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/layout.ui.json").unwrap(),
+            br#"
+{
+  "asset": {
+    "kind": "layout",
+    "id": "json.layout",
+    "version": 1,
+    "display_name": "JSON Layout"
+  },
+  "root": {
+    "node_id": "root",
+    "type": "Panel"
+  }
+}
+"#
+            .to_vec(),
+            Default::default(),
+        );
+
+        let outcome = importer.import(&context).unwrap();
+
+        match outcome.imported_asset {
+            zircon_runtime::asset::ImportedAsset::UiLayout(asset) => {
+                assert_eq!(asset.document.asset.id, "json.layout");
+                assert_eq!(asset.document.root_node_id(), Some("root"));
+                assert_eq!(
+                    outcome.migration_report.unwrap().target_schema_version,
+                    UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
+                );
+            }
+            other => panic!("unexpected imported asset: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn serialized_json_rejects_future_schema() {
+        let report = plugin_registration();
+        let importer = report
+            .extensions
+            .asset_importers()
+            .select(std::path::Path::new("future.ui.json"))
+            .unwrap();
+        let source = format!(
+            r#"{{
+  "asset": {{
+    "kind": "layout",
+    "id": "future.layout",
+    "version": {}
+  }},
+  "root": {{
+    "node_id": "root"
+  }}
+}}"#,
+            UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION + 1
+        );
+        let context = zircon_runtime::asset::AssetImportContext::new(
+            "future.ui.json".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/future.ui.json").unwrap(),
+            source.into_bytes(),
+            Default::default(),
+        );
+
+        let error = importer.import(&context).unwrap_err();
+
+        assert!(error.to_string().contains("unsupported schema version"));
     }
 }

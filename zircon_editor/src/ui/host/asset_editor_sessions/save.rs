@@ -13,7 +13,7 @@ impl EditorUiHost {
     ) -> Result<String, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
         let (saved, asset_id, source_path) = {
-            let mut sessions = self.ui_asset_sessions.lock().unwrap();
+            let mut sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -29,7 +29,7 @@ impl EditorUiHost {
         };
         fs::write(&source_path, &saved).map_err(|error| EditorError::UiAsset(error.to_string()))?;
         {
-            let mut sessions = self.ui_asset_sessions.lock().unwrap();
+            let mut sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;

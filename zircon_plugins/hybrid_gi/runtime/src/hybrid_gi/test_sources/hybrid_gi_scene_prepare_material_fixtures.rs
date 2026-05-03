@@ -3,15 +3,15 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use image::{ImageBuffer, ImageFormat, Rgba};
-
-use crate::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
-use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
-use crate::asset::{
-    AlphaMode, AssetReference, AssetUri, MaterialAsset, SceneAsset, SceneCameraAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, TransformAsset,
+use zircon_runtime::asset::pipeline::manager::{AssetManager, ProjectAssetManager};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::{
+    AlphaMode, AssetReference, AssetUri, MaterialAsset, MeshVertex, ModelAsset,
+    ModelPrimitiveAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset,
+    SceneMobilityAsset, TransformAsset,
 };
-use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
+use zircon_runtime::core::math::{Vec2, Vec3};
+use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 pub(super) struct MaterialTextureCaptureTestAssets {
     pub(super) asset_manager: Arc<ProjectAssetManager>,
@@ -55,7 +55,12 @@ pub(super) fn material_capture_test_assets() -> (
     .save(paths.manifest_path())
     .unwrap();
 
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_triangle_model(
+        paths
+            .assets_root()
+            .join("models")
+            .join("triangle.model.toml"),
+    );
     write_material_asset(
         paths
             .assets_root()
@@ -105,7 +110,12 @@ pub(super) fn material_surface_response_test_assets() -> (
     .save(paths.manifest_path())
     .unwrap();
 
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_triangle_model(
+        paths
+            .assets_root()
+            .join("models")
+            .join("triangle.model.toml"),
+    );
     write_material_asset_with_surface(
         paths
             .assets_root()
@@ -191,66 +201,71 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
     .save(paths.manifest_path())
     .unwrap();
 
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_solid_png(
-        paths.assets_root().join("textures").join("base_red.png"),
+    write_triangle_model(
+        paths
+            .assets_root()
+            .join("models")
+            .join("triangle.model.toml"),
+    );
+    write_solid_ppm(
+        paths.assets_root().join("textures").join("base_red.ppm"),
         [255, 24, 16, 255],
     );
-    write_solid_png(
-        paths.assets_root().join("textures").join("base_blue.png"),
+    write_solid_ppm(
+        paths.assets_root().join("textures").join("base_blue.ppm"),
         [24, 32, 255, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("emissive_warm.png"),
+            .join("emissive_warm.ppm"),
         [255, 96, 24, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("emissive_cool.png"),
+            .join("emissive_cool.ppm"),
         [24, 96, 255, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("mr_rough_dielectric.png"),
+            .join("mr_rough_dielectric.ppm"),
         [0, 240, 16, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("mr_smooth_metallic.png"),
+            .join("mr_smooth_metallic.ppm"),
         [0, 16, 240, 255],
     );
-    write_solid_png(
-        paths.assets_root().join("textures").join("normal_flat.png"),
+    write_solid_ppm(
+        paths.assets_root().join("textures").join("normal_flat.ppm"),
         [128, 128, 255, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("normal_tilted.png"),
+            .join("normal_tilted.ppm"),
         [255, 128, 128, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("occlusion_open.png"),
+            .join("occlusion_open.ppm"),
         [255, 255, 255, 255],
     );
-    write_solid_png(
+    write_solid_ppm(
         paths
             .assets_root()
             .join("textures")
-            .join("occlusion_blocked.png"),
+            .join("occlusion_blocked.ppm"),
         [32, 32, 32, 255],
     );
 
@@ -263,7 +278,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         [0.0, 0.0, 0.0],
         0.0,
         0.5,
-        Some("res://textures/base_red.png"),
+        Some("res://textures/base_red.ppm"),
         None,
         None,
         None,
@@ -278,7 +293,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         [0.0, 0.0, 0.0],
         0.0,
         0.5,
-        Some("res://textures/base_blue.png"),
+        Some("res://textures/base_blue.ppm"),
         None,
         None,
         None,
@@ -295,7 +310,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         1.0,
         None,
         None,
-        Some("res://textures/emissive_warm.png"),
+        Some("res://textures/emissive_warm.ppm"),
         None,
         None,
     );
@@ -310,7 +325,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         1.0,
         None,
         None,
-        Some("res://textures/emissive_cool.png"),
+        Some("res://textures/emissive_cool.ppm"),
         None,
         None,
     );
@@ -324,7 +339,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         1.0,
         1.0,
         None,
-        Some("res://textures/mr_rough_dielectric.png"),
+        Some("res://textures/mr_rough_dielectric.ppm"),
         None,
         None,
         None,
@@ -339,7 +354,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         1.0,
         1.0,
         None,
-        Some("res://textures/mr_smooth_metallic.png"),
+        Some("res://textures/mr_smooth_metallic.ppm"),
         None,
         None,
         None,
@@ -356,7 +371,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
         None,
         None,
-        Some("res://textures/normal_flat.png"),
+        Some("res://textures/normal_flat.ppm"),
         None,
     );
     write_material_asset_with_textures(
@@ -371,7 +386,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
         None,
         None,
-        Some("res://textures/normal_tilted.png"),
+        Some("res://textures/normal_tilted.ppm"),
         None,
     );
     write_material_asset_with_textures(
@@ -387,7 +402,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
         None,
         None,
-        Some("res://textures/occlusion_open.png"),
+        Some("res://textures/occlusion_open.ppm"),
     );
     write_material_asset_with_textures(
         paths
@@ -402,7 +417,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         None,
         None,
         None,
-        Some("res://textures/occlusion_blocked.png"),
+        Some("res://textures/occlusion_blocked.ppm"),
     );
     write_scene_asset(
         paths.assets_root().join("scenes").join("main.scene.toml"),
@@ -468,7 +483,12 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
     .save(paths.manifest_path())
     .unwrap();
 
-    write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
+    write_triangle_model(
+        paths
+            .assets_root()
+            .join("models")
+            .join("triangle.model.toml"),
+    );
     write_material_asset_with_capture_options(
         paths
             .assets_root()
@@ -587,7 +607,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
 }
 
 pub(super) fn model_handle(asset_manager: &ProjectAssetManager) -> ResourceHandle<ModelMarker> {
-    resource_handle::<ModelMarker>(asset_manager, "res://models/triangle.obj")
+    resource_handle::<ModelMarker>(asset_manager, "res://models/triangle.model.toml")
 }
 
 fn open_test_project(root: &PathBuf) -> Arc<ProjectAssetManager> {
@@ -696,33 +716,48 @@ fn write_material_asset_with_capture_options(
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }
 
-fn write_solid_png(path: PathBuf, rgba: [u8; 4]) {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent).unwrap();
-    }
-    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 2, |_x, _y| Rgba(rgba))
-        .save_with_format(path, ImageFormat::Png)
-        .unwrap();
-}
-
-fn write_triangle_obj(path: PathBuf) {
+fn write_solid_ppm(path: PathBuf, rgba: [u8; 4]) {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).unwrap();
     }
     fs::write(
         path,
-        "\
-v 0.0 0.0 0.0
-v 1.0 0.0 0.0
-v 0.0 1.0 0.0
-vt 0.0 0.0
-vt 1.0 0.0
-vt 0.0 1.0
-vn 0.0 0.0 1.0
-f 1/1/1 2/2/1 3/3/1
-",
+        format!(
+            "P3\n2 2\n255\n{} {} {}\n{} {} {}\n{} {} {}\n{} {} {}\n",
+            rgba[0],
+            rgba[1],
+            rgba[2],
+            rgba[0],
+            rgba[1],
+            rgba[2],
+            rgba[0],
+            rgba[1],
+            rgba[2],
+            rgba[0],
+            rgba[1],
+            rgba[2]
+        ),
     )
     .unwrap();
+}
+
+fn write_triangle_model(path: PathBuf) {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    let model = ModelAsset {
+        uri: AssetUri::parse("res://models/triangle.model.toml").unwrap(),
+        primitives: vec![ModelPrimitiveAsset {
+            vertices: vec![
+                MeshVertex::new(Vec3::ZERO, Vec3::Z, Vec2::ZERO),
+                MeshVertex::new(Vec3::X, Vec3::Z, Vec2::X),
+                MeshVertex::new(Vec3::Y, Vec3::Z, Vec2::Y),
+            ],
+            indices: vec![0, 1, 2],
+            virtual_geometry: None,
+        }],
+    };
+    fs::write(path, model.to_toml_string().unwrap()).unwrap();
 }
 
 fn write_scene_asset(path: PathBuf, material_uri: &str) {
@@ -760,6 +795,9 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
             SceneEntityAsset {
                 entity: 2,
@@ -775,7 +813,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 mobility: SceneMobilityAsset::Dynamic,
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
-                    model: asset_reference("res://models/triangle.obj"),
+                    model: asset_reference("res://models/triangle.model.toml"),
                     material: asset_reference(material_uri),
                 }),
                 directional_light: None,
@@ -789,6 +827,9 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                 animation_sequence_player: None,
                 animation_graph_player: None,
                 animation_state_machine_player: None,
+                terrain: None,
+                tilemap: None,
+                prefab_instance: None,
             },
         ],
     };

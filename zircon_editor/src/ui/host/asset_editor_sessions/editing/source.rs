@@ -7,7 +7,7 @@ impl EditorUiHost {
         byte_offset: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -29,7 +29,7 @@ impl EditorUiHost {
     ) -> Result<(), EditorError> {
         let next_source = next_source.into();
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;

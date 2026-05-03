@@ -79,27 +79,7 @@ impl AssetImporterHandler for NativeAssetImporterHandler {
             return Err(native_status_error(status, &report.diagnostics.join("; ")));
         }
         let response = decode_response(&payload)?;
-        if response.importer_id != self.descriptor.id {
-            return Err(AssetImportError::Native(format!(
-                "native importer response id {} did not match {}",
-                response.importer_id, self.descriptor.id
-            )));
-        }
-        let actual_kind = asset_kind_for_imported_asset(&response.imported_asset);
-        if !self.descriptor.allows_output_kind(actual_kind) {
-            return Err(AssetImportError::Native(format!(
-                "native importer {} returned {actual_kind:?}, expected {:?}",
-                self.descriptor.id, self.descriptor.output_kind
-            )));
-        }
-        let mut outcome = AssetImportOutcome::new(response.imported_asset);
-        outcome.diagnostics.extend(
-            response
-                .diagnostics
-                .into_iter()
-                .map(|message| crate::core::resource::ResourceDiagnostic::error(message)),
-        );
-        Ok(outcome)
+        native_response_to_outcome(&self.descriptor, response)
     }
 }
 
@@ -172,12 +152,39 @@ fn native_status_error(status: u32, detail: &str) -> AssetImportError {
     ))
 }
 
+fn native_response_to_outcome(
+    descriptor: &AssetImporterDescriptor,
+    response: NativeAssetImportResponseMetadata,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    if response.importer_id != descriptor.id {
+        return Err(AssetImportError::Native(format!(
+            "native importer response id {} did not match {}",
+            response.importer_id, descriptor.id
+        )));
+    }
+    let actual_kind = asset_kind_for_imported_asset(&response.imported_asset);
+    if !descriptor.allows_output_kind(actual_kind) {
+        return Err(AssetImportError::Native(format!(
+            "native importer {} returned {actual_kind:?}, expected {:?}",
+            descriptor.id, descriptor.output_kind
+        )));
+    }
+    let mut outcome = AssetImportOutcome::new(response.imported_asset);
+    outcome.diagnostics.extend(
+        response
+            .diagnostics
+            .into_iter()
+            .map(|message| crate::core::resource::ResourceDiagnostic::error(message)),
+    );
+    Ok(outcome)
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::asset::{AssetUri, DataAsset, DataAssetFormat, ImportedAsset};
+    use crate::asset::{AssetKind, AssetUri, DataAsset, DataAssetFormat, ImportedAsset};
 
     #[test]
     fn native_import_request_envelope_roundtrips_metadata_and_source_bytes() {
@@ -221,5 +228,79 @@ mod tests {
         let decoded = decode_response(&encoded).expect("decoded response");
 
         assert_eq!(decoded, metadata);
+    }
+
+    #[test]
+    fn native_import_response_envelope_rejects_reserved_artifact_bytes() {
+        let metadata = fixture_native_response("fixture.data", ImportedAsset::Data(fixture_data()));
+        let encoded =
+            encode_envelope(RESPONSE_MAGIC, &metadata, b"artifact").expect("encoded response");
+
+        let error = decode_response(&encoded).expect_err("artifact bytes are reserved");
+
+        assert!(error.to_string().contains("reserved"));
+    }
+
+    #[test]
+    fn native_import_response_rejects_mismatched_importer_id() {
+        let descriptor =
+            AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
+                .with_source_extensions(["fixture"]);
+        let response = fixture_native_response("other.data", ImportedAsset::Data(fixture_data()));
+
+        let error = native_response_to_outcome(&descriptor, response).expect_err("id mismatch");
+
+        assert!(error.to_string().contains("did not match fixture.data"));
+    }
+
+    #[test]
+    fn native_import_response_rejects_wrong_output_kind() {
+        let descriptor =
+            AssetImporterDescriptor::new("fixture.model", "fixture", AssetKind::Model, 1)
+                .with_source_extensions(["fixture"]);
+        let response =
+            fixture_native_response("fixture.model", ImportedAsset::Data(fixture_data()));
+
+        let error = native_response_to_outcome(&descriptor, response).expect_err("wrong kind");
+
+        assert!(error.to_string().contains("returned Data"));
+        assert!(error.to_string().contains("expected Model"));
+    }
+
+    #[test]
+    fn native_import_response_converts_diagnostics_to_resource_diagnostics() {
+        let descriptor =
+            AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
+                .with_source_extensions(["fixture"]);
+        let mut response =
+            fixture_native_response("fixture.data", ImportedAsset::Data(fixture_data()));
+        response.diagnostics.push("native warning".to_string());
+
+        let outcome = native_response_to_outcome(&descriptor, response).expect("valid response");
+
+        assert!(outcome
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.message == "native warning"));
+    }
+
+    fn fixture_native_response(
+        importer_id: &str,
+        imported_asset: ImportedAsset,
+    ) -> NativeAssetImportResponseMetadata {
+        NativeAssetImportResponseMetadata {
+            importer_id: importer_id.to_string(),
+            imported_asset,
+            diagnostics: Vec::new(),
+        }
+    }
+
+    fn fixture_data() -> DataAsset {
+        DataAsset {
+            uri: AssetUri::parse("res://assets/weather.fixture").unwrap(),
+            format: DataAssetFormat::Json,
+            text: "{\"temperature\":21}".to_string(),
+            canonical_json: json!({ "temperature": 21 }),
+        }
     }
 }

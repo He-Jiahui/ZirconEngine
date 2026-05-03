@@ -74,7 +74,7 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
     );
 
     let scrolled = pointer_bridge
-        .handle_scroll(UiPoint::new(240.0, 110.0), 420.0)
+        .handle_scroll(UiPoint::new(280.0, 110.0), 420.0)
         .expect("window popup should accept shared scroll input");
     assert!(scrolled.state.popup_scroll_offset > 0.0);
 
@@ -85,7 +85,7 @@ fn shared_menu_pointer_click_dispatches_scrolled_window_preset_selection() {
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
-        UiPoint::new(240.0, click_y),
+        UiPoint::new(280.0, click_y),
     )
     .expect("shared pointer route should dispatch a scrolled preset selection");
     assert_eq!(

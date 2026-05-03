@@ -1,5 +1,6 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, RuntimePluginId,
+    RuntimeTargetMode,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

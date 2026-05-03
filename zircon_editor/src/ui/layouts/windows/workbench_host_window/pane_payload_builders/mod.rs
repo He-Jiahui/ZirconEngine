@@ -1,5 +1,6 @@
 mod animation_graph;
 mod animation_sequence;
+mod build_export;
 mod component_showcase;
 mod console;
 mod hierarchy;
@@ -24,6 +25,7 @@ pub(super) fn build_payload(
         PanePayloadKind::AnimationGraphV1 => animation_graph::build(context),
         PanePayloadKind::RuntimeDiagnosticsV1 => runtime_diagnostics::build(context),
         PanePayloadKind::ModulePluginsV1 => module_plugins::build(context),
+        PanePayloadKind::BuildExportV1 => build_export::build(context),
         PanePayloadKind::UiComponentShowcaseV1 => component_showcase::build(context),
     }
 }

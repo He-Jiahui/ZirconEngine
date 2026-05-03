@@ -20,6 +20,7 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.animation_graph" => ViewContentKind::AnimationGraphEditor,
         "editor.runtime_diagnostics" => ViewContentKind::RuntimeDiagnostics,
         "editor.module_plugins" => ViewContentKind::ModulePlugins,
+        "editor.build_export_desktop" => ViewContentKind::BuildExport,
         _ => ViewContentKind::Placeholder,
     }
 }

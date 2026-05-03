@@ -83,7 +83,7 @@ impl NativePluginLoader {
         export_root: impl AsRef<Path>,
     ) -> NativePluginLoadReport {
         let report = self.discover_from_load_manifest(export_root);
-        self.load_candidates_for_module_kinds(report, &[crate::PluginModuleKind::Runtime])
+        self.load_candidates_for_module_kinds(report, &[crate::plugin::PluginModuleKind::Runtime])
     }
 
     pub fn load_editor_from_load_manifest(
@@ -91,7 +91,7 @@ impl NativePluginLoader {
         export_root: impl AsRef<Path>,
     ) -> NativePluginLoadReport {
         let report = self.discover_from_load_manifest(export_root);
-        self.load_candidates_for_module_kinds(report, &[crate::PluginModuleKind::Editor])
+        self.load_candidates_for_module_kinds(report, &[crate::plugin::PluginModuleKind::Editor])
     }
 }
 

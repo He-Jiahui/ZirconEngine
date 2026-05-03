@@ -547,7 +547,7 @@ impl World {
                 }
                 rigid_body.lock_rotation[axis] = next;
             }
-            _ => return unknown_property_error(property_path),
+            _ => return self.set_dynamic_component_property(entity, property_path, value),
         }
         self.refresh_node_cache();
         Ok(true)

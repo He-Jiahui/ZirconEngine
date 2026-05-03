@@ -1,18 +1,14 @@
 use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavMeshPolygonAsset};
 use zircon_runtime::core::framework::navigation::{
-    NavAreaId, NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery,
-    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind,
-    AREA_WALKABLE,
+    NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery, NavRaycastResult,
+    NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind, AREA_WALKABLE,
 };
 use zircon_runtime::core::math::Real;
 
-mod ffi {
-    extern "C" {
-        pub fn zr_nav_recast_bridge_version() -> u32;
-        pub fn zr_nav_recast_runtime_modules_smoke() -> u32;
-        pub fn zr_nav_recast_polyline_length(xyz: *const f32, point_count: u64) -> f32;
-    }
-}
+mod bake;
+mod ffi;
+
+pub use bake::{RecastBakeInput, RecastBakeMeshInput};
 
 pub fn native_backend_version() -> u32 {
     unsafe { ffi::zr_nav_recast_bridge_version() }
@@ -25,71 +21,13 @@ pub fn native_runtime_modules_available() -> bool {
 #[derive(Clone, Debug, Default)]
 pub struct RecastBackend;
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct RecastBakeInput {
-    pub agent_type: String,
-    pub source_vertices: usize,
-    pub source_triangles: usize,
-    pub half_extent: Real,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RecastBakeMeshInput {
-    pub agent_type: String,
-    pub vertices: Vec<[Real; 3]>,
-    pub indices: Vec<u32>,
-    pub triangle_areas: Vec<NavAreaId>,
-    pub default_area: NavAreaId,
-}
-
 impl RecastBackend {
-    pub fn bake_simple_surface(
-        &self,
-        input: RecastBakeInput,
-    ) -> Result<NavMeshAsset, NavigationError> {
-        if input.half_extent <= 0.0 || !input.half_extent.is_finite() {
-            return Err(NavigationError::new(
-                NavigationErrorKind::InvalidConfiguration,
-                "navigation bake half_extent must be positive and finite",
-            ));
-        }
-        Ok(NavMeshAsset::simple_quad(
-            input.agent_type,
-            input.half_extent,
-        ))
-    }
-
-    pub fn bake_triangle_mesh(
-        &self,
-        input: RecastBakeMeshInput,
-    ) -> Result<NavMeshAsset, NavigationError> {
-        if input.vertices.is_empty() || input.indices.len() < 3 {
-            return Err(NavigationError::new(
-                NavigationErrorKind::BakeFailed,
-                "navigation bake source mesh has no triangles",
-            ));
-        }
-        let asset = NavMeshAsset::from_triangle_mesh_with_areas(
-            input.agent_type,
-            input.vertices,
-            input.indices,
-            input.triangle_areas,
-            input.default_area,
-        );
-        if asset.is_empty() {
-            return Err(NavigationError::new(
-                NavigationErrorKind::BakeFailed,
-                "navigation bake source mesh has no valid indexed triangles",
-            ));
-        }
-        Ok(asset)
-    }
-
     pub fn find_path(
         &self,
         asset: &NavMeshAsset,
         query: &NavPathQuery,
     ) -> Result<NavPathResult, NavigationError> {
+        validate_query_agent(asset, &query.agent_type)?;
         if asset.is_empty() {
             return Ok(NavPathResult::no_path());
         }
@@ -100,7 +38,7 @@ impl RecastBackend {
         let Some(end_polygon) = nearest_allowed_polygon(asset, query.end, query.area_mask) else {
             return Ok(NavPathResult::no_path());
         };
-        let graph = build_polygon_graph(asset, query.area_mask);
+        let graph = build_polygon_graph(asset, query.area_mask, true);
         let Some(route) = shortest_polygon_route(&graph, start_polygon, end_polygon) else {
             return Ok(NavPathResult::no_path());
         };
@@ -119,25 +57,23 @@ impl RecastBackend {
         asset: &NavMeshAsset,
         query: &NavSampleQuery,
     ) -> Result<Option<NavSampleHit>, NavigationError> {
+        validate_query_agent(asset, &query.agent_type)?;
         if asset.is_empty() {
             return Ok(None);
         }
-        let Some((min, max)) = asset_bounds(asset) else {
+        let Some((polygon, position, distance)) =
+            nearest_allowed_polygon_sample(asset, query.position, query.area_mask)
+        else {
             return Ok(None);
         };
-        let position = [
-            query.position[0].clamp(min[0], max[0]),
-            query.position[1].clamp(min[1], max[1]),
-            query.position[2].clamp(min[2], max[2]),
-        ];
-        let distance = distance(query.position, position);
         let inside_extents =
             distance <= query.extents[0].max(query.extents[1]).max(query.extents[2]);
         Ok(inside_extents.then_some(NavSampleHit {
             position,
             distance,
-            area: nearest_allowed_polygon(asset, position, query.area_mask)
-                .and_then(|polygon| asset.polygons.get(polygon))
+            area: asset
+                .polygons
+                .get(polygon)
                 .map(|polygon| polygon.area)
                 .unwrap_or(AREA_WALKABLE),
         }))
@@ -148,6 +84,7 @@ impl RecastBackend {
         asset: &NavMeshAsset,
         query: &NavRaycastQuery,
     ) -> Result<NavRaycastResult, NavigationError> {
+        validate_query_agent(asset, &query.agent_type)?;
         if asset.is_empty() {
             return Ok(NavRaycastResult {
                 hit: true,
@@ -156,22 +93,21 @@ impl RecastBackend {
                 distance: 0.0,
             });
         }
-        let path = self.find_path(
-            asset,
-            &NavPathQuery {
-                nav_mesh: query.nav_mesh,
-                start: query.start,
-                end: query.end,
-                agent_type: query.agent_type.clone(),
-                area_mask: query.area_mask,
-            },
-        )?;
-        if path.status == NavPathStatus::NoPath {
+        let Some(start_polygon) = containing_allowed_polygon(asset, query.start, query.area_mask)
+        else {
             return Ok(NavRaycastResult {
                 hit: true,
                 position: query.start,
                 normal: [0.0, 1.0, 0.0],
                 distance: 0.0,
+            });
+        };
+        if let Some(hit) = first_straight_line_block(asset, query, start_polygon) {
+            return Ok(NavRaycastResult {
+                hit: true,
+                position: hit,
+                normal: [0.0, 1.0, 0.0],
+                distance: distance(query.start, hit),
             });
         }
         Ok(NavRaycastResult {
@@ -183,8 +119,38 @@ impl RecastBackend {
     }
 }
 
-fn area_allowed(mask: u64, area: u8) -> bool {
-    area < 64 && (mask & (1_u64 << area)) != 0
+fn validate_query_agent(asset: &NavMeshAsset, agent_type: &str) -> Result<(), NavigationError> {
+    if asset.agent_type == agent_type {
+        return Ok(());
+    }
+    Err(NavigationError::new(
+        NavigationErrorKind::InvalidConfiguration,
+        format!(
+            "query agent type `{agent_type}` does not match navmesh agent type `{}`",
+            asset.agent_type
+        ),
+    ))
+}
+
+fn area_allowed(asset: &NavMeshAsset, mask: u64, area: u8) -> bool {
+    if area >= 64 || (mask & (1_u64 << area)) == 0 {
+        return false;
+    }
+    asset
+        .area_costs
+        .iter()
+        .find(|cost| cost.area == area)
+        .map(|cost| cost.walkable)
+        .unwrap_or(area != 0)
+}
+
+fn area_cost(asset: &NavMeshAsset, area: u8) -> Real {
+    asset
+        .area_costs
+        .iter()
+        .find(|cost| cost.area == area)
+        .map(|cost| cost.cost.max(0.001))
+        .unwrap_or(1.0)
 }
 
 #[derive(Clone, Debug)]
@@ -214,7 +180,7 @@ fn nearest_allowed_polygon(asset: &NavMeshAsset, position: [Real; 3], mask: u64)
     let mut best_inside = None;
     let mut best_distance = Real::INFINITY;
     for (index, polygon) in asset.polygons.iter().enumerate() {
-        if !area_allowed(mask, polygon.area) {
+        if !area_allowed(asset, mask, polygon.area) {
             continue;
         }
         if point_in_polygon_xz(asset, polygon, position) {
@@ -231,14 +197,33 @@ fn nearest_allowed_polygon(asset: &NavMeshAsset, position: [Real; 3], mask: u64)
     best_inside
 }
 
-fn build_polygon_graph(asset: &NavMeshAsset, mask: u64) -> Vec<Vec<PolygonEdge>> {
+fn containing_allowed_polygon(
+    asset: &NavMeshAsset,
+    position: [Real; 3],
+    mask: u64,
+) -> Option<usize> {
+    asset
+        .polygons
+        .iter()
+        .enumerate()
+        .find(|(_, polygon)| {
+            area_allowed(asset, mask, polygon.area) && point_in_polygon_xz(asset, polygon, position)
+        })
+        .map(|(index, _)| index)
+}
+
+fn build_polygon_graph(
+    asset: &NavMeshAsset,
+    mask: u64,
+    include_off_mesh_links: bool,
+) -> Vec<Vec<PolygonEdge>> {
     let mut graph = vec![Vec::new(); asset.polygons.len()];
     for (left_index, left) in asset.polygons.iter().enumerate() {
-        if !area_allowed(mask, left.area) {
+        if !area_allowed(asset, mask, left.area) {
             continue;
         }
         for (right_index, right) in asset.polygons.iter().enumerate().skip(left_index + 1) {
-            if !area_allowed(mask, right.area) {
+            if !area_allowed(asset, mask, right.area) {
                 continue;
             }
             if shared_vertex_count(asset, left, right) >= 2 {
@@ -256,8 +241,10 @@ fn build_polygon_graph(asset: &NavMeshAsset, mask: u64) -> Vec<Vec<PolygonEdge>>
             }
         }
     }
-    for link in &asset.off_mesh_links {
-        add_off_mesh_link_edges(asset, mask, &mut graph, link);
+    if include_off_mesh_links {
+        for link in &asset.off_mesh_links {
+            add_off_mesh_link_edges(asset, mask, &mut graph, link);
+        }
     }
     graph
 }
@@ -268,7 +255,7 @@ fn add_off_mesh_link_edges(
     graph: &mut [Vec<PolygonEdge>],
     link: &NavMeshLinkAsset,
 ) {
-    if !area_allowed(mask, link.area) {
+    if !area_allowed(asset, mask, link.area) {
         return;
     }
     let Some(start_polygon) = nearest_allowed_polygon(asset, link.start, mask) else {
@@ -282,7 +269,7 @@ fn add_off_mesh_link_edges(
     }
     let cost = link
         .cost_override
-        .unwrap_or_else(|| distance(link.start, link.end));
+        .unwrap_or_else(|| distance(link.start, link.end) * area_cost(asset, link.area));
     graph[start_polygon].push(PolygonEdge {
         to: end_polygon,
         cost,
@@ -428,9 +415,96 @@ fn polygon_edge_cost(
             .get(right_index)
             .and_then(|polygon| polygon_centroid(asset, polygon));
         left.zip(right)
-            .map(|(left, right)| distance(left, right))
+            .map(|(left, right)| {
+                let right_area = asset
+                    .polygons
+                    .get(right_index)
+                    .map(|polygon| polygon.area)
+                    .unwrap_or(AREA_WALKABLE);
+                distance(left, right) * area_cost(asset, right_area)
+            })
             .unwrap_or(1.0)
     })
+}
+
+fn nearest_allowed_polygon_sample(
+    asset: &NavMeshAsset,
+    position: [Real; 3],
+    mask: u64,
+) -> Option<(usize, [Real; 3], Real)> {
+    let mut best = None;
+    let mut best_distance = Real::INFINITY;
+    for (index, polygon) in asset.polygons.iter().enumerate() {
+        if !area_allowed(asset, mask, polygon.area) {
+            continue;
+        }
+        if let Some(sample) = closest_point_on_polygon_xz(asset, polygon, position) {
+            let distance = distance(position, sample);
+            if distance < best_distance {
+                best_distance = distance;
+                best = Some((index, sample, distance));
+            }
+        }
+    }
+    best
+}
+
+fn closest_point_on_polygon_xz(
+    asset: &NavMeshAsset,
+    polygon: &NavMeshPolygonAsset,
+    point: [Real; 3],
+) -> Option<[Real; 3]> {
+    let indices = polygon_indices(asset, polygon);
+    let mut best = None;
+    let mut best_distance = Real::INFINITY;
+    for triangle in indices.chunks(3).filter(|triangle| triangle.len() == 3) {
+        let Some(sample) = closest_point_on_triangle_xz(asset, triangle, point) else {
+            continue;
+        };
+        let distance = distance(point, sample);
+        if distance < best_distance {
+            best_distance = distance;
+            best = Some(sample);
+        }
+    }
+    best
+}
+
+fn closest_point_on_triangle_xz(
+    asset: &NavMeshAsset,
+    indices: &[usize],
+    point: [Real; 3],
+) -> Option<[Real; 3]> {
+    let a = asset.vertices.get(indices[0]).copied()?;
+    let b = asset.vertices.get(indices[1]).copied()?;
+    let c = asset.vertices.get(indices[2]).copied()?;
+    if point_in_triangle_xz(asset, indices, point) {
+        let weights = barycentric_xz(a, b, c, point)?;
+        return Some(interpolate_triangle(a, b, c, weights));
+    }
+    [
+        closest_point_on_segment_xz(a, b, point),
+        closest_point_on_segment_xz(b, c, point),
+        closest_point_on_segment_xz(c, a, point),
+    ]
+    .into_iter()
+    .min_by(|left, right| distance(point, *left).total_cmp(&distance(point, *right)))
+}
+
+fn closest_point_on_segment_xz(a: [Real; 3], b: [Real; 3], point: [Real; 3]) -> [Real; 3] {
+    let ab = [b[0] - a[0], b[2] - a[2]];
+    let ap = [point[0] - a[0], point[2] - a[2]];
+    let length_sq = ab[0] * ab[0] + ab[1] * ab[1];
+    let t = if length_sq <= Real::EPSILON {
+        0.0
+    } else {
+        ((ap[0] * ab[0] + ap[1] * ab[1]) / length_sq).clamp(0.0, 1.0)
+    };
+    [
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t,
+    ]
 }
 
 fn shared_vertex_count(
@@ -467,18 +541,76 @@ fn point_in_triangle_xz(asset: &NavMeshAsset, indices: &[usize], point: [Real; 3
     let Some(c) = asset.vertices.get(indices[2]).copied() else {
         return false;
     };
+    let Some((u, v, w)) = barycentric_xz(a, b, c, point) else {
+        return false;
+    };
+    u >= -Real::EPSILON && v >= -Real::EPSILON && w >= -Real::EPSILON
+}
+
+fn barycentric_xz(
+    a: [Real; 3],
+    b: [Real; 3],
+    c: [Real; 3],
+    point: [Real; 3],
+) -> Option<(Real, Real, Real)> {
     let p = [point[0], point[2]];
     let a = [a[0], a[2]];
     let b = [b[0], b[2]];
     let c = [c[0], c[2]];
     let denominator = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
     if denominator.abs() <= Real::EPSILON {
-        return false;
+        return None;
     }
     let u = ((b[1] - c[1]) * (p[0] - c[0]) + (c[0] - b[0]) * (p[1] - c[1])) / denominator;
     let v = ((c[1] - a[1]) * (p[0] - c[0]) + (a[0] - c[0]) * (p[1] - c[1])) / denominator;
     let w = 1.0 - u - v;
-    u >= -Real::EPSILON && v >= -Real::EPSILON && w >= -Real::EPSILON
+    Some((u, v, w))
+}
+
+fn interpolate_triangle(
+    a: [Real; 3],
+    b: [Real; 3],
+    c: [Real; 3],
+    (u, v, w): (Real, Real, Real),
+) -> [Real; 3] {
+    [
+        a[0] * u + b[0] * v + c[0] * w,
+        a[1] * u + b[1] * v + c[1] * w,
+        a[2] * u + b[2] * v + c[2] * w,
+    ]
+}
+
+fn first_straight_line_block(
+    asset: &NavMeshAsset,
+    query: &NavRaycastQuery,
+    start_polygon: usize,
+) -> Option<[Real; 3]> {
+    const STEPS: usize = 32;
+    let mut previous_polygon = start_polygon;
+    for step in 1..=STEPS {
+        let t = step as Real / STEPS as Real;
+        let point = lerp(query.start, query.end, t);
+        let Some(current_polygon) = containing_allowed_polygon(asset, point, query.area_mask)
+        else {
+            return Some(point);
+        };
+        if current_polygon != previous_polygon {
+            let graph = build_polygon_graph(asset, query.area_mask, false);
+            if shortest_polygon_route(&graph, previous_polygon, current_polygon).is_none() {
+                return Some(point);
+            }
+            previous_polygon = current_polygon;
+        }
+    }
+    None
+}
+
+fn lerp(from: [Real; 3], to: [Real; 3], t: Real) -> [Real; 3] {
+    [
+        from[0] + (to[0] - from[0]) * t,
+        from[1] + (to[1] - from[1]) * t,
+        from[2] + (to[2] - from[2]) * t,
+    ]
 }
 
 fn polygon_centroid(asset: &NavMeshAsset, polygon: &NavMeshPolygonAsset) -> Option<[Real; 3]> {
@@ -502,20 +634,6 @@ fn polygon_indices(asset: &NavMeshAsset, polygon: &NavMeshPolygonAsset) -> Vec<u
         .iter()
         .map(|index| *index as usize)
         .collect()
-}
-
-fn asset_bounds(asset: &NavMeshAsset) -> Option<([Real; 3], [Real; 3])> {
-    let mut vertices = asset.vertices.iter();
-    let first = *vertices.next()?;
-    let mut min = first;
-    let mut max = first;
-    for vertex in vertices {
-        for axis in 0..3 {
-            min[axis] = min[axis].min(vertex[axis]);
-            max[axis] = max[axis].max(vertex[axis]);
-        }
-    }
-    Some((min, max))
 }
 
 fn distance(from: [Real; 3], to: [Real; 3]) -> Real {
@@ -551,8 +669,9 @@ fn native_polyline_length(points: &[NavPathPoint]) -> Real {
 
 #[cfg(test)]
 mod tests {
+    use zircon_runtime::asset::NavMeshAreaCostAsset;
     use zircon_runtime::core::framework::navigation::{
-        NavPathQuery, NavSampleQuery, AREA_JUMP, AREA_WALKABLE, DEFAULT_AREA_MASK,
+        NavPathQuery, NavRaycastQuery, NavSampleQuery, AREA_JUMP, AREA_WALKABLE, DEFAULT_AREA_MASK,
     };
 
     use super::*;
@@ -646,11 +765,202 @@ mod tests {
         assert_eq!(hit.position, [5.0, 0.0, 0.0]);
     }
 
+    #[test]
+    fn mismatched_agent_type_returns_structured_error() {
+        let backend = RecastBackend;
+        let asset = NavMeshAsset::simple_quad("humanoid", 5.0);
+        let mut query = NavPathQuery::new([0.0, 0.0, 0.0], [1.0, 0.0, 0.0]);
+        query.agent_type = "large_creature".to_string();
+
+        let error = backend.find_path(&asset, &query).unwrap_err();
+
+        assert_eq!(error.kind, NavigationErrorKind::InvalidConfiguration);
+    }
+
+    #[test]
+    fn navmesh_asset_binary_roundtrip_is_deterministic() {
+        let asset = two_island_asset(true);
+        let bytes = asset.to_bytes().unwrap();
+        let roundtrip = NavMeshAsset::from_bytes(&bytes).unwrap();
+
+        assert_eq!(roundtrip, asset);
+        assert_eq!(roundtrip.to_bytes().unwrap(), bytes);
+    }
+
+    #[test]
+    fn sample_position_uses_nearest_polygon_not_gap_aabb() {
+        let backend = RecastBackend;
+        let asset = two_island_asset(false);
+
+        let hit = backend
+            .sample_position(
+                &asset,
+                &NavSampleQuery {
+                    nav_mesh: None,
+                    position: [4.0, 0.0, 0.0],
+                    extents: [5.0, 1.0, 5.0],
+                    agent_type: "humanoid".to_string(),
+                    area_mask: DEFAULT_AREA_MASK,
+                },
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_ne!(hit.position, [4.0, 0.0, 0.0]);
+        assert!(hit.position[0] < 2.0 || hit.position[0] > 6.0);
+    }
+
+    #[test]
+    fn raycast_ignores_offmesh_links_for_straight_visibility() {
+        let backend = RecastBackend;
+        let asset = two_island_asset(true);
+
+        let result = backend
+            .raycast(
+                &asset,
+                &NavRaycastQuery {
+                    nav_mesh: None,
+                    start: [0.0, 0.0, 0.0],
+                    end: [8.0, 0.0, 0.0],
+                    agent_type: "humanoid".to_string(),
+                    area_mask: DEFAULT_AREA_MASK,
+                },
+            )
+            .unwrap();
+
+        assert!(result.hit);
+    }
+
+    #[test]
+    fn sample_position_projects_vertical_query_onto_polygon_plane() {
+        let backend = RecastBackend;
+        let asset = NavMeshAsset::simple_quad("humanoid", 5.0);
+
+        let hit = backend
+            .sample_position(
+                &asset,
+                &NavSampleQuery {
+                    nav_mesh: None,
+                    position: [0.0, 3.0, 0.0],
+                    extents: [1.0, 5.0, 1.0],
+                    agent_type: "humanoid".to_string(),
+                    area_mask: DEFAULT_AREA_MASK,
+                },
+            )
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(hit.position, [0.0, 0.0, 0.0]);
+        assert_eq!(hit.distance, 3.0);
+    }
+
+    #[test]
+    fn sample_position_projects_to_triangle_edge_not_polygon_aabb_gap() {
+        let backend = RecastBackend;
+        let asset = NavMeshAsset::from_triangle_mesh(
+            "humanoid",
+            vec![[0.0, 0.0, 0.0], [4.0, 0.0, 0.0], [0.0, 0.0, 4.0]],
+            vec![0, 1, 2],
+            AREA_WALKABLE,
+        );
+
+        let hit = backend
+            .sample_position(
+                &asset,
+                &NavSampleQuery {
+                    nav_mesh: None,
+                    position: [3.5, 0.0, 3.5],
+                    extents: [10.0, 1.0, 10.0],
+                    agent_type: "humanoid".to_string(),
+                    area_mask: DEFAULT_AREA_MASK,
+                },
+            )
+            .unwrap()
+            .unwrap();
+
+        assert!((hit.position[0] + hit.position[2] - 4.0).abs() < 0.001);
+        assert_ne!(hit.position, [3.5, 0.0, 3.5]);
+    }
+
+    #[test]
+    fn raycast_reports_gap_between_connected_islands_as_hit() {
+        let backend = RecastBackend;
+        let asset = two_island_asset(false);
+
+        let result = backend
+            .raycast(
+                &asset,
+                &NavRaycastQuery {
+                    nav_mesh: None,
+                    start: [0.0, 0.0, 0.0],
+                    end: [1.5, 0.0, 0.0],
+                    agent_type: "humanoid".to_string(),
+                    area_mask: DEFAULT_AREA_MASK,
+                },
+            )
+            .unwrap();
+
+        assert!(result.hit);
+        assert!(result.position[0] > 1.0);
+    }
+
+    #[test]
+    fn triangle_mesh_bake_filters_steep_faces_through_recast_rasterization() {
+        let backend = RecastBackend;
+
+        let asset = backend
+            .bake_triangle_mesh(RecastBakeMeshInput {
+                agent_type: "humanoid".to_string(),
+                vertices: vec![
+                    [-2.0, 0.0, -2.0],
+                    [2.0, 0.0, -2.0],
+                    [2.0, 0.0, 2.0],
+                    [-2.0, 0.0, 2.0],
+                    [6.0, 0.0, -1.0],
+                    [6.0, 3.0, -1.0],
+                    [6.0, 3.0, 1.0],
+                    [6.0, 0.0, 1.0],
+                ],
+                indices: vec![0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7],
+                triangle_areas: vec![AREA_WALKABLE; 4],
+                default_area: AREA_WALKABLE,
+            })
+            .unwrap();
+
+        assert!(asset.polygons.len() < 4);
+        let baked_vertices = asset
+            .debug_triangles()
+            .iter()
+            .flat_map(|triangle| triangle.vertices)
+            .collect::<Vec<_>>();
+        let min_y = baked_vertices
+            .iter()
+            .map(|vertex| vertex[1])
+            .fold(Real::INFINITY, Real::min);
+        let max_y = baked_vertices
+            .iter()
+            .map(|vertex| vertex[1])
+            .fold(Real::NEG_INFINITY, Real::max);
+        assert!(max_y - min_y < 0.5);
+    }
+
     fn two_island_asset(with_link: bool) -> NavMeshAsset {
         let mut asset = NavMeshAsset {
             version: NavMeshAsset::VERSION,
             agent_type: "humanoid".to_string(),
             settings_hash: 0,
+            area_costs: vec![
+                NavMeshAreaCostAsset {
+                    area: AREA_WALKABLE,
+                    cost: 1.0,
+                    walkable: true,
+                },
+                NavMeshAreaCostAsset {
+                    area: AREA_JUMP,
+                    cost: 2.0,
+                    walkable: true,
+                },
+            ],
             vertices: vec![
                 [-1.0, 0.0, -1.0],
                 [1.0, 0.0, -1.0],

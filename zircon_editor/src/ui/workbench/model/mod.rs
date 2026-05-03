@@ -32,6 +32,7 @@ pub use host_page_tab_model::HostPageTabModel;
 pub use main_host_strip_model::MainHostStripModel;
 pub use main_host_strip_view_model::MainHostStripViewModel;
 pub use menu_bar_model::MenuBarModel;
+pub(crate) use menu_item_model::operation_path_for_menu_action;
 pub use menu_item_model::MenuItemModel;
 pub use menu_model::MenuModel;
 pub use pane_action_model::PaneActionModel;

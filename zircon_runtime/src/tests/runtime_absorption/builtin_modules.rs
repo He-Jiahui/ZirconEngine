@@ -1,6 +1,6 @@
 use crate::{
-    builtin_runtime_modules, runtime_modules_for_target, plugin::ProjectPluginManifest,
-    plugin::ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode,
+    builtin_runtime_modules, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    runtime_modules_for_target, RuntimePluginId, RuntimeTargetMode,
 };
 
 #[test]

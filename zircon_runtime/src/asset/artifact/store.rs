@@ -115,6 +115,7 @@ fn serialize_asset(asset: &ImportedAsset) -> Result<Vec<u8>, AssetImportError> {
         ImportedAsset::AnimationStateMachine(asset) => {
             asset.to_bytes().map_err(AssetImportError::Parse)
         }
+        ImportedAsset::NavMesh(asset) => asset.to_bytes().map_err(AssetImportError::Parse),
         ImportedAsset::NavigationSettings(asset) => toml::to_string_pretty(asset)
             .map(|document| document.into_bytes())
             .map_err(|error| AssetImportError::Parse(error.to_string())),
@@ -145,6 +146,9 @@ fn deserialize_asset(path: &str, payload: &[u8]) -> Result<ImportedAsset, AssetI
                 .map(ImportedAsset::AnimationStateMachine)
                 .map_err(AssetImportError::Parse)
         }
+        Some(AssetKind::NavMesh) => crate::asset::NavMeshAsset::from_bytes(payload)
+            .map(ImportedAsset::NavMesh)
+            .map_err(AssetImportError::Parse),
         Some(AssetKind::NavigationSettings) => {
             let document = std::str::from_utf8(payload)
                 .map_err(|error| AssetImportError::Parse(error.to_string()))?;

@@ -336,6 +336,52 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
 }
 
 #[test]
+fn builtin_editor_catalog_declares_authoring_plugin_capabilities() {
+    let descriptors = EditorPluginDescriptor::builtin_catalog();
+
+    for (package_id, crate_name, capability) in [
+        (
+            "terrain",
+            "zircon_plugin_terrain_editor",
+            "editor.extension.terrain_authoring",
+        ),
+        (
+            "tilemap_2d",
+            "zircon_plugin_tilemap_2d_editor",
+            "editor.extension.tilemap_2d_authoring",
+        ),
+        (
+            "material_editor",
+            "zircon_plugin_material_editor_editor",
+            "editor.extension.material_editor_authoring",
+        ),
+        (
+            "prefab_tools",
+            "zircon_plugin_prefab_tools_editor",
+            "editor.extension.prefab_tools_authoring",
+        ),
+        (
+            "timeline_sequence",
+            "zircon_plugin_timeline_sequence_editor",
+            "editor.extension.timeline_sequence_authoring",
+        ),
+        (
+            "animation_graph",
+            "zircon_plugin_animation_graph_editor",
+            "editor.extension.animation_graph_authoring",
+        ),
+    ] {
+        let descriptor = descriptors
+            .iter()
+            .find(|descriptor| descriptor.package_id == package_id)
+            .expect("authoring editor plugin should be in builtin editor catalog");
+
+        assert_eq!(descriptor.crate_name, crate_name);
+        assert_eq!(descriptor.capabilities, vec![capability.to_string()]);
+    }
+}
+
+#[test]
 fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::with_enabled_subsystems(

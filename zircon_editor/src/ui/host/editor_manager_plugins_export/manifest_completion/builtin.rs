@@ -1,5 +1,5 @@
 use zircon_runtime::asset::project::ProjectManifest;
-use zircon_runtime::PluginModuleKind;
+use zircon_runtime::plugin::PluginModuleKind;
 
 use super::super::super::editor_manager::EditorManager;
 use super::super::package_projection::{module_crate, project_selection_from_package};

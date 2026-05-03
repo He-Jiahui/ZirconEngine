@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
-const ASSET_META_FORMAT_VERSION: u32 = 2;
+const ASSET_META_FORMAT_VERSION: u32 = 3;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -21,10 +21,14 @@ pub struct AssetMetaDocument {
     pub asset_uuid: AssetUuid,
     pub primary_locator: AssetUri,
     pub kind: AssetKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_locator: Option<AssetUri>,
     #[serde(default)]
     pub importer_id: String,
     #[serde(default)]
     pub import_settings: toml::Table,
+    #[serde(default)]
+    pub config_hash: String,
     #[serde(default)]
     pub source_mtime_unix_ms: u64,
     #[serde(default)]
@@ -48,8 +52,10 @@ impl AssetMetaDocument {
             asset_uuid,
             primary_locator,
             kind,
+            artifact_locator: None,
             importer_id: String::new(),
             import_settings: toml::Table::new(),
+            config_hash: String::new(),
             source_mtime_unix_ms: 0,
             source_hash: String::new(),
             preview_state: PreviewState::Dirty,
@@ -93,7 +99,7 @@ impl AssetMetaDocument {
             self.format_version = ASSET_META_FORMAT_VERSION;
             if self.migration_summary.is_empty() {
                 self.migration_summary =
-                    "meta document migrated to importer metadata v2".to_string();
+                    "meta document migrated to artifact metadata v3".to_string();
             }
         }
         Ok(())

@@ -29,11 +29,11 @@ pub use assets::{
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset, DataAsset, DataAssetFormat,
     FontAsset, FontAssetError, ImportedAsset, MaterialAsset, MaterialGraphAsset,
     MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
-    MaterialGraphParameterAsset, ModelAsset, ModelPrimitiveAsset, NavMeshAsset,
-    NavMeshGizmoTriangleAsset, NavMeshLinkAsset, NavMeshPolygonAsset, NavMeshTileAsset,
-    NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset, PrefabInstanceAsset,
-    PrefabPropertyOverrideAsset, SceneAnimationGraphPlayerAsset, SceneAnimationPlayerAsset,
-    SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
+    MaterialGraphParameterAsset, ModelAsset, ModelPrimitiveAsset, NavMeshAreaCostAsset,
+    NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset, NavMeshPolygonAsset,
+    NavMeshTileAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
+    PrefabInstanceAsset, PrefabPropertyOverrideAsset, SceneAnimationGraphPlayerAsset,
+    SceneAnimationPlayerAsset, SceneAnimationSequencePlayerAsset, SceneAnimationSkeletonAsset,
     SceneAnimationStateMachinePlayerAsset, SceneAsset, SceneCameraAsset, SceneColliderAsset,
     SceneColliderShapeAsset, SceneDirectionalLightAsset, SceneEntityAsset, SceneJointAsset,
     SceneJointKindAsset, SceneMeshInstanceAsset, SceneMobilityAsset, ScenePointLightAsset,
@@ -57,10 +57,10 @@ pub use pipeline::manager::{
     resolve_asset_manager, AssetIoDriver, AssetManager, AssetManagerHandle, AssetPipelineInfo,
     AssetStatusRecord, ProjectAssetManager, ProjectInfo,
 };
+pub use pipeline::types::MeshVertex;
 #[allow(unused_imports)]
 pub(crate) use pipeline::types::{
-    AssetRequest, CpuAssetPayload, CpuMeshPayload, CpuTexturePayload, MeshSource, MeshVertex,
-    TextureSource,
+    AssetRequest, CpuAssetPayload, CpuMeshPayload, CpuTexturePayload, MeshSource, TextureSource,
 };
 pub(crate) use pipeline::{types, worker_pool};
 #[allow(unused_imports)]

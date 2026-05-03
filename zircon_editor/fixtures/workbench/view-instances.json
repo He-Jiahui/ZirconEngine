@@ -96,5 +96,15 @@
     "host": {
       "Drawer": "LeftBottom"
     }
+  },
+  {
+    "instance_id": "editor.build_export_desktop#1",
+    "descriptor_id": "editor.build_export_desktop",
+    "title": "Desktop Export",
+    "serializable_payload": null,
+    "dirty": false,
+    "host": {
+      "Drawer": "BottomRight"
+    }
   }
 ]

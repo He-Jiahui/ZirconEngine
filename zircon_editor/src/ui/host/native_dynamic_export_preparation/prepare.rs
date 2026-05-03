@@ -1,21 +1,25 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 
-use zircon_runtime::{ExportBuildPlan, NativePluginLoadReport, PluginModuleKind};
+use zircon_runtime::{
+    plugin::ExportBuildPlan, plugin::NativePluginLoadReport, plugin::PluginModuleKind,
+};
 
 use super::artifacts::{
     copy_built_native_artifact, copy_native_artifacts, dynamic_library_file_name,
 };
-use super::cargo_build::invoke_native_cargo_build;
+use super::cargo_build::invoke_native_cargo_build_with_cancellation;
 use super::native_dynamic_preparation::NativeDynamicPreparation;
 use super::package_metadata::{module_crate, sanitize_path_component};
 use super::staging::stage_native_package_static_files;
 
-pub(in crate::ui::host) fn prepare_native_dynamic_packages(
+pub(in crate::ui::host) fn prepare_native_dynamic_packages_with_cancellation(
     output_root: &Path,
     plan: &ExportBuildPlan,
     native_report: &NativePluginLoadReport,
+    cancel_requested: Option<&AtomicBool>,
 ) -> Result<NativeDynamicPreparation, String> {
     let staging_root = output_root.join(".native-dynamic-staging");
     let build_root = output_root.join(".native-dynamic-build");
@@ -46,6 +50,12 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages(
     let mut diagnostics = Vec::new();
     let mut staged_package_directories = HashSet::new();
     for package_id in &plan.native_dynamic_packages {
+        if cancellation_requested(cancel_requested) {
+            diagnostics.push(
+                "native dynamic package preparation cancelled before the next package".to_string(),
+            );
+            break;
+        }
         let Some(candidate) = native_report
             .discovered
             .iter()
@@ -101,7 +111,11 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages(
             continue;
         };
         let build_target = build_root.join(&package_directory);
-        let invocation = invoke_native_cargo_build(&native_manifest_path, &build_target)?;
+        let invocation = invoke_native_cargo_build_with_cancellation(
+            &native_manifest_path,
+            &build_target,
+            cancel_requested,
+        )?;
         if invocation.success {
             let artifact = build_target
                 .join("debug")
@@ -123,6 +137,12 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages(
             }
         }
         cargo_invocations.push(invocation);
+        if cancellation_requested(cancel_requested) {
+            diagnostics.push(
+                "native dynamic package preparation cancelled after Cargo returned".to_string(),
+            );
+            break;
+        }
     }
 
     Ok(NativeDynamicPreparation {
@@ -131,4 +151,8 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages(
         cargo_invocations,
         diagnostics,
     })
+}
+
+fn cancellation_requested(cancel_requested: Option<&AtomicBool>) -> bool {
+    cancel_requested.is_some_and(|cancel_requested| cancel_requested.load(Ordering::SeqCst))
 }

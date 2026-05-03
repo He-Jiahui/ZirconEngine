@@ -6,4 +6,8 @@ license.workspace = true
 description = "Shader asset importer runtime plugin package for Zircon."
 
 [dependencies]
+naga = { version = "29.0.1", features = ["glsl-in", "spv-in", "wgsl-in", "wgsl-out"] }
 zircon_runtime = { path = "../../../../zircon_runtime", default-features = false }
+
+[dev-dependencies]
+toml = "1.1.2"

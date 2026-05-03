@@ -160,9 +160,12 @@ impl EntryRunner {
         for diagnostic in &native_report.diagnostics {
             eprintln!("[zircon_app] native plugin warning: {diagnostic}");
         }
-        let core = BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
+        let core = BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
             &config,
             native_report.runtime_plugin_registration_reports.clone(),
+            native_report
+                .runtime_plugin_feature_registration_reports
+                .clone(),
         )?
         .bootstrap()?;
         Ok(NativePluginRuntimeBootstrap {

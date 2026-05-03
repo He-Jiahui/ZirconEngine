@@ -55,6 +55,13 @@ pub enum SoundSourceInput {
     Silence,
 }
 
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SoundExternalSourceBlock {
+    pub sample_rate_hz: u32,
+    pub channel_count: u16,
+    pub samples: Vec<f32>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SoundSourceSend {
     pub target: SoundTrackId,

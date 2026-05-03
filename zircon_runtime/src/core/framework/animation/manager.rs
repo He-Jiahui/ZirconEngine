@@ -3,11 +3,12 @@ use crate::asset::{
     AnimationStateMachineAsset,
 };
 use crate::core::math::Real;
+use crate::scene::World;
 
 use super::{
     AnimationGraphEvaluation, AnimationParameterMap, AnimationParameterValue,
-    AnimationPlaybackSettings, AnimationPoseOutput, AnimationStateMachineEvaluation,
-    AnimationTrackPath,
+    AnimationPlaybackSettings, AnimationPoseOutput, AnimationSequenceApplyReport,
+    AnimationStateMachineEvaluation, AnimationTrackPath,
 };
 
 pub trait AnimationManager: Send + Sync {
@@ -45,5 +46,17 @@ pub trait AnimationManager: Send + Sync {
     ) -> Result<AnimationPoseOutput, String>;
     fn sequence_track_paths(&self, sequence: &AnimationSequenceAsset) -> Vec<AnimationTrackPath> {
         sequence.track_paths()
+    }
+    fn apply_sequence_to_world(
+        &self,
+        _world: &mut World,
+        sequence: &AnimationSequenceAsset,
+        _time_seconds: Real,
+        _looping: bool,
+    ) -> Result<AnimationSequenceApplyReport, String> {
+        Ok(AnimationSequenceApplyReport {
+            applied_tracks: Vec::new(),
+            missing_tracks: self.sequence_track_paths(sequence),
+        })
     }
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use zircon_editor::core::editor_authoring_extension::{
     TimelineEditorDescriptor, TimelineTrackDescriptor,
 };
-use zircon_editor::core::editor_extension::AssetEditorDescriptor;
+use zircon_editor::core::editor_extension::{AssetEditorDescriptor, EditorMenuItemDescriptor};
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -101,15 +101,32 @@ fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open.clone(), "Open Timeline Sequence")
+                .with_menu_path("Plugins/Timeline Sequence/Open Sequence")
+                .with_payload_schema_id("timeline_sequence.open.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(create_track, "Create Timeline Track")
+            EditorOperationDescriptor::new(create_track.clone(), "Create Timeline Track")
+                .with_menu_path("Plugins/Timeline Sequence/Create Track")
+                .with_payload_schema_id("timeline_sequence.create_track.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(delete_track, "Delete Timeline Track")
+            EditorOperationDescriptor::new(delete_track.clone(), "Delete Timeline Track")
+                .with_menu_path("Plugins/Timeline Sequence/Delete Track")
+                .with_payload_schema_id("timeline_sequence.delete_track.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(move_key, "Move Timeline Keyframe")
+            EditorOperationDescriptor::new(move_key.clone(), "Move Timeline Keyframe")
+                .with_menu_path("Plugins/Timeline Sequence/Move Keyframe")
+                .with_payload_schema_id("timeline_sequence.move_keyframe.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(validate, "Validate Timeline Sequence")
+            EditorOperationDescriptor::new(validate.clone(), "Validate Timeline Sequence")
+                .with_menu_path("Plugins/Timeline Sequence/Validate")
+                .with_payload_schema_id("timeline_sequence.validate.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Timeline Sequence/Open Sequence", &open),
+            menu_item("Plugins/Timeline Sequence/Create Track", &create_track),
+            menu_item("Plugins/Timeline Sequence/Delete Track", &delete_track),
+            menu_item("Plugins/Timeline Sequence/Move Keyframe", &move_key),
+            menu_item("Plugins/Timeline Sequence/Validate", &validate),
         ],
         asset_editors: vec![AssetEditorDescriptor::new(
             "animation.sequence",
@@ -294,14 +311,46 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid timeline operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
     use zircon_runtime::asset::{
         AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
         AnimationInterpolationAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
     };
     use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
+
+    #[test]
+    fn timeline_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry =
+            zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("timeline authoring registration");
+        let operation = operation("TimelineSequence.Keyframe.Move");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("move keyframe operation registered");
+
+        assert_eq!(
+            descriptor.menu_path(),
+            Some("Plugins/Timeline Sequence/Move Keyframe")
+        );
+        assert_eq!(
+            descriptor.payload_schema_id(),
+            Some("timeline_sequence.move_keyframe.v1")
+        );
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Timeline Sequence/Move Keyframe"
+                && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn timeline_sequence_validation_accepts_sorted_keyframes_in_range() {

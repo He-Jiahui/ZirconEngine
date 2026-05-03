@@ -25,6 +25,7 @@ pub(crate) struct HybridGiVoxelSceneState {
     invalidated_clipmap_ids: Vec<u32>,
     clipmap_descriptors: Vec<HybridGiVoxelClipmapDescriptor>,
     voxel_cells: Vec<HybridGiPrepareVoxelCell>,
+    scene_prepare_voxel_cell_overrides: Vec<HybridGiPrepareVoxelCell>,
     scene_revision: u32,
 }
 
@@ -46,6 +47,8 @@ impl HybridGiVoxelSceneState {
         let previous_invalidated_clipmap_ids = self.invalidated_clipmap_ids.clone();
         let previous_clipmap_descriptors = self.clipmap_descriptors.clone();
         let previous_voxel_cells = self.voxel_cells.clone();
+        let previous_scene_prepare_voxel_cell_overrides =
+            self.scene_prepare_voxel_cell_overrides.clone();
         let (resident_clipmap_ids, clipmap_descriptors) =
             build_clipmap_descriptors(cards, clipmap_budget);
         let mut voxel_cells = build_voxel_cells(
@@ -66,6 +69,10 @@ impl HybridGiVoxelSceneState {
             .collect::<BTreeSet<_>>();
         let clipmaps_changed = self.resident_clipmap_ids != resident_clipmap_ids
             || self.clipmap_descriptors != clipmap_descriptors;
+        if scene_changed || clipmaps_changed {
+            self.scene_prepare_voxel_cell_overrides.clear();
+        }
+        merge_scene_prepare_voxel_cells(&mut voxel_cells, &self.scene_prepare_voxel_cell_overrides);
 
         self.invalidated_clipmap_ids = self
             .resident_clipmap_ids
@@ -87,7 +94,9 @@ impl HybridGiVoxelSceneState {
                 || self.dirty_clipmap_ids != previous_dirty_clipmap_ids
                 || self.invalidated_clipmap_ids != previous_invalidated_clipmap_ids
                 || self.clipmap_descriptors != previous_clipmap_descriptors
-                || self.voxel_cells != previous_voxel_cells,
+                || self.voxel_cells != previous_voxel_cells
+                || self.scene_prepare_voxel_cell_overrides
+                    != previous_scene_prepare_voxel_cell_overrides,
         );
     }
 
@@ -102,6 +111,26 @@ impl HybridGiVoxelSceneState {
             &[],
         );
         self.bump_scene_revision_if(self.voxel_cells != previous_voxel_cells);
+    }
+
+    pub(crate) fn apply_scene_prepare_voxel_cells(
+        &mut self,
+        readback_voxel_cells: &[HybridGiPrepareVoxelCell],
+    ) {
+        if readback_voxel_cells.is_empty() {
+            return;
+        }
+
+        let previous_voxel_cells = self.voxel_cells.clone();
+        let previous_scene_prepare_voxel_cell_overrides =
+            self.scene_prepare_voxel_cell_overrides.clone();
+        self.scene_prepare_voxel_cell_overrides = readback_voxel_cells.to_vec();
+        merge_scene_prepare_voxel_cells(&mut self.voxel_cells, readback_voxel_cells);
+        self.bump_scene_revision_if(
+            self.voxel_cells != previous_voxel_cells
+                || self.scene_prepare_voxel_cell_overrides
+                    != previous_scene_prepare_voxel_cell_overrides,
+        );
     }
 
     pub(crate) fn resident_clipmap_count(&self) -> usize {
@@ -340,6 +369,25 @@ fn apply_surface_cache_page_contents_to_voxel_cells(
     }
 }
 
+fn merge_scene_prepare_voxel_cells(
+    voxel_cells: &mut Vec<HybridGiPrepareVoxelCell>,
+    readback_voxel_cells: &[HybridGiPrepareVoxelCell],
+) {
+    if readback_voxel_cells.is_empty() {
+        return;
+    }
+
+    let mut cells_by_key = voxel_cells
+        .iter()
+        .copied()
+        .map(|cell| ((cell.clipmap_id, cell.cell_index), cell))
+        .collect::<BTreeMap<_, _>>();
+    for cell in readback_voxel_cells {
+        cells_by_key.insert((cell.clipmap_id, cell.cell_index), *cell);
+    }
+    *voxel_cells = cells_by_key.into_values().collect();
+}
+
 fn card_voxel_radiance_rgb(
     card: &HybridGiCardDescriptor,
     directional_lights: &[RenderDirectionalLightSnapshot],
@@ -527,6 +575,10 @@ fn scene_bounds(cards: &[HybridGiCardDescriptor]) -> (Vec3, Vec3) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime::core::framework::render::RenderMeshSnapshot;
+    use zircon_runtime::core::framework::scene::Mobility;
+    use zircon_runtime::core::math::{Transform, Vec4};
+    use zircon_runtime::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
     #[test]
     fn persisted_surface_cache_page_samples_override_voxel_cells_by_owner_card_id_not_page_id() {
@@ -550,5 +602,74 @@ mod tests {
             voxel_cells[0].radiance_present,
             "expected voxel radiance reuse to match the persisted owner card id even when the persisted page id differs"
         );
+    }
+
+    #[test]
+    fn scene_prepare_voxel_cell_readback_merges_into_voxel_cells() {
+        let mut state = HybridGiVoxelSceneState::default();
+        let readback_cell = HybridGiPrepareVoxelCell {
+            clipmap_id: 2,
+            cell_index: 5,
+            occupancy_count: 4,
+            dominant_card_id: 11,
+            radiance_present: true,
+            radiance_rgb: [32, 48, 64],
+        };
+
+        state.apply_scene_prepare_voxel_cells(&[readback_cell]);
+
+        assert_eq!(state.voxel_cells_snapshot(), vec![readback_cell]);
+        assert_eq!(state.scene_revision(), 1);
+    }
+
+    #[test]
+    fn scene_prepare_voxel_cell_readback_survives_stable_scene_synchronization() {
+        let mut state = HybridGiVoxelSceneState::default();
+        let cards = vec![card_descriptor(11, Vec3::ZERO)];
+        state.synchronize(&cards, &[], &[], &[], &[], &[], 1, true);
+        let base_cell = state
+            .voxel_cells_snapshot()
+            .into_iter()
+            .find(|cell| cell.occupancy_count > 0)
+            .expect("card should occupy at least one voxel cell");
+        let readback_cell = HybridGiPrepareVoxelCell {
+            radiance_present: true,
+            radiance_rgb: [96, 48, 24],
+            ..base_cell
+        };
+
+        state.apply_scene_prepare_voxel_cells(&[readback_cell]);
+        state.synchronize(&cards, &[], &[], &[], &[], &[], 1, false);
+
+        let persisted = state
+            .voxel_cells_snapshot()
+            .into_iter()
+            .find(|cell| {
+                cell.clipmap_id == readback_cell.clipmap_id
+                    && cell.cell_index == readback_cell.cell_index
+            })
+            .expect("stable scene sync should keep the readback cell key");
+        assert_eq!(persisted, readback_cell);
+    }
+
+    fn card_descriptor(card_id: u32, center: Vec3) -> HybridGiCardDescriptor {
+        HybridGiCardDescriptor {
+            card_id,
+            mesh: RenderMeshSnapshot {
+                node_id: card_id as u64,
+                transform: Transform::from_translation(center).with_scale(Vec3::splat(2.0)),
+                model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
+                    "res://models/hgi-card.obj",
+                )),
+                material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                    "res://materials/hgi-card.mat",
+                )),
+                tint: Vec4::ONE,
+                mobility: Mobility::Static,
+                render_layer_mask: u32::MAX,
+            },
+            bounds_center: center,
+            bounds_radius: 1.0,
+        }
     }
 }

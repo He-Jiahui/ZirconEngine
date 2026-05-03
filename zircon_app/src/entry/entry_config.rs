@@ -1,7 +1,7 @@
 use super::entry_profile::EntryProfile;
 use zircon_runtime::{
-    ExportProfile, ProjectPluginManifest, ProjectPluginSelection, RuntimePluginId,
-    RuntimeTargetMode,
+    plugin::ExportProfile, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
+    RuntimePluginId, RuntimeTargetMode,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]

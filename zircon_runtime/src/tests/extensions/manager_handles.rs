@@ -6,15 +6,22 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
         .expect("runtime crate should have a workspace parent");
     let plugin_root = repo_root.join("zircon_plugins");
 
-    let physics_mod_source =
-        std::fs::read_to_string(runtime_root.join("src/physics/module.rs")).unwrap_or_default();
-    let physics_runtime_source =
-        std::fs::read_to_string(runtime_root.join("src/physics/runtime/mod.rs"))
+    let physics_plugin_mod_source =
+        std::fs::read_to_string(plugin_root.join("physics/runtime/src/module.rs"))
             .unwrap_or_default();
-    let animation_mod_source =
-        std::fs::read_to_string(runtime_root.join("src/animation/module.rs")).unwrap_or_default();
-    let animation_runtime_source =
-        std::fs::read_to_string(runtime_root.join("src/animation/runtime/mod.rs"))
+    let physics_plugin_lib_source =
+        std::fs::read_to_string(plugin_root.join("physics/runtime/src/lib.rs")).unwrap_or_default();
+    let physics_plugin_manager_source =
+        std::fs::read_to_string(plugin_root.join("physics/runtime/src/manager.rs"))
+            .unwrap_or_default();
+    let animation_plugin_mod_source =
+        std::fs::read_to_string(plugin_root.join("animation/runtime/src/module.rs"))
+            .unwrap_or_default();
+    let animation_plugin_lib_source =
+        std::fs::read_to_string(plugin_root.join("animation/runtime/src/lib.rs"))
+            .unwrap_or_default();
+    let animation_plugin_manager_source =
+        std::fs::read_to_string(plugin_root.join("animation/runtime/src/manager.rs"))
             .unwrap_or_default();
     let net_mod_source =
         std::fs::read_to_string(plugin_root.join("net/runtime/src/module.rs")).unwrap_or_default();
@@ -41,8 +48,10 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
         "PHYSICS_MANAGER_NAME",
     ] {
         assert!(
-            physics_mod_source.contains(required) || physics_runtime_source.contains(required),
-            "runtime physics should keep its framework-backed manager service wiring `{required}`"
+            physics_plugin_mod_source.contains(required)
+                || physics_plugin_lib_source.contains(required)
+                || physics_plugin_manager_source.contains(required),
+            "physics plugin contract should keep framework-backed manager service wiring `{required}`"
         );
     }
 
@@ -52,8 +61,10 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
         "ANIMATION_MANAGER_NAME",
     ] {
         assert!(
-            animation_mod_source.contains(required) || animation_runtime_source.contains(required),
-            "runtime animation should keep its framework-backed manager service wiring `{required}`"
+            animation_plugin_mod_source.contains(required)
+                || animation_plugin_lib_source.contains(required)
+                || animation_plugin_manager_source.contains(required),
+            "animation plugin contract should keep framework-backed manager service wiring `{required}`"
         );
     }
 

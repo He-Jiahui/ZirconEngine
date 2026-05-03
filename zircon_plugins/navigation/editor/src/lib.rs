@@ -228,6 +228,13 @@ fn register_navigation_operations(
                     ViewDescriptorId::new(NAVIGATION_DEBUG_VIEW_ID),
                 )))
             }
+            NAVIGATION_BAKE_SCENE_OPERATION
+            | NAVIGATION_BAKE_SURFACE_OPERATION
+            | NAVIGATION_CLEAR_SURFACE_OPERATION => {
+                descriptor.with_event(EditorEvent::WorkbenchMenu(MenuAction::OpenView(
+                    ViewDescriptorId::new(NAVIGATION_BAKE_VIEW_ID),
+                )))
+            }
             _ => descriptor,
         };
         registry.register_operation(
@@ -241,6 +248,7 @@ fn register_navigation_operations(
 fn register_navigation_asset_editor(
     registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
 ) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
+    use zircon_editor::core::editor_event::{EditorAssetEvent, EditorEvent};
     use zircon_editor::core::editor_extension::AssetEditorDescriptor;
     use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 
@@ -248,7 +256,8 @@ fn register_navigation_asset_editor(
         .map_err(zircon_editor::core::editor_extension::EditorExtensionRegistryError::Operation)?;
     registry.register_operation(
         EditorOperationDescriptor::new(operation_path.clone(), "Open NavMesh Asset")
-            .with_callable_from_remote(false),
+            .with_callable_from_remote(false)
+            .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
     )?;
     registry.register_asset_editor(AssetEditorDescriptor::new(
         "NavMesh",
@@ -261,7 +270,8 @@ fn register_navigation_asset_editor(
         .map_err(zircon_editor::core::editor_extension::EditorExtensionRegistryError::Operation)?;
     registry.register_operation(
         EditorOperationDescriptor::new(operation_path.clone(), "Open Navigation Settings Asset")
-            .with_callable_from_remote(false),
+            .with_callable_from_remote(false)
+            .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
     )?;
     registry.register_asset_editor(AssetEditorDescriptor::new(
         "NavigationSettings",
@@ -369,7 +379,9 @@ mod tests {
             "View.navigation.bake.Open",
             "View.navigation.debug_gizmos.Open",
             NAVIGATION_BAKE_SCENE_OPERATION,
+            NAVIGATION_BAKE_SURFACE_OPERATION,
             NAVIGATION_CLEAR_SURFACE_OPERATION,
+            NAVIGATION_OPEN_SETTINGS_OPERATION,
             NAVIGATION_TOGGLE_GIZMOS_OPERATION,
             NAVIGATION_OPEN_NAVMESH_ASSET_OPERATION,
             NAVIGATION_OPEN_SETTINGS_ASSET_OPERATION,
@@ -390,5 +402,30 @@ mod tests {
             .asset_editors()
             .iter()
             .any(|editor| editor.asset_kind() == "NavigationSettings"));
+
+        for document in navigation_editor_documents() {
+            assert!(
+                std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join(document)
+                    .exists(),
+                "missing navigation editor document {document}"
+            );
+        }
+    }
+
+    fn navigation_editor_documents() -> &'static [&'static str] {
+        &[
+            "surfaces.ui.toml",
+            "agents_areas.ui.toml",
+            "bake.ui.toml",
+            "debug_gizmos.ui.toml",
+            "navmesh_asset.ui.toml",
+            "navigation_settings_asset.ui.toml",
+            "navmesh_surface.drawer.ui.toml",
+            "navmesh_modifier.drawer.ui.toml",
+            "navmesh_agent.drawer.ui.toml",
+            "navmesh_obstacle.drawer.ui.toml",
+            "navmesh_offmesh_link.drawer.ui.toml",
+        ]
     }
 }

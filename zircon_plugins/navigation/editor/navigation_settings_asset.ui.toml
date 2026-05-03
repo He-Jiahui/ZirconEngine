@@ -1,0 +1,42 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "navigation.settings_asset"
+version = 1
+display_name = "Navigation Settings Asset"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "navigation_settings_asset_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "NavigationSettingsAssetRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "navigation_settings_asset_summary"
+kind = "native"
+type = "Space"
+control_id = "NavigationSettingsAssetSummary"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[components]

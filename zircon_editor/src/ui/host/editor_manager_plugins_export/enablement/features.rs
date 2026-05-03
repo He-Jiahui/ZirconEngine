@@ -2,9 +2,9 @@ use std::path::Path;
 
 use zircon_runtime::asset::project::ProjectManifest;
 use zircon_runtime::{
-    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
-    plugin::PluginPackageManifest, plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimePluginCatalog, NativePluginLoader, RuntimeTargetMode,
+    plugin::NativePluginLoader, plugin::PluginFeatureBundleManifest,
+    plugin::PluginFeatureDependency, plugin::PluginPackageManifest, plugin::ProjectPluginManifest,
+    plugin::ProjectPluginSelection, plugin::RuntimePluginCatalog, RuntimeTargetMode,
 };
 
 use super::super::super::editor_manager::EditorManager;
@@ -272,8 +272,9 @@ fn enable_dependency_plugin(
     manifest: &mut ProjectPluginManifest,
     dependency: &PluginFeatureDependency,
     enabled_dependency_plugins: &mut Vec<String>,
+    catalog_label: &str,
 ) -> Result<(), String> {
-    let selection = project_selection_mut(manifest, &dependency.plugin_id)?;
+    let selection = project_selection_mut(manifest, &dependency.plugin_id, catalog_label)?;
     if !selection.enabled {
         selection.enabled = true;
         push_unique(enabled_dependency_plugins, dependency.plugin_id.clone());
@@ -289,6 +290,7 @@ fn enable_dependency_feature_provider(
     enabled_dependency_features: &mut Vec<String>,
     diagnostics: &mut Vec<String>,
     dependency_stack: &mut Vec<String>,
+    catalog_label: &str,
 ) -> Result<(), String> {
     if package_provides_capability(packages, dependency, RuntimeTargetMode::EditorHost) {
         return Ok(());
@@ -313,7 +315,8 @@ fn enable_dependency_feature_provider(
                 ));
                 return Ok(());
             }
-            let selection = project_selection_mut(manifest, &provider.owner_plugin_id)?;
+            let selection =
+                project_selection_mut(manifest, &provider.owner_plugin_id, catalog_label)?;
             let feature_selection = selection
                 .features
                 .iter_mut()
@@ -337,6 +340,7 @@ fn enable_dependency_feature_provider(
                 enabled_dependency_features,
                 diagnostics,
                 dependency_stack,
+                catalog_label,
             )?;
             dependency_stack.pop();
         }
@@ -364,23 +368,25 @@ fn feature_manifest(
 fn project_selection<'a>(
     manifest: &'a ProjectPluginManifest,
     plugin_id: &str,
+    catalog_label: &str,
 ) -> Result<&'a ProjectPluginSelection, String> {
     manifest
         .selections
         .iter()
         .find(|selection| selection.id == plugin_id)
-        .ok_or_else(|| format!("plugin {plugin_id} is not registered in builtin plugin catalogs"))
+        .ok_or_else(|| format!("plugin {plugin_id} is not registered in {catalog_label}"))
 }
 
 fn project_selection_mut<'a>(
     manifest: &'a mut ProjectPluginManifest,
     plugin_id: &str,
+    catalog_label: &str,
 ) -> Result<&'a mut ProjectPluginSelection, String> {
     manifest
         .selections
         .iter_mut()
         .find(|selection| selection.id == plugin_id)
-        .ok_or_else(|| format!("plugin {plugin_id} is not registered in builtin plugin catalogs"))
+        .ok_or_else(|| format!("plugin {plugin_id} is not registered in {catalog_label}"))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

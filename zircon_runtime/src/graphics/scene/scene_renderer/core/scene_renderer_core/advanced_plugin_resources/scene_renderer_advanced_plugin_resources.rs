@@ -1,28 +1,60 @@
 use crate::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
 
-pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources;
+pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources {
+    capabilities: SceneRendererAdvancedPluginResourceCapabilities,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+struct SceneRendererAdvancedPluginResourceCapabilities {
+    virtual_geometry: bool,
+    hybrid_gi: bool,
+}
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn new(
         _device: &wgpu::Device,
         render_features: &[RenderFeatureDescriptor],
     ) -> Self {
-        let _ = render_features_require(
-            render_features,
-            RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
-        );
-        let _ = render_features_require(
-            render_features,
-            RenderFeatureCapabilityRequirement::VirtualGeometry,
-        );
-        Self
+        Self {
+            capabilities: advanced_plugin_resource_capabilities(render_features),
+        }
     }
 
     #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn new_with_virtual_geometry_for_test(
         _device: &wgpu::Device,
     ) -> Self {
-        Self
+        Self {
+            capabilities: SceneRendererAdvancedPluginResourceCapabilities {
+                virtual_geometry: true,
+                ..SceneRendererAdvancedPluginResourceCapabilities::default()
+            },
+        }
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn virtual_geometry_enabled(
+        &self,
+    ) -> bool {
+        self.capabilities.virtual_geometry
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::core) fn hybrid_gi_enabled(&self) -> bool {
+        self.capabilities.hybrid_gi
+    }
+}
+
+fn advanced_plugin_resource_capabilities(
+    render_features: &[RenderFeatureDescriptor],
+) -> SceneRendererAdvancedPluginResourceCapabilities {
+    SceneRendererAdvancedPluginResourceCapabilities {
+        virtual_geometry: render_features_require(
+            render_features,
+            RenderFeatureCapabilityRequirement::VirtualGeometry,
+        ),
+        hybrid_gi: render_features_require(
+            render_features,
+            RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
+        ),
     }
 }
 
@@ -47,6 +79,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
         )];
+        let capabilities = advanced_plugin_resource_capabilities(&render_features);
 
         assert!(!render_features_require(
             &render_features,
@@ -56,6 +89,10 @@ mod tests {
             &render_features,
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination
         ));
+        assert_eq!(
+            capabilities,
+            SceneRendererAdvancedPluginResourceCapabilities::default()
+        );
     }
 
     #[test]
@@ -78,6 +115,7 @@ mod tests {
                 RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
             ),
         ];
+        let capabilities = advanced_plugin_resource_capabilities(&render_features);
 
         assert!(render_features_require(
             &render_features,
@@ -87,5 +125,12 @@ mod tests {
             &render_features,
             RenderFeatureCapabilityRequirement::HybridGlobalIllumination
         ));
+        assert_eq!(
+            capabilities,
+            SceneRendererAdvancedPluginResourceCapabilities {
+                virtual_geometry: true,
+                hybrid_gi: true,
+            }
+        );
     }
 }

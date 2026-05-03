@@ -25,3 +25,31 @@ fn builtin_root_stays_structural_after_runtime_module_split() {
         );
     }
 }
+
+#[test]
+fn runtime_crate_root_does_not_flatten_plugin_surface() {
+    let source = include_str!("../../lib.rs");
+
+    assert!(
+        source.contains("pub mod plugin;"),
+        "runtime crate root should expose the plugin namespace owner"
+    );
+
+    assert!(
+        !source.contains("pub use plugin::{"),
+        "plugin DTOs, native ABI types, export plans, and catalogs should be imported through zircon_runtime::plugin"
+    );
+
+    for flattened_symbol in [
+        "PluginPackageManifest",
+        "RuntimePluginCatalog",
+        "NativePluginLoader",
+        "ExportBuildPlan",
+        "RuntimeExtensionRegistry",
+    ] {
+        assert!(
+            !source.contains(flattened_symbol),
+            "runtime crate root should not flatten plugin symbol `{flattened_symbol}`"
+        );
+    }
+}

@@ -101,8 +101,8 @@ This document is the cutover authority for the current workspace refactor. Every
 
 ### `zircon_runtime`
 
-- Old owner: crate root flattened exports for internal graphics/runtime seams
-- New owner: direct submodule paths plus crate-private visibility where appropriate
+- Old owner: crate root flattened exports for internal graphics/runtime seams and plugin/native/export DTOs
+- New owner: direct submodule paths plus crate-private visibility where appropriate; plugin package manifests, project selections, export plans, native loader/ABI types, runtime extension registries, and runtime plugin catalogs are imported through `zircon_runtime::plugin`
 - Old owner: builtin module list implementation living directly in `src/builtin/mod.rs`
 - New owner: `src/builtin/runtime_modules.rs`, with `src/builtin/mod.rs` reduced to a structural entry that only re-exports `builtin_runtime_modules()`
 - Old owner: production runtime fixture resources under `src/ui/runtime_ui/fixtures`

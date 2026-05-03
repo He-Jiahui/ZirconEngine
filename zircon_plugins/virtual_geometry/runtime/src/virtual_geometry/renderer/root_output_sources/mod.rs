@@ -1,5 +1,6 @@
 mod virtual_geometry_cull;
 mod virtual_geometry_dto_conversions;
+mod virtual_geometry_neutral_readback_outputs;
 mod virtual_geometry_output_buffers;
 mod virtual_geometry_readback_outputs;
 mod virtual_geometry_snapshot_rebuild;

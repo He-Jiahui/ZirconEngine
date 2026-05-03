@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -213,8 +214,11 @@ fn particle_rendering_draws_billboard_sprites_in_transparent_stage() {
             entity: 42,
             position: Vec3::ZERO,
             size: 0.9,
+            rotation: 0.0,
             color: Vec4::new(1.0, 0.48, 0.12, 0.8),
             intensity: 1.0,
+            material: None,
+            texture: None,
         }];
     });
 
@@ -297,6 +301,9 @@ impl RenderFixture {
         );
 
         let asset_manager = Arc::new(ProjectAssetManager::default());
+        asset_manager
+            .register_first_wave_plugin_fixture_importers_for_test()
+            .unwrap();
         asset_manager
             .open_project(root.to_string_lossy().as_ref())
             .unwrap();
@@ -386,11 +393,17 @@ impl Drop for RenderFixture {
 }
 
 fn unique_temp_project_root(label: &str) -> PathBuf {
+    static NEXT_TEMP_PROJECT_ID: AtomicU64 = AtomicU64::new(1);
+
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    std::env::temp_dir().join(format!("zircon_graphics_{label}_{unique}"))
+    let process_id = std::process::id();
+    let sequence = NEXT_TEMP_PROJECT_ID.fetch_add(1, Ordering::Relaxed);
+    std::env::temp_dir().join(format!(
+        "zircon_graphics_{label}_{process_id}_{sequence}_{unique}"
+    ))
 }
 
 fn build_snapshot(

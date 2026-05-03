@@ -5,7 +5,9 @@ mod level_system_render_extract;
 mod module;
 mod runtime_level_traits;
 
-pub use level_system::{LevelLifecycleState, LevelMetadata, LevelSystem};
+pub use level_system::{
+    AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
+};
 pub use module::{
     create_default_level, load_level_asset, module_descriptor, DefaultLevelManager, SceneModule,
     WorldDriver, DEFAULT_LEVEL_MANAGER_NAME, LEVEL_MANAGER_NAME, SCENE_MODULE_NAME,

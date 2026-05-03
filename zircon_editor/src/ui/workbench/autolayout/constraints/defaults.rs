@@ -49,7 +49,8 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
         },
         ViewContentKind::Console
         | ViewContentKind::RuntimeDiagnostics
-        | ViewContentKind::ModulePlugins => PaneConstraints {
+        | ViewContentKind::ModulePlugins
+        | ViewContentKind::BuildExport => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),
             height: stretch_axis(
                 DEFAULT_LOG_TOOL_MIN_HEIGHT,

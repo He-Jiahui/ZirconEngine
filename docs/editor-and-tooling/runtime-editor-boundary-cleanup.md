@@ -58,6 +58,7 @@ related_code:
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_runtime/src/foundation/tests.rs
+  - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/slint_drawer_resize.rs
@@ -116,6 +117,8 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
+  - zircon_editor/src/tests/support.rs
+  - zircon_editor/src/ui/slint_host/app/tests.rs
 plan_sources:
   - user: 2026-04-20 继续，把 runtime 层仍然存在的 editor only 实现迁回 editor
   - user: 2026-04-20 继续
@@ -154,6 +157,9 @@ tests:
   - cargo check -p zircon_runtime --locked --lib --target-dir F:\cargo-targets\zircon-codex-a
   - cargo test -p zircon_runtime --test m1_runtime_editor_boundary_contract --locked --target-dir F:\cargo-targets\zircon-codex-a
   - Select-String scan over zircon_runtime/src, zircon_editor/src, zircon_app/src for legacy viewport authoring imports and config-path names
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-workspace-followup-opencode-build --message-format short --color never -- --test-threads=1
+  - cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-workspace-followup-opencode-build --message-format short --color never
+  - cargo test --workspace --locked --verbose --jobs 1 --target-dir E:\cargo-targets\zircon-workspace-followup-opencode-build --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -330,6 +336,10 @@ runtime foundation 现在统一使用中性命名：
 ### Test Injection Update
 
 对应的 runtime/editor 测试注入也同步切到 `ZIRCON_CONFIG_PATH`。这样 editor host 测试仍然可以用临时文件隔离配置状态，但基础设施层不再把这件事写成 editor 专属能力。
+
+所有会写 `ZIRCON_CONFIG_PATH` 的 editor crate tests 必须通过 [zircon_editor/src/tests/support.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/support.rs) 暴露的共享 `env_lock()` 串行化。这个锁是进程级环境变量的唯一测试保护层；子模块不能自建另一个 `Mutex` 来保护同一个变量，否则 Rust test harness 的默认并行执行仍会让两个测试同时切换 config path。
+
+2026-05-03 的 workspace acceptance 复现了这个边界问题：`tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_actions` 单测独立运行通过，`zircon_editor --lib -- --test-threads=1` 也通过，但默认并行 `zircon_editor --lib` 会偶发拿到错误的 config path。最低共享层不是 reflection route，而是 [zircon_editor/src/ui/slint_host/app/tests.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests.rs) 里独立的本地 env lock。该 test module 现在改为调用 crate-wide `crate::tests::support::env_lock()`，并用默认并行 editor-lib 与 workspace test 重新验证。
 
 ## Graphics Root-Surface Contraction
 

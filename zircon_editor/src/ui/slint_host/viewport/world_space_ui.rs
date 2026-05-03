@@ -34,16 +34,12 @@ impl SlintViewportController {
         &self,
         submissions: Vec<WorldSpaceUiSurfaceSubmission>,
     ) {
-        self.shared.lock().unwrap().last_world_space_ui_surfaces = submissions;
+        self.lock_shared().last_world_space_ui_surfaces = submissions;
     }
 
     #[cfg(test)]
     pub(crate) fn last_world_space_ui_surfaces(&self) -> Vec<WorldSpaceUiSurfaceSubmission> {
-        self.shared
-            .lock()
-            .unwrap()
-            .last_world_space_ui_surfaces
-            .clone()
+        self.lock_shared().last_world_space_ui_surfaces.clone()
     }
 
     pub(crate) fn route_world_space_ui_pointer_event(
@@ -52,7 +48,7 @@ impl SlintViewportController {
         x: f32,
         y: f32,
     ) -> Option<WorldSpaceUiPointerRoute> {
-        let mut shared = self.shared.lock().unwrap();
+        let mut shared = self.lock_shared();
         let hit = topmost_world_space_ui_surface_at(&shared.last_world_space_ui_surfaces, x, y);
         let route = match kind {
             UiPointerEventKind::Down => {

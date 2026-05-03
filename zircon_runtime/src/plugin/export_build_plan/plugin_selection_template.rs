@@ -1,6 +1,6 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform, plugin::ProjectPluginFeatureSelection,
-    plugin::ProjectPluginSelection, RuntimeTargetMode,
+    plugin::ExportPackagingStrategy, plugin::ExportProfile, plugin::ExportTargetPlatform,
+    plugin::ProjectPluginFeatureSelection, plugin::ProjectPluginSelection, RuntimeTargetMode,
 };
 
 use super::{ExportLinkedRuntimeCrate, ExportRuntimeCrateRegistrationKind};
@@ -34,7 +34,7 @@ pub(super) fn plugin_selection_template(
         .filter(|linked_crate| {
             linked_crate.registration_kind == ExportRuntimeCrateRegistrationKind::RuntimeFeature
         })
-        .map(|linked_crate| format!("{}::plugin_feature_registration()", linked_crate.crate_name))
+        .map(feature_registration_call)
         .collect::<Vec<_>>()
         .join(",\n");
     format!(
@@ -48,6 +48,16 @@ pub(super) fn plugin_selection_template(
         indent_lines(&registration_calls, 8),
         indent_lines(&feature_registration_calls, 8)
     )
+}
+
+fn feature_registration_call(linked_crate: &ExportLinkedRuntimeCrate) -> String {
+    let call = format!("{}::plugin_feature_registration()", linked_crate.crate_name);
+    match linked_crate.provider_package_id.as_deref() {
+        Some(provider_package_id) => {
+            format!("{call}.with_provider_package_id({provider_package_id:?})")
+        }
+        None => call,
+    }
 }
 
 fn selection_template(selection: &ProjectPluginSelection) -> String {
@@ -77,7 +87,7 @@ fn selection_template(selection: &ProjectPluginSelection) -> String {
 
 fn feature_selection_template(selection: &ProjectPluginFeatureSelection) -> String {
     format!(
-        "ProjectPluginFeatureSelection {{ id: {:?}.to_string(), enabled: {}, required: {}, target_modes: vec![{}], packaging: {}, runtime_crate: {}, editor_crate: {} }}",
+        "ProjectPluginFeatureSelection {{ id: {:?}.to_string(), enabled: {}, required: {}, target_modes: vec![{}], packaging: {}, runtime_crate: {}, editor_crate: {}, provider_package_id: {} }}",
         selection.id,
         selection.enabled,
         selection.required,
@@ -89,7 +99,8 @@ fn feature_selection_template(selection: &ProjectPluginFeatureSelection) -> Stri
             .join(", "),
         packaging_strategy_expr(selection.packaging),
         option_string_expr(selection.runtime_crate.as_deref()),
-        option_string_expr(selection.editor_crate.as_deref())
+        option_string_expr(selection.editor_crate.as_deref()),
+        option_string_expr(selection.provider_package_id.as_deref())
     )
 }
 
@@ -106,6 +117,10 @@ fn target_platform_expr(platform: ExportTargetPlatform) -> &'static str {
         ExportTargetPlatform::Windows => "ExportTargetPlatform::Windows",
         ExportTargetPlatform::Linux => "ExportTargetPlatform::Linux",
         ExportTargetPlatform::Macos => "ExportTargetPlatform::Macos",
+        ExportTargetPlatform::Android => "ExportTargetPlatform::Android",
+        ExportTargetPlatform::Ios => "ExportTargetPlatform::Ios",
+        ExportTargetPlatform::WebGpu => "ExportTargetPlatform::WebGpu",
+        ExportTargetPlatform::Wasm => "ExportTargetPlatform::Wasm",
     }
 }
 

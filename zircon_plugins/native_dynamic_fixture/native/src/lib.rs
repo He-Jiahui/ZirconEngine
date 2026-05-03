@@ -1,6 +1,9 @@
 use std::ffi::{c_char, CStr, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+use serde::Deserialize;
+use serde_json::json;
+
 const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
 const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = 2;
 const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
@@ -9,6 +12,9 @@ const ZIRCON_NATIVE_PLUGIN_STATUS_DENIED: u32 = 2;
 const ZIRCON_NATIVE_PLUGIN_STATUS_PANIC: u32 = 3;
 const FIXTURE_HOST_HANDLE_REQUIRED: u64 = 1;
 const FIXTURE_OWNER_TOKEN_SALT: u64 = 0x5a17_c0de_f11e_d00d;
+const IMPORT_REQUEST_MAGIC: &[u8] = b"ZRIMP001\n";
+const IMPORT_RESPONSE_MAGIC: &[u8] = b"ZRIMO001\n";
+const FIXTURE_DATA_IMPORTER_ID: &str = "native_dynamic_fixture.data_json";
 
 const PLUGIN_MANIFEST: &str = concat!(
     r#"id = "native_dynamic_fixture"
@@ -49,12 +55,15 @@ const EDITOR_DIAGNOSTICS: &[u8] =
     b"editor entry reached with v2 host ABI table\nnegotiated editor.extension.native_dynamic_fixture\0";
 const MISSING_HOST_DIAGNOSTICS: &[u8] = b"native v2 entry missing negotiated host ABI table\0";
 const RUNTIME_DIAGNOSTICS_WITH_DENIED_CAPABILITY: &[u8] = b"runtime v2 entry reached with host ABI table\nnegotiated runtime.plugin.native_dynamic_fixture\ndenied capability runtime.plugin.denied_fixture\0";
-const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\0";
+const RUNTIME_COMMAND_MANIFEST: &[u8] = b"command=echo;payload=bytes\ncommand=mismatched_buffer;payload=bytes\ncommand=panic;payload=bytes\ncommand=asset.import/native_dynamic_fixture.data_json;payload=ZRIMP001\0";
 const RUNTIME_EVENT_MANIFEST: &[u8] = b"event=native_dynamic_fixture.echoed;payload=bytes\0";
 const EDITOR_COMMAND_MANIFEST: &[u8] = b"\0";
 const EDITOR_EVENT_MANIFEST: &[u8] = b"\0";
 const STATUS_OK_DIAGNOSTICS: &[u8] = b"\0";
 const STATUS_ECHO_DIAGNOSTICS: &[u8] = b"serialized command echo completed\0";
+const STATUS_ASSET_IMPORT_DIAGNOSTICS: &[u8] = b"native fixture asset import completed\0";
+const STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS: &[u8] =
+    b"native fixture asset import request was malformed\0";
 const STATUS_DENIED_COMMAND_DIAGNOSTICS: &[u8] = b"denied native command unknown\0";
 const STATUS_PANIC_DIAGNOSTICS: &[u8] = b"native fixture caught panic during command invocation\0";
 const STATUS_BAD_COMMAND_DIAGNOSTICS: &[u8] = b"native command name was null or invalid\0";
@@ -66,6 +75,13 @@ const STATUS_UNLOAD_DIAGNOSTICS: &[u8] = b"unload callback reached\0";
 const STATUS_STATELESS_UNLOAD_DIAGNOSTICS: &[u8] = b"stateless unload callback reached\0";
 const STATUS_FREE_MISMATCH_DIAGNOSTICS: &[u8] = b"allocation/free owner mismatch\0";
 const RUNTIME_STATE_BLOB: &[u8] = b"state:v2:native_dynamic_fixture";
+
+#[derive(Deserialize)]
+struct NativeAssetImportRequestMetadata {
+    importer_id: String,
+    source_uri: String,
+    source_path: String,
+}
 
 #[repr(C)]
 pub struct NativePluginAbiV1 {
@@ -350,12 +366,100 @@ unsafe fn fixture_invoke_command_inner(
             *output = buffer;
             status(ZIRCON_NATIVE_PLUGIN_STATUS_OK, STATUS_ECHO_DIAGNOSTICS)
         }
+        "asset.import/native_dynamic_fixture.data_json" => {
+            fixture_import_data_json(payload, output)
+        }
         "panic" => panic!("fixture command panic"),
         _ => status(
             ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
             STATUS_DENIED_COMMAND_DIAGNOSTICS,
         ),
     }
+}
+
+unsafe fn fixture_import_data_json(
+    payload: NativePluginByteSliceV2,
+    output: *mut NativePluginOwnedByteBufferV2,
+) -> NativePluginCallbackStatusV2 {
+    let Ok((metadata, source_bytes)) = decode_import_request(bytes_from_slice(payload)) else {
+        return status(
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS,
+        );
+    };
+    if metadata.importer_id != FIXTURE_DATA_IMPORTER_ID {
+        return status(
+            ZIRCON_NATIVE_PLUGIN_STATUS_DENIED,
+            STATUS_DENIED_COMMAND_DIAGNOSTICS,
+        );
+    }
+    let Ok(response) = encode_import_response(&metadata, source_bytes) else {
+        return status(
+            ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
+            STATUS_ASSET_IMPORT_INVALID_DIAGNOSTICS,
+        );
+    };
+    *output = owned_bytes(response);
+    status(
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK,
+        STATUS_ASSET_IMPORT_DIAGNOSTICS,
+    )
+}
+
+fn decode_import_request(
+    payload: &[u8],
+) -> Result<(NativeAssetImportRequestMetadata, &[u8]), String> {
+    if !payload.starts_with(IMPORT_REQUEST_MAGIC)
+        || payload.len() < IMPORT_REQUEST_MAGIC.len() + std::mem::size_of::<u64>()
+    {
+        return Err("missing import request magic".to_string());
+    }
+    let metadata_len_start = IMPORT_REQUEST_MAGIC.len();
+    let metadata_len_end = metadata_len_start + std::mem::size_of::<u64>();
+    let metadata_len = u64::from_le_bytes(
+        payload[metadata_len_start..metadata_len_end]
+            .try_into()
+            .map_err(|_| "invalid import metadata length".to_string())?,
+    ) as usize;
+    let metadata_end = metadata_len_end + metadata_len;
+    if metadata_end > payload.len() {
+        return Err("import metadata length exceeds payload".to_string());
+    }
+    let metadata = serde_json::from_slice(&payload[metadata_len_end..metadata_end])
+        .map_err(|error| error.to_string())?;
+    Ok((metadata, &payload[metadata_end..]))
+}
+
+fn encode_import_response(
+    metadata: &NativeAssetImportRequestMetadata,
+    source_bytes: &[u8],
+) -> Result<Vec<u8>, String> {
+    let text = std::str::from_utf8(source_bytes).map_err(|error| error.to_string())?;
+    let canonical_json: serde_json::Value =
+        serde_json::from_str(text).map_err(|error| error.to_string())?;
+    let response_metadata = json!({
+        "importer_id": metadata.importer_id,
+        "imported_asset": {
+            "Data": {
+                "uri": metadata.source_uri,
+                "format": "json",
+                "text": text,
+                "canonical_json": canonical_json,
+            }
+        },
+        "diagnostics": [
+            format!("native fixture imported {}", metadata.source_path),
+        ],
+    });
+    let metadata_bytes =
+        serde_json::to_vec(&response_metadata).map_err(|error| error.to_string())?;
+    let mut response = Vec::with_capacity(
+        IMPORT_RESPONSE_MAGIC.len() + std::mem::size_of::<u64>() + metadata_bytes.len(),
+    );
+    response.extend_from_slice(IMPORT_RESPONSE_MAGIC);
+    response.extend_from_slice(&(metadata_bytes.len() as u64).to_le_bytes());
+    response.extend_from_slice(&metadata_bytes);
+    Ok(response)
 }
 
 unsafe extern "C" fn fixture_save_state(

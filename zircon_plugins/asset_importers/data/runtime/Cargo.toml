@@ -6,4 +6,8 @@ license.workspace = true
 description = "Data asset importer runtime plugin package for Zircon."
 
 [dependencies]
+roxmltree = "0.21.1"
+serde_json = "1.0.149"
+serde_yaml = "0.9.34"
+toml = "1.1.2"
 zircon_runtime = { path = "../../../../zircon_runtime", default-features = false }

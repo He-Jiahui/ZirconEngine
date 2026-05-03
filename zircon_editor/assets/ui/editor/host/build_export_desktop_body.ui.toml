@@ -1,0 +1,36 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "editor.host.pane.build_export_desktop.body"
+version = 1
+display_name = "desktop build export pane body"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node_id = "root"
+kind = "component"
+component = "BuildExportPaneBody"
+
+[components.BuildExportPaneBody]
+style_scope = "closed"
+
+[components.BuildExportPaneBody.root]
+node_id = "build_export_pane_body_root"
+kind = "native"
+type = "VerticalBox"
+children = [
+  { node = { node_id = "build_export_header", kind = "native", type = "HorizontalBox", children = [
+    { node = { node_id = "build_export_focus_action", kind = "native", type = "IconButton", control_id = "FocusBuildExport", bindings = [{ id = "BuildExportPaneBody/FocusBuildExport", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Export" } } }
+  ] } },
+  { node = { node_id = "build_export_summary", kind = "native", type = "Label", control_id = "BuildExportSummary", props = { text = "Desktop export plans" } } },
+  { node = { node_id = "build_export_targets_slot_node", kind = "slot", slot_name = "build_export_targets_slot", control_id = "BuildExportTargetsPanel" } },
+]
+
+[components.BuildExportPaneBody.slots.build_export_targets_slot]
+required = false

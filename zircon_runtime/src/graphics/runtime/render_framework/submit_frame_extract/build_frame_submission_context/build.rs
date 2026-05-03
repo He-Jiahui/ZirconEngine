@@ -3,7 +3,7 @@ use crate::core::framework::render::{
 };
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
-use crate::VisibilityContext;
+use crate::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
@@ -21,20 +21,38 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline);
-    let effective_virtual_geometry_extract = apply_virtual_geometry_debug_override(
+    let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
         extract.geometry.virtual_geometry.clone(),
         extract.geometry.virtual_geometry_debug,
     );
-    let sanitized_feature_extract;
-    let visibility_extract = if hybrid_gi_enabled && virtual_geometry_enabled {
-        extract
-    } else {
-        sanitized_feature_extract =
-            visibility_extract_without_disabled_advanced_features(extract, hybrid_gi_enabled);
-        &sanitized_feature_extract
-    };
+    let automatic_virtual_geometry_output =
+        if virtual_geometry_enabled && authored_virtual_geometry_extract.is_none() {
+            build_automatic_virtual_geometry_extract(server, extract)
+        } else {
+            None
+        };
+    let effective_virtual_geometry_extract = authored_virtual_geometry_extract.or_else(|| {
+        automatic_virtual_geometry_output
+            .as_ref()
+            .map(|output| output.extract().clone())
+    });
+    let visibility_extract = visibility_extract_with_effective_advanced_features(
+        extract,
+        hybrid_gi_enabled,
+        virtual_geometry_enabled
+            .then(|| effective_virtual_geometry_extract.clone())
+            .flatten(),
+    );
+    let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
+        .as_ref()
+        .map(|output| output.cpu_reference_instances().to_vec())
+        .unwrap_or_default();
+    let virtual_geometry_bvh_visualization_instances = automatic_virtual_geometry_output
+        .as_ref()
+        .map(|output| output.bvh_visualization_instances().to_vec())
+        .unwrap_or_default();
     let visibility_context = VisibilityContext::from_extract_with_history(
-        visibility_extract,
+        &visibility_extract,
         viewport_state.previous_visibility(),
     );
     let hybrid_gi_update_plan =
@@ -62,11 +80,15 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .flatten(),
         hybrid_gi_update_plan,
         hybrid_gi_feedback,
+        extract.geometry.meshes.clone(),
+        extract.lighting.directional_lights.clone(),
+        extract.lighting.point_lights.clone(),
+        extract.lighting.spot_lights.clone(),
         virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
-        Vec::new(),
-        Vec::new(),
+        virtual_geometry_cpu_reference_instances,
+        virtual_geometry_bvh_visualization_instances,
         virtual_geometry_page_upload_plan,
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
@@ -84,14 +106,35 @@ fn apply_virtual_geometry_debug_override(
     Some(extract)
 }
 
-fn visibility_extract_without_disabled_advanced_features(
+fn build_automatic_virtual_geometry_extract(
+    server: &WgpuRenderFramework,
+    extract: &RenderFrameExtract,
+) -> Option<VirtualGeometryRuntimeExtractOutput> {
+    let (registration, asset_manager) = {
+        let state = server.state.lock().unwrap();
+        (
+            state.virtual_geometry_runtime_provider.clone()?,
+            state.renderer.asset_manager_for_runtime_extract(),
+        )
+    };
+    let mut load_model = |model_id| asset_manager.load_model_asset(model_id).ok();
+    registration.provider().build_extract_from_meshes(
+        &extract.geometry.meshes,
+        extract.geometry.virtual_geometry_debug,
+        &mut load_model,
+    )
+}
+
+fn visibility_extract_with_effective_advanced_features(
     extract: &RenderFrameExtract,
     hybrid_gi_enabled: bool,
+    virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
 ) -> RenderFrameExtract {
     let mut extract = extract.clone();
     if !hybrid_gi_enabled {
         extract.lighting.hybrid_global_illumination = None;
     }
+    extract.geometry.virtual_geometry = virtual_geometry_extract;
     extract
 }
 

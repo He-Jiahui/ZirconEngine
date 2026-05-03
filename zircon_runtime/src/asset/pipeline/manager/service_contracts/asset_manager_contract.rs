@@ -24,19 +24,19 @@ impl AssetManagerContract for ProjectAssetManager {
         &self,
         importer: Arc<dyn AssetImporterHandler>,
     ) -> Result<(), CoreError> {
-        let mut project = self.project_write();
-        let Some(project) = project.as_mut() else {
-            return Err(super::super::errors::asset_error_message(
-                "no project is currently open",
-            ));
-        };
-        project
-            .register_asset_importer_arc(importer)
-            .map_err(asset_error)
+        ProjectAssetManager::register_asset_importer_arc(self, importer)
     }
 
     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {
         let mut project = ProjectManager::open(root_path).map_err(asset_error)?;
+        let installed_importers = self
+            .asset_importers
+            .read()
+            .expect("asset importer registry lock poisoned")
+            .clone();
+        project
+            .register_asset_importers_from_registry(&installed_importers)
+            .map_err(asset_error)?;
         let previous_locators = self
             .project_read()
             .as_ref()

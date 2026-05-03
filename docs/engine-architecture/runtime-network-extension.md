@@ -22,7 +22,9 @@ related_code:
   - zircon_runtime/src/core/manager/service_names.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/Cargo.toml
+  - zircon_plugins/net/runtime/src/backend.rs
   - zircon_plugins/net/runtime/src/config.rs
+  - zircon_plugins/net/runtime/src/http_backend.rs
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
@@ -46,12 +48,15 @@ implementation_files:
   - zircon_runtime/src/core/framework/net/websocket.rs
   - zircon_plugins/net/plugin.toml
   - zircon_plugins/net/runtime/Cargo.toml
+  - zircon_plugins/net/runtime/src/backend.rs
   - zircon_plugins/net/runtime/src/config.rs
+  - zircon_plugins/net/runtime/src/http_backend.rs
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/package.rs
   - zircon_plugins/net/runtime/src/service_types.rs
 plan_sources:
   - user: 2026-05-02 PLEASE IMPLEMENT THIS PLAN / ZirconEngine Net 插件完善计划
+  - user: 2026-05-03 continue net M2 real HTTP/WebSocket backend task
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/多插件组合可选功能规则设计.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
@@ -64,6 +69,8 @@ tests:
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --locked --offline
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked --offline
   - attempted: VS DevCmd + CARGO_TARGET_DIR=target/codex-net-check cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline -j 1
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked
+  - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --lib --locked
 doc_type: module-detail
 ---
 
@@ -83,7 +90,7 @@ Tokio-backed transport foundation:
 - TCP listener/client/accepted connection handles are now part of the shared manager contract.
 - Runtime mode is explicit: `DedicatedServer`, `Client`, or `ListenServer`.
 - The manager reports copied diagnostics and drains structured runtime events.
-- HTTP route/request dispatch and WebSocket frame queue behavior now have a first runtime slice.
+- HTTP route/request dispatch, real HTTP route serving/client calls, WebSocket frame queues, and real WebSocket handshake connections now have runtime slices.
 - RPC, replication, reliable UDP, and content-download contracts are represented as neutral DTOs and optional feature manifests.
 
 This is not the full multiplayer stack yet. The current milestone establishes the low-level
@@ -122,8 +129,8 @@ or replication runtime state.
 - identity and mode: `backend_name()`, `runtime_mode()`
 - UDP: `bind_udp`, `local_endpoint`, `send_udp`, `poll_udp`, `close_socket`
 - TCP: `listen_tcp`, `listener_endpoint`, `accept_tcp`, `connect_tcp`, `connection_state`, `send_tcp`, `poll_tcp`, `close_connection`
-- HTTP: `register_http_route`, `unregister_http_route`, `send_http_request`
-- WebSocket: `open_websocket_loopback`, `send_websocket_frame`, `poll_websocket_frames`
+- HTTP: `register_http_route`, `unregister_http_route`, `listen_http`, `send_http_request`
+- WebSocket: `connect_websocket`, `listen_websocket`, `accept_websocket`, `open_websocket_loopback`, `send_websocket_frame`, `poll_websocket_frames`
 - observability: `drain_events`, `diagnostics`
 
 The manager intentionally exposes handles and copied DTOs only. It does not expose Tokio sockets,
@@ -140,23 +147,28 @@ for the same concrete implementation. Internally it owns:
 - TCP listener table
 - TCP connection table
 - HTTP route table
-- WebSocket loopback connection table
+- HTTP listener table backed by `hyper` HTTP/1 route serving
+- WebSocket loopback and network connection table backed by `tokio-tungstenite`
 - FIFO event queue
 
 The synchronous `NetManager` trait uses Tokio nonblocking socket APIs internally. Binding and
 connecting use the manager's runtime, while polling and sending use `try_*` methods so the existing
 engine-facing call surface stays deterministic and budgeted.
 
-The M2 starter slice keeps HTTP and WebSocket runtime behavior intentionally local and budgetable:
+The M2 HTTP/WebSocket slice now has both local budgeted paths and real protocol-backed paths:
 
 - HTTP routes are registered as `NetHttpRouteDescriptor` plus a stable `NetHttpResponseDescriptor`.
-- `send_http_request` parses the request path and dispatches to registered routes by method/path.
+- Local `send_http_request` calls without an explicit URL port still dispatch to registered routes by method/path for deterministic route tests and editor/catalog plumbing.
+- `listen_http` binds a real Tokio TCP listener and serves registered routes through `hyper` HTTP/1.
+- `send_http_request` with an explicit network URL uses a `reqwest` rustls client and maps headers/body/status into Zircon DTOs.
 - WebSocket loopback pairs use `NetConnectionId` handles, `NetWebSocketFrame` values, peer queues, close frames, and frame poll budgets.
+- `listen_websocket` binds a real Tokio TCP listener and `accept_websocket` upgrades accepted streams with `tokio-tungstenite`.
+- `connect_websocket` performs a real client handshake with URL, custom headers, subprotocols, timeout, and security policy DTO fields kept in the framework layer.
+- Real WebSocket read halves run as Tokio tasks and push received frames into the same budgeted `poll_websocket_frames` queue as loopback connections.
 
-This is enough for plugin/catalog/editor surfaces to exercise the feature family without binding the
-framework contract to a specific external library. The production backend still needs the planned
-`reqwest`/`hyper`/`tokio-tungstenite` integration before this becomes real network HTTP(S) or
-WebSocket IO.
+This keeps the framework contract DTO-only while moving the runtime implementation beyond the earlier
+local-only M2 starter. HTTPS and WSS use the rustls-enabled dependency stack, but certificate pinning,
+proxy policy, retry policy, and production route handler callbacks remain later HTTP hardening work.
 
 ## Optional Features
 
@@ -198,10 +210,12 @@ New unit-test coverage was added in `zircon_plugins/net/runtime/src/tests.rs` fo
 - net package optional feature bundle metadata
 - UDP loopback preservation
 - TCP listen/connect/accept/send/poll echo behavior
+- HTTP real socket route serving through `listen_http` plus `reqwest` client dispatch
+- WebSocket real client/server handshake and text frame exchange through `tokio-tungstenite`
 - runtime mode diagnostics and listener events
 - RPC descriptor direction/schema/quota metadata
 
-Validation is currently blocked by unrelated active workspace changes:
+Validation status for the net package is now:
 
 - The earlier asset metadata duplicate-field blocker no longer reproduces.
 - The earlier navigation runtime manifest target blocker no longer reproduces.
@@ -211,8 +225,8 @@ Validation is currently blocked by unrelated active workspace changes:
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline` passed with `CARGO_TARGET_DIR=target/codex-net-check`.
 - The locked check variant also passed after refreshing `zircon_plugins/Cargo.lock` offline.
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked --offline` passed with the same target, proving the added HTTP/WebSocket tests type-check.
-- Full `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --lib --locked --offline -j 1` was attempted inside VS DevCmd. It still timed out while compiling/linking large shared dependencies such as `wgpu`, `gltf`, `glyphon`, `fontsdf`, and `zircon_runtime_interface`; it did not reach the net test runner.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --tests --locked` passed after the target was prewarmed.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --lib --locked` passed: 10 tests passed, including real HTTP socket and real WebSocket handshake coverage.
 
-The next clean validation gate for this milestone is to rerun the same package test on a quieter
-machine or after shared target artifacts are warm enough that the test binary can link within the
-local timeout budget.
+Full plugin-workspace and root-workspace Cargo validation remain broader milestone gates because the
+workspace is currently dirty with unrelated active asset/render/editor work.

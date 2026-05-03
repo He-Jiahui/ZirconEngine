@@ -80,11 +80,12 @@ pub(super) fn bottom_left_drawer() -> ActivityDrawerLayout {
 
 pub(super) fn bottom_right_drawer(subsystems: &EditorSubsystemReport) -> ActivityDrawerLayout {
     let diagnostics = ViewInstanceId::new("editor.runtime_diagnostics#1");
-    let tabs = subsystems
+    let mut tabs = subsystems
         .is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
         .then_some(diagnostics.clone())
         .into_iter()
         .collect::<Vec<_>>();
+    tabs.push(ViewInstanceId::new("editor.build_export_desktop#1"));
     let active = tabs.first().cloned();
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::BottomRight,

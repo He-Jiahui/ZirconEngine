@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::asset::AssetUri;
-use crate::{ExportProfile, ProjectPluginManifest};
+use crate::{plugin::ExportProfile, plugin::ProjectPluginManifest};
 
 const PROJECT_FORMAT_VERSION: u32 = 1;
 

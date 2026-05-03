@@ -74,7 +74,8 @@ impl SlintEditorHost {
         let mut component_showcase_runtime = EditorUiHostRuntime::default();
         component_showcase_runtime.load_builtin_host_templates()?;
 
-        let native_plugin_live_host = Arc::new(zircon_runtime::plugin::NativePluginLiveHost::default());
+        let native_plugin_live_host =
+            Arc::new(zircon_runtime::plugin::NativePluginLiveHost::default());
         let runtime = EditorEventRuntime::new(state, editor_manager.clone());
         runtime.set_runtime_play_mode_backend(Arc::new(
             NativePluginEditorRuntimePlayModeBackend::new(native_plugin_live_host.clone()),
@@ -87,6 +88,9 @@ impl SlintEditorHost {
             runtime_client,
             editor_manager,
             module_plugin_live_host_backend: Box::new(native_plugin_live_host),
+            desktop_export_reports: BTreeMap::new(),
+            desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
+            desktop_export_output_overrides: BTreeMap::new(),
             viewport,
             asset_server,
             editor_asset_server,
@@ -159,6 +163,8 @@ impl SlintEditorHost {
     }
 
     pub(super) fn tick(&mut self) {
+        self.poll_desktop_export_jobs();
+
         if let Err(error) = self.refresh_project_assets() {
             self.set_status_line(error);
         }
@@ -317,6 +323,7 @@ impl SlintEditorHost {
         let animation_panes = self.collect_animation_editor_panes();
         let runtime_diagnostics = self.editor_manager.runtime_diagnostics();
         let module_plugins = self.module_plugins_pane_data(&chrome);
+        let build_export = self.build_export_pane_data(&chrome);
         apply_presentation(
             &self.ui,
             &model,
@@ -328,6 +335,7 @@ impl SlintEditorHost {
             &animation_panes,
             Some(&runtime_diagnostics),
             &module_plugins,
+            &build_export,
             Some(&root_shell_frames),
             &floating_window_projection_bundle,
             Some(&self.component_showcase_runtime),
@@ -498,6 +506,180 @@ impl SlintEditorHost {
         }
     }
 
+    fn build_export_pane_data(
+        &self,
+        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+    ) -> crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData {
+        use crate::ui::layouts::common::model_rc;
+        use crate::ui::layouts::windows::workbench_host_window::{
+            BuildExportPaneViewData, BuildExportTargetViewData,
+        };
+        use crate::ui::workbench::project::project_root_path;
+        use zircon_runtime::asset::project::ProjectManifest;
+
+        let mut diagnostics = Vec::new();
+        let targets = project_root_path(&chrome.project_path)
+            .map_err(|error| error.to_string())
+            .and_then(|project_root| {
+                let manifest_path = project_root.join("zircon-project.toml");
+                ProjectManifest::load(&manifest_path)
+                    .map_err(|error| {
+                        format!("desktop export panel needs a project manifest: {error}")
+                    })
+                    .map(|manifest| (project_root, manifest))
+            })
+            .map(|(project_root, manifest)| {
+                let job_snapshots = self.desktop_export_jobs.snapshots();
+                build_export_actions::desktop_export_profiles()
+                    .into_iter()
+                    .map(|profile| {
+                        let mut manifest_for_profile = manifest.clone();
+                        manifest_for_profile.export_profiles.push(profile.clone());
+                        match self.editor_manager.generate_native_aware_export_plan(
+                            &project_root,
+                            &manifest_for_profile,
+                            &profile.name,
+                        ) {
+                            Ok(plan) => {
+                                let has_fatal_diagnostics = plan.has_fatal_diagnostics();
+                                let profile_name = plan.profile.name.clone();
+                                let diagnostics = plan
+                                    .fatal_diagnostics
+                                    .iter()
+                                    .chain(plan.diagnostics.iter())
+                                    .cloned()
+                                    .collect::<Vec<_>>()
+                                    .join("\n");
+                                let output_root = self.effective_desktop_export_output_root(
+                                    &project_root,
+                                    &profile_name,
+                                );
+                                let diagnostics = prepend_desktop_export_output_diagnostic(
+                                    output_root.as_path(),
+                                    diagnostics,
+                                );
+                                let mut target = BuildExportTargetViewData {
+                                    profile_name: profile_name.clone().into(),
+                                    platform: build_export_actions::export_platform_label(
+                                        plan.profile.target_platform,
+                                    )
+                                    .into(),
+                                    target_mode: format!("{:?}", plan.profile.target_mode).into(),
+                                    strategies: plan
+                                        .profile
+                                        .strategies
+                                        .iter()
+                                        .map(|strategy| format!("{strategy:?}"))
+                                        .collect::<Vec<_>>()
+                                        .join(", ")
+                                        .into(),
+                                    status: if has_fatal_diagnostics {
+                                        "Blocked".into()
+                                    } else {
+                                        "Ready".into()
+                                    },
+                                    enabled_plugins: plan
+                                        .enabled_runtime_plugins
+                                        .len()
+                                        .to_string()
+                                        .into(),
+                                    linked_runtime_crates: plan
+                                        .linked_runtime_crates
+                                        .len()
+                                        .to_string()
+                                        .into(),
+                                    native_dynamic_packages: plan
+                                        .native_dynamic_packages
+                                        .len()
+                                        .to_string()
+                                        .into(),
+                                    generated_files: plan.generated_files.len().to_string().into(),
+                                    diagnostics: diagnostics.into(),
+                                    fatal: has_fatal_diagnostics,
+                                };
+                                if let Some(summary) =
+                                    self.desktop_export_reports.get(profile_name.as_str())
+                                {
+                                    build_export_actions::apply_summary_to_target(
+                                        &mut target,
+                                        summary,
+                                    );
+                                }
+                                if let Some(job) = job_snapshots
+                                    .iter()
+                                    .find(|job| job.profile_name == profile_name)
+                                {
+                                    build_export_actions::apply_job_snapshot_to_target(
+                                        &mut target,
+                                        job,
+                                    );
+                                }
+                                target
+                            }
+                            Err(error) => {
+                                let output_root = self.effective_desktop_export_output_root(
+                                    &project_root,
+                                    &profile.name,
+                                );
+                                let diagnostics = prepend_desktop_export_output_diagnostic(
+                                    output_root.as_path(),
+                                    error.to_string(),
+                                );
+                                let mut target = BuildExportTargetViewData {
+                                    profile_name: profile.name.clone().into(),
+                                    platform: build_export_actions::export_platform_label(
+                                        profile.target_platform,
+                                    )
+                                    .into(),
+                                    target_mode: format!("{:?}", profile.target_mode).into(),
+                                    strategies: profile
+                                        .strategies
+                                        .iter()
+                                        .map(|strategy| format!("{strategy:?}"))
+                                        .collect::<Vec<_>>()
+                                        .join(", ")
+                                        .into(),
+                                    status: "Blocked".into(),
+                                    diagnostics: diagnostics.into(),
+                                    fatal: true,
+                                    ..BuildExportTargetViewData::default()
+                                };
+                                if let Some(summary) =
+                                    self.desktop_export_reports.get(profile.name.as_str())
+                                {
+                                    build_export_actions::apply_summary_to_target(
+                                        &mut target,
+                                        summary,
+                                    );
+                                }
+                                if let Some(job) = job_snapshots
+                                    .iter()
+                                    .find(|job| job.profile_name == profile.name)
+                                {
+                                    build_export_actions::apply_job_snapshot_to_target(
+                                        &mut target,
+                                        job,
+                                    );
+                                }
+                                target
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(|error| {
+                diagnostics.push(error);
+                Vec::new()
+            });
+
+        let pane = BuildExportPaneViewData {
+            targets: model_rc(targets),
+            diagnostics: diagnostics.join("\n").into(),
+        };
+
+        pane
+    }
+
     pub(super) fn set_status_line(&mut self, message: impl Into<String>) {
         self.runtime.set_status_line(message);
         self.presentation_dirty = true;
@@ -574,6 +756,7 @@ impl SlintEditorHost {
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
         let module_plugins = self.module_plugins_pane_data(chrome);
+        let build_export = self.build_export_pane_data(chrome);
         let targets =
             collect_native_floating_window_targets(model, floating_window_projection_bundle);
         let active_preset_name = self.active_layout_preset.as_deref();
@@ -607,6 +790,7 @@ impl SlintEditorHost {
                     animation_panes,
                     Some(runtime_diagnostics),
                     &module_plugins,
+                    &build_export,
                     None,
                     floating_window_projection_bundle,
                     Some(&self.component_showcase_runtime),
@@ -891,6 +1075,18 @@ fn packaging_label(strategy: zircon_runtime::plugin::ExportPackagingStrategy) ->
         zircon_runtime::plugin::ExportPackagingStrategy::SourceTemplate => "source-template",
         zircon_runtime::plugin::ExportPackagingStrategy::LibraryEmbed => "library-embed",
         zircon_runtime::plugin::ExportPackagingStrategy::NativeDynamic => "native-dynamic",
+    }
+}
+
+fn prepend_desktop_export_output_diagnostic(
+    output_root: &std::path::Path,
+    diagnostics: impl Into<String>,
+) -> String {
+    let diagnostics = diagnostics.into();
+    if diagnostics.is_empty() {
+        format!("Output: {}", output_root.display())
+    } else {
+        format!("Output: {}\n{diagnostics}", output_root.display())
     }
 }
 

@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::PluginPackageManifest;
+use crate::plugin::PluginPackageManifest;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginCandidate {

@@ -9,6 +9,7 @@ mod playback_settings;
 mod pose_bone;
 mod pose_output;
 mod pose_source;
+mod sequence_apply_report;
 mod state_machine_evaluation;
 mod track_path;
 mod track_path_error;
@@ -22,6 +23,7 @@ pub use playback_settings::AnimationPlaybackSettings;
 pub use pose_bone::AnimationPoseBone;
 pub use pose_output::AnimationPoseOutput;
 pub use pose_source::AnimationPoseSource;
+pub use sequence_apply_report::AnimationSequenceApplyReport;
 pub use state_machine_evaluation::{
     AnimationStateMachineEvaluation, AnimationStateTransitionEvaluation,
 };

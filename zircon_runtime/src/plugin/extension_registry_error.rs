@@ -12,6 +12,8 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateRenderPassExecutor(String),
     #[error("virtual geometry runtime provider {0} already registered")]
     DuplicateVirtualGeometryRuntimeProvider(String),
+    #[error("hybrid GI runtime provider {0} already registered")]
+    DuplicateHybridGiRuntimeProvider(String),
     #[error("component type {0} already registered")]
     DuplicateComponentType(String),
     #[error("invalid component type: {0}")]
@@ -30,4 +32,8 @@ pub enum RuntimeExtensionRegistryError {
     InvalidPluginEventCatalog(String),
     #[error("asset importer registration failed: {0}")]
     AssetImporter(String),
+    #[error("scene hook {0} already registered")]
+    DuplicateSceneHook(String),
+    #[error("invalid scene hook: {0}")]
+    InvalidSceneHook(String),
 }

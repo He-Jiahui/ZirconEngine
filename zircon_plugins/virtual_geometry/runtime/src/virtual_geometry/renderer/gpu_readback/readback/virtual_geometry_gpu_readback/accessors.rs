@@ -1,6 +1,8 @@
 use super::VirtualGeometryGpuReadback;
 use zircon_runtime::core::framework::render::{
-    RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometrySelectedCluster,
+    RenderVirtualGeometryHardwareRasterizationRecord,
+    RenderVirtualGeometryHardwareRasterizationSource,
+    RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometrySelectedCluster,
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Entry,
     RenderVirtualGeometryVisBuffer64Source,
 };
@@ -31,6 +33,12 @@ impl VirtualGeometryGpuReadback {
         &self,
     ) -> RenderVirtualGeometryHardwareRasterizationSource {
         self.hardware_rasterization_source
+    }
+
+    pub(crate) fn hardware_rasterization_records(
+        &self,
+    ) -> &[RenderVirtualGeometryHardwareRasterizationRecord] {
+        &self.hardware_rasterization_records
     }
 
     pub(crate) fn selected_cluster_count(&self) -> u32 {
@@ -66,5 +74,9 @@ impl VirtualGeometryGpuReadback {
             .iter()
             .map(|entry| entry.packed_value)
             .collect()
+    }
+
+    pub(crate) fn node_cluster_cull(&self) -> &RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+        &self.node_cluster_cull
     }
 }

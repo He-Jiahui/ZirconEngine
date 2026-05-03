@@ -1,4 +1,4 @@
-use crate::RuntimePluginDescriptor;
+use crate::plugin::RuntimePluginDescriptor;
 
 use super::PluginPackageManifest;
 

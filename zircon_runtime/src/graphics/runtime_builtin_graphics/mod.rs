@@ -4,7 +4,7 @@ mod host;
 
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{
-    RenderFeatureDescriptor, RenderPassExecutorRegistration,
+    HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
     VirtualGeometryRuntimeProviderRegistration,
 };
 
@@ -17,6 +17,7 @@ pub use host::{
 pub struct GraphicsModule {
     render_features: Vec<RenderFeatureDescriptor>,
     render_pass_executors: Vec<RenderPassExecutorRegistration>,
+    hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
     virtual_geometry_runtime_providers: Vec<VirtualGeometryRuntimeProviderRegistration>,
 }
 
@@ -27,6 +28,7 @@ impl GraphicsModule {
         Self {
             render_features: render_features.into_iter().collect(),
             render_pass_executors: Vec::new(),
+            hybrid_gi_runtime_providers: Vec::new(),
             virtual_geometry_runtime_providers: Vec::new(),
         }
     }
@@ -41,6 +43,25 @@ impl GraphicsModule {
         Self {
             render_features: render_features.into_iter().collect(),
             render_pass_executors: render_pass_executors.into_iter().collect(),
+            hybrid_gi_runtime_providers: Vec::new(),
+            virtual_geometry_runtime_providers: virtual_geometry_runtime_providers
+                .into_iter()
+                .collect(),
+        }
+    }
+
+    pub fn with_render_extensions_and_runtime_providers(
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Self {
+        Self {
+            render_features: render_features.into_iter().collect(),
+            render_pass_executors: render_pass_executors.into_iter().collect(),
+            hybrid_gi_runtime_providers: hybrid_gi_runtime_providers.into_iter().collect(),
             virtual_geometry_runtime_providers: virtual_geometry_runtime_providers
                 .into_iter()
                 .collect(),
@@ -53,6 +74,10 @@ impl GraphicsModule {
 
     pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         &self.render_pass_executors
+    }
+
+    pub fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {
+        &self.hybrid_gi_runtime_providers
     }
 
     pub fn virtual_geometry_runtime_providers(
@@ -75,6 +100,7 @@ impl EngineModule for GraphicsModule {
         module_descriptor_with_render_features(
             self.render_features.clone(),
             self.render_pass_executors.clone(),
+            self.hybrid_gi_runtime_providers.clone(),
             self.virtual_geometry_runtime_providers.clone(),
         )
     }

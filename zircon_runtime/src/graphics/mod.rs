@@ -4,6 +4,7 @@ pub(crate) mod backend;
 pub(crate) mod extract;
 pub(crate) mod feature;
 pub mod hybrid_gi_extract_sources;
+pub(crate) mod hybrid_gi_runtime_provider;
 pub(crate) mod material;
 pub(crate) mod pipeline;
 pub(crate) mod runtime;
@@ -20,6 +21,11 @@ pub use feature::{
     BuiltinRenderFeature, RenderFeature, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
     RenderFeatureResourceKind,
+};
+pub use hybrid_gi_runtime_provider::{
+    HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
+    HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
+    HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate,
 };
 pub use material::MaterialDomain;
 pub use pipeline::{
@@ -43,10 +49,11 @@ pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, Shade
 pub(crate) use types::ViewportRenderFrame;
 pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
 pub use virtual_geometry_runtime_provider::{
-    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
-    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
-    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
-    VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
+    VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
+    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
+    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
+    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
+    VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
 };
 pub use visibility::{
     VisibilityBatch, VisibilityBatchKey, VisibilityBounds, VisibilityBvhInstance,

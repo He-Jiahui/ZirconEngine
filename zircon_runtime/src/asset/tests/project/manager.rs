@@ -1,4 +1,6 @@
 use std::fs;
+use std::path::Path;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::asset::project::AssetMetaDocument;
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
@@ -10,8 +12,15 @@ use crate::asset::tests::support::{
     write_default_animation_state_machine, write_default_material, write_default_physics_material,
     write_default_scene, write_test_wav, write_triangle_obj, write_valid_wgsl,
 };
-use crate::asset::{AssetId, AssetUri, ImportedAsset};
+use crate::asset::{
+    AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
+    AssetKind, AssetUri, AssetUuid, DataAsset, DataAssetFormat, FunctionAssetImporter,
+    ImportedAsset,
+};
 use crate::core::resource::ResourceState;
+use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
+
+static COUNTED_IMPORT_CALLS: AtomicUsize = AtomicUsize::new(0);
 
 #[test]
 fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
@@ -37,7 +46,7 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
     );
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
-    let mut manager = ProjectManager::open(&root).unwrap();
+    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
     let imported = manager.scan_and_import().unwrap();
 
     assert_eq!(manager.manifest().name, "Sandbox");
@@ -245,7 +254,7 @@ fn project_manager_imports_sound_assets_into_runtime_library() {
 
     write_test_wav(paths.assets_root().join("audio").join("ping.wav"));
 
-    let mut manager = ProjectManager::open(&root).unwrap();
+    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
     let imported = manager.scan_and_import().unwrap();
 
     assert_eq!(imported.len(), 1);
@@ -263,6 +272,73 @@ fn project_manager_imports_sound_assets_into_runtime_library() {
         ImportedAsset::Sound(sample_sound_asset("res://audio/ping.wav"))
     );
     assert!(paths.library_root().join("sound").is_dir());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
+    let root = unique_temp_project_root("project_manager_restart_restore");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://data/settings.counted").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let data_path = paths.assets_root().join("data").join("settings.counted");
+    if let Some(parent) = data_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&data_path, r#"{ "answer": 42 }"#).unwrap();
+
+    COUNTED_IMPORT_CALLS.store(0, Ordering::SeqCst);
+    let uri = AssetUri::parse("res://data/settings.counted").unwrap();
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_asset_importer(counted_data_importer())
+        .unwrap();
+    manager.scan_and_import().unwrap();
+    assert_eq!(COUNTED_IMPORT_CALLS.load(Ordering::SeqCst), 1);
+
+    let record = manager.registry().get_by_locator(&uri).unwrap();
+    let artifact_locator = record.artifact_locator().cloned().unwrap();
+    let meta = AssetMetaDocument::load(
+        paths
+            .assets_root()
+            .join("data")
+            .join("settings.counted.meta.toml"),
+    )
+    .unwrap();
+    assert_eq!(
+        meta.preview_state,
+        crate::asset::project::PreviewState::Ready
+    );
+    assert_eq!(meta.artifact_locator.as_ref(), Some(&artifact_locator));
+    assert_eq!(meta.importer_id, "test.counted.data");
+    assert!(!meta.config_hash.is_empty());
+
+    let mut restarted = ProjectManager::open(&root).unwrap();
+    restarted.scan_and_import().unwrap();
+    assert_eq!(
+        COUNTED_IMPORT_CALLS.load(Ordering::SeqCst),
+        1,
+        "restart scan should restore the ready artifact without the custom importer"
+    );
+
+    let recovered = restarted.registry().get_by_locator(&uri).unwrap();
+    assert_eq!(recovered.state, ResourceState::Ready);
+    assert_eq!(recovered.importer_id, "test.counted.data");
+    assert_eq!(recovered.artifact_locator(), Some(&artifact_locator));
+
+    let imported = restarted.load_artifact(&uri).unwrap();
+    match imported {
+        ImportedAsset::Data(asset) => assert!(asset.text.contains("\"answer\"")),
+        other => panic!("unexpected imported asset: {other:?}"),
+    }
 
     let _ = fs::remove_dir_all(root);
 }
@@ -291,7 +367,7 @@ fn project_manager_records_failed_imports_and_continues_scanning() {
     )
     .unwrap();
 
-    let mut manager = ProjectManager::open(&root).unwrap();
+    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
     let imported = manager.scan_and_import().unwrap();
 
     assert_eq!(imported.len(), 2);
@@ -328,4 +404,140 @@ fn project_manager_records_failed_imports_and_continues_scanning() {
     );
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_records_ui_schema_migration_in_meta() {
+    let root = unique_temp_project_root("project_manager_ui_migration");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://ui/legacy.ui.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let ui_path = paths.assets_root().join("ui").join("legacy.ui.toml");
+    if let Some(parent) = ui_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&ui_path, version_one_ui_layout_toml()).unwrap();
+
+    let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
+    manager.scan_and_import().unwrap();
+
+    let meta = AssetMetaDocument::load(
+        paths
+            .assets_root()
+            .join("ui")
+            .join("legacy.ui.toml.meta.toml"),
+    )
+    .unwrap();
+    assert_eq!(meta.importer_id, "ui_document_importer.typed_toml");
+    assert_eq!(meta.source_schema_version, Some(1));
+    assert_eq!(
+        meta.target_schema_version,
+        Some(UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION)
+    );
+    assert!(meta.migration_summary.contains("SourceVersionBumped"));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_clears_stale_migration_meta_for_non_migrating_importer() {
+    let root = unique_temp_project_root("project_manager_clear_stale_migration");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "Sandbox",
+        AssetUri::parse("res://data/settings.json").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let data_path = paths.assets_root().join("data").join("settings.json");
+    if let Some(parent) = data_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    fs::write(&data_path, r#"{ "answer": 42 }"#).unwrap();
+
+    let uri = AssetUri::parse("res://data/settings.json").unwrap();
+    let mut stale_meta = AssetMetaDocument::new(AssetUuid::new(), uri, AssetKind::Data);
+    stale_meta.source_schema_version = Some(1);
+    stale_meta.target_schema_version = Some(99);
+    stale_meta.migration_summary = "stale migration data".to_string();
+    stale_meta
+        .save(
+            paths
+                .assets_root()
+                .join("data")
+                .join("settings.json.meta.toml"),
+        )
+        .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    let meta = AssetMetaDocument::load(
+        paths
+            .assets_root()
+            .join("data")
+            .join("settings.json.meta.toml"),
+    )
+    .unwrap();
+    assert_eq!(meta.importer_id, "zircon.builtin.data.json");
+    assert_eq!(meta.source_schema_version, None);
+    assert_eq!(meta.target_schema_version, None);
+    assert!(meta.migration_summary.is_empty());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+fn version_one_ui_layout_toml() -> &'static str {
+    r#"
+[asset]
+kind = "layout"
+id = "legacy.layout"
+version = 1
+display_name = "Legacy Layout"
+
+[root]
+node_id = "legacy_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "LegacyRoot"
+"#
+}
+
+fn counted_data_importer() -> FunctionAssetImporter {
+    FunctionAssetImporter::new(
+        AssetImporterDescriptor::new("test.counted.data", "test.counted", AssetKind::Data, 1)
+            .with_source_extensions(["counted"]),
+        import_counted_data,
+    )
+}
+
+fn project_manager_with_first_wave_plugin_fixtures(root: impl AsRef<Path>) -> ProjectManager {
+    let mut manager = ProjectManager::open(root).unwrap();
+    manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    manager
+}
+
+fn import_counted_data(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    COUNTED_IMPORT_CALLS.fetch_add(1, Ordering::SeqCst);
+    let text = context.source_text()?;
+    Ok(AssetImportOutcome::new(ImportedAsset::Data(DataAsset {
+        uri: context.uri.clone(),
+        format: DataAssetFormat::Json,
+        text,
+        canonical_json: serde_json::json!({ "counted": true }),
+    })))
 }

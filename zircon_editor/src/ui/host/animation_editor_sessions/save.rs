@@ -8,7 +8,7 @@ impl EditorUiHost {
     pub fn save_animation_editor(&self, instance_id: &ViewInstanceId) -> Result<(), EditorError> {
         self.ensure_animation_editor_session(instance_id)?;
         let source_path = {
-            let mut sessions = self.animation_editor_sessions.lock().unwrap();
+            let mut sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
                     "missing animation editor session {}",

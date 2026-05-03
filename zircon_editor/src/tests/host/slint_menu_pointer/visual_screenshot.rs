@@ -5,7 +5,9 @@ use slint::PhysicalSize;
 
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::asset_editor::UiAssetEditorPanePresentation;
-use crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData;
+use crate::ui::layouts::windows::workbench_host_window::{
+    BuildExportPaneViewData, ModulePluginsPaneViewData,
+};
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
 use crate::ui::slint_host::{apply_presentation, HostMenuStateData, UiHostContext, UiHostWindow};
 use crate::ui::workbench::autolayout::{
@@ -41,6 +43,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
     let ui_asset_panes: BTreeMap<String, UiAssetEditorPanePresentation> = BTreeMap::new();
     let animation_panes: BTreeMap<String, AnimationEditorPanePresentation> = BTreeMap::new();
     let module_plugins = ModulePluginsPaneViewData::default();
+    let build_export = BuildExportPaneViewData::default();
     let preset_names = (0..24)
         .map(|index| format!("Preset {index:02}"))
         .collect::<Vec<_>>();
@@ -60,6 +63,7 @@ fn capture_scrolled_window_popup_visual_artifact() {
         &animation_panes,
         None,
         &module_plugins,
+        &build_export,
         None,
         &floating_window_projection_bundle,
         None,

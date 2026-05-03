@@ -154,7 +154,8 @@ pub fn particle_physics_feature_manifest() -> zircon_runtime::plugin::PluginFeat
     .with_capability("runtime.feature.particles.physics")
 }
 
-pub fn particle_animation_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest {
+pub fn particle_animation_feature_manifest() -> zircon_runtime::plugin::PluginFeatureBundleManifest
+{
     zircon_runtime::plugin::PluginFeatureBundleManifest::new(
         "particles.animation_control",
         "Animation Controlled Particles",

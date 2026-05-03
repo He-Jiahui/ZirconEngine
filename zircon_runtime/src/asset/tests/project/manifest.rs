@@ -3,8 +3,9 @@ use std::fs;
 use crate::asset::project::{ProjectManifest, ProjectPaths};
 use crate::asset::AssetUri;
 use crate::{
-    ExportBuildPlan, ExportPackagingStrategy, ExportProfile, ExportTargetPlatform,
-    ProjectPluginSelection, RuntimePluginId, RuntimeTargetMode,
+    plugin::ExportBuildPlan, plugin::ExportPackagingStrategy, plugin::ExportProfile,
+    plugin::ExportTargetPlatform, plugin::ProjectPluginSelection, RuntimePluginId,
+    RuntimeTargetMode,
 };
 
 use super::unique_temp_project_root;

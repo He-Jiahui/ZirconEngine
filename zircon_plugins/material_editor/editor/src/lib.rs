@@ -4,7 +4,9 @@ use zircon_editor::core::editor_authoring_extension::{
     AssetCreationTemplateDescriptor, GraphEditorDescriptor, GraphNodeDescriptor,
     GraphNodePaletteDescriptor, GraphPinDescriptor,
 };
-use zircon_editor::core::editor_extension::{AssetEditorDescriptor, EditorExtensionRegistry};
+use zircon_editor::core::editor_extension::{
+    AssetEditorDescriptor, EditorExtensionRegistry, EditorMenuItemDescriptor,
+};
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
     register_authoring_contribution_batch, register_authoring_extensions,
@@ -102,17 +104,37 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
     EditorAuthoringContributionBatch {
         operations: vec![
             EditorOperationDescriptor::new(open_graph.clone(), "Open Material Graph")
+                .with_menu_path("Plugins/Material Editor/Open Graph")
+                .with_payload_schema_id("material_editor.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(open_material.clone(), "Open Material")
+                .with_menu_path("Plugins/Material Editor/Open Material")
+                .with_payload_schema_id("material_editor.open_material.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(validate.clone(), "Validate Material Graph")
+                .with_menu_path("Plugins/Material Editor/Validate Graph")
+                .with_payload_schema_id("material_editor.validate_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(compile.clone(), "Compile Material Graph")
+                .with_menu_path("Plugins/Material Editor/Compile Graph")
+                .with_payload_schema_id("material_editor.compile_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorOperationDescriptor::new(preview, "Preview Material Graph")
+            EditorOperationDescriptor::new(preview.clone(), "Preview Material Graph")
+                .with_menu_path("Plugins/Material Editor/Preview Graph")
+                .with_payload_schema_id("material_editor.preview_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(create.clone(), "Create Material Graph")
+                .with_menu_path("Plugins/Material Editor/Create Graph")
+                .with_payload_schema_id("material_editor.create_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Material Editor/Open Graph", &open_graph),
+            menu_item("Plugins/Material Editor/Open Material", &open_material),
+            menu_item("Plugins/Material Editor/Validate Graph", &validate),
+            menu_item("Plugins/Material Editor/Compile Graph", &compile),
+            menu_item("Plugins/Material Editor/Preview Graph", &preview),
+            menu_item("Plugins/Material Editor/Create Graph", &create),
         ],
         asset_editors: vec![
             AssetEditorDescriptor::new(
@@ -447,10 +469,40 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid material operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
     use zircon_runtime::asset::AssetUri;
+
+    #[test]
+    fn material_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry = EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("material authoring registration");
+        let operation = operation("MaterialEditor.Graph.Compile");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("compile operation registered");
+
+        assert_eq!(
+            descriptor.menu_path(),
+            Some("Plugins/Material Editor/Compile Graph")
+        );
+        assert_eq!(
+            descriptor.payload_schema_id(),
+            Some("material_editor.compile_graph.v1")
+        );
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Material Editor/Compile Graph" && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn material_graph_compile_writes_minimal_material_asset_contract() {

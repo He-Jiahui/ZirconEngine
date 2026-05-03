@@ -42,6 +42,25 @@ impl ParticlePhysicsOptions {
             damping: 0.0,
         }
     }
+
+    pub fn with_external_force(mut self, external_force: Vec3) -> Self {
+        self.external_force = external_force;
+        self
+    }
+
+    pub fn with_collision(mut self, bounce: Real, damping: Real) -> Self {
+        self.collision_enabled = true;
+        self.bounce = bounce.max(0.0);
+        self.damping = damping.clamp(0.0, 1.0);
+        self
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.external_force != Vec3::ZERO
+            || self.collision_enabled
+            || self.bounce > 0.0
+            || self.damping > 0.0
+    }
 }
 
 impl Default for ParticlePhysicsOptions {

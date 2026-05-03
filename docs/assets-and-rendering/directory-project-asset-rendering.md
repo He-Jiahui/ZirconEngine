@@ -477,6 +477,10 @@ shader 缺失时回退到 `builtin://shader/pbr.wgsl`。
   - 只有 `visible = true` 时才刷新 preview artifact
   - 不可见资源保留旧缓存
 
+当前 runtime/editor 合流后的错误资产边界是：project scan 可以把缺少插件 importer、解析失败或没有 artifact locator 的源文件登记为 `ResourceState::Error`，但 editor catalog sync 不能因此中断。`DefaultEditorAssetManager::sync_from_project(...)` 只对 ready 资源读取 artifact 并解析直接引用；error 资源仍进入 catalog、保留 diagnostics 和 preview state，引用边保持为空。2026-05-03 的回归 `sync_from_project_keeps_error_assets_without_artifacts_in_catalog` 覆盖了这个路径。
+
+同一轮 runtime graphics project-render 测试也显式安装第一波插件 importer fixture 后再打开 PNG/WGSL/OBJ 测试项目。这样测试验证的是“插件 importer 已安装时目录项目能渲染”，而不是把这些格式重新塞回 `ProjectAssetManager::default()` 的生产默认路径。
+
 ## Editor Flow
 
 `zircon_editor` 现在通过共享的 `AssetWorkspaceState` 维护 editor 资产会话，再统一投影为 `AssetWorkspaceSnapshot`。运行时与编辑器资产层的职责已经稳定分开：

@@ -252,7 +252,7 @@ impl EditorUiHost {
     {
         self.ensure_animation_editor_session(instance_id)?;
         let (changed, title, dirty, payload) = {
-            let mut sessions = self.animation_editor_sessions.lock().unwrap();
+            let mut sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
                     "missing animation editor session {}",
@@ -272,7 +272,7 @@ impl EditorUiHost {
     }
 
     fn active_animation_sequence_instance(&self) -> Result<ViewInstanceId, EditorError> {
-        let session = self.session.lock().unwrap();
+        let session = self.lock_session();
         let instance_id = session.active_center_tab.clone().ok_or_else(|| {
             EditorError::UiAsset("no active animation sequence editor".to_string())
         })?;
@@ -305,7 +305,7 @@ impl EditorUiHost {
                 return Ok(instance_id);
             }
         }
-        let session = self.session.lock().unwrap();
+        let session = self.lock_session();
         let instance_id = session
             .active_center_tab
             .clone()
@@ -333,9 +333,7 @@ impl EditorUiHost {
         descriptor_id: &str,
         asset_path: &str,
     ) -> Option<ViewInstanceId> {
-        self.session
-            .lock()
-            .unwrap()
+        self.lock_session()
             .open_view_instances
             .values()
             .find(|instance| {

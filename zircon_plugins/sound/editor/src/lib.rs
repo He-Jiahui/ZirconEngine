@@ -1,8 +1,13 @@
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
-use zircon_runtime::core::framework::sound::{
-    AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
+
+mod authoring_bindings;
+
+pub use authoring_bindings::{
+    register_sound_authoring_bindings, sound_editor_operation_descriptors,
+    SOUND_AUDIO_LISTENER_OPERATION_PATHS, SOUND_AUDIO_SOURCE_OPERATION_PATHS,
+    SOUND_AUDIO_VOLUME_OPERATION_PATHS, SOUND_MIXER_OPERATION_PATHS,
 };
 
 pub const PLUGIN_ID: &str = zircon_plugin_sound_runtime::PLUGIN_ID;
@@ -60,6 +65,7 @@ impl zircon_editor::EditorPlugin for SoundEditorPlugin {
                 ],
             },
         )?;
+        register_sound_authoring_bindings(registry)?;
         register_sound_component_drawers(registry)
     }
 }
@@ -67,29 +73,17 @@ impl zircon_editor::EditorPlugin for SoundEditorPlugin {
 fn register_sound_component_drawers(
     registry: &mut zircon_editor::core::editor_extension::EditorExtensionRegistry,
 ) -> Result<(), zircon_editor::core::editor_extension::EditorExtensionRegistryError> {
-    use zircon_editor::core::editor_extension::{
-        ComponentDrawerDescriptor, EditorUiTemplateDescriptor,
-    };
+    use zircon_editor::core::editor_extension::EditorUiTemplateDescriptor;
 
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID,
         "plugins://sound/editor/acoustic_debug.ui.toml",
     ))?;
-    registry.register_component_drawer(ComponentDrawerDescriptor::new(
-        AUDIO_SOURCE_COMPONENT_TYPE,
-        "plugins://sound/editor/audio_source.drawer.ui.toml",
-        SOUND_AUDIO_SOURCE_DRAWER_ID,
-    ))?;
-    registry.register_component_drawer(ComponentDrawerDescriptor::new(
-        AUDIO_LISTENER_COMPONENT_TYPE,
-        "plugins://sound/editor/audio_listener.drawer.ui.toml",
-        SOUND_AUDIO_LISTENER_DRAWER_ID,
-    ))?;
-    registry.register_component_drawer(ComponentDrawerDescriptor::new(
-        AUDIO_VOLUME_COMPONENT_TYPE,
-        "plugins://sound/editor/audio_volume.drawer.ui.toml",
-        SOUND_AUDIO_VOLUME_DRAWER_ID,
-    ))
+    registry
+        .register_component_drawer(authoring_bindings::sound_audio_source_drawer_descriptor())?;
+    registry
+        .register_component_drawer(authoring_bindings::sound_audio_listener_drawer_descriptor())?;
+    registry.register_component_drawer(authoring_bindings::sound_audio_volume_drawer_descriptor())
 }
 
 pub fn editor_plugin_descriptor() -> zircon_editor::EditorPluginDescriptor {
@@ -126,6 +120,9 @@ pub fn editor_host_contract_marker() -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_runtime::core::framework::sound::{
+        AUDIO_LISTENER_COMPONENT_TYPE, AUDIO_SOURCE_COMPONENT_TYPE, AUDIO_VOLUME_COMPONENT_TYPE,
+    };
 
     #[test]
     fn sound_editor_plugin_contributes_authoring_extensions() {
@@ -167,6 +164,11 @@ mod tests {
             .any(|drawer| {
                 drawer.component_type() == AUDIO_SOURCE_COMPONENT_TYPE
                     && drawer.controller() == SOUND_AUDIO_SOURCE_DRAWER_ID
+                    && drawer
+                        .bindings()
+                        .iter()
+                        .map(String::as_str)
+                        .eq(SOUND_AUDIO_SOURCE_OPERATION_PATHS.iter().copied())
             }));
         assert!(registration
             .extensions
@@ -175,6 +177,11 @@ mod tests {
             .any(|drawer| {
                 drawer.component_type() == AUDIO_LISTENER_COMPONENT_TYPE
                     && drawer.controller() == SOUND_AUDIO_LISTENER_DRAWER_ID
+                    && drawer
+                        .bindings()
+                        .iter()
+                        .map(String::as_str)
+                        .eq(SOUND_AUDIO_LISTENER_OPERATION_PATHS.iter().copied())
             }));
         assert!(registration
             .extensions
@@ -183,6 +190,11 @@ mod tests {
             .any(|drawer| {
                 drawer.component_type() == AUDIO_VOLUME_COMPONENT_TYPE
                     && drawer.controller() == SOUND_AUDIO_VOLUME_DRAWER_ID
+                    && drawer
+                        .bindings()
+                        .iter()
+                        .map(String::as_str)
+                        .eq(SOUND_AUDIO_VOLUME_OPERATION_PATHS.iter().copied())
             }));
         assert!(registration
             .extensions
@@ -199,5 +211,28 @@ mod tests {
             .operations()
             .descriptors()
             .any(|operation| operation.path().as_str() == "View.sound.mixer_console.Open"));
+        for path in SOUND_MIXER_OPERATION_PATHS
+            .iter()
+            .chain(SOUND_AUDIO_SOURCE_OPERATION_PATHS)
+            .chain(SOUND_AUDIO_LISTENER_OPERATION_PATHS)
+            .chain(SOUND_AUDIO_VOLUME_OPERATION_PATHS)
+        {
+            let operation = registration
+                .extensions
+                .operations()
+                .descriptors()
+                .find(|operation| operation.path().as_str() == *path)
+                .unwrap_or_else(|| panic!("missing sound editor operation {path}"));
+            assert!(operation
+                .payload_schema_id()
+                .is_some_and(|schema| schema.starts_with("sound.")));
+        }
+        let create_track = registration
+            .extensions
+            .operations()
+            .descriptors()
+            .find(|operation| operation.path().as_str() == "Sound.Mixer.Track.Create")
+            .expect("create track operation");
+        assert!(create_track.undoable().is_some());
     }
 }

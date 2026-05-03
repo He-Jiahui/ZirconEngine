@@ -6,4 +6,6 @@ license.workspace = true
 description = "UI document importer runtime plugin package for Zircon."
 
 [dependencies]
+serde_json = "1.0.149"
 zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zircon_runtime_interface = { path = "../../../zircon_runtime_interface" }

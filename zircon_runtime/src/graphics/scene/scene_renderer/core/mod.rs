@@ -2,6 +2,7 @@ mod constants;
 mod create_depth_texture;
 mod runtime_features;
 mod scene_renderer;
+mod scene_renderer_asset_access;
 mod scene_renderer_core;
 mod scene_renderer_core_new;
 mod scene_renderer_core_render_compiled_scene;

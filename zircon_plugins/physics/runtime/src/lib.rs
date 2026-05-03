@@ -1,10 +1,21 @@
 pub const PLUGIN_ID: &str = "physics";
+pub const PHYSICS_SETTINGS_CONFIG_KEY: &str = "physics.settings";
 
-pub use zircon_runtime::physics::{
-    module_descriptor, DefaultPhysicsManager, PhysicsDriver, PhysicsModule,
-    DEFAULT_PHYSICS_MANAGER_NAME, PHYSICS_DRIVER_NAME, PHYSICS_MANAGER_NAME, PHYSICS_MODULE_NAME,
-    PHYSICS_SETTINGS_CONFIG_KEY,
+mod manager;
+mod module;
+mod query_contact;
+mod scene_hook;
+
+pub use manager::{
+    build_world_sync_state, integrate_builtin_physics_steps, DefaultPhysicsManager,
+    PhysicsTickPlan, JOLT_ENABLED,
 };
+pub use module::{
+    module_descriptor, PhysicsDriver, PhysicsModule, DEFAULT_PHYSICS_MANAGER_NAME,
+    PHYSICS_DRIVER_NAME, PHYSICS_MODULE_NAME,
+};
+pub use scene_hook::{scene_hook_registration, PhysicsSceneRuntimeHook};
+pub use zircon_runtime::core::manager::PHYSICS_MANAGER_NAME;
 
 #[derive(Clone, Debug)]
 pub struct PhysicsRuntimePlugin {
@@ -28,7 +39,8 @@ impl zircon_runtime::plugin::RuntimePlugin for PhysicsRuntimePlugin {
         &self,
         registry: &mut zircon_runtime::plugin::RuntimeExtensionRegistry,
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
-        registry.register_module(module_descriptor())
+        registry.register_module(module_descriptor())?;
+        registry.register_scene_hook(scene_hook_registration())
     }
 }
 

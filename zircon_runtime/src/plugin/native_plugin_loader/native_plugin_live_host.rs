@@ -4,7 +4,9 @@ use std::sync::{Mutex, MutexGuard};
 
 use crate::plugin::PluginModuleKind;
 
-use super::super::runtime_plugin::RuntimePluginRegistrationReport;
+use super::super::runtime_plugin::{
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+};
 use super::{
     LoadedNativePlugin, NativePluginBehaviorCallReport, NativePluginLoadReport, NativePluginLoader,
     ZIRCON_NATIVE_PLUGIN_STATUS_ERROR, ZIRCON_NATIVE_PLUGIN_STATUS_OK,
@@ -32,6 +34,7 @@ pub struct NativePluginLiveHostLoadReport {
     pub module_kind: PluginModuleKind,
     pub loaded_plugin_ids: Vec<String>,
     pub runtime_plugin_registration_reports: Vec<RuntimePluginRegistrationReport>,
+    pub runtime_plugin_feature_registration_reports: Vec<RuntimePluginFeatureRegistrationReport>,
     pub diagnostics: Vec<String>,
 }
 
@@ -536,6 +539,12 @@ impl NativePluginLiveHost {
                 Vec::new()
             }
         };
+        let runtime_plugin_feature_registration_reports = match module_kind {
+            PluginModuleKind::Runtime => report.runtime_plugin_feature_registration_reports(),
+            PluginModuleKind::Editor | PluginModuleKind::Native | PluginModuleKind::Vm => {
+                Vec::new()
+            }
+        };
         let mut diagnostics = load_report_diagnostics(&report);
         let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
         let mut loaded_plugin_ids = Vec::new();
@@ -567,6 +576,7 @@ impl NativePluginLiveHost {
             module_kind,
             loaded_plugin_ids,
             runtime_plugin_registration_reports,
+            runtime_plugin_feature_registration_reports,
             diagnostics,
         })
     }

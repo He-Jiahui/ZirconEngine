@@ -1,0 +1,56 @@
+# CPU sprite particle-system starter template for the particles authoring plugin.
+
+[system]
+id = "cpu_sprite_system"
+backend = "Cpu"
+seed = 12648430
+looped = true
+
+[[emitters]]
+id = "sprite_emitter"
+max_particles = 256
+spawn_rate_per_second = 32.0
+start_color = [1.0, 0.72, 0.25, 1.0]
+gravity = [0.0, -2.0, 0.0]
+drag = 0.1
+coordinate_space = "Local"
+
+[emitters.lifetime]
+min = 1.0
+max = 1.5
+
+[emitters.initial_size]
+min = 0.2
+max = 0.4
+
+[emitters.initial_velocity]
+min = [-0.25, 1.5, -0.25]
+max = [0.25, 2.5, 0.25]
+
+[emitters.initial_rotation]
+min = 0.0
+max = 6.2831855
+
+[emitters.initial_angular_velocity]
+min = -1.0
+max = 1.0
+
+[emitters.shape]
+kind = "Sphere"
+radius = 0.1
+
+[[emitters.color_over_lifetime]]
+t = 0.0
+value = [1.0, 0.72, 0.25, 1.0]
+
+[[emitters.color_over_lifetime]]
+t = 1.0
+value = [1.0, 0.2, 0.05, 0.0]
+
+[[emitters.size_over_lifetime]]
+t = 0.0
+value = 0.4
+
+[[emitters.size_over_lifetime]]
+t = 1.0
+value = 0.0

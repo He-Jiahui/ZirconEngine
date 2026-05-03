@@ -8,7 +8,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -26,7 +26,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -47,7 +47,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -68,7 +68,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -86,7 +86,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -106,7 +106,7 @@ impl EditorUiHost {
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
         let helper_action = {
-            let sessions = self.ui_asset_sessions.lock().unwrap();
+            let sessions = self.lock_ui_asset_sessions();
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
@@ -136,7 +136,7 @@ impl EditorUiHost {
             | UiAssetThemeRuleHelperAction::AdoptAllImportedChanges { .. }
             | UiAssetThemeRuleHelperAction::AdoptImportedToken { .. }
             | UiAssetThemeRuleHelperAction::AdoptImportedRule { .. } => {
-                let mut sessions = self.ui_asset_sessions.lock().unwrap();
+                let mut sessions = self.lock_ui_asset_sessions();
                 let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                     EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
                 })?;
@@ -164,7 +164,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -183,7 +183,7 @@ impl EditorUiHost {
         asset_id: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -202,7 +202,7 @@ impl EditorUiHost {
         document_id: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -221,7 +221,7 @@ impl EditorUiHost {
         display_name: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -239,7 +239,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -257,7 +257,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -276,7 +276,7 @@ impl EditorUiHost {
         state: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -295,7 +295,7 @@ impl EditorUiHost {
         class_name: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -314,7 +314,7 @@ impl EditorUiHost {
         class_name: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -333,7 +333,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -353,7 +353,7 @@ impl EditorUiHost {
         value_literal: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -371,7 +371,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -390,7 +390,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -408,7 +408,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -426,7 +426,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -445,7 +445,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -464,7 +464,7 @@ impl EditorUiHost {
         selector: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -483,7 +483,7 @@ impl EditorUiHost {
         index: usize,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -503,7 +503,7 @@ impl EditorUiHost {
         value_literal: impl AsRef<str>,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -521,7 +521,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;
@@ -539,7 +539,7 @@ impl EditorUiHost {
         instance_id: &ViewInstanceId,
     ) -> Result<bool, EditorError> {
         self.ensure_ui_asset_editor_session(instance_id)?;
-        let mut sessions = self.ui_asset_sessions.lock().unwrap();
+        let mut sessions = self.lock_ui_asset_sessions();
         let entry = sessions.get_mut(instance_id).ok_or_else(|| {
             EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
         })?;

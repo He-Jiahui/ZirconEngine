@@ -6,7 +6,7 @@
 
 **Architecture:** Keep the fixture as a standalone package in the independent `zircon_plugins` workspace. The fixture native crate does not depend on `zircon_runtime`; it duplicates only the stable C ABI structs needed to export symbols and returns manifest TOML through static C strings. Runtime tests build the fixture crate into a temp target dir, copy the platform library into a temp plugin package, then exercise the existing loader.
 
-**Tech Stack:** Rust 2021, `cdylib`, `libloading` through existing `zircon_runtime::NativePluginLoader`, Cargo workspace under `zircon_plugins`.
+**Tech Stack:** Rust 2021, `cdylib`, `libloading` through existing `zircon_runtime::plugin::NativePluginLoader`, Cargo workspace under `zircon_plugins`.
 
 ---
 

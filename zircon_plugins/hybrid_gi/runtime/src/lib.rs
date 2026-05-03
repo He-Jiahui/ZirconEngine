@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
@@ -6,9 +8,12 @@ use zircon_runtime::graphics::{
 use zircon_runtime::render_graph::QueueLane;
 
 mod hybrid_gi;
+mod provider;
 mod render_pass_executors;
 #[cfg(test)]
 pub(crate) mod test_support;
+
+pub use provider::PluginHybridGiRuntimeProvider;
 
 pub(crate) use hybrid_gi::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimeScenePrepareResources,
@@ -47,6 +52,7 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
     ) -> Result<(), zircon_runtime::plugin::RuntimeExtensionRegistryError> {
         registry.register_module(module_descriptor())?;
         registry.register_render_feature(render_feature_descriptor())?;
+        registry.register_hybrid_gi_runtime_provider(hybrid_gi_runtime_provider_registration())?;
         for registration in render_pass_executor_registrations() {
             registry.register_render_pass_executor(registration)?;
         }
@@ -123,6 +129,14 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
         RenderPassExecutorRegistration::new("hybrid-gi.resolve", hybrid_gi_resolve_executor),
         RenderPassExecutorRegistration::new("hybrid-gi.history", hybrid_gi_history_executor),
     ]
+}
+
+pub fn hybrid_gi_runtime_provider_registration(
+) -> zircon_runtime::graphics::HybridGiRuntimeProviderRegistration {
+    zircon_runtime::graphics::HybridGiRuntimeProviderRegistration::new(
+        "plugin.hybrid_gi.runtime",
+        Arc::new(PluginHybridGiRuntimeProvider),
+    )
 }
 
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
@@ -219,6 +233,10 @@ mod tests {
             ]
         );
         assert_eq!(report.extensions.render_pass_executors().len(), 4);
+        assert_eq!(
+            report.extensions.hybrid_gi_runtime_providers()[0].provider_id(),
+            "plugin.hybrid_gi.runtime"
+        );
         assert_eq!(
             report
                 .extensions

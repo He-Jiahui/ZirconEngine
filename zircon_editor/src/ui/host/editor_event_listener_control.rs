@@ -14,7 +14,7 @@ impl EditorEventRuntime {
                 listener_id,
                 display_name,
             } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner
                     .event_listeners
                     .register(listener_id.clone(), display_name)
@@ -26,7 +26,7 @@ impl EditorEventRuntime {
                 }
             }
             EditorEventListenerControlRequest::Unregister { listener_id } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner.event_listeners.unregister(&listener_id) {
                     Ok(()) => EditorEventListenerControlResponse::success(json!({
                         "listener_id": listener_id,
@@ -38,7 +38,7 @@ impl EditorEventRuntime {
                 listener_id,
                 enabled,
             } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner.event_listeners.set_enabled(&listener_id, enabled) {
                     Ok(()) => EditorEventListenerControlResponse::success(json!({
                         "listener_id": listener_id,
@@ -51,7 +51,7 @@ impl EditorEventRuntime {
                 listener_id,
                 filter,
             } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner.event_listeners.set_filter(&listener_id, filter) {
                     Ok(()) => EditorEventListenerControlResponse::success(json!({
                         "listener_id": listener_id,
@@ -60,7 +60,7 @@ impl EditorEventRuntime {
                 }
             }
             EditorEventListenerControlRequest::ClearFilter { listener_id } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner.event_listeners.clear_filter(&listener_id) {
                     Ok(()) => EditorEventListenerControlResponse::success(json!({
                         "listener_id": listener_id,
@@ -69,13 +69,13 @@ impl EditorEventRuntime {
                 }
             }
             EditorEventListenerControlRequest::ListListeners => {
-                let inner = self.inner.lock().unwrap();
+                let inner = self.lock_inner();
                 EditorEventListenerControlResponse::success(json!({
                     "listeners": listener_descriptors(inner.event_listeners.listeners()),
                 }))
             }
             EditorEventListenerControlRequest::QueryListenerStatus { listener_id } => {
-                let inner = self.inner.lock().unwrap();
+                let inner = self.lock_inner();
                 match inner.event_listeners.status_for(&listener_id) {
                     Ok(status) => {
                         EditorEventListenerControlResponse::success(listener_status(&status))
@@ -84,7 +84,7 @@ impl EditorEventRuntime {
                 }
             }
             EditorEventListenerControlRequest::QueryDeliveries { listener_id } => {
-                let inner = self.inner.lock().unwrap();
+                let inner = self.lock_inner();
                 match inner.event_listeners.deliveries_for(&listener_id) {
                     Ok(deliveries) => EditorEventListenerControlResponse::success(json!({
                         "listener_id": listener_id,
@@ -97,7 +97,7 @@ impl EditorEventRuntime {
                 listener_id,
                 after_sequence,
             } => {
-                let inner = self.inner.lock().unwrap();
+                let inner = self.lock_inner();
                 match inner
                     .event_listeners
                     .deliveries_after(&listener_id, after_sequence)
@@ -114,7 +114,7 @@ impl EditorEventRuntime {
                 listener_id,
                 sequence,
             } => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 match inner
                     .event_listeners
                     .acknowledge_through(&listener_id, sequence)

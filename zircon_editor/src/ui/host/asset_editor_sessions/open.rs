@@ -39,7 +39,7 @@ impl EditorUiHost {
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let instance_id =
             self.open_view(ViewDescriptorId::new(UI_ASSET_EDITOR_DESCRIPTOR_ID), None)?;
-        self.ui_asset_sessions.lock().unwrap().insert(
+        self.lock_ui_asset_sessions().insert(
             instance_id.clone(),
             UiAssetWorkspaceEntry::new(source_path, source, session),
         );

@@ -16,9 +16,10 @@ related_code:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/module.rs
   - zircon_runtime/src/animation/runtime/mod.rs
   - zircon_runtime/src/animation/sequence/mod.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/module.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -28,9 +29,10 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
   - zircon_runtime/src/physics/mod.rs
-  - zircon_runtime/src/physics/module.rs
   - zircon_runtime/src/physics/runtime/mod.rs
   - zircon_runtime/src/physics/runtime/query_contact.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/module.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -108,9 +110,10 @@ implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/animation/mod.rs
-  - zircon_runtime/src/animation/module.rs
   - zircon_runtime/src/animation/runtime/mod.rs
   - zircon_runtime/src/animation/sequence/mod.rs
+  - zircon_plugins/animation/runtime/src/lib.rs
+  - zircon_plugins/animation/runtime/src/module.rs
   - zircon_runtime/src/asset/assets/animation.rs
   - zircon_runtime/src/asset/assets/model.rs
   - zircon_runtime/src/asset/assets/physics_material.rs
@@ -120,9 +123,10 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/pipeline/types.rs
   - zircon_runtime/src/physics/mod.rs
-  - zircon_runtime/src/physics/module.rs
   - zircon_runtime/src/physics/runtime/mod.rs
   - zircon_runtime/src/physics/runtime/query_contact.rs
+  - zircon_plugins/physics/runtime/src/lib.rs
+  - zircon_plugins/physics/runtime/src/module.rs
   - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/components/schedule.rs
   - zircon_runtime/src/scene/level_system.rs
@@ -170,9 +174,11 @@ plan_sources:
   - user: 2026-04-20 继续正在runtime/editor/framework实现完整的物理和动画系统
   - user: 2026-04-20 physics和animation吸收进runtime
   - user: 2026-04-22 继续
+  - user: 2026-05-03 继续补独立插件缺口
   - .codex/plans/Physics + Full Animation Support 新计划.md
   - .codex/plans/Physics  Full Animation Support Plan.md
   - .codex/plans/Runtime Core Fold-In And Compile Recovery.md
+  - .codex/plans/ZirconEngine 独立插件补齐计划.md
 tests:
   - zircon_runtime/src/asset/tests/assets/animation.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
@@ -324,21 +330,26 @@ doc_type: module-detail
   - 运行时权威 `World`
   - scene 组件存储、typed getter/setter、project JSON roundtrip
 - `zircon_runtime::animation`
-  - `AnimationModule` / `DefaultAnimationManager` / `AnimationManagerHandle`
+  - `DefaultAnimationManager` / animation sequence apply contract
   - sequence track sampling
   - property-path based scene mutation
   - animation playback settings manager surface
+- `zircon_plugins/animation/runtime`
+  - `AnimationModule` / `AnimationDriver` / `AnimationManagerHandle` descriptor wiring
 - `zircon_runtime::physics`
-  - `PhysicsModule` / `DefaultPhysicsManager` / `PhysicsManagerHandle`
+  - `DefaultPhysicsManager` / physics scene sync helpers
   - physics settings manager surface
   - per-world fixed-step accumulator bookkeeping
+- `zircon_plugins/physics/runtime`
+  - `PhysicsModule` / `PhysicsDriver` / `PhysicsManagerHandle` descriptor wiring
   - backend status / world sync / ray-cast / contact fallback contract
 
 这里的 structure 规则也一起固定下来：
 
 - `core::framework::physics` 与 `core::framework::animation` 内部现在都和 `input/`、`render/`、`scene/` 一样采用 folder-backed subtree
-- `zircon_runtime/src/physics/` 与 `zircon_runtime/src/animation/` 是当前 runtime-owned 执行域入口
-- `PhysicsModule` / `AnimationModule` 的 module registration 与 service-name 常量进入各自 `module.rs`
+- `zircon_runtime/src/physics/` 与 `zircon_runtime/src/animation/` 继续保存当前还未完全外移的 runtime manager、scene sync 与 sequence contract
+- `PhysicsModule` / `AnimationModule` 的 module registration 与 driver 已经切到 `zircon_plugins/*/runtime/src/module.rs`
+- canonical manager service name 仍由 `zircon_runtime::core::manager` 统一命名，插件 descriptor 只消费这个 manager contract
 - root `mod.rs` 不再允许重新吸收 DTO、trait、default impl 或 parse helper
 - 后续新增 physics/animation contract 时，应该继续进入子文件，而不是回到 umbrella root
 
@@ -640,10 +651,11 @@ scene 默认阶段顺序已经按当前计划固定为：
   - 通过 `zircon_runtime::animation::sequence::apply_sequence_to_world(...)` 解析并应用 asset-backed sequence property track
   - 对 clip / graph / state machine 生成 `AnimationPoseOutput` 并缓存到 level runtime state
 
-这条主干现在不再依赖外置 plugin crate 才能拿到基础 runtime service：
+这条主干现在通过 linked plugin report 拿到基础 runtime service：
 
-- `builtin_runtime_modules()` 会把 `zircon_runtime::physics::PhysicsModule` 和 `zircon_runtime::animation::AnimationModule` 放在 scene 之后、graphics/script 之前
-- legacy project manifest 里仍选择 `RuntimePluginId::Physics` / `RuntimePluginId::Animation` 时，会解析到 runtime built-in domain warning，而不是报告缺少 `zircon_plugins/...` crate
+- `zircon_plugins/physics/runtime` 和 `zircon_plugins/animation/runtime` 贡献 `PhysicsModule` / `AnimationModule`
+- `builtin_runtime_modules()` 不再直接注册 physics / animation module；target loader 会根据 linked plugin registration report 接受对应模块
+- legacy project manifest 里仍选择 `RuntimePluginId::Physics` / `RuntimePluginId::Animation` 时，会走外置 plugin 缺失诊断，而不是静默落回 runtime built-in module
 - `resolve_physics_manager(...)` / `resolve_animation_manager(...)` 能从同一个 `CoreHandle` 解析到 runtime-owned manager handle
 - `LevelSystem::tick(...)` 会使用这些 manager 推进 physics step、contacts 与 sequence property writeback
 
@@ -767,8 +779,8 @@ render extract seam 和 skinned vertex resource surface 现在已经接成一条
   - physics fixed-step accumulator 按 `WorldHandle` 分桶追踪
   - physics backend unavailable 会显式降级成 status，而不是隐式失败
   - physics world sync / ray cast / contact DTO 可以在无真实 backend 时继续跑 contract 验证
-  - `zircon_runtime::physics::PhysicsModule` / `zircon_runtime::animation::AnimationModule` 会作为 runtime built-in module 注册，并提供 canonical manager handle
-  - legacy physics / animation manifest entries 会被识别为 runtime built-in domain，而不是外置 plugin 缺失
+  - `zircon_plugins/physics/runtime::PhysicsModule` / `zircon_plugins/animation/runtime::AnimationModule` 会通过 linked plugin report 注册，并提供 canonical manager handle
+  - legacy physics / animation manifest entries 不再伪装成 runtime built-in domain；缺少插件会暴露为 plugin loading 诊断
   - animation graph / state-machine / clip pose evaluator 能在 runtime 内直接执行
   - `LevelSystem::tick(...)` 会使用 runtime physics manager 生成 fixed-step plan、同步 world snapshot，并缓存 contact event
   - `LevelSystem::tick(...)` 会应用 ready `AnimationSequenceAsset` property track，并把 sequence player time 写回 world

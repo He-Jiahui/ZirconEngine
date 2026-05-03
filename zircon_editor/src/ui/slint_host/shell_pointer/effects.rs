@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use zircon_runtime_interface::ui::{
     dispatch::UiPointerDispatchEffect,
@@ -17,9 +17,7 @@ pub(super) fn side_target_effect(
     frames: &Arc<Mutex<DragTargetFrames>>,
     point: UiPoint,
 ) -> UiPointerDispatchEffect {
-    let frames = *frames
-        .lock()
-        .expect("shell pointer drag frames lock poisoned");
+    let frames = *lock_drag_frames(frames);
     let (side_frame, side_distance) = match side {
         HostDragTargetGroup::Left => (frames.left, point.x - frames.left.x),
         HostDragTargetGroup::Right => (frames.right, frames.right.right() - point.x),
@@ -47,10 +45,14 @@ pub(super) fn document_edge_effect(
     frames: &Arc<Mutex<DragTargetFrames>>,
     point: UiPoint,
 ) -> UiPointerDispatchEffect {
-    let frames = *frames
-        .lock()
-        .expect("shell pointer drag frames lock poisoned");
+    let frames = *lock_drag_frames(frames);
     edge_effect_in_frame(frames.document, edge, point)
+}
+
+fn lock_drag_frames(frames: &Arc<Mutex<DragTargetFrames>>) -> MutexGuard<'_, DragTargetFrames> {
+    frames
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 pub(super) fn edge_effect_in_frame(

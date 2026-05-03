@@ -28,7 +28,7 @@ impl EditorEventRuntime {
                 arguments,
             } => UiControlResponse::Invocation(self.call_action(node_path, action_id, arguments)),
             other => {
-                let mut inner = self.inner.lock().unwrap();
+                let mut inner = self.lock_inner();
                 inner.control_service.handle_request(other)
             }
         }
@@ -36,7 +36,7 @@ impl EditorEventRuntime {
 
     fn invoke_binding(&self, binding: UiEventBinding) -> UiInvocationResult {
         let route_id = {
-            let inner = self.inner.lock().unwrap();
+            let inner = self.lock_inner();
             inner.control_service.route_id_for_binding(&binding)
         };
         let editor_binding = match EditorUiBinding::from_ui_binding(binding.clone()) {
@@ -59,7 +59,7 @@ impl EditorEventRuntime {
         arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let binding = {
-            let inner = self.inner.lock().unwrap();
+            let inner = self.lock_inner();
             inner.control_service.route_binding(route_id)
         };
         let Some(binding) = binding else {
@@ -105,7 +105,7 @@ impl EditorEventRuntime {
         arguments: Vec<UiBindingValue>,
     ) -> UiInvocationResult {
         let route_id = {
-            let inner = self.inner.lock().unwrap();
+            let inner = self.lock_inner();
             let Some(node) = inner.control_service.query_node(&node_path) else {
                 return UiInvocationResult::failure(
                     None,

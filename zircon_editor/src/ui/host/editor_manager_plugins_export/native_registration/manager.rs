@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use zircon_runtime::NativePluginLoader;
+use zircon_runtime::plugin::NativePluginLoader;
 
 use crate::core::editor_plugin::EditorPluginRegistrationReport;
 

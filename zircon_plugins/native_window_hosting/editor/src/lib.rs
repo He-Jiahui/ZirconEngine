@@ -69,7 +69,7 @@ pub fn editor_plugin() -> NativeWindowHostingEditorPlugin {
     NativeWindowHostingEditorPlugin::new()
 }
 
-pub fn package_manifest() -> zircon_runtime::PluginPackageManifest {
+pub fn package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
     zircon_editor::EditorPlugin::package_manifest(&editor_plugin(), base_package_manifest())
 }
 
@@ -84,8 +84,8 @@ pub fn plugin_registration() -> zircon_editor::EditorPluginRegistrationReport {
     )
 }
 
-fn base_package_manifest() -> zircon_runtime::PluginPackageManifest {
-    zircon_runtime::PluginPackageManifest::new(PLUGIN_ID, "Native Window Hosting")
+fn base_package_manifest() -> zircon_runtime::plugin::PluginPackageManifest {
+    zircon_runtime::plugin::PluginPackageManifest::new(PLUGIN_ID, "Native Window Hosting")
 }
 
 #[cfg(test)]

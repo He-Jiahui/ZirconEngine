@@ -1,20 +1,25 @@
 use std::collections::HashMap;
 use std::sync::Mutex;
 
+use crate::settings_hash::navigation_settings_hash;
+use crate::settings_validation::validate_navigation_settings;
 use serde_json::Value;
 use zircon_plugin_navigation_recast::{RecastBackend, RecastBakeInput, RecastBakeMeshInput};
-use zircon_runtime::asset::{NavMeshAsset, NavMeshLinkAsset, NavigationSettingsAsset};
+use zircon_runtime::asset::{
+    NavMeshAreaCostAsset, NavMeshAsset, NavMeshLinkAsset, NavigationSettingsAsset,
+};
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavMeshBakeDiagnostic,
     NavMeshBakeDiagnosticSeverity, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
-    NavMeshModifierDescriptor, NavMeshModifierMode, NavMeshOffMeshLinkDescriptor,
-    NavMeshSurfaceDescriptor, NavMeshUseGeometry, NavPathQuery, NavPathResult, NavRaycastQuery,
-    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationManager,
-    NavigationRuntimeStats, DEFAULT_AGENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
+    NavMeshModifierDescriptor, NavMeshModifierMode, NavMeshObstacleDescriptor,
+    NavMeshObstacleShape, NavMeshOffMeshLinkDescriptor, NavMeshSurfaceDescriptor,
+    NavMeshUseGeometry, NavPathQuery, NavPathResult, NavPathStatus, NavRaycastQuery,
+    NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError, NavigationErrorKind,
+    NavigationManager, NavigationRuntimeStats, DEFAULT_AGENT_TYPE, NAV_MESH_AGENT_COMPONENT_TYPE,
     NAV_MESH_MODIFIER_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
     NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE, NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
-use zircon_runtime::core::math::{Mat4, Real, Transform, Vec3};
+use zircon_runtime::core::math::{Mat4, Quat, Real, Transform, Vec3};
 use zircon_runtime::scene::components::{ColliderShape, NodeKind, SceneNode};
 use zircon_runtime::scene::World;
 
@@ -46,7 +51,7 @@ impl DefaultNavigationManager {
     ) -> Result<NavMeshAsset, NavigationError> {
         let state = self.state.lock().expect("navigation state lock poisoned");
         let handle = query_handle
-            .or_else(|| state.loaded.keys().copied().next())
+            .or_else(|| state.loaded.keys().copied().min_by_key(|handle| handle.0))
             .ok_or_else(|| NavigationError::missing_nav_mesh("no nav mesh is loaded"))?;
         state.loaded.get(&handle).cloned().ok_or_else(|| {
             NavigationError::missing_nav_mesh(format!("nav mesh {:?} is not loaded", handle))
@@ -80,6 +85,13 @@ impl NavigationManager for DefaultNavigationManager {
             .agent_type
             .clone()
             .unwrap_or_else(|| surface.agent_type.clone());
+        let settings = self.active_settings();
+        if !settings.agents.iter().any(|agent| agent.id == agent_type) {
+            return Err(NavigationError::new(
+                NavigationErrorKind::InvalidConfiguration,
+                format!("navigation settings do not define agent type `{agent_type}`"),
+            ));
+        }
         let half_extent = surface
             .volume_size
             .into_iter()
@@ -88,6 +100,10 @@ impl NavigationManager for DefaultNavigationManager {
             * 0.5;
         let geometry = collect_bake_geometry(world, surface_entity, &surface, &agent_type);
         let mut diagnostics = bake_geometry_diagnostics(&geometry, surface_entity);
+        diagnostics.extend(unsupported_bake_setting_diagnostics(
+            &surface,
+            surface_entity,
+        ));
         let mut asset = if geometry.source_triangles() > 0 {
             self.backend.bake_triangle_mesh(RecastBakeMeshInput {
                 agent_type: agent_type.clone(),
@@ -96,6 +112,8 @@ impl NavigationManager for DefaultNavigationManager {
                 triangle_areas: geometry.triangle_areas.clone(),
                 default_area: surface.default_area,
             })?
+        } else if geometry.carved_by_obstacle > 0 || geometry.removed_by_modifier > 0 {
+            NavMeshAsset::empty(agent_type.clone())
         } else {
             diagnostics.push(NavMeshBakeDiagnostic {
                 severity: NavMeshBakeDiagnosticSeverity::Warning,
@@ -109,7 +127,21 @@ impl NavigationManager for DefaultNavigationManager {
                 half_extent,
             })?
         };
-        let off_mesh_links = collect_off_mesh_links(world, &agent_type);
+        asset.settings_hash = navigation_settings_hash(&surface, &settings);
+        asset.area_costs = settings
+            .areas
+            .iter()
+            .map(|area| NavMeshAreaCostAsset {
+                area: area.id,
+                cost: area.cost,
+                walkable: area.walkable,
+            })
+            .collect();
+        let off_mesh_links = if surface.generate_links {
+            collect_off_mesh_links(world, &agent_type)
+        } else {
+            Vec::new()
+        };
         if !off_mesh_links.is_empty() {
             diagnostics.push(NavMeshBakeDiagnostic {
                 severity: NavMeshBakeDiagnosticSeverity::Info,
@@ -122,6 +154,11 @@ impl NavigationManager for DefaultNavigationManager {
             asset.off_mesh_links = off_mesh_links;
         }
         let output_asset = request.output_asset.or(surface.output_asset.clone());
+        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        state.stats.active_obstacles = count_obstacles(world);
+        state.stats.active_off_mesh_links = count_off_mesh_links(world);
+        drop(state);
+
         Ok(NavMeshBakeReport {
             asset: Some(asset.clone()),
             output_asset,
@@ -140,6 +177,7 @@ impl NavigationManager for DefaultNavigationManager {
         let handle = NavMeshHandle(state.next_handle);
         state.next_handle += 1;
         state.loaded.insert(handle, asset);
+        state.stats.loaded_nav_meshes = state.loaded.len();
         Ok(handle)
     }
 
@@ -147,6 +185,7 @@ impl NavigationManager for DefaultNavigationManager {
         &self,
         settings: NavigationSettingsAsset,
     ) -> Result<(), NavigationError> {
+        validate_navigation_settings(&settings)?;
         let mut state = self.state.lock().expect("navigation state lock poisoned");
         state.settings = settings;
         Ok(())
@@ -182,6 +221,8 @@ impl NavigationManager for DefaultNavigationManager {
 
         let agents = collect_agents(world);
         report.scanned_agents = agents.len();
+        let agent_positions = agent_positions(world, &agents);
+        let obstacles = collect_runtime_obstacles(world);
         for (entity, agent) in agents {
             let Some(destination) = agent.destination else {
                 continue;
@@ -198,15 +239,63 @@ impl NavigationManager for DefaultNavigationManager {
             };
             let current = transform.translation;
             let destination = Vec3::from_array(destination);
-            let delta = destination - current;
+            let movement_target = match self.selected_asset(None) {
+                Ok(asset) => match self.backend.find_path(
+                    &asset,
+                    &NavPathQuery {
+                        nav_mesh: None,
+                        start: current.to_array(),
+                        end: destination.to_array(),
+                        agent_type: agent.agent_type.clone(),
+                        area_mask: agent.area_mask,
+                    },
+                ) {
+                    Ok(path) if path.status != NavPathStatus::NoPath => path
+                        .points
+                        .get(1)
+                        .or_else(|| path.points.last())
+                        .map(|point| Vec3::from_array(point.position))
+                        .unwrap_or(destination),
+                    Ok(_) => {
+                        report.blocked_agents += 1;
+                        report
+                            .diagnostics
+                            .push(format!("agent {entity} has no path on loaded navmesh"));
+                        continue;
+                    }
+                    Err(error) => {
+                        report.blocked_agents += 1;
+                        report
+                            .diagnostics
+                            .push(format!("agent {entity} path query failed: {error}"));
+                        continue;
+                    }
+                },
+                Err(_) => destination,
+            };
+            let movement_target = avoidance_adjusted_target(
+                entity,
+                current,
+                movement_target,
+                &agent,
+                &obstacles,
+                &agent_positions,
+            );
+            let delta = movement_target - current;
             let distance = delta.length();
             if distance <= agent.stopping_distance {
                 continue;
             }
             let step = (agent.speed.max(0.0) * dt_seconds).min(distance);
-            let next = current + delta.normalize_or_zero() * step;
+            let direction = delta.normalize_or_zero();
+            let next = current + direction * step;
             let updated = Transform {
                 translation: next,
+                rotation: if agent.update_rotation && direction.length_squared() > Real::EPSILON {
+                    Quat::from_rotation_y(direction.x.atan2(-direction.z))
+                } else {
+                    transform.rotation
+                },
                 ..transform
             };
             match world.update_transform(entity, updated) {
@@ -220,17 +309,16 @@ impl NavigationManager for DefaultNavigationManager {
                 }
             }
         }
+        let mut state = self.state.lock().expect("navigation state lock poisoned");
+        state.stats.active_agents = report.scanned_agents;
+        state.stats.active_obstacles = obstacles.len();
+        state.stats.active_off_mesh_links = count_off_mesh_links(world);
         Ok(report)
     }
 
     fn stats(&self) -> NavigationRuntimeStats {
         let state = self.state.lock().expect("navigation state lock poisoned");
-        NavigationRuntimeStats {
-            loaded_nav_meshes: state.loaded.len(),
-            active_agents: 0,
-            active_obstacles: 0,
-            active_off_mesh_links: 0,
-        }
+        state.stats.clone()
     }
 }
 
@@ -239,6 +327,7 @@ struct NavigationRuntimeState {
     next_handle: u64,
     loaded: HashMap<NavMeshHandle, NavMeshAsset>,
     settings: NavigationSettingsAsset,
+    stats: NavigationRuntimeStats,
 }
 
 impl Default for NavigationRuntimeState {
@@ -247,6 +336,7 @@ impl Default for NavigationRuntimeState {
             next_handle: 1,
             loaded: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
+            stats: NavigationRuntimeStats::default(),
         }
     }
 }
@@ -283,6 +373,7 @@ struct BakeGeometry {
     skipped_navigation_components: usize,
     removed_by_modifier: usize,
     modified_by_area_override: usize,
+    carved_by_obstacle: usize,
 }
 
 impl BakeGeometry {
@@ -344,6 +435,14 @@ fn collect_bake_geometry(
     agent_type: &str,
 ) -> BakeGeometry {
     let mut geometry = BakeGeometry::default();
+    let carved_obstacles = collect_runtime_obstacles(world)
+        .into_iter()
+        .filter(|obstacle| obstacle.carve)
+        .collect::<Vec<_>>();
+    let surface_area_override = surface_entity
+        .and_then(|entity| direct_modifier(world, entity, agent_type))
+        .filter(|modifier| modifier.override_area)
+        .map(|modifier| modifier.area);
     for node in world.nodes() {
         if should_exclude_from_bake(world, node.id) {
             geometry.skipped_navigation_components += 1;
@@ -361,15 +460,17 @@ fn collect_bake_geometry(
             geometry.removed_by_modifier += 1;
             continue;
         }
-        let area = modifier
+        if node_intersects_obstacle(world, node, &carved_obstacles) {
+            geometry.carved_by_obstacle += 1;
+            continue;
+        }
+        let area_override = modifier
             .as_ref()
             .filter(|modifier| modifier.override_area)
             .map(|modifier| modifier.area)
-            .unwrap_or(surface.default_area);
-        if modifier
-            .as_ref()
-            .is_some_and(|modifier| modifier.override_area)
-        {
+            .or(surface_area_override);
+        let area = area_override.unwrap_or(surface.default_area);
+        if area_override.is_some() {
             geometry.modified_by_area_override += 1;
         }
 
@@ -436,10 +537,74 @@ fn collect_collider_geometry(
     }
 }
 
+#[derive(Clone, Debug)]
+struct RuntimeObstacle {
+    entity: u64,
+    center: Vec3,
+    radius: Real,
+    carve: bool,
+    avoidance_enabled: bool,
+}
+
+fn collect_runtime_obstacles(world: &World) -> Vec<RuntimeObstacle> {
+    world
+        .nodes()
+        .iter()
+        .filter_map(|node| {
+            let value = world.dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)?;
+            let obstacle = parse_component::<NavMeshObstacleDescriptor>(value);
+            let transform = world.world_transform(node.id).unwrap_or(node.transform);
+            let center = transform
+                .matrix()
+                .transform_point3(Vec3::from_array(obstacle.center));
+            let radius = match obstacle.shape {
+                NavMeshObstacleShape::Box => {
+                    let size = Vec3::from_array(obstacle.size).abs();
+                    size.x.max(size.z) * 0.5
+                }
+                NavMeshObstacleShape::Capsule => obstacle.radius,
+            }
+            .max(0.05);
+            Some(RuntimeObstacle {
+                entity: node.id,
+                center,
+                radius,
+                carve: obstacle.carve,
+                avoidance_enabled: obstacle.avoidance_enabled,
+            })
+        })
+        .collect()
+}
+
+fn node_intersects_obstacle(
+    world: &World,
+    node: &SceneNode,
+    obstacles: &[RuntimeObstacle],
+) -> bool {
+    let position = world
+        .world_transform(node.id)
+        .map(|transform| transform.translation)
+        .unwrap_or(node.transform.translation);
+    let node_radius = match node.kind {
+        NodeKind::Cube | NodeKind::Mesh => 0.75,
+        NodeKind::Camera
+        | NodeKind::DirectionalLight
+        | NodeKind::PointLight
+        | NodeKind::SpotLight => 0.25,
+    };
+    obstacles.iter().any(|obstacle| {
+        obstacle.entity != node.id
+            && distance_xz(position, obstacle.center) <= obstacle.radius + node_radius
+    })
+}
+
 fn should_exclude_from_bake(world: &World, entity: u64) -> bool {
     world
-        .dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE)
+        .dynamic_component(entity, NAV_MESH_SURFACE_COMPONENT_TYPE)
         .is_some()
+        || world
+            .dynamic_component(entity, NAV_MESH_AGENT_COMPONENT_TYPE)
+            .is_some()
         || world
             .dynamic_component(entity, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
             .is_some()
@@ -639,7 +804,7 @@ fn bake_geometry_diagnostics(
         diagnostics.push(NavMeshBakeDiagnostic {
             severity: NavMeshBakeDiagnosticSeverity::Info,
             message: format!(
-                "excluded {} navigation runtime component node(s) from bake geometry",
+                "excluded {} navigation authoring/runtime component node(s) from bake geometry",
                 geometry.skipped_navigation_components
             ),
             entity: surface_entity,
@@ -665,7 +830,119 @@ fn bake_geometry_diagnostics(
             entity: surface_entity,
         });
     }
+    if geometry.carved_by_obstacle > 0 {
+        diagnostics.push(NavMeshBakeDiagnostic {
+            severity: NavMeshBakeDiagnosticSeverity::Info,
+            message: format!(
+                "carved {} bake source node(s) by stationary NavMeshObstacle",
+                geometry.carved_by_obstacle
+            ),
+            entity: surface_entity,
+        });
+    }
     diagnostics
+}
+
+fn unsupported_bake_setting_diagnostics(
+    surface: &NavMeshSurfaceDescriptor,
+    surface_entity: Option<u64>,
+) -> Vec<NavMeshBakeDiagnostic> {
+    let mut diagnostics = Vec::new();
+    if surface.override_voxel_size.is_some()
+        || surface.override_tile_size.is_some()
+        || surface.min_region_area != NavMeshSurfaceDescriptor::default().min_region_area
+        || surface.build_height_mesh
+    {
+        diagnostics.push(NavMeshBakeDiagnostic {
+            severity: NavMeshBakeDiagnosticSeverity::Warning,
+            message: "advanced Recast bake knobs are recorded in the settings hash but the v1 fallback backend does not yet rasterize voxels, tiles, regions, or height meshes".to_string(),
+            entity: surface_entity,
+        });
+    }
+    diagnostics
+}
+
+fn distance_xz(left: Vec3, right: Vec3) -> Real {
+    let delta = left - right;
+    (delta.x * delta.x + delta.z * delta.z).sqrt()
+}
+
+fn count_obstacles(world: &World) -> usize {
+    world
+        .nodes()
+        .iter()
+        .filter(|node| {
+            world
+                .dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
+                .is_some()
+        })
+        .count()
+}
+
+fn count_off_mesh_links(world: &World) -> usize {
+    world
+        .nodes()
+        .iter()
+        .filter(|node| {
+            world
+                .dynamic_component(node.id, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE)
+                .is_some()
+        })
+        .count()
+}
+
+fn agent_positions(
+    world: &World,
+    agents: &[(u64, NavMeshAgentDescriptor)],
+) -> Vec<(u64, Vec3, Real)> {
+    agents
+        .iter()
+        .filter_map(|(entity, agent)| {
+            world
+                .world_transform(*entity)
+                .map(|transform| (*entity, transform.translation, agent.radius.max(0.05)))
+        })
+        .collect()
+}
+
+fn avoidance_adjusted_target(
+    entity: u64,
+    current: Vec3,
+    target: Vec3,
+    agent: &NavMeshAgentDescriptor,
+    obstacles: &[RuntimeObstacle],
+    agents: &[(u64, Vec3, Real)],
+) -> Vec3 {
+    if matches!(
+        agent.avoidance_quality,
+        zircon_runtime::core::framework::navigation::NavAvoidanceQuality::None
+    ) {
+        return target;
+    }
+    let mut avoidance = Vec3::ZERO;
+    for obstacle in obstacles
+        .iter()
+        .filter(|obstacle| obstacle.avoidance_enabled)
+    {
+        let away = current - obstacle.center;
+        let distance = distance_xz(current, obstacle.center);
+        let limit = obstacle.radius + agent.radius.max(0.05) + 0.5;
+        if distance > 0.001 && distance < limit {
+            avoidance += Vec3::new(away.x, 0.0, away.z).normalize_or_zero() * (limit - distance);
+        }
+    }
+    for (other_entity, other_position, other_radius) in agents {
+        if *other_entity == entity {
+            continue;
+        }
+        let away = current - *other_position;
+        let distance = distance_xz(current, *other_position);
+        let limit = agent.radius.max(0.05) + *other_radius + 0.25;
+        if distance > 0.001 && distance < limit {
+            avoidance += Vec3::new(away.x, 0.0, away.z).normalize_or_zero() * (limit - distance);
+        }
+    }
+    target + avoidance
 }
 
 pub fn count_navigation_components(world: &World) -> NavigationRuntimeStats {

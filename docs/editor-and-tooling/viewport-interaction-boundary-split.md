@@ -14,7 +14,11 @@ related_code:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/slint_host/viewport/slint_viewport_controller.rs
+  - zircon_editor/src/ui/slint_host/viewport/poll_image.rs
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_editor/src/ui/slint_host/viewport/take_error.rs
+  - zircon_editor/src/ui/slint_host/viewport/world_space_ui.rs
   - zircon_editor/src/ui/slint_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/core/framework/render/framework.rs
@@ -45,7 +49,11 @@ implementation_files:
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
+  - zircon_editor/src/ui/slint_host/viewport/slint_viewport_controller.rs
+  - zircon_editor/src/ui/slint_host/viewport/poll_image.rs
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_editor/src/ui/slint_host/viewport/take_error.rs
+  - zircon_editor/src/ui/slint_host/viewport/world_space_ui.rs
   - zircon_editor/src/ui/slint_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/core/framework/render/framework.rs
@@ -90,6 +98,7 @@ tests:
   - cargo test -p zircon_editor editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings --locked
   - cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked
   - cargo check -p zircon_editor --lib --locked
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-viewport-lock-gap --message-format short --color never
   - cargo check --workspace --locked
 doc_type: module-detail
 ---
@@ -140,6 +149,7 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
 - `EditorState::render_frame_submission()` 现在会把 scene `RenderFrameExtract` 和这份 HUD 一起交给宿主
 - `SlintViewportController::submit_extract_with_ui(...)` 通过 `RenderFramework::submit_frame_extract_with_ui(...)` 同时提交 scene extract 与 shared UI extract
 - graphics 侧仍只消费中性 `RenderFrameExtract + UiRenderExtract`，HUD 文本最终进入的仍是 glyphon-backed runtime text path，而不是 Slint 文本系统
+- `SlintViewportController` 的 shared viewport state 通过 controller-local `lock_shared()` 访问；如果某条 UI/render 回调在持锁期间 panic，后续 image polling、extract submit、error drain 和 world-space UI routing 会恢复 poisoned mutex 里的状态，而不是继续 panic。
 
 这样 editor 现在至少有一条真实 authoring overlay 走进 runtime 文本底座，满足 M1 对“runtime UI 与 editor viewport/runtime-style overlay 共用同一套文本 backend”的完成线，同时不替换 Slint workbench 主 UI。
 
@@ -164,6 +174,8 @@ M1 这里再补了一条 editor viewport 到 runtime 文本底座的正式接线
   - 证明 runtime world 默认 render extract 不包含 selection anchor / handle / gizmo / grid
 - `cargo check -p zircon_editor --lib --locked` 通过。
   - 证明 viewport HUD、`render_frame_submission()` 与 `submit_extract_with_ui(...)` 已经编进正式 editor lib 路径
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-viewport-lock-gap --message-format short --color never` 通过。
+  - 作为 2026-05-03 生产路径 panic/unwrap 缺口修补的轻量类型检查证据，覆盖 `SlintViewportController::lock_shared()` 与 viewport shared-state 调用点。
 - `cargo check --workspace --locked` 通过。
 - `cargo test -p zircon_editor --lib controller_submits_shared_ui_overlay_through_render_framework --locked` 通过。
   - 证明 editor viewport 已经能把 scene extract 和 shared `UiRenderExtract` 一起交给 render framework

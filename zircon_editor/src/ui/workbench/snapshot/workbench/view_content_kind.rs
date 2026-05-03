@@ -16,5 +16,6 @@ pub enum ViewContentKind {
     AnimationGraphEditor,
     RuntimeDiagnostics,
     ModulePlugins,
+    BuildExport,
     Placeholder,
 }

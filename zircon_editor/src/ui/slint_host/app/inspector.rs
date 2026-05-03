@@ -1,13 +1,16 @@
 use super::*;
 
 impl SlintEditorHost {
-    fn inspector_field_id(control_id: &str) -> Option<&'static str> {
+    fn inspector_field_id(control_id: &str) -> Option<String> {
+        if let Some(field_id) = control_id.strip_prefix("DynamicComponentField:") {
+            return Some(field_id.to_string());
+        }
         match control_id {
-            "NameField" => Some("name"),
-            "ParentField" => Some("parent"),
-            "PositionXField" => Some("transform.translation.x"),
-            "PositionYField" => Some("transform.translation.y"),
-            "PositionZField" => Some("transform.translation.z"),
+            "NameField" => Some("name".to_string()),
+            "ParentField" => Some("parent".to_string()),
+            "PositionXField" => Some("transform.translation.x".to_string()),
+            "PositionYField" => Some("transform.translation.y".to_string()),
+            "PositionZField" => Some("transform.translation.z".to_string()),
             _ => None,
         }
     }
@@ -69,7 +72,7 @@ impl SlintEditorHost {
         } else {
             UiBindingValue::string(inspector.parent.clone())
         };
-        let changes = UiBindingValue::array(vec![
+        let mut changes = vec![
             UiBindingValue::array(vec![
                 UiBindingValue::string("name"),
                 UiBindingValue::string(inspector.name.clone()),
@@ -87,7 +90,22 @@ impl SlintEditorHost {
                 UiBindingValue::string("transform.translation.z"),
                 UiBindingValue::string(inspector.translation[2].clone()),
             ]),
-        ]);
+        ];
+        changes.extend(
+            inspector
+                .plugin_components
+                .iter()
+                .filter(|component| component.drawer_available)
+                .flat_map(|component| component.properties.iter())
+                .filter(|property| property.editable)
+                .map(|property| {
+                    UiBindingValue::array(vec![
+                        UiBindingValue::string(property.field_id.clone()),
+                        UiBindingValue::string(property.value.clone()),
+                    ])
+                }),
+        );
+        let changes = UiBindingValue::array(changes);
 
         Ok(vec![UiBindingValue::string("entity://selected"), changes])
     }
@@ -102,7 +120,7 @@ impl SlintEditorHost {
         let envelope = UiComponentEventEnvelope::new(
             "inspector.surface_controls",
             control_id,
-            UiComponentBindingTarget::inspector("entity://selected", field_id),
+            UiComponentBindingTarget::inspector("entity://selected", field_id.clone()),
             UiComponentEvent::ValueChanged {
                 property: "value".to_string(),
                 value: UiValue::String(value.to_string()),

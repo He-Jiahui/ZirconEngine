@@ -1,7 +1,8 @@
 use zircon_runtime::core::framework::net::{
     NetConnectionState, NetEndpoint, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
     NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId, NetRuntimeMode,
-    NetWebSocketCloseReason, NetWebSocketFrame, RpcDescriptor, RpcDirection,
+    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame, RpcDescriptor,
+    RpcDirection,
 };
 use zircon_runtime::{plugin::RuntimePlugin, plugin::RuntimePluginRegistrationReport};
 
@@ -163,6 +164,31 @@ fn net_runtime_dispatches_registered_http_route() {
 }
 
 #[test]
+fn net_runtime_serves_registered_http_route_over_real_socket() {
+    let net = DefaultNetManager::default();
+    net.register_http_route(
+        NetHttpRouteDescriptor::new("/socket-health", [NetHttpMethod::Get]),
+        NetHttpResponseDescriptor::new(NetRequestId::new(0), 200, b"socket-ok".to_vec())
+            .with_header("content-type", "text/plain"),
+    )
+    .unwrap();
+    let listener = net.listen_http(&NetEndpoint::new("127.0.0.1", 0)).unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    let response = net
+        .send_http_request(NetHttpRequestDescriptor::new(
+            NetRequestId::new(17),
+            NetHttpMethod::Get,
+            format!("http://{}:{}/socket-health", endpoint.host, endpoint.port),
+        ))
+        .unwrap();
+
+    assert_eq!(response.request, NetRequestId::new(17));
+    assert_eq!(response.status_code, 200);
+    assert_eq!(response.body, b"socket-ok");
+}
+
+#[test]
 fn net_runtime_queues_websocket_frames_with_budget() {
     let net = DefaultNetManager::default();
     let (client, server) = net.open_websocket_loopback().unwrap();
@@ -193,6 +219,42 @@ fn net_runtime_queues_websocket_frames_with_budget() {
     assert_eq!(
         net.connection_state(client).unwrap(),
         NetConnectionState::Closed
+    );
+}
+
+#[test]
+fn net_runtime_connects_websocket_over_real_handshake() {
+    let net = DefaultNetManager::default();
+    let listener = net
+        .listen_websocket(&NetEndpoint::new("127.0.0.1", 0))
+        .unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+    let connector = net.clone();
+    let client_thread = std::thread::spawn(move || {
+        connector
+            .connect_websocket(NetWebSocketConnectDescriptor::new(format!(
+                "ws://{}:{}/socket",
+                endpoint.host, endpoint.port
+            )))
+            .unwrap()
+    });
+    let server = accept_until_websocket(&net, listener);
+    let client = client_thread
+        .join()
+        .expect("websocket connect thread panicked");
+
+    net.send_websocket_frame(client, NetWebSocketFrame::Text("hello-real".to_string()))
+        .unwrap();
+    assert_eq!(
+        poll_websocket_until(&net, server),
+        NetWebSocketFrame::Text("hello-real".to_string())
+    );
+
+    net.send_websocket_frame(server, NetWebSocketFrame::Text("echo-real".to_string()))
+        .unwrap();
+    assert_eq!(
+        poll_websocket_until(&net, client),
+        NetWebSocketFrame::Text("echo-real".to_string())
     );
 }
 
@@ -237,4 +299,32 @@ fn poll_tcp_until(
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     panic!("expected TCP payload");
+}
+
+fn accept_until_websocket(
+    net: &DefaultNetManager,
+    listener: zircon_runtime::core::framework::net::NetListenerId,
+) -> zircon_runtime::core::framework::net::NetConnectionId {
+    for _ in 0..100 {
+        let accepted = net.accept_websocket(listener, 4).unwrap();
+        if let Some(connection) = accepted.into_iter().next() {
+            return connection;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected accepted WebSocket connection");
+}
+
+fn poll_websocket_until(
+    net: &DefaultNetManager,
+    connection: zircon_runtime::core::framework::net::NetConnectionId,
+) -> NetWebSocketFrame {
+    for _ in 0..100 {
+        let frames = net.poll_websocket_frames(connection, 4).unwrap();
+        if let Some(frame) = frames.into_iter().next() {
+            return frame;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected WebSocket frame");
 }

@@ -11,6 +11,7 @@ use crate::core::error::CoreError;
 use crate::core::event_bus::{EngineEvent, EventBus};
 use crate::core::job_scheduler::JobScheduler;
 use crate::core::types::ChannelReceiver;
+use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 
 use super::handle::CoreHandle;
 use super::state::CoreRuntimeInner;
@@ -31,6 +32,7 @@ impl CoreRuntime {
                 event_bus: EventBus::default(),
                 config_store: ConfigStore::default(),
                 scheduler: JobScheduler::default(),
+                scene_hooks: Default::default(),
             }),
         }
     }
@@ -87,6 +89,13 @@ impl CoreRuntime {
 
     pub fn load_config<T: DeserializeOwned>(&self, key: &str) -> Result<T, CoreError> {
         self.handle().load_config(key)
+    }
+
+    pub fn install_scene_runtime_hooks(
+        &self,
+        extensions: &RuntimeExtensionRegistry,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        self.handle().install_scene_runtime_hooks(extensions)
     }
 }
 

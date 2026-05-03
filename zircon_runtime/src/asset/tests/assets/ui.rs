@@ -130,7 +130,7 @@ fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml() {
     fs::write(&widget_path, WIDGET_UI_TOML).unwrap();
     fs::write(&style_path, STYLE_UI_TOML).unwrap();
 
-    let importer = AssetImporter::default();
+    let importer = importer_with_first_wave_plugin_fixtures();
 
     let layout = importer
         .import_from_source(
@@ -193,6 +193,9 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     fs::write(ui_dir.join("theme.ui.toml"), STYLE_UI_TOML).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
     manager.scan_and_import().unwrap();
 
     let layout = manager
@@ -223,4 +226,12 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
+    let mut importer = AssetImporter::default();
+    importer
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    importer
 }

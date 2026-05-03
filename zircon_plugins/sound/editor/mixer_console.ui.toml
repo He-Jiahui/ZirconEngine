@@ -1,0 +1,202 @@
+stylesheets = []
+
+[asset]
+kind = "layout"
+id = "sound.mixer_console"
+version = 1
+display_name = "Sound Mixer"
+
+[imports]
+styles = ["res://ui/theme/editor_base.ui.toml"]
+
+[root]
+node_id = "sound_mixer_root"
+kind = "native"
+type = "VerticalBox"
+control_id = "SoundMixerRoot"
+classes = ["editor-shell"]
+
+[root.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.layout.width]
+stretch = "Stretch"
+
+[root.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_mixer_toolbar"
+kind = "native"
+type = "HorizontalBox"
+control_id = "SoundMixerToolbar"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 6.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 32.0
+preferred = 32.0
+max = 32.0
+stretch = "Fixed"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sound_mixer_preset_picker"
+kind = "native"
+type = "Space"
+control_id = "SoundMixerPresetPicker"
+
+[root.children.node.children.node.layout.width]
+min = 220.0
+preferred = 260.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sound_mixer_transport_controls"
+kind = "native"
+type = "Space"
+control_id = "SoundMixerTransportControls"
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_mixer_content"
+kind = "native"
+type = "HorizontalBox"
+control_id = "SoundMixerContent"
+
+[root.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 6.0
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sound_track_strip"
+kind = "native"
+type = "Space"
+control_id = "SoundTrackMeterStrip"
+
+[root.children.node.children.node.layout.width]
+min = 260.0
+preferred = 320.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sound_send_matrix"
+kind = "native"
+type = "Space"
+control_id = "SoundSendMatrix"
+
+[root.children.node.children.node.layout.width]
+min = 220.0
+preferred = 280.0
+stretch = "Fixed"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children]]
+[root.children.node.children.node]
+node_id = "sound_effect_rack"
+kind = "native"
+type = "VerticalBox"
+control_id = "SoundEffectRack"
+
+[root.children.node.children.node.layout.container]
+kind = "VerticalBox"
+gap = 6.0
+
+[root.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sound_effect_chain"
+kind = "native"
+type = "Space"
+control_id = "SoundEffectChain"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children]]
+[root.children.node.children.node.children.node]
+node_id = "sound_sidechain_picker"
+kind = "native"
+type = "Space"
+control_id = "SoundSidechainSourcePicker"
+
+[root.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.layout.height]
+min = 72.0
+preferred = 72.0
+max = 72.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_automation_lane"
+kind = "native"
+type = "Space"
+control_id = "SoundAutomationLane"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 88.0
+preferred = 88.0
+max = 88.0
+stretch = "Fixed"
+
+[[root.children]]
+[root.children.node]
+node_id = "sound_dynamic_event_registry"
+kind = "native"
+type = "Space"
+control_id = "SoundDynamicEventRegistry"
+
+[root.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.layout.height]
+min = 48.0
+preferred = 48.0
+max = 48.0
+stretch = "Fixed"
+
+[components]

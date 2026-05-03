@@ -12,7 +12,9 @@ impl ProjectPluginSelection {
     }
 
     pub fn is_runtime_builtin_domain(&self) -> bool {
-        false
+        self.runtime_crate
+            .as_deref()
+            .is_some_and(|crate_name| crate_name.starts_with("builtin_"))
     }
 
     pub fn runtime_crate_name(&self) -> String {

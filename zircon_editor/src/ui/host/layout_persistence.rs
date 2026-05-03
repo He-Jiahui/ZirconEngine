@@ -66,7 +66,7 @@ impl EditorUiHost {
             if let Some(layout) = load_layout_preset_asset(&project_root, name)
                 .map_err(|error| EditorError::Project(error.to_string()))?
             {
-                let mut session = self.session.lock().unwrap();
+                let mut session = self.lock_session();
                 session.layout = layout;
                 self.recompute_session_metadata(&mut session);
                 return Ok(true);
@@ -77,7 +77,7 @@ impl EditorUiHost {
             .get(name)
             .cloned()
             .ok_or_else(|| EditorError::Layout(format!("missing preset {name}")))?;
-        let mut session = self.session.lock().unwrap();
+        let mut session = self.lock_session();
         session.layout = layout;
         self.recompute_session_metadata(&mut session);
         Ok(true)

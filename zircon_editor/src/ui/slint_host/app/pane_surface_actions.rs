@@ -15,6 +15,10 @@ impl SlintEditorHost {
             self.dispatch_module_plugin_action(action_id);
             return;
         }
+        if control_id == build_export_actions::BUILD_EXPORT_ACTION_CONTROL_ID {
+            self.dispatch_build_export_action(action_id);
+            return;
+        }
         let Some(result) = callback_dispatch::dispatch_builtin_pane_surface_control(
             &self.runtime,
             &self.pane_surface_bridge,

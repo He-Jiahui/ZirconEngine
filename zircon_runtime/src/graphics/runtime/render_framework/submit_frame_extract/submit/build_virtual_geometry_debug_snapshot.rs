@@ -2,9 +2,11 @@ use std::collections::BTreeSet;
 
 use super::super::frame_submission_context::FrameSubmissionContext;
 use crate::core::framework::render::{
-    RenderFrameExtract, RenderVirtualGeometryClusterSelectionInputSource,
-    RenderVirtualGeometryCullInputSnapshot, RenderVirtualGeometryDebugSnapshot,
-    RenderVirtualGeometryExecutionSegment, RenderVirtualGeometryExecutionState,
+    RenderFrameExtract, RenderVirtualGeometryCluster,
+    RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryCullInputSnapshot,
+    RenderVirtualGeometryDebugSnapshot, RenderVirtualGeometryExecutionSegment,
+    RenderVirtualGeometryExecutionState, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryHardwareRasterizationRecord,
     RenderVirtualGeometryHardwareRasterizationSource, RenderVirtualGeometryHierarchyNode,
     RenderVirtualGeometryNodeAndClusterCullChildWorkItem,
     RenderVirtualGeometryNodeAndClusterCullClusterWorkItem,
@@ -84,18 +86,6 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
                 .to_vec()
         })
         .unwrap_or_default();
-    let selected_clusters = build_selected_clusters_from_visibility_feedback(
-        extract,
-        &visible_cluster_id_set,
-        &resident_page_set,
-        &requested_page_set,
-    );
-    let visbuffer_debug_marks = extract
-        .debug
-        .visualize_visbuffer
-        .then(|| build_visbuffer_debug_marks_from_selected_clusters(&selected_clusters))
-        .unwrap_or_default();
-    let visbuffer64_entries = build_visbuffer64_entries_from_selected_clusters(&selected_clusters);
     let cull_input = build_cull_input_snapshot(
         extract,
         &page_upload_plan,
@@ -104,14 +94,32 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
     );
     let node_and_cluster_cull =
         build_node_and_cluster_cull_snapshot(frame_extract, context, cull_input);
+    let draw_segments = context
+        .visibility_context()
+        .virtual_geometry_draw_segments
+        .as_slice();
     let execution = build_execution_snapshot(
-        context
-            .visibility_context()
-            .virtual_geometry_draw_segments
-            .as_slice(),
+        extract,
+        draw_segments,
         &resident_page_set,
         &requested_page_set,
     );
+    let selected_clusters =
+        build_selected_clusters_from_execution_segments(extract, &execution.segments);
+    let visbuffer_debug_marks = extract
+        .debug
+        .visualize_visbuffer
+        .then(|| build_visbuffer_debug_marks_from_selected_clusters(&selected_clusters))
+        .unwrap_or_default();
+    let hardware_rasterization_records =
+        build_hardware_rasterization_records_from_execution_segments(draw_segments, &execution);
+    let render_path_has_execution_selections = !execution.segments.is_empty();
+    let selected_clusters_source =
+        selected_cluster_source_for_execution(render_path_has_execution_selections);
+    let hardware_rasterization_source =
+        hardware_rasterization_source_for_execution(render_path_has_execution_selections);
+    let visbuffer64_source = visbuffer64_source_for_execution(render_path_has_execution_selections);
+    let visbuffer64_entries = build_visbuffer64_entries_from_selected_clusters(&selected_clusters);
 
     Some(RenderVirtualGeometryDebugSnapshot {
         instances: extract.instances.clone(),
@@ -124,8 +132,7 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         bvh_visualization_instances,
         visible_cluster_ids,
         selected_clusters,
-        selected_clusters_source:
-            RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections,
+        selected_clusters_source,
         node_and_cluster_cull_source: node_and_cluster_cull.source,
         node_and_cluster_cull_record_count: node_and_cluster_cull.record_count,
         node_and_cluster_cull_instance_seeds: node_and_cluster_cull.instance_seeds,
@@ -138,11 +145,10 @@ pub(super) fn build_virtual_geometry_debug_snapshot(
         node_and_cluster_cull_dispatch_setup: node_and_cluster_cull.dispatch_setup,
         node_and_cluster_cull_launch_worklist: node_and_cluster_cull.launch_worklist,
         node_and_cluster_cull_global_state: node_and_cluster_cull.global_state,
-        hardware_rasterization_records: Vec::new(),
-        hardware_rasterization_source:
-            RenderVirtualGeometryHardwareRasterizationSource::Unavailable,
+        hardware_rasterization_records,
+        hardware_rasterization_source,
         visbuffer_debug_marks,
-        visbuffer64_source: RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections,
+        visbuffer64_source,
         visbuffer64_clear_value: RenderVirtualGeometryVisBuffer64Entry::CLEAR_VALUE,
         visbuffer64_entries,
         requested_pages: page_upload_plan.requested_pages,
@@ -667,6 +673,7 @@ struct ExecutionSnapshot {
 }
 
 fn build_execution_snapshot(
+    extract: &RenderVirtualGeometryExtract,
     draw_segments: &[VisibilityVirtualGeometryDrawSegment],
     resident_page_set: &BTreeSet<u32>,
     requested_page_set: &BTreeSet<u32>,
@@ -693,27 +700,31 @@ fn build_execution_snapshot(
         if !seen_pages.insert(segment.page_id) {
             repeated_draw_count += 1;
         }
-        page_ids.insert(segment.page_id);
+        if state == RenderVirtualGeometryExecutionState::Missing {
+            continue;
+        }
 
         let index_u32 = u32::try_from(index).unwrap_or(u32::MAX);
-        let instance_index = Some(0);
-        indirect_offsets.push(index as u64);
+        let submission_index = saturated_u32_len(segments.len());
+        let instance_index = instance_index_for_draw_segment(extract, segment);
+        page_ids.insert(segment.page_id);
+        indirect_offsets.push(u64::from(submission_index));
         segments.push(RenderVirtualGeometryExecutionSegment {
             original_index: index_u32,
             instance_index,
             entity: segment.entity,
             page_id: segment.page_id,
             draw_ref_index: index_u32,
-            submission_index: Some(index_u32),
-            draw_ref_rank: Some(index_u32),
+            submission_index: Some(submission_index),
+            draw_ref_rank: Some(submission_index),
             cluster_start_ordinal: segment.cluster_ordinal,
             cluster_span_count: segment.cluster_span_count,
             cluster_total_count: segment.cluster_count,
-            submission_slot: Some(index_u32),
+            submission_slot: Some(submission_index),
             state,
             lineage_depth: segment.lineage_depth,
             lod_level: segment.lod_level,
-            frontier_rank: index_u32,
+            frontier_rank: submission_index,
         });
         submission_order.push(RenderVirtualGeometrySubmissionEntry {
             instance_index,
@@ -725,8 +736,8 @@ fn build_execution_snapshot(
             entity: segment.entity,
             page_id: segment.page_id,
             draw_ref_index: Some(index_u32),
-            submission_index: index_u32,
-            draw_ref_rank: index_u32,
+            submission_index,
+            draw_ref_rank: submission_index,
             original_index: index_u32,
         });
     }
@@ -758,6 +769,25 @@ fn execution_state_for_page(
     }
 }
 
+fn instance_index_for_draw_segment(
+    extract: &RenderVirtualGeometryExtract,
+    segment: &VisibilityVirtualGeometryDrawSegment,
+) -> Option<u32> {
+    extract
+        .clusters
+        .iter()
+        .enumerate()
+        .find(|(_, cluster)| {
+            cluster.entity == segment.entity
+                && cluster.cluster_id == segment.cluster_id
+                && cluster.page_id == segment.page_id
+                && cluster.lod_level == segment.lod_level
+        })
+        .and_then(|(cluster_array_index, _)| {
+            instance_index_for_cluster_array_index(&extract.instances, cluster_array_index)
+        })
+}
+
 fn instance_index_for_cluster_array_index(
     instances: &[crate::core::framework::render::RenderVirtualGeometryInstance],
     cluster_array_index: usize,
@@ -786,36 +816,48 @@ fn visbuffer_mark_color(cluster_id: u32, page_id: u32, lod_level: u8) -> [u8; 4]
     ]
 }
 
-fn build_selected_clusters_from_visibility_feedback(
-    extract: &crate::core::framework::render::RenderVirtualGeometryExtract,
-    visible_cluster_id_set: &BTreeSet<u32>,
-    resident_page_set: &BTreeSet<u32>,
-    requested_page_set: &BTreeSet<u32>,
+fn build_selected_clusters_from_execution_segments(
+    extract: &RenderVirtualGeometryExtract,
+    execution_segments: &[RenderVirtualGeometryExecutionSegment],
 ) -> Vec<RenderVirtualGeometrySelectedCluster> {
-    extract
-        .clusters
-        .iter()
-        .enumerate()
-        .filter(|(_, cluster)| visible_cluster_id_set.contains(&cluster.cluster_id))
-        .map(|(cluster_array_index, cluster)| RenderVirtualGeometrySelectedCluster {
-            instance_index: instance_index_for_cluster_array_index(
-                &extract.instances,
-                cluster_array_index,
-            ),
-            entity: cluster.entity,
-            cluster_id: cluster.cluster_id,
-            cluster_ordinal: cluster_ordinal_for_entity(extract, cluster),
-            page_id: cluster.page_id,
-            lod_level: cluster.lod_level,
-            state: if resident_page_set.contains(&cluster.page_id) {
-                crate::core::framework::render::RenderVirtualGeometryExecutionState::Resident
-            } else if requested_page_set.contains(&cluster.page_id) {
-                crate::core::framework::render::RenderVirtualGeometryExecutionState::PendingUpload
-            } else {
-                crate::core::framework::render::RenderVirtualGeometryExecutionState::Missing
-            },
-        })
-        .collect()
+    let mut selected_clusters = Vec::new();
+
+    for segment in execution_segments {
+        for ordinal_offset in 0..segment.cluster_span_count {
+            let cluster_ordinal = segment.cluster_start_ordinal.saturating_add(ordinal_offset);
+            if let Some((cluster_array_index, cluster)) =
+                cluster_for_execution_ordinal(extract, segment, cluster_ordinal)
+            {
+                selected_clusters.push(RenderVirtualGeometrySelectedCluster {
+                    instance_index: instance_index_for_cluster_array_index(
+                        &extract.instances,
+                        cluster_array_index,
+                    ),
+                    entity: cluster.entity,
+                    cluster_id: cluster.cluster_id,
+                    cluster_ordinal,
+                    page_id: cluster.page_id,
+                    lod_level: cluster.lod_level,
+                    state: segment.state,
+                });
+            }
+        }
+    }
+
+    selected_clusters
+}
+
+fn cluster_for_execution_ordinal<'a>(
+    extract: &'a RenderVirtualGeometryExtract,
+    segment: &RenderVirtualGeometryExecutionSegment,
+    cluster_ordinal: u32,
+) -> Option<(usize, &'a RenderVirtualGeometryCluster)> {
+    extract.clusters.iter().enumerate().find(|(_, cluster)| {
+        cluster.entity == segment.entity
+            && cluster.page_id == segment.page_id
+            && cluster.lod_level == segment.lod_level
+            && cluster_ordinal_for_entity(extract, cluster) == cluster_ordinal
+    })
 }
 
 fn cluster_ordinal_for_entity(
@@ -851,7 +893,7 @@ fn cluster_ordinal_for_entity(
     cluster_ids.dedup();
     cluster_ids
         .iter()
-        .position(|cluster_id| cluster_id == cluster.cluster_id)
+        .position(|cluster_id| *cluster_id == cluster.cluster_id)
         .unwrap_or_default() as u32
 }
 
@@ -889,4 +931,78 @@ fn build_visbuffer64_entries_from_selected_clusters(
             )
         })
         .collect()
+}
+
+fn build_hardware_rasterization_records_from_execution_segments(
+    draw_segments: &[VisibilityVirtualGeometryDrawSegment],
+    execution: &ExecutionSnapshot,
+) -> Vec<RenderVirtualGeometryHardwareRasterizationRecord> {
+    let mut records = Vec::with_capacity(execution.segments.len());
+    let mut resident_slot = 0_u32;
+
+    for segment in &execution.segments {
+        let Some(source_segment) = draw_segments.get(segment.original_index as usize) else {
+            continue;
+        };
+        let resident_slot_for_record =
+            (segment.state == RenderVirtualGeometryExecutionState::Resident).then(|| {
+                let slot = resident_slot;
+                resident_slot = resident_slot.saturating_add(1);
+                slot
+            });
+
+        records.push(RenderVirtualGeometryHardwareRasterizationRecord {
+            instance_index: segment.instance_index,
+            entity: segment.entity,
+            cluster_id: source_segment.cluster_id,
+            cluster_ordinal: segment.cluster_start_ordinal,
+            page_id: segment.page_id,
+            lod_level: segment.lod_level,
+            submission_index: segment
+                .submission_index
+                .unwrap_or_else(|| saturated_u32_len(records.len())),
+            submission_page_id: segment.page_id,
+            submission_lod_level: segment.lod_level,
+            entity_cluster_start_ordinal: segment.cluster_start_ordinal,
+            entity_cluster_span_count: segment.cluster_span_count,
+            entity_cluster_total_count: segment.cluster_total_count,
+            lineage_depth: segment.lineage_depth,
+            frontier_rank: segment.frontier_rank,
+            resident_slot: resident_slot_for_record,
+            submission_slot: segment.submission_slot,
+            state: segment.state,
+        });
+    }
+
+    records
+}
+
+fn selected_cluster_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometrySelectedClusterSource {
+    if has_execution_selections {
+        RenderVirtualGeometrySelectedClusterSource::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometrySelectedClusterSource::RenderPathClearOnly
+    }
+}
+
+fn hardware_rasterization_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometryHardwareRasterizationSource {
+    if has_execution_selections {
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometryHardwareRasterizationSource::RenderPathClearOnly
+    }
+}
+
+fn visbuffer64_source_for_execution(
+    has_execution_selections: bool,
+) -> RenderVirtualGeometryVisBuffer64Source {
+    if has_execution_selections {
+        RenderVirtualGeometryVisBuffer64Source::RenderPathExecutionSelections
+    } else {
+        RenderVirtualGeometryVisBuffer64Source::RenderPathClearOnly
+    }
 }

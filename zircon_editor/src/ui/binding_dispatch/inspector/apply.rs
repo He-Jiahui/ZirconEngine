@@ -64,9 +64,15 @@ fn apply_inspector_draft_field_value(
             state.update_translation_field(2, binding_value_to_string(value, field_id)?);
         }
         other => {
-            return Err(EditorBindingDispatchError::UnsupportedInspectorField(
+            if !state.can_edit_dynamic_component_field(other) {
+                return Err(EditorBindingDispatchError::UnsupportedInspectorField(
+                    other.to_string(),
+                ));
+            }
+            state.update_dynamic_component_field(
                 other.to_string(),
-            ));
+                binding_value_to_string(value, field_id)?,
+            );
         }
     }
 

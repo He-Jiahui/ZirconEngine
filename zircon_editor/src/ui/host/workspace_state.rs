@@ -19,13 +19,11 @@ use super::layout_hosts::{
 
 impl EditorUiHost {
     pub(super) fn current_layout(&self) -> WorkbenchLayout {
-        self.session.lock().unwrap().layout.clone()
+        self.lock_session().layout.clone()
     }
 
     pub(super) fn current_view_instances(&self) -> Vec<ViewInstance> {
-        self.session
-            .lock()
-            .unwrap()
+        self.lock_session()
             .open_view_instances
             .values()
             .cloned()
@@ -39,7 +37,7 @@ impl EditorUiHost {
         dirty: Option<bool>,
         payload: Option<Value>,
     ) -> Result<(), EditorError> {
-        let mut session = self.session.lock().unwrap();
+        let mut session = self.lock_session();
         let instance = session
             .open_view_instances
             .get_mut(instance_id)
@@ -61,7 +59,7 @@ impl EditorUiHost {
     pub(super) fn native_window_hosts(
         &self,
     ) -> Vec<super::window_host_manager::NativeWindowHostState> {
-        self.window_host_manager.lock().unwrap().states()
+        self.lock_window_host_manager().states()
     }
 
     pub(super) fn sync_native_window_projection_bounds(
@@ -69,14 +67,12 @@ impl EditorUiHost {
         window_id: &MainPageId,
         bounds: [f32; 4],
     ) {
-        self.window_host_manager
-            .lock()
-            .unwrap()
+        self.lock_window_host_manager()
             .sync_window_bounds(window_id, bounds);
     }
 
     pub(super) fn descriptors(&self) -> Vec<ViewDescriptor> {
-        self.view_registry.lock().unwrap().list_descriptors()
+        self.lock_view_registry().list_descriptors()
     }
 
     pub(super) fn restore_workspace(
@@ -89,7 +85,7 @@ impl EditorUiHost {
             .layout_manager
             .restore_workspace(policy, Some(workspace), global)
             .map_err(EditorError::Layout)?;
-        let mut session = self.session.lock().unwrap();
+        let mut session = self.lock_session();
         session.layout = restored.clone();
         self.recompute_session_metadata(&mut session);
         Ok(restored)
@@ -104,11 +100,11 @@ impl EditorUiHost {
             return Ok(Vec::new());
         }
 
-        let mut session = self.session.lock().unwrap();
-        let mut registry = self.view_registry.lock().unwrap();
+        let mut session = self.lock_session();
+        let mut registry = self.lock_view_registry();
         registry.clear_instances();
-        self.animation_editor_sessions.lock().unwrap().clear();
-        self.ui_asset_sessions.lock().unwrap().clear();
+        self.lock_animation_editor_sessions().clear();
+        self.lock_ui_asset_sessions().clear();
 
         let workspace = workspace.expect("checked above");
         session.layout = workspace.workbench;
@@ -148,7 +144,7 @@ impl EditorUiHost {
     }
 
     pub(super) fn project_workspace(&self) -> ProjectEditorWorkspace {
-        let session = self.session.lock().unwrap();
+        let session = self.lock_session();
         ProjectEditorWorkspace {
             layout_version: 1,
             workbench: session.layout.clone(),
@@ -159,28 +155,28 @@ impl EditorUiHost {
     }
 
     pub(super) fn bootstrap_default_layout(&self) -> Result<(), EditorError> {
-        let mut registry = self.view_registry.lock().unwrap();
+        let mut registry = self.lock_view_registry();
         registry.clear_instances();
-        self.animation_editor_sessions.lock().unwrap().clear();
-        self.ui_asset_sessions.lock().unwrap().clear();
+        self.lock_animation_editor_sessions().clear();
+        self.lock_ui_asset_sessions().clear();
         let mut session = EditorSessionState::default();
-        let snapshot = self.capability_snapshot.lock().unwrap().clone();
-        let subsystem_report = self.subsystem_report.lock().unwrap().clone();
+        let snapshot = self.lock_capability_snapshot().clone();
+        let subsystem_report = self.lock_subsystem_report().clone();
         ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
         session.layout = builtin_hybrid_layout_for_subsystems(&subsystem_report);
         self.layout_manager
             .normalize(&mut session.layout, &registry);
-        *self.session.lock().unwrap() = session;
+        *self.lock_session() = session;
 
         if let Some(layout) = self.load_global_default_layout() {
-            let mut session = self.session.lock().unwrap();
+            let mut session = self.lock_session();
             session.layout = layout;
             repair_builtin_shell_layout(&mut session.layout, &subsystem_report);
             self.layout_manager
                 .normalize(&mut session.layout, &registry);
             self.recompute_session_metadata(&mut session);
         } else {
-            let mut session = self.session.lock().unwrap();
+            let mut session = self.lock_session();
             self.recompute_session_metadata(&mut session);
         }
         Ok(())
@@ -216,17 +212,11 @@ impl EditorUiHost {
                     window_instance, ..
                 } => Some(window_instance.clone()),
             });
-        self.animation_editor_sessions
-            .lock()
-            .unwrap()
+        self.lock_animation_editor_sessions()
             .retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
-        self.ui_asset_sessions
-            .lock()
-            .unwrap()
+        self.lock_ui_asset_sessions()
             .retain(|instance_id, _| session.open_view_instances.contains_key(instance_id));
-        self.window_host_manager
-            .lock()
-            .unwrap()
+        self.lock_window_host_manager()
             .sync_layout_windows(&session.layout);
     }
 }

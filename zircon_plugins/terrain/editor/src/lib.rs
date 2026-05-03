@@ -3,6 +3,7 @@ use zircon_editor::core::editor_authoring_extension::{
 };
 use zircon_editor::core::editor_extension::{
     AssetEditorDescriptor, AssetImporterDescriptor, ComponentDrawerDescriptor,
+    EditorMenuItemDescriptor,
 };
 use zircon_editor::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
 use zircon_plugin_editor_support::{
@@ -96,15 +97,32 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
                 import_heightfield.clone(),
                 "Import Terrain Heightfield",
             )
+            .with_menu_path("Plugins/Terrain/Import Heightfield")
+            .with_payload_schema_id("terrain.import_heightfield.v1")
             .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(import_weightmap.clone(), "Import Terrain Weightmap")
+                .with_menu_path("Plugins/Terrain/Import Weightmap")
+                .with_payload_schema_id("terrain.import_weightmap.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(create.clone(), "Create Terrain Heightfield")
+                .with_menu_path("Plugins/Terrain/Create Heightfield")
+                .with_payload_schema_id("terrain.create_heightfield.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(open.clone(), "Open Terrain")
+                .with_menu_path("Plugins/Terrain/Open Terrain Asset")
+                .with_payload_schema_id("terrain.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
             EditorOperationDescriptor::new(sculpt.clone(), "Activate Terrain Sculpt Tool")
+                .with_menu_path("Plugins/Terrain/Sculpt")
+                .with_payload_schema_id("terrain.activate_sculpt_tool.v1")
                 .with_required_capabilities([CAPABILITY]),
+        ],
+        menu_items: vec![
+            menu_item("Plugins/Terrain/Import Heightfield", &import_heightfield),
+            menu_item("Plugins/Terrain/Import Weightmap", &import_weightmap),
+            menu_item("Plugins/Terrain/Create Heightfield", &create),
+            menu_item("Plugins/Terrain/Open Terrain Asset", &open),
+            menu_item("Plugins/Terrain/Sculpt", &sculpt),
         ],
         asset_importers: vec![
             AssetImporterDescriptor::new(
@@ -249,9 +267,40 @@ fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid terrain operation path")
 }
 
+fn menu_item(path: &str, operation: &EditorOperationPath) -> EditorMenuItemDescriptor {
+    EditorMenuItemDescriptor::new(path, operation.clone()).with_required_capabilities([CAPABILITY])
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use zircon_editor::EditorPlugin;
+
+    #[test]
+    fn terrain_authoring_registration_exposes_menu_items_and_payload_schemas() {
+        let mut registry =
+            zircon_editor::core::editor_extension::EditorExtensionRegistry::default();
+        editor_plugin()
+            .register_editor_extensions(&mut registry)
+            .expect("terrain authoring registration");
+        let operation = operation("Terrain.Authoring.ImportHeightfield");
+        let descriptor = registry
+            .operations()
+            .descriptor(&operation)
+            .expect("import heightfield operation registered");
+
+        assert_eq!(
+            descriptor.menu_path(),
+            Some("Plugins/Terrain/Import Heightfield")
+        );
+        assert_eq!(
+            descriptor.payload_schema_id(),
+            Some("terrain.import_heightfield.v1")
+        );
+        assert!(registry.menu_items().iter().any(|item| {
+            item.path() == "Plugins/Terrain/Import Heightfield" && item.operation() == &operation
+        }));
+    }
 
     #[test]
     fn terrain_heightfield_import_accepts_supported_extensions_and_matching_samples() {
