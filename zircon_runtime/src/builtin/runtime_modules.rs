@@ -7,7 +7,7 @@ use crate::asset::AssetImporterRegistry;
 use crate::engine_module::EngineModule;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -189,6 +189,7 @@ fn runtime_core_modules_for_target(target: RuntimeTargetMode) -> Vec<Arc<dyn Eng
         &[],
         &[],
         &[],
+        &[],
     )
 }
 
@@ -197,6 +198,7 @@ fn runtime_core_modules_for_target_with_render_features(
     asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
     render_pass_executors: &[RenderPassExecutorRegistration],
+    runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> Vec<Arc<dyn EngineModule>> {
@@ -214,6 +216,7 @@ fn runtime_core_modules_for_target_with_render_features(
             graphics::GraphicsModule::with_render_extensions_and_runtime_providers(
                 render_features.iter().cloned(),
                 render_pass_executors.iter().cloned(),
+                runtime_prepare_collectors.iter().cloned(),
                 hybrid_gi_runtime_providers.iter().cloned(),
                 virtual_geometry_runtime_providers.iter().cloned(),
             ),
@@ -244,6 +247,7 @@ pub fn runtime_modules_for_target_with_linked_plugins(
         manifest_override,
         linked_plugin_ids,
         &AssetImporterRegistry::default(),
+        &[],
         &[],
         &[],
         &[],
@@ -281,6 +285,16 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
                 .cloned()
         })
         .collect::<Vec<_>>();
+    let runtime_prepare_collectors = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .runtime_prepare_collectors()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
     let hybrid_gi_runtime_providers = registrations
         .iter()
         .flat_map(|registration| {
@@ -313,6 +327,7 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
         &asset_importers,
         &render_features,
         &render_pass_executors,
+        &runtime_prepare_collectors,
         &hybrid_gi_runtime_providers,
         &virtual_geometry_runtime_providers,
     );
@@ -387,6 +402,27 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
                 }),
         )
         .collect::<Vec<_>>();
+    let runtime_prepare_collectors = active_registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .runtime_prepare_collectors()
+                .iter()
+                .cloned()
+        })
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| {
+                    registration
+                        .extensions
+                        .runtime_prepare_collectors()
+                        .iter()
+                        .cloned()
+                }),
+        )
+        .collect::<Vec<_>>();
     let hybrid_gi_runtime_providers = active_registrations
         .iter()
         .flat_map(|registration| {
@@ -446,6 +482,7 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
         &asset_importers,
         &render_features,
         &render_pass_executors,
+        &runtime_prepare_collectors,
         &hybrid_gi_runtime_providers,
         &virtual_geometry_runtime_providers,
     );
@@ -468,6 +505,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     asset_importers: &AssetImporterRegistry,
     render_features: &[RenderFeatureDescriptor],
     render_pass_executors: &[RenderPassExecutorRegistration],
+    runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
@@ -481,6 +519,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
             asset_importers,
             render_features,
             render_pass_executors,
+            runtime_prepare_collectors,
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
         ));

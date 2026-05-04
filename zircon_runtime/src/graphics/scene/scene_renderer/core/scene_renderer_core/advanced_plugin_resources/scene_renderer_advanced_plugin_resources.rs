@@ -1,19 +1,21 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
-use crate::graphics::{RenderFeatureCapabilityRequirement, RenderFeatureDescriptor};
+use crate::graphics::{
+    RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RuntimePrepareCollectorContext,
+    RuntimePrepareCollectorRegistration,
+};
 
 pub(in crate::graphics::scene::scene_renderer::core) type SceneRendererRuntimePrepareCollector =
     Box<
-        dyn Fn(
+        dyn FnMut(
                 &wgpu::Device,
                 &wgpu::Queue,
                 &mut wgpu::CommandEncoder,
                 &ResourceStreamer,
                 &ViewportRenderFrame,
             ) -> Result<RenderPluginRendererOutputs, GraphicsError>
-            + Send
-            + Sync,
+            + Send,
     >;
 
 pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvancedPluginResources {
@@ -31,10 +33,14 @@ impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn new(
         _device: &wgpu::Device,
         render_features: &[RenderFeatureDescriptor],
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Self {
         Self {
             capabilities: advanced_plugin_resource_capabilities(render_features),
-            runtime_prepare_collectors: Vec::new(),
+            runtime_prepare_collectors: runtime_prepare_collectors
+                .into_iter()
+                .map(scene_runtime_prepare_collector_from_registration)
+                .collect(),
         }
     }
 
@@ -58,8 +64,10 @@ impl SceneRendererAdvancedPluginResources {
         self.runtime_prepare_collectors.push(collector);
     }
 
-    pub(super) fn runtime_prepare_collectors(&self) -> &[SceneRendererRuntimePrepareCollector] {
-        &self.runtime_prepare_collectors
+    pub(super) fn runtime_prepare_collectors_mut(
+        &mut self,
+    ) -> &mut [SceneRendererRuntimePrepareCollector] {
+        &mut self.runtime_prepare_collectors
     }
 
     pub(in crate::graphics::scene::scene_renderer::core) fn virtual_geometry_enabled(
@@ -95,6 +103,15 @@ fn render_features_require(
     render_features
         .iter()
         .any(|feature| feature.capability_requirements.contains(&requirement))
+}
+
+fn scene_runtime_prepare_collector_from_registration(
+    registration: RuntimePrepareCollectorRegistration,
+) -> SceneRendererRuntimePrepareCollector {
+    Box::new(move |device, queue, encoder, _streamer, frame| {
+        let mut context = RuntimePrepareCollectorContext::new(device, queue, encoder, frame);
+        registration.collect(&mut context)
+    })
 }
 
 #[cfg(test)]

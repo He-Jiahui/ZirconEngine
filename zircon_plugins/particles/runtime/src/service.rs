@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
 
-use zircon_runtime::core::framework::render::ParticleExtract;
+use zircon_runtime::core::framework::render::{ParticleExtract, RenderParticleGpuReadbackOutputs};
 use zircon_runtime::core::framework::scene::EntityId;
 use zircon_runtime::core::math::{Real, Vec3};
 
@@ -57,6 +57,7 @@ pub struct ParticleRuntimeSnapshot {
     pub emitters: Vec<ParticleEmitterState>,
     pub sprites: Vec<crate::ParticleSpriteSnapshot>,
     pub diagnostics: Vec<ParticleRuntimeDiagnostic>,
+    pub last_gpu_feedback: Option<RenderParticleGpuReadbackOutputs>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -69,6 +70,7 @@ struct ParticlesManagerState {
     next_handle: u64,
     instances: BTreeMap<ParticleEmitterHandle, ParticleSystemInstance>,
     diagnostics: Vec<ParticleRuntimeDiagnostic>,
+    last_gpu_feedback: Option<RenderParticleGpuReadbackOutputs>,
     capabilities: Vec<String>,
 }
 
@@ -78,6 +80,7 @@ impl Default for ParticlesManagerState {
             next_handle: 1,
             instances: BTreeMap::new(),
             diagnostics: Vec::new(),
+            last_gpu_feedback: None,
             capabilities: vec![PARTICLES_RUNTIME_CAPABILITY.to_string()],
         }
     }
@@ -236,6 +239,7 @@ impl ParticlesManager {
         let state = self.lock_state();
         let mut snapshot = ParticleRuntimeSnapshot {
             diagnostics: state.diagnostics.clone(),
+            last_gpu_feedback: state.last_gpu_feedback.clone(),
             ..ParticleRuntimeSnapshot::default()
         };
         for instance in state.instances.values() {
@@ -258,6 +262,19 @@ impl ParticlesManager {
 
     pub fn build_extract(&self, camera_position: Option<Vec3>) -> ParticleExtract {
         build_particle_extract(&self.snapshot(), camera_position)
+    }
+
+    pub fn apply_gpu_feedback(&self, feedback: zircon_runtime::graphics::ParticleRuntimeFeedback) {
+        let Some(outputs) = feedback
+            .into_gpu_feedback()
+            .map(|feedback| feedback.into_readback_outputs())
+            .filter(|outputs| !outputs.is_empty())
+        else {
+            return;
+        };
+
+        let mut state = self.lock_state();
+        state.last_gpu_feedback = Some(outputs);
     }
 
     fn with_instance(

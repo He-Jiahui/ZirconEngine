@@ -439,6 +439,26 @@ fn root_menu_pointer_click_dispatches_shared_menu_action_in_real_host() {
 }
 
 #[test]
+fn native_root_menu_pointer_click_dispatches_shared_menu_action_in_real_host() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_native_root_menu_dispatch");
+    let baseline = harness.journal_len();
+
+    let open_dispatch = harness.root_ui.dispatch_native_primary_press_for_test(20.0, 12.0);
+    let item_dispatch = harness.root_ui.dispatch_native_primary_press_for_test(60.0, 126.0);
+
+    assert!(open_dispatch.request_redraw());
+    assert!(item_dispatch.request_redraw());
+    let host = harness.host.borrow();
+    assert_eq!(host.menu_pointer_state.open_menu_index, None);
+    assert_eq!(
+        harness.delta_events_since(baseline),
+        vec![EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)]
+    );
+}
+
+#[test]
 fn root_menu_popup_scroll_and_dismiss_flow_through_shared_pointer_bridge_in_real_host() {
     let _guard = lock_env();
 
@@ -911,6 +931,20 @@ fn root_host_viewport_size_matches_presented_viewport_content_frame_when_drawers
             viewport_frame.height.max(0.0).round() as u32,
         )
     );
+}
+
+#[test]
+fn native_frame_request_recomputes_dirty_layout_before_presentation() {
+    let _guard = lock_env();
+
+    let harness = ChildWindowHostHarness::new("zircon_slint_native_frame_recompute");
+    harness.root_ui.window().set_size(PhysicalSize::new(960, 540));
+
+    harness.root_ui.request_host_frame_for_test();
+
+    let presentation = harness.root_ui.get_host_presentation();
+    assert_eq!(presentation.host_layout.status_bar_frame.width, 960.0);
+    assert_eq!(presentation.host_layout.status_bar_frame.y, 516.0);
 }
 
 #[test]

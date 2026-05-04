@@ -216,7 +216,7 @@ fn rust_owned_host_window_run_uses_native_event_loop() {
 
     for required in [
         "winit::application::ApplicationHandler",
-        "EventLoop::new()?",
+        "EventLoop::new().map_err(platform_error)?",
         "run_app",
         "WindowEvent::CloseRequested",
     ] {
@@ -227,7 +227,9 @@ fn rust_owned_host_window_run_uses_native_event_loop() {
     }
 
     assert!(
-        !window.contains("pub(crate) fn run(&self) -> Result<(), PlatformError> {\n        self.show()\n    }"),
+        !window.contains(
+            "pub(crate) fn run(&self) -> Result<(), PlatformError> {\n        self.show()\n    }"
+        ),
         "UiHostWindow::run must not immediately return after marking the contract visible"
     );
 }

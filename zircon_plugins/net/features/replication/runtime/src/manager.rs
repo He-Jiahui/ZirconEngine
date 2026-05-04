@@ -96,6 +96,30 @@ impl NetReplicationRuntimeManager {
             .cloned()
             .collect()
     }
+
+    pub fn late_join_snapshots(&self, session: NetSessionId) -> Vec<SyncObjectSnapshot> {
+        self.visible_snapshots(session)
+    }
+
+    pub fn despawn_object(&self, object: NetObjectId) -> Vec<SyncObjectSnapshot> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net replication state mutex poisoned");
+        let removed_keys = state
+            .snapshots
+            .keys()
+            .filter(|(snapshot_object, _)| *snapshot_object == object)
+            .cloned()
+            .collect::<Vec<_>>();
+        removed_keys
+            .into_iter()
+            .filter_map(|key| {
+                state.sequences.remove(&key);
+                state.snapshots.remove(&key)
+            })
+            .collect()
+    }
 }
 
 pub fn net_replication_runtime_manager() -> NetReplicationRuntimeManager {

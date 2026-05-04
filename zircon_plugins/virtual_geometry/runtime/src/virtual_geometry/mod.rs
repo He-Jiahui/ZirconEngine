@@ -44,4 +44,5 @@ pub(crate) use nanite::{
     VirtualGeometryAutomaticExtractOutput,
 };
 pub(super) use normalized_page_table_entries::normalized_page_table_entries;
+pub(super) use renderer::runtime_prepare_renderer_outputs;
 pub(crate) use types::*;

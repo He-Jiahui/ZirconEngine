@@ -3,7 +3,7 @@ use std::sync::Arc;
 use zircon_runtime::graphics::{
     FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
     RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassExecutorRegistration,
-    RenderPassStage,
+    RenderPassStage, RuntimePrepareCollectorContext, RuntimePrepareCollectorRegistration,
 };
 use zircon_runtime::render_graph::QueueLane;
 
@@ -56,6 +56,7 @@ impl zircon_runtime::plugin::RuntimePlugin for HybridGiRuntimePlugin {
         for registration in render_pass_executor_registrations() {
             registry.register_render_pass_executor(registration)?;
         }
+        registry.register_runtime_prepare_collector(runtime_prepare_collector_registration())?;
         Ok(())
     }
 }
@@ -129,6 +130,22 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
         RenderPassExecutorRegistration::new("hybrid-gi.resolve", hybrid_gi_resolve_executor),
         RenderPassExecutorRegistration::new("hybrid-gi.history", hybrid_gi_history_executor),
     ]
+}
+
+pub fn runtime_prepare_collector_registration() -> RuntimePrepareCollectorRegistration {
+    RuntimePrepareCollectorRegistration::new(
+        "hybrid-gi.runtime-prepare",
+        hybrid_gi_runtime_prepare_collector,
+    )
+}
+
+fn hybrid_gi_runtime_prepare_collector(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+) -> Result<
+    zircon_runtime::core::framework::render::RenderPluginRendererOutputs,
+    zircon_runtime::graphics::GraphicsError,
+> {
+    Ok(crate::hybrid_gi::runtime_prepare_renderer_outputs(context))
 }
 
 pub fn hybrid_gi_runtime_provider_registration(
@@ -233,6 +250,11 @@ mod tests {
             ]
         );
         assert_eq!(report.extensions.render_pass_executors().len(), 4);
+        assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
+        assert_eq!(
+            report.extensions.runtime_prepare_collectors()[0].collector_id(),
+            "hybrid-gi.runtime-prepare"
+        );
         assert_eq!(
             report.extensions.hybrid_gi_runtime_providers()[0].provider_id(),
             "plugin.hybrid_gi.runtime"

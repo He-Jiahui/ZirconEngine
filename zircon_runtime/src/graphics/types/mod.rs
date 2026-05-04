@@ -6,6 +6,7 @@ mod viewport_render_frame;
 mod viewport_render_frame_from_extract;
 mod viewport_render_frame_from_public_runtime;
 mod viewport_render_frame_from_snapshot;
+mod viewport_render_frame_with_prepared_runtime_sidebands;
 mod viewport_render_frame_with_ui;
 mod viewport_render_frame_with_virtual_geometry_debug_snapshot;
 

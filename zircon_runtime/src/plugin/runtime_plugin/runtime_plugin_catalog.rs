@@ -1000,6 +1000,13 @@ fn merge_extension_registry_contributions(
             fatal_diagnostics,
         );
     }
+    for collector in extensions.runtime_prepare_collectors() {
+        push_runtime_extension_result(
+            registry.register_runtime_prepare_collector(collector.clone()),
+            diagnostics,
+            fatal_diagnostics,
+        );
+    }
     for provider in extensions.virtual_geometry_runtime_providers() {
         push_runtime_extension_result(
             registry.register_virtual_geometry_runtime_provider(provider.clone()),

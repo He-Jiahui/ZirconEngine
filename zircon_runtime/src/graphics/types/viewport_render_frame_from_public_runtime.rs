@@ -11,6 +11,7 @@ impl From<PublicRuntimeFrame> for ViewportRenderFrame {
             viewport_size: frame.viewport_size,
             ui: frame.ui,
             virtual_geometry_debug_snapshot: None,
+            prepared_runtime_sidebands: Default::default(),
         }
     }
 }

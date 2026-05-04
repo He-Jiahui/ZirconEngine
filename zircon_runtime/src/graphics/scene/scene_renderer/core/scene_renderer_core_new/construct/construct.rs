@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::graphics::RenderFeatureDescriptor;
+use crate::graphics::{RenderFeatureDescriptor, RuntimePrepareCollectorRegistration};
 
 use super::super::super::super::deferred::DeferredSceneResources;
 use super::super::super::super::mesh::MeshPipelineCache;
@@ -24,6 +24,7 @@ impl SceneRendererCore {
         target_format: wgpu::TextureFormat,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: &[RenderFeatureDescriptor],
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Self {
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device);
         let model_bind_group_layout = create_model_bind_group_layout(device);
@@ -60,8 +61,11 @@ impl SceneRendererCore {
         );
         let screen_space_ui_renderer =
             ScreenSpaceUiRenderer::new(asset_manager, device, queue, target_format);
-        let advanced_plugin_resources =
-            SceneRendererAdvancedPluginResources::new(device, render_features);
+        let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(
+            device,
+            render_features,
+            runtime_prepare_collectors,
+        );
 
         Self {
             texture_bind_group_layout,

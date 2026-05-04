@@ -65,6 +65,21 @@ fn component_drawer_press_envelope(
     .with_component_id("weather.cloud_layer.inspector")
 }
 
+fn component_drawer_action_envelope(
+    component_type: &str,
+    operation_path: &str,
+    event: UiComponentEvent,
+) -> UiComponentEventEnvelope {
+    UiComponentEventEnvelope::new(
+        "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        "DrawerAction",
+        UiComponentBindingTarget::new("component_drawer", operation_path)
+            .with_subject(component_type),
+        event,
+    )
+    .with_component_id("weather.cloud_layer.inspector")
+}
+
 #[test]
 fn inspector_component_adapter_value_changed_updates_selected_name_draft() {
     let _guard = env_lock().lock().unwrap();
@@ -226,7 +241,10 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
         result.transaction_id.as_deref(),
         Some("component_drawer:Scene.Node.CreateCube")
     );
-    assert_eq!(harness.runtime.editor_snapshot().scene_entries.len(), before + 1);
+    assert_eq!(
+        harness.runtime.editor_snapshot().scene_entries.len(),
+        before + 1
+    );
 
     let error = harness
         .runtime
@@ -241,6 +259,70 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
             domain: "component_drawer".to_string(),
             path: "Window.Layout.Reset".to_string(),
             reason: "operation is not declared by the enabled component drawer".to_string(),
+        }
+    );
+}
+
+#[test]
+fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_component_drawer_adapter_safe_events");
+    let component_type = "weather.Component.CloudLayer";
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_component_drawer(
+            ComponentDrawerDescriptor::new(
+                component_type,
+                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "weather.editor.CloudLayerInspectorController",
+            )
+            .with_binding("Scene.Node.CreateCube"),
+        )
+        .unwrap();
+    harness
+        .runtime
+        .register_editor_extension(extension)
+        .expect("component drawer extension should register");
+
+    let before = harness.runtime.editor_snapshot().scene_entries.len();
+    let result = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&component_drawer_action_envelope(
+            component_type,
+            "Scene.Node.CreateCube",
+            UiComponentEvent::Commit {
+                property: "value".to_string(),
+                value: UiValue::String("apply".to_string()),
+            },
+        ))
+        .expect("commit should dispatch as a safe component drawer action");
+
+    assert!(result.changed);
+    assert_eq!(
+        harness.runtime.editor_snapshot().scene_entries.len(),
+        before + 1
+    );
+
+    let error = harness
+        .runtime
+        .dispatch_ui_component_adapter_event(&component_drawer_action_envelope(
+            component_type,
+            "Scene.Node.CreateCube",
+            UiComponentEvent::ValueChanged {
+                property: "value".to_string(),
+                value: UiValue::String("draft".to_string()),
+            },
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        UiComponentAdapterError::UnsupportedEvent {
+            domain: "component_drawer".to_string(),
+            path: "Scene.Node.CreateCube".to_string(),
+            event_kind: zircon_runtime_interface::ui::component::UiComponentEventKind::ValueChanged,
         }
     );
 }

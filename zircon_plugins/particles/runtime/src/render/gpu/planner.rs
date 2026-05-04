@@ -107,6 +107,22 @@ impl ParticleGpuFrameParams {
             .map(|emitter| emitter.spawn_count)
             .sum()
     }
+
+    pub fn expected_frame_extract(
+        &self,
+    ) -> zircon_runtime::core::framework::render::RenderParticleGpuFrameExtract {
+        let spawned_total = self.total_spawn_count();
+        zircon_runtime::core::framework::render::RenderParticleGpuFrameExtract {
+            alive_count: spawned_total,
+            spawned_total,
+            per_emitter_spawned: self
+                .emitters
+                .iter()
+                .map(|emitter| emitter.spawn_count)
+                .collect(),
+            indirect_draw_args: [6, spawned_total, 0, 0],
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

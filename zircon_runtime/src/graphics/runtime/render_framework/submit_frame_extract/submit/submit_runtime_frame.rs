@@ -24,6 +24,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     let prepared = prepare_runtime_submission(&mut state, viewport, &context);
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     state.last_virtual_geometry_debug_snapshot = frame.virtual_geometry_debug_snapshot.clone();
+    let frame = attach_prepared_sidebands_to_runtime_frame(frame, &prepared);
     let frame = state
         .renderer
         .render_frame_with_pipeline(
@@ -58,5 +59,92 @@ fn apply_effective_advanced_extracts_to_runtime_frame(
     frame.extract.geometry.virtual_geometry = context.virtual_geometry_extract().cloned();
     if !context.hybrid_gi_enabled() {
         frame.extract.lighting.hybrid_global_illumination = None;
+    }
+}
+
+fn attach_prepared_sidebands_to_runtime_frame(
+    frame: ViewportRenderFrame,
+    prepared: &super::super::prepared_runtime_submission::PreparedRuntimeSubmission,
+) -> ViewportRenderFrame {
+    frame.with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{
+        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderFrameExtract, RenderOverlayExtract,
+        RenderPluginRendererOutputs, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+        RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    };
+    use crate::core::math::{UVec2, Vec4};
+
+    use super::super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
+
+    #[test]
+    fn direct_runtime_frame_submit_projects_prepared_sidebands() {
+        let extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(44),
+            empty_scene_snapshot(),
+        );
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(1280, 720));
+        let prepared = PreparedRuntimeSubmission::new(
+            vec![5],
+            vec![9],
+            RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                        page_request_ids: vec![300],
+                        ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                    },
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+        );
+
+        let frame = attach_prepared_sidebands_to_runtime_frame(frame, &prepared);
+
+        assert_eq!(
+            frame
+                .prepared_runtime_sidebands()
+                .hybrid_gi_evictable_probe_ids(),
+            &[5]
+        );
+        assert_eq!(
+            frame
+                .prepared_runtime_sidebands()
+                .virtual_geometry_evictable_page_ids(),
+            &[9]
+        );
+        assert_eq!(
+            frame
+                .prepared_runtime_sidebands()
+                .virtual_geometry_readback_outputs()
+                .node_cluster_cull
+                .page_request_ids,
+            vec![300]
+        );
+    }
+
+    fn empty_scene_snapshot() -> RenderSceneSnapshot {
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        }
     }
 }

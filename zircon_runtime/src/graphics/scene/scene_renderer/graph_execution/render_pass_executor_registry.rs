@@ -150,6 +150,8 @@ fn registry_register_noop_executor(
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
     use crate::core::framework::render::{
         RenderFrameExtract, RenderPipelineHandle, RenderWorldSnapshotHandle,
     };
@@ -166,7 +168,8 @@ mod tests {
     };
 
     use super::super::{
-        RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutorRegistration,
+        RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorId,
+        RenderPassExecutorRegistration,
     };
     use super::RenderPassExecutorRegistry;
 
@@ -358,6 +361,23 @@ mod tests {
     }
 
     #[test]
+    fn registry_invokes_object_backed_executor_with_mutable_context() {
+        let mut registry = RenderPassExecutorRegistry::default();
+        registry.register_executor(
+            RenderPassExecutorId::new("object.executor"),
+            Arc::new(ContextMutatingExecutor),
+        );
+        let mut context = RenderPassExecutionContext::new(
+            "object-pass",
+            RenderPassExecutorId::new("object.executor"),
+        );
+
+        registry.execute(&mut context).unwrap();
+
+        assert_eq!(context.pass_name, "object-pass:executed");
+    }
+
+    #[test]
     fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
         let mut graph = RenderGraphBuilder::new("custom-pipeline");
         graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
@@ -482,5 +502,14 @@ mod tests {
             return Err("explicit virtual geometry executor called".to_string());
         }
         Ok(())
+    }
+
+    struct ContextMutatingExecutor;
+
+    impl RenderPassExecutor for ContextMutatingExecutor {
+        fn execute(&self, context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+            context.pass_name.push_str(":executed");
+            Ok(())
+        }
     }
 }

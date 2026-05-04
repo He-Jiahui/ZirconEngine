@@ -28,6 +28,7 @@ related_code:
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/module.rs
   - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/tests.rs
   - zircon_plugins/net/runtime/src/websocket.rs
@@ -84,6 +85,7 @@ implementation_files:
   - zircon_plugins/net/runtime/src/http.rs
   - zircon_plugins/net/runtime/src/lib.rs
   - zircon_plugins/net/runtime/src/package.rs
+  - zircon_plugins/net/runtime/src/runtime_state.rs
   - zircon_plugins/net/runtime/src/service_types.rs
   - zircon_plugins/net/runtime/src/websocket.rs
   - zircon_plugins/net/features/http/runtime/Cargo.toml
@@ -146,6 +148,10 @@ tests:
   - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime --lib --locked
   - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
   - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime
+  - passed: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --locked
+  - passed: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --lib --locked
+  - passed: cargo fmt --manifest-path Cargo.toml -p zircon_runtime
+  - passed: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime
   - attempted: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --locked
   - attempted: cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --offline
   - passed: cargo metadata --manifest-path zircon_plugins/Cargo.toml --offline --format-version 1
@@ -204,7 +210,7 @@ The ownership split is fixed:
   - `NetModule`
   - `NetDriver`
   - `DefaultNetManager` / `NetRuntimeManager`
-  - Tokio TCP/UDP state, base HTTP route tables, WebSocket loopback queues, backend injection traits
+  - Tokio TCP/UDP state in `runtime_state.rs`, base HTTP route tables, WebSocket loopback queues, backend injection traits
   - plugin options, event catalog, and optional feature bundle declarations
 - `zircon_plugin_net_http_runtime`
   - `NetHttpRuntimeFeature`
@@ -279,17 +285,18 @@ The M2 HTTP/WebSocket slice now has base local paths plus optional real protocol
 - Local `send_http_request` calls without an explicit URL port still dispatch to registered routes by method/path for deterministic route tests and editor/catalog plumbing.
 - Base `listen_http` and explicit-port/network `send_http_request` return `ProtocolUnavailable { capability: "runtime.feature.net.http" }` unless `net.http` injects `HyperReqwestHttpBackend`.
 - `net.http` binds a real Tokio TCP listener, serves registered routes through `hyper` HTTP/1, and uses a `reqwest` rustls client for outbound requests.
-- `net.http` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-HTTPS requests unless insecure loopback is explicitly allowed, and certificate pinning is rejected until a real pin configuration surface exists.
+- `net.http` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-HTTPS requests unless insecure loopback is explicitly allowed, and certificate pinning requires a configured `NetCertificatePin` for the request host before network I/O proceeds.
 - WebSocket loopback pairs use `NetConnectionId` handles, `NetWebSocketFrame` values, peer queues, close frames, and frame poll budgets.
 - Base `listen_websocket` and `connect_websocket` return `ProtocolUnavailable { capability: "runtime.feature.net.websocket" }` unless `net.websocket` injects `TungsteniteWebSocketBackend`.
 - `net.websocket` binds real Tokio TCP listeners, accepts/upgrades server streams, performs client handshakes with URL/custom headers/subprotocols/timeout, and runs read halves as Tokio tasks.
 - Feature-backed WebSocket connections push received frames into the same budgeted `poll_websocket_frames` queue as loopback connections.
-- `net.websocket` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-WSS connections unless insecure loopback is explicitly allowed, and certificate pinning is rejected until pin configuration is available.
+- `net.websocket` enforces client-side `NetSecurityPolicy` before network I/O: `tls_required` rejects non-WSS connections unless insecure loopback is explicitly allowed, and certificate pinning requires a configured `NetCertificatePin` for the request host before network I/O proceeds.
 
 This keeps the framework contract DTO-only while making the base plugin lightweight when optional
 network protocol crates are disabled. HTTPS and WSS use the rustls-enabled feature dependency stack.
-Policy enforcement now fails closed for unconfigured certificate pinning; actual pin storage/matching,
-proxy policy, retry policy, and production route handler callbacks remain later HTTP hardening work.
+Policy enforcement now fails closed for unconfigured certificate pinning and has a shared pin DTO for
+host/fingerprint configuration. Actual peer certificate fingerprint extraction/matching, proxy policy,
+and retry policy remain later HTTP/WebSocket hardening work.
 
 The first M3 RPC/session slice adds `zircon_plugin_net_rpc_runtime` without changing the base
 transport manager. `NetRpcRuntimeManager` owns feature-local state for:
@@ -314,6 +321,7 @@ transport manager. `NetRpcRuntimeManager` owns feature-local state for:
 - per-source-session call-rate windows plus per-source-session `NetSpeed` byte windows for DoS-style quota blocking
 - copied dispatch reports for no-handler, direction-denied, session-unavailable, schema-unavailable, schema-rejected, payload-too-large, quota-exceeded, handler-failed, and accepted outcomes
 - queue admission through `enqueue_rpc`, bounded queue rejection through `QueueFull`, priority-ordered `drain_rpc_queue`, and timeout diagnostics through `TimedOut`
+- correlated request tracking through `pending_request` and `expire_pending_requests`, keyed by `NetRequestId`, so feature callers can observe outstanding request/response contracts and timeout diagnostics
 
 `dispatch_rpc` remains a validation-only path for diagnostics and queues. `invoke_rpc` runs the same
 validation path and then executes a registered handler closure only after direction, payload, schema,
@@ -323,13 +331,13 @@ diagnostic; they do not expose runtime-owned state into `zircon_runtime::core::f
 The first M4+ contract crates add focused runtime managers while keeping the base transport manager
 free of upper-layer state:
 
-- `zircon_plugin_net_replication_runtime` registers `net.replication`, stores `SyncComponentDescriptor` entries, publishes `SyncObjectSnapshot` values, emits dirty-only `SyncDelta` reports, and filters visible snapshots through `SyncInterestDescriptor` groups.
-- `zircon_plugin_net_reliable_udp_runtime` registers `net.reliable_udp`, assigns reliable datagram sequence numbers, fragments payloads according to `ReliableDatagramConfig::mtu_bytes`, tracks pending packets, and removes pending fragments by `ReliableDatagramAck`.
-- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, queues `NetDownloadManifest` values, tracks chunk progress through `NetDownloadProgress`, and fails closed on chunk hash mismatch.
+- `zircon_plugin_net_replication_runtime` registers `net.replication`, stores `SyncComponentDescriptor` entries, publishes `SyncObjectSnapshot` values, emits dirty-only `SyncDelta` reports, filters visible snapshots through `SyncInterestDescriptor` groups, serves late-join snapshot lists, and removes object snapshots through explicit despawn lifecycle calls.
+- `zircon_plugin_net_reliable_udp_runtime` registers `net.reliable_udp`, assigns reliable datagram sequence numbers, fragments payloads according to `ReliableDatagramConfig::mtu_bytes`, tracks pending packets, removes pending fragments by `ReliableDatagramAck`, exposes resend batches, and records basic dropped-packet/RTT statistics.
+- `zircon_plugin_net_content_download_runtime` registers `net.content_download`, queues `NetDownloadManifest` values, tracks chunk progress through `NetDownloadProgress`, builds primary/mirror candidate URLs, records cache-hit completion, and fails closed on chunk hash mismatch.
 
 These crates are contract-level stepping stones. They do not yet provide KCP/tokio-kcp transport I/O,
-real HTTP range downloading, CDN mirror retry/failover, cache storage, or production replication graph
-scheduling.
+real HTTP range downloading, CDN mirror retry/failover execution, persistent cache storage, or production
+replication graph scheduling.
 
 ## Optional Features
 
@@ -376,15 +384,16 @@ Unit-test coverage now spans the base runtime and the HTTP/WebSocket/RPC feature
 - base HTTP route-table dispatch without an explicit network backend
 - disabled-base `ProtocolUnavailable` errors for real HTTP/WebSocket protocol calls
 - `net.http` feature registration plus real HTTP socket route serving through `hyper` and `reqwest`
-- `net.http` client-side TLS and unconfigured certificate-pinning policy rejection before network I/O
+- `net.http` client-side TLS rejection, missing-pin rejection, and configured-pin admission before network I/O
 - `net.websocket` feature registration plus real WebSocket client/server handshake and text frame exchange through `tokio-tungstenite`
-- `net.websocket` client-side WSS and unconfigured certificate-pinning policy rejection before network I/O
+- `net.websocket` client-side WSS rejection, missing-pin rejection, and configured-pin admission before network I/O
 - `net.rpc` feature registration plus handshake success/failure and RPC no-handler/direction/payload/quota diagnostics
 - `net.rpc` session snapshots, transport-event close teardown, joined-session client RPC gating, NetSpeed byte-budget blocking, schema validator, handler invocation, handler failure, schema unavailable, and Mirror descriptor helper coverage
-- `net.rpc` request correlation, bounded queue admission, priority-ordered queue draining, timeout diagnostics, and no-double-count quota behavior for queued dispatch
-- `net.replication` feature registration, dirty-field delta reporting, and interest-group snapshot filtering
-- `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, and ack removal
-- `net.content_download` feature registration, manifest progress accounting, and chunk hash mismatch failure diagnostics
+- `net.rpc` request correlation, pending request completion/expiry, bounded queue admission, priority-ordered queue draining, timeout diagnostics, and no-double-count quota behavior for queued dispatch
+- `net.replication` feature registration, dirty-field delta reporting, interest-group snapshot filtering, late-join snapshot copyout, and despawn lifecycle removal
+- `net.reliable_udp` feature registration, MTU fragmentation, pending-packet tracking, ack removal, resend batch copyout, dropped-packet accounting, and RTT stats
+- `net.content_download` feature registration, manifest progress accounting, primary/mirror candidate URLs, cache-hit completion, and chunk hash mismatch failure diagnostics
+- base runtime state extraction into `runtime_state.rs`, reducing `service_types.rs` from 1045 lines to 910 lines in this continuation
 - listener shutdown for TCP listeners through `close_listener`, with HTTP/WebSocket listener-map removal sharing the same manager contract
 - runtime mode diagnostics and listener events
 - RPC descriptor direction/schema/quota metadata
@@ -424,7 +433,10 @@ Validation status for the net package is now:
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --locked` first reported that `zircon_plugins/Cargo.lock` needed a refresh for the new feature crate workspace members.
 - `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --offline` then refreshed the lockfile but stopped in unrelated shared runtime graphics code: `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs:47` calls `render_compiled_scene` with 10 arguments while the current method takes 8. This sits outside the net subsystem and overlaps active render/VG work, so this net continuation did not modify it.
 - `cargo metadata --manifest-path zircon_plugins/Cargo.toml --offline --format-version 1` passed after the new net feature crates were added to the plugin workspace.
+- `cargo fmt --manifest-path Cargo.toml -p zircon_runtime` and `cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime` passed after adding certificate pins, RPC pending request tracking, M4+ manager behavior, and runtime-state extraction.
+- `cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --tests --locked` passed for the full scoped net package set, with existing unrelated `zircon_runtime` warnings only.
+- `cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime -p zircon_plugin_net_http_runtime -p zircon_plugin_net_websocket_runtime -p zircon_plugin_net_rpc_runtime -p zircon_plugin_net_replication_runtime -p zircon_plugin_net_reliable_udp_runtime -p zircon_plugin_net_content_download_runtime --lib --locked` passed: 48 tests passed across base net and all six net feature runtime crates.
 
 Full plugin-workspace and root-workspace Cargo validation remain broader milestone gates because the
-workspace is currently dirty with unrelated active asset/render/editor work, and the current scoped
-net compile is blocked before reaching net crates by the unrelated render call-site mismatch above.
+workspace is currently dirty with unrelated active asset/render/editor work. The scoped net package
+check/test set now passes after the unrelated render call-site mismatch was resolved by other work.

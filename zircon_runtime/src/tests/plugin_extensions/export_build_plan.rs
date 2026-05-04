@@ -545,6 +545,298 @@ fn source_template_emits_signing_and_cdn_release_contracts() {
 }
 
 #[test]
+fn generated_mobile_and_browser_hosts_translate_platform_callbacks_to_runtime_abi_events() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            "platform/android/app/src/main/java/dev/zircon/export/MainActivity.kt",
+            [
+                "dispatchLifecycle(ZIRCON_LIFECYCLE_RESUMED)",
+                "dispatchTouch(event.getPointerId(index).toLong(), phase, event.getX(index), event.getY(index))",
+                "dispatchKeyboard(ZIRCON_KEY_PRESSED, event.keyCode, event.scanCode, null)",
+                "dispatchViewportMetrics(width, height, resources.displayMetrics.density)",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            "platform/ios/ZirconRuntimeHost/Sources/ZirconRuntimeHostApp.swift",
+            [
+                "zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)",
+                "zircon_export_handle_touch(UInt64(touch.hash), ZIRCON_TOUCH_MOVED",
+                "zircon_export_handle_keyboard(ZIRCON_KEY_TEXT, 0, 0",
+                "zircon_export_handle_viewport_metrics(UInt32(size.width), UInt32(size.height), Float(scale))",
+            ],
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            "platform/webgpu/src/zircon_webgpu_host.js",
+            [
+                "zirconExportDispatchLifecycle('resumed')",
+                "zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY)",
+                "zirconExportDispatchKeyboard('pressed', event.code, event.key)",
+                "zirconExportFetchResource(uri, { streaming = false } = {})",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            "platform/wasm/src/zircon_wasm_host.js",
+            [
+                "zirconExportDispatchLifecycle('resumed')",
+                "zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY)",
+                "zirconExportDispatchKeyboard('pressed', event.code, event.key)",
+                "zirconExportFetchResource(uri, { streaming = false } = {})",
+            ],
+        ),
+    ];
+
+    for (platform, path, expected_fragments) in cases {
+        let profile_name = format!("{}-host-callbacks", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Callback Export Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+        let generated = generated_file(&plan, path);
+
+        for expected_fragment in expected_fragments {
+            assert!(
+                generated.contains(expected_fragment),
+                "{platform:?} generated `{path}` should contain `{expected_fragment}`"
+            );
+        }
+    }
+}
+
+#[test]
+fn generated_release_adapters_gate_real_store_and_cdn_upload_inputs() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            "platform/android/release-bundle.ps1",
+            [
+                "ZR_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON",
+                "ZR_GOOGLE_PLAY_PACKAGE_NAME",
+                "Invoke-RestMethod",
+                "androidpublisher/v3/applications/$packageName/edits",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            "platform/ios/archive-export.ps1",
+            [
+                "ZR_APP_STORE_CONNECT_PRIVATE_KEY_PATH",
+                "xcrun altool --upload-app",
+                "--apiKey $env:ZR_APP_STORE_CONNECT_API_KEY_ID",
+                "--apiIssuer $env:ZR_APP_STORE_CONNECT_ISSUER_ID",
+            ],
+        ),
+        (
+            ExportTargetPlatform::WebGpu,
+            "platform/webgpu/deploy-cdn.mjs",
+            [
+                "createHash('sha256')",
+                "brotliCompress",
+                "ZR_CDN_UPLOAD_COMMAND",
+                "zircon-export.integrity.json",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            "platform/wasm/deploy-cdn.mjs",
+            [
+                "createHash('sha256')",
+                "brotliCompress",
+                "ZR_CDN_UPLOAD_COMMAND",
+                "zircon-export.integrity.json",
+            ],
+        ),
+    ];
+
+    for (platform, path, expected_fragments) in cases {
+        let profile_name = format!("{}-release-adapter", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Release Adapter Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+        let generated = generated_file(&plan, path);
+
+        for expected_fragment in expected_fragments {
+            assert!(
+                generated.contains(expected_fragment),
+                "{platform:?} generated `{path}` should contain `{expected_fragment}`"
+            );
+        }
+    }
+}
+
+#[test]
+fn generated_platform_hosts_include_repo_owned_binding_and_resource_glue() {
+    let cases = [
+        (
+            ExportTargetPlatform::Android,
+            [
+                (
+                    "platform/android/app/src/main/java/dev/zircon/export/ZirconRuntime.kt",
+                    [
+                        "external fun start(): Boolean",
+                        "external fun dispatchLifecycle(state: Int): Boolean",
+                        "external fun dispatchTouch(pointerId: Long, phase: Int, x: Float, y: Float): Boolean",
+                        "external fun dispatchKeyboard(action: Int, keyCode: Int, scanCode: Int, text: String?): Boolean",
+                        "external fun dispatchViewportMetrics(logicalWidth: Int, logicalHeight: Int, scale: Float): Boolean",
+                    ],
+                ),
+                (
+                    "platform/android/app/src/main/assets/zircon-host-resource-map.json",
+                    [
+                        "\"resourceStrategy\": \"mobile_asset_bundle\"",
+                        "\"projectManifest\": \"zircon-project.toml\"",
+                        "\"profile\": \"android-glue\"",
+                        "\"platform\": \"android\"",
+                        "\"nativeLibrary\": \"zircon_export_android_glue\"",
+                    ],
+                ),
+            ],
+        ),
+        (
+            ExportTargetPlatform::Ios,
+            [
+                (
+                    "platform/ios/ZirconRuntimeHost/Linking/zircon_runtime_native.h",
+                    [
+                        "bool zircon_export_fetch_resource(const char *uri, uint32_t flags);",
+                        "bool zircon_export_handle_viewport_metrics(uint32_t logical_width, uint32_t logical_height, float scale);",
+                        "bool zircon_export_handle_keyboard(uint32_t action, uint32_t key_code, uint32_t scan_code, const uint8_t *text, size_t text_len);",
+                        "bool zircon_export_handle_touch(uint64_t pointer_id, uint32_t phase, float x, float y);",
+                        "bool zircon_export_handle_lifecycle(uint32_t state);",
+                    ],
+                ),
+                (
+                    "platform/ios/ZirconRuntimeHost/Resources/zircon-host-resource-map.json",
+                    [
+                        "\"resourceStrategy\": \"mobile_asset_bundle\"",
+                        "\"projectManifest\": \"zircon-project.toml\"",
+                        "\"profile\": \"ios-glue\"",
+                        "\"platform\": \"ios\"",
+                        "\"nativeLibrary\": \"zircon_export_ios_glue\"",
+                    ],
+                ),
+            ],
+        ),
+    ];
+
+    for (platform, expected_files) in cases {
+        let profile_name = format!("{}-glue", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Platform Glue Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+
+        for (path, expected_fragments) in expected_files {
+            let generated = generated_file(&plan, path);
+            for expected_fragment in expected_fragments {
+                assert!(
+                    generated.contains(expected_fragment),
+                    "{platform:?} generated `{path}` should contain `{expected_fragment}`"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn generated_browser_hosts_instantiate_wasm_exports_and_gate_asset_origins() {
+    let cases = [
+        (
+            ExportTargetPlatform::WebGpu,
+            "webgpu",
+            "platform/webgpu/src/zircon_webgpu_host.js",
+            [
+                "WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports)",
+                "const zirconRuntimeExports = wasmInstance.exports;",
+                "zirconRuntimeExports.zircon_export_start?.();",
+                "zirconRuntimeExports.zircon_export_handle_touch?.(BigInt(pointerId), phase, x, y);",
+                "if (!url.pathname.startsWith(new URL(manifest.allowedAssetRoot, location.href).pathname))",
+                "throw new Error(`Blocked Zircon resource fetch outside ${manifest.allowedAssetRoot}: ${uri}`);",
+            ],
+        ),
+        (
+            ExportTargetPlatform::Wasm,
+            "wasm",
+            "platform/wasm/src/zircon_wasm_host.js",
+            [
+                "WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports)",
+                "const zirconRuntimeExports = wasmInstance.exports;",
+                "zirconRuntimeExports.zircon_export_start?.();",
+                "zirconRuntimeExports.zircon_export_handle_touch?.(BigInt(pointerId), phase, x, y);",
+                "if (!url.pathname.startsWith(new URL(manifest.allowedAssetRoot, location.href).pathname))",
+                "throw new Error(`Blocked Zircon resource fetch outside ${manifest.allowedAssetRoot}: ${uri}`);",
+            ],
+        ),
+    ];
+
+    for (platform, host_name, path, expected_fragments) in cases {
+        let profile_name = format!("{}-wasm-glue", platform.as_str());
+        let mut manifest = ProjectManifest::new(
+            "Browser Glue Test",
+            AssetUri::parse("res://scenes/main.zscene").unwrap(),
+            1,
+        );
+        manifest.export_profiles = vec![ExportProfile::new(
+            profile_name.clone(),
+            RuntimeTargetMode::ClientRuntime,
+            platform,
+        )
+        .with_strategy(ExportPackagingStrategy::SourceTemplate)
+        .with_strategy(ExportPackagingStrategy::LibraryEmbed)];
+
+        let plan = ExportBuildPlan::from_project_manifest(&manifest, &profile_name).unwrap();
+        let generated = generated_file(&plan, path);
+
+        for expected_fragment in expected_fragments {
+            assert!(
+                generated.contains(expected_fragment),
+                "{platform:?} generated `{path}` should contain `{expected_fragment}`"
+            );
+        }
+
+        assert!(generated_file(
+            &plan,
+            &format!("platform/{host_name}/public/zircon-export.manifest.json")
+        )
+        .contains("\"allowedAssetRoot\": \"./assets/\""));
+    }
+}
+
+#[test]
 fn source_template_keeps_editor_only_plugins_out_of_runtime_registrations() {
     let mut manifest = ProjectManifest::new(
         "Editor Only Export Test",

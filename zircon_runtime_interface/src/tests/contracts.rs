@@ -32,10 +32,11 @@ use crate::{
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
-    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
+    ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
+    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
     ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
     ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
 };
@@ -196,6 +197,47 @@ fn runtime_host_fetch_request_declares_streaming_resource_contract() {
         unsafe { request.uri.as_slice() },
         b"res://assets/zircon-project.toml"
     );
+}
+
+#[test]
+fn runtime_abi_translated_event_helpers_cover_mobile_and_browser_host_callbacks() {
+    let viewport = ZrRuntimeViewportHandle::new(2);
+    let metrics = ZrRuntimeViewportMetricsV1::new(
+        ZrRuntimeViewportSizeV1::new(640, 360),
+        2.0,
+        ZrRuntimeViewportSizeV1::new(1280, 720),
+    );
+    let resize = ZrRuntimeTranslatedEventV1::viewport_metrics(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport,
+        metrics,
+    );
+    let touch = ZrRuntimeTranslatedEventV1::touch_moved(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport,
+        9,
+        10.0,
+        20.0,
+    );
+    let keyboard = ZrRuntimeTranslatedEventV1::keyboard_text(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        viewport,
+        ZrByteSlice::from_static(b"A"),
+    );
+
+    assert_eq!(resize.event.kind, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1);
+    assert_eq!(resize.event.size.width, 1280);
+    assert_eq!(resize.event.metrics.device_scale_factor, 2.0);
+    assert_eq!(
+        unsafe { resize.host_reason.as_slice() },
+        b"viewport_metrics"
+    );
+    assert_eq!(touch.event.kind, ZR_RUNTIME_EVENT_KIND_TOUCH_V1);
+    assert_eq!(touch.event.pointer_id, 9);
+    assert_eq!(touch.event.state, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1);
+    assert_eq!(keyboard.event.kind, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1);
+    assert_eq!(keyboard.event.button, crate::ZR_RUNTIME_KEY_ACTION_TEXT_V1);
+    assert_eq!(unsafe { keyboard.event.payload.as_slice() }, b"A");
 }
 
 #[test]

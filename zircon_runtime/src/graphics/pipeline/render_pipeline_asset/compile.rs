@@ -437,3 +437,67 @@ fn buffer_desc_for(name: &str) -> BufferDesc {
         BufferUsage::STORAGE | BufferUsage::COPY_SRC | BufferUsage::COPY_DST,
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::core::framework::render::{
+        RenderFrameExtract, RenderPipelineHandle, RenderWorldSnapshotHandle,
+    };
+    use crate::graphics::feature::{RenderFeatureDescriptor, RenderFeaturePassDescriptor};
+    use crate::graphics::pipeline::{RenderPassStage, RenderPipelineAsset, RendererAsset};
+    use crate::render_graph::QueueLane;
+    use crate::scene::world::World;
+
+    #[test]
+    fn compile_preserves_renderer_stage_for_each_graph_pass() {
+        let pipeline = RenderPipelineAsset {
+            handle: RenderPipelineHandle::new(77),
+            name: "stage-test".to_string(),
+            renderer: RendererAsset {
+                name: "stage-test-renderer".to_string(),
+                stages: vec![RenderPassStage::DepthPrepass, RenderPassStage::Transparent],
+                features: vec![crate::graphics::pipeline::RendererFeatureAsset::plugin(
+                    RenderFeatureDescriptor::new(
+                        "stage-test-feature",
+                        Vec::new(),
+                        Vec::new(),
+                        vec![
+                            RenderFeaturePassDescriptor::new(
+                                RenderPassStage::Transparent,
+                                "particle-render",
+                                QueueLane::Graphics,
+                            )
+                            .with_executor_id("particle.transparent"),
+                            RenderFeaturePassDescriptor::new(
+                                RenderPassStage::DepthPrepass,
+                                "depth-prepass",
+                                QueueLane::Graphics,
+                            )
+                            .with_executor_id("mesh.depth-prepass"),
+                        ],
+                    ),
+                )],
+            },
+        };
+
+        let compiled = pipeline.compile(&test_extract()).unwrap();
+
+        assert_eq!(
+            compiled.pass_stage("depth-prepass"),
+            Some(RenderPassStage::DepthPrepass)
+        );
+        assert_eq!(
+            compiled.pass_stage("particle-render"),
+            Some(RenderPassStage::Transparent)
+        );
+        assert_eq!(compiled.pass_stage("missing-pass"), None);
+        assert_eq!(compiled.pass_stages.len(), compiled.graph.passes().len());
+    }
+
+    fn test_extract() -> RenderFrameExtract {
+        RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(1),
+            World::new().to_render_snapshot(),
+        )
+    }
+}

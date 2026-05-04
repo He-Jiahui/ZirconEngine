@@ -2,7 +2,9 @@ use crate::ui::template_runtime::builtin::{
     builtin_component_descriptors, builtin_template_bindings, builtin_template_documents,
 };
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::diagnostic_log::write_diagnostic_log;
 use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiComponentDefinition,
@@ -37,6 +39,15 @@ fn register_builtin_template_documents(
     runtime: &mut EditorUiHostRuntime,
 ) -> Result<(), EditorUiHostRuntimeError> {
     for (document_id, path) in builtin_template_documents() {
+        write_diagnostic_log(
+            "editor_builtin_templates",
+            format!(
+                "register_document id={} path={} exists={}",
+                document_id,
+                path.display(),
+                path.exists()
+            ),
+        );
         runtime.register_document_file(document_id, path)?;
     }
 
@@ -47,6 +58,14 @@ pub(super) fn compile_template_document_file(
     template_service: &EditorTemplateRuntimeService,
     path: &Path,
 ) -> Result<UiCompiledDocument, EditorUiHostRuntimeError> {
+    write_diagnostic_log(
+        "editor_template_compile",
+        format!(
+            "load_document path={} exists={}",
+            path.display(),
+            path.exists()
+        ),
+    );
     let document = template_service.load_document_file(path)?;
     let mut widget_imports = BTreeMap::new();
     let mut style_imports = BTreeMap::new();
@@ -152,7 +171,23 @@ fn resolve_builtin_import(
     else {
         return Ok(None);
     };
-    let normalized = Path::new("assets").join(PathBuf::from(path));
-    let source_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(normalized);
+    let source_path = editor_runtime_asset_path(path);
+    write_diagnostic_log(
+        "editor_template_import",
+        format!(
+            "reference={} resolved_path={} exists={}",
+            reference,
+            source_path.display(),
+            source_path.exists()
+        ),
+    );
     Ok(Some(template_service.load_document_file(source_path)?))
+}
+
+fn editor_runtime_asset_path(relative: &str) -> std::path::PathBuf {
+    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+}
+
+fn editor_dev_asset_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }

@@ -18,6 +18,7 @@ related_code:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/editor_event/host_adapter.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
@@ -44,6 +45,7 @@ implementation_files:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
+  - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
@@ -77,6 +79,7 @@ tests:
   - pending: cargo test -p zircon_editor inspector_payload_preserves_component_drawer_template_metadata --locked --jobs 1
   - pending: cargo test -p zircon_editor editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_component --locked --jobs 1
   - pending: cargo test -p zircon_editor editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled --locked --jobs 1
+  - 2026-05-04: cargo test -p zircon_editor component_drawer_adapter_accepts_safe_action_events_beyond_press --locked --jobs 1 --target-dir target-codex-editor-check --message-format short --color never (passed; existing warnings only)
 doc_type: module-detail
 ---
 
@@ -137,6 +140,8 @@ doc_type: module-detail
 插件贡献的 `ComponentDrawerDescriptor` now carries the component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The live editor runtime filters these descriptors through the current capability snapshot before lookup and before `EditorState::snapshot_with_component_drawers(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
 
 Inspector snapshots and pane payloads preserve Component Drawer template metadata separately from generic dynamic component properties. When a runtime component schema and an enabled drawer descriptor are both present, the snapshot carries the drawer UI document, controller, template id, data root, and operation binding ids into the pane payload. The Slint host projection annotates the component header with the template id and UI document so the host can route the row as a custom drawer surface. When the plugin schema or enabled drawer descriptor is unavailable, `drawer_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
+
+Component Drawer template execution is host-mediated rather than native plugin UI embedding. A custom drawer control dispatches a `UiComponentEventEnvelope` targeting the `component_drawer` domain, with the dynamic component type in `subject` and the requested editor operation path in `path`. `EditorEventRuntime::dispatch_ui_component_adapter_event(...)` resolves only enabled drawer descriptors, rejects operations not declared in that descriptor's bindings, rejects draft-edit events such as `ValueChanged`, and accepts only safe action-style events such as pressed buttons, committed fields, selected options, expansion toggles, and reference navigation actions. Accepted envelopes then invoke the existing `EditorOperation` dispatcher as `UiBinding`. The operation registry still enforces missing handlers, disabled capabilities, undo metadata, and journal recording. The drawer adapter returns a component-adapter result for projection refresh, but the mutation authority remains the normal editor operation/command path.
 
 ### EditorOperation 分派
 
@@ -229,6 +234,7 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 - editor operation registry 暴露内置 menu/view/play-mode operation descriptor
 - enabled Component Drawer descriptors resolve into selected dynamic component Inspector snapshots
 - disabled Component Drawer capabilities keep drawer metadata hidden and leave dynamic component editing protected
+- Component Drawer adapter accepts safe action-style events beyond button press while rejecting draft value-change events before operation invocation
 
 `zircon_scene/src/lib.rs` 当前覆盖：
 

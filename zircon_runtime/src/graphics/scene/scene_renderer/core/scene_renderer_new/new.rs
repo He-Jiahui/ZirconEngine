@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::graphics::{RenderFeatureDescriptor, RenderPassExecutorRegistration};
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
+};
 
 use crate::graphics::types::GraphicsError;
 
@@ -18,11 +20,26 @@ impl SceneRenderer {
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions(
+            asset_manager,
+            render_features,
+            render_pass_executors,
+            Vec::new(),
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions(
+        asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+    ) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source_and_plugin_render_features(
             asset_manager,
             Arc::new(EmptyViewportIconSource),
             render_features,
             render_pass_executors,
+            runtime_prepare_collectors,
         )
     }
 }

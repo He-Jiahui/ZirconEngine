@@ -15,6 +15,7 @@ pub(crate) fn pluginized_wgpu_render_framework_with_asset_manager(
         asset_manager,
         [hybrid_gi_render_feature_descriptor()],
         crate::render_pass_executor_registrations(),
+        Vec::new(),
         [crate::hybrid_gi_runtime_provider_registration()],
         Vec::new(),
     )

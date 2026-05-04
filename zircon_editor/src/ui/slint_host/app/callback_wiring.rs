@@ -17,6 +17,13 @@ fn dispatch_with_callback_source(
 pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHost>>) {
     let host_shell = ui.global::<UiHostContext>();
     let weak = Rc::downgrade(host);
+    host_shell.on_frame_requested(move || {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut().tick();
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut().menu_pointer_clicked(x, y);

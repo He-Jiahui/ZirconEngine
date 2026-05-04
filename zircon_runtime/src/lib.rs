@@ -1,6 +1,7 @@
 //! Runtime absorption layer for the built-in high-level engine subsystems.
 
 pub mod core;
+pub mod diagnostic_log;
 pub mod dynamic_api;
 pub mod engine_module;
 
@@ -44,10 +45,11 @@ pub(crate) use graphics::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
     HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
     HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate, MaterialDomain,
-    OfflineBakeOutput, OfflineBakeSettings, RenderFeature, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderFeatureResourceAccess,
-    RenderFeatureResourceKind, RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    RendererAsset, RendererFeatureAsset, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
+    OfflineBakeOutput, OfflineBakeSettings, ParticleGpuFeedback, ParticleRuntimeFeedback,
+    RenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
+    RenderFeaturePassDescriptor, RenderFeatureResourceAccess, RenderFeatureResourceKind,
+    RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererAsset,
+    RendererFeatureAsset, SceneRenderer, ViewportFrame, ViewportFrameTextureHandle,
     VirtualGeometryGpuCompletion, VirtualGeometryRuntimeExtractOutput,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
     VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,

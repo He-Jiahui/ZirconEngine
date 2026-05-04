@@ -1,17 +1,18 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
 };
-use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
 use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
-use super::super::super::scene_renderer_core::SceneRendererCore;
-use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginReadbacks;
+use super::super::super::scene_renderer_core::{
+    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks, SceneRendererCore,
+};
 use super::super::SceneRendererCompiledSceneOutputs;
 use super::assign_execution_owned_indirect_args::assign_execution_owned_indirect_args;
 use super::build_compiled_scene_draws::build_compiled_scene_draws;
@@ -167,6 +168,7 @@ impl SceneRendererCore {
             frame,
         );
 
+        drop(graph_execution);
         queue.submit([encoder.finish()]);
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();
         merge_plugin_renderer_outputs(&mut renderer_outputs, graph_plugin_outputs);
@@ -174,20 +176,5 @@ impl SceneRendererCore {
             SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
             graph_execution_record,
         ))
-    }
-}
-
-fn merge_plugin_renderer_outputs(
-    base: &mut RenderPluginRendererOutputs,
-    graph: RenderPluginRendererOutputs,
-) {
-    if !graph.virtual_geometry.is_empty() {
-        base.virtual_geometry = graph.virtual_geometry;
-    }
-    if !graph.hybrid_gi.is_empty() {
-        base.hybrid_gi = graph.hybrid_gi;
-    }
-    if !graph.particles.is_empty() {
-        base.particles = graph.particles;
     }
 }

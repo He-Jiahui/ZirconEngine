@@ -653,9 +653,9 @@ mod tests {
     }
 
     fn card_descriptor(card_id: u32, center: Vec3) -> HybridGiCardDescriptor {
-        HybridGiCardDescriptor {
+        HybridGiCardDescriptor::new(
             card_id,
-            mesh: RenderMeshSnapshot {
+            RenderMeshSnapshot {
                 node_id: card_id as u64,
                 transform: Transform::from_translation(center).with_scale(Vec3::splat(2.0)),
                 model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(
@@ -668,8 +668,8 @@ mod tests {
                 mobility: Mobility::Static,
                 render_layer_mask: u32::MAX,
             },
-            bounds_center: center,
-            bounds_radius: 1.0,
-        }
+            center,
+            1.0,
+        )
     }
 }

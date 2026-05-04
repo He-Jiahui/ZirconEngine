@@ -4,7 +4,7 @@ use crate::core::framework::render::RenderFramework;
 use crate::core::CoreHandle;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{GraphicsError, WgpuRenderFramework};
 
@@ -14,6 +14,7 @@ pub fn create_render_framework_with_render_features(
     core: &CoreHandle,
     render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
     render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+    runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
     virtual_geometry_runtime_providers: impl IntoIterator<
         Item = VirtualGeometryRuntimeProviderRegistration,
@@ -25,6 +26,7 @@ pub fn create_render_framework_with_render_features(
             asset_manager,
             render_features,
             render_pass_executors,
+            runtime_prepare_collectors,
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
         )?,

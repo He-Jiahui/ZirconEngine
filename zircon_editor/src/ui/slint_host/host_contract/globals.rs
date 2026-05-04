@@ -57,6 +57,7 @@ impl HostContractState {
 
 #[derive(Default)]
 struct UiHostCallbacks {
+    frame_requested: Option<Callback0>,
     menu_pointer_clicked: Option<Callback2<f32, f32>>,
     menu_pointer_moved: Option<Callback2<f32, f32>>,
     menu_pointer_scrolled: Option<Callback3<f32, f32, f32>>,
@@ -166,6 +167,7 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().drag_state = value;
     }
 
+    callback_methods!(ui_callbacks, on_frame_requested, invoke_frame_requested, frame_requested, ());
     callback_methods!(ui_callbacks, on_menu_pointer_clicked, invoke_menu_pointer_clicked, menu_pointer_clicked, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_moved, invoke_menu_pointer_moved, menu_pointer_moved, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_scrolled, invoke_menu_pointer_scrolled, menu_pointer_scrolled, (x: f32, y: f32, delta: f32));

@@ -38,6 +38,27 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         }
     }
 
+    #[cfg(test)]
+    pub fn new_for_test(
+        device: &'a wgpu::Device,
+        queue: &'a wgpu::Queue,
+        encoder: &'a mut wgpu::CommandEncoder,
+        frame: &'a ViewportRenderFrame,
+        scene_bind_group: &'a wgpu::BindGroup,
+        resources: &'a mut RenderGraphExecutionResources,
+        plugin_outputs: &'a mut RenderPluginRendererOutputs,
+    ) -> Self {
+        Self::new(
+            device,
+            queue,
+            encoder,
+            frame,
+            scene_bind_group,
+            resources,
+            plugin_outputs,
+        )
+    }
+
     pub fn frame_extract(&self) -> &RenderFrameExtract {
         &self.frame.extract
     }
@@ -59,7 +80,7 @@ pub struct RenderPassExecutionContext<'a> {
     gpu: Option<RenderPassGpuExecutionContext<'a>>,
 }
 
-impl RenderPassExecutionContext<'static> {
+impl<'a> RenderPassExecutionContext<'a> {
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn new(pass_name: impl Into<String>, executor_id: RenderPassExecutorId) -> Self {
         Self::with_graph_metadata(
@@ -155,9 +176,7 @@ impl RenderPassExecutionContext<'static> {
             gpu: None,
         }
     }
-}
 
-impl<'a> RenderPassExecutionContext<'a> {
     pub fn with_gpu(mut self, gpu: RenderPassGpuExecutionContext<'a>) -> Self {
         self.gpu = Some(gpu);
         self

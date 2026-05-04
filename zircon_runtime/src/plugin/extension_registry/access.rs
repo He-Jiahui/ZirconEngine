@@ -3,7 +3,7 @@ use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{
     plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest,
@@ -28,6 +28,10 @@ impl RuntimeExtensionRegistry {
 
     pub fn render_pass_executors(&self) -> &[RenderPassExecutorRegistration] {
         &self.render_pass_executors
+    }
+
+    pub fn runtime_prepare_collectors(&self) -> &[RuntimePrepareCollectorRegistration] {
+        &self.runtime_prepare_collectors
     }
 
     pub fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {

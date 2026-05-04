@@ -17,7 +17,7 @@ pub(crate) fn validate_component_drawer_envelope(
             domain: envelope.target.domain.clone(),
         });
     }
-    if !matches!(envelope.event, UiComponentEvent::Press { pressed: true }) {
+    if !is_safe_component_drawer_action(&envelope.event) {
         return Err(UiComponentAdapterError::UnsupportedEvent {
             domain: envelope.target.domain.clone(),
             path: envelope.target.path.clone(),
@@ -47,6 +47,18 @@ pub(crate) fn validate_component_drawer_envelope(
             reason: error.to_string(),
         }
     })
+}
+
+fn is_safe_component_drawer_action(event: &UiComponentEvent) -> bool {
+    matches!(
+        event,
+        UiComponentEvent::Press { pressed: true }
+            | UiComponentEvent::Commit { .. }
+            | UiComponentEvent::SelectOption { selected: true, .. }
+            | UiComponentEvent::ToggleExpanded { .. }
+            | UiComponentEvent::OpenReference { .. }
+            | UiComponentEvent::LocateReference { .. }
+    )
 }
 
 pub(crate) fn component_drawer_operation_result(

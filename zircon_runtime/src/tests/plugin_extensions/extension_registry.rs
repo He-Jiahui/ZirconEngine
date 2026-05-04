@@ -13,6 +13,7 @@ use crate::graphics::{
     HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration, HybridGiRuntimeState,
     HybridGiRuntimeUpdate, RenderFeatureDescriptor, RenderPassExecutionContext,
     RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassStage, RenderPipelineAsset,
+    RuntimePrepareCollectorContext, RuntimePrepareCollectorRegistration,
     VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
     VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
     VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
@@ -334,6 +335,25 @@ fn runtime_extension_registry_collects_render_pass_executor_contributions() {
 }
 
 #[test]
+fn runtime_extension_registry_collects_runtime_prepare_collector_contributions() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let registration = RuntimePrepareCollectorRegistration::new(
+        "weather.runtime-prepare",
+        weather_runtime_prepare_collector,
+    );
+
+    registry
+        .register_runtime_prepare_collector(registration)
+        .expect("runtime prepare collector contribution");
+
+    assert_eq!(registry.runtime_prepare_collectors().len(), 1);
+    assert_eq!(
+        registry.runtime_prepare_collectors()[0].collector_id(),
+        "weather.runtime-prepare"
+    );
+}
+
+#[test]
 fn runtime_extension_registry_collects_virtual_geometry_runtime_provider_contributions() {
     let mut registry = RuntimeExtensionRegistry::default();
     let provider = VirtualGeometryRuntimeProviderRegistration::new(
@@ -429,6 +449,20 @@ fn runtime_extension_registry_rejects_duplicate_module_and_render_feature_names(
         .to_string()
         .contains("render pass executor weather.volumetric-clouds already registered"));
 
+    let collector = RuntimePrepareCollectorRegistration::new(
+        "weather.runtime-prepare",
+        weather_runtime_prepare_collector,
+    );
+    registry
+        .register_runtime_prepare_collector(collector.clone())
+        .expect("first runtime prepare collector");
+    let duplicate_collector = registry
+        .register_runtime_prepare_collector(collector)
+        .unwrap_err();
+    assert!(duplicate_collector
+        .to_string()
+        .contains("runtime prepare collector weather.runtime-prepare already registered"));
+
     let provider = VirtualGeometryRuntimeProviderRegistration::new(
         "weather.virtual_geometry",
         std::sync::Arc::new(NoopVirtualGeometryRuntimeProvider),
@@ -486,6 +520,10 @@ fn runtime_plugin_catalog_merges_module_and_render_feature_contributions() {
             .executor_id()
             .as_str(),
         "weather.volumetric-clouds"
+    );
+    assert_eq!(
+        report.registry.runtime_prepare_collectors()[0].collector_id(),
+        "weather.runtime-prepare"
     );
     assert_eq!(
         report.registry.virtual_geometry_runtime_providers()[0].provider_id(),
@@ -990,6 +1028,10 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             "weather.volumetric-clouds",
             weather_render_executor,
         ))?;
+        registry.register_runtime_prepare_collector(RuntimePrepareCollectorRegistration::new(
+            "weather.runtime-prepare",
+            weather_runtime_prepare_collector,
+        ))?;
         registry.register_virtual_geometry_runtime_provider(
             VirtualGeometryRuntimeProviderRegistration::new(
                 "weather.virtual_geometry",
@@ -1097,6 +1139,12 @@ impl RuntimePluginFeature for SoundTimelineFeaturePlugin {
 
 fn weather_render_executor(_context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
     Err("weather executor reached graph execution".to_string())
+}
+
+fn weather_runtime_prepare_collector(
+    _context: &mut RuntimePrepareCollectorContext<'_>,
+) -> Result<crate::core::framework::render::RenderPluginRendererOutputs, crate::GraphicsError> {
+    Ok(crate::core::framework::render::RenderPluginRendererOutputs::default())
 }
 
 fn weather_data_importer(

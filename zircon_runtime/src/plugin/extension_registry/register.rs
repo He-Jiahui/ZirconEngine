@@ -5,7 +5,7 @@ use crate::asset::{
 use crate::core::{ManagerDescriptor, ModuleDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
     ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
@@ -83,6 +83,25 @@ impl RuntimeExtensionRegistry {
             ));
         }
         self.render_pass_executors.push(registration);
+        Ok(())
+    }
+
+    pub fn register_runtime_prepare_collector(
+        &mut self,
+        registration: RuntimePrepareCollectorRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .runtime_prepare_collectors
+            .iter()
+            .any(|existing| existing.collector_id() == registration.collector_id())
+        {
+            return Err(
+                RuntimeExtensionRegistryError::DuplicateRuntimePrepareCollector(
+                    registration.collector_id().to_string(),
+                ),
+            );
+        }
+        self.runtime_prepare_collectors.push(registration);
         Ok(())
     }
 

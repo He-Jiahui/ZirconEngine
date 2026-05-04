@@ -21,7 +21,6 @@ pub(super) fn build_runtime_frame(
     context: &FrameSubmissionContext,
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
-    let _ = prepared;
     let extract = apply_effective_advanced_extracts(extract, context);
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let extract = augment_virtual_geometry_debug_overlays(
@@ -31,6 +30,7 @@ pub(super) fn build_runtime_frame(
     );
     ViewportRenderFrame::from_extract(extract, context.size())
         .with_ui(ui)
+        .with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
 }
 
@@ -296,5 +296,120 @@ fn bvh_connector_color(node: &RenderVirtualGeometryBvhVisualizationNode) -> Vec4
         Vec4::new(1.0, 0.9, 0.3, 1.0)
     } else {
         Vec4::new(1.0, 0.5, 0.35, 1.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::framework::render::{
+        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract, RenderPipelineHandle,
+        RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderVirtualGeometryReadbackOutputs, SceneViewportRenderPacket, ViewportCameraSnapshot,
+    };
+    use crate::core::math::UVec2;
+    use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
+    use crate::render_graph::RenderGraphBuilder;
+    use crate::VisibilityContext;
+
+    #[test]
+    fn build_runtime_frame_carries_prepared_sideband_into_viewport_frame() {
+        let extract = RenderFrameExtract::from_snapshot(
+            crate::core::framework::render::RenderWorldSnapshotHandle::new(9),
+            empty_scene_snapshot(),
+        );
+        let context = FrameSubmissionContext::new(
+            UVec2::new(640, 480),
+            RenderPipelineHandle::new(1),
+            None,
+            empty_pipeline(),
+            VisibilityContext::from_extract(&extract),
+            Default::default(),
+            false,
+            true,
+            None,
+            None,
+            None,
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            Vec::new(),
+            None,
+            Vec::new(),
+            Vec::new(),
+            None,
+            None,
+            1,
+        );
+        let prepared = PreparedRuntimeSubmission::new(
+            vec![5],
+            vec![9],
+            RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                        page_request_ids: vec![300],
+                        ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                    },
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+        );
+
+        let frame = build_runtime_frame(extract, None, &context, &prepared);
+
+        assert_eq!(frame.viewport_size, UVec2::new(640, 480));
+        assert_eq!(
+            frame
+                .prepared_runtime_sidebands()
+                .virtual_geometry_readback_outputs()
+                .node_cluster_cull
+                .page_request_ids,
+            vec![300]
+        );
+        assert_eq!(
+            frame
+                .prepared_runtime_sidebands()
+                .virtual_geometry_evictable_page_ids(),
+            &[9]
+        );
+    }
+
+    fn empty_pipeline() -> CompiledRenderPipeline {
+        let graph = RenderGraphBuilder::new("empty-runtime-frame-test")
+            .compile()
+            .unwrap();
+        CompiledRenderPipeline {
+            handle: RenderPipelineHandle::new(1),
+            name: "empty".to_string(),
+            renderer_name: "empty".to_string(),
+            stages: vec![RenderPassStage::Opaque],
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            graph,
+        }
+    }
+
+    fn empty_scene_snapshot() -> SceneViewportRenderPacket {
+        SceneViewportRenderPacket {
+            scene: crate::core::framework::render::RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        }
     }
 }

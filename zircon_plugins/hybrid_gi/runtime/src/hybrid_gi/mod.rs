@@ -45,6 +45,7 @@ pub(in crate::hybrid_gi) use extract_payloads::{
     first_hybrid_gi_runtime_probe_payloads, first_hybrid_gi_runtime_trace_region_payloads,
 };
 pub(crate) use gpu_completion::HybridGiGpuCompletion;
+pub(super) use renderer::runtime_prepare_renderer_outputs;
 pub(crate) use runtime_feedback::HybridGiRuntimeFeedback;
 pub(crate) use scene_inputs::HybridGiSceneInputs;
 pub(crate) use scene_representation::HybridGiRuntimeScenePrepareResources;

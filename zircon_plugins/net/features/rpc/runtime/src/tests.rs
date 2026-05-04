@@ -510,6 +510,55 @@ fn rpc_feature_manager_correlates_requests_and_drains_priority_queue() {
 }
 
 #[test]
+fn rpc_feature_manager_tracks_and_completes_correlated_pending_request() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "pending-player");
+    rpc.register_rpc_handler(RpcDescriptor::command("chat.pending"), |invocation| {
+        Ok(invocation.payload.clone())
+    })
+    .unwrap();
+
+    let request = NetRequestId::new(77);
+    assert!(rpc.pending_request(request).is_none());
+    let report = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new(
+            "chat.pending",
+            RpcDirection::ClientToServer,
+            b"body".to_vec(),
+        )
+        .with_source_session(session)
+        .with_request(request)
+        .with_timeout_ms(1000),
+        RpcPeerRole::Client,
+    );
+
+    assert_eq!(report.status, RpcDispatchStatus::Accepted);
+    assert_eq!(report.request, Some(request));
+    assert_eq!(report.response_payload, Some(b"body".to_vec()));
+    assert!(rpc.pending_request(request).is_none());
+}
+
+#[test]
+fn rpc_feature_manager_expires_correlated_pending_requests() {
+    let rpc = net_rpc_runtime_manager();
+    let session = complete_joined_session(&rpc, "pending-player");
+    rpc.register_rpc(RpcDescriptor::command("chat.no_handler"))
+        .unwrap();
+
+    let request = NetRequestId::new(78);
+    let report = rpc.invoke_rpc(
+        RpcInvocationDescriptor::new("chat.no_handler", RpcDirection::ClientToServer, Vec::new())
+            .with_source_session(session)
+            .with_request(request)
+            .with_timeout_ms(0),
+        RpcPeerRole::Client,
+    );
+    assert_eq!(report.status, RpcDispatchStatus::TimedOut);
+    assert!(rpc.pending_request(request).is_none());
+    assert!(rpc.expire_pending_requests().is_empty());
+}
+
+#[test]
 fn rpc_feature_manager_limits_queue_and_times_out_expired_invocations() {
     let rpc = NetRpcRuntimeManager::with_max_queue_depth(1);
     let session = complete_joined_session(&rpc, "queued-player");

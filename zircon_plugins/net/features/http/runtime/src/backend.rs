@@ -98,9 +98,15 @@ async fn send_http_request(
 
 fn validate_http_security_policy(request: &NetHttpRequestDescriptor) -> Result<(), NetError> {
     if request.security.certificate_pinning {
-        return Err(NetError::SecurityPolicyViolation {
-            reason: "HTTP certificate pinning is not configured".to_string(),
-        });
+        let host =
+            http_url_host(&request.url).ok_or_else(|| NetError::SecurityPolicyViolation {
+                reason: "HTTP certificate pinning requires a valid request host".to_string(),
+            })?;
+        if !request.security.has_pin_for_host(&host) {
+            return Err(NetError::SecurityPolicyViolation {
+                reason: format!("HTTP certificate pinning has no configured pin for host: {host}"),
+            });
+        }
     }
 
     if request.security.tls_required
@@ -116,21 +122,25 @@ fn validate_http_security_policy(request: &NetHttpRequestDescriptor) -> Result<(
 }
 
 fn http_url_is_loopback(url: &str) -> bool {
-    let Some(authority) = url
+    http_url_host(url)
+        .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1" | "[::1]"))
+}
+
+fn http_url_host(url: &str) -> Option<String> {
+    let authority = url
         .strip_prefix("http://")
         .or_else(|| url.strip_prefix("https://"))
-        .map(|rest| rest.split('/').next().unwrap_or_default())
-    else {
-        return false;
-    };
-    let host = authority
-        .rsplit_once('@')
-        .map(|(_, host)| host)
-        .unwrap_or(authority)
-        .split(':')
-        .next()
-        .unwrap_or_default();
-    matches!(host, "localhost" | "127.0.0.1" | "::1" | "[::1]")
+        .map(|rest| rest.split('/').next().unwrap_or_default())?;
+    Some(
+        authority
+            .rsplit_once('@')
+            .map(|(_, host)| host)
+            .unwrap_or(authority)
+            .split(':')
+            .next()
+            .unwrap_or_default()
+            .to_string(),
+    )
 }
 
 async fn serve_http_listener(

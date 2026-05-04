@@ -201,11 +201,49 @@ fn particle_gpu_compact_alive_executor(
 fn particle_gpu_indirect_args_executor(
     context: &mut RenderPassExecutionContext<'_>,
 ) -> Result<(), String> {
-    validate_context(context, &INDIRECT_CONTRACT)
+    validate_context(context, &INDIRECT_CONTRACT)?;
+    emit_particle_gpu_readback(context);
+    Ok(())
 }
 
-fn particle_transparent_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
-    validate_context(context, &TRANSPARENT_CONTRACT)
+fn particle_transparent_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    validate_context(context, &TRANSPARENT_CONTRACT)?;
+    if let Some(gpu) = context.gpu_mut() {
+        gpu.resources
+            .require_texture_view("scene-color")
+            .map(|_| ())?;
+        gpu.resources
+            .require_texture_view("scene-depth")
+            .map(|_| ())?;
+    }
+    Ok(())
+}
+
+fn emit_particle_gpu_readback(context: &mut RenderPassExecutionContext<'_>) {
+    let Some(gpu) = context.gpu_mut() else {
+        return;
+    };
+    let particles = &gpu.frame_extract().particles;
+    if particles.emitters.is_empty()
+        && particles.sprites.is_empty()
+        && particles.gpu_frame.is_none()
+    {
+        return;
+    }
+    let gpu_frame = particles.gpu_frame.clone();
+    let sprite_count = particles.sprites.len() as u32;
+    if let Some(gpu_frame) = gpu_frame {
+        gpu.plugin_outputs.particles.alive_count = gpu_frame.alive_count;
+        gpu.plugin_outputs.particles.spawned_total = gpu_frame.spawned_total;
+        gpu.plugin_outputs.particles.per_emitter_spawned = gpu_frame.per_emitter_spawned;
+        gpu.plugin_outputs.particles.indirect_draw_args = gpu_frame.indirect_draw_args;
+    } else {
+        gpu.plugin_outputs.particles.alive_count = sprite_count;
+        gpu.plugin_outputs.particles.spawned_total = sprite_count;
+        gpu.plugin_outputs.particles.indirect_draw_args = [6, sprite_count, 0, 0];
+    }
 }
 
 fn validate_context(

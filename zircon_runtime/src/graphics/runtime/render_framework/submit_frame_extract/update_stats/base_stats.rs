@@ -1,3 +1,4 @@
+use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::QueueLane;
 
 use super::super::super::compiled_feature_names::compiled_feature_names;
@@ -47,6 +48,11 @@ pub(super) fn update_base_stats(
     );
     state.stats.last_hybrid_gi_graph_executed_pass_count =
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "hybrid-gi.");
+    state.stats.last_particle_graph_executed_pass_count =
+        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
+    state.stats.last_transparent_graph_executed_pass_count = state
+        .renderer
+        .last_render_graph_executed_stage_count(RenderPassStage::Transparent);
     state.stats.last_async_compute_pass_count = state
         .renderer
         .last_render_graph_executed_queue_lane_count(QueueLane::AsyncCompute);

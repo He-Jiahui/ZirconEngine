@@ -5,6 +5,7 @@ mod framework;
 mod framework_error;
 mod overlay;
 mod plugin_renderer_outputs;
+mod prepared_runtime_sidebands;
 mod scene_extract;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -23,8 +24,9 @@ pub use camera::{
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderSkeletalPoseExtract,
-    RenderViewExtract, RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
+    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderParticleGpuFrameExtract,
+    RenderSkeletalPoseExtract, RenderViewExtract, RenderWorldSnapshotHandle, VisibilityInput,
+    VisibilityRenderableInput,
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
@@ -43,6 +45,7 @@ pub use plugin_renderer_outputs::{
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
+pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
 pub use scene_extract::{
     PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,

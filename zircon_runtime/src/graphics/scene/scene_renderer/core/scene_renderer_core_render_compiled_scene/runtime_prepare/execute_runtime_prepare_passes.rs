@@ -7,7 +7,7 @@ use super::super::super::scene_renderer_core::{
 
 impl SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) fn execute_runtime_prepare_passes(
-        &self,
+        &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,

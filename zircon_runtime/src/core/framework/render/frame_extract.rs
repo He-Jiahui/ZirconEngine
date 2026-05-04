@@ -90,6 +90,15 @@ pub struct ParticleExtract {
     pub sprites: Vec<RenderParticleSpriteSnapshot>,
     pub bounds: Vec<RenderParticleBoundsSnapshot>,
     pub sort_camera_position: Option<crate::core::math::Vec3>,
+    pub gpu_frame: Option<RenderParticleGpuFrameExtract>,
+}
+
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct RenderParticleGpuFrameExtract {
+    pub alive_count: u32,
+    pub spawned_total: u32,
+    pub per_emitter_spawned: Vec<u32>,
+    pub indirect_draw_args: [u32; 4],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

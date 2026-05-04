@@ -6850,6 +6850,7 @@ name = "zircon_editor"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "fontdue",
  "gltf",
  "i-slint-backend-testing",
  "image",
@@ -6857,6 +6858,7 @@ dependencies = [
  "serde",
  "serde_json",
  "slint",
+ "softbuffer",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
  "winit 0.31.0-beta.2",
@@ -6870,6 +6872,7 @@ version = "0.1.0"
 dependencies = [
  "bincode 1.3.3",
  "bytemuck",
+ "chrono",
  "crossbeam-channel",
  "crossbeam-utils",
  "fontsdf",

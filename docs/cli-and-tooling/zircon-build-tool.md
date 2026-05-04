@@ -4,6 +4,18 @@ related_code:
   - Cargo.toml
   - zircon_app/Cargo.toml
   - zircon_runtime/Cargo.toml
+  - zircon_runtime/src/asset/runtime_asset_path.rs
+  - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/platform.rs
+  - zircon_runtime/src/diagnostic_log/sink.rs
+  - zircon_runtime/src/diagnostic_log/timestamp.rs
+  - zircon_app/src/entry/entry_runner/editor.rs
+  - zircon_app/src/entry/entry_runner/runtime.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
+  - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_plugins/Cargo.toml
   - zircon_plugins/native_dynamic_fixture/plugin.toml
   - zircon_plugins/native_dynamic_fixture/native/Cargo.toml
@@ -12,8 +24,20 @@ related_code:
   - zircon_runtime/src/plugin/native_plugin_loader/discover_load_manifest.rs
 implementation_files:
   - tools/zircon_build.py
+  - zircon_runtime/src/asset/runtime_asset_path.rs
+  - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/platform.rs
+  - zircon_runtime/src/diagnostic_log/sink.rs
+  - zircon_runtime/src/diagnostic_log/timestamp.rs
+  - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
+  - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
 plan_sources:
   - user: 2026-05-03 add tools/zircon_build.py for staged editor/runtime/plugin builds
+  - user: 2026-05-04 confirm editor/runtime asset staging and exported lookup support
+  - user: 2026-05-04 add file-backed exported editor/runtime diagnostics
   - docs/engine-architecture/runtime-editor-pluginized-export.md
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
 tests:
@@ -22,6 +46,8 @@ tests:
   - python tools/zircon_build.py --list-plugins
   - python tools/zircon_build.py --targets editor,runtime --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
+  - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
+  - E:\zircon-build\ZirconEngine\zircon_editor.exe smoke run with E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log
 doc_type: workflow-detail
 ---
 
@@ -42,6 +68,11 @@ E:\builds\zircon\
     zircon_editor.exe
     zircon_runtime.exe
     zircon_runtime.dll
+    assets\
+      ui\
+      fonts\
+      icons\
+      viewport_gizmos\
     plugins\
       native_plugins.toml
       <plugin-id>\
@@ -59,11 +90,59 @@ E:\builds\zircon\
 intermediate artifacts and stays outside the runtime payload. This split prevents
 Cargo `debug/deps` layout details from leaking into the final engine directory.
 
+The `assets` directory is a merged engine asset root. The build tool stages
+`zircon_editor/assets` and `zircon_runtime/assets` into the same payload root so
+authored `res://ui/...`, runtime fixture, icon, font, and viewport-gizmo paths
+work from the exported directory. If both crate asset roots provide the same
+relative file with different bytes, staging fails instead of silently choosing
+one copy; identical duplicates are treated as idempotent.
+
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the
 current executable directory. Keeping the library beside the executable fixes the
 common local Cargo layout issue where the dynamic library remains under
 `debug/deps` and `LoadLibraryExW` cannot find it.
+
+Built-in engine asset lookup follows the staged layout. Runtime/editor code first
+honors `ZIRCON_ASSET_ROOT`, then checks `assets` beside the current executable,
+then `assets` under the current working directory, and finally falls back to the
+crate-local `assets` directory for `cargo run` and unit-test workflows. Editor
+call sites pass `zircon_editor/assets` as their development fallback so editor
+templates still resolve from source when no staged payload exists.
+
+The lookup returns the first candidate root that contains the requested relative
+file. It only falls back to the first existing root when no candidate contains the
+file, which keeps a staged payload from masking editor-only development assets and
+keeps missing built-ins visible in diagnostics.
+
+## Startup Logs
+
+Exported editor/runtime binaries initialize a lightweight startup diagnostic sink
+before their main host work. Each line is mirrored to stderr and, when possible,
+to a per-run file named `logs/<yyyy-MM-dd-hh-mm-ss>/<channel>.log`.
+
+Editor logs prefer the staged executable directory. For example, running
+`E:\zircon-build\ZirconEngine\zircon_editor.exe` from the staged payload writes a
+file such as:
+
+```text
+E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log
+```
+
+Standalone runtime logs still honor `ZIRCON_LOG_ROOT` first, then prefer a
+Unity-compatible user log directory before local fallbacks:
+
+```text
+Windows: %USERPROFILE%\AppData\LocalLow\ZirconEngine\ZirconEngine\logs\<timestamp>\runtime.log
+macOS:   $HOME/Library/Logs/ZirconEngine/ZirconEngine/logs/<timestamp>/runtime.log
+Linux:   $HOME/.config/unity3d/ZirconEngine/ZirconEngine/logs/<timestamp>/runtime.log
+```
+
+Set `ZIRCON_LOG_ROOT` to force both editor and runtime logs under a known root.
+The asset resolver, editor template loader, native host window, and native
+presenter currently write startup diagnostics there, so exported-display issues
+can be classified without guessing whether the failure is asset staging,
+presentation data, window creation, or rendering.
 
 ## CLI And Interactive Use
 

@@ -1,5 +1,6 @@
 mod base_stats;
 mod hybrid_gi_stats;
+mod particle_stats;
 mod quality_profile;
 mod update;
 mod virtual_geometry_stats;

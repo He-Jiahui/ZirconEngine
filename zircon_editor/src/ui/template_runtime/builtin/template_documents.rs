@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::diagnostic_log::write_diagnostic_log;
 
 pub(crate) const UI_HOST_WINDOW_DOCUMENT_ID: &str = "ui.host_window";
 pub(crate) const EDITOR_MAIN_FRAME_DOCUMENT_ID: &str = "editor.host.editor_main_frame";
@@ -28,25 +31,27 @@ const BUILTIN_EDITOR_TEMPLATE_ROOT: &str = "/assets/ui/editor/";
 const BUILTIN_WINDOW_TEMPLATE_ROOT: &str = "/assets/ui/editor/windows/";
 
 fn builtin_host_template_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join(BUILTIN_HOST_TEMPLATE_ROOT.trim_start_matches('/'))
-        .join(relative)
+    editor_runtime_asset_path(BUILTIN_HOST_TEMPLATE_ROOT).join(relative)
 }
 
 fn builtin_window_template_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join(BUILTIN_WINDOW_TEMPLATE_ROOT.trim_start_matches('/'))
-        .join(relative)
+    editor_runtime_asset_path(BUILTIN_WINDOW_TEMPLATE_ROOT).join(relative)
 }
 
 fn builtin_editor_template_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join(BUILTIN_EDITOR_TEMPLATE_ROOT.trim_start_matches('/'))
-        .join(relative)
+    editor_runtime_asset_path(BUILTIN_EDITOR_TEMPLATE_ROOT).join(relative)
+}
+
+fn editor_runtime_asset_path(relative: &str) -> PathBuf {
+    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+}
+
+fn editor_dev_asset_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
 pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 22] {
-    [
+    let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
             builtin_host_template_path("editor_main_frame.ui.toml"),
@@ -135,5 +140,19 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 22] {
             PANE_BUILD_EXPORT_BODY_DOCUMENT_ID,
             builtin_host_template_path("build_export_desktop_body.ui.toml"),
         ),
-    ]
+    ];
+
+    for (document_id, path) in &documents {
+        write_diagnostic_log(
+            "editor_builtin_templates",
+            format!(
+                "document id={} path={} exists={}",
+                document_id,
+                path.display(),
+                path.exists()
+            ),
+        );
+    }
+
+    documents
 }

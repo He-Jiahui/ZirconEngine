@@ -1,27 +1,27 @@
 use super::scene_renderer_advanced_plugin_resources::SceneRendererAdvancedPluginResources;
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::scene::resources::ResourceStreamer;
-use crate::graphics::scene::scene_renderer::core::scene_renderer_core::SceneRendererAdvancedPluginReadbacks;
+use crate::graphics::scene::scene_renderer::core::scene_renderer_core::{
+    merge_plugin_renderer_outputs, SceneRendererAdvancedPluginReadbacks,
+};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 impl SceneRendererAdvancedPluginResources {
     pub(in crate::graphics::scene::scene_renderer::core) fn execute_runtime_prepare_passes(
-        &self,
+        &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         streamer: &ResourceStreamer,
         frame: &ViewportRenderFrame,
     ) -> Result<SceneRendererAdvancedPluginReadbacks, GraphicsError> {
-        if self.runtime_prepare_collectors().is_empty()
-            && !self.virtual_geometry_enabled()
-            && !self.hybrid_gi_enabled()
-        {
+        let collectors = self.runtime_prepare_collectors_mut();
+        if collectors.is_empty() {
             return Ok(SceneRendererAdvancedPluginReadbacks::new());
         }
 
         let mut outputs = RenderPluginRendererOutputs::default();
-        for collector in self.runtime_prepare_collectors() {
+        for collector in collectors {
             merge_plugin_renderer_outputs(
                 &mut outputs,
                 collector(device, queue, encoder, streamer, frame)?,
@@ -32,164 +32,31 @@ impl SceneRendererAdvancedPluginResources {
     }
 }
 
-fn merge_plugin_renderer_outputs(
-    target: &mut RenderPluginRendererOutputs,
-    outputs: RenderPluginRendererOutputs,
-) {
-    target
-        .virtual_geometry
-        .page_table_entries
-        .extend(outputs.virtual_geometry.page_table_entries);
-    target
-        .virtual_geometry
-        .completed_page_assignments
-        .extend(outputs.virtual_geometry.completed_page_assignments);
-    target
-        .virtual_geometry
-        .page_replacements
-        .extend(outputs.virtual_geometry.page_replacements);
-    target
-        .virtual_geometry
-        .selected_clusters
-        .extend(outputs.virtual_geometry.selected_clusters);
-    target
-        .virtual_geometry
-        .visbuffer64_entries
-        .extend(outputs.virtual_geometry.visbuffer64_entries);
-    target
-        .virtual_geometry
-        .hardware_rasterization_records
-        .extend(outputs.virtual_geometry.hardware_rasterization_records);
-    target
-        .virtual_geometry
-        .node_cluster_cull
-        .traversal_records
-        .extend(outputs.virtual_geometry.node_cluster_cull.traversal_records);
-    target
-        .virtual_geometry
-        .node_cluster_cull
-        .child_work_items
-        .extend(outputs.virtual_geometry.node_cluster_cull.child_work_items);
-    target
-        .virtual_geometry
-        .node_cluster_cull
-        .cluster_work_items
-        .extend(
-            outputs
-                .virtual_geometry
-                .node_cluster_cull
-                .cluster_work_items,
-        );
-    target
-        .virtual_geometry
-        .node_cluster_cull
-        .launch_worklist_snapshots
-        .extend(
-            outputs
-                .virtual_geometry
-                .node_cluster_cull
-                .launch_worklist_snapshots,
-        );
-    target
-        .virtual_geometry
-        .node_cluster_cull
-        .page_request_ids
-        .extend(outputs.virtual_geometry.node_cluster_cull.page_request_ids);
-
-    target
-        .hybrid_gi
-        .cache_entries
-        .extend(outputs.hybrid_gi.cache_entries);
-    target
-        .hybrid_gi
-        .completed_probe_ids
-        .extend(outputs.hybrid_gi.completed_probe_ids);
-    target
-        .hybrid_gi
-        .completed_trace_region_ids
-        .extend(outputs.hybrid_gi.completed_trace_region_ids);
-    target
-        .hybrid_gi
-        .probe_irradiance_rgb
-        .extend(outputs.hybrid_gi.probe_irradiance_rgb);
-    target
-        .hybrid_gi
-        .probe_rt_lighting_rgb
-        .extend(outputs.hybrid_gi.probe_rt_lighting_rgb);
-    merge_hybrid_gi_scene_prepare_outputs(
-        &mut target.hybrid_gi.scene_prepare,
-        outputs.hybrid_gi.scene_prepare,
-    );
-
-    target.particles.alive_count = target
-        .particles
-        .alive_count
-        .saturating_add(outputs.particles.alive_count);
-    target.particles.spawned_total = target
-        .particles
-        .spawned_total
-        .saturating_add(outputs.particles.spawned_total);
-    target.particles.debug_flags |= outputs.particles.debug_flags;
-    target
-        .particles
-        .per_emitter_spawned
-        .extend(outputs.particles.per_emitter_spawned);
-    if outputs.particles.indirect_draw_args != [0; 4] {
-        target.particles.indirect_draw_args = outputs.particles.indirect_draw_args;
-    }
-}
-
-fn merge_hybrid_gi_scene_prepare_outputs(
-    target: &mut crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
-    outputs: crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
-) {
-    target
-        .occupied_atlas_slots
-        .extend(outputs.occupied_atlas_slots);
-    target
-        .occupied_capture_slots
-        .extend(outputs.occupied_capture_slots);
-    target.atlas_samples.extend(outputs.atlas_samples);
-    target.capture_samples.extend(outputs.capture_samples);
-    target.voxel_clipmap_ids.extend(outputs.voxel_clipmap_ids);
-    target.voxel_samples.extend(outputs.voxel_samples);
-    target.voxel_occupancy.extend(outputs.voxel_occupancy);
-    target
-        .voxel_occupancy_masks
-        .extend(outputs.voxel_occupancy_masks);
-    target.voxel_cells.extend(outputs.voxel_cells);
-    target.voxel_cell_samples.extend(outputs.voxel_cell_samples);
-    target
-        .voxel_cell_dominant_nodes
-        .extend(outputs.voxel_cell_dominant_nodes);
-    target
-        .voxel_cell_dominant_samples
-        .extend(outputs.voxel_cell_dominant_samples);
-    if outputs.texture_width != 0 {
-        target.texture_width = outputs.texture_width;
-    }
-    if outputs.texture_height != 0 {
-        target.texture_height = outputs.texture_height;
-    }
-    if outputs.texture_layers != 0 {
-        target.texture_layers = outputs.texture_layers;
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::core::framework::render::{
         FallbackSkyboxKind, PreviewEnvironmentExtract, RenderHybridGiReadbackOutputs,
-        RenderOverlayExtract, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderVirtualGeometryReadbackOutputs, ViewportCameraSnapshot,
+        RenderOverlayExtract, RenderParticleGpuReadbackOutputs, RenderPluginRendererOutputs,
+        RenderPreparedRuntimeSidebands, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+        ViewportCameraSnapshot,
     };
     use crate::core::math::{UVec2, Vec4};
     use crate::graphics::backend::RenderBackend;
+    use crate::graphics::{
+        RuntimePrepareCollector, RuntimePrepareCollectorContext,
+        RuntimePrepareCollectorRegistration,
+    };
+    use std::sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    };
 
     #[test]
     fn runtime_prepare_collectors_are_no_op_when_empty() {
-        let (resources, device, queue, mut encoder, streamer, frame) = runtime_prepare_fixture();
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
 
         let readbacks = resources
             .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
@@ -235,6 +102,226 @@ mod tests {
         );
     }
 
+    #[test]
+    fn runtime_prepare_collectors_replace_overlapping_feature_packets() {
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+            Ok(RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    page_table_entries: vec![1],
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![10],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                particles: RenderParticleGpuReadbackOutputs {
+                    alive_count: 3,
+                    ..RenderParticleGpuReadbackOutputs::default()
+                },
+            })
+        }));
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+            Ok(RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    page_table_entries: vec![2, 3],
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![20],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                particles: RenderParticleGpuReadbackOutputs {
+                    alive_count: 7,
+                    ..RenderParticleGpuReadbackOutputs::default()
+                },
+            })
+        }));
+
+        let readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        let outputs = readbacks.outputs_for_test();
+        assert_eq!(outputs.virtual_geometry.page_table_entries, vec![2, 3]);
+        assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![20]);
+        assert_eq!(outputs.particles.alive_count, 7);
+    }
+
+    #[test]
+    fn runtime_prepare_collectors_preserve_non_empty_packet_after_empty_packet() {
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+            Ok(RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    page_table_entries: vec![5, 8],
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            })
+        }));
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, _| {
+            Ok(RenderPluginRendererOutputs::default())
+        }));
+
+        let readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        assert_eq!(
+            readbacks
+                .outputs_for_test()
+                .virtual_geometry
+                .page_table_entries,
+            vec![5, 8]
+        );
+    }
+
+    #[test]
+    fn runtime_prepare_collectors_can_mutate_per_frame_state() {
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        let mut call_count = 0;
+        resources.register_runtime_prepare_collector(Box::new(move |_, _, _, _, _| {
+            call_count += 1;
+            Ok(RenderPluginRendererOutputs {
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![call_count],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            })
+        }));
+
+        let first_readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+        let second_readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        assert_eq!(
+            first_readbacks
+                .outputs_for_test()
+                .hybrid_gi
+                .completed_probe_ids,
+            vec![1]
+        );
+        assert_eq!(
+            second_readbacks
+                .outputs_for_test()
+                .hybrid_gi
+                .completed_probe_ids,
+            vec![2]
+        );
+    }
+
+    #[test]
+    fn registered_runtime_prepare_collector_can_read_frame_context_and_prepared_sidebands() {
+        let (_resources, device, queue, mut encoder, streamer, frame) = runtime_prepare_fixture();
+        let frame = frame.with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
+            RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                        page_request_ids: vec![300, 301],
+                        ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                    },
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![7],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+            vec![11],
+            vec![22],
+        ));
+        let called = Arc::new(AtomicBool::new(false));
+        let mut resources = SceneRendererAdvancedPluginResources::new(
+            &device,
+            &[],
+            [RuntimePrepareCollectorRegistration::new_collector(
+                "test.context-sidebands",
+                Arc::new(AssertingContextCollector {
+                    called: Arc::clone(&called),
+                }),
+            )],
+        );
+
+        resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        assert!(called.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn runtime_prepare_collectors_can_project_prepared_sidebands_into_renderer_outputs() {
+        let (mut resources, device, queue, mut encoder, streamer, frame) =
+            runtime_prepare_fixture();
+        let frame = frame.with_prepared_runtime_sidebands(RenderPreparedRuntimeSidebands::new(
+            RenderPluginRendererOutputs {
+                virtual_geometry: RenderVirtualGeometryReadbackOutputs {
+                    node_cluster_cull: RenderVirtualGeometryNodeClusterCullReadbackOutputs {
+                        page_request_ids: vec![501],
+                        ..RenderVirtualGeometryNodeClusterCullReadbackOutputs::default()
+                    },
+                    ..RenderVirtualGeometryReadbackOutputs::default()
+                },
+                hybrid_gi: RenderHybridGiReadbackOutputs {
+                    completed_probe_ids: vec![77],
+                    ..RenderHybridGiReadbackOutputs::default()
+                },
+                ..RenderPluginRendererOutputs::default()
+            },
+            Vec::new(),
+            Vec::new(),
+        ));
+        resources.register_runtime_prepare_collector(Box::new(|_, _, _, _, frame| {
+            Ok(frame
+                .prepared_runtime_sidebands()
+                .plugin_renderer_outputs
+                .clone())
+        }));
+
+        let readbacks = resources
+            .execute_runtime_prepare_passes(&device, &queue, &mut encoder, &streamer, &frame)
+            .unwrap();
+
+        let outputs = readbacks.outputs_for_test();
+        assert_eq!(
+            outputs.virtual_geometry.node_cluster_cull.page_request_ids,
+            vec![501]
+        );
+        assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![77]);
+    }
+
+    struct AssertingContextCollector {
+        called: Arc<AtomicBool>,
+    }
+
+    impl RuntimePrepareCollector for AssertingContextCollector {
+        fn collect(
+            &self,
+            context: &mut RuntimePrepareCollectorContext<'_>,
+        ) -> Result<RenderPluginRendererOutputs, GraphicsError> {
+            assert_eq!(context.viewport_size(), UVec2::new(1, 1));
+            assert_eq!(context.prepared_hybrid_gi_evictable_probe_ids(), &[11]);
+            assert_eq!(
+                context
+                    .prepared_virtual_geometry_readback_outputs()
+                    .node_cluster_cull
+                    .page_request_ids,
+                vec![300, 301]
+            );
+            self.called.store(true, Ordering::SeqCst);
+            Ok(RenderPluginRendererOutputs::default())
+        }
+    }
+
     fn runtime_prepare_fixture() -> (
         SceneRendererAdvancedPluginResources,
         wgpu::Device,
@@ -278,7 +365,7 @@ mod tests {
         let frame = ViewportRenderFrame::from_snapshot(empty_scene_snapshot(), UVec2::new(1, 1));
 
         (
-            SceneRendererAdvancedPluginResources::new(&device, &[]),
+            SceneRendererAdvancedPluginResources::new(&device, &[], Vec::new()),
             device,
             queue,
             encoder,

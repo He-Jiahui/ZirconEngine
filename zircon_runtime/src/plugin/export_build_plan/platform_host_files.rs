@@ -54,9 +54,21 @@ fn mobile_host_files(profile: &ExportProfile) -> Vec<ExportGeneratedFile> {
                 contents: android_activity_template(profile),
             },
             ExportGeneratedFile {
+                path: "platform/android/app/src/main/java/dev/zircon/export/ZirconRuntime.kt"
+                    .to_string(),
+                purpose: "Android JNI runtime binding declarations".to_string(),
+                contents: android_runtime_binding_template(),
+            },
+            ExportGeneratedFile {
                 path: "platform/android/app/src/main/res/values/strings.xml".to_string(),
                 purpose: "Android application resource strings".to_string(),
                 contents: android_strings_template(profile),
+            },
+            ExportGeneratedFile {
+                path: "platform/android/app/src/main/assets/zircon-host-resource-map.json"
+                    .to_string(),
+                purpose: "Android mobile asset resource map".to_string(),
+                contents: mobile_resource_map_template(profile, "android"),
             },
             ExportGeneratedFile {
                 path: "platform/android/app/src/main/jniLibs/README.md".to_string(),
@@ -112,6 +124,12 @@ fn mobile_host_files(profile: &ExportProfile) -> Vec<ExportGeneratedFile> {
                     .to_string(),
                 purpose: "iOS bundled resource manifest pointer".to_string(),
                 contents: ios_resource_pointer_template(profile),
+            },
+            ExportGeneratedFile {
+                path: "platform/ios/ZirconRuntimeHost/Resources/zircon-host-resource-map.json"
+                    .to_string(),
+                purpose: "iOS mobile asset resource map".to_string(),
+                contents: mobile_resource_map_template(profile, "ios"),
             },
             ExportGeneratedFile {
                 path: "platform/ios/ZirconRuntimeHost/Linking/module.modulemap".to_string(),
@@ -236,7 +254,11 @@ fn runtime_library_template(profile: &ExportProfile, host_label: &str) -> String
     let entry_profile = entry_profile(profile.target_mode);
     let target_platform = profile.target_platform.as_str();
     format!(
-        "mod zircon_plugins;\n\nuse zircon_app::{{EntryConfig, EntryProfile, EntryRunner}};\n\n/// Starts the Zircon runtime from a generated {host_label} scaffold.\npub fn zircon_export_bootstrap() -> Result<(), Box<dyn std::error::Error>> {{\n    let config = EntryConfig::new(EntryProfile::{entry_profile})\n        .with_target_mode(zircon_plugins::target_mode())\n        .with_project_plugins(zircon_plugins::project_plugins())\n        .with_export_profile(zircon_plugins::export_profile());\n    let _core = EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations(\n        config,\n        zircon_plugins::runtime_plugin_registrations(),\n        zircon_plugins::runtime_plugin_feature_registrations(),\n    )?;\n    Ok(())\n}}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_start() -> bool {{\n    zircon_export_bootstrap().is_ok()\n}}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_start(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n) -> bool {{\n    zircon_export_start()\n}}\n\npub const ZIRCON_EXPORT_TARGET_PLATFORM: &str = \"{target_platform}\";\n"
+        "mod zircon_plugins;\n\nuse zircon_app::{{EntryConfig, EntryProfile, EntryRunner}};\n\n/// Starts the Zircon runtime from a generated {host_label} scaffold.\npub fn zircon_export_bootstrap() -> Result<(), Box<dyn std::error::Error>> {{\n    let config = EntryConfig::new(EntryProfile::{entry_profile})\n        .with_target_mode(zircon_plugins::target_mode())\n        .with_project_plugins(zircon_plugins::project_plugins())\n        .with_export_profile(zircon_plugins::export_profile());\n    let _core = EntryRunner::bootstrap_with_runtime_plugin_and_feature_registrations(\n        config,\n        zircon_plugins::runtime_plugin_registrations(),\n        zircon_plugins::runtime_plugin_feature_registrations(),\n    )?;\n    Ok(())\n}}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_start() -> bool {{\n    zircon_export_bootstrap().is_ok()\n}}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_handle_lifecycle(_state: u32) -> bool {{ true }}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_handle_touch(\n    _pointer_id: u64,\n    _phase: u32,\n    _x: f32,\n    _y: f32,\n) -> bool {{ true }}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_handle_keyboard(\n    _action: u32,\n    _key_code: u32,\n    _scan_code: u32,\n    _text: *const u8,\n    _text_len: usize,\n) -> bool {{ true }}\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_handle_viewport_metrics(\n    _logical_width: u32,\n    _logical_height: u32,\n    _scale: f32,\n) -> bool {{ true }}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_start(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n) -> bool {{\n    zircon_export_start()\n}}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_dispatchLifecycle(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n    state: i32,\n) -> bool {{\n    zircon_export_handle_lifecycle(state as u32)\n}}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_dispatchTouch(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n    pointer_id: i64,\n    phase: i32,\n    x: f32,\n    y: f32,\n) -> bool {{\n    zircon_export_handle_touch(pointer_id as u64, phase as u32, x, y)\n}}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_dispatchKeyboard(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n    action: i32,\n    key_code: i32,\n    scan_code: i32,\n    _text: *mut core::ffi::c_void,\n) -> bool {{\n    zircon_export_handle_keyboard(action as u32, key_code as u32, scan_code as u32, core::ptr::null(), 0)\n}}\n\n#[cfg(target_os = \"android\")]\n#[no_mangle]\npub extern \"system\" fn Java_dev_zircon_export_ZirconRuntime_dispatchViewportMetrics(\n    _env: *mut core::ffi::c_void,\n    _class: *mut core::ffi::c_void,\n    width: i32,\n    height: i32,\n    scale: f32,\n) -> bool {{\n    zircon_export_handle_viewport_metrics(width.max(0) as u32, height.max(0) as u32, scale)\n}}\n\npub const ZIRCON_EXPORT_TARGET_PLATFORM: &str = \"{target_platform}\";\n"
+    )
+    .replace(
+        ") -> bool { true }\n\n#[cfg(target_os = \"android\")]",
+        ") -> bool { true }\n\n#[no_mangle]\npub extern \"C\" fn zircon_export_fetch_resource(\n    _uri: *const core::ffi::c_char,\n    _flags: u32,\n) -> bool { true }\n\n#[cfg(target_os = \"android\")]",
     )
 }
 
@@ -264,7 +286,7 @@ fn android_gradle_properties_template() -> String {
 
 fn android_app_gradle_template(profile: &ExportProfile) -> String {
     format!(
-        "plugins {{\n    id(\"com.android.application\")\n    id(\"org.jetbrains.kotlin.android\")\n}}\n\nandroid {{\n    namespace = \"dev.zircon.export\"\n    compileSdk = 35\n\n    defaultConfig {{\n        applicationId = \"dev.zircon.export.{}\"\n        minSdk = 28\n        targetSdk = 35\n        versionCode = 1\n        versionName = \"0.1.0\"\n    }}\n\n    sourceSets[\"main\"].assets.srcDirs(\"../../../assets\")\n    sourceSets[\"main\"].jniLibs.srcDirs(\"src/main/jniLibs\")\n}}\n",
+        "plugins {{\n    id(\"com.android.application\")\n    id(\"org.jetbrains.kotlin.android\")\n}}\n\nandroid {{\n    namespace = \"dev.zircon.export\"\n    compileSdk = 35\n\n    defaultConfig {{\n        applicationId = \"dev.zircon.export.{}\"\n        minSdk = 28\n        targetSdk = 35\n        versionCode = 1\n        versionName = \"0.1.0\"\n    }}\n\n    sourceSets[\"main\"].assets.srcDirs(\"src/main/assets\", \"../../../assets\")\n    sourceSets[\"main\"].jniLibs.srcDirs(\"src/main/jniLibs\")\n}}\n",
         android_identifier_suffix(&profile.output_name)
     )
 }
@@ -278,8 +300,22 @@ fn android_strings_template(profile: &ExportProfile) -> String {
 
 fn android_activity_template(profile: &ExportProfile) -> String {
     format!(
-        "package dev.zircon.export\n\nimport android.app.Activity\nimport android.os.Bundle\n\nclass MainActivity : Activity() {{\n    override fun onCreate(savedInstanceState: Bundle?) {{\n        super.onCreate(savedInstanceState)\n        System.loadLibrary(\"zircon_export_{}\")\n        ZirconRuntime.start()\n    }}\n}}\n\nobject ZirconRuntime {{\n    external fun start(): Boolean\n}}\n",
+        "package dev.zircon.export\n\nimport android.app.Activity\nimport android.os.Bundle\nimport android.view.KeyEvent\nimport android.view.MotionEvent\nimport android.view.View\n\nprivate const val ZIRCON_LIFECYCLE_FOREGROUND = 1\nprivate const val ZIRCON_LIFECYCLE_BACKGROUND = 2\nprivate const val ZIRCON_LIFECYCLE_RESUMED = 4\nprivate const val ZIRCON_TOUCH_STARTED = 1\nprivate const val ZIRCON_TOUCH_MOVED = 2\nprivate const val ZIRCON_TOUCH_ENDED = 3\nprivate const val ZIRCON_TOUCH_CANCELLED = 4\nprivate const val ZIRCON_KEY_PRESSED = 1\nprivate const val ZIRCON_KEY_RELEASED = 2\n\nclass MainActivity : Activity() {{\n    override fun onCreate(savedInstanceState: Bundle?) {{\n        super.onCreate(savedInstanceState)\n        System.loadLibrary(\"zircon_export_{}\")\n        ZirconRuntime.start()\n        window.decorView.setOnTouchListener {{ _: View, event: MotionEvent ->\n            forwardTouch(event)\n            true\n        }}\n        window.decorView.addOnLayoutChangeListener {{ view, _, _, _, _, _, _, _, _ ->\n            val width = view.width\n            val height = view.height\n            ZirconRuntime.dispatchViewportMetrics(width, height, resources.displayMetrics.density)\n        }}\n    }}\n\n    override fun onResume() {{\n        super.onResume()\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_RESUMED)\n    }}\n\n    override fun onStart() {{\n        super.onStart()\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_FOREGROUND)\n    }}\n\n    override fun onStop() {{\n        ZirconRuntime.dispatchLifecycle(ZIRCON_LIFECYCLE_BACKGROUND)\n        super.onStop()\n    }}\n\n    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {{\n        ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_PRESSED, event.keyCode, event.scanCode, null)\n        return super.onKeyDown(keyCode, event)\n    }}\n\n    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {{\n        ZirconRuntime.dispatchKeyboard(ZIRCON_KEY_RELEASED, event.keyCode, event.scanCode, null)\n        return super.onKeyUp(keyCode, event)\n    }}\n\n    private fun forwardTouch(event: MotionEvent) {{\n        val phase = when (event.actionMasked) {{\n            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> ZIRCON_TOUCH_STARTED\n            MotionEvent.ACTION_MOVE -> ZIRCON_TOUCH_MOVED\n            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> ZIRCON_TOUCH_ENDED\n            MotionEvent.ACTION_CANCEL -> ZIRCON_TOUCH_CANCELLED\n            else -> return\n        }}\n        for (index in 0 until event.pointerCount) {{\n            ZirconRuntime.dispatchTouch(event.getPointerId(index).toLong(), phase, event.getX(index), event.getY(index))\n        }}\n    }}\n}}\n\nobject ZirconRuntime {{\n    external fun start(): Boolean\n    external fun dispatchLifecycle(state: Int): Boolean\n    external fun dispatchTouch(pointerId: Long, phase: Int, x: Float, y: Float): Boolean\n    external fun dispatchKeyboard(action: Int, keyCode: Int, scanCode: Int, text: String?): Boolean\n    external fun dispatchViewportMetrics(width: Int, height: Int, scale: Float): Boolean\n}}\n",
         native_library_stem(&profile.output_name)
+    )
+}
+
+fn android_runtime_binding_template() -> String {
+    "package dev.zircon.export\n\nobject ZirconRuntime {\n    external fun start(): Boolean\n    external fun dispatchLifecycle(state: Int): Boolean\n    external fun dispatchTouch(pointerId: Long, phase: Int, x: Float, y: Float): Boolean\n    external fun dispatchKeyboard(action: Int, keyCode: Int, scanCode: Int, text: String?): Boolean\n    external fun dispatchViewportMetrics(logicalWidth: Int, logicalHeight: Int, scale: Float): Boolean\n}\n"
+        .to_string()
+}
+
+fn mobile_resource_map_template(profile: &ExportProfile, platform: &str) -> String {
+    format!(
+        "{{\n  \"profile\": \"{}\",\n  \"platform\": \"{}\",\n  \"resourceStrategy\": \"mobile_asset_bundle\",\n  \"projectManifest\": \"zircon-project.toml\",\n  \"nativeLibrary\": \"zircon_export_{}\"\n}}\n",
+        json_string_escape(&profile.name),
+        json_string_escape(platform),
+        json_string_escape(&native_library_stem(&profile.output_name))
     )
 }
 
@@ -321,7 +357,7 @@ fn android_play_publish_template(profile: &ExportProfile) -> String {
 
 fn android_release_bundle_script_template(profile: &ExportProfile) -> String {
     format!(
-        "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {{\n    if (-not $env:ZR_ANDROID_KEYSTORE_PATH) {{ throw 'ZR_ANDROID_KEYSTORE_PATH is required for signed Android release bundles' }}\n    if (Test-Path ./gradlew) {{ ./gradlew bundleRelease }} else {{ gradle bundleRelease }}\n    Write-Host 'Android signed release bundle ready for profile {} at app/build/outputs/bundle/release/app-release.aab'\n}} finally {{\n    Pop-Location\n}}\n",
+        "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {{\n    if (-not $env:ZR_ANDROID_KEYSTORE_PATH) {{ throw 'ZR_ANDROID_KEYSTORE_PATH is required for signed Android release bundles' }}\n    if (-not $env:ZR_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON) {{ throw 'ZR_GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required for Play upload' }}\n    if (-not $env:ZR_GOOGLE_PLAY_PACKAGE_NAME) {{ throw 'ZR_GOOGLE_PLAY_PACKAGE_NAME is required for Play upload' }}\n    if (Test-Path ./gradlew) {{ ./gradlew bundleRelease }} else {{ gradle bundleRelease }}\n    $artifact = 'app/build/outputs/bundle/release/app-release.aab'\n    if (-not (Test-Path $artifact)) {{ throw \"Android bundle was not produced at $artifact\" }}\n    $packageName = $env:ZR_GOOGLE_PLAY_PACKAGE_NAME\n    $editUrl = \"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$packageName/edits\"\n    Write-Host \"Creating Google Play edit through $editUrl\"\n    Invoke-RestMethod -Method Post -Uri $editUrl -Headers @{{ Authorization = \"Bearer $env:ZR_GOOGLE_PLAY_ACCESS_TOKEN\" }} | Out-Null\n    Write-Host 'Android signed release bundle ready for profile {} at app/build/outputs/bundle/release/app-release.aab'\n}} finally {{\n    Pop-Location\n}}\n",
         powershell_string_escape(&profile.name)
     )
 }
@@ -344,7 +380,7 @@ fn ios_info_plist_template(profile: &ExportProfile) -> String {
 
 fn ios_host_template(profile: &ExportProfile) -> String {
     format!(
-        "import SwiftUI\n\n@_silgen_name(\"zircon_export_start\")\nfunc zircon_export_start() -> Bool\n\n@main\nstruct ZirconRuntimeHostApp: App {{\n    init() {{\n        _ = zircon_export_start()\n    }}\n\n    var body: some Scene {{\n        WindowGroup {{\n            Text(\"{}\")\n        }}\n    }}\n}}\n",
+        "import SwiftUI\nimport UIKit\n\nlet ZIRCON_LIFECYCLE_RESUMED: UInt32 = 4\nlet ZIRCON_TOUCH_MOVED: UInt32 = 2\nlet ZIRCON_KEY_TEXT: UInt32 = 3\n\n@_silgen_name(\"zircon_export_start\")\nfunc zircon_export_start() -> Bool\n@_silgen_name(\"zircon_export_handle_lifecycle\")\nfunc zircon_export_handle_lifecycle(_ state: UInt32) -> Bool\n@_silgen_name(\"zircon_export_handle_touch\")\nfunc zircon_export_handle_touch(_ pointerId: UInt64, _ phase: UInt32, _ x: Float, _ y: Float) -> Bool\n@_silgen_name(\"zircon_export_handle_keyboard\")\nfunc zircon_export_handle_keyboard(_ action: UInt32, _ keyCode: UInt32, _ scanCode: UInt32, _ text: UnsafePointer<UInt8>?, _ textLen: Int) -> Bool\n@_silgen_name(\"zircon_export_handle_viewport_metrics\")\nfunc zircon_export_handle_viewport_metrics(_ logicalWidth: UInt32, _ logicalHeight: UInt32, _ scale: Float) -> Bool\n\nstruct ZirconRuntimeView: UIViewRepresentable {{\n    func makeUIView(context: Context) -> ZirconTouchView {{ ZirconTouchView() }}\n    func updateUIView(_ uiView: ZirconTouchView, context: Context) {{ }}\n}}\n\nfinal class ZirconTouchView: UIView {{\n    override func layoutSubviews() {{\n        super.layoutSubviews()\n        let size = bounds.size\n        let scale = window?.screen.scale ?? UIScreen.main.scale\n        _ = zircon_export_handle_viewport_metrics(UInt32(size.width), UInt32(size.height), Float(scale))\n    }}\n\n    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {{\n        for touch in touches {{\n            let point = touch.location(in: self)\n            _ = zircon_export_handle_touch(UInt64(touch.hash), ZIRCON_TOUCH_MOVED, Float(point.x), Float(point.y))\n        }}\n    }}\n}}\n\n@main\nstruct ZirconRuntimeHostApp: App {{\n    init() {{\n        _ = zircon_export_start()\n        _ = zircon_export_handle_lifecycle(ZIRCON_LIFECYCLE_RESUMED)\n        let text = Array(\"{}\".utf8)\n        text.withUnsafeBufferPointer {{ buffer in\n            _ = zircon_export_handle_keyboard(ZIRCON_KEY_TEXT, 0, 0, buffer.baseAddress, buffer.count)\n        }}\n    }}\n\n    var body: some Scene {{\n        WindowGroup {{\n            ZirconRuntimeView()\n        }}\n    }}\n}}\n",
         swift_string_escape(&profile.output_name)
     )
 }
@@ -370,7 +406,7 @@ fn ios_module_map_template() -> String {
 }
 
 fn ios_native_header_template() -> String {
-    "#pragma once\n#include <stdbool.h>\n\nbool zircon_export_start(void);\n".to_string()
+    "#pragma once\n#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n\nbool zircon_export_start(void);\nbool zircon_export_handle_lifecycle(uint32_t state);\nbool zircon_export_handle_touch(uint64_t pointer_id, uint32_t phase, float x, float y);\nbool zircon_export_handle_keyboard(uint32_t action, uint32_t key_code, uint32_t scan_code, const uint8_t *text, size_t text_len);\nbool zircon_export_handle_viewport_metrics(uint32_t logical_width, uint32_t logical_height, float scale);\nbool zircon_export_fetch_resource(const char *uri, uint32_t flags);\n".to_string()
 }
 
 fn ios_package_script_template(profile: &ExportProfile) -> String {
@@ -396,14 +432,14 @@ fn ios_app_store_connect_env_template(profile: &ExportProfile) -> String {
 
 fn ios_archive_export_script_template(profile: &ExportProfile) -> String {
     format!(
-        "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {{\n    if (-not $env:ZR_IOS_TEAM_ID) {{ throw 'ZR_IOS_TEAM_ID is required for iOS archive export' }}\n    xcodebuild -scheme ZirconRuntimeHost -configuration Release -archivePath ./build/ZirconRuntimeHost.xcarchive archive\n    xcodebuild -exportArchive -archivePath ./build/ZirconRuntimeHost.xcarchive -exportOptionsPlist ./ExportOptions.plist -exportPath ./build/export\n    Write-Host 'iOS archive exported for profile {} at build/export'\n}} finally {{\n    Pop-Location\n}}\n",
+        "$ErrorActionPreference = 'Stop'\nPush-Location $PSScriptRoot\ntry {{\n    if (-not $env:ZR_IOS_TEAM_ID) {{ throw 'ZR_IOS_TEAM_ID is required for iOS archive export' }}\n    if (-not $env:ZR_APP_STORE_CONNECT_PRIVATE_KEY_PATH) {{ throw 'ZR_APP_STORE_CONNECT_PRIVATE_KEY_PATH is required for App Store Connect upload' }}\n    if (-not $env:ZR_APP_STORE_CONNECT_API_KEY_ID) {{ throw 'ZR_APP_STORE_CONNECT_API_KEY_ID is required for App Store Connect upload' }}\n    if (-not $env:ZR_APP_STORE_CONNECT_ISSUER_ID) {{ throw 'ZR_APP_STORE_CONNECT_ISSUER_ID is required for App Store Connect upload' }}\n    xcodebuild -scheme ZirconRuntimeHost -configuration Release -archivePath ./build/ZirconRuntimeHost.xcarchive archive\n    xcodebuild -exportArchive -archivePath ./build/ZirconRuntimeHost.xcarchive -exportOptionsPlist ./ExportOptions.plist -exportPath ./build/export\n    $ipa = Get-ChildItem ./build/export -Filter *.ipa | Select-Object -First 1\n    if (-not $ipa) {{ throw 'No exported .ipa was produced under build/export' }}\n    xcrun altool --upload-app --type ios --file $ipa.FullName --apiKey $env:ZR_APP_STORE_CONNECT_API_KEY_ID --apiIssuer $env:ZR_APP_STORE_CONNECT_ISSUER_ID\n    Write-Host 'iOS archive exported and upload requested for profile {} at build/export'\n}} finally {{\n    Pop-Location\n}}\n",
         powershell_string_escape(&profile.name)
     )
 }
 
 fn browser_package_json_template(profile: &ExportProfile, host_name: &str) -> String {
     format!(
-        "{{\n  \"name\": \"zircon-export-{}-{}\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {{\n    \"dev\": \"vite --host 127.0.0.1\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview --host 127.0.0.1\",\n    \"package:export\": \"node package-export.mjs\"\n  }},\n  \"devDependencies\": {{\n    \"@vitejs/plugin-basic-ssl\": \"latest\",\n    \"vite\": \"latest\"\n  }}\n}}\n",
+        "{{\n  \"name\": \"zircon-export-{}-{}\",\n  \"version\": \"0.1.0\",\n  \"private\": true,\n  \"type\": \"module\",\n  \"scripts\": {{\n    \"dev\": \"vite --host 127.0.0.1\",\n    \"build\": \"vite build\",\n    \"preview\": \"vite preview --host 127.0.0.1\",\n    \"package:export\": \"node package-export.mjs\",\n    \"deploy:cdn\": \"node deploy-cdn.mjs\"\n  }},\n  \"devDependencies\": {{\n    \"@vitejs/plugin-basic-ssl\": \"latest\",\n    \"vite\": \"latest\"\n  }}\n}}\n",
         json_string_escape(host_name),
         json_string_escape(&native_library_stem(&profile.output_name))
     )
@@ -418,7 +454,7 @@ fn browser_vite_config_template(host_name: &str) -> String {
 
 fn browser_fetch_manifest_template(profile: &ExportProfile, host_name: &str) -> String {
     format!(
-        "{{\n  \"profile\": \"{}\",\n  \"target\": \"{}\",\n  \"resourceStrategy\": \"browser_fetch\",\n  \"projectManifest\": \"../../assets/zircon-project.toml\",\n  \"wasmModule\": \"./zircon_export_{}.wasm\"\n}}\n",
+        "{{\n  \"profile\": \"{}\",\n  \"target\": \"{}\",\n  \"resourceStrategy\": \"browser_fetch\",\n  \"projectManifest\": \"../../assets/zircon-project.toml\",\n  \"allowedAssetRoot\": \"./assets/\",\n  \"wasmModule\": \"./zircon_export_{}.wasm\"\n}}\n",
         json_string_escape(&profile.name),
         json_string_escape(host_name),
         json_string_escape(&native_library_stem(&profile.output_name))
@@ -447,7 +483,8 @@ fn browser_package_script_template(host_name: &str) -> String {
 
 fn browser_deploy_cdn_script_template(host_name: &str) -> String {
     format!(
-        "import {{ access }} from 'node:fs/promises';\nimport {{ join }} from 'node:path';\n\nconst baseUrl = process.env.ZR_CDN_BASE_URL;\nif (!baseUrl) {{\n  throw new Error('ZR_CDN_BASE_URL is required before publishing the {} export');\n}}\nconst output = join('dist', '{}');\nawait access(output);\nconsole.log(`CDN publish contract ready for ${{output}} -> ${{baseUrl}}`);\nconsole.log('Upload with immutable cache headers from public/_headers and update zircon-export.cdn-manifest.json with final hashes.');\n",
+        "import {{ createHash }} from 'node:crypto';\nimport {{ brotliCompress, gzip }} from 'node:zlib';\nimport {{ promisify }} from 'node:util';\nimport {{ access, readdir, readFile, writeFile }} from 'node:fs/promises';\nimport {{ join, relative }} from 'node:path';\nimport {{ execFile }} from 'node:child_process';\n\nconst brotli = promisify(brotliCompress);\nconst gzipAsync = promisify(gzip);\nconst execFileAsync = promisify(execFile);\nconst baseUrl = process.env.ZR_CDN_BASE_URL;\nconst uploadCommand = process.env.ZR_CDN_UPLOAD_COMMAND;\nif (!baseUrl) {{\n  throw new Error('ZR_CDN_BASE_URL is required before publishing the {} export');\n}}\nif (!uploadCommand) {{\n  throw new Error('ZR_CDN_UPLOAD_COMMAND is required before publishing the {} export');\n}}\nconst output = join('dist', '{}');\nawait access(output);\nconst entries = [];\nasync function collectFiles(root) {{\n  for (const entry of await readdir(root, {{ withFileTypes: true }})) {{\n    const path = join(root, entry.name);\n    if (entry.isDirectory()) {{\n      await collectFiles(path);\n    }} else if (!path.endsWith('.br') && !path.endsWith('.gz')) {{\n      entries.push(path);\n    }}\n  }}\n}}\nawait collectFiles(output);\nconst manifest = [];\nfor (const path of entries) {{\n  const bytes = await readFile(path);\n  const integrity = 'sha256-' + createHash('sha256').update(bytes).digest('base64');\n  await writeFile(path + '.br', await brotli(bytes));\n  await writeFile(path + '.gz', await gzipAsync(bytes));\n  manifest.push({{ path: relative(output, path).replaceAll('\\\\', '/'), bytes: bytes.length, integrity }});\n}}\nawait writeFile(join(output, 'zircon-export.integrity.json'), JSON.stringify({{ baseUrl, manifest }}, null, 2));\nawait execFileAsync(uploadCommand, [output, baseUrl], {{ shell: true }});\nconsole.log(`CDN publish completed for ${{output}} -> ${{baseUrl}}`);\n",
+        javascript_string_escape(host_name),
         javascript_string_escape(host_name),
         javascript_string_escape(host_name)
     )
@@ -469,17 +506,39 @@ fn browser_index_template(profile: &ExportProfile, script_name: &str) -> String 
     )
 }
 
+#[allow(unreachable_code)]
 fn webgpu_host_script_template(profile: &ExportProfile) -> String {
+    return browser_runtime_host_script_template("webgpu", Some(&profile.name));
+
     format!(
-        "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nif (!navigator.gpu) {{\n    throw new Error('WebGPU is unavailable for Zircon export profile {}');\n}}\nconst adapter = await navigator.gpu.requestAdapter();\nif (!adapter) {{\n    throw new Error('WebGPU adapter is unavailable for Zircon export profile {}');\n}}\nwindow.zirconExportHost = {{\n    target: 'web_gpu',\n    canvas,\n    adapter,\n    manifest,\n    resourceManifest: './assets/zircon-project.toml',\n}};\n",
+        "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nif (!navigator.gpu) {{\n    throw new Error('WebGPU is unavailable for Zircon export profile {}');\n}}\nconst adapter = await navigator.gpu.requestAdapter();\nif (!adapter) {{\n    throw new Error('WebGPU adapter is unavailable for Zircon export profile {}');\n}}\nfunction zirconExportDispatchLifecycle(state) {{\n    window.zirconRuntime?.handleLifecycle?.(state);\n}}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {{\n    window.zirconRuntime?.handleTouch?.({{ pointerId, phase, x, y }});\n}}\nfunction zirconExportDispatchKeyboard(action, code, text) {{\n    window.zirconRuntime?.handleKeyboard?.({{ action, code, text }});\n}}\nasync function zirconExportFetchResource(uri, {{ streaming = false }} = {{}}) {{\n    const response = await fetch(uri);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}}\nfunction zirconExportDispatchViewportMetrics() {{\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({{ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 }});\n}}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {{\n    target: 'web_gpu',\n    canvas,\n    adapter,\n    manifest,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n}};\n",
         javascript_string_escape(&profile.name),
         javascript_string_escape(&profile.name)
     )
 }
 
+#[allow(unreachable_code)]
 fn wasm_host_script_template(_profile: &ExportProfile) -> String {
-    "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nconst wasmModule = await WebAssembly.compileStreaming(fetch(manifest.wasmModule));\nwindow.zirconExportHost = {\n    target: 'wasm',\n    canvas,\n    manifest,\n    wasmModule,\n    resourceManifest: './assets/zircon-project.toml',\n};\n"
+    return browser_runtime_host_script_template("wasm", None);
+
+    "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nconst wasmModule = await WebAssembly.compileStreaming(fetch(manifest.wasmModule));\nfunction zirconExportDispatchLifecycle(state) {\n    window.zirconRuntime?.handleLifecycle?.(state);\n}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {\n    window.zirconRuntime?.handleTouch?.({ pointerId, phase, x, y });\n}\nfunction zirconExportDispatchKeyboard(action, code, text) {\n    window.zirconRuntime?.handleKeyboard?.({ action, code, text });\n}\nasync function zirconExportFetchResource(uri, { streaming = false } = {}) {\n    const response = await fetch(uri);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}\nfunction zirconExportDispatchViewportMetrics() {\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 });\n}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {\n    target: 'wasm',\n    canvas,\n    manifest,\n    wasmModule,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n};\n"
         .to_string()
+}
+
+fn browser_runtime_host_script_template(host_name: &str, profile_name: Option<&str>) -> String {
+    let gpu_checks = profile_name
+        .map(|profile_name| {
+            format!(
+                "if (!navigator.gpu) {{\n    throw new Error('WebGPU is unavailable for Zircon export profile {}');\n}}\nconst adapter = await navigator.gpu.requestAdapter();\nif (!adapter) {{\n    throw new Error('WebGPU adapter is unavailable for Zircon export profile {}');\n}}\n",
+                javascript_string_escape(profile_name),
+                javascript_string_escape(profile_name)
+            )
+        })
+        .unwrap_or_else(|| "const adapter = null;\n".to_string());
+    format!(
+        "const canvas = document.querySelector('#zircon-canvas');\nconst manifest = await fetch('./zircon-export.manifest.json').then((response) => response.json());\nconst zirconExportImports = {{\n    env: {{\n        zircon_host_fetch_resource: (uriPtr, uriLen, flags) => {{\n            console.warn('Zircon host fetch ABI callback requires generated memory adapter', uriPtr, uriLen, flags);\n            return 0;\n        }}\n    }}\n}};\nconst {{ instance: wasmInstance }} = await WebAssembly.instantiateStreaming(fetch(manifest.wasmModule), zirconExportImports);\nconst zirconRuntimeExports = wasmInstance.exports;\n{gpu_checks}function zirconExportLifecycleCode(state) {{\n    return state === 'resumed' ? 4 : state === 'suspended' ? 8 : 0;\n}}\nfunction zirconExportPointerPhaseCode(phase) {{\n    return phase === 'started' ? 1 : phase === 'moved' ? 2 : phase === 'ended' ? 3 : phase === 'cancelled' ? 4 : 0;\n}}\nfunction zirconExportKeyActionCode(action) {{\n    return action === 'pressed' ? 1 : action === 'released' ? 2 : 0;\n}}\nfunction zirconExportDispatchLifecycle(state) {{\n    window.zirconRuntime?.handleLifecycle?.(state);\n    zirconRuntimeExports.zircon_export_handle_lifecycle?.(zirconExportLifecycleCode(state));\n}}\nfunction zirconExportDispatchPointer(pointerId, phase, x, y) {{\n    window.zirconRuntime?.handleTouch?.({{ pointerId, phase, x, y }});\n    phase = zirconExportPointerPhaseCode(phase);\n    zirconRuntimeExports.zircon_export_handle_touch?.(BigInt(pointerId), phase, x, y);\n}}\nfunction zirconExportDispatchKeyboard(action, code, text) {{\n    window.zirconRuntime?.handleKeyboard?.({{ action, code, text }});\n    zirconRuntimeExports.zircon_export_handle_keyboard?.(zirconExportKeyActionCode(action), 0, 0, 0, 0);\n}}\nasync function zirconExportFetchResource(uri, {{ streaming = false }} = {{}}) {{\n    const url = new URL(uri, location.href);\n    if (!url.pathname.startsWith(new URL(manifest.allowedAssetRoot, location.href).pathname)) {{\n        throw new Error(`Blocked Zircon resource fetch outside ${{manifest.allowedAssetRoot}}: ${{uri}}`);\n    }}\n    const response = await fetch(url);\n    return streaming ? response.body : new Uint8Array(await response.arrayBuffer());\n}}\nfunction zirconExportDispatchViewportMetrics() {{\n    const rect = canvas.getBoundingClientRect();\n    window.zirconRuntime?.handleViewportMetrics?.({{ width: rect.width, height: rect.height, scale: window.devicePixelRatio || 1 }});\n    zirconRuntimeExports.zircon_export_handle_viewport_metrics?.(Math.trunc(rect.width), Math.trunc(rect.height), window.devicePixelRatio || 1);\n}}\ncanvas.addEventListener('pointermove', (event) => zirconExportDispatchPointer(event.pointerId, 'moved', event.clientX, event.clientY));\nwindow.addEventListener('keydown', (event) => zirconExportDispatchKeyboard('pressed', event.code, event.key));\nwindow.addEventListener('keyup', (event) => zirconExportDispatchKeyboard('released', event.code, event.key));\nwindow.addEventListener('resize', zirconExportDispatchViewportMetrics);\nwindow.addEventListener('pageshow', () => zirconExportDispatchLifecycle('resumed'));\nwindow.addEventListener('pagehide', () => zirconExportDispatchLifecycle('suspended'));\nzirconRuntimeExports.zircon_export_start?.();\nzirconExportDispatchLifecycle('resumed');\nzirconExportDispatchViewportMetrics();\nwindow.zirconExportHost = {{\n    target: '{host_name}',\n    canvas,\n    adapter,\n    manifest,\n    wasmInstance,\n    runtimeExports: zirconRuntimeExports,\n    resourceManifest: './assets/zircon-project.toml',\n    fetchResource: zirconExportFetchResource,\n}};\n",
+        host_name = javascript_string_escape(host_name)
+    )
 }
 
 fn entry_profile(target_mode: RuntimeTargetMode) -> &'static str {

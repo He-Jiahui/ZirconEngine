@@ -90,13 +90,31 @@ fn websocket_feature_manager_rejects_connections_that_violate_security_policy_be
         }
     );
 
-    let mut pinning_required = NetWebSocketConnectDescriptor::new("wss://example.invalid/socket");
-    pinning_required.security.certificate_pinning = true;
+    let mut pinning_missing = NetWebSocketConnectDescriptor::new("wss://example.invalid/socket");
+    pinning_missing.security.certificate_pinning = true;
 
     assert_eq!(
-        net.connect_websocket(pinning_required).unwrap_err(),
+        net.connect_websocket(pinning_missing).unwrap_err(),
         NetError::SecurityPolicyViolation {
-            reason: "WebSocket certificate pinning is not configured".to_string(),
+            reason: "WebSocket certificate pinning has no configured pin for host: example.invalid"
+                .to_string(),
+        }
+    );
+}
+
+#[test]
+fn websocket_feature_manager_accepts_configured_certificate_pin_before_network_io() {
+    let net = websocket_runtime_manager();
+    let mut descriptor = NetWebSocketConnectDescriptor::new("wss://example.invalid/socket");
+    descriptor.security = NetSecurityPolicy::production_tls()
+        .with_certificate_pin("example.invalid", "sha256/example");
+
+    let error = net.connect_websocket(descriptor).unwrap_err();
+    assert_ne!(
+        error,
+        NetError::SecurityPolicyViolation {
+            reason: "WebSocket certificate pinning has no configured pin for host: example.invalid"
+                .to_string(),
         }
     );
 }

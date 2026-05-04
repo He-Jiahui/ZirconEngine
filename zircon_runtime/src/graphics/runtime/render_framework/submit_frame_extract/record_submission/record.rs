@@ -7,7 +7,7 @@ use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
 use super::super::runtime_feedback_batch::RuntimeFeedbackBatch;
 use super::super::submission_record_update::{
-    HybridGiStatSnapshot, SubmissionRecordUpdate, VirtualGeometryStatSnapshot,
+    HybridGiStatSnapshot, ParticleStatSnapshot, SubmissionRecordUpdate, VirtualGeometryStatSnapshot,
 };
 use super::record_capture::record_capture;
 use super::record_history::record_history;
@@ -20,7 +20,8 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     frame: ViewportFrame,
     runtime_feedback: RuntimeFeedbackBatch,
 ) -> SubmissionRecordUpdate {
-    let (hybrid_gi_feedback, virtual_geometry_feedback) = runtime_feedback.into_parts();
+    let (hybrid_gi_feedback, particle_feedback, virtual_geometry_feedback) =
+        runtime_feedback.into_parts();
     let hybrid_gi_feedback =
         hybrid_gi_feedback.with_evictable_probe_ids(prepared.take_hybrid_gi_evictable_probe_ids());
     let virtual_geometry_feedback = virtual_geometry_feedback
@@ -30,6 +31,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         record_history(record, context, &frame, allocated_history);
     record_capture(record, context, frame);
     let hybrid_gi_stats = update_hybrid_gi_runtime(record, hybrid_gi_feedback);
+    let particle_stats = particle_feedback_stat_snapshot(particle_feedback);
     let virtual_geometry_stats = update_virtual_geometry_runtime(
         record,
         virtual_geometry_feedback,
@@ -40,8 +42,26 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         history_handle,
         previous_handle,
         hybrid_gi_stats,
+        particle_stats,
         virtual_geometry_stats,
     )
+}
+
+fn particle_feedback_stat_snapshot(
+    feedback: crate::ParticleRuntimeFeedback,
+) -> ParticleStatSnapshot {
+    feedback
+        .into_gpu_feedback()
+        .map(|feedback| {
+            let outputs = feedback.into_readback_outputs();
+            ParticleStatSnapshot::new(
+                outputs.alive_count as usize,
+                outputs.spawned_total as usize,
+                outputs.per_emitter_spawned.len(),
+                outputs.indirect_draw_args,
+            )
+        })
+        .unwrap_or_default()
 }
 
 fn update_hybrid_gi_runtime(

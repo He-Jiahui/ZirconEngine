@@ -30,10 +30,19 @@ pub(super) struct VirtualGeometryStatSnapshot {
     indirect_segment_count: usize,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) struct ParticleStatSnapshot {
+    gpu_alive_count: usize,
+    gpu_spawned_total: usize,
+    gpu_emitter_readback_count: usize,
+    gpu_indirect_draw_args: [u32; 4],
+}
+
 pub(super) struct SubmissionRecordUpdate {
     history_handle: FrameHistoryHandle,
     previous_handle: Option<FrameHistoryHandle>,
     hybrid_gi_stats: HybridGiStatSnapshot,
+    particle_stats: ParticleStatSnapshot,
     virtual_geometry_stats: VirtualGeometryStatSnapshot,
 }
 
@@ -186,17 +195,51 @@ impl VirtualGeometryStatSnapshot {
     }
 }
 
+impl ParticleStatSnapshot {
+    pub(super) fn new(
+        gpu_alive_count: usize,
+        gpu_spawned_total: usize,
+        gpu_emitter_readback_count: usize,
+        gpu_indirect_draw_args: [u32; 4],
+    ) -> Self {
+        Self {
+            gpu_alive_count,
+            gpu_spawned_total,
+            gpu_emitter_readback_count,
+            gpu_indirect_draw_args,
+        }
+    }
+
+    pub(super) fn gpu_alive_count(&self) -> usize {
+        self.gpu_alive_count
+    }
+
+    pub(super) fn gpu_spawned_total(&self) -> usize {
+        self.gpu_spawned_total
+    }
+
+    pub(super) fn gpu_emitter_readback_count(&self) -> usize {
+        self.gpu_emitter_readback_count
+    }
+
+    pub(super) fn gpu_indirect_instance_count(&self) -> usize {
+        self.gpu_indirect_draw_args[1] as usize
+    }
+}
+
 impl SubmissionRecordUpdate {
     pub(super) fn new(
         history_handle: FrameHistoryHandle,
         previous_handle: Option<FrameHistoryHandle>,
         hybrid_gi_stats: HybridGiStatSnapshot,
+        particle_stats: ParticleStatSnapshot,
         virtual_geometry_stats: VirtualGeometryStatSnapshot,
     ) -> Self {
         Self {
             history_handle,
             previous_handle,
             hybrid_gi_stats,
+            particle_stats,
             virtual_geometry_stats,
         }
     }
@@ -211,6 +254,10 @@ impl SubmissionRecordUpdate {
 
     pub(super) fn hybrid_gi_stats(&self) -> &HybridGiStatSnapshot {
         &self.hybrid_gi_stats
+    }
+
+    pub(super) fn particle_stats(&self) -> &ParticleStatSnapshot {
+        &self.particle_stats
     }
 
     pub(super) fn virtual_geometry_stats(&self) -> &VirtualGeometryStatSnapshot {

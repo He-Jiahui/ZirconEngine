@@ -63,6 +63,20 @@ pub(super) struct HybridGiCardDescriptor {
 }
 
 impl HybridGiCardDescriptor {
+    pub(in crate::hybrid_gi::scene_representation) fn new(
+        card_id: u32,
+        mesh: RenderMeshSnapshot,
+        bounds_center: zircon_runtime::core::math::Vec3,
+        bounds_radius: f32,
+    ) -> Self {
+        Self {
+            card_id,
+            mesh,
+            bounds_center,
+            bounds_radius,
+        }
+    }
+
     pub(super) fn card_id(&self) -> u32 {
         self.card_id
     }
@@ -374,12 +388,12 @@ fn build_card_descriptors(meshes: &[RenderMeshSnapshot]) -> Vec<HybridGiCardDesc
     for mesh in meshes {
         cards.insert(
             mesh.node_id as u32,
-            HybridGiCardDescriptor {
-                card_id: mesh.node_id as u32,
-                mesh: mesh.clone(),
-                bounds_center: mesh.transform.translation,
-                bounds_radius: card_bounds_radius(mesh),
-            },
+            HybridGiCardDescriptor::new(
+                mesh.node_id as u32,
+                mesh.clone(),
+                mesh.transform.translation,
+                card_bounds_radius(mesh),
+            ),
         );
     }
     cards.into_values().collect()

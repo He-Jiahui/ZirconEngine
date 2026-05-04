@@ -1,4 +1,5 @@
 mod bootstrap;
+mod diagnostic_log_args;
 mod editor;
 mod headless;
 mod runtime;

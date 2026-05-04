@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use zircon_runtime::core::framework::net::{
-    NetConnectionId, NetConnectionState, NetControlMessage, NetError, NetEvent,
+    NetConnectionId, NetConnectionState, NetControlMessage, NetError, NetEvent, NetRequestId,
     NetSessionControlReport, NetSessionHandshakePolicy, NetSessionHandshakeState, NetSessionId,
     NetSessionInfo, RpcDescriptor, RpcDirection, RpcDispatchReport, RpcDispatchStatus,
     RpcInvocationDescriptor, RpcPeerRole,
@@ -33,8 +33,15 @@ struct NetRpcRuntimeState {
     quota_windows: HashMap<RpcQuotaKey, RpcQuotaWindow>,
     netspeed_windows: HashMap<NetSessionId, NetSpeedWindow>,
     queued_invocations: Vec<QueuedRpcInvocation>,
+    pending_requests: HashMap<NetRequestId, PendingRpcRequest>,
     next_queue_sequence: u64,
     max_queue_depth: usize,
+}
+
+#[derive(Clone, Debug)]
+struct PendingRpcRequest {
+    invocation: RpcInvocationDescriptor,
+    started_at: Instant,
 }
 
 #[derive(Clone, Debug)]
@@ -113,6 +120,7 @@ impl NetRpcRuntimeManager {
                 quota_windows: HashMap::new(),
                 netspeed_windows: HashMap::new(),
                 queued_invocations: Vec::new(),
+                pending_requests: HashMap::new(),
                 next_queue_sequence: 0,
                 max_queue_depth: DEFAULT_RPC_QUEUE_DEPTH,
             })),
@@ -295,6 +303,15 @@ impl NetRpcRuntimeManager {
             .cloned()
     }
 
+    pub fn pending_request(&self, request: NetRequestId) -> Option<RpcInvocationDescriptor> {
+        self.state
+            .lock()
+            .expect("net RPC state mutex poisoned")
+            .pending_requests
+            .get(&request)
+            .map(|pending| pending.invocation.clone())
+    }
+
     pub fn dispatch_rpc(
         &self,
         invocation: RpcInvocationDescriptor,
@@ -318,6 +335,7 @@ impl NetRpcRuntimeManager {
             let mut state = self.state.lock().expect("net RPC state mutex poisoned");
             let report = Self::validate_invocation(&mut state, &invocation, caller, true);
             let handler = if report.status == RpcDispatchStatus::Accepted {
+                Self::track_pending_request(&mut state, &invocation);
                 state.rpc_handlers.get(&invocation.rpc_id).cloned()
             } else {
                 None
@@ -329,16 +347,19 @@ impl NetRpcRuntimeManager {
             if report.status == RpcDispatchStatus::Accepted {
                 report.status = RpcDispatchStatus::NoHandler;
             }
+            self.complete_pending_request(&invocation);
             return report;
         };
 
-        match handler(&invocation) {
+        let report = match handler(&invocation) {
             Ok(payload) => report.with_response_payload(payload),
             Err(error) => {
                 report.status = RpcDispatchStatus::HandlerFailed;
                 report.with_diagnostic(error)
             }
-        }
+        };
+        self.complete_pending_request(&invocation);
+        report
     }
 
     pub fn enqueue_rpc(
@@ -411,6 +432,7 @@ impl NetRpcRuntimeManager {
             let mut state = self.state.lock().expect("net RPC state mutex poisoned");
             let report = Self::validate_invocation(&mut state, &invocation, caller, false);
             let handler = if report.status == RpcDispatchStatus::Accepted {
+                Self::track_pending_request(&mut state, &invocation);
                 state.rpc_handlers.get(&invocation.rpc_id).cloned()
             } else {
                 None
@@ -422,16 +444,43 @@ impl NetRpcRuntimeManager {
             if report.status == RpcDispatchStatus::Accepted {
                 report.status = RpcDispatchStatus::NoHandler;
             }
+            self.complete_pending_request(&invocation);
             return report;
         };
 
-        match handler(&invocation) {
+        let report = match handler(&invocation) {
             Ok(payload) => report.with_response_payload(payload),
             Err(error) => {
                 report.status = RpcDispatchStatus::HandlerFailed;
                 report.with_diagnostic(error)
             }
-        }
+        };
+        self.complete_pending_request(&invocation);
+        report
+    }
+
+    pub fn expire_pending_requests(&self) -> Vec<RpcDispatchReport> {
+        let now = Instant::now();
+        let mut state = self.state.lock().expect("net RPC state mutex poisoned");
+        let expired = state
+            .pending_requests
+            .iter()
+            .filter_map(|(request, pending)| {
+                pending.invocation.timeout_ms.and_then(|timeout_ms| {
+                    (timeout_ms == 0
+                        || now.duration_since(pending.started_at).as_millis() > timeout_ms as u128)
+                        .then_some(*request)
+                })
+            })
+            .collect::<Vec<_>>();
+        expired
+            .into_iter()
+            .filter_map(|request| state.pending_requests.remove(&request))
+            .map(|pending| {
+                RpcDispatchReport::for_invocation(&pending.invocation, RpcDispatchStatus::TimedOut)
+                    .with_diagnostic("pending RPC request timed out")
+            })
+            .collect()
     }
 
     fn validate_invocation(
@@ -532,6 +581,28 @@ impl NetRpcRuntimeManager {
         invocation
             .timeout_ms
             .is_some_and(|timeout_ms| timeout_ms == 0)
+    }
+
+    fn track_pending_request(state: &mut NetRpcRuntimeState, invocation: &RpcInvocationDescriptor) {
+        if let Some(request) = invocation.request {
+            state.pending_requests.insert(
+                request,
+                PendingRpcRequest {
+                    invocation: invocation.clone(),
+                    started_at: Instant::now(),
+                },
+            );
+        }
+    }
+
+    fn complete_pending_request(&self, invocation: &RpcInvocationDescriptor) {
+        if let Some(request) = invocation.request {
+            self.state
+                .lock()
+                .expect("net RPC state mutex poisoned")
+                .pending_requests
+                .remove(&request);
+        }
     }
 
     fn queued_invocation_timed_out(queued: &QueuedRpcInvocation, now: Instant) -> bool {

@@ -345,7 +345,8 @@ mod tests {
                 .find(|contract| contract.executor_id == registration.executor_id().as_str())
                 .expect("registration should map to an executor contract");
             let mut context = context_for_contract(contract);
-            registration.execute(&mut context)
+            registration
+                .execute(&mut context)
                 .unwrap_or_else(|error| panic!("{} failed: {error}", contract.executor_id));
         }
     }

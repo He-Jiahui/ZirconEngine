@@ -6,8 +6,10 @@ pub(crate) mod feature;
 pub mod hybrid_gi_extract_sources;
 pub(crate) mod hybrid_gi_runtime_provider;
 pub(crate) mod material;
+pub(crate) mod particle_runtime_provider;
 pub(crate) mod pipeline;
 pub(crate) mod runtime;
+mod runtime_prepare_collector;
 pub(crate) mod scene;
 pub(crate) mod shader;
 pub(crate) mod types;
@@ -28,6 +30,7 @@ pub use hybrid_gi_runtime_provider::{
     HybridGiRuntimeState, HybridGiRuntimeStats, HybridGiRuntimeUpdate,
 };
 pub use material::MaterialDomain;
+pub use particle_runtime_provider::{ParticleGpuFeedback, ParticleRuntimeFeedback};
 pub use pipeline::{
     CompiledRenderPipeline, CompiledRenderPipelinePassStage, RenderPassStage, RenderPipelineAsset,
     RenderPipelineCompileOptions, RendererAsset, RendererFeatureAsset, RendererFeatureSource,
@@ -38,6 +41,10 @@ pub use runtime::{
 pub use runtime_builtin_graphics::{
     module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
     RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+};
+pub use runtime_prepare_collector::{
+    RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
+    RuntimePrepareCollectorRegistration,
 };
 #[cfg(test)]
 pub(crate) use scene::ViewportOverlayRenderer;

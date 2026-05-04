@@ -125,7 +125,7 @@ mod tests {
     };
 
     #[test]
-    fn prepare_merge_keeps_only_hybrid_gi_and_virtual_geometry_sidebands() {
+    fn prepare_merge_keeps_particle_sideband_empty_until_particle_prepare_exists() {
         let merged = merge_prepare_plugin_renderer_outputs(
             RenderPluginRendererOutputs {
                 hybrid_gi: RenderHybridGiReadbackOutputs {

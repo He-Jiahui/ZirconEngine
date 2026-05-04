@@ -10,7 +10,9 @@ use zircon_runtime::core::framework::net::{
 };
 
 use crate::http::{ManagedHttpListener, ManagedHttpRoute};
-use crate::websocket::{ManagedWebSocketConnection, WebSocketRuntimeBackend, WebSocketRuntimeListener};
+use crate::websocket::{
+    ManagedWebSocketConnection, WebSocketRuntimeBackend, WebSocketRuntimeListener,
+};
 use crate::HttpRuntimeBackend;
 
 #[derive(Debug)]
@@ -43,7 +45,8 @@ pub(crate) struct NetRuntimeState {
     pub(crate) udp_sockets: Mutex<HashMap<NetSocketId, ManagedUdpSocket>>,
     pub(crate) tcp_listeners: Mutex<HashMap<NetListenerId, ManagedTcpListener>>,
     pub(crate) http_listeners: Mutex<HashMap<NetListenerId, ManagedHttpListener>>,
-    pub(crate) websocket_listeners: Mutex<HashMap<NetListenerId, Box<dyn WebSocketRuntimeListener>>>,
+    pub(crate) websocket_listeners:
+        Mutex<HashMap<NetListenerId, Box<dyn WebSocketRuntimeListener>>>,
     pub(crate) tcp_connections: Mutex<HashMap<NetConnectionId, ManagedTcpConnection>>,
     pub(crate) http_routes: Arc<Mutex<HashMap<NetRouteId, ManagedHttpRoute>>>,
     pub(crate) websocket_connections: Mutex<HashMap<NetConnectionId, ManagedWebSocketConnection>>,

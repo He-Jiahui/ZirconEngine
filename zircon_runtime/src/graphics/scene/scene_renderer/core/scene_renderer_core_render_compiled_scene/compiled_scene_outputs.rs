@@ -19,7 +19,10 @@ impl SceneRendererCompiledSceneOutputs {
 
     pub(in crate::graphics::scene::scene_renderer::core) fn into_parts(
         self,
-    ) -> (SceneRendererAdvancedPluginReadbacks, RenderGraphExecutionRecord) {
+    ) -> (
+        SceneRendererAdvancedPluginReadbacks,
+        RenderGraphExecutionRecord,
+    ) {
         (self.advanced_plugin_readbacks, self.render_graph_execution)
     }
 }

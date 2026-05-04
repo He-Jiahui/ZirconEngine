@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
-use crate::graphics::{RenderFeatureDescriptor, RenderPassExecutorRegistration};
+use crate::graphics::{
+    RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
+};
 
 use crate::graphics::types::GraphicsError;
 
@@ -26,6 +28,7 @@ impl SceneRenderer {
             icon_source,
             Vec::new(),
             Vec::new(),
+            Vec::new(),
         )
     }
 
@@ -34,9 +37,11 @@ impl SceneRenderer {
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Result<Self, GraphicsError> {
         let render_features = render_features.into_iter().collect::<Vec<_>>();
         let render_pass_executors = render_pass_executors.into_iter().collect::<Vec<_>>();
+        let runtime_prepare_collectors = runtime_prepare_collectors.into_iter().collect::<Vec<_>>();
         let backend = crate::graphics::backend::RenderBackend::new_offscreen()?;
         let core = SceneRendererCore::new_with_icon_source(
             asset_manager.clone(),
@@ -45,6 +50,7 @@ impl SceneRenderer {
             OFFSCREEN_FORMAT,
             icon_source,
             &render_features,
+            runtime_prepare_collectors,
         );
         let streamer = ResourceStreamer::new(
             asset_manager,

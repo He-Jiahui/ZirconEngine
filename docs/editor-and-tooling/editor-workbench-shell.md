@@ -10,6 +10,15 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/host_contract/window.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
@@ -91,6 +100,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/viewport/mod.rs
   - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
@@ -182,6 +192,14 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
 implementation_files:
   - zircon_ui/src/layout/constraints.rs
   - zircon_ui/src/layout/geometry.rs
@@ -191,6 +209,14 @@ implementation_files:
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/host_contract/window.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
@@ -340,6 +366,8 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/build_export.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
+  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/slint_window/shell_window.rs
 plan_sources:
   - user: 2026-04-13 JetBrains Hybrid Workbench Shell Spec + Implementation Plan
   - user: 2026-04-14 Slint Workbench 响应式 AutoLayout 与约束求解计划
@@ -362,6 +390,11 @@ plan_sources:
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
   - docs/superpowers/specs/2026-05-03-editor-core-usable-loop-design.md
   - docs/superpowers/plans/2026-05-03-editor-core-usable-loop.md
+  - user: 2026-05-04 fix exported editor executable run-loop exit
+  - user: 2026-05-04 exported editor executable shows white native window
+  - user: 2026-05-04 inspect abnormal exported editor display with startup diagnostics
+  - user: 2026-05-04 continue exported editor display repair as data-driven renderer then authored template renderer
+  - docs/superpowers/plans/2026-05-04-editor-host-data-driven-template-renderer.md
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -481,6 +514,27 @@ tests:
   - 2026-05-03 Milestone 4: cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-shared-a --message-format short --color never (timed out after compiling and running part of the lib suite)
   - 2026-05-03 Milestone 4: focused Milestone 1-3 filters for default layout/menu, pane payload, Slint projection, action parsing, and export queue (11/11 passed)
   - 2026-05-03 Milestone 4: .\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_editor -TargetDir target\codex-shared-a -VerboseOutput (passed build and test; existing warnings remain)
+  - 2026-05-04: cargo test -p zircon_editor --lib rust_owned_host_window_run_uses_native_event_loop --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-run-loop --message-format short --color never (passed)
+  - 2026-05-04: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\editor --locked --jobs 1 --message-format short --color never (passed with existing warnings)
+  - 2026-05-04: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed; Cargo PDB output filename collision warning remains)
+  - 2026-05-04: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 5 seconds in smoke check
+  - 2026-05-04: cargo test -p zircon_editor --lib rust_owned_host_window_snapshot_contains_editor_chrome_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-white-screen --message-format short --color never (RED failed with `[0, 0, 0, 0]` sampled pixels before presenter fix; GREEN passed after Rust-owned host painter)
+  - 2026-05-04: cargo test -p zircon_editor --lib rust_owned_host_window_run_uses_native_event_loop --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-white-screen --message-format short --color never (passed with existing warnings)
+  - 2026-05-04: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/window.rs zircon_editor/src/ui/slint_host/host_contract/painter.rs zircon_editor/src/ui/slint_host/host_contract/presenter.rs zircon_editor/src/tests/host/slint_window/shell_window.rs (passed)
+  - 2026-05-04: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\editor-white-screen-app --locked --jobs 1 --message-format short --color never (passed with existing warnings after warmed rerun; first cold compile attempt timed out)
+  - 2026-05-04: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed after native host paint path; existing Cargo PDB output filename collision warning remains)
+  - 2026-05-04: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 5 seconds in native paint-path smoke (`RUNNING_AFTER_5S PID=89048`)
+  - 2026-05-04: exported E:\zircon-build\ZirconEngine\zircon_editor.exe smoke with diagnostics wrote E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log; asset/import records had no `exists=false` or `path_exists=false`, and presenter records reached 1280x720 frames with populated scene/document presentation data
+  - 2026-05-04: git diff --check -- zircon_editor/Cargo.toml zircon_editor/src/ui/slint_host/host_contract/mod.rs zircon_editor/src/ui/slint_host/host_contract/window.rs zircon_editor/src/ui/slint_host/host_contract/painter.rs zircon_editor/src/ui/slint_host/host_contract/presenter.rs zircon_editor/src/tests/host/slint_window/shell_window.rs docs/editor-and-tooling/editor-workbench-shell.md .codex/sessions/20260504-1029-editor-native-white-screen.md (passed; LF-to-CRLF warnings only)
+  - 2026-05-04 M1 data-driven renderer: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-renderer-m1-check --message-format short --color never (passed with existing warnings)
+  - 2026-05-04 M1 data-driven renderer: cargo test -p zircon_editor --lib rust_owned_host_window_snapshot --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-renderer-m1-check --message-format short --color never (3 passed: chrome pixels, host scene data, pane template nodes; existing warnings remain)
+  - 2026-05-04 M1 data-driven renderer: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\editor-renderer-m1-app --locked --jobs 1 --message-format short --color never (passed with existing warnings)
+  - 2026-05-04 M2 authored template/render-command renderer: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs zircon_editor/src/tests/host/slint_window/shell_window.rs (passed)
+  - 2026-05-04 M2 authored template/render-command renderer: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-renderer-m2-check --message-format short --color never (passed with existing warnings)
+  - 2026-05-04 M2 authored template/render-command renderer: cargo test -p zircon_editor --lib rust_owned_host --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-renderer-m2-check --message-format short --color never (9 passed: run-loop and generic/native host guards plus chrome pixels, host scene data, pane template nodes, template node styles, order/clip, runtime render commands; existing warnings remain)
+  - 2026-05-04 M2 authored template/render-command renderer: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\editor-renderer-m2-app --locked --jobs 1 --message-format short --color never (passed with existing warnings)
+  - 2026-05-04 M2 authored template/render-command renderer: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed; existing Cargo PDB output filename collision warning remains)
+  - 2026-05-04 M2 authored template/render-command renderer: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 8 seconds in fresh post-build smoke, wrote E:\zircon-build\ZirconEngine\logs\2026-05-04-20-30-04\editor.log, recorded editor_host_presenter frames 1-5 at 1280x720 with populated scene/document data, and had no error/warn/missing/failed/path-not-found matches in that run
 doc_type: module-detail
 ---
 
@@ -525,6 +579,42 @@ doc_type: module-detail
 - [`workbench_slint_shell.rs`](/E:/Git/ZirconEngine/zircon_editor/tests/workbench_slint_shell.rs) 与 [`template_assets.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/ui/boundary/template_assets.rs) 现在把这条边界锁成源码守卫：root 与 `host_components.slint` 不得再直接 import `pane_surface/assets/panes/welcome/animation_editor_pane`，而 `host_workbench_surfaces.slint` 成为唯一允许承接 pane-surface seam 的 workbench surface owner
 
 因此，当前“`workbench.slint` 仍是业务真源”的说法对这个工作区已经不成立。更大面的 generic host boundary 任务仍然存在，但残留位置已经从 root bootstrap 收缩到 `host_surface.slint` 的高层 property orchestration / business mapping 面，以及更深一层的 pane-local schema。
+
+## 2026-05-04 Native Host Run Loop
+
+`zircon_app` 的 `zircon_editor` binary 仍然通过 `zircon_editor::run_editor(...) -> SlintEditorHost::run() -> UiHostWindow::run()` 进入 editor shell，但 Rust-owned `UiHostWindow` 现在不再只是把 host contract 标记为 visible 后立即返回。`zircon_editor/src/ui/slint_host/host_contract/window.rs` 在 `run()` 内创建 native `winit` `EventLoop`，用 `ApplicationHandler` 创建一个最小 OS window，并把 resize、move、maximized 和 close-request state 同步回原有 `HostContractState`。这样保持了当前 Rust-owned host-contract architecture，不恢复 `slint::include_modules!()` 或 deleted generated Slint modules，同时让导出的 `zircon_editor.exe` 持有真实 native event loop。
+
+这条修复刻意只补 executable/window lifetime，不扩大到 Build Export、plugin packaging 或 secondary native presenter 重构。`rust_owned_host_window_run_uses_native_event_loop` 源码守卫要求 `UiHostWindow::run()` 继续使用 `winit::application::ApplicationHandler`、`EventLoop::new().map_err(platform_error)?`、`run_app` 和 `WindowEvent::CloseRequested`，并拒绝回退到旧的 `self.show()` 后立即返回路径。2026-05-04 的 focused evidence 覆盖 editor binary check、export build 和 exported executable smoke：`E:\zircon-build\ZirconEngine\zircon_editor.exe` 在 5 秒后仍保持运行。
+
+## 2026-05-04 Native Host Paint Path
+
+run-loop 修复后暴露出的下一个问题是 native window 真实存在但没有任何 content presenter：`UiHostWindow::run()` 创建了 `winit` OS window，`SlintEditorHost` 也会把 `HostWindowPresentationData` 写入 Rust-owned host contract，但 `WindowEvent::RedrawRequested` 没有把这份 presentation 画到 surface 上，`HostWindowHandle::take_snapshot()` 也只返回全零 RGBA。新的 `rust_owned_host_window_snapshot_contains_editor_chrome_pixels` 先锁住这个 lower-layer regression：设置 center/document/status/viewport frames 后，旧实现采样到的仍是 `[0, 0, 0, 0]` blank pixels。
+
+修复保持在 `zircon_editor/src/ui/slint_host/host_contract/` 内部，不恢复 generated Slint modules。第一版 native paint path 把 `HostWindowPresentationData` 的 shell/layout 字段转换成一帧最小 Rust-owned editor chrome RGBA：top bar、center band、left/document/viewport/status 区域和少量 marker bar 共同保证 snapshot 与 native presenter 都不是白屏/空 surface。`presenter.rs` 用与 runtime presenter 同类的 `softbuffer` surface，把同一份 CPU-painted frame 写入 native `winit` window；`window.rs` 在 create-surface 阶段创建 presenter，在 resize 时同步 surface，在 `RedrawRequested` 与 `about_to_wait` 的 redraw request 循环中持续 present 当前 host presentation。
+
+这条 paint path 是当前 Rust-owned host contract 的最低可见性层，不试图替代后续完整 Slint/workbench scene renderer。它的 acceptance boundary 是：native editor window 有真实非空 content，snapshot 能证明 host chrome region 不同色，run-loop guard 仍然禁止回退到立即返回路径，export/app check 与 smoke 再证明 `zircon_app` 的 editor binary 能带着 presenter 编译并运行。
+
+2026-05-04 的 file-backed exported smoke 进一步确认异常显示不在 asset/import 或 presentation 空数据层：`E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log` 没有 `exists=false` / `path_exists=false`，`editor_host_window` 在创建 native window 前收到了 project path、viewport label 和非零 center/document/viewport frame，`editor_host_presenter` 随后连续 present `1280x720` frame，并记录 `page_tabs=1`、`document_tabs=2`、`document_pane_kind=Scene`。因此，后续 display repair 的正确边界是让 native host renderer 消费 already-populated authored scene DTO，而不是回退到 generated Slint modules 或 asset/import fallback。
+
+## 2026-05-04 Data-Driven Native Host Renderer
+
+M1 renderer 把原来单文件 skeletal painter 拆成 `host_contract/painter/` folder-backed subsystem：`frame.rs` 只持有 `HostRgbaFrame`，`geometry.rs` 只处理可见性、translation、intersection 与 pixel clip，`primitives.rs` 只画稳定 CPU primitives，`template_nodes.rs` 把 `TemplatePaneNodeData` role/style/text 转成 deterministic panel/button/text-bar visuals，`workbench.rs` 负责按 host scene z-order 组合 menu/page/status/dock/pane/floating/resize surfaces。`mod.rs` 只暴露 `paint_host_frame(...)` 和 `HostRgbaFrame` 给 `window.rs` 与 `presenter.rs`。
+
+数据源现在优先来自 `HostWindowPresentationData.host_scene_data`：root layout、menu chrome、page chrome、status bar、left/right/document/bottom dock surface、pane body DTO、floating windows 和 resize layer 都由 host scene DTO 驱动；`host_layout` 只在 scene frame 缺席时作为最低 fallback。pane body 不是再画单个 marker，而是根据 `PaneData.kind` 读取对应的 `TemplatePaneNodeData` list，例如 Hierarchy、Inspector、Console、Assets、AssetBrowser、Project、BuildExport、ModulePlugins、UiAssetEditor 与 Animation pane 都通过同一条 template-node drawing path 进入 native RGBA frame。
+
+M1 deliberately remains CPU/deterministic: text is represented by stable bars keyed by text bytes, image/icon loading is not introduced, invalid or zero-size frames are skipped through shared geometry guards, and clipping is applied at every template-node/surface boundary. This keeps `HostWindowHandle::take_snapshot()` useful for regression tests and keeps the exported `softbuffer` presenter on the same paint entry as the test snapshot path.
+
+Focused M1 evidence is recorded in the frontmatter test list: editor library check passed, `rust_owned_host_window_snapshot` ran the existing chrome regression plus new host-scene and pane-template-node regressions, and the `zircon_app` editor binary target check passed. Existing warning noise remains in runtime/editor dead-code imports and is not hidden by the renderer milestone.
+
+## 2026-05-04 Authored Template Render-Command Renderer
+
+M2 keeps the `workbench.rs` renderer as scene orchestration but moves template visual drawing onto a shared CPU command backend. `painter/render_commands.rs` owns `HostPaintCommand`, deterministic command ordering, runtime `UiRenderCommand` adaptation, style color parsing for `#rgb`, `#rgba`, `#rrggbb` and `#rrggbbaa`, opacity application, border-width rasterization, and deterministic text/image placeholders. `template_nodes.rs` now maps `TemplatePaneNodeData` into those host commands instead of drawing each node with an ad hoc path, so menu/page/status/dock header/rail/pane body nodes use the same primitive backend as runtime-style render commands.
+
+The normal source of editor host pixels remains `HostWindowPresentationData.host_scene_data`; the skeletal `host_layout` painter is only a missing-scene fallback. Authored `.ui.toml` projections that arrive as template-node DTOs now preserve selected/disabled/hovered/button variants, borders, stable labels, z/list order, and clipping to the pane or dock surface. Runtime-style `UiRenderCommandKind::Quad`, `Text`, `Image`, and `Group` are supported through the same backend without loading font or image assets, which keeps snapshots deterministic and avoids adding a new asset lifetime rule inside the native host.
+
+Focused M2 regressions cover the backend contract directly: `rust_owned_host_window_snapshot_renders_template_node_styles` samples selected, primary, disabled, and label-only node output; `rust_owned_host_window_snapshot_respects_template_node_order_and_clip` locks traversal order and pane clipping; `rust_owned_host_painter_draws_runtime_render_commands` builds `UiRenderCommand` values and proves quad, z-order, text, and image placeholder output. The M2 rerun also kept the M1 host-scene and pane-template-node snapshot coverage green through the shared backend, and the broader `rust_owned_host` filter kept the run-loop and generic/native host contract guards green in the same target directory.
+
+Export smoke after the M2 build used `E:\zircon-build\ZirconEngine\zircon_editor.exe` from the packaged folder. The process was still alive after 8 seconds and was stopped intentionally; `E:\zircon-build\ZirconEngine\logs\2026-05-04-20-30-04\editor.log` recorded `editor_host_presenter` frames `1` through `5` at `1280x720` with project path, center/document/viewport frames, `page_tabs=1`, `document_tabs=2`, and `document_pane_kind=Scene`. The same log had no `error`, `warn`, `missing`, `failed`, `exists=false`, or `path_exists=false` matches, so the remaining display boundary is no longer asset/template availability or native presenter lifetime.
 
 ## Latest Host Component Catalog Cut
 

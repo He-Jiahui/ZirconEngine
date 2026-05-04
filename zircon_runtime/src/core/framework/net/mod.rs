@@ -48,5 +48,5 @@ pub use sync::{
     SyncAuthority, SyncComponentDescriptor, SyncDelta, SyncFieldDescriptor, SyncFieldValue,
     SyncInterestDescriptor, SyncObjectSnapshot,
 };
-pub use transport::{NetConnectionState, NetSecurityPolicy, NetTransportKind};
+pub use transport::{NetCertificatePin, NetConnectionState, NetSecurityPolicy, NetTransportKind};
 pub use websocket::{NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame};

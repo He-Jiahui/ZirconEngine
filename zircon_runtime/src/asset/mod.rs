@@ -14,6 +14,7 @@ pub mod importer;
 mod load;
 pub mod pipeline;
 pub mod project;
+mod runtime_asset_path;
 mod virtual_geometry_cook;
 pub mod watch;
 
@@ -66,6 +67,9 @@ pub(crate) use pipeline::{types, worker_pool};
 #[allow(unused_imports)]
 pub(crate) use project::{
     AssetMetaDocument, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
+};
+pub use runtime_asset_path::{
+    runtime_asset_path, runtime_asset_path_with_dev_asset_root, runtime_asset_root,
 };
 pub use virtual_geometry_cook::{
     cook_virtual_geometry_from_mesh, encode_virtual_geometry_cook_binary_dump,

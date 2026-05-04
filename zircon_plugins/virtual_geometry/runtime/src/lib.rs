@@ -1,6 +1,7 @@
 use zircon_runtime::graphics::{
     RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-    RenderPassExecutorRegistration, RenderPassStage,
+    RenderPassExecutorRegistration, RenderPassStage, RuntimePrepareCollectorContext,
+    RuntimePrepareCollectorRegistration,
 };
 use zircon_runtime::render_graph::QueueLane;
 
@@ -50,6 +51,7 @@ impl zircon_runtime::plugin::RuntimePlugin for VirtualGeometryRuntimePlugin {
         for registration in render_pass_executor_registrations() {
             registry.register_render_pass_executor(registration)?;
         }
+        registry.register_runtime_prepare_collector(runtime_prepare_collector_registration())?;
         registry.register_virtual_geometry_runtime_provider(
             virtual_geometry_runtime_provider_registration(),
         )
@@ -151,6 +153,24 @@ pub fn render_pass_executor_registrations() -> Vec<RenderPassExecutorRegistratio
     ]
 }
 
+pub fn runtime_prepare_collector_registration() -> RuntimePrepareCollectorRegistration {
+    RuntimePrepareCollectorRegistration::new(
+        "virtual-geometry.runtime-prepare",
+        virtual_geometry_runtime_prepare_collector,
+    )
+}
+
+fn virtual_geometry_runtime_prepare_collector(
+    context: &mut RuntimePrepareCollectorContext<'_>,
+) -> Result<
+    zircon_runtime::core::framework::render::RenderPluginRendererOutputs,
+    zircon_runtime::graphics::GraphicsError,
+> {
+    Ok(crate::virtual_geometry::runtime_prepare_renderer_outputs(
+        context,
+    ))
+}
+
 pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescriptor {
     zircon_runtime::plugin::RuntimePluginDescriptor::new(
         PLUGIN_ID,
@@ -242,6 +262,11 @@ mod tests {
             ]
         );
         assert_eq!(report.extensions.render_pass_executors().len(), 5);
+        assert_eq!(report.extensions.runtime_prepare_collectors().len(), 1);
+        assert_eq!(
+            report.extensions.runtime_prepare_collectors()[0].collector_id(),
+            "virtual-geometry.runtime-prepare"
+        );
         assert_eq!(
             report
                 .extensions

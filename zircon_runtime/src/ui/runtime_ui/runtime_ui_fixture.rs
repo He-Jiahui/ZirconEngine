@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use crate::asset::runtime_asset_path;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub(crate) enum RuntimeUiFixture {
     HudOverlay,
@@ -28,8 +30,6 @@ impl RuntimeUiFixture {
     }
 
     pub(crate) fn asset_path(self) -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("assets")
-            .join(self.relative_asset_path())
+        runtime_asset_path(self.relative_asset_path())
     }
 }

@@ -1,5 +1,8 @@
 use crate::hybrid_gi::renderer::HybridGiGpuReadback;
-use zircon_runtime::core::framework::render::RenderPluginRendererOutputs;
+use zircon_runtime::core::framework::render::{
+    RenderHybridGiReadbackOutputs, RenderPluginRendererOutputs,
+};
+use zircon_runtime::graphics::RuntimePrepareCollectorContext;
 
 use super::hybrid_gi_readback_outputs::HybridGiReadbackOutputs;
 
@@ -13,6 +16,25 @@ pub(in crate::hybrid_gi::renderer) fn plugin_renderer_outputs_from_gpu_readback(
         hybrid_gi: readback_outputs.take_neutral_readback_outputs(),
         ..RenderPluginRendererOutputs::default()
     }
+}
+
+pub(in crate::hybrid_gi::renderer) fn plugin_renderer_outputs_from_hybrid_gi_readback(
+    hybrid_gi: RenderHybridGiReadbackOutputs,
+) -> RenderPluginRendererOutputs {
+    RenderPluginRendererOutputs {
+        hybrid_gi,
+        ..RenderPluginRendererOutputs::default()
+    }
+}
+
+pub(crate) fn runtime_prepare_renderer_outputs(
+    context: &RuntimePrepareCollectorContext<'_>,
+) -> RenderPluginRendererOutputs {
+    // Keep the collector honest: mirror only neutral provider sidebands and do
+    // not fabricate a concrete HybridGiGpuReadback when none exists.
+    plugin_renderer_outputs_from_hybrid_gi_readback(
+        context.prepared_hybrid_gi_readback_outputs().clone(),
+    )
 }
 
 #[cfg(test)]
@@ -62,5 +84,28 @@ mod tests {
         assert!(outputs.virtual_geometry.is_empty());
         assert!(outputs.particles.is_empty());
         assert!(!outputs.is_empty());
+    }
+
+    #[test]
+    fn runtime_prepare_renderer_outputs_do_not_fabricate_hybrid_gi_readbacks() {
+        let outputs = plugin_renderer_outputs_from_hybrid_gi_readback(
+            RenderHybridGiReadbackOutputs::default(),
+        );
+
+        assert!(outputs.is_empty());
+        assert!(outputs.hybrid_gi.is_empty());
+    }
+
+    #[test]
+    fn runtime_prepare_renderer_outputs_package_prepared_hybrid_gi_sideband() {
+        let outputs =
+            plugin_renderer_outputs_from_hybrid_gi_readback(RenderHybridGiReadbackOutputs {
+                completed_probe_ids: vec![31, 32],
+                ..RenderHybridGiReadbackOutputs::default()
+            });
+
+        assert_eq!(outputs.hybrid_gi.completed_probe_ids, vec![31, 32]);
+        assert!(outputs.virtual_geometry.is_empty());
+        assert!(outputs.particles.is_empty());
     }
 }

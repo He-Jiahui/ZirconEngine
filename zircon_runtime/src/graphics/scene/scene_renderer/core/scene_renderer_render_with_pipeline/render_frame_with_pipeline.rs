@@ -105,4 +105,11 @@ impl SceneRenderer {
         self.last_render_graph_execution
             .executed_queue_lane_count(queue)
     }
+
+    pub(crate) fn last_render_graph_executed_stage_count(
+        &self,
+        stage: crate::graphics::pipeline::RenderPassStage,
+    ) -> usize {
+        self.last_render_graph_execution.executed_stage_count(stage)
+    }
 }

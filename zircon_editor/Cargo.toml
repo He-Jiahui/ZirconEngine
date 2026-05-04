@@ -8,12 +8,14 @@ build = "build.rs"
 
 [dependencies]
 crossbeam-channel.workspace = true
+fontdue = "0.9.3"
 gltf.workspace = true
 image.workspace = true
 notify.workspace = true
 serde.workspace = true
 serde_json = "1.0.149"
 slint.workspace = true
+softbuffer = "0.4.6"
 thiserror.workspace = true
 toml.workspace = true
 winit.workspace = true

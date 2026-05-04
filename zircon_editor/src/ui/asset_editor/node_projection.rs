@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
+use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::template::UiTemplateBuildError;
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
@@ -201,7 +202,11 @@ fn build_ui_asset_editor_node_projection(
 }
 
 fn asset_path(relative: &str) -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join(relative.trim_start_matches('/'))
+    runtime_asset_path_with_dev_asset_root(relative, editor_dev_asset_root())
+}
+
+fn editor_dev_asset_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
 fn find_node(nodes: &[ViewTemplateNodeData], control_id: &str) -> ViewTemplateNodeData {

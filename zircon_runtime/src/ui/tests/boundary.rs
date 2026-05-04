@@ -1034,9 +1034,8 @@ fn runtime_fixture_loader_stays_on_asset_paths() {
     for required in [
         "fn relative_asset_path",
         "fn asset_path",
-        "Path::new(env!(\"CARGO_MANIFEST_DIR\"))",
-        ".join(\"assets\")",
-        ".join(self.relative_asset_path())",
+        "use crate::asset::runtime_asset_path",
+        "runtime_asset_path(self.relative_asset_path())",
     ] {
         assert!(
             fixture_source.contains(required),

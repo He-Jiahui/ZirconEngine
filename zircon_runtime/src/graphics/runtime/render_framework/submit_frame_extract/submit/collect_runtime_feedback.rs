@@ -1,9 +1,11 @@
+use crate::core::framework::render::RenderParticleGpuReadbackOutputs;
+#[cfg(test)]
 use crate::core::framework::render::{
     RenderHybridGiReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
 };
 use crate::{
-    HybridGiGpuCompletion, HybridGiRuntimeFeedback, SceneRenderer, VirtualGeometryGpuCompletion,
-    VirtualGeometryRuntimeFeedback,
+    HybridGiGpuCompletion, HybridGiRuntimeFeedback, ParticleGpuFeedback, ParticleRuntimeFeedback,
+    SceneRenderer, VirtualGeometryGpuCompletion, VirtualGeometryRuntimeFeedback,
 };
 
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -17,6 +19,7 @@ pub(super) fn collect_runtime_feedback(
 ) -> RuntimeFeedbackBatch {
     RuntimeFeedbackBatch::new(
         collect_hybrid_gi_feedback(renderer, context, prepared),
+        collect_particle_feedback(renderer, prepared),
         collect_virtual_geometry_feedback(renderer, context, prepared),
     )
 }
@@ -24,12 +27,9 @@ pub(super) fn collect_runtime_feedback(
 fn collect_hybrid_gi_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    _prepared: &PreparedRuntimeSubmission,
 ) -> HybridGiRuntimeFeedback {
-    let readback_outputs = merge_hybrid_gi_readback_outputs(
-        renderer.take_last_hybrid_gi_readback_outputs(),
-        prepared.hybrid_gi_readback_outputs(),
-    );
+    let readback_outputs = renderer.take_last_hybrid_gi_readback_outputs();
 
     HybridGiRuntimeFeedback::new(
         HybridGiGpuCompletion::from_readback_outputs(readback_outputs),
@@ -37,15 +37,26 @@ fn collect_hybrid_gi_feedback(
     )
 }
 
+fn collect_particle_feedback(
+    renderer: &mut SceneRenderer,
+    prepared: &PreparedRuntimeSubmission,
+) -> ParticleRuntimeFeedback {
+    let readback_outputs = merge_particle_readback_outputs(
+        renderer.take_last_particle_gpu_readback_outputs(),
+        prepared.particle_readback_outputs(),
+    );
+    let gpu_feedback =
+        (!readback_outputs.is_empty()).then(|| ParticleGpuFeedback::new(readback_outputs));
+
+    ParticleRuntimeFeedback::new(gpu_feedback)
+}
+
 fn collect_virtual_geometry_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    prepared: &PreparedRuntimeSubmission,
+    _prepared: &PreparedRuntimeSubmission,
 ) -> VirtualGeometryRuntimeFeedback {
-    let mut readback_outputs = merge_virtual_geometry_readback_outputs(
-        renderer.take_last_virtual_geometry_readback_outputs(),
-        prepared.virtual_geometry_readback_outputs(),
-    );
+    let mut readback_outputs = renderer.take_last_virtual_geometry_readback_outputs();
     let node_and_cluster_cull_page_requests =
         readback_outputs.take_node_and_cluster_cull_page_request_ids();
 
@@ -57,6 +68,7 @@ fn collect_virtual_geometry_feedback(
     )
 }
 
+#[cfg(test)]
 fn merge_hybrid_gi_readback_outputs(
     mut renderer_outputs: RenderHybridGiReadbackOutputs,
     sideband_outputs: &RenderHybridGiReadbackOutputs,
@@ -97,6 +109,7 @@ fn merge_hybrid_gi_readback_outputs(
     renderer_outputs
 }
 
+#[cfg(test)]
 fn append_hybrid_gi_scene_prepare_readback(
     renderer_outputs: &mut crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
     sideband_outputs: &crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
@@ -148,6 +161,18 @@ fn append_hybrid_gi_scene_prepare_readback(
         .max(sideband_outputs.texture_layers);
 }
 
+fn merge_particle_readback_outputs(
+    renderer_outputs: RenderParticleGpuReadbackOutputs,
+    sideband_outputs: &RenderParticleGpuReadbackOutputs,
+) -> RenderParticleGpuReadbackOutputs {
+    if !renderer_outputs.is_empty() {
+        return renderer_outputs;
+    }
+
+    sideband_outputs.clone()
+}
+
+#[cfg(test)]
 fn merge_virtual_geometry_readback_outputs(
     mut renderer_outputs: RenderVirtualGeometryReadbackOutputs,
     sideband_outputs: &RenderVirtualGeometryReadbackOutputs,
@@ -226,10 +251,14 @@ fn merge_virtual_geometry_readback_outputs(
 
 #[cfg(test)]
 mod tests {
-    use super::{merge_hybrid_gi_readback_outputs, merge_virtual_geometry_readback_outputs};
+    use super::{
+        merge_hybrid_gi_readback_outputs, merge_particle_readback_outputs,
+        merge_virtual_geometry_readback_outputs,
+    };
     use crate::core::framework::render::{
         RenderHybridGiReadbackOutputs, RenderHybridGiScenePrepareReadbackOutputs,
-        RenderHybridGiScenePrepareSample, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
+        RenderHybridGiScenePrepareSample, RenderParticleGpuReadbackOutputs,
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs,
         RenderVirtualGeometryPageAssignmentRecord, RenderVirtualGeometryReadbackOutputs,
     };
 
@@ -289,5 +318,32 @@ mod tests {
 
         assert_eq!(merged.completed_page_assignments.len(), 1);
         assert_eq!(merged.node_cluster_cull.page_request_ids, vec![300, 301]);
+    }
+
+    #[test]
+    fn merge_particle_sideband_uses_renderer_payload_as_authority() {
+        let sideband = RenderParticleGpuReadbackOutputs {
+            alive_count: 2,
+            spawned_total: 2,
+            per_emitter_spawned: vec![2],
+            indirect_draw_args: [6, 2, 0, 0],
+            ..RenderParticleGpuReadbackOutputs::default()
+        };
+        let renderer = RenderParticleGpuReadbackOutputs {
+            alive_count: 4,
+            spawned_total: 4,
+            per_emitter_spawned: vec![4],
+            indirect_draw_args: [6, 4, 0, 0],
+            ..RenderParticleGpuReadbackOutputs::default()
+        };
+
+        assert_eq!(
+            merge_particle_readback_outputs(RenderParticleGpuReadbackOutputs::default(), &sideband),
+            sideband
+        );
+        assert_eq!(
+            merge_particle_readback_outputs(renderer.clone(), &sideband),
+            renderer
+        );
     }
 }

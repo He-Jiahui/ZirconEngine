@@ -16,6 +16,7 @@ impl ViewportRenderFrame {
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
             ui: None,
             virtual_geometry_debug_snapshot: None,
+            prepared_runtime_sidebands: Default::default(),
         }
     }
 }

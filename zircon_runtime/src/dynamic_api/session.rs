@@ -7,10 +7,15 @@ use zircon_runtime_interface::{
     ZrByteSlice, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
     ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
     ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
-    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
     ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
-    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
 };
 
 use crate::core::framework::input::{InputButton, InputEvent, InputManager};
@@ -186,6 +191,9 @@ impl RuntimeDynamicSession {
                 self.handle_scroll(event.delta);
                 ZrStatus::ok()
             }
+            ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1 => ZrStatus::ok(),
+            ZR_RUNTIME_EVENT_KIND_TOUCH_V1 => self.handle_touch(event),
+            ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1 => self.handle_keyboard(event),
             _ => invalid_argument(b"unknown runtime event kind"),
         }
     }
@@ -241,6 +249,49 @@ impl RuntimeDynamicSession {
                 self.handle_released(event.button);
             }
             _ => return invalid_argument(b"unknown runtime button state"),
+        }
+        ZrStatus::ok()
+    }
+
+    fn handle_touch(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let cursor = Vec2::new(event.x, event.y);
+        self.input_manager.submit_event(InputEvent::CursorMoved {
+            x: cursor.x,
+            y: cursor.y,
+        });
+        match event.state {
+            ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => {
+                self.input_manager
+                    .submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
+                self.handle_cursor_moved(cursor);
+                self.handle_pressed(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
+            }
+            ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => self.handle_cursor_moved(cursor),
+            ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 | ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => {
+                self.cursor = cursor;
+                self.input_manager
+                    .submit_event(InputEvent::ButtonReleased(InputButton::MouseLeft));
+                self.handle_released(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
+            }
+            _ => return invalid_argument(b"unknown runtime touch phase"),
+        }
+        ZrStatus::ok()
+    }
+
+    fn handle_keyboard(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let Some(button) = keyboard_button(event.key_code) else {
+            return ZrStatus::ok();
+        };
+        match event.button {
+            ZR_RUNTIME_KEY_ACTION_PRESSED_V1 => {
+                self.input_manager
+                    .submit_event(InputEvent::ButtonPressed(button));
+            }
+            ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => {
+                self.input_manager
+                    .submit_event(InputEvent::ButtonReleased(button));
+            }
+            _ => return ZrStatus::ok(),
         }
         ZrStatus::ok()
     }
@@ -318,6 +369,15 @@ fn input_button(button: u32) -> Option<InputButton> {
         ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => Some(InputButton::MouseLeft),
         ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1 => Some(InputButton::MouseRight),
         ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1 => Some(InputButton::MouseMiddle),
+        _ => None,
+    }
+}
+
+fn keyboard_button(key_code: u32) -> Option<InputButton> {
+    match key_code {
+        16 => Some(InputButton::Key("Shift".to_string())),
+        17 => Some(InputButton::Key("Control".to_string())),
+        18 => Some(InputButton::Key("Alt".to_string())),
         _ => None,
     }
 }

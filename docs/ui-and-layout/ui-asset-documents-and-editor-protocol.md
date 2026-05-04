@@ -82,6 +82,11 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_runtime/src/asset/runtime_asset_path.rs
+  - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
@@ -201,6 +206,9 @@ implementation_files:
   - zircon_runtime_interface/src/ui/tree/mod.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
+  - zircon_runtime/src/asset/runtime_asset_path.rs
+  - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
@@ -225,6 +233,8 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
+  - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
@@ -258,6 +268,8 @@ plan_sources:
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
   - user: 2026-05-02 execute M21 then M14 runtime foundation
   - user: 2026-05-02 continue package/cache classification and editor template-service façade
+  - user: 2026-05-04 stage editor/runtime assets into exported ZirconEngine folder
+  - user: 2026-05-04 inspect exported editor display through file-backed diagnostics
 tests:
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
@@ -451,6 +463,16 @@ After the 2026-05-02 UI runtime-interface split, the canonical neutral DTO decla
 The M2 runtime hard-cutover now removes the runtime-local shadow modules for UI binding values, event control/reflection DTOs, component values, component descriptors, component data-source descriptors, template asset documents, template documents, resource/invalidation/action-policy/localization reports, package validation reports, schema migration reports, layout geometry/window DTOs, surface render DTOs, and UI tree/node DTOs. Runtime behavior imports neutral records from `zircon_runtime_interface::ui::*` and keeps behavior-only seams such as `UiAssetDocumentRuntimeExt`, `validate_component_descriptor(...)`, `extract_ui_render_tree(&UiTree)`, `virtual_window_for_scrollable_box(...)`, `UiRuntimeTreeAccessExt`, `UiRuntimeTreeRoutingExt`, `UiRuntimeTreeScrollExt`, `compiled_asset_header_from_cache_key(...)`, and `compiled_asset_dependency_manifest_from_imports(...)`. Editor/runtime projection code that needs template render commands calls `extract_ui_render_tree(&surface.tree)` instead of adding `UiRenderExtract::from_tree` behavior back onto the interface DTO. The focused runtime acceptance commands on 2026-05-02 are `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never` and `cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never`; both passed with existing warnings only.
 
 The editor import audit does not change that ownership split. `zircon_editor/src` already imports many neutral records directly from `zircon_runtime_interface::ui`, but it still has runtime `zircon_runtime::ui` imports where the editor is constructing or dispatching concrete runtime surfaces. The lower-layer tree/surface identity blocker is now cut over: `UiSurface` stores the interface-owned `UiTree` directly, editor files that construct surfaces or nodes import `UiTree`, `UiTreeNode`, `UiInputPolicy`, and `UiTreeError` from `zircon_runtime_interface::ui::tree`, and files that call insertion, query, mutation, routing, focus, or scroll behavior import the needed `zircon_runtime::ui::tree::UiRuntimeTree*Ext` traits. The latest audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits under `zircon_editor/src`; remaining editor import work is a non-tree DTO-by-DTO split around concrete runtime services rather than a mechanical rewrite of `UiSurface`, `UiPointerDispatcher`, `UiAssetLoader`, or compiler/builder behavior imports. `UiAssetLoader` and the schema migrator are an example of the intended split: the loader behavior stays in runtime, while its `UiAssetMigrationOutcome` and schema report rows are imported from `zircon_runtime_interface::ui::template`.
+
+## Exported Builtin Asset Lookup
+
+Editor/runtime built-in UI assets share the staged engine asset root. `tools/zircon_build.py` copies `zircon_editor/assets` and `zircon_runtime/assets` into `<out>/ZirconEngine/assets`, and `zircon_runtime::asset::runtime_asset_path(...)` resolves built-in paths by checking `ZIRCON_ASSET_ROOT`, executable-adjacent `assets`, current-directory `assets`, call-site development roots, then crate-local `assets` for development. Editor call sites use the same staged lookup but provide `zircon_editor/assets` as their development fallback because editor templates are authored in the editor crate rather than the runtime crate.
+
+The resolver prefers the first root that contains the requested relative file, not merely the first existing asset root. If no candidate contains that file, it returns the first existing root plus the normalized relative path and logs `path_exists=false`. The startup diagnostic sink mirrors this evidence to console and to `logs/<timestamp>/editor.log` or `runtime.log`, so exported editor/runtime failures can distinguish missing staged assets from later presentation or rendering issues.
+
+The 2026-05-04 exported editor run from `E:\zircon-build\ZirconEngine` produced `E:\zircon-build\ZirconEngine\logs\2026-05-04-15-35-18\editor.log`. That log showed staged `E:\zircon-build\ZirconEngine\assets` selections for editor host/window templates and no `exists=false` or `path_exists=false` records in the inspected built-in UI import chain. The same run reached the native presenter with populated `HostWindowPresentationData` (`page_tabs=1`, `document_tabs=2`, `document_pane_kind=Scene`, `frame_size=1280x720`), so the abnormal exported display in that run is not explained by missing built-in UI assets or empty presentation data.
+
+This lookup is limited to engine built-ins such as editor templates, runtime fixture documents, fonts, icons, and viewport gizmos. Project-authored `res://...` assets still resolve through the open project root, so exporting the engine payload does not change directory-project source asset ownership.
 
 ## M15 Resource Reference Model
 

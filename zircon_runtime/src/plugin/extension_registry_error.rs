@@ -10,6 +10,8 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateRenderFeature(String),
     #[error("render pass executor {0} already registered")]
     DuplicateRenderPassExecutor(String),
+    #[error("runtime prepare collector {0} already registered")]
+    DuplicateRuntimePrepareCollector(String),
     #[error("virtual geometry runtime provider {0} already registered")]
     DuplicateVirtualGeometryRuntimeProvider(String),
     #[error("hybrid GI runtime provider {0} already registered")]

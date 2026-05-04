@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import filecmp
 import os
 import platform
 import shutil
@@ -25,6 +26,10 @@ MODES = ("debug", "release")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
 ENGINE_DIR_NAME = "ZirconEngine"
 PLUGIN_LOAD_MANIFEST = "plugins/native_plugins.toml"
+ENGINE_ASSET_ROOTS = (
+    Path("zircon_editor") / "assets",
+    Path("zircon_runtime") / "assets",
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -447,6 +452,8 @@ def build(config: BuildConfig) -> None:
             build_runtime(config, runtime_feature="target-editor-host", include_preview=False)
             runtime_staged = True
         build_editor(config)
+    if "editor" in config.targets or "runtime" in config.targets:
+        stage_engine_assets(config)
     if "plugins" in config.targets:
         ensure_plugin_base_artifacts(config)
         build_plugins(config)
@@ -651,6 +658,49 @@ def copy_sidecars(source: Path, destination_dir: Path, config: BuildConfig) -> N
                 print(f"Copied {sidecar} -> {destination}")
         else:
             copy_file(sidecar, destination, config)
+
+
+def stage_engine_assets(config: BuildConfig) -> None:
+    destination_root = config.engine_root / "assets"
+    if config.dry_run:
+        print(f"DRY-RUN reset {destination_root}")
+    else:
+        if destination_root.exists():
+            shutil.rmtree(destination_root)
+        destination_root.mkdir(parents=True, exist_ok=True)
+
+    for relative_root in ENGINE_ASSET_ROOTS:
+        source_root = config.repo_root / relative_root
+        if not source_root.exists() or not source_root.is_dir():
+            raise SystemExit(f"Engine asset root is missing: {source_root}")
+        print(f"Staging assets {source_root} -> {destination_root}")
+        copy_tree_contents(source_root, destination_root, config)
+
+
+def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildConfig) -> None:
+    for source in sorted(source_root.rglob("*")):
+        relative = source.relative_to(source_root)
+        destination = destination_root / relative
+        if source.is_dir():
+            if config.dry_run:
+                print(f"DRY-RUN mkdir {destination}")
+            else:
+                destination.mkdir(parents=True, exist_ok=True)
+            continue
+        if not source.is_file():
+            continue
+        copy_asset_file(source, destination, config)
+
+
+def copy_asset_file(source: Path, destination: Path, config: BuildConfig) -> None:
+    if destination.exists():
+        if destination.is_file() and filecmp.cmp(source, destination, shallow=False):
+            return
+        raise SystemExit(
+            "Engine asset staging collision: "
+            f"{source} cannot overwrite existing {destination} with different content."
+        )
+    copy_file(source, destination, config)
 
 
 def copy_resource_dirs(source_root: Path, package_out: Path, config: BuildConfig) -> None:

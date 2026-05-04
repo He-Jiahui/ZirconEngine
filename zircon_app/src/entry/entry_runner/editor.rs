@@ -23,6 +23,7 @@ use crate::entry::{EntryConfig, EntryProfile};
 #[cfg(feature = "target-editor-host")]
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 
+use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::EntryRunner;
 
 impl EntryRunner {
@@ -42,7 +43,12 @@ impl EntryRunner {
         }
         #[cfg(feature = "target-editor-host")]
         {
-            let request = EditorCliOperationRequest::parse(args.into_iter().map(Into::into))?;
+            let diagnostic_args = parse_diagnostic_log_startup_args(args)?;
+            zircon_runtime::diagnostic_log::initialize_process_log_with_filter(
+                "editor",
+                diagnostic_args.filter,
+            );
+            let request = EditorCliOperationRequest::parse(diagnostic_args.remaining_args)?;
             if let Some(request) = request {
                 let response = Self::run_editor_operation(request)?;
                 println!("{}", serde_json::to_string(&response)?);

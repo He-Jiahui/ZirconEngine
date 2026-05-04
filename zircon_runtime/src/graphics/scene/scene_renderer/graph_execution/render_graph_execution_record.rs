@@ -243,7 +243,10 @@ mod tests {
             Vec::new(),
         );
 
-        assert_eq!(record.executed_pass_stages(), &[Some(RenderPassStage::Transparent)]);
+        assert_eq!(
+            record.executed_pass_stages(),
+            &[Some(RenderPassStage::Transparent)]
+        );
         assert_eq!(record.executed_stage_count(RenderPassStage::Transparent), 1);
         assert_eq!(record.executed_stage_count(RenderPassStage::PostProcess), 0);
     }

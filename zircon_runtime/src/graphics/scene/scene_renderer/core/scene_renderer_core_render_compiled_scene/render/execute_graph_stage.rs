@@ -1,14 +1,16 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::pipeline::RenderPassStage;
+use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutionContext,
     RenderPassExecutorId, RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
 };
-use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
-pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) struct RenderGraphStageExecution<'a> {
+pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene)
+struct RenderGraphStageExecution
+<'a> {
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) resources:
         &'a mut RenderGraphExecutionResources,
     pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene) record:
@@ -35,8 +37,18 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     resources: &mut RenderGraphExecutionResources,
     target: &OffscreenTarget,
 ) {
-    resources.import_texture_view("scene-color", target.scene_color_view.clone());
-    resources.import_texture_view("scene-depth", target.depth_view.clone());
+    resources.import_texture_view(
+        "scene-color",
+        target
+            .scene_color
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_view(
+        "scene-depth",
+        target
+            .depth
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -97,10 +109,9 @@ fn execute_graph_pass(
     if pass.culled {
         return Ok(());
     }
-    let executor_id = pass
-        .executor_id
-        .as_ref()
-        .ok_or_else(|| GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name)))?;
+    let executor_id = pass.executor_id.as_ref().ok_or_else(|| {
+        GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name))
+    })?;
     let executor_id = RenderPassExecutorId::new(executor_id.clone());
     let gpu = RenderPassGpuExecutionContext::new(
         device,
@@ -111,18 +122,21 @@ fn execute_graph_pass(
         &mut *execution.resources,
         &mut *execution.plugin_outputs,
     );
-    let mut context = RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
-        pass.name.clone(),
-        executor_id.clone(),
-        pass.queue,
-        pass.declared_queue,
-        pass.flags,
-        pass.dependencies.clone(),
-        pass.resources.clone(),
-    )
-    .with_gpu(gpu);
+    let mut context =
+        RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(
+            pass.name.clone(),
+            executor_id.clone(),
+            pass.queue,
+            pass.declared_queue,
+            pass.flags,
+            pass.dependencies.clone(),
+            pass.resources.clone(),
+        )
+        .with_gpu(gpu);
 
-    registry.execute(&mut context).map_err(GraphicsError::Asset)?;
+    registry
+        .execute(&mut context)
+        .map_err(GraphicsError::Asset)?;
     execution
         .record
         .push_executed_pass_with_stage_declared_queue_dependencies_and_resources(

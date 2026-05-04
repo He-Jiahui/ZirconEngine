@@ -1,6 +1,8 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime::core::framework::render::{ParticleExtract, RenderParticleBoundsSnapshot};
+use zircon_runtime::core::framework::render::{
+    ParticleExtract, RenderParticleBoundsSnapshot, RenderParticleGpuFrameExtract,
+};
 use zircon_runtime::core::math::{Real, Vec3};
 
 use crate::ParticleRuntimeSnapshot;
@@ -30,7 +32,32 @@ pub fn build_particle_extract(
         sprites,
         bounds,
         sort_camera_position: camera_position,
+        gpu_frame: build_gpu_frame(snapshot),
     }
+}
+
+fn build_gpu_frame(snapshot: &ParticleRuntimeSnapshot) -> Option<RenderParticleGpuFrameExtract> {
+    let gpu_emitters = snapshot
+        .emitters
+        .iter()
+        .filter(|emitter| emitter.backend == crate::ParticleSimulationBackend::Gpu)
+        .collect::<Vec<_>>();
+    if gpu_emitters.is_empty() {
+        return None;
+    }
+    let alive_count = gpu_emitters
+        .iter()
+        .map(|emitter| emitter.live_particles as u32)
+        .sum::<u32>();
+    Some(RenderParticleGpuFrameExtract {
+        alive_count,
+        spawned_total: alive_count,
+        per_emitter_spawned: gpu_emitters
+            .iter()
+            .map(|emitter| emitter.live_particles as u32)
+            .collect(),
+        indirect_draw_args: [6, alive_count, 0, 0],
+    })
 }
 
 fn build_bounds(

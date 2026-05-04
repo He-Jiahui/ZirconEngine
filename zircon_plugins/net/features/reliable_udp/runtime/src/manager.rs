@@ -84,7 +84,40 @@ impl NetReliableUdpRuntimeManager {
         state
             .outbound
             .retain(|packet| packet.sequence != ack.sequence);
-        before - state.outbound.len()
+        let removed = before - state.outbound.len();
+        state.stats.received_packets += removed as u64;
+        removed
+    }
+
+    pub fn resend_pending(&self, max_packets: usize) -> Vec<ReliableDatagramPacket> {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        let packets = state
+            .outbound
+            .iter()
+            .take(max_packets)
+            .cloned()
+            .collect::<Vec<_>>();
+        state.stats.resent_packets += packets.len() as u64;
+        packets
+    }
+
+    pub fn record_dropped_packet(&self) {
+        self.state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned")
+            .stats
+            .dropped_packets += 1;
+    }
+
+    pub fn record_rtt_ms(&self, rtt_ms: f32) {
+        self.state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned")
+            .stats
+            .rtt_ms = rtt_ms;
     }
 
     pub fn pending_packets(&self) -> Vec<ReliableDatagramPacket> {
