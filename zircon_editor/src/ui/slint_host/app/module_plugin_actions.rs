@@ -143,8 +143,7 @@ impl SlintEditorHost {
         match result {
             Ok(message) => {
                 self.set_status_line(message);
-                self.layout_dirty = true;
-                self.presentation_dirty = true;
+                self.mark_layout_dirty();
             }
             Err(error) => self.set_status_line(format!("Plugin action failed: {error}")),
         }

@@ -8,14 +8,15 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::root_shell_projection::{
-    resolve_root_bottom_region_frame, resolve_root_center_band_frame,
-    resolve_root_document_region_frame, resolve_root_left_region_frame,
-    resolve_root_right_region_frame, resolve_root_status_bar_frame,
-    resolve_root_viewport_content_frame,
+    resolve_root_bottom_region_frame, resolve_root_bottom_splitter_frame,
+    resolve_root_center_band_frame, resolve_root_document_region_frame,
+    resolve_root_left_region_frame, resolve_root_left_splitter_frame,
+    resolve_root_right_region_frame, resolve_root_right_splitter_frame,
+    resolve_root_status_bar_frame, resolve_root_viewport_content_frame,
 };
 use crate::ui::slint_host::{self as host_contract, HostWindowPresentationData, UiHostWindow};
 use crate::ui::template_runtime::EditorUiHostRuntime;
-use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use slint::{Model, ModelRc};
@@ -133,6 +134,7 @@ pub(crate) fn apply_presentation(
         &presentation.host_shell,
         &chrome.project_overview,
     );
+    let current_host_presentation = ui.get_host_presentation();
     let host_presentation = HostWindowPresentationData {
         host_scene_data: to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
@@ -144,6 +146,9 @@ pub(crate) fn apply_presentation(
         ),
         host_shell: to_host_contract_host_shell(&presentation.host_shell),
         host_layout: to_host_contract_host_window_layout(&host_layout),
+        menu_state: current_host_presentation.menu_state,
+        pane_interaction_state: current_host_presentation.pane_interaction_state,
+        viewport_image: current_host_presentation.viewport_image,
     };
     ui.set_host_presentation(host_presentation);
     pane_surface_host.set_welcome_pane(to_host_contract_welcome_pane(&welcome_pane));
@@ -171,9 +176,18 @@ fn host_window_layout(
             geometry,
             shared_root_frames,
         )),
-        left_splitter_frame: frame_rect(geometry.splitter_frame(ShellRegionId::Left)),
-        right_splitter_frame: frame_rect(geometry.splitter_frame(ShellRegionId::Right)),
-        bottom_splitter_frame: frame_rect(geometry.splitter_frame(ShellRegionId::Bottom)),
+        left_splitter_frame: frame_rect(resolve_root_left_splitter_frame(
+            geometry,
+            shared_root_frames,
+        )),
+        right_splitter_frame: frame_rect(resolve_root_right_splitter_frame(
+            geometry,
+            shared_root_frames,
+        )),
+        bottom_splitter_frame: frame_rect(resolve_root_bottom_splitter_frame(
+            geometry,
+            shared_root_frames,
+        )),
         viewport_content_frame: frame_rect(resolve_root_viewport_content_frame(
             geometry,
             shared_root_frames,
@@ -476,6 +490,7 @@ fn to_host_contract_scene_viewport_chrome(
         translate_snap_label: data.translate_snap_label.clone(),
         rotate_snap_label: data.rotate_snap_label.clone(),
         scale_snap_label: data.scale_snap_label.clone(),
+        toolbar_surface_frame: None,
     }
 }
 
@@ -544,15 +559,42 @@ fn to_host_contract_pane(
     pane_size: host_window::PaneContentSize,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::PaneData {
-    let hierarchy = to_host_contract_hierarchy_pane(&data, pane_size);
-    let inspector = to_host_contract_inspector_pane(&data, pane_size);
-    let console = to_host_contract_console_pane(&data, pane_size);
-    let animation = to_host_contract_animation_editor_pane(&data, pane_size);
-    let module_plugins = to_host_contract_module_plugins_pane(&data, pane_size);
-    let build_export = to_host_contract_build_export_pane(&data, pane_size);
     let pane_kind = data.kind.to_string();
-    let project_overview = if pane_kind == "UiComponentShowcase" {
-        component_showcase_runtime.map_or_else(
+    let hierarchy = if pane_kind == "Hierarchy" {
+        to_host_contract_hierarchy_pane(&data, pane_size)
+    } else {
+        host_contract::HierarchyPaneData::default()
+    };
+    let inspector = if pane_kind == "Inspector" {
+        to_host_contract_inspector_pane(&data, pane_size)
+    } else {
+        host_contract::InspectorPaneData::default()
+    };
+    let console = if pane_kind == "Console" {
+        to_host_contract_console_pane(&data, pane_size)
+    } else {
+        host_contract::ConsolePaneData::default()
+    };
+    let animation = if matches!(
+        pane_kind.as_str(),
+        "AnimationSequenceEditor" | "AnimationGraphEditor"
+    ) {
+        to_host_contract_animation_editor_pane(&data, pane_size)
+    } else {
+        host_contract::AnimationEditorPaneData::default()
+    };
+    let module_plugins = if matches!(pane_kind.as_str(), "ModulePlugins" | "RuntimeDiagnostics") {
+        to_host_contract_module_plugins_pane(&data, pane_size)
+    } else {
+        host_contract::ModulePluginsPaneData::default()
+    };
+    let build_export = if pane_kind == "BuildExport" {
+        to_host_contract_build_export_pane(&data, pane_size)
+    } else {
+        host_contract::BuildExportPaneData::default()
+    };
+    let project_overview = match pane_kind.as_str() {
+        "UiComponentShowcase" => component_showcase_runtime.map_or_else(
             || {
                 pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
                     &data, pane_size,
@@ -563,12 +605,12 @@ fn to_host_contract_pane(
                     &data, pane_size, runtime,
                 )
             },
-        )
-    } else {
-        to_host_contract_project_overview_pane(data.native_body.project_overview.clone())
+        ),
+        "Project" => to_host_contract_project_overview_pane(data.native_body.project_overview.clone()),
+        _ => host_contract::ProjectOverviewPaneData::default(),
     };
 
-    host_contract::PaneData {
+    let mut pane = host_contract::PaneData {
         id: data.id,
         slot: data.slot,
         kind: data.kind,
@@ -589,16 +631,34 @@ fn to_host_contract_pane(
         hierarchy,
         inspector,
         console,
-        assets_activity: to_host_contract_assets_activity_pane(data.native_body.assets_activity),
+        assets_activity: if pane_kind == "Assets" {
+            to_host_contract_assets_activity_pane(data.native_body.assets_activity)
+        } else {
+            host_contract::AssetsActivityPaneData::default()
+        },
         asset_browser: pane_data_conversion::to_host_contract_asset_browser_pane(
-            data.native_body.asset_browser,
+            if pane_kind == "AssetBrowser" {
+                data.native_body.asset_browser
+            } else {
+                host_window::AssetBrowserPaneViewData::default()
+            },
         ),
         project_overview,
         module_plugins,
         build_export,
-        ui_asset: to_host_contract_ui_asset_pane(data.native_body.ui_asset),
+        ui_asset: if pane_kind == "UiAssetEditor" {
+            to_host_contract_ui_asset_pane(data.native_body.ui_asset)
+        } else {
+            host_contract::UiAssetEditorPaneData::default()
+        },
         animation,
-    }
+        ..host_contract::PaneData::default()
+    };
+    pane.body_surface_frame = host_contract::build_pane_template_surface_frame(
+        &pane,
+        UiSize::new(pane_size.width.max(1.0), pane_size.height.max(1.0)),
+    );
+    pane
 }
 
 fn to_host_contract_project_overview(
@@ -639,6 +699,7 @@ fn to_host_contract_host_shell(
     host_contract::HostWindowShellData {
         project_path: shell.project_path.clone(),
         status_secondary: shell.status_secondary.clone(),
+        debug_refresh_rate: shell.debug_refresh_rate.clone(),
         viewport_label: shell.viewport_label.clone(),
         drawers_visible: shell.drawers_visible,
         left_expanded: shell.left_expanded,

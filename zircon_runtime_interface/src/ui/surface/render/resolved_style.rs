@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::{UiTextAlign, UiTextRenderMode, UiTextWrap};
+use super::{UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRenderMode, UiTextWrap};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiResolvedStyle {
@@ -15,6 +15,9 @@ pub struct UiResolvedStyle {
     pub line_height: f32,
     pub text_align: UiTextAlign,
     pub wrap: UiTextWrap,
+    pub text_direction: UiTextDirection,
+    pub text_overflow: UiTextOverflow,
+    pub rich_text: bool,
     pub text_render_mode: UiTextRenderMode,
 }
 
@@ -41,6 +44,9 @@ impl Default for UiResolvedStyle {
             line_height: Self::default_line_height(Self::DEFAULT_FONT_SIZE),
             text_align: UiTextAlign::default(),
             wrap: UiTextWrap::default(),
+            text_direction: UiTextDirection::default(),
+            text_overflow: UiTextOverflow::default(),
+            rich_text: false,
             text_render_mode: UiTextRenderMode::default(),
         }
     }

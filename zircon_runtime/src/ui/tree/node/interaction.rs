@@ -32,10 +32,7 @@ impl UiRuntimeTreeInteractionExt for UiTree {
             .nodes
             .get(&node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        Ok(node.state_flags.enabled
-            && (node.state_flags.clickable
-                || node.state_flags.hoverable
-                || node.state_flags.focusable))
+        Ok(node.supports_pointer())
     }
 
     fn first_scrollable_in_candidates(
@@ -48,8 +45,8 @@ impl UiRuntimeTreeInteractionExt for UiTree {
                 .get(node_id)
                 .ok_or(UiTreeError::MissingNode(*node_id))?;
             if node.container.is_scrollable()
-                && node.state_flags.visible
                 && node.state_flags.enabled
+                && node.is_render_visible()
             {
                 return Ok(Some(*node_id));
             }

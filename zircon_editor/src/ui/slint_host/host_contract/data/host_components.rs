@@ -38,6 +38,7 @@ pub(crate) struct HostChromeTabData {
 pub(crate) struct HostWindowShellData {
     pub project_path: SharedString,
     pub status_secondary: SharedString,
+    pub debug_refresh_rate: SharedString,
     pub viewport_label: SharedString,
     pub drawers_visible: bool,
     pub left_expanded: bool,

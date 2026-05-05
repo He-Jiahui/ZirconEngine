@@ -10,6 +10,19 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/hierarchy_pointer/constants.rs
+  - zircon_editor/src/ui/slint_host/hierarchy_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/host_interaction.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/viewport_image.rs
+  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
+  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
@@ -17,11 +30,16 @@ related_code:
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
   - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/slint_host/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
@@ -60,6 +78,9 @@ related_code:
   - zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/template_binding.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/pane/surface_control.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/mod.rs
@@ -78,7 +99,6 @@ related_code:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/drawer_toggle.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/document_tab.rs
@@ -92,7 +112,10 @@ related_code:
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/slint_host/root_shell_projection.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/build_export.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
@@ -106,6 +129,9 @@ related_code:
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
   - zircon_editor/src/core/host/manager/builtin_views/mod.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs
+  - zircon_editor/src/ui/host/layout_hosts/repair_builtin_shell_layout.rs
+  - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/build_export_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
@@ -176,6 +202,14 @@ related_code:
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/slint_window/
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/native_template_text.rs
+  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - zircon_editor/src/tests/host/slint_inspector_template_body.rs
+  - zircon_runtime/src/ui/layout/pass/axis.rs
+  - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/surface/render/text_measure.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
   - zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
@@ -199,6 +233,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
 implementation_files:
   - zircon_ui/src/layout/constraints.rs
@@ -209,17 +244,35 @@ implementation_files:
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/slint_host/hierarchy_pointer/constants.rs
+  - zircon_editor/src/ui/slint_host/hierarchy_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/host_interaction.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs
+  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
+  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
   - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions.rs
   - zircon_editor/src/ui/slint_host/app/build_export_actions/output_folder.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/slint_host/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/module_plugins.rs
@@ -238,6 +291,10 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/app/native_windows.rs
   - zircon_editor/src/ui/slint_host/app/workspace_docking.rs
   - zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/template_binding.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/pane/surface_control.rs
+  - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/slint_host/app/viewport.rs
@@ -271,7 +328,6 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/resolution.rs
@@ -281,6 +337,8 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/build_export.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/slint_host/viewport/mod.rs
@@ -320,6 +378,9 @@ implementation_files:
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
   - zircon_editor/src/core/host/manager/builtin_views/mod.rs
   - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs
+  - zircon_editor/src/ui/host/layout_hosts/repair_builtin_shell_layout.rs
+  - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/build_export_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/module_plugins_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_views/runtime_diagnostics_view_descriptor.rs
@@ -368,6 +429,11 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/slint_window/shell_window.rs
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/native_template_text.rs
+  - zircon_runtime/src/ui/layout/pass/axis.rs
+  - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/surface/render/text_measure.rs
 plan_sources:
   - user: 2026-04-13 JetBrains Hybrid Workbench Shell Spec + Implementation Plan
   - user: 2026-04-14 Slint Workbench 响应式 AutoLayout 与约束求解计划
@@ -394,7 +460,21 @@ plan_sources:
   - user: 2026-05-04 exported editor executable shows white native window
   - user: 2026-05-04 inspect abnormal exported editor display with startup diagnostics
   - user: 2026-05-04 continue exported editor display repair as data-driven renderer then authored template renderer
+  - user: 2026-05-04 exported editor native UI still shows text bars, no interaction, and layout drift
   - docs/superpowers/plans/2026-05-04-editor-host-data-driven-template-renderer.md
+  - user: 2026-05-05 exported editor native screenshot shows structural labels and layout overlap after glyph renderer
+  - user: 2026-05-05 exported Rust-owned editor native UI buttons unresponsive and menu/content occlusion follow-up
+  - user: 2026-05-05 exported Rust-owned editor native UI shows missing drawer/status shell after project workspace restore
+  - user: 2026-05-05 native mouse movement must not reload UITOML or force full redraw
+  - user: 2026-05-05 native mouse events must produce visible UI state changes
+  - user: 2026-05-05 native asset tree hover must visibly repaint without a full frame update
+  - user: 2026-05-05 current editor UI layout calculation issue
+  - user: 2026-05-05 exported Rust-owned editor native UI buttons must size from text plus padding
+  - user: 2026-05-05 P2 hit-test the full viewport toolbar
+  - user: 2026-05-05 P2 Gate viewport toolbar clicks to primary press
+  - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
+  - .codex/plans/Editor 绘制与鼠标事件优化计划.md
+  - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -403,6 +483,7 @@ tests:
   - zircon_editor/tests/workbench_drag_targets.rs
   - zircon_editor/tests/native_window_hosts.rs
   - zircon_editor/src/tests/host/manager/mod.rs
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/host/slint_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/mod.rs
@@ -422,6 +503,20 @@ tests:
   - zircon_editor/src/tests/host/template_runtime/shared_surface.rs
   - zircon_editor/src/tests/host/slint_event_bridge/mod.rs
   - zircon_editor/src/tests/host/slint_window/
+  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_editor --lib rust_owned_host_window_snapshot_draws_top_right_debug_refresh_rate --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_editor --lib diagnostics --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never
+  - cargo test -p zircon_runtime --lib layout_pass_measures_label_leaf_from_text_intrinsic_size --locked --jobs 1
+  - cargo test -p zircon_runtime --lib layout_pass_measures_button_leaf_as_text_plus_padding --locked --jobs 1
+  - cargo test -p zircon_editor --lib native_host_painter_composites_latest_viewport_image_into_scene_body --locked --jobs 1
+  - cargo test -p zircon_editor --lib inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion --locked --jobs 1
+  - cargo test -p zircon_editor --lib native_host_asset_tree_move_updates_visible_hover_state --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - zircon_editor/src/ui/slint_host/app/tests.rs
   - zircon_editor/src/tests/host/slint_asset_refresh/mod.rs
   - zircon_editor/src/tests/host/slint_builtin_assets.rs
   - zircon_editor/src/tests/editing/ui_asset/
@@ -429,6 +524,7 @@ tests:
   - zircon_editor/tests/workbench_window_resize.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - cargo test -p zircon_editor --lib apply_presentation_resolves_splitters_from_shared_visible_drawer_projection --locked -- --nocapture
   - zircon_editor/src/tests/host/slint_callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/tests/workbench/fixture/default_preview.rs
   - zircon_editor/src/tests/workbench/fixture/view_model_projection.rs
@@ -535,6 +631,75 @@ tests:
   - 2026-05-04 M2 authored template/render-command renderer: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --target-dir E:\zircon-build\targets\editor-renderer-m2-app --locked --jobs 1 --message-format short --color never (passed with existing warnings)
   - 2026-05-04 M2 authored template/render-command renderer: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed; existing Cargo PDB output filename collision warning remains)
   - 2026-05-04 M2 authored template/render-command renderer: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 8 seconds in fresh post-build smoke, wrote E:\zircon-build\ZirconEngine\logs\2026-05-04-20-30-04\editor.log, recorded editor_host_presenter frames 1-5 at 1280x720 with populated scene/document data, and had no error/warn/missing/failed/path-not-found matches in that run
+  - 2026-05-04 Native host interaction/glyph cut: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/window.rs zircon_editor/src/ui/slint_host/host_contract/globals.rs zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs zircon_editor/src/ui/slint_host/host_contract/painter/text.rs zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs zircon_editor/src/ui/slint_host/host_contract/mod.rs zircon_editor/src/ui/slint_host/app/callback_wiring.rs zircon_editor/src/ui/slint_host/ui/apply_presentation.rs zircon_editor/src/tests/host/slint_window/shell_window.rs zircon_editor/src/ui/slint_host/app/tests.rs (passed)
+  - 2026-05-04 Native host interaction/glyph cut: cargo check -p zircon_editor --lib --locked (passed with existing warning noise)
+  - 2026-05-04 Native host interaction/glyph cut: cargo test -p zircon_editor --lib native_ --locked (35 passed, 932 filtered; existing warning noise remains)
+  - 2026-05-04 Native host interaction/glyph cut: cargo test -p zircon_editor --lib rust_owned_host_painter_renders_distinct_glyph_shapes_instead_of_text_bars --locked (1 passed, 966 filtered; existing warning noise remains)
+  - 2026-05-04 Native host interaction/glyph cut: cargo test -p zircon_editor --lib rust_owned_host --locked (10 passed, 957 filtered; existing warning noise remains)
+  - 2026-05-04 Native host interaction/glyph cut: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked (passed with existing warning noise)
+  - 2026-05-04 Native host interaction/glyph cut: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed and staged editor/runtime bundle plus runtime font asset)
+  - 2026-05-04 Native host interaction/glyph cut: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 8 seconds in packaged smoke and was stopped intentionally; E:\zircon-build\ZirconEngine\logs\2026-05-04-22-56-02\editor.log contained 0 matches for panic/error/failed/fatal/missing and recorded packaged asset/template resolution plus native window creation
+  - 2026-05-05 Structural template label fix: cargo test -p zircon_editor --lib rust_owned_host_painter_does_not_render_structural_control_ids_as_text --locked first failed with 706 changed pixels from empty Panel control_id glyph fallback; after the shared painter fix the same focused test passed (1 passed, 967 filtered; existing warning noise remains)
+  - 2026-05-05 Structural template label fix: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs zircon_editor/src/tests/host/slint_window/shell_window.rs (passed)
+  - 2026-05-05 Structural template label fix: cargo check -p zircon_editor --lib --locked (passed with existing warning noise)
+  - 2026-05-05 Structural template label fix: cargo test -p zircon_editor --lib rust_owned_host --locked (11 passed, 957 filtered; existing warning noise remains)
+  - 2026-05-05 Structural template label fix: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked (passed with existing warning noise)
+  - 2026-05-05 Structural template label fix: python tools\zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed and staged editor/runtime bundle plus runtime font asset)
+  - 2026-05-05 Structural template label fix: exported E:\zircon-build\ZirconEngine\zircon_editor.exe stayed running after 8 seconds in packaged smoke and was stopped intentionally; E:\zircon-build\ZirconEngine\logs\2026-05-05-00-00-08\editor.log had no panic/error/failed/fatal/missing matches via Select-String after rg was unavailable in this shell
+  - 2026-05-05 Native document-tab region origin: cargo fmt --all --check (passed)
+  - 2026-05-05 Native document-tab region origin: git diff --check -- zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs zircon_editor/src/tests/host/slint_window/native_host_contract.rs docs/editor-and-tooling/editor-workbench-shell.md .codex/sessions/20260505-0148-native-mouse-no-interaction.md (passed; LF-to-CRLF warnings only)
+  - 2026-05-05 Native document-tab region origin: cargo test -p zircon_editor --lib native_host_pointer_click_routes_document_tab_with_document_region_origin --locked (1 passed, 971 filtered; existing warning noise remains)
+  - 2026-05-05 Native document-tab region origin: cargo test -p zircon_editor --lib native_host_contract --locked (4 passed, 968 filtered; existing warning noise remains)
+  - 2026-05-05 Native document-tab region origin: cargo check -p zircon_editor --lib --locked (passed with existing warning noise)
+  - 2026-05-05 Native document-tab region origin: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked (passed with existing warning noise)
+  - 2026-05-05 Project workspace shell drawer restore: cargo fmt --all --check (passed)
+  - 2026-05-05 Project workspace shell drawer restore: git diff --check -- zircon_editor/src/ui/host/workspace_state.rs zircon_editor/src/ui/host/builtin_layout/ensure_shell_instances.rs zircon_editor/src/ui/host/layout_hosts/repair_builtin_shell_layout.rs zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs zircon_editor/src/ui/slint_host/host_contract/presenter.rs docs/editor-and-tooling/editor-workbench-shell.md .codex/sessions/20260505-0244-editor-native-visual-regression.md (passed; LF-to-CRLF warnings only)
+  - 2026-05-05 Project workspace shell drawer restore: cargo test -p zircon_editor --lib applying_project_workspace --locked (2 passed, 971 filtered; existing warning noise remains)
+  - 2026-05-05 Project workspace shell drawer restore: cargo test -p zircon_editor --lib native_host_pointer_click_routes_document_tab_with_document_region_origin --locked (1 passed, 972 filtered; existing warning noise remains)
+  - 2026-05-05 Project workspace shell drawer restore: cargo check -p zircon_editor --lib --locked (passed with existing warning noise)
+  - 2026-05-05 Project workspace shell drawer restore: python tools\zircon_build.py --targets editor,runtime --out C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-build-visual-regression-20260505 --mode debug (passed; isolated package used because E:\zircon-build was previously locked by another process)
+  - 2026-05-05 Project workspace shell drawer restore: isolated packaged C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-build-visual-regression-20260505\ZirconEngine\zircon_editor.exe stayed running after 18 seconds and was stopped intentionally; C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-build-visual-regression-20260505\ZirconEngine\logs\2026-05-05-05-10-45\editor.log recorded `frame_size=1280x720`, `status_bar=0.0,696.0,1280.0,24.0`, `left=0.0,59.0,312.0,489.7`, `right=972.0,59.0,308.0,489.7`, `bottom=0.0,549.7,1280.0,146.3`, `document_tabs=2`, `left_tabs=4`, `right_tabs=1`, `bottom_tabs=3`, `document_pane_kind=Scene`, `left_pane_kind=Project`, `right_pane_kind=Inspector`, and `bottom_pane_kind=Console`; Select-String for `panic|error|failed|fatal|missing|left_tabs=0|right_tabs=0|bottom_tabs=0` returned no matches
+  - 2026-05-05 Native mouse redraw regression: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/redraw.rs zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs zircon_editor/src/ui/slint_host/host_contract/window.rs zircon_editor/src/ui/slint_host/host_contract/presenter.rs zircon_editor/src/ui/slint_host/host_contract/mod.rs zircon_editor/src/tests/host/slint_window/native_host_contract.rs zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs (passed)
+  - 2026-05-05 Native mouse redraw regression: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (passed with existing warning noise)
+  - 2026-05-05 Native mouse redraw regression: cargo test -p zircon_editor --lib native_host_pointer_move_routes_viewport_with_local_damage_without_frame_update --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (1 passed, 974 filtered; existing warning noise remains)
+  - 2026-05-05 Native mouse redraw regression: cargo test -p zircon_editor --lib rust_owned_host_window_wait_cycle_does_not_unconditionally_request_redraw --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (1 passed, 974 filtered; existing warning noise remains)
+  - 2026-05-05 Native mouse redraw regression: cargo test -p zircon_editor --lib native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (5 passed, 970 filtered; existing warning noise remains)
+  - 2026-05-05 Native mouse redraw regression: cargo check -p zircon_app --bin zircon_editor --no-default-features --features target-editor-host --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (passed with existing warning noise)
+  - 2026-05-05 Native mouse redraw regression: cargo test -p zircon_editor --lib rust_owned_host --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (13 passed, 962 filtered; existing warning noise remains)
+  - 2026-05-05 Native deep fast path: cargo fmt --all --check (passed)
+  - 2026-05-05 Native deep fast path: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never (passed with existing warning noise)
+  - 2026-05-05 Native deep fast path: cargo test -p zircon_editor --lib host_contract::redraw::tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2 passed, 991 filtered; existing warning noise remains)
+  - 2026-05-05 Native deep fast path: cargo test -p zircon_editor --lib tests::host::slint_window::native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (11 passed, 982 filtered; existing warning noise remains)
+  - 2026-05-05 Native deep fast path: cargo test -p zircon_editor --lib presenter::tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2 passed, 991 filtered; existing warning noise remains)
+  - 2026-05-05 Native deep fast path: python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug (passed; staged editor/runtime artifacts under E:\zircon-build\ZirconEngine with existing warning noise)
+  - 2026-05-05 Native template text/input regression: cargo fmt --all --check (passed)
+  - 2026-05-05 Native template text/input regression: cargo check -p zircon_editor --lib --locked (passed with existing warning noise)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib native_host_pointer_click_routes_binding_only_template_buttons --locked (1 passed, 976 filtered; existing warning noise remains)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib runtime_component_projection_preserves_primary_click_binding_id --locked (1 passed, 977 filtered; existing warning noise remains)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib rust_owned_template_text_keeps_short_labels_legible --locked (1 passed, 976 filtered; existing warning noise remains)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib native_host_pointer_click_routes_pane_template_button_actions --locked (1 passed, 976 filtered; existing warning noise remains)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib native_host_pointer_click_routes_document_tab_with_document_region_origin --locked (1 passed, 976 filtered; existing warning noise remains)
+  - 2026-05-05 Native template text/input regression: cargo test -p zircon_editor --lib applying_project_workspace --locked (2 passed, 975 filtered; existing warning noise remains)
+  - 2026-05-05 Shared intrinsic text/button sizing: cargo fmt --all --check; cargo check -p zircon_editor --lib --locked --jobs 1; cargo test -p zircon_runtime --lib layout_pass_measures_label_leaf_from_text_intrinsic_size --locked --jobs 1; cargo test -p zircon_runtime --lib layout_pass_measures_button_leaf_as_text_plus_padding --locked --jobs 1 (fmt/check reached green; both runtime focused regressions passed through E:\cargo-targets\zircon-text-input-20260505; existing warning noise remains)
+  - 2026-05-05 Shared intrinsic text/button sizing package smoke: C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-build-text-input-20260505 failed with `rustc-LLVM ERROR: IO failure on output stream: no space on device`; E:\tmp\zircon-build-text-input-20260505-e completed the runtime leg but timed out after 15 minutes during the editor leg, so package smoke is inconclusive for this cut
+  - 2026-05-05 Native viewport image bridge and projected button frame follow-up: cargo fmt --all --check (passed); cargo test -p zircon_editor --lib native_host_painter_composites_latest_viewport_image_into_scene_body --locked --jobs 1 --message-format short --color never -- --nocapture (1 passed, 990 filtered); cargo test -p zircon_editor --lib inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion --locked --jobs 1 --message-format short --color never -- --nocapture (1 passed, 992 filtered after correcting the expected frame to the actual shared style resolution); cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (passed with existing warning noise), all using E:\cargo-targets\zircon-text-input-20260505
+  - 2026-05-05 Native viewport image/package smoke boundary: python tools\zircon_build.py --targets editor,runtime --out E:\tmp\zircon-build-text-input-20260505-e2 --mode debug and the warm E:\tmp\zircon-build-text-input-20260505-e rerun with TEMP/TMP on E: both stopped during the first runtime Cargo build with exit 4294967295 and no Rust diagnostic, so those attempts were environmental/tooling-boundary rather than source-boundary evidence
+  - 2026-05-06 Package smoke recovery: direct lower-layer runtime Cargo leg `cargo build -p zircon_runtime --lib --no-default-features --features target-client --target-dir E:\tmp\zircon-build-direct-20260506\targets\runtime\lib --locked --jobs 1 --message-format short --color never` first timed out after 20 minutes on a cold target while compiling normally, then passed on the warmed target in 26.88s with existing warning noise; full package smoke `python tools\zircon_build.py --targets editor,runtime --out E:\tmp\zircon-build-package-20260506 --mode debug` passed with external transcript `E:\tmp\zircon-package-smoke-20260506-0140.log`, staging `zircon_editor.exe`, `zircon_runtime.exe`, `zircon_runtime.dll`, PDBs, and assets under `E:\tmp\zircon-build-package-20260506\ZirconEngine`
+  - 2026-05-05 Native hierarchy hover state projection: cargo test -p zircon_editor --lib native_host_hierarchy_move_updates_visible_hover_state --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (RED failed because hierarchy hover callback state did not change Rust-owned painter pixels; GREEN passed after host-contract pane interaction state projection and native hierarchy row fallback painting; existing warning noise remains)
+  - 2026-05-05 Native hierarchy hover state projection: cargo test -p zircon_editor --lib native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (10 passed, 975 filtered; first broad rerun exposed stale viewport-toolbar host assertions and the derived menu-state default painting menu 0 open; passed after updating host assertions to the TOML-backed toolbar map and making default menu state closed)
+  - 2026-05-05 Native hierarchy hover state projection final verification: cargo fmt --all --check (passed)
+  - 2026-05-05 Native hierarchy hover state projection final verification: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (passed with existing warning noise)
+  - 2026-05-05 Native hierarchy hover state projection final verification: cargo test -p zircon_editor --lib native_host_hierarchy_move_updates_visible_hover_state --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (1 passed, 984 filtered; existing warning noise remains)
+  - 2026-05-05 Native hierarchy hover state projection final verification: cargo test -p zircon_editor --lib native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets\editor-redraw-regression --message-format short --color never (10 passed, 975 filtered; existing warning noise remains)
+  - 2026-05-05 P2 viewport toolbar hit-test: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs (passed)
+  - 2026-05-05 P2 viewport toolbar hit-test: git diff --check -- zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs docs/editor-and-tooling/editor-workbench-shell.md .codex/sessions/20260505-1637-viewport-toolbar-hit-test.md (passed; docs LF-to-CRLF warning only)
+  - 2026-05-05 P2 viewport toolbar hit-test: cargo test -p zircon_editor --lib hit_test_viewport_toolbar --locked (2 passed, 983 filtered; existing warning noise remains)
+  - 2026-05-05 P2 viewport toolbar hit-test: cargo check -p zircon_editor --lib --locked (passed with existing warning noise after rerun with longer timeout; first 120s check timed out during dependency work)
+  - 2026-05-05 P2 viewport toolbar continuation: cargo test -p zircon_editor --lib native_host_pointer_click_routes_late_viewport_toolbar_controls --locked (1 passed, 984 filtered; existing warning noise remains)
+  - 2026-05-05 P2 viewport toolbar continuation: cargo test -p zircon_editor --lib hit_test_viewport_toolbar --locked (2 passed, 983 filtered; existing warning noise remains)
+  - 2026-05-05 P2 viewport toolbar continuation: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs zircon_editor/src/tests/host/slint_window/native_host_contract.rs (passed)
+  - 2026-05-05 P2 viewport toolbar continuation: git diff --check -- zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs zircon_editor/src/tests/host/slint_window/native_host_contract.rs docs/editor-and-tooling/editor-workbench-shell.md (passed; docs LF-to-CRLF warning only)
+  - 2026-05-05 Shared Slate-style visibility slice: focused runtime/interface/editor validation is tracked in `docs/ui-and-layout/slate-style-ui-surface-frame.md` and `tests/acceptance/shared-slate-ui-surface-frame.md`; this shell doc records the editor consequence that drawer/header/toolbar hit behavior must consume shared effective visibility instead of local bool-visible checks.
 doc_type: module-detail
 ---
 
@@ -610,11 +775,153 @@ Focused M1 evidence is recorded in the frontmatter test list: editor library che
 
 M2 keeps the `workbench.rs` renderer as scene orchestration but moves template visual drawing onto a shared CPU command backend. `painter/render_commands.rs` owns `HostPaintCommand`, deterministic command ordering, runtime `UiRenderCommand` adaptation, style color parsing for `#rgb`, `#rgba`, `#rrggbb` and `#rrggbbaa`, opacity application, border-width rasterization, and deterministic text/image placeholders. `template_nodes.rs` now maps `TemplatePaneNodeData` into those host commands instead of drawing each node with an ad hoc path, so menu/page/status/dock header/rail/pane body nodes use the same primitive backend as runtime-style render commands.
 
-The normal source of editor host pixels remains `HostWindowPresentationData.host_scene_data`; the skeletal `host_layout` painter is only a missing-scene fallback. Authored `.ui.toml` projections that arrive as template-node DTOs now preserve selected/disabled/hovered/button variants, borders, stable labels, z/list order, and clipping to the pane or dock surface. Runtime-style `UiRenderCommandKind::Quad`, `Text`, `Image`, and `Group` are supported through the same backend without loading font or image assets, which keeps snapshots deterministic and avoids adding a new asset lifetime rule inside the native host.
+The normal source of editor host pixels remains `HostWindowPresentationData.host_scene_data`; the skeletal `host_layout` painter is only a missing-scene fallback. Authored `.ui.toml` projections that arrive as template-node DTOs now preserve selected/disabled/hovered/button variants, borders, stable labels, z/list order, and clipping to the pane or dock surface. Runtime-style `UiRenderCommandKind::Quad`, `Text`, `Image`, and `Group` are supported through the same backend. The original M2 boundary used deterministic image placeholders; the 2026-05-06 follow-up keeps those placeholders only for missing assets and routes loaded image/SVG pixels through `visual_assets.rs` and `draw_rgba_image_clipped(...)`.
 
 Focused M2 regressions cover the backend contract directly: `rust_owned_host_window_snapshot_renders_template_node_styles` samples selected, primary, disabled, and label-only node output; `rust_owned_host_window_snapshot_respects_template_node_order_and_clip` locks traversal order and pane clipping; `rust_owned_host_painter_draws_runtime_render_commands` builds `UiRenderCommand` values and proves quad, z-order, text, and image placeholder output. The M2 rerun also kept the M1 host-scene and pane-template-node snapshot coverage green through the shared backend, and the broader `rust_owned_host` filter kept the run-loop and generic/native host contract guards green in the same target directory.
 
+The 2026-05-06 visual-asset follow-up makes the placeholder path a fallback instead of the primary image renderer. `TemplatePaneNodeData.preview_image` is converted to RGBA and drawn by `template_nodes.rs`; runtime `UiVisualAssetRef::Image` and `UiVisualAssetRef::Icon` are resolved by `visual_assets.rs`, cached, optionally icon-tinted, and emitted as image-pixel host commands. This is still the Rust-owned host-contract painter: `.ui.toml` remains the business source, Slint is only used as an image/SVG decoder, and the generated Slint UI path is not restored.
+
 Export smoke after the M2 build used `E:\zircon-build\ZirconEngine\zircon_editor.exe` from the packaged folder. The process was still alive after 8 seconds and was stopped intentionally; `E:\zircon-build\ZirconEngine\logs\2026-05-04-20-30-04\editor.log` recorded `editor_host_presenter` frames `1` through `5` at `1280x720` with project path, center/document/viewport frames, `page_tabs=1`, `document_tabs=2`, and `document_pane_kind=Scene`. The same log had no `error`, `warn`, `missing`, `failed`, `exists=false`, or `path_exists=false` matches, so the remaining display boundary is no longer asset/template availability or native presenter lifetime.
+
+## 2026-05-04 Native Host Interaction And Glyph Cut
+
+The screenshot after M2 showed three lower-layer regressions in the Rust-owned host contract: text was still placeholder bars, the native `winit` loop dropped pointer events instead of forwarding them into the already-wired `UiHostContext` / `PaneSurfaceHostContext` callbacks, and redraw/present could use stale presentation data. The repair keeps the current Rust-owned host-contract architecture and does not restore generated Slint modules.
+
+`host_contract/window.rs` now forwards `PointerMoved`, `PointerButton`, and `MouseWheel` events through `host_contract/native_pointer.rs`. The routing layer reads `HostWindowPresentationData.host_scene_data` plus current `HostMenuStateData` and dispatches menu, menu-popup, chrome tab, rail, resize, pane, and viewport events into the same shared callback bridges that tests and generated-host-era code already used. `RedrawRequested` and resize call the installed `on_frame_requested` callback before presenting, and `app/callback_wiring.rs` wires that callback to `SlintEditorHost::tick()` so dirty layout/presentation work is recomputed before the `softbuffer` frame is painted.
+
+`painter/text.rs` adds the CPU glyph primitive. It embeds `zircon_runtime/assets/fonts/FiraMono-subset.ttf`, rasterizes with `fontdue`, clips through the existing pixel-rect geometry layer, and alpha-blends coverage pixels into `HostRgbaFrame`. `render_commands.rs`, `template_nodes.rs`, `primitives.rs`, and `workbench.rs` now route former text-bar calls through this glyph path while preserving the same `paint_host_frame(...)` entry used by snapshots and the native presenter.
+
+The root layout authority was tightened in `painter/workbench.rs`: if `host_scene_data.layout` contains visible root frames, the painter uses that scene layout as the single root-frame source; only an empty scene layout falls back to legacy top-level `host_layout` plus synthetic defaults. This prevents per-field mixing of stale `host_layout` values with the authored scene projection.
+
+Focused validation for this cut stayed scoped to the affected editor host path rather than claiming a workspace-wide green run. The validation stage covered formatting for the touched host-contract/app/test files, `zircon_editor` library type-check, focused native pointer/frame regressions, the glyph regression, the broader `rust_owned_host` host-contract filter, the `zircon_app` editor binary target check, a debug export build, and a packaged editor smoke. The packaged smoke used `E:\zircon-build\ZirconEngine\zircon_editor.exe`; it remained alive for 8 seconds before intentional termination, and `E:\zircon-build\ZirconEngine\logs\2026-05-04-22-56-02\editor.log` had no `panic`, `error`, `failed`, `fatal`, or `missing` matches while resolving staged assets and creating the native window.
+
+## 2026-05-05 Structural Template Labels
+
+The first glyph-backed exported screenshot exposed a separate lower-layer painter bug: structural template nodes with empty visible text were falling back to `control_id` or `node_id`, so routing/debug identifiers such as `WorkbenchPageBar`, `DockHeaderBar`, and status-panel ids became real glyphs. The old placeholder-bar path made this much less visible; the real glyph path correctly revealed that `control_id` is metadata, not display text.
+
+`painter/template_nodes.rs` now resolves node labels only from explicit display fields: `text`, `value_text`, and `options_text`. Structural ids stay available for pointer routing, callback dispatch, and test selection, but they are not painted unless an authored template intentionally provides visible text. This keeps the fix at the shared template-node painter layer instead of adding one-off suppression rules for page chrome, dock headers, or status bar nodes.
+
+The regression `rust_owned_host_painter_does_not_render_structural_control_ids_as_text` compares an anonymous structural `Panel` snapshot against the same `Panel` with only `control_id` set and requires zero changed pixels in the panel text region. It also renders the same node with explicit `text = "Workbench"` and requires visible pixel changes, so the guard blocks structural-id leakage without disabling legitimate template text.
+
+## 2026-05-05 Native Host Interaction And Occlusion Follow-up
+
+The next exported-editor screenshot exposed two support-layer gaps in the Rust-owned host contract rather than a need to restore generated Slint modules. Pointer facts were reaching `native_pointer.rs`, but pane body routing still fell through to broad pane-kind fallbacks before testing authored `TemplatePaneNodeData` controls, so native clicks on Build Export / Project-style buttons never reached the generic surface-control action bridge. Scene/Game toolbar points also sat inside the viewport content area and could be consumed as raw viewport body events before the toolbar controls were resolved.
+
+`host_contract/surface_hit_test/template_node.rs` owns pane template-node hit testing for the native host path. It selects the correct node collection from `PaneData.kind`, consumes the submitted `PaneData.body_surface_frame`, ignores disabled or non-dispatchable nodes when building that frame, and returns `control_id`, `action_id`, `binding_id`, and `dispatch_kind` metadata without treating those ids as visible labels. `native_pointer.rs` routes those hits before pane fallbacks, dispatching inspector/showcase-specific controls to their existing callbacks and all other button-like controls to `PaneSurfaceHostContext.surface_control_clicked`.
+
+`host_contract/surface_hit_test/viewport_toolbar.rs` resolves visible Scene/Game toolbar controls from `SceneViewportChromeData` before the viewport body route is chosen. The native hit-test consumes the toolbar `UiSurfaceFrame.hit_grid` through the generic `surface_frame.rs` adapter, so it mirrors `scene_viewport_toolbar.ui.toml` after shared layout instead of stopping at the early tool/space/display/grid group: snap, preview lighting/skybox/gizmos, frame selection, play-mode, projection, and align-view controls all produce `PaneSurfaceHostContext.viewport_toolbar_pointer_clicked` hits with their toolbar-local arranged control frame. Unhandled toolbar/background or body points still flow to the raw viewport pointer bridge.
+
+The menu/content occlusion regression was a painter z-order issue in the same Rust-owned host layer. Open-menu state and popup hit regions already existed, but `painter/workbench.rs` rendered only the top menu chrome before pane and viewport surfaces, so an opened popup could be visually hidden by the document/viewport body. `draw_open_menu_popup(...)` now consumes `HostMenuStateData.open_menu_index`, menu frames, popup dimensions, and `HostMenuChromeMenuData.popup_nodes`, then paints the popup after dock/pane/floating/resize layers and before the status bar. The popup remains a host-contract render concern and uses the same template-node backend as pane bodies.
+
+Focused regressions lock the boundary directly in `native_host_contract.rs`: one verifies pane template buttons dispatch their action metadata through the native click path, one verifies viewport toolbar controls win before raw viewport body events, and one snapshots an opened menu to prove popup pixels are painted above the document/viewport surface below the menu bar.
+
+The focused module regression in `surface_hit_test/viewport_toolbar.rs` covers the shared surface-frame adapter and asserts that the hit result comes from arranged node geometry. The broader native host contract builds toolbar fixture frames through `BuiltinViewportToolbarTemplateBridge::surface_frame_for_projection_controls(...)`, so test clicks no longer depend on a Rust coordinate table that can drift from the TOML layout.
+
+Projection control ids are no longer kept alive as legacy route aliases. `display.cycle`, `snap.translate`, `toggle.gizmos`, and `frame.selection` remain the hit-grid action ids consumed by `ViewportToolbarPointerBridge`; TOML projection ids such as `SetDisplayMode` and `FrameSelection` fall back through `dispatch_builtin_viewport_toolbar_control(...)` and template bindings when no legacy route exists. This deletes the old toolbar alias list rather than preserving it as a compatibility shim.
+
+Real-host callbacks that upload `width == 0 && height == 0` are handled in two stages. If the callback id is a TOML projection id, the dispatcher recovers the authored frame from `BuiltinViewportToolbarTemplateBridge`. If the callback id is already a legacy hit-grid action id such as `display.cycle` or `align.neg_z`, there is intentionally no reverse projection alias lookup; the dispatcher uses the click point as a one-pixel active frame and lets `ViewportToolbarPointerBridge` validate and route that action id through the shared surface dispatcher. This keeps zero-rect fallback alive for the real host without restoring a Rust toolbar coordinate table.
+
+Pane component projection has a display-only fallback for bound or button-like controls with no authored label. It humanizes ids such as `ApplyDraft` into visible text, but that helper is not a dispatch alias table and is not part of the toolbar hard-cutover surface.
+
+The native late-toolbar regression now uses a wide enough test document surface for the TOML-aligned left group to be visible and clicks `frame.selection` at toolbar-local `x=659`. That locks the real routed frame at `x=649`, `width=20`, instead of the stale pre-TOML hard-coded frame that overlapped `snap.rotate`.
+
+Native viewport-toolbar command dispatch is intentionally click-like, not a raw button event stream. `native_pointer.rs` now invokes `PaneSurfaceHostContext.viewport_toolbar_pointer_clicked` only for `NativePointerButtonState::Pressed` with `UiPointerButton::Primary`; primary release, secondary press, and middle press return idle for toolbar controls so actions such as `display.cycle` and `grid.cycle` cannot fire twice or from non-primary buttons. `native_host_contract.rs::native_host_viewport_toolbar_only_dispatches_primary_press` locks that contract with a real toolbar hit on `display.cycle`.
+
+## 2026-05-05 Native Document-Tab Region Origin
+
+The remaining native click regression was lower than callback wiring: exported `winit` pointer coordinates are client-window coordinates, but root document-tab frames are nested twice. `HostDocumentDockSurfaceData.header_frame` is local to `document_dock.region_frame`, and each tab frame is local to that header. `native_pointer.rs` had been feeding the header frame into `route_document_tabs(...)` without adding the document dock region origin, so a global click on visible Scene/Game document tabs missed the chrome route and fell through to idle routing.
+
+`route_top_level_chrome(...)` now translates the root document dock header by `document_dock.region_frame.x/y` before hit-testing document tabs. This matches the already-global drawer region and floating-window header routes while keeping the shared `document_tab_pointer_clicked` callback bridge unchanged. The focused regression `native_host_pointer_click_routes_document_tab_with_document_region_origin` sets a non-zero document dock origin, clicks the global tab position, and requires the native host route to request redraw and emit the expected document tab callback payload.
+
+## 2026-05-05 Project Workspace Shell Drawer Restore
+
+The exported native screenshot with missing left/right/bottom drawer bars and no clear status/task shell was traced below the painter: the host presenter log had non-zero center/document/viewport frames and two document tabs, but `left_tabs=0`, `right_tabs=0`, `bottom_tabs=0`, and all drawer frames were zero. That means the native projection was faithfully painting an incomplete workbench model. The lowest shared failing layer was project workspace restoration, not the Rust-owned painter or generated Slint compatibility path.
+
+`workspace_state.rs` now treats `apply_project_workspace_state(...)` the same way as startup bootstrap after loading serialized project state. It restores the project-owned instances, re-ensures builtin shell instances, then calls `repair_builtin_shell_layout(...)` before layout normalization and session metadata recomputation. This keeps user/project document tabs intact while reintroducing the baseline editor shell drawers that are required for the activity rails, side/bottom tabs, and bottom tool/status area to have visible model data.
+
+`ensure_shell_instances.rs` preserves restored single-instance descriptors instead of blindly inserting the default builtin instance id. If a project workspace reopens `editor.hierarchy#restored`, the shell bootstrap does not add a competing `editor.hierarchy#1`. `repair_builtin_shell_layout.rs` takes the current open-instance list and maps every baseline builtin id back to the matching restored instance id when the descriptor is single-instance. The same repair is applied to both root `WorkbenchLayout.drawers` and the embedded `window:workbench` activity drawer layout, because presentation builders may consume either the root compatibility field or the activity-window-scoped drawer set during this transition.
+
+Repair also refreshes shell drawer metadata when baseline shell tabs are inserted into an existing drawer, or when an already-present shell tab sits in a stale/invisible drawer. That keeps restored project workspaces from preserving `visible=false`, zero extent, or collapsed metadata that would still suppress `tool_region_has_tabs(...)` and keep side/bottom regions hidden even after the builtin tab ids are present.
+
+The focused manager regressions cover both halves of the support fix. `applying_project_workspace_restores_single_instance_registry_state` now verifies that a restored hierarchy instance remains the shell layout id and that the default `editor.hierarchy#1` id is not reintroduced. `applying_project_workspace_preserves_builtin_shell_drawers` starts from a project workspace that serializes Scene/Game document tabs plus malformed drawer state, applies it through `EditorManager`, and requires Project/Inspector/Console drawers plus their builtin instances to exist in both root and stored workbench activity-window drawer layouts with visible non-zero shell metadata.
+
+## 2026-05-05 Native Mouse Redraw Boundary
+
+The native mouse redraw regression was in the Rust-owned host event loop rather than UITOML asset loading. Pointer movement could route through the viewport or menu path, return a generic redraw request, and then `WindowEvent::RedrawRequested` always called `request_frame_update()`. On top of that, `about_to_wait()` requested a redraw every idle cycle, so ordinary mouse movement looked like a full presentation tick and could replay template/resource diagnostics even when layout and authored UI assets did not change.
+
+`host_contract/redraw.rs` now owns the native redraw contract. Pointer dispatch returns `HostRedrawRequest::None`, `HostRedrawRequest::Region(FrameRect)`, or `HostRedrawRequest::Full { frame_update }` instead of a boolean. `native_pointer.rs` uses region damage for move/scroll paths that only need the affected menu, pane, or viewport body repainted. Clicks, resize, and other state-changing operations still request a full frame update so `SlintEditorHost::tick()` can rebuild presentation data before the presenter paints.
+
+`host_contract/window.rs` now queues those redraw requests explicitly. Region requests are unioned until the next `RedrawRequested`, full requests dominate region requests, and the idle `about_to_wait()` hook only synchronizes native window state. `RedrawRequested` calls `request_frame_update()` only when the queued request requires it, then passes any damage rectangle to `SoftbufferHostPresenter::present(...)`. `presenter.rs` converts that frame-space damage into a `softbuffer::Rect` and uses `present_with_damage(...)`; full or invalid damage still falls back to a normal full present.
+
+The regression boundary is covered directly. `native_host_pointer_move_routes_viewport_with_local_damage_without_frame_update` verifies that a native viewport move still reaches the shared viewport pointer bridge but returns only the viewport body damage and `requires_frame_update=false`. `rust_owned_host_window_wait_cycle_does_not_unconditionally_request_redraw` is a source guard that rejects bringing back the idle-loop `request_redraw()` cycle.
+
+## 2026-05-05 Native Paint And Pointer Fast Path
+
+The next optimization turns the redraw boundary into an actual paint fast path. `SoftbufferHostPresenter` now keeps a retained `HostRgbaFrame` backbuffer. Full invalidation still repaints the whole workbench, but region redraws set an active paint clip on the frame, clear only the damaged rectangle, repaint the host skeleton/scene through that clip, and copy only the damaged pixel rows into softbuffer before `present_with_damage(...)`.
+
+The native painter clip is centralized in `HostRgbaFrame` and consumed by primitives, text, render-command painting, template-node painting, and viewport image painting. This matters because a damage rectangle is only useful if every draw operation agrees on the same clipped spatial fact; otherwise a local draw helper can silently turn a region repaint back into an expensive full repaint.
+
+Pointer movement now distinguishes input dispatch from native repaint. Viewport moves still reach the runtime viewport pointer bridge, but the native host returns idle because no Rust-owned host pixels changed; repaint follows the next viewport image. Hierarchy and asset-tree hover compare pointer-only interaction state before and after callbacks. Unchanged hover targets return idle, while hierarchy hover changes damage the affected row instead of the whole window.
+
+Template loading also received a process-local cache. Builtin `.ui.toml` documents are cached as parsed and compiled documents using canonical path, file length, and modification timestamp as the key, so multiple bridge/runtime instances no longer repeatedly compile the same host templates during refresh. Host presentation logs now include a rebuild count, and presenter logs include full/region paint counts plus painted pixel totals for regression diagnosis.
+
+`apply_presentation` now builds only the payload needed by the pane's actual kind before constructing `PaneData.body_surface_frame`. Scene panes avoid hierarchy/inspector/console/module/export conversion, and non-project panes avoid project overview projection. This keeps the full presentation path available for structural changes while reducing the amount of work done per valid slow path.
+
+The deep fast-path follow-up adds an external redraw queue to `host_contract/window.rs`. App-side producers can now enqueue a `HostRedrawRequest::Region(...)` without marking presentation/layout dirty or calling `request_frame_update()`. `about_to_wait()` drains and coalesces those requests into the same pending redraw path used by pointer dispatch, so full redraws still dominate but independent paint-only changes do not recreate the presentation model.
+
+Viewport image refresh now uses that channel. `poll_viewport_image_for_native_host()` accepts a fresh `SlintViewportController::poll_image()` result, publishes it through `PaneSurfaceHostContext::set_viewport_image(...)`, and requests only the current viewport content frame as damage when the image was accepted. The native host converts the Slint image into `HostViewportImageData` RGBA bytes, preserves that payload across `apply_presentation`, and `painter/workbench.rs` composites it into `Scene` / `Game` pane bodies through the shared clipped primitive path. Repeated status-line writes also short-circuit against `EditorEventRuntime::status_line()`, so recurring background diagnostics with identical text no longer keep flipping `presentation_dirty`.
+
+Focused coverage for this cut is `presenter::tests`, `builtin_template_compile_cache_is_reused_across_runtime_instances`, `tests::host::slint_window::native_host_contract`, and `native_host_painter_composites_latest_viewport_image_into_scene_body`. The viewport-image regression writes a synthetic RGBA frame through the same `PaneSurfaceHostContext` seam used by `poll_viewport_image_for_native_host()` and asserts the Rust-owned native snapshot changes inside the Scene body rather than only repainting chrome. The old viewport-move regression has been replaced by `native_host_pointer_move_routes_viewport_without_native_repaint`, because viewport movement should not repaint native chrome until rendered viewport image data changes.
+
+## 2026-05-05 Native Template Text And Binding Dispatch
+
+The follow-up exported-editor screenshot showed two remaining support-layer symptoms after the drawer/status model repair: short authored labels were still partially clipped in Rust-owned template nodes, authored buttons without literal `action_id` metadata were not dispatchable, and some button frames collapsed toward their label bounds instead of preserving a clickable padded control rect. These failures were below individual panes. The text paint problem lived in the shared CPU glyph layout/clipping path, the button-frame problem lived in runtime shared layout measurement, and the dispatch problem lived in template projection, native template-node hit testing, and the generic pane-surface dispatch fallback.
+
+Shared runtime layout now measures leaf text before the editor native painter sees it. `zircon_runtime/src/ui/surface/render/text_measure.rs` resolves template text/style metadata and produces a deterministic intrinsic text size, `layout/pass/measure.rs` applies that size to leaf nodes and adds button/icon-button padding around non-empty text, and `layout/pass/axis.rs` uses measured desired main-axis extents for default linear child constraints without overriding authored width/height constraints. This keeps the button contract as “text first, then padding,” and keeps the fix below native hit-test/painter code so exported and in-process host paths share the same layout cache frames.
+
+`TemplatePaneNodeData` now carries a projected `binding_id` alongside `control_id`, `action_id`, and `dispatch_kind`. `pane_component_projection` derives that id from authored host-node `UiEventKind::Click` bindings, so buttons such as inspector `ApplyDraft` or pane-surface `TriggerAction` remain dispatchable even when the visual node has no literal `action_id`. `surface_hit_test/template_node.rs` treats template nodes as dispatchable when any of `action_id`, `binding_id`, or `dispatch_kind` is present, and `native_pointer.rs` forwards the binding id as the primary payload before falling back to action metadata.
+
+Dispatch stays on existing host-contract seams instead of adding pane-specific one-offs. `callback_dispatch/template_binding.rs` resolves known builtin template binding ids through `builtin_template_bindings()`, `pane_surface_actions.rs` tries that binding route when the pane surface bridge has no matching control, and the existing workbench `dispatch_menu_action(...)` remains the fallback for literal menu/view action ids. `dispatch_kind = "asset"` remains routed to the asset control path so action-less Project Overview asset-browser controls are not mistaken for generic menu actions.
+
+The native text repair keeps clipping in the shared painter layer. `template_nodes.rs` reduces vertical inset when a node is short, sizes labels from the resulting text rect height, and `painter/text.rs` clamps font size and line height to the available rect before asking `fontdue` for glyph layout. The focused regression `rust_owned_template_text_keeps_short_labels_legible` snapshots a 14px-tall primary button and counts foreground-influenced glyph rows rather than relying on exact fully-covered antialias pixels.
+
+Focused evidence for this cut stayed scoped to the affected editor host/runtime layout path. Formatting and `cargo check -p zircon_editor --lib --locked` passed with the existing runtime/editor warning noise. The projection regression now proves the primary click binding id survives template-node conversion, the binding-only native click regression proves that binding id is the dispatched pane callback payload, and the short-template-text snapshot regression passed. Adjacent pane-template-button, document-tab-origin, and project-workspace restore regressions stayed green. Runtime layout regressions now prove label leaves get non-zero intrinsic text size and button leaves become text size plus padding, and `inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion` now asserts the real `ApplyDraft` projected frame is `(106.0, 27.2)`, i.e. current text/style measurement plus shared button padding, before native hit testing consumes it. Package smoke has now recovered on an isolated E: output: after proving the direct runtime Cargo leg could finish on a warmed target, `python tools\zircon_build.py --targets editor,runtime --out E:\tmp\zircon-build-package-20260506 --mode debug` completed and staged the editor/runtime artifacts plus assets. The remaining unproven acceptance item is a real launched packaged-editor screenshot/interaction check, not package construction.
+
+The scene-viewport missing-rendering symptom was a separate support-layer issue from text and button sizing. `SlintEditorHost::tick()` could submit a render extract and `SlintViewportController::poll_image()` could produce a Slint `Image`, but the Rust-owned native host bridge had to retain CPU-readable viewport pixels and the native painter had to composite them into Scene/Game pane bodies. `HostViewportImageData` is now the host-contract storage boundary for accepted RGBA frames; `HostWindowPresentationData` carries it like menu and pane interaction overlays, so presentation rebuilds do not discard the latest renderer image.
+
+## 2026-05-06 Native Visual Assets And Debug Overlay
+
+The SVG/Image regression is fixed at the Rust-owned host painter layer rather than by restoring generated Slint UI. `TemplatePaneNodeData.preview_image` is now a real painter input: `template_nodes.rs` converts the retained `slint::Image` to RGBA pixels, tints icon-like roles such as `Icon` and `SvgIcon`, and emits a clipped image-pixel command before text. Runtime-style `UiRenderCommandKind::Image` uses the same host command backend; `visual_assets.rs` resolves `UiVisualAssetRef::Image` from editor/runtime asset roots and `UiVisualAssetRef::Icon` from the editor icon folders, decodes SVG/bitmap content through Slint's image loader, caches the result, and leaves the deterministic placeholder only for missing assets.
+
+The same cut adds a top-right native debug marker. `HostWindowShellData.debug_refresh_rate` is projected from the workbench host presentation, copied through `apply_presentation.rs`, and consumed by `painter/workbench.rs` while drawing the top bar. The startup value is the static fallback `FPS 0.0 | present 0 | full 0 | region 0`, which exists only before the first native present has a real presenter snapshot.
+
+Milestone 1 replaces the static marker with `HostRefreshDiagnostics` in `host_contract/diagnostics.rs`. `SoftbufferHostPresenter::present(...)` now records present count, full/region paint split, painted pixel totals, and FPS timing with saturating counters, then merges the latest `HostInvalidationRoot` snapshot before painting the top bar. The rendered overlay string includes `FPS`, `present`, `full`, `region`, `pixels`, `slow`, `render`, and `paint-only`, so the visible native shell reports both presenter damage behavior and invalidation-root rebuild pressure without parsing diagnostic log text.
+
+The host lifecycle publishes invalidation diagnostics through the Rust-owned host contract whenever slow-path, render-path, or paint-only counters change. The presenter uses that snapshot on the same frame it paints, then writes the formatted overlay back into `HostWindowShellData.debug_refresh_rate` as the next-frame host state. This keeps the `.ui.toml -> runtime layout -> host projection -> native painter` chain intact: no generated Slint UI is restored, and `workbench.rs` still only consumes the final string through the existing overlay call.
+
+The validation focus for this cut is intentionally painter-local: template SVG/image preview pixels, runtime SVG image commands, and top-bar debug overlay visibility. Broader Material/Asset Browser layout and text measurement work are separate lanes because active sibling sessions currently own nearby layout/text-input changes.
+
+## 2026-05-05 Native Asset Tree Hover State Projection
+
+The hierarchy hover repair exposed the same shared-layer gap in asset panes: native `PointerMoved` routed to `asset_tree_pointer_moved(...)`, app pointer state could compute a hovered row, but `PaneSurfaceHostContext::set_activity_asset_tree_hovered_index(...)` and the browser equivalent still discarded the state. The Rust-owned native painter therefore kept repainting the stored presentation with no asset-row hover overlay even though the event callback had executed.
+
+`HostPaneInteractionStateData` now stores activity and browser asset-tree hover/scroll state beside the hierarchy state. The activity/browser asset tree setters in `PaneSurfaceHostContext` update that shared state and clamp scroll to non-negative pixels, while `HostWindowHandle::take_snapshot()` and presenter redraw continue to compose the live state through `HostWindowPresentationData` without requesting a full frame rebuild.
+
+`painter/workbench.rs` now consumes the projected asset tree state after drawing authored template nodes. It resolves the projected `AssetsActivityTreeRowPanel` / `AssetBrowserSourcesRowPanel` frame, applies the stored scroll offset, and overlays the hovered row inside the pane clip. This keeps asset-tree hover visibility on the same native host state/projection/painter boundary as hierarchy hover instead of adding a callback-only special case.
+
+The focused regression is `native_host_asset_tree_move_updates_visible_hover_state`: it dispatches a native pointer move through an `Assets` pane, drives `set_activity_asset_tree_hovered_index(0)` from the normal move callback, verifies redraw remains local with `requires_frame_update=false`, and asserts that the post-hover native snapshot changes the asset tree row pixels.
+
+## 2026-05-05 Native Hierarchy Hover State Projection
+
+The next visible-interaction regression was lower than pointer routing: a native hierarchy `PointerMoved` callback could run, but `PaneSurfaceHostContext::set_hovered_hierarchy_index(...)` was still a no-op and `HostWindowHandle::take_snapshot()` painted directly from the stale stored presentation. That meant the native event path could request a local redraw while the Rust-owned painter had no updated pane interaction state to consume, so users saw no hover response even though callback dispatch had happened.
+
+`host_contract/data/host_interaction.rs` now adds `HostPaneInteractionStateData` for pointer-only pane state that can repaint native host pixels without forcing a full scene tick. `HostContractState` stores that state beside menu/drag state, `PaneSurfaceHostContext::set_hierarchy_scroll_px(...)` and `set_hovered_hierarchy_index(...)` write it, and `UiHostWindow::get_host_presentation()` plus the snapshot path compose it into `HostWindowPresentationData`. `apply_presentation.rs` preserves the latest pane interaction state when replacing the full scene presentation, matching the existing menu-state overlay behavior.
+
+The same shared state-composition boundary also tightened `HostMenuStateData::default()`: menu and hover indices now default to `-1`, not Rust's derived zero value. Without that sentinel, a fresh Rust-owned host composed live global state as if menu 0 were open, so the closed-menu snapshot already contained the popup and the open-menu overlay regression could not detect a paint-order change. Tests that need an open popup now drive the live `UiHostContext` menu state explicitly while `set_host_presentation(...)` remains a pure stored-presentation update.
+
+`painter/workbench.rs` now draws semantic hierarchy rows when a Hierarchy pane has `hierarchy_nodes`, using the same row metrics as `hierarchy_pointer`. Authored template nodes still paint the pane/header/slot structure first; the native hierarchy row fallback fills the hybrid slot or pane body with selected/hovered row pixels and labels from `SceneNodeData`. This keeps the repair at the shared host-contract state/projection/painter layer instead of special-casing a test callback or forcing full frame updates on mouse move.
+
+The focused regression `native_host_hierarchy_move_updates_visible_hover_state` first failed with unchanged snapshot pixels after `on_hierarchy_pointer_moved` called `set_hovered_hierarchy_index(1)`. After the fix, the same native pointer move still returns local region damage with `requires_frame_update=false`, and the post-hover snapshot changes the child hierarchy row pixels.
 
 ## Latest Host Component Catalog Cut
 
@@ -705,7 +1012,9 @@ workbench shell 现在不再把 scene/game viewport 当成一个“可以单独�
   - [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 新增 `Left/Right/BottomDrawerShellRoot` 以及对应 `*DrawerHeaderRoot`
   - [`BuiltinWorkbenchTemplateBridge::root_shell_frames()`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/workbench/bridge.rs) 现在会在 host recompute 时根据 chrome drawer extent 直接导出 visible drawer shell/header frame，不再只导出 body/menu/document/status 这组基础 root control
   - [`resolve_root_left_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/root_shell_projection.rs)、[`resolve_root_right_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/root_shell_projection.rs) 与 [`resolve_root_bottom_region_frame(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/root_shell_projection.rs) 现在优先消费这些 shared drawer shell frame；visible drawer `document_region_frame` 也会从 shared left/right/bottom shell frame 扣减，而不是继续读 legacy main-axis extent
+  - `HostWindowLayoutData` 的 `left/right/bottom_splitter_frame` 现在也由同一份 visible drawer root projection 重建；legacy `WorkbenchShellGeometry.splitter_frames` 只在 splitter 本身不可见或 shared projection 缺席时作为 fallback。这修掉了 1280x750 这类真实窗口下 region 已按 shared drawer frame 展示、但 splitter overlay 仍按 stale legacy geometry 覆盖 Inspector/Console 的 mixed-authority 缝。
   - [`build_workbench_drawer_header_pointer_layout(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs) 现在在 shared `*DrawerHeaderRoot` 存在时直接复用 header frame，所以 visible drawer header pointer surface 与 root shell presentation 真正合并到同一份 authority
+  - shared runtime 现在把 legacy `state_flags.visible=false` 统一规范化成 effective `UiVisibility::Hidden`，而 `HitTestInvisible` / `SelfHitTestInvisible` 分别控制 subtree hit 和 self hit；drawer shell/header projection 不能再用 editor-local bool visible 去重解释 render 与 hit policy。
   - focused regressions 现在直接锁住这条 cutover：`builtin_workbench_template_bridge_exports_visible_drawer_shell_and_header_frames_from_chrome`、`apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_extents`、`shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visible_drawer_regions`，以及 real-host `root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_header_frames`
 - `viewport_content_frame` 也进入同一套 mixed authority：当 `Left/Right/Bottom` drawer region 全部折叠时，root shell 直接从 `PaneSurfaceRoot` 推导 viewport frame；`Scene` 会额外扣掉 toolbar 高度，`Game` 则直接使用 pane surface frame；只要 drawer 可见，viewport 就复用 resolved document frame，而不再保留一套独立的 legacy viewport geometry authority
 - [`host_lifecycle.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/host_lifecycle.rs) 的 root recompute 现在会把 `template_bridge.root_shell_frames()` 接进 `apply_presentation(...)`；同一函数在 child native window presenter 路径上显式传 `None`，因此 secondary native window 继续沿用 `configure_native_floating_window_presentation(...)` 的专用窗口边界
@@ -1420,7 +1729,7 @@ splitter 现在不再在 Slint 里直接计算最终 extent。当前行为改成
 - 当 `Left/Right/Bottom` drawer region 折叠、root projection 已经给出更宽的 `PaneSurfaceRoot` / resolved viewport frame 时，真实宿主会优先用 shared root projection 结果重算 [`BuiltinViewportToolbarTemplateBridge`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs)
 - [`app/tests.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests.rs) 里的 `root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_over_stale_document_geometry` 直接锁住这条 seam：即使 legacy document geometry 被压窄到 `800px`，root host 里的 `align.neg_z` 仍然必须通过 shared projection 宽度命中并派发 `EditorViewportEvent::AlignView`
 
-也就是说，当前 Scene viewport toolbar 的视觉仍然由 `workbench.slint` 渲染，但真实命中与命令解释都已经切到 shared pointer route + template-runtime authority，而不是留在 Slint host 的局部 parser 或 legacy callback ABI。
+也就是说，当前 Scene viewport toolbar 的视觉仍然由 `workbench.slint` 渲染，但真实命中已经切到 `UiSurfaceFrame.hit_grid`，命令解释切到 hit-grid action id + template-runtime fallback，而不是留在 Slint host 的局部 parser、手写坐标表或 legacy callback ABI。
 
 同一轮里，`SceneViewportToolbar` 组件自身残留的 `set_tool` / `set_projection_mode` / `frame_selection` 等 legacy callback 壳声明也已经删掉。现在这块 chrome 在 Slint 侧只保留 pointer-fact 输入，不再保留任何未接线的旧 ABI 名字。
 

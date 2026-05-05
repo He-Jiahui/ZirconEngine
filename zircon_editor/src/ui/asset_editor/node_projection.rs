@@ -14,7 +14,9 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use crate::ui::layouts::views::{ViewTemplateFrameData, ViewTemplateNodeData};
+use crate::ui::layouts::views::{
+    resolve_visual_assets, ViewTemplateFrameData, ViewTemplateNodeData,
+};
 use crate::ui::template::EditorTemplateRuntimeService;
 
 use super::contract::{
@@ -127,6 +129,7 @@ fn build_ui_asset_editor_node_projection(
             let metadata = node.template_metadata.as_ref()?;
             let control_id = metadata.control_id.clone()?;
             let render_info = render_info_by_node.get(&node.node_id);
+            let visual_assets = resolve_visual_assets(metadata);
 
             Some(ViewTemplateNodeData {
                 node_id: SharedString::from(node.node_path.0.clone()),
@@ -180,6 +183,10 @@ fn build_ui_asset_editor_node_projection(
                         .map(|info| info.border_width)
                         .unwrap_or_default()
                 }),
+                media_source: SharedString::from(visual_assets.media_source),
+                icon_name: SharedString::from(visual_assets.icon_name),
+                has_preview_image: visual_assets.has_preview_image,
+                preview_image: visual_assets.preview_image,
                 frame: ViewTemplateFrameData {
                     x: node.layout_cache.frame.x,
                     y: node.layout_cache.frame.y,

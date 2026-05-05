@@ -17,7 +17,14 @@ use zircon_runtime_interface::ui::{
 
 use crate::ui::template::EditorTemplateRuntimeService;
 
-use super::{ViewTemplateFrameData, ViewTemplateNodeData};
+use super::{load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData};
+
+pub(crate) struct ViewTemplateVisualAssets {
+    pub(crate) media_source: String,
+    pub(crate) icon_name: String,
+    pub(crate) preview_image: slint::Image,
+    pub(crate) has_preview_image: bool,
+}
 
 #[derive(Debug, Error)]
 pub enum ViewTemplateProjectionError {
@@ -99,6 +106,7 @@ pub(crate) fn build_view_template_nodes_with_imports(
             .cloned()
             .or(command.text.clone())
             .unwrap_or_default();
+        let visual_assets = resolve_visual_assets(metadata);
 
         nodes.push(ViewTemplateNodeData {
             node_id: tree_node.node_path.0.clone().into(),
@@ -134,6 +142,10 @@ pub(crate) fn build_view_template_nodes_with_imports(
                 .unwrap_or(command.style.corner_radius.max(0.0)),
             border_width: number_attribute(metadata, "border_width")
                 .unwrap_or(command.style.border_width.max(0.0)),
+            media_source: visual_assets.media_source.into(),
+            icon_name: visual_assets.icon_name.into(),
+            has_preview_image: visual_assets.has_preview_image,
+            preview_image: visual_assets.preview_image,
             frame: ViewTemplateFrameData {
                 x: command.frame.x,
                 y: command.frame.y,
@@ -144,6 +156,35 @@ pub(crate) fn build_view_template_nodes_with_imports(
     }
 
     Ok(nodes)
+}
+
+pub(crate) fn resolve_visual_assets(metadata: &UiTemplateNodeMetadata) -> ViewTemplateVisualAssets {
+    let media_source = string_attribute(metadata, "image")
+        .or_else(|| string_attribute(metadata, "source"))
+        .or_else(|| string_attribute(metadata, "media"))
+        .or_else(|| {
+            matches!(metadata.component.as_str(), "Image" | "SvgIcon")
+                .then(|| string_attribute(metadata, "value"))
+                .flatten()
+        })
+        .unwrap_or_default();
+    let icon_name = string_attribute(metadata, "icon")
+        .or_else(|| {
+            (metadata.component.as_str() == "Icon")
+                .then(|| string_attribute(metadata, "value"))
+                .flatten()
+        })
+        .unwrap_or_default();
+    let preview_image = load_preview_image(&media_source, &icon_name);
+    let preview_size = preview_image.size();
+    let has_preview_image = preview_size.width > 0 && preview_size.height > 0;
+
+    ViewTemplateVisualAssets {
+        media_source,
+        icon_name,
+        preview_image,
+        has_preview_image,
+    }
 }
 
 fn asset_path(relative: &str) -> PathBuf {

@@ -110,6 +110,7 @@ mod helpers;
 mod hierarchy_pointer;
 mod host_lifecycle;
 mod inspector;
+mod invalidation;
 mod menu_pointer;
 mod module_plugin_actions;
 mod native_window_close;
@@ -123,6 +124,7 @@ mod startup;
 mod tests;
 mod ui_asset_editor;
 mod viewport;
+mod viewport_image_redraw;
 mod welcome_recent_pointer;
 mod welcome_session;
 mod workbench_pointer;
@@ -133,6 +135,7 @@ pub(super) use helpers::{
     derive_animation_assets_from_model_source, resolve_callback_source_window_id,
     shell_region_group_key, stage_model_source, viewport_size_from_frame,
 };
+use invalidation::{HostInvalidationMask, HostInvalidationRoot};
 #[cfg(test)]
 pub(crate) use native_windows::NativeFloatingWindowTarget;
 pub(crate) use native_windows::{
@@ -235,6 +238,7 @@ struct SlintEditorHost {
     shell_geometry: Option<WorkbenchShellGeometry>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
+    invalidation: HostInvalidationRoot,
     presentation_dirty: bool,
     layout_dirty: bool,
     window_metrics_dirty: bool,

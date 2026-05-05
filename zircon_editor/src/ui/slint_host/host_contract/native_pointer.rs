@@ -1,9 +1,14 @@
 use slint::{Model, SharedString};
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::data::{FrameRect, HostWindowPresentationData};
+use super::data::{FrameRect, HostPaneInteractionStateData, HostWindowPresentationData};
 use super::globals::{PaneSurfaceHostContext, UiHostContext};
+use super::redraw::NativePointerDispatchResult;
+use super::surface_hit_test::{self, TemplateNodePointerHit, ViewportToolbarPointerHit};
 use super::window::UiHostWindow;
+use crate::ui::slint_host::hierarchy_pointer::constants::{
+    ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y,
+};
 
 const HOST_POINTER_DOWN: i32 = 0;
 const HOST_POINTER_MOVE: i32 = 1;
@@ -18,29 +23,6 @@ const VIEWPORT_POINTER_BUTTON_SECONDARY: i32 = 2;
 const VIEWPORT_POINTER_BUTTON_MIDDLE: i32 = 3;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct NativePointerDispatchResult {
-    request_redraw: bool,
-}
-
-impl NativePointerDispatchResult {
-    pub(super) fn idle() -> Self {
-        Self {
-            request_redraw: false,
-        }
-    }
-
-    pub(super) fn dispatched() -> Self {
-        Self {
-            request_redraw: true,
-        }
-    }
-
-    pub(crate) fn request_redraw(self) -> bool {
-        self.request_redraw
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum NativePointerButtonState {
     Pressed,
     Released,
@@ -52,14 +34,19 @@ pub(super) fn dispatch_native_pointer_move(
     y: f32,
 ) -> NativePointerDispatchResult {
     let presentation = ui.get_host_presentation();
-    if menu_handles_point(&presentation, x, y) {
+    if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y) {
+        let before = ui.get_menu_state();
         ui.global::<UiHostContext>().invoke_menu_pointer_moved(x, y);
-        return NativePointerDispatchResult::dispatched();
+        if before == ui.get_menu_state() {
+            return NativePointerDispatchResult::idle();
+        }
+        return NativePointerDispatchResult::region(menu_damage_frame(&presentation));
     }
 
     if let Some(pointer) = route_pointer_to_pane(&presentation, x, y) {
+        let before = ui.get_pane_interaction_state();
         let pane_host = ui.global::<PaneSurfaceHostContext>();
-        match pointer.target {
+        match &pointer.target {
             PanePointerTarget::Hierarchy => pane_host.invoke_hierarchy_pointer_moved(
                 pointer.local_x,
                 pointer.local_y,
@@ -73,30 +60,29 @@ pub(super) fn dispatch_native_pointer_move(
                 pointer.height,
             ),
             PanePointerTarget::AssetTree(mode) => pane_host.invoke_asset_tree_pointer_moved(
-                mode,
+                mode.clone(),
                 pointer.local_x,
                 pointer.local_y,
                 pointer.width,
                 pointer.height,
             ),
             PanePointerTarget::AssetContent(mode) => pane_host.invoke_asset_content_pointer_moved(
-                mode,
+                mode.clone(),
                 pointer.local_x,
                 pointer.local_y,
                 pointer.width,
                 pointer.height,
             ),
-            PanePointerTarget::AssetReference(mode, list_kind) => {
-                pane_host.invoke_asset_reference_pointer_moved(
-                    mode,
-                    list_kind,
+            PanePointerTarget::AssetReference(mode, list_kind) => pane_host
+                .invoke_asset_reference_pointer_moved(
+                    mode.clone(),
+                    list_kind.clone(),
                     pointer.local_x,
                     pointer.local_y,
                     pointer.width,
                     pointer.height,
-                )
-            }
-            PanePointerTarget::Viewport(surface_key) => pane_host.invoke_viewport_pointer_event(
+                ),
+            PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
                 VIEWPORT_POINTER_MOVE,
                 VIEWPORT_POINTER_BUTTON_NONE,
                 pointer.local_x,
@@ -106,13 +92,47 @@ pub(super) fn dispatch_native_pointer_move(
             PanePointerTarget::Console
             | PanePointerTarget::Inspector
             | PanePointerTarget::BrowserAssetDetails
+            | PanePointerTarget::TemplateNode(_)
+            | PanePointerTarget::ViewportToolbar(_)
             | PanePointerTarget::UiAsset
             | PanePointerTarget::Other => {}
         }
-        return NativePointerDispatchResult::dispatched();
+        return pointer_move_redraw(&pointer, &before, &ui.get_pane_interaction_state());
     }
 
     NativePointerDispatchResult::idle()
+}
+
+fn pointer_move_redraw(
+    pointer: &PanePointerRoute,
+    before: &HostPaneInteractionStateData,
+    after: &HostPaneInteractionStateData,
+) -> NativePointerDispatchResult {
+    if matches!(&pointer.target, PanePointerTarget::Viewport(_)) || before == after {
+        return NativePointerDispatchResult::idle();
+    }
+
+    if matches!(&pointer.target, PanePointerTarget::Hierarchy) {
+        if (before.hierarchy_scroll_px - after.hierarchy_scroll_px).abs() > f32::EPSILON {
+            return NativePointerDispatchResult::region(pointer.frame.clone());
+        }
+        let damage = union_optional_frames(
+            hierarchy_row_damage(
+                &pointer.frame,
+                before.hovered_hierarchy_index,
+                before.hierarchy_scroll_px,
+            ),
+            hierarchy_row_damage(
+                &pointer.frame,
+                after.hovered_hierarchy_index,
+                after.hierarchy_scroll_px,
+            ),
+        )
+        .unwrap_or_else(|| pointer.frame.clone());
+        return NativePointerDispatchResult::region(damage);
+    }
+
+    NativePointerDispatchResult::region(pointer.frame.clone())
 }
 
 pub(super) fn dispatch_native_pointer_button(
@@ -128,16 +148,18 @@ pub(super) fn dispatch_native_pointer_button(
         return NativePointerDispatchResult::idle();
     };
     if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
-        if menu_handles_point(&presentation, x, y) {
-            ui.global::<UiHostContext>().invoke_menu_pointer_clicked(x, y);
-            return NativePointerDispatchResult::dispatched();
+        if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y)
+        {
+            ui.global::<UiHostContext>()
+                .invoke_menu_pointer_clicked(x, y);
+            return NativePointerDispatchResult::full_frame();
         }
     }
 
     if let Some(route) = route_top_level_chrome(&presentation, x, y) {
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
             dispatch_chrome_press(ui, route, x, y);
-            return NativePointerDispatchResult::dispatched();
+            return NativePointerDispatchResult::full_frame();
         }
     }
 
@@ -161,7 +183,8 @@ pub(super) fn dispatch_native_pointer_button(
                     pointer.width,
                     pointer.height,
                 );
-                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
                     pane_host.invoke_hierarchy_pointer_clicked(
                         pointer.local_x,
                         pointer.local_y,
@@ -171,7 +194,8 @@ pub(super) fn dispatch_native_pointer_button(
                 }
             }
             PanePointerTarget::Welcome => {
-                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
                     pane_host.invoke_welcome_recent_pointer_clicked(
                         pointer.local_x,
                         pointer.local_y,
@@ -181,7 +205,8 @@ pub(super) fn dispatch_native_pointer_button(
                 }
             }
             PanePointerTarget::AssetTree(mode) => {
-                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
                     pane_host.invoke_asset_tree_pointer_clicked(
                         mode,
                         pointer.local_x,
@@ -201,7 +226,8 @@ pub(super) fn dispatch_native_pointer_button(
                     pointer.width,
                     pointer.height,
                 );
-                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
                     pane_host.invoke_asset_content_pointer_clicked(
                         mode,
                         pointer.local_x,
@@ -222,7 +248,8 @@ pub(super) fn dispatch_native_pointer_button(
                     pointer.width,
                     pointer.height,
                 );
-                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
                     pane_host.invoke_asset_reference_pointer_clicked(
                         mode,
                         list_kind,
@@ -233,6 +260,23 @@ pub(super) fn dispatch_native_pointer_button(
                     );
                 }
             }
+            PanePointerTarget::ViewportToolbar(hit) => {
+                if state != NativePointerButtonState::Pressed || button != UiPointerButton::Primary
+                {
+                    return NativePointerDispatchResult::idle();
+                }
+                pane_host.invoke_viewport_toolbar_pointer_clicked(
+                    hit.surface_key,
+                    hit.control_id,
+                    hit.control_x,
+                    hit.control_y,
+                    hit.control_width,
+                    hit.control_height,
+                    pointer.local_x,
+                    pointer.local_y,
+                );
+                return NativePointerDispatchResult::full_frame();
+            }
             PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
                 kind,
                 button_id,
@@ -240,13 +284,19 @@ pub(super) fn dispatch_native_pointer_button(
                 pointer.local_y,
                 0.0,
             ),
+            PanePointerTarget::TemplateNode(hit) => {
+                if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
+                {
+                    dispatch_template_node_primary_press(&pane_host, hit);
+                }
+            }
             PanePointerTarget::Console
             | PanePointerTarget::Inspector
             | PanePointerTarget::BrowserAssetDetails
             | PanePointerTarget::UiAsset
             | PanePointerTarget::Other => {}
         }
-        return NativePointerDispatchResult::dispatched();
+        return NativePointerDispatchResult::full_frame();
     }
 
     NativePointerDispatchResult::idle()
@@ -259,13 +309,14 @@ pub(super) fn dispatch_native_pointer_scroll(
     delta: f32,
 ) -> NativePointerDispatchResult {
     let presentation = ui.get_host_presentation();
-    if menu_handles_point(&presentation, x, y) {
+    if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y) {
         ui.global::<UiHostContext>()
             .invoke_menu_pointer_scrolled(x, y, delta);
-        return NativePointerDispatchResult::dispatched();
+        return NativePointerDispatchResult::full_frame();
     }
 
     if let Some(pointer) = route_pointer_to_pane(&presentation, x, y) {
+        let damage_frame = pointer.frame.clone();
         let pane_host = ui.global::<PaneSurfaceHostContext>();
         match pointer.target {
             PanePointerTarget::Hierarchy => pane_host.invoke_hierarchy_pointer_scrolled(
@@ -296,13 +347,14 @@ pub(super) fn dispatch_native_pointer_scroll(
                 pointer.width,
                 pointer.height,
             ),
-            PanePointerTarget::BrowserAssetDetails => pane_host.invoke_browser_asset_details_pointer_scrolled(
-                pointer.local_x,
-                pointer.local_y,
-                delta,
-                pointer.width,
-                pointer.height,
-            ),
+            PanePointerTarget::BrowserAssetDetails => pane_host
+                .invoke_browser_asset_details_pointer_scrolled(
+                    pointer.local_x,
+                    pointer.local_y,
+                    delta,
+                    pointer.width,
+                    pointer.height,
+                ),
             PanePointerTarget::AssetTree(mode) => pane_host.invoke_asset_tree_pointer_scrolled(
                 mode,
                 pointer.local_x,
@@ -311,16 +363,17 @@ pub(super) fn dispatch_native_pointer_scroll(
                 pointer.width,
                 pointer.height,
             ),
-            PanePointerTarget::AssetContent(mode) => pane_host.invoke_asset_content_pointer_scrolled(
-                mode,
-                pointer.local_x,
-                pointer.local_y,
-                delta,
-                pointer.width,
-                pointer.height,
-            ),
-            PanePointerTarget::AssetReference(mode, list_kind) => {
-                pane_host.invoke_asset_reference_pointer_scrolled(
+            PanePointerTarget::AssetContent(mode) => pane_host
+                .invoke_asset_content_pointer_scrolled(
+                    mode,
+                    pointer.local_x,
+                    pointer.local_y,
+                    delta,
+                    pointer.width,
+                    pointer.height,
+                ),
+            PanePointerTarget::AssetReference(mode, list_kind) => pane_host
+                .invoke_asset_reference_pointer_scrolled(
                     mode,
                     list_kind,
                     pointer.local_x,
@@ -328,8 +381,7 @@ pub(super) fn dispatch_native_pointer_scroll(
                     delta,
                     pointer.width,
                     pointer.height,
-                )
-            }
+                ),
             PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
                 VIEWPORT_POINTER_SCROLL,
                 VIEWPORT_POINTER_BUTTON_NONE,
@@ -337,9 +389,12 @@ pub(super) fn dispatch_native_pointer_scroll(
                 pointer.local_y,
                 delta,
             ),
-            PanePointerTarget::UiAsset | PanePointerTarget::Other => {}
+            PanePointerTarget::TemplateNode(_)
+            | PanePointerTarget::ViewportToolbar(_)
+            | PanePointerTarget::UiAsset
+            | PanePointerTarget::Other => {}
         }
-        return NativePointerDispatchResult::dispatched();
+        return NativePointerDispatchResult::region(damage_frame);
     }
 
     NativePointerDispatchResult::idle()
@@ -348,7 +403,11 @@ pub(super) fn dispatch_native_pointer_scroll(
 fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y: f32) {
     let host = ui.global::<UiHostContext>();
     match route {
-        ChromePointerRoute::ActivityRail { side, local_x, local_y } => {
+        ChromePointerRoute::ActivityRail {
+            side,
+            local_x,
+            local_y,
+        } => {
             host.invoke_activity_rail_pointer_clicked(side, local_x, local_y);
         }
         ChromePointerRoute::HostPageTab {
@@ -357,7 +416,9 @@ fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y
             tab_width,
             local_x,
             local_y,
-        } => host.invoke_host_page_pointer_clicked(index as i32, tab_x, tab_width, local_x, local_y),
+        } => {
+            host.invoke_host_page_pointer_clicked(index as i32, tab_x, tab_width, local_x, local_y)
+        }
         ChromePointerRoute::DocumentTab {
             surface_key,
             index,
@@ -405,7 +466,26 @@ fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y
         ChromePointerRoute::FloatingWindowHeader => {
             host.invoke_floating_window_header_pointer_clicked(x, y);
         }
-        ChromePointerRoute::Resize => host.invoke_host_resize_pointer_event(HOST_POINTER_DOWN, x, y),
+        ChromePointerRoute::Resize => {
+            host.invoke_host_resize_pointer_event(HOST_POINTER_DOWN, x, y)
+        }
+    }
+}
+
+fn dispatch_template_node_primary_press(
+    pane_host: &PaneSurfaceHostContext<'_>,
+    hit: TemplateNodePointerHit,
+) {
+    match hit.dispatch_kind.as_str() {
+        "inspector" => pane_host.invoke_inspector_control_clicked(hit.control_id),
+        "asset" => pane_host.invoke_asset_control_clicked("activity".into(), hit.control_id),
+        "showcase" => {
+            pane_host.invoke_component_showcase_control_activated(hit.control_id, hit.action_id)
+        }
+        _ if !hit.binding_id.is_empty() => {
+            pane_host.invoke_surface_control_clicked(hit.control_id, hit.binding_id)
+        }
+        _ => pane_host.invoke_surface_control_clicked(hit.control_id, hit.action_id),
     }
 }
 
@@ -425,25 +505,70 @@ fn route_top_level_chrome(
         }
     }
 
-    if let Some(route) = route_document_tabs("document", &scene.document_dock.header_frame, &scene.document_dock.tab_frames, x, y) {
+    if let Some(route) = route_document_tabs(
+        "document",
+        &translated(
+            &scene.document_dock.header_frame,
+            scene.document_dock.region_frame.x,
+            scene.document_dock.region_frame.y,
+        ),
+        &scene.document_dock.tab_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
-    if let Some(route) = route_drawer_header("left", &scene.left_dock.region_frame, &scene.left_dock.header_frame, &scene.left_dock.tab_frames, x, y) {
+    if let Some(route) = route_drawer_header(
+        "left",
+        &scene.left_dock.region_frame,
+        &scene.left_dock.header_frame,
+        &scene.left_dock.tab_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
-    if let Some(route) = route_drawer_header("right", &scene.right_dock.region_frame, &scene.right_dock.header_frame, &scene.right_dock.tab_frames, x, y) {
+    if let Some(route) = route_drawer_header(
+        "right",
+        &scene.right_dock.region_frame,
+        &scene.right_dock.header_frame,
+        &scene.right_dock.tab_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
-    if let Some(route) = route_drawer_header("bottom", &scene.bottom_dock.region_frame, &scene.bottom_dock.header_frame, &scene.bottom_dock.tab_frames, x, y) {
+    if let Some(route) = route_drawer_header(
+        "bottom",
+        &scene.bottom_dock.region_frame,
+        &scene.bottom_dock.header_frame,
+        &scene.bottom_dock.tab_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
     if let Some(route) = route_host_page_tabs(&scene.page_chrome.tab_frames, x, y) {
         return Some(route);
     }
-    if let Some(route) = route_activity_rail(&scene.left_dock.region_frame, true, scene.left_dock.rail_width_px, &scene.left_dock.rail_button_frames, x, y) {
+    if let Some(route) = route_activity_rail(
+        &scene.left_dock.region_frame,
+        true,
+        scene.left_dock.rail_width_px,
+        &scene.left_dock.rail_button_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
-    if let Some(route) = route_activity_rail(&scene.right_dock.region_frame, false, scene.right_dock.rail_width_px, &scene.right_dock.rail_button_frames, x, y) {
+    if let Some(route) = route_activity_rail(
+        &scene.right_dock.region_frame,
+        false,
+        scene.right_dock.rail_width_px,
+        &scene.right_dock.rail_button_frames,
+        x,
+        y,
+    ) {
         return Some(route);
     }
 
@@ -451,7 +576,11 @@ fn route_top_level_chrome(
         let Some(window) = scene.floating_layer.floating_windows.row_data(row) else {
             continue;
         };
-        if contains(&translated(&window.header_frame, window.frame.x, window.frame.y), x, y) {
+        if contains(
+            &translated(&window.header_frame, window.frame.x, window.frame.y),
+            x,
+            y,
+        ) {
             if let Some(route) = route_document_tabs(
                 window.window_id.as_str(),
                 &translated(&window.header_frame, window.frame.x, window.frame.y),
@@ -668,8 +797,23 @@ fn pane_route_from_pane(
             height: toolbar_height,
         };
         if contains(&toolbar, x, y) {
+            let surface_key = surface_key.unwrap_or("document");
+            if let Some(hit) = surface_hit_test::hit_test_viewport_toolbar(
+                surface_key,
+                &pane.viewport,
+                &toolbar,
+                x,
+                y,
+            ) {
+                return Some(PanePointerRoute::new(
+                    PanePointerTarget::ViewportToolbar(hit),
+                    &toolbar,
+                    x,
+                    y,
+                ));
+            }
             return Some(PanePointerRoute::new(
-                PanePointerTarget::Viewport(surface_key.unwrap_or("document").into()),
+                PanePointerTarget::Viewport(surface_key.into()),
                 &toolbar,
                 x,
                 y,
@@ -677,6 +821,14 @@ fn pane_route_from_pane(
         }
         body.y += toolbar_height;
         body.height = (body.height - toolbar_height).max(0.0);
+    }
+    if let Some(hit) = surface_hit_test::hit_test_pane_template_node(pane, &body, x, y) {
+        return Some(PanePointerRoute::new(
+            PanePointerTarget::TemplateNode(hit),
+            &body,
+            x,
+            y,
+        ));
     }
     let target = match pane.kind.as_str() {
         "Hierarchy" => PanePointerTarget::Hierarchy,
@@ -718,6 +870,132 @@ fn menu_handles_point(presentation: &HostWindowPresentationData, x: f32, y: f32)
     })
 }
 
+fn menu_popup_handles_point(presentation: &HostWindowPresentationData, x: f32, y: f32) -> bool {
+    let state = &presentation.menu_state;
+    if state.open_menu_index < 0 {
+        return false;
+    }
+    let menu_index = state.open_menu_index as usize;
+    let Some(menu_frame) = presentation
+        .host_scene_data
+        .menu_chrome
+        .menu_frames
+        .row_data(menu_index)
+    else {
+        return false;
+    };
+    let Some(menu) = presentation
+        .host_scene_data
+        .menu_chrome
+        .menus
+        .row_data(menu_index)
+    else {
+        return false;
+    };
+    let popup = FrameRect {
+        x: menu_frame.frame.x,
+        y: menu_frame.frame.y + menu_frame.frame.height + 3.0,
+        width: menu.popup_width_px.max(menu_frame.frame.width),
+        height: menu
+            .popup_height_px
+            .max(state.window_menu_popup_height_px)
+            .max(1.0),
+    };
+    contains(&popup, x, y)
+        || contains(
+            &FrameRect {
+                x: 0.0,
+                y: presentation
+                    .host_scene_data
+                    .menu_chrome
+                    .top_bar_height_px
+                    .max(0.0),
+                width: presentation
+                    .host_layout
+                    .status_bar_frame
+                    .width
+                    .max(presentation.host_scene_data.layout.status_bar_frame.width),
+                height: (presentation
+                    .host_layout
+                    .status_bar_frame
+                    .y
+                    .max(presentation.host_scene_data.layout.status_bar_frame.y)
+                    - presentation
+                        .host_scene_data
+                        .menu_chrome
+                        .top_bar_height_px
+                        .max(0.0))
+                .max(0.0),
+            },
+            x,
+            y,
+        )
+}
+
+fn menu_damage_frame(presentation: &HostWindowPresentationData) -> FrameRect {
+    let scene = &presentation.host_scene_data;
+    let width = presentation
+        .host_layout
+        .status_bar_frame
+        .width
+        .max(scene.layout.status_bar_frame.width)
+        .max(scene.layout.center_band_frame.width)
+        .max(1.0);
+    let base_height = scene.menu_chrome.top_bar_height_px.max(0.0);
+    let popup_height = if presentation.menu_state.open_menu_index >= 0 {
+        scene
+            .menu_chrome
+            .menus
+            .row_data(presentation.menu_state.open_menu_index as usize)
+            .map(|menu| {
+                menu.popup_height_px
+                    .max(presentation.menu_state.window_menu_popup_height_px)
+            })
+            .unwrap_or(0.0)
+    } else {
+        0.0
+    };
+    FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width,
+        height: (base_height + popup_height + 4.0).max(base_height),
+    }
+}
+
+fn hierarchy_row_damage(frame: &FrameRect, row_index: i32, scroll_px: f32) -> Option<FrameRect> {
+    if row_index < 0 {
+        return None;
+    }
+    Some(FrameRect {
+        x: frame.x + ROW_X,
+        y: frame.y + ROW_Y + row_index as f32 * (ROW_HEIGHT + ROW_GAP) - scroll_px.max(0.0),
+        width: (frame.width - ROW_WIDTH_INSET).max(1.0),
+        height: ROW_HEIGHT,
+    })
+}
+
+fn union_optional_frames(left: Option<FrameRect>, right: Option<FrameRect>) -> Option<FrameRect> {
+    match (left, right) {
+        (Some(left), Some(right)) => Some(union_frame(&left, &right)),
+        (Some(frame), None) | (None, Some(frame)) => Some(frame),
+        (None, None) => None,
+    }
+}
+
+fn union_frame(left: &FrameRect, right: &FrameRect) -> FrameRect {
+    let x0 = left.x.min(right.x);
+    let y0 = left.y.min(right.y);
+    let x1 = (left.x + left.width).max(right.x + right.width);
+    let y1 = (left.y + left.height).max(right.y + right.height);
+    FrameRect {
+        x: x0,
+        y: y0,
+        width: (x1 - x0).max(0.0),
+        height: (y1 - y0).max(0.0),
+    }
+}
+
 trait HostSceneMenuFrame {
     fn menu_chrome_frame(&self) -> FrameRect;
 }
@@ -727,7 +1005,11 @@ impl HostSceneMenuFrame for super::data::HostWindowSceneData {
         FrameRect {
             x: 0.0,
             y: 0.0,
-            width: self.layout.status_bar_frame.width.max(self.layout.center_band_frame.width),
+            width: self
+                .layout
+                .status_bar_frame
+                .width
+                .max(self.layout.center_band_frame.width),
             height: self.menu_chrome.top_bar_height_px.max(0.0),
         }
     }
@@ -813,6 +1095,7 @@ enum ChromePointerRoute {
 
 struct PanePointerRoute {
     target: PanePointerTarget,
+    frame: FrameRect,
     local_x: f32,
     local_y: f32,
     width: f32,
@@ -823,6 +1106,7 @@ impl PanePointerRoute {
     fn new(target: PanePointerTarget, frame: &FrameRect, x: f32, y: f32) -> Self {
         Self {
             target,
+            frame: frame.clone(),
             local_x: x - frame.x,
             local_y: y - frame.y,
             width: frame.width,
@@ -840,6 +1124,8 @@ enum PanePointerTarget {
     AssetTree(SharedString),
     AssetContent(SharedString),
     AssetReference(SharedString, SharedString),
+    TemplateNode(TemplateNodePointerHit),
+    ViewportToolbar(ViewportToolbarPointerHit),
     Viewport(SharedString),
     UiAsset,
     Other,

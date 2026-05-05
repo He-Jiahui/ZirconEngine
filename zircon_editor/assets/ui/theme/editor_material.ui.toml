@@ -18,6 +18,15 @@ text = "#eef3ff"
 muted = "#9aa6b6"
 warning = "#d8a24d"
 error = "#d96b63"
+material_surface = "#242b35"
+material_surface_inset = "#171c24"
+material_surface_hover = "#2c3542"
+material_accent = "#3c68b0"
+material_border = "#424c5c"
+material_text = "#d2dceb"
+material_text_muted = "#8595aa"
+material_popup = "#151a21"
+material_track = "#303947"
 
 [[stylesheets]]
 id = "editor_material"
@@ -41,3 +50,135 @@ set = { self = { foreground = { color = "$text" }, font = { size = 15.0 } } }
 [[stylesheets.rules]]
 selector = ".showcase-muted"
 set = { self = { foreground = { color = "$muted" }, font = { size = 11.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-state-layer"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-control"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-button"
+set = { self = { background = { color = "$material_surface_hover" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-base"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button"
+set = { self = { background = { color = "$material_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-row"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-outlined-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-slider-field"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-ripple"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_surface_hover", width = 0.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-list-item"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = 0.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-check-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-combo-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-popup-frame"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-group-box"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-line-edit"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-bar-item"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-frame"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-menu-item"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-progress-indicator"
+set = { self = { background = { color = "$material_track" }, foreground = { color = "$material_accent" } } }
+
+[[stylesheets.rules]]
+selector = ".material-scroll-view"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-slider"
+set = { self = { background = { color = "$material_track" }, foreground = { color = "$material_accent" } } }
+
+[[stylesheets.rules]]
+selector = ".material-spin-box"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-spinner"
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = 0.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_accent" }, border = { color = "$material_border", width = 1.0, radius = 16.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-standard-table-view"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-widget-impl"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-impl"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_inset", width = 0.0, radius = 0.0 } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-edit"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }

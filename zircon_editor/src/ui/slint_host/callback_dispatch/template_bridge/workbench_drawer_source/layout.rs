@@ -5,6 +5,7 @@ use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::{AxisConstraint, StretchMode, UiSize},
+    tree::UiVisibility,
 };
 
 use crate::ui::slint_host::callback_dispatch::constants::BUILTIN_HOST_DRAWER_SOURCE_DOCUMENT_ID;
@@ -240,7 +241,7 @@ fn apply_fixed_control_width(surface: &mut UiSurface, control_id: &str, width: f
     };
 
     node.constraints.width = fixed_axis(width);
-    node.state_flags.visible = width > f32::EPSILON;
+    node.visibility = fixed_extent_visibility(width);
 }
 
 fn apply_fixed_control_height(surface: &mut UiSurface, control_id: &str, height: f32) {
@@ -252,7 +253,15 @@ fn apply_fixed_control_height(surface: &mut UiSurface, control_id: &str, height:
     };
 
     node.constraints.height = fixed_axis(height);
-    node.state_flags.visible = height > f32::EPSILON;
+    node.visibility = fixed_extent_visibility(height);
+}
+
+fn fixed_extent_visibility(size: f32) -> UiVisibility {
+    if size > f32::EPSILON {
+        UiVisibility::Visible
+    } else {
+        UiVisibility::Collapsed
+    }
 }
 
 fn fixed_axis(size: f32) -> AxisConstraint {

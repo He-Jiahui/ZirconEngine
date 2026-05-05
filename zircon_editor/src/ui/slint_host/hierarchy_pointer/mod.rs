@@ -1,6 +1,6 @@
 mod base_state;
 mod clamp_scroll_offset;
-mod constants;
+pub(in crate::ui::slint_host) mod constants;
 mod content_height;
 mod dispatch_event;
 mod handle_click;

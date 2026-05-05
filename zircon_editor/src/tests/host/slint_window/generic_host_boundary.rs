@@ -235,6 +235,27 @@ fn rust_owned_host_window_run_uses_native_event_loop() {
 }
 
 #[test]
+fn rust_owned_host_window_wait_cycle_does_not_unconditionally_request_redraw() {
+    let window = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/host_contract/window.rs"
+    ));
+    let about_to_wait = window
+        .split("fn about_to_wait")
+        .nth(1)
+        .expect("UiHostWindowEventLoop should still own about_to_wait");
+    let about_to_wait = about_to_wait
+        .split("\n    }\n}")
+        .next()
+        .expect("about_to_wait body should be present");
+
+    assert!(
+        !about_to_wait.contains("request_redraw()"),
+        "about_to_wait must not schedule a new full redraw every idle cycle"
+    );
+}
+
+#[test]
 fn editor_ui_toml_assets_are_the_host_chrome_authority() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     for (relative, markers) in [

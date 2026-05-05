@@ -17,6 +17,14 @@ pub(crate) fn arrange_node(
     frame: UiFrame,
     inherited_clip: Option<UiFrame>,
 ) -> Result<(), UiTreeError> {
+    if tree
+        .node(node_id)
+        .is_some_and(|node| !node.effective_visibility().occupies_layout())
+    {
+        hide_subtree_layout(tree, node_id)?;
+        return Ok(());
+    }
+
     let (children, clip_frame, next_clip, container) = {
         let node = tree
             .node_mut(node_id)
@@ -101,12 +109,22 @@ fn arrange_linear_children(
     )?;
     let gap = gap.max(0.0);
     let mut cursor = 0.0;
+    let mut placed_count = 0usize;
 
     for (index, child_id) in children.iter().copied().enumerate() {
+        let occupies_layout = tree
+            .node(child_id)
+            .is_some_and(|node| node.effective_visibility().occupies_layout());
+        if occupies_layout && placed_count > 0 {
+            cursor += gap;
+        }
         let child_frame =
             linear_child_frame(tree, child_id, frame, axis, cursor, main_extents[index])?;
         arrange_node(tree, child_id, child_frame, inherited_clip)?;
-        cursor += main_extents[index] + gap;
+        if occupies_layout {
+            cursor += main_extents[index];
+            placed_count += 1;
+        }
     }
 
     Ok(())
@@ -177,15 +195,23 @@ fn child_positions(
     let mut positions = Vec::with_capacity(children.len());
     let mut cursor = 0.0;
     let gap = gap.max(0.0);
+    let mut placed_count = 0usize;
     for child_id in children {
-        positions.push(cursor);
         let node = tree
             .node(*child_id)
             .ok_or(UiTreeError::MissingNode(*child_id))?;
-        cursor += match axis {
-            UiAxis::Vertical => node.layout_cache.desired_size.height,
-            UiAxis::Horizontal => node.layout_cache.desired_size.width,
-        } + gap;
+        let occupies_layout = node.effective_visibility().occupies_layout();
+        if occupies_layout && placed_count > 0 {
+            cursor += gap;
+        }
+        positions.push(cursor);
+        if occupies_layout {
+            cursor += match axis {
+                UiAxis::Vertical => node.layout_cache.desired_size.height,
+                UiAxis::Horizontal => node.layout_cache.desired_size.width,
+            };
+            placed_count += 1;
+        }
     }
     Ok(positions)
 }

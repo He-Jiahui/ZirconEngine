@@ -6,6 +6,7 @@ mod inspector;
 mod layout;
 mod pane;
 mod shared_pointer;
+mod template_binding;
 mod template_bridge;
 mod viewport;
 mod welcome;
@@ -36,6 +37,7 @@ pub(crate) use shared_pointer::{
     dispatch_shared_host_page_pointer_click, dispatch_shared_menu_pointer_click,
     dispatch_shared_viewport_toolbar_pointer_click, dispatch_shared_welcome_recent_pointer_click,
 };
+pub(crate) use template_binding::dispatch_builtin_template_binding;
 #[cfg(test)]
 pub(crate) use template_bridge::BuiltinHostDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{
@@ -45,17 +47,19 @@ pub(crate) use template_bridge::{
     BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
     BuiltinWelcomeSurfaceTemplateBridge,
 };
+pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]
-pub(crate) use viewport::{dispatch_builtin_viewport_toolbar_control, dispatch_viewport_command};
+pub(crate) use viewport::dispatch_viewport_command;
 pub(crate) use viewport::{
     dispatch_viewport_event, dispatch_viewport_pointer_event,
     dispatch_viewport_toolbar_pointer_route, viewport_event_from_command,
     SharedViewportPointerBridge,
 };
 pub(crate) use welcome::dispatch_builtin_welcome_surface_control;
-pub(crate) use workbench::dispatch_host_menu_action_with_template_fallback;
 #[cfg(test)]
 pub(crate) use workbench::{
-    dispatch_builtin_host_control, dispatch_builtin_host_menu_action, dispatch_menu_action,
-    slint_menu_action,
+    dispatch_builtin_host_control, dispatch_builtin_host_menu_action, slint_menu_action,
+};
+pub(crate) use workbench::{
+    dispatch_host_menu_action_with_template_fallback, dispatch_menu_action,
 };

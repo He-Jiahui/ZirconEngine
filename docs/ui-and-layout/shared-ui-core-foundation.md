@@ -12,10 +12,17 @@ related_code:
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
   - zircon_ui/src/surface/mod.rs
+  - zircon_runtime/src/ui/layout/pass/axis.rs
+  - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
+  - zircon_runtime/src/ui/surface/render/text_measure.rs
   - zircon_ui/src/template/document.rs
   - zircon_ui/src/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_ui/src/tests/asset.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -57,7 +64,6 @@ related_code:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/root_shell_projection.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/dispatch.rs
@@ -69,13 +75,13 @@ related_code:
   - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
-- zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/host_page_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
@@ -87,6 +93,9 @@ related_code:
   - zircon_editor/src/ui/slint_host/host_contract/mod.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
   - zircon_editor/src/ui/slint_host/host_contract/globals.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/viewport_image.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/src/core/editing/ui_asset/session.rs
@@ -98,11 +107,11 @@ related_code:
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_drawer_resize/mod.rs
-- zircon_editor/src/tests/host/slint_list_pointer/
+  - zircon_editor/src/tests/host/slint_list_pointer/
   - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/mod.rs
-- zircon_editor/src/tests/host/slint_tab_drag/
+  - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/tests/workbench_autolayout.rs
   - zircon_editor/tests/workbench_drag_targets.rs
   - zircon_editor/tests/workbench_slint_shell.rs
@@ -119,7 +128,13 @@ implementation_files:
   - zircon_ui/src/tree/node/mod.rs
   - zircon_ui/src/tree/hit_test.rs
   - zircon_ui/src/surface/mod.rs
+  - zircon_runtime/src/ui/layout/pass/axis.rs
+  - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
+  - zircon_runtime/src/ui/surface/render/text_measure.rs
   - zircon_ui/src/template/document.rs
   - zircon_editor/src/ui/workbench/autolayout/mod.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
@@ -155,7 +170,6 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/root_shell_projection.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/dispatch.rs
@@ -167,13 +181,13 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/menu_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/build_host_menu_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs
-- zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/activity_rail_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/activity_rail_pointer/build_workbench_activity_rail_pointer_layout.rs
   - zircon_editor/src/ui/slint_host/host_page_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
-- zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
-- zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/document_tab_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/mod.rs
+  - zircon_editor/src/ui/slint_host/drawer_header_pointer/build_workbench_drawer_header_pointer_layout.rs
+  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/shell_pointer.rs
   - zircon_editor/src/ui/slint_host/shell_pointer/drag_surface.rs
   - zircon_editor/src/ui/slint_host/tab_drag.rs
@@ -207,23 +221,25 @@ plan_sources:
   - user: 2026-04-17 Palette 到真实节点/引用节点创建的落地
   - user: 2026-04-17 结构化 undo/redo，从当前 source-text 级别继续往 tree-command 演进
   - user: 2026-04-18 继续下一步，推进 Runtime visual contract
+  - user: 2026-05-05 exported Rust-owned editor native UI needs text-sized buttons with padding
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_ui/src/tests/asset.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/slint_asset_pointer.rs
   - zircon_editor/src/tests/host/slint_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_drawer_resize/mod.rs
-- zircon_editor/src/tests/host/slint_list_pointer/
+  - zircon_editor/src/tests/host/slint_list_pointer/
   - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
   - zircon_editor/src/tests/host/slint_activity_rail_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_host_page_pointer/mod.rs
-- zircon_editor/src/tests/host/slint_document_tab_pointer/
+  - zircon_editor/src/tests/host/slint_document_tab_pointer/
   - zircon_editor/src/tests/host/slint_drawer_header_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/mod.rs
-- zircon_editor/src/tests/host/slint_tab_drag/
+  - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/src/ui/slint_host/app/tests/floating_window_projection.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/tests/editing/ui_asset/
@@ -235,6 +251,12 @@ tests:
   - cargo test -p zircon_ui shared_core -- --nocapture
   - cargo test -p zircon_runtime --lib render_extract_uses_label_when_schema_text_default_is_empty --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final -- --nocapture
   - cargo test -p zircon_runtime --lib ui::tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final -- --nocapture
+  - cargo test -p zircon_runtime --lib layout_pass_measures_label_leaf_from_text_intrinsic_size --locked --jobs 1
+  - cargo test -p zircon_runtime --lib layout_pass_measures_button_leaf_as_text_plus_padding --locked --jobs 1
+  - cargo test -p zircon_editor --lib inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion --locked --jobs 1
+  - cargo test -p zircon_editor --lib native_host_painter_composites_latest_viewport_image_into_scene_body --locked --jobs 1
+  - cargo build -p zircon_runtime --lib --no-default-features --features target-client --target-dir E:\tmp\zircon-build-direct-20260506\targets\runtime\lib --locked --jobs 1 --message-format short --color never
+  - python tools\zircon_build.py --targets editor,runtime --out E:\tmp\zircon-build-package-20260506 --mode debug
   - cargo test -p zircon_ui --lib --locked render_extract_carries_visual_contract_fields_for_visible_nodes -- --nocapture
   - cargo test -p zircon_ui --lib --locked ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets -- --nocapture
   - cargo test -p zircon_ui --offline --verbose
@@ -264,6 +286,10 @@ tests:
   - cargo test -p zircon_editor --lib --locked tests::host::slint_window::child_window_callback_wiring_tracks_source_window_for_pane_interactions
   - cargo test -p zircon_editor --test workbench_slint_shell --locked ui_asset_editor_
   - cargo test -p zircon_editor --lib asset_browser_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never
+  - cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -416,11 +442,19 @@ doc_type: module-detail
 - `UiContainerKind::HorizontalBox` 和 `UiContainerKind::VerticalBox` 已经能按共享主轴模型排列子节点
 - 线性容器会用 `solve_axis_constraints(...)` 在主轴上分配可用空间，并保留 `gap` 语义
 - 线性容器的交叉轴行为已经进入 shared core：子节点 `Stretch` 约束会填满父级交叉轴，`Fixed` 约束保留 measured size
+- leaf 节点现在会从 template metadata 的文本载荷解析 intrinsic text size；`Button` / `IconButton` 在文本尺寸外再加共享 padding，而不是把按钮框压成纯文本框
+- 线性容器里没有显式 authored size 的子节点会把 measured main-axis desired size 写回默认 fixed constraint；显式 width/height constraint 仍然优先
 - `UiContainerKind::ScrollableBox` 已经能按横向或纵向线性容器排列子节点
 - scrollable viewport 会自动 clip 到本地 frame，并维护 `viewport_extent` / `content_extent` / `offset`
 - 当前 virtualization 先支持线性列表窗口，而不是完整 grid/flow 求解
 
 这已经把你文档里的“两段式：反向 measure，正向 arrange”以及第一批线性容器真正接进了 shared core。
+
+2026-05-05 的 native editor text/button follow-up 把这个规则从 editor painter workaround 下沉到 shared runtime layout pass。`text_measure.rs` 复用 render extract 的 text/style resolver 估算 leaf text intrinsic size，`measure.rs` 只在 leaf 内容存在时为 `Button` / `IconButton` 加水平/垂直 padding，`axis.rs` 只把默认子约束改成 measured fixed main extent，避免覆盖 authored constraints。对应 regressions 是 `layout_pass_measures_label_leaf_from_text_intrinsic_size` 和 `layout_pass_measures_button_leaf_as_text_plus_padding`；editor projection 侧的 `inspector_template_body_projection_replaces_legacy_inspector_view_data_for_slint_conversion` 进一步锁住真实 `ApplyDraft` frame 已经带着 shared intrinsic text size + padding 进入 native host contract。
+
+同一天的 viewport follow-up 不是 layout 规则本身，但继续沿用同一条 shared frame/clip authority：`HostViewportImageData` 只保存 `SlintViewportController` 已接受的新 RGBA viewport image，`HostWindowPresentationData` 把它作为 paint-only overlay 叠进 native host presentation，`draw_rgba_image_clipped(...)` 再通过 painter 的统一 clip 规则把它采样到 Scene/Game pane body。`native_host_painter_composites_latest_viewport_image_into_scene_body` 覆盖这条 bridge，防止 runtime capture 成功但 Rust-owned native pane 只显示 placeholder chrome。
+
+2026-05-06 的 package-smoke follow-up 没有改变 layout algorithm，但把这个 shared button/viewport slice 推过了构建打包边界。直接复现 package script 的最低 runtime Cargo leg 时，冷 `E:\tmp\zircon-build-direct-20260506` target 首次只是在 20 分钟工具超时前正常编译依赖；同一 target warmed rerun 以 26.88s 通过。随后 `python tools\zircon_build.py --targets editor,runtime --out E:\tmp\zircon-build-package-20260506 --mode debug` 通过并 staging `zircon_editor.exe`、`zircon_runtime.exe`、`zircon_runtime.dll`、PDB 和 assets，说明前一轮 `4294967295` / timeout 属于 cold-build/disk/tooling boundary，不是 shared layout source failure。真实 packaged editor screenshot/interaction 仍是下一层验收，不由 package construction 自动证明。
 
 ### 3. Retained Tree And Dirty State
 
@@ -429,10 +463,12 @@ doc_type: module-detail
 - `zircon_ui::tree::UiDirtyFlags`
 - `zircon_ui::tree::UiLayoutCache`
 - `UiInputPolicy`
+- `UiVisibility`
 
 当前实现先把 retained tree 的基础骨架定下来：
 
-- 节点拥有 parent/children、可见性和 pointer 能力状态
+- 节点拥有 parent/children、显式 `UiVisibility`、legacy state flags 和 pointer 能力状态
+- `UiTreeNode::effective_visibility()` 是 retained tree 里唯一的 visibility policy 入口；legacy `state_flags.visible=false` 会在这里规范化为 `Hidden`，然后 render、focus、scroll 和 pointer helpers 都读同一份有效可见性
 - dirty 传播沿父链向上冒泡
 - 当父节点 `LayoutBoundary` 不是 `ContentDriven` 时停止布局失效传播
 - `zircon_ui::tree::UiLayoutCache` 现在承载 `desired_size`、`frame`、`clip_frame`、`content_size` 和 `virtual_window`
@@ -497,6 +533,12 @@ doc_type: module-detail
 - 当 pointer 已经 capture 后，即使光标移出当前 hit bounds，dispatcher 也会继续把 `Move` / `Up` 派回 captured target，而不是因为 `stacked` 为空丢失事件
 
 这保证后续 editor host、headless 控制和 runtime widget 都可以消费同一套 target/bubble/capture/fallback/stacked-target 语义，同时把 keyboard/gamepad 的 navigation bubbling 和 focus handoff 也钉在 shared core，而不是各自再推一遍。
+
+2026-05-05 的 Slate-style visibility slice 把这套 route 语义继续往 shared contract 下沉：`Hidden` 和 `Collapsed` 都不会进入 render 或 hit；`HitTestInvisible` 保留 render/focus 但阻断 self 与 child hit；`SelfHitTestInvisible` 保留 render 和 child hit 但跳过 self hit。runtime focus/navigation、scroll candidate、pointer support、render-order 和 hit-grid 路径都改为读 `UiTreeNode` / `UiArrangedNode` 的 shared helpers，避免 editor toolbar、drawer header 或 runtime widget 各自维护一套 `visible && enabled` 判断。
+
+2026-05-06 的 Material event-routing follow-up 把 E1/E2 的最低 runtime 测试门槛恢复到 shared route path：`event_routing.rs` 现在显式引入已有 `UiRuntimeTreeAccessExt`，用 shared retained-tree constructor 创建 button surface，再验证 primary release-inside click、release-outside no-click、capture release uses hit path、same-target hover idle diagnostic。对应 focused evidence 是 `event_routing` 4/4、`hit_grid` 5/5 和 `zircon_editor --lib` check 通过，证明 pointer pressed/captured/hit path 语义不会被 Material 控件专用 host 分支接管。
+
+同一 E3 binding-integration lane 继续把 `.ui.toml` 公开 binding 合同压到 shared router：`UiSurface::push_pointer_component_events(...)` 不再只取同一事件类型的第一个 `UiBindingRef`，而是为命中节点上每个匹配 binding 生成一个 `UiPointerComponentEvent` 和 typed envelope。`click_component_events_preserve_every_matching_binding_on_target` 先在旧实现下 RED，因为两个 `Click` binding 只产生一个 component event；改为遍历所有匹配 binding 后，`event_routing` focused set 扩展为 5/5 通过。这保证 Material meta component 展开后，如果实例同时声明 primary action、audit、adapter route 等多个 `Click` binding，host 不需要新增控件分支也能拿到完整事件列表。
 
 ### 6. Scroll Dispatch And Virtualization Helpers
 

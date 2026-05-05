@@ -1,8 +1,12 @@
 use std::collections::BTreeMap;
 
+use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
+    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{UiFrame, UiSize},
+    surface::UiSurfaceFrame,
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode},
 };
 
 use crate::ui::binding::EditorUiBinding;
@@ -12,7 +16,6 @@ use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostProjection, Sl
 use super::super::projection_support::{
     binding_for_control, build_bindings_by_id, load_builtin_runtime_projection,
 };
-use super::action_control::projection_control_for_action;
 use super::error::BuiltinViewportToolbarTemplateBridgeError;
 use super::host_projection::build_builtin_viewport_toolbar_host_projection;
 
@@ -66,10 +69,88 @@ impl BuiltinViewportToolbarTemplateBridge {
         )
     }
 
-    pub(crate) fn control_frame_for_action(&self, control_id: &str) -> Option<UiFrame> {
-        let projection_control_id = projection_control_for_action(control_id)?;
+    pub(crate) fn control_frame_for_control(&self, control_id: &str) -> Option<UiFrame> {
         self.host_projection
-            .node_by_control_id(projection_control_id)
+            .node_by_control_id(control_id)
             .map(|node| node.frame)
+    }
+
+    pub(crate) fn surface_frame_for_projection_controls<F>(
+        &self,
+        surface_key: &str,
+        surface_size: UiSize,
+        mut hit_control_id: F,
+    ) -> UiSurfaceFrame
+    where
+        F: FnMut(&str) -> Option<String>,
+    {
+        let mut surface = UiSurface::new(UiTreeId::new(format!(
+            "zircon.editor.viewport_toolbar.{surface_key}"
+        )));
+        let root_frame = UiFrame::new(
+            0.0,
+            0.0,
+            surface_size.width.max(1.0),
+            surface_size.height.max(1.0),
+        );
+        let mut root = UiTreeNode::new(
+            UiNodeId::new(1),
+            UiNodePath::new(format!("viewport_toolbar/{surface_key}/root")),
+        )
+        .with_frame(root_frame)
+        .with_clip_to_bounds(true)
+        .with_input_policy(UiInputPolicy::Ignore);
+        root.layout_cache.clip_frame = Some(root_frame);
+        surface.tree.insert_root(root);
+
+        let mut next_node_id = 2;
+        for projection_node in &self.host_projection.nodes {
+            let Some(projection_control_id) = projection_node.control_id.as_deref() else {
+                continue;
+            };
+            if projection_node.routes.is_empty() || projection_node.disabled {
+                continue;
+            }
+            let Some(control_id) = hit_control_id(projection_control_id) else {
+                continue;
+            };
+            let mut metadata = UiTemplateNodeMetadata {
+                component: projection_node.component.clone(),
+                control_id: Some(control_id.clone()),
+                ..Default::default()
+            };
+            metadata.attributes.insert(
+                "source".to_string(),
+                toml::Value::String("viewport_toolbar".to_string()),
+            );
+            metadata.attributes.insert(
+                "projection_control_id".to_string(),
+                toml::Value::String(projection_control_id.to_string()),
+            );
+            let node = UiTreeNode::new(
+                UiNodeId::new(next_node_id),
+                UiNodePath::new(format!(
+                    "viewport_toolbar/{surface_key}/{projection_control_id}"
+                )),
+            )
+            .with_frame(projection_node.frame)
+            .with_state_flags(UiStateFlags {
+                visible: true,
+                enabled: true,
+                clickable: true,
+                hoverable: true,
+                focusable: true,
+                pressed: false,
+                checked: false,
+                dirty: false,
+            })
+            .with_input_policy(UiInputPolicy::Receive)
+            .with_template_metadata(metadata);
+            let _ = surface.tree.insert_child(UiNodeId::new(1), node);
+            next_node_id += 1;
+        }
+
+        surface.rebuild();
+        surface.surface_frame()
     }
 }

@@ -2,7 +2,9 @@ use crate::ui::template_runtime::builtin::{
     builtin_component_descriptors, builtin_template_bindings, builtin_template_documents,
 };
 use std::collections::{BTreeMap, BTreeSet};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+use std::time::UNIX_EPOCH;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::diagnostic_log::write_diagnostic_log;
 use zircon_runtime::ui::template::UiCompiledDocument;
@@ -58,6 +60,24 @@ pub(super) fn compile_template_document_file(
     template_service: &EditorTemplateRuntimeService,
     path: &Path,
 ) -> Result<UiCompiledDocument, EditorUiHostRuntimeError> {
+    let cache_key = BuiltinTemplateCompileCacheKey::from_path(path);
+    if let Some(compiled) = builtin_template_compile_cache()
+        .lock()
+        .expect("builtin template compile cache mutex should not be poisoned")
+        .get(&cache_key)
+        .cloned()
+    {
+        write_diagnostic_log(
+            "editor_template_compile_cache",
+            format!(
+                "hit path={} modified_unix_ns={}",
+                cache_key.path.display(),
+                cache_key.modified_unix_ns.unwrap_or(0)
+            ),
+        );
+        return Ok(compiled);
+    }
+
     write_diagnostic_log(
         "editor_template_compile",
         format!(
@@ -66,7 +86,8 @@ pub(super) fn compile_template_document_file(
             path.exists()
         ),
     );
-    let document = template_service.load_document_file(path)?;
+    let document = load_builtin_template_document_file(template_service, path)
+        .map_err(EditorUiHostRuntimeError::from)?;
     let mut widget_imports = BTreeMap::new();
     let mut style_imports = BTreeMap::new();
     let mut seen_imports = BTreeSet::new();
@@ -77,11 +98,85 @@ pub(super) fn compile_template_document_file(
         &document,
         &mut seen_imports,
     )?;
-    Ok(template_service.compile_document_with_import_maps(
+    let compiled = template_service.compile_document_with_import_maps(
         &document,
         &widget_imports,
         &style_imports,
-    )?)
+    )?;
+    builtin_template_compile_cache()
+        .lock()
+        .expect("builtin template compile cache mutex should not be poisoned")
+        .insert(cache_key, compiled.clone());
+    Ok(compiled)
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct BuiltinTemplateCompileCacheKey {
+    path: PathBuf,
+    modified_unix_ns: Option<u128>,
+    len: Option<u64>,
+}
+
+impl BuiltinTemplateCompileCacheKey {
+    fn from_path(path: &Path) -> Self {
+        let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let metadata = std::fs::metadata(&path).ok();
+        let modified_unix_ns = metadata
+            .as_ref()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+            .map(|duration| duration.as_nanos());
+        let len = metadata.as_ref().map(std::fs::Metadata::len);
+        Self {
+            path,
+            modified_unix_ns,
+            len,
+        }
+    }
+}
+
+fn builtin_template_compile_cache(
+) -> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiCompiledDocument>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiCompiledDocument>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn load_builtin_template_document_file(
+    template_service: &EditorTemplateRuntimeService,
+    path: &Path,
+) -> Result<UiAssetDocument, UiAssetError> {
+    let cache_key = BuiltinTemplateCompileCacheKey::from_path(path);
+    if let Some(document) = builtin_template_document_cache()
+        .lock()
+        .expect("builtin template document cache mutex should not be poisoned")
+        .get(&cache_key)
+        .cloned()
+    {
+        write_diagnostic_log(
+            "editor_template_document_cache",
+            format!(
+                "hit path={} modified_unix_ns={}",
+                cache_key.path.display(),
+                cache_key.modified_unix_ns.unwrap_or(0)
+            ),
+        );
+        return Ok(document);
+    }
+
+    let document = template_service.load_document_file(path)?;
+    builtin_template_document_cache()
+        .lock()
+        .expect("builtin template document cache mutex should not be poisoned")
+        .insert(cache_key, document.clone());
+    Ok(document)
+}
+
+fn builtin_template_document_cache(
+) -> &'static Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiAssetDocument>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<BuiltinTemplateCompileCacheKey, UiAssetDocument>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
 }
 
 fn register_document_imports(
@@ -181,7 +276,10 @@ fn resolve_builtin_import(
             source_path.exists()
         ),
     );
-    Ok(Some(template_service.load_document_file(source_path)?))
+    Ok(Some(load_builtin_template_document_file(
+        template_service,
+        &source_path,
+    )?))
 }
 
 fn editor_runtime_asset_path(relative: &str) -> std::path::PathBuf {
@@ -190,4 +288,49 @@ fn editor_runtime_asset_path(relative: &str) -> std::path::PathBuf {
 
 fn editor_dev_asset_root() -> std::path::PathBuf {
     std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn builtin_template_compile_cache_is_reused_across_runtime_instances() {
+        let mut first = EditorUiHostRuntime::default();
+        first
+            .load_builtin_host_templates()
+            .expect("first runtime should load builtin templates");
+        let compiled_after_first = builtin_template_compile_cache()
+            .lock()
+            .expect("cache mutex should not be poisoned")
+            .len();
+        let documents_after_first = builtin_template_document_cache()
+            .lock()
+            .expect("document cache mutex should not be poisoned")
+            .len();
+
+        let mut second = EditorUiHostRuntime::default();
+        second
+            .load_builtin_host_templates()
+            .expect("second runtime should reuse builtin template cache");
+
+        assert!(compiled_after_first > 0);
+        assert!(documents_after_first > 0);
+        assert_eq!(
+            builtin_template_compile_cache()
+                .lock()
+                .expect("cache mutex should not be poisoned")
+                .len(),
+            compiled_after_first,
+            "second runtime should not compile additional builtin documents"
+        );
+        assert_eq!(
+            builtin_template_document_cache()
+                .lock()
+                .expect("document cache mutex should not be poisoned")
+                .len(),
+            documents_after_first,
+            "second runtime should not reload additional builtin documents"
+        );
+    }
 }

@@ -1,12 +1,15 @@
 use super::*;
 use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;
+use crate::ui::layouts::common::model_rc;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle_with_shared_source,
     resolve_floating_window_projection_base_outer_frame,
     resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 use crate::ui::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
+use slint::Model;
 use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
+use zircon_runtime::diagnostic_log::write_diagnostic_log;
 
 impl SlintEditorHost {
     pub(super) fn new(
@@ -153,12 +156,14 @@ impl SlintEditorHost {
             shell_geometry: None,
             transient_region_preferred: BTreeMap::new(),
             active_drawer_resize: None,
+            invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
             presentation_dirty: true,
             layout_dirty: true,
             window_metrics_dirty: true,
             render_dirty: true,
         };
         host.sync_asset_workspace();
+        host.publish_refresh_invalidation_diagnostics();
         Ok(host)
     }
 
@@ -173,6 +178,25 @@ impl SlintEditorHost {
         self.recompute_if_dirty();
 
         if self.render_dirty {
+            let pending_render = self
+                .invalidation
+                .consume_recompute_reasons(HostInvalidationMask::RENDER);
+            let render_reasons = if pending_render.is_empty() {
+                HostInvalidationMask::RENDER
+            } else {
+                pending_render
+            };
+            let render_rebuild = self.invalidation.record_render_rebuild();
+            self.publish_refresh_invalidation_diagnostics();
+            write_diagnostic_log(
+                "editor_host_invalidation",
+                format!(
+                    "render_path count={} reasons={} {}",
+                    render_rebuild,
+                    render_reasons.summary(),
+                    self.invalidation.stats_summary()
+                ),
+            );
             if let Some(submission) = self.runtime.render_frame_submission() {
                 if let Err(error) = self.viewport.submit_extract_with_ui(
                     submission.extract,
@@ -185,11 +209,7 @@ impl SlintEditorHost {
             self.render_dirty = false;
         }
 
-        if let Some(image) = self.viewport.poll_image() {
-            self.ui
-                .global::<crate::ui::slint_host::PaneSurfaceHostContext>()
-                .set_viewport_image(image);
-        }
+        self.poll_viewport_image_for_native_host();
         if let Some(error) = self.viewport.take_error() {
             self.set_status_line(error);
             self.recompute_if_dirty();
@@ -216,14 +236,42 @@ impl SlintEditorHost {
             return;
         }
         self.shell_size = next;
-        self.window_metrics_dirty = true;
-        self.presentation_dirty = true;
+        self.invalidate_host(
+            HostInvalidationMask::WINDOW_METRICS.union(HostInvalidationMask::PRESENTATION_DATA),
+        );
     }
 
     pub(super) fn recompute_if_dirty(&mut self) {
         if !self.presentation_dirty && !self.layout_dirty && !self.window_metrics_dirty {
             return;
         }
+
+        let pending_reasons = self.invalidation.take_recompute_reasons();
+        let recompute_reasons = if pending_reasons.is_empty() {
+            HostInvalidationMask::from_dirty_flags(
+                self.layout_dirty,
+                self.presentation_dirty,
+                self.window_metrics_dirty,
+                self.render_dirty,
+            )
+        } else {
+            pending_reasons
+        };
+        let slow_path_rebuild = self.invalidation.record_slow_path_rebuild();
+        self.publish_refresh_invalidation_diagnostics();
+        write_diagnostic_log(
+            "editor_host_invalidation",
+            format!(
+                "slow_path count={} reasons={} legacy_dirty_flags={{layout:{},presentation:{},window_metrics:{},render:{}}} {}",
+                slow_path_rebuild,
+                recompute_reasons.summary(),
+                self.layout_dirty,
+                self.presentation_dirty,
+                self.window_metrics_dirty,
+                self.render_dirty,
+                self.invalidation.stats_summary()
+            ),
+        );
 
         let layout = self.runtime.current_layout();
         let descriptors = self.runtime.descriptors();
@@ -340,6 +388,7 @@ impl SlintEditorHost {
             &floating_window_projection_bundle,
             Some(&self.component_showcase_runtime),
         );
+        attach_viewport_toolbar_surface_frames_to_ui(&self.ui, &mut self.viewport_toolbar_bridge);
         let world_space_ui_surfaces =
             crate::ui::slint_host::build_world_space_ui_surface_submissions_from_host_scene(
                 &self.ui.get_host_presentation().host_scene_data,
@@ -366,6 +415,11 @@ impl SlintEditorHost {
         self.presentation_dirty = false;
         self.layout_dirty = false;
         self.window_metrics_dirty = false;
+    }
+
+    fn publish_refresh_invalidation_diagnostics(&self) {
+        self.ui
+            .set_host_refresh_invalidation_diagnostics(self.invalidation.diagnostics_snapshot());
     }
 
     fn collect_ui_asset_panes(
@@ -681,8 +735,12 @@ impl SlintEditorHost {
     }
 
     pub(super) fn set_status_line(&mut self, message: impl Into<String>) {
+        let message = message.into();
+        if self.runtime.status_line() == message {
+            return;
+        }
         self.runtime.set_status_line(message);
-        self.presentation_dirty = true;
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn apply_dispatch_effects(&mut self, effects: SlintDispatchEffects) {
@@ -692,15 +750,17 @@ impl SlintEditorHost {
         if effects.reset_active_layout_preset {
             self.active_layout_preset = None;
         }
+        let mut invalidation = HostInvalidationMask::NONE;
         if effects.layout_dirty {
-            self.layout_dirty = true;
+            invalidation.insert(HostInvalidationMask::LAYOUT);
         }
         if effects.render_dirty {
-            self.render_dirty = true;
+            invalidation.insert(HostInvalidationMask::RENDER);
         }
         if effects.presentation_dirty {
-            self.presentation_dirty = true;
+            invalidation.insert(HostInvalidationMask::PRESENTATION_DATA);
         }
+        self.invalidate_host(invalidation);
         if effects.sync_asset_workspace {
             self.sync_asset_workspace();
         }
@@ -731,14 +791,36 @@ impl SlintEditorHost {
         }
     }
 
+    pub(super) fn invalidate_host(&mut self, mask: HostInvalidationMask) {
+        self.invalidation.invalidate(mask);
+        if mask.requires_window_metrics() {
+            self.window_metrics_dirty = true;
+        }
+        if mask.requires_layout() {
+            self.layout_dirty = true;
+        }
+        if mask.requires_presentation() || mask.requires_hit_test() {
+            self.presentation_dirty = true;
+        }
+        if mask.requires_render() {
+            self.render_dirty = true;
+        }
+    }
+
+    pub(super) fn record_paint_only_invalidation(&mut self, mask: HostInvalidationMask) {
+        self.invalidation
+            .invalidate(mask.union(HostInvalidationMask::PAINT_ONLY));
+        self.publish_refresh_invalidation_diagnostics();
+    }
+
     pub(super) fn mark_layout_dirty(&mut self) {
-        self.layout_dirty = true;
-        self.presentation_dirty = true;
+        self.invalidate_host(HostInvalidationMask::LAYOUT);
     }
 
     pub(super) fn mark_render_and_presentation_dirty(&mut self) {
-        self.render_dirty = true;
-        self.presentation_dirty = true;
+        self.invalidate_host(
+            HostInvalidationMask::RENDER.union(HostInvalidationMask::PRESENTATION_DATA),
+        );
     }
 
     fn sync_native_window_presenters(
@@ -795,11 +877,229 @@ impl SlintEditorHost {
                     floating_window_projection_bundle,
                     Some(&self.component_showcase_runtime),
                 );
+                if let Ok(mut viewport_toolbar_bridge) =
+                    callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()
+                {
+                    attach_viewport_toolbar_surface_frames_to_ui(ui, &mut viewport_toolbar_bridge);
+                }
                 configure_native_floating_window_presentation(ui, target);
             },
         ) {
             self.set_status_line(format!("Native window sync failed: {error}"));
         }
+    }
+}
+
+fn attach_viewport_toolbar_surface_frames_to_ui(
+    ui: &UiHostWindow,
+    viewport_toolbar_bridge: &mut callback_dispatch::BuiltinViewportToolbarTemplateBridge,
+) {
+    let mut presentation = ui.get_host_presentation();
+    let document_surface_key = presentation
+        .host_scene_data
+        .document_dock
+        .surface_key
+        .to_string();
+    let document_size = UiSize::new(
+        presentation
+            .host_scene_data
+            .document_dock
+            .content_frame
+            .width
+            .max(1.0),
+        28.0,
+    );
+    attach_viewport_toolbar_surface_frame_to_pane(
+        viewport_toolbar_bridge,
+        document_surface_key,
+        document_size,
+        &mut presentation.host_scene_data.document_dock.pane,
+    );
+
+    let left_surface_key = presentation
+        .host_scene_data
+        .left_dock
+        .surface_key
+        .to_string();
+    let left_size = UiSize::new(
+        presentation
+            .host_scene_data
+            .left_dock
+            .content_frame
+            .width
+            .max(1.0),
+        28.0,
+    );
+    attach_viewport_toolbar_surface_frame_to_pane(
+        viewport_toolbar_bridge,
+        left_surface_key,
+        left_size,
+        &mut presentation.host_scene_data.left_dock.pane,
+    );
+
+    let right_surface_key = presentation
+        .host_scene_data
+        .right_dock
+        .surface_key
+        .to_string();
+    let right_size = UiSize::new(
+        presentation
+            .host_scene_data
+            .right_dock
+            .content_frame
+            .width
+            .max(1.0),
+        28.0,
+    );
+    attach_viewport_toolbar_surface_frame_to_pane(
+        viewport_toolbar_bridge,
+        right_surface_key,
+        right_size,
+        &mut presentation.host_scene_data.right_dock.pane,
+    );
+
+    let bottom_surface_key = presentation
+        .host_scene_data
+        .bottom_dock
+        .surface_key
+        .to_string();
+    let bottom_size = UiSize::new(
+        presentation
+            .host_scene_data
+            .bottom_dock
+            .content_frame
+            .width
+            .max(1.0),
+        28.0,
+    );
+    attach_viewport_toolbar_surface_frame_to_pane(
+        viewport_toolbar_bridge,
+        bottom_surface_key,
+        bottom_size,
+        &mut presentation.host_scene_data.bottom_dock.pane,
+    );
+
+    let mut floating_windows = Vec::new();
+    for row in 0..presentation
+        .host_scene_data
+        .floating_layer
+        .floating_windows
+        .row_count()
+    {
+        let Some(mut window) = presentation
+            .host_scene_data
+            .floating_layer
+            .floating_windows
+            .row_data(row)
+        else {
+            continue;
+        };
+        attach_viewport_toolbar_surface_frame_to_pane(
+            viewport_toolbar_bridge,
+            window.window_id.to_string(),
+            UiSize::new((window.frame.width - 2.0).max(1.0), 28.0),
+            &mut window.active_pane,
+        );
+        floating_windows.push(window);
+    }
+    presentation.host_scene_data.floating_layer.floating_windows = model_rc(floating_windows);
+    ui.set_host_presentation(presentation);
+}
+
+fn attach_viewport_toolbar_surface_frame_to_pane(
+    viewport_toolbar_bridge: &mut callback_dispatch::BuiltinViewportToolbarTemplateBridge,
+    surface_key: String,
+    toolbar_size: UiSize,
+    pane: &mut crate::ui::slint_host::PaneData,
+) {
+    if !matches!(pane.kind.as_str(), "Scene" | "Game") || !pane.show_toolbar {
+        pane.viewport.toolbar_surface_frame = None;
+        return;
+    }
+
+    if viewport_toolbar_bridge
+        .recompute_layout(toolbar_size)
+        .is_err()
+    {
+        pane.viewport.toolbar_surface_frame = None;
+        return;
+    }
+
+    let viewport = pane.viewport.clone();
+    pane.viewport.toolbar_surface_frame = Some(
+        viewport_toolbar_bridge.surface_frame_for_projection_controls(
+            &surface_key,
+            toolbar_size,
+            |projection_control_id| {
+                Some(viewport_toolbar_hit_control_id(
+                    &viewport,
+                    projection_control_id,
+                ))
+            },
+        ),
+    );
+}
+
+fn viewport_toolbar_hit_control_id(
+    viewport: &crate::ui::slint_host::SceneViewportChromeData,
+    projection_control_id: &str,
+) -> String {
+    let control_id = match projection_control_id {
+        "SetTool" => viewport_tool_action_id(viewport.tool.as_str()),
+        "SetTransformSpace" => transform_space_action_id(viewport.transform_space.as_str()),
+        "SetProjectionMode" => Some(projection_mode_action_id(viewport.projection_mode.as_str())),
+        "AlignView" => Some(align_view_action_id(viewport.view_orientation.as_str())),
+        "SetDisplayMode" => Some("display.cycle"),
+        "SetGridMode" => Some("grid.cycle"),
+        "SetTranslateSnap" => Some("snap.translate"),
+        "SetRotateSnapDegrees" => Some("snap.rotate"),
+        "SetScaleSnap" => Some("snap.scale"),
+        "SetPreviewLighting" => Some("toggle.lighting"),
+        "SetPreviewSkybox" => Some("toggle.skybox"),
+        "SetGizmosEnabled" => Some("toggle.gizmos"),
+        "FrameSelection" => Some("frame.selection"),
+        "EnterPlayMode" => Some("EnterPlayMode"),
+        "ExitPlayMode" => Some("ExitPlayMode"),
+        _ => None,
+    };
+    control_id
+        .map(str::to_string)
+        .unwrap_or_else(|| projection_control_id.to_string())
+}
+
+fn viewport_tool_action_id(tool: &str) -> Option<&'static str> {
+    match tool {
+        "Drag" => Some("tool.drag"),
+        "Move" => Some("tool.move"),
+        "Rotate" => Some("tool.rotate"),
+        "Scale" => Some("tool.scale"),
+        _ => None,
+    }
+}
+
+fn transform_space_action_id(space: &str) -> Option<&'static str> {
+    match space {
+        "Local" => Some("space.local"),
+        "Global" => Some("space.global"),
+        _ => None,
+    }
+}
+
+fn projection_mode_action_id(mode: &str) -> &'static str {
+    match mode {
+        "Orthographic" => "projection.orthographic",
+        _ => "projection.perspective",
+    }
+}
+
+fn align_view_action_id(orientation: &str) -> &'static str {
+    match orientation {
+        "PosX" => "align.pos_x",
+        "NegX" => "align.neg_x",
+        "PosY" => "align.pos_y",
+        "NegY" => "align.neg_y",
+        "PosZ" => "align.pos_z",
+        _ => "align.neg_z",
     }
 }
 

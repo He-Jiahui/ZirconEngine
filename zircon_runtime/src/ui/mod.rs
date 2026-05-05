@@ -19,6 +19,7 @@ pub mod event_ui;
 pub mod layout;
 pub mod surface;
 pub mod template;
+pub(crate) mod text;
 pub mod tree;
 
 #[cfg(test)]

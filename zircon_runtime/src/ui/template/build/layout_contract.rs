@@ -23,6 +23,8 @@ pub(super) struct TemplateLayoutContract {
     pub(super) input_policy: Option<UiInputPolicy>,
     pub(super) clip_to_bounds: bool,
     pub(super) layout_boundary: LayoutBoundary,
+    pub(super) stretch_width: bool,
+    pub(super) stretch_height: bool,
     pub(super) z_index: i32,
 }
 
@@ -55,8 +57,18 @@ pub(super) fn infer_layout_contract(
             .or_else(|| parse_bool(layout.get("clip_to_bounds")))
             .unwrap_or(false),
         layout_boundary: parse_layout_boundary(layout.get("boundary"), path)?.unwrap_or_default(),
+        stretch_width: is_explicit_stretch_axis(layout.get("width")),
+        stretch_height: is_explicit_stretch_axis(layout.get("height")),
         z_index: parse_i32(layout.get("z_index"), path, "z_index")?.unwrap_or_default(),
     })
+}
+
+fn is_explicit_stretch_axis(value: Option<&Value>) -> bool {
+    value
+        .and_then(Value::as_table)
+        .and_then(|table| table.get("stretch"))
+        .and_then(Value::as_str)
+        == Some("Stretch")
 }
 
 fn merged_layout_table(

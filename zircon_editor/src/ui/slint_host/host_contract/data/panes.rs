@@ -1,4 +1,5 @@
 use slint::{ModelRc, SharedString};
+use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
 
 use super::{TemplatePaneNodeData, UiAssetEditorPaneData};
 
@@ -75,6 +76,7 @@ pub(crate) struct SceneViewportChromeData {
     pub translate_snap_label: SharedString,
     pub rotate_snap_label: SharedString,
     pub scale_snap_label: SharedString,
+    pub toolbar_surface_frame: Option<UiSurfaceFrame>,
 }
 
 #[derive(Clone, Default)]
@@ -175,6 +177,7 @@ pub(crate) struct PaneData {
     pub secondary_action_id: SharedString,
     pub secondary_hint: SharedString,
     pub show_toolbar: bool,
+    pub body_surface_frame: Option<UiSurfaceFrame>,
     pub viewport: SceneViewportChromeData,
     pub hierarchy: HierarchyPaneData,
     pub inspector: InspectorPaneData,

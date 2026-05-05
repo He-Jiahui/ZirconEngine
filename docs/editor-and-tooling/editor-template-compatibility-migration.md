@@ -50,7 +50,6 @@ related_code:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
@@ -195,7 +194,6 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/error.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/host_projection.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/action_control.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/layout/floating_window/resolution.rs

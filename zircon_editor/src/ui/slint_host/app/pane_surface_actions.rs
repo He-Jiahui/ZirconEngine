@@ -26,6 +26,19 @@ impl SlintEditorHost {
             UiEventKind::Click,
             vec![UiBindingValue::string(action_id)],
         ) else {
+            if let Some(result) =
+                callback_dispatch::dispatch_builtin_template_binding(&self.runtime, action_id)
+            {
+                self.apply_dispatch_result(result);
+                return;
+            }
+            if !action_id.is_empty() {
+                self.apply_dispatch_result(callback_dispatch::dispatch_menu_action(
+                    &self.runtime,
+                    action_id,
+                ));
+                return;
+            }
             self.set_status_line(format!("Unknown pane surface control {control_id}"));
             return;
         };
@@ -137,7 +150,7 @@ impl SlintEditorHost {
                         .unwrap_or_else(|| format!("Showcase event dispatched: {control_id}")),
                 );
                 if result.changed || result.refresh_projection {
-                    self.presentation_dirty = true;
+                    self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
                 }
             }
             Err(error) => {

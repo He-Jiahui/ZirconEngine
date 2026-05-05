@@ -9,6 +9,8 @@ use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionB
 use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data, side_expanded};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
+use crate::ui::slint_host::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
+
 pub(crate) struct ShellPresentation {
     pub host_surface_data: HostWindowSurfaceData,
     pub welcome: WelcomePresentation,
@@ -173,6 +175,7 @@ impl ShellPresentation {
                     .clone()
                     .unwrap_or_default()
                     .into(),
+                debug_refresh_rate: STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.into(),
                 viewport_label: model.status_bar.viewport_label.clone().into(),
                 drawers_visible: model.drawer_ring.visible,
                 left_expanded,

@@ -124,6 +124,7 @@ fn decorate_component_root(
         root.control_id = Some(control_id.clone());
     }
     append_classes(&mut root.classes, &instance_node.classes);
+    root.bindings.extend(instance_node.bindings.clone());
     let inline = resolve_value_map(&instance_node.style_overrides.self_values, tokens, params);
     merge_value_maps(&mut root.style_overrides, &inline);
     merge_value_maps_resolved(

@@ -506,7 +506,8 @@ mod tests {
     use zircon_runtime_interface::ui::event_ui::{UiNodeId, UiTreeId};
     use zircon_runtime_interface::ui::surface::{
         UiRenderExtract, UiRenderList, UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine,
-        UiTextAlign, UiTextRenderMode, UiTextWrap,
+        UiResolvedTextRun, UiTextAlign, UiTextDirection, UiTextOverflow, UiTextRange,
+        UiTextRenderMode, UiTextRunKind, UiTextWrap,
     };
 
     #[test]
@@ -642,19 +643,51 @@ mod tests {
                         text_layout: Some(UiResolvedTextLayout {
                             text_align: UiTextAlign::Center,
                             wrap: UiTextWrap::Word,
+                            direction: UiTextDirection::LeftToRight,
+                            overflow: UiTextOverflow::Clip,
                             font_size: 10.0,
                             line_height: 12.0,
+                            measured_width: 50.0,
+                            measured_height: 24.0,
+                            source_range: UiTextRange { start: 0, end: 16 },
                             lines: vec![
                                 UiResolvedTextLine {
                                     text: "Alpha Beta".to_string(),
                                     frame: UiFrame::new(20.0, 20.0, 50.0, 12.0),
+                                    source_range: UiTextRange { start: 0, end: 10 },
+                                    visual_range: UiTextRange { start: 0, end: 10 },
+                                    measured_width: 50.0,
+                                    baseline: 8.0,
+                                    direction: UiTextDirection::LeftToRight,
+                                    runs: vec![UiResolvedTextRun {
+                                        kind: UiTextRunKind::Plain,
+                                        text: "Alpha Beta".to_string(),
+                                        source_range: UiTextRange { start: 0, end: 10 },
+                                        visual_range: UiTextRange { start: 0, end: 10 },
+                                        direction: UiTextDirection::LeftToRight,
+                                    }],
+                                    ellipsized: false,
                                 },
                                 UiResolvedTextLine {
                                     text: "Gamma".to_string(),
                                     frame: UiFrame::new(35.0, 32.0, 25.0, 12.0),
+                                    source_range: UiTextRange { start: 11, end: 16 },
+                                    visual_range: UiTextRange { start: 0, end: 5 },
+                                    measured_width: 25.0,
+                                    baseline: 8.0,
+                                    direction: UiTextDirection::LeftToRight,
+                                    runs: vec![UiResolvedTextRun {
+                                        kind: UiTextRunKind::Plain,
+                                        text: "Gamma".to_string(),
+                                        source_range: UiTextRange { start: 11, end: 16 },
+                                        visual_range: UiTextRange { start: 0, end: 5 },
+                                        direction: UiTextDirection::LeftToRight,
+                                    }],
+                                    ellipsized: false,
                                 },
                             ],
                             overflow_clipped: false,
+                            editable: None,
                         }),
                         text: Some("Alpha Beta Gamma".to_string()),
                         image: None,

@@ -445,8 +445,12 @@ fn native_root_menu_pointer_click_dispatches_shared_menu_action_in_real_host() {
     let harness = ChildWindowHostHarness::new("zircon_slint_native_root_menu_dispatch");
     let baseline = harness.journal_len();
 
-    let open_dispatch = harness.root_ui.dispatch_native_primary_press_for_test(20.0, 12.0);
-    let item_dispatch = harness.root_ui.dispatch_native_primary_press_for_test(60.0, 126.0);
+    let open_dispatch = harness
+        .root_ui
+        .dispatch_native_primary_press_for_test(20.0, 12.0);
+    let item_dispatch = harness
+        .root_ui
+        .dispatch_native_primary_press_for_test(60.0, 126.0);
 
     assert!(open_dispatch.request_redraw());
     assert!(item_dispatch.request_redraw());
@@ -594,7 +598,7 @@ fn root_viewport_toolbar_pointer_click_prefers_shared_projection_surface_width_o
             .expect("viewport toolbar projection should recompute");
         let control_frame = host
             .viewport_toolbar_bridge
-            .control_frame_for_action("align.neg_z")
+            .control_frame_for_control("AlignView")
             .expect("align.neg_z should map to a projected control frame");
         (
             control_frame.x + control_frame.width * 0.75,
@@ -938,7 +942,10 @@ fn native_frame_request_recomputes_dirty_layout_before_presentation() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_slint_native_frame_recompute");
-    harness.root_ui.window().set_size(PhysicalSize::new(960, 540));
+    harness
+        .root_ui
+        .window()
+        .set_size(PhysicalSize::new(960, 540));
 
     harness.root_ui.request_host_frame_for_test();
 

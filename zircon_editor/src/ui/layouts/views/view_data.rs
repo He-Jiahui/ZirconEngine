@@ -1,3 +1,5 @@
+use std::fmt;
+
 use slint::{Image, ModelRc, SharedString};
 
 #[derive(Clone)]
@@ -113,7 +115,7 @@ pub(crate) struct ViewTemplateFrameData {
     pub height: f32,
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone)]
 pub(crate) struct ViewTemplateNodeData {
     pub node_id: SharedString,
     pub control_id: SharedString,
@@ -130,5 +132,96 @@ pub(crate) struct ViewTemplateNodeData {
     pub overflow: SharedString,
     pub corner_radius: f32,
     pub border_width: f32,
+    pub media_source: SharedString,
+    pub icon_name: SharedString,
+    pub has_preview_image: bool,
+    pub preview_image: Image,
     pub frame: ViewTemplateFrameData,
+}
+
+impl fmt::Debug for ViewTemplateNodeData {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let preview_size = self.preview_image.size();
+        formatter
+            .debug_struct("ViewTemplateNodeData")
+            .field("node_id", &self.node_id)
+            .field("control_id", &self.control_id)
+            .field("role", &self.role)
+            .field("text", &self.text)
+            .field("dispatch_kind", &self.dispatch_kind)
+            .field("action_id", &self.action_id)
+            .field("surface_variant", &self.surface_variant)
+            .field("text_tone", &self.text_tone)
+            .field("button_variant", &self.button_variant)
+            .field("font_size", &self.font_size)
+            .field("font_weight", &self.font_weight)
+            .field("text_align", &self.text_align)
+            .field("overflow", &self.overflow)
+            .field("corner_radius", &self.corner_radius)
+            .field("border_width", &self.border_width)
+            .field("media_source", &self.media_source)
+            .field("icon_name", &self.icon_name)
+            .field("has_preview_image", &self.has_preview_image)
+            .field(
+                "preview_image_size",
+                &(preview_size.width, preview_size.height),
+            )
+            .field("frame", &self.frame)
+            .finish()
+    }
+}
+
+impl PartialEq for ViewTemplateNodeData {
+    fn eq(&self, other: &Self) -> bool {
+        let preview_size = self.preview_image.size();
+        let other_preview_size = other.preview_image.size();
+        self.node_id == other.node_id
+            && self.control_id == other.control_id
+            && self.role == other.role
+            && self.text == other.text
+            && self.dispatch_kind == other.dispatch_kind
+            && self.action_id == other.action_id
+            && self.surface_variant == other.surface_variant
+            && self.text_tone == other.text_tone
+            && self.button_variant == other.button_variant
+            && self.font_size == other.font_size
+            && self.font_weight == other.font_weight
+            && self.text_align == other.text_align
+            && self.overflow == other.overflow
+            && self.corner_radius == other.corner_radius
+            && self.border_width == other.border_width
+            && self.media_source == other.media_source
+            && self.icon_name == other.icon_name
+            && self.has_preview_image == other.has_preview_image
+            && preview_size.width == other_preview_size.width
+            && preview_size.height == other_preview_size.height
+            && self.frame == other.frame
+    }
+}
+
+impl Default for ViewTemplateNodeData {
+    fn default() -> Self {
+        Self {
+            node_id: SharedString::default(),
+            control_id: SharedString::default(),
+            role: SharedString::default(),
+            text: SharedString::default(),
+            dispatch_kind: SharedString::default(),
+            action_id: SharedString::default(),
+            surface_variant: SharedString::default(),
+            text_tone: SharedString::default(),
+            button_variant: SharedString::default(),
+            font_size: 0.0,
+            font_weight: 0,
+            text_align: SharedString::default(),
+            overflow: SharedString::default(),
+            corner_radius: 0.0,
+            border_width: 0.0,
+            media_source: SharedString::default(),
+            icon_name: SharedString::default(),
+            has_preview_image: false,
+            preview_image: Image::default(),
+            frame: ViewTemplateFrameData::default(),
+        }
+    }
 }

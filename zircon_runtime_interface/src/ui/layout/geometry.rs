@@ -74,6 +74,99 @@ impl UiFrame {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum UiPixelSnapping {
+    Disabled,
+    #[default]
+    Enabled,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiLayoutTransform {
+    pub translation: UiPoint,
+    pub scale: UiPoint,
+}
+
+impl Default for UiLayoutTransform {
+    fn default() -> Self {
+        Self::identity()
+    }
+}
+
+impl UiLayoutTransform {
+    pub const fn identity() -> Self {
+        Self {
+            translation: UiPoint::new(0.0, 0.0),
+            scale: UiPoint::new(1.0, 1.0),
+        }
+    }
+
+    pub const fn new(translation: UiPoint, scale: UiPoint) -> Self {
+        Self { translation, scale }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiRenderTransform {
+    pub translation: UiPoint,
+    pub scale: UiPoint,
+}
+
+impl Default for UiRenderTransform {
+    fn default() -> Self {
+        Self::identity()
+    }
+}
+
+impl UiRenderTransform {
+    pub const fn identity() -> Self {
+        Self {
+            translation: UiPoint::new(0.0, 0.0),
+            scale: UiPoint::new(1.0, 1.0),
+        }
+    }
+
+    pub const fn new(translation: UiPoint, scale: UiPoint) -> Self {
+        Self { translation, scale }
+    }
+}
+
+/// Retains the unsnapped layout frame separately from render bounds so hit/debug
+/// code can keep using layout geometry after render-side pixel snapping.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiGeometry {
+    pub local_size: UiSize,
+    pub local_offset: UiPoint,
+    pub layout_transform: UiLayoutTransform,
+    pub render_transform: UiRenderTransform,
+    pub absolute_frame: UiFrame,
+    pub render_bounds: UiFrame,
+    pub clip_frame: Option<UiFrame>,
+    pub pixel_snapping: UiPixelSnapping,
+}
+
+impl Default for UiGeometry {
+    fn default() -> Self {
+        Self::from_frame(UiFrame::default())
+    }
+}
+
+impl UiGeometry {
+    pub const fn from_frame(frame: UiFrame) -> Self {
+        Self {
+            local_size: UiSize::new(frame.width, frame.height),
+            local_offset: UiPoint::new(0.0, 0.0),
+            layout_transform: UiLayoutTransform::identity(),
+            render_transform: UiRenderTransform::identity(),
+            absolute_frame: frame,
+            render_bounds: frame,
+            clip_frame: None,
+            pixel_snapping: UiPixelSnapping::Enabled,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Pivot {
     pub x: f32,

@@ -7,17 +7,22 @@ use winit::application::ApplicationHandler;
 use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::window::{Window, WindowAttributes, WindowId};
-use zircon_runtime_interface::ui::surface::UiPointerButton;
 use zircon_runtime::diagnostic_log::{write_diagnostic_log, write_error};
+use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::data::{FrameRect, HostWindowBootstrapData, HostWindowPresentationData};
+use super::data::{
+    FrameRect, HostMenuStateData, HostPaneInteractionStateData, HostWindowBootstrapData,
+    HostWindowPresentationData,
+};
+use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::globals::{HostContractGlobal, HostContractState};
 use super::native_pointer::{
     dispatch_native_pointer_button, dispatch_native_pointer_move, dispatch_native_pointer_scroll,
-    NativePointerButtonState, NativePointerDispatchResult,
+    NativePointerButtonState,
 };
 use super::painter::{paint_host_frame, HostRgbaFrame};
 use super::presenter::SoftbufferHostPresenter;
+use super::redraw::{HostRedrawRequest, NativePointerDispatchResult};
 
 const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1280;
 const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 720;
@@ -71,10 +76,13 @@ impl UiHostWindow {
     }
 
     pub(crate) fn set_host_presentation(&self, presentation: HostWindowPresentationData) {
+        let mut state = self.state.borrow_mut();
+        state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
         write_diagnostic_log(
             "editor_host_window",
             format!(
-                "set_host_presentation project_path={} viewport_label={} status={} center={} document={} viewport={}",
+                "set_host_presentation count={} project_path={} viewport_label={} status={} center={} document={} viewport={}",
+                state.presentation_rebuild_count,
                 presentation.host_shell.project_path,
                 presentation.host_shell.viewport_label,
                 presentation.host_shell.status_secondary,
@@ -83,11 +91,36 @@ impl UiHostWindow {
                 frame_summary(&presentation.host_layout.viewport_content_frame)
             ),
         );
-        self.state.borrow_mut().host_presentation = presentation;
+        state.host_presentation = presentation;
     }
 
     pub(crate) fn get_host_presentation(&self) -> HostWindowPresentationData {
-        self.state.borrow().host_presentation.clone()
+        let state = self.state.borrow();
+        host_presentation_from_state(&state)
+    }
+
+    pub(crate) fn set_host_refresh_invalidation_diagnostics(
+        &self,
+        diagnostics: HostInvalidationDiagnostics,
+    ) {
+        self.state.borrow_mut().refresh_invalidation_diagnostics = diagnostics;
+    }
+
+    fn refresh_invalidation_diagnostics(&self) -> HostInvalidationDiagnostics {
+        self.state.borrow().refresh_invalidation_diagnostics
+    }
+
+    fn set_host_refresh_diagnostics_overlay(&self, diagnostics: HostRefreshDiagnostics) {
+        let mut state = self.state.borrow_mut();
+        state.host_presentation.host_shell.debug_refresh_rate = diagnostics.overlay_text().into();
+    }
+
+    pub(crate) fn get_menu_state(&self) -> HostMenuStateData {
+        self.state.borrow().menu_state.clone()
+    }
+
+    pub(crate) fn get_pane_interaction_state(&self) -> HostPaneInteractionStateData {
+        self.state.borrow().pane_interaction_state.clone()
     }
 
     pub(crate) fn get_host_window_bootstrap(&self) -> HostWindowBootstrapData {
@@ -112,9 +145,48 @@ impl UiHostWindow {
             .invoke_frame_requested();
     }
 
+    pub(crate) fn request_redraw_region(&self, frame: FrameRect) {
+        self.queue_external_redraw(HostRedrawRequest::region(frame));
+    }
+
+    fn queue_external_redraw(&self, redraw: HostRedrawRequest) {
+        if !redraw.request_redraw() {
+            return;
+        }
+        let mut state = self.state.borrow_mut();
+        let existing = std::mem::replace(
+            &mut state.external_redraw_request,
+            HostRedrawRequest::none(),
+        );
+        if existing.request_redraw() {
+            state.external_redraw_coalesced_count =
+                state.external_redraw_coalesced_count.saturating_add(1);
+        }
+        state.external_redraw_request = existing.merge(redraw);
+        state.external_redraw_queued_count = state.external_redraw_queued_count.saturating_add(1);
+    }
+
+    fn take_external_redraw(&self) -> HostRedrawRequest {
+        let mut state = self.state.borrow_mut();
+        let redraw = std::mem::replace(
+            &mut state.external_redraw_request,
+            HostRedrawRequest::none(),
+        );
+        if redraw.request_redraw() {
+            state.external_redraw_drained_count =
+                state.external_redraw_drained_count.saturating_add(1);
+        }
+        redraw
+    }
+
     #[cfg(test)]
     pub(crate) fn request_host_frame_for_test(&self) {
         self.request_frame_update();
+    }
+
+    #[cfg(test)]
+    pub(crate) fn presentation_rebuild_count_for_test(&self) -> u64 {
+        self.state.borrow().presentation_rebuild_count
     }
 
     #[cfg(test)]
@@ -136,6 +208,51 @@ impl UiHostWindow {
             self,
             NativePointerButtonState::Pressed,
             Some(UiPointerButton::Primary),
+            x,
+            y,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_primary_release_for_test(
+        &self,
+        x: f32,
+        y: f32,
+    ) -> NativePointerDispatchResult {
+        dispatch_native_pointer_button(
+            self,
+            NativePointerButtonState::Released,
+            Some(UiPointerButton::Primary),
+            x,
+            y,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_secondary_press_for_test(
+        &self,
+        x: f32,
+        y: f32,
+    ) -> NativePointerDispatchResult {
+        dispatch_native_pointer_button(
+            self,
+            NativePointerButtonState::Pressed,
+            Some(UiPointerButton::Secondary),
+            x,
+            y,
+        )
+    }
+
+    #[cfg(test)]
+    pub(crate) fn dispatch_native_middle_press_for_test(
+        &self,
+        x: f32,
+        y: f32,
+    ) -> NativePointerDispatchResult {
+        dispatch_native_pointer_button(
+            self,
+            NativePointerButtonState::Pressed,
+            Some(UiPointerButton::Middle),
             x,
             y,
         )
@@ -188,19 +305,30 @@ impl HostWindowHandle {
 
     pub(crate) fn take_snapshot(&self) -> Result<HostWindowSnapshot, PlatformError> {
         let state = self.state.borrow();
+        let presentation = host_presentation_from_state(&state);
         let frame = paint_host_frame(
             state.window_size.width,
             state.window_size.height,
-            &state.host_presentation,
+            &presentation,
         );
         Ok(HostWindowSnapshot::from_rgba_frame(frame))
     }
+}
+
+fn host_presentation_from_state(state: &HostContractState) -> HostWindowPresentationData {
+    let mut presentation = state.host_presentation.clone();
+    presentation.menu_state = state.menu_state.clone();
+    presentation.pane_interaction_state = state.pane_interaction_state.clone();
+    presentation.viewport_image = state.viewport_image.clone();
+    presentation
 }
 
 struct UiHostWindowEventLoop {
     host: UiHostWindow,
     window: Option<Arc<dyn Window>>,
     presenter: Option<SoftbufferHostPresenter>,
+    last_pointer_position: Option<(f32, f32)>,
+    pending_redraw: HostRedrawRequest,
 }
 
 impl UiHostWindowEventLoop {
@@ -209,6 +337,8 @@ impl UiHostWindowEventLoop {
             host,
             window: None,
             presenter: None,
+            last_pointer_position: None,
+            pending_redraw: HostRedrawRequest::Full { frame_update: true },
         }
     }
 
@@ -221,6 +351,24 @@ impl UiHostWindowEventLoop {
         if let Ok(position) = window.outer_position() {
             state.window_position = PhysicalPosition::new(position.x, position.y);
         }
+    }
+
+    fn dispatch_pointer_result(&mut self, result: NativePointerDispatchResult) {
+        let redraw = result.redraw();
+        if redraw.request_redraw() {
+            self.queue_redraw(redraw);
+            if let Some(window) = self.window.as_ref() {
+                window.request_redraw();
+            }
+        }
+    }
+
+    fn queue_redraw(&mut self, redraw: HostRedrawRequest) {
+        self.pending_redraw = self.pending_redraw.clone().merge(redraw);
+    }
+
+    fn take_pending_redraw(&mut self) -> HostRedrawRequest {
+        std::mem::replace(&mut self.pending_redraw, HostRedrawRequest::None)
     }
 }
 
@@ -291,7 +439,10 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 self.host
                     .window()
                     .set_size(PhysicalSize::new(size.width, size.height));
-                self.host.request_frame_update();
+                self.queue_redraw(HostRedrawRequest::Full { frame_update: true });
+                if let Some(window) = self.window.as_ref() {
+                    window.request_redraw();
+                }
                 if let Some(presenter) = self.presenter.as_mut() {
                     if presenter.resize((size.width, size.height)).is_err() {
                         write_error(
@@ -311,6 +462,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                     .set_position(PhysicalPosition::new(position.x, position.y));
             }
             WindowEvent::PointerMoved { position, .. } => {
+                self.last_pointer_position = Some((position.x as f32, position.y as f32));
                 self.dispatch_pointer_result(dispatch_native_pointer_move(
                     &self.host,
                     position.x as f32,
@@ -323,6 +475,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 position,
                 ..
             } => {
+                self.last_pointer_position = Some((position.x as f32, position.y as f32));
                 if let Some(state) = pointer_button_state(state) {
                     self.dispatch_pointer_result(dispatch_native_pointer_button(
                         &self.host,
@@ -343,12 +496,28 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 ));
             }
             WindowEvent::RedrawRequested => {
-                self.host.request_frame_update();
+                let redraw = self.take_pending_redraw();
+                if !redraw.request_redraw() {
+                    return;
+                }
+                if redraw.requires_frame_update() {
+                    self.host.request_frame_update();
+                }
                 if let Some(presenter) = self.presenter.as_mut() {
                     let presentation = self.host.get_host_presentation();
-                    if presenter.present(&presentation).is_err() {
-                        write_error("editor_host_window", "presenter present failed");
-                        event_loop.exit();
+                    let invalidation = self.host.refresh_invalidation_diagnostics();
+                    match presenter.present(
+                        &presentation,
+                        redraw.damage_region().cloned(),
+                        invalidation,
+                    ) {
+                        Ok(diagnostics) => {
+                            self.host.set_host_refresh_diagnostics_overlay(diagnostics)
+                        }
+                        Err(_) => {
+                            write_error("editor_host_window", "presenter present failed");
+                            event_loop.exit();
+                        }
                     }
                 }
             }
@@ -359,7 +528,13 @@ impl ApplicationHandler for UiHostWindowEventLoop {
     fn about_to_wait(&mut self, _event_loop: &dyn ActiveEventLoop) {
         if let Some(window) = self.window.as_ref() {
             self.sync_host_window_state(window.as_ref());
-            window.request_redraw();
+        }
+        let redraw = self.host.take_external_redraw();
+        if redraw.request_redraw() {
+            self.queue_redraw(redraw);
+            if let Some(window) = self.window.as_ref() {
+                window.request_redraw();
+            }
         }
     }
 }
@@ -373,6 +548,29 @@ fn frame_summary(frame: &FrameRect) -> String {
 
 fn platform_error(error: impl std::fmt::Display) -> PlatformError {
     PlatformError::Other(error.to_string())
+}
+
+fn pointer_button(button: ButtonSource) -> Option<UiPointerButton> {
+    match button.mouse_button() {
+        Some(MouseButton::Left) => Some(UiPointerButton::Primary),
+        Some(MouseButton::Right) => Some(UiPointerButton::Secondary),
+        Some(MouseButton::Middle) => Some(UiPointerButton::Middle),
+        _ => None,
+    }
+}
+
+fn pointer_button_state(state: ElementState) -> Option<NativePointerButtonState> {
+    match state {
+        ElementState::Pressed => Some(NativePointerButtonState::Pressed),
+        ElementState::Released => Some(NativePointerButtonState::Released),
+    }
+}
+
+fn scroll_delta(delta: MouseScrollDelta) -> f32 {
+    match delta {
+        MouseScrollDelta::LineDelta(_, y) => y,
+        MouseScrollDelta::PixelDelta(position) => position.y as f32 * 0.1,
+    }
 }
 
 pub(crate) struct HostWindowSnapshot {

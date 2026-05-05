@@ -1,4 +1,5 @@
 /target/
+/target-codex-runtime-check/
 /zircon_plugins/target/
 **/*.rs.bk
 .idea/

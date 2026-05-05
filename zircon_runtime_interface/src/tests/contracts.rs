@@ -9,11 +9,20 @@ use crate::{
             UiSlotSchema, UiValue, UiValueKind,
         },
         dispatch::{UiPointerDispatchContext, UiPointerEvent},
-        event_ui::{UiBindingCodec, UiControlRequest, UiInvocationContext},
+        event_ui::{
+            UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
+            UiPropertyInvalidationReason, UiReflectedProperty, UiReflectedPropertySource,
+            UiReflectorHitContext, UiReflectorNode, UiReflectorSnapshot, UiTreeId,
+            UiWidgetLifecycleState,
+        },
         layout::{BoxConstraints, UiFrame, UiPoint},
         surface::{
-            UiPointerEventKind, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
-            UiRenderList, UiResolvedStyle, UiTextAlign, UiTextWrap,
+            UiArrangedNode, UiArrangedTree, UiHitGridDebugStats, UiHitPath, UiHitTestCell,
+            UiHitTestEntry, UiHitTestGrid, UiHitTestQuery, UiMaterialBatchDebugStat,
+            UiOverdrawDebugStats, UiPointerEventKind, UiRenderCommand, UiRenderCommandKind,
+            UiRenderDebugStats, UiRenderExtract, UiRenderList, UiResolvedStyle,
+            UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceFrame, UiTextAlign, UiTextWrap,
+            UiVirtualPointerPosition, UiWidgetReflectorNode,
         },
         template::{
             UiActionHostPolicy, UiActionPolicyReport, UiActionSideEffectClass, UiAssetDocument,
@@ -28,7 +37,7 @@ use crate::{
             UiTextDirection, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
             UI_COMPILED_ASSET_COMPILER_SCHEMA_VERSION, UI_COMPILED_ASSET_PACKAGE_SCHEMA_VERSION,
         },
-        tree::{UiInputPolicy, UiTree, UiTreeNode},
+        tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeSessionHandle,
@@ -54,6 +63,197 @@ fn math_contract_exposes_shared_transform_and_glam_aliases() {
         .truncate()
         .abs_diff_eq(transform.translation, f32::EPSILON));
     assert!(perspective(1.0, 16.0 / 9.0, 0.1, 100.0).is_finite());
+}
+
+#[test]
+fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
+    let node_id = UiNodeId::new(7);
+    let arranged = UiArrangedNode {
+        node_id,
+        node_path: UiNodePath::new("root/button"),
+        parent: None,
+        children: Vec::new(),
+        frame: UiFrame::new(4.0, 8.0, 64.0, 20.0),
+        clip_frame: UiFrame::new(0.0, 0.0, 128.0, 64.0),
+        z_index: 3,
+        paint_order: 9,
+        visibility: UiVisibility::Visible,
+        input_policy: UiInputPolicy::Receive,
+        enabled: true,
+        clickable: true,
+        hoverable: true,
+        focusable: true,
+        clip_to_bounds: false,
+        control_id: Some("primary".to_string()),
+    };
+    let arranged_tree = UiArrangedTree {
+        tree_id: UiTreeId::new("ui.surface"),
+        roots: vec![node_id],
+        nodes: vec![arranged.clone()],
+        draw_order: vec![node_id],
+    };
+    let hit_grid = UiHitTestGrid {
+        bounds: UiFrame::new(4.0, 8.0, 64.0, 20.0),
+        cell_size: 64.0,
+        columns: 1,
+        rows: 1,
+        entries: vec![UiHitTestEntry {
+            node_id,
+            frame: arranged.frame,
+            clip_frame: arranged.frame,
+            z_index: arranged.z_index,
+            paint_order: arranged.paint_order,
+            control_id: arranged.control_id.clone(),
+        }],
+        cells: vec![UiHitTestCell { entries: vec![0] }],
+    };
+    let frame = UiSurfaceFrame {
+        tree_id: UiTreeId::new("ui.surface"),
+        arranged_tree,
+        render_extract: UiRenderExtract {
+            tree_id: UiTreeId::new("ui.surface"),
+            list: UiRenderList::default(),
+        },
+        hit_grid,
+        focus_state: Default::default(),
+        last_rebuild: Default::default(),
+    };
+    let hit_path = UiHitPath {
+        target: Some(node_id),
+        root_to_leaf: vec![node_id],
+        bubble_route: vec![node_id],
+        virtual_pointer: None,
+    };
+    let virtual_pointer =
+        UiVirtualPointerPosition::new(UiPoint::new(12.0, 6.0), UiPoint::new(10.0, 4.0));
+    let query = UiHitTestQuery::new(UiPoint::new(300.0, 200.0))
+        .with_cursor_radius(4.0)
+        .with_virtual_pointer(virtual_pointer);
+
+    assert!(!UiVisibility::Collapsed.occupies_layout());
+    assert!(UiVisibility::SelfHitTestInvisible.allows_child_hit_test());
+    assert!(!UiVisibility::HitTestInvisible.allows_child_hit_test());
+    assert_eq!(frame.arranged_tree.get(node_id), Some(&arranged));
+    assert_eq!(
+        frame.hit_grid.entries[0].control_id.as_deref(),
+        Some("primary")
+    );
+    assert_eq!(hit_path.target, Some(node_id));
+    assert_eq!(query.hit_point(), UiPoint::new(12.0, 6.0));
+    assert_eq!(query.sanitized_cursor_radius(), 4.0);
+}
+
+#[test]
+fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
+    let node_id = UiNodeId::new(9);
+    let snapshot = UiSurfaceDebugSnapshot {
+        tree_id: UiTreeId::new("ui.surface.debug"),
+        roots: vec![node_id],
+        nodes: vec![UiWidgetReflectorNode {
+            node_id,
+            node_path: UiNodePath::new("root/debug_button"),
+            parent: None,
+            children: Vec::new(),
+            frame: UiFrame::new(8.0, 8.0, 48.0, 20.0),
+            clip_frame: UiFrame::new(0.0, 0.0, 64.0, 32.0),
+            z_index: 2,
+            paint_order: 3,
+            visibility: UiVisibility::Visible,
+            input_policy: UiInputPolicy::Receive,
+            enabled: true,
+            clickable: true,
+            hoverable: true,
+            focusable: true,
+            control_id: Some("debug.button".to_string()),
+            render_command_count: 1,
+            hit_entry_count: 1,
+            hit_cell_count: 2,
+        }],
+        rebuild: Default::default(),
+        render: UiRenderDebugStats {
+            command_count: 1,
+            quad_count: 1,
+            material_batch_count: 1,
+            estimated_draw_calls: 1,
+            material_batches: vec![UiMaterialBatchDebugStat {
+                key: "kind=Quad;bg=#224466".to_string(),
+                break_reason: "same material".to_string(),
+                command_kind: UiRenderCommandKind::Quad,
+                command_count: 1,
+                clipped_command_count: 0,
+                node_ids: vec![node_id],
+            }],
+            ..UiRenderDebugStats::default()
+        },
+        hit_test: UiHitGridDebugStats {
+            entry_count: 1,
+            cell_count: 2,
+            occupied_cell_count: 2,
+            max_entries_per_cell: 1,
+            average_entries_per_occupied_cell: 1.0,
+        },
+        overdraw: UiOverdrawDebugStats {
+            sample_cell_size: UiSurfaceDebugOptions::default().overdraw_sample_cell_size,
+            bounds: UiFrame::new(8.0, 8.0, 48.0, 20.0),
+            columns: 2,
+            rows: 1,
+            covered_cells: 2,
+            overdrawn_cells: 0,
+            max_layers: 1,
+            total_layer_samples: 2,
+        },
+        focus_state: Default::default(),
+    };
+
+    let serialized = serde_json::to_string(&snapshot).unwrap();
+
+    assert!(serialized.contains("material_batches"));
+    assert!(serialized.contains("debug.button"));
+    assert_eq!(
+        snapshot.nodes[0].node_path,
+        UiNodePath::new("root/debug_button")
+    );
+}
+
+#[test]
+fn ui_visibility_contract_separates_layout_render_and_hit_policy() {
+    assert!(UiVisibility::Visible.occupies_layout());
+    assert!(UiVisibility::Visible.is_render_visible());
+    assert!(UiVisibility::Visible.allows_self_hit_test());
+    assert!(UiVisibility::Visible.allows_child_hit_test());
+
+    assert!(UiVisibility::Hidden.occupies_layout());
+    assert!(!UiVisibility::Hidden.is_render_visible());
+    assert!(!UiVisibility::Hidden.allows_self_hit_test());
+    assert!(!UiVisibility::Hidden.allows_child_hit_test());
+
+    assert!(!UiVisibility::Collapsed.occupies_layout());
+    assert!(!UiVisibility::Collapsed.is_render_visible());
+    assert!(!UiVisibility::Collapsed.allows_self_hit_test());
+    assert!(!UiVisibility::Collapsed.allows_child_hit_test());
+
+    assert!(UiVisibility::HitTestInvisible.occupies_layout());
+    assert!(UiVisibility::HitTestInvisible.is_render_visible());
+    assert!(!UiVisibility::HitTestInvisible.allows_self_hit_test());
+    assert!(!UiVisibility::HitTestInvisible.allows_child_hit_test());
+
+    assert!(UiVisibility::SelfHitTestInvisible.occupies_layout());
+    assert!(UiVisibility::SelfHitTestInvisible.is_render_visible());
+    assert!(!UiVisibility::SelfHitTestInvisible.allows_self_hit_test());
+    assert!(UiVisibility::SelfHitTestInvisible.allows_child_hit_test());
+
+    let mut legacy_hidden = UiTreeNode::new(UiNodeId::new(8), UiNodePath::new("root/hidden"));
+    legacy_hidden.state_flags.visible = false;
+    assert_eq!(legacy_hidden.effective_visibility(), UiVisibility::Hidden);
+    assert_eq!(UiVisibility::Visible.effective(false), UiVisibility::Hidden);
+    assert_eq!(
+        UiVisibility::Collapsed.effective(true),
+        UiVisibility::Collapsed
+    );
+    assert_eq!(
+        UiVisibility::Collapsed.effective(false),
+        UiVisibility::Collapsed
+    );
 }
 
 #[test]
@@ -265,6 +465,96 @@ fn ui_mod_is_not_runtime_source_path_inclusion() {
 }
 
 #[test]
+fn ui_reflector_contract_carries_lifecycle_property_sources_and_dirty_reasons() {
+    let node_id = UiNodeId::new(42);
+    let property_dirty = UiDirtyFlags {
+        layout: true,
+        hit_test: true,
+        render: true,
+        style: false,
+        text: true,
+        input: false,
+        visible_range: false,
+    };
+    let label_property = UiReflectedProperty::new(
+        "label",
+        UiReflectedPropertySource::Authored,
+        UiValue::String("Launch".to_string()),
+    )
+    .writable(true)
+    .authored_value(UiValue::String("Launch".to_string()))
+    .descriptor_default_value(UiValue::String("Button".to_string()))
+    .invalidation(UiPropertyInvalidationReason::with_dirty(property_dirty));
+    let visibility_property = UiReflectedProperty::new(
+        "visibility",
+        UiReflectedPropertySource::RuntimeState,
+        UiValue::Enum("Visible".to_string()),
+    )
+    .writable(true)
+    .visibility_affecting(true)
+    .invalidation(UiPropertyInvalidationReason::with_dirty(UiDirtyFlags {
+        layout: true,
+        hit_test: true,
+        render: true,
+        style: false,
+        text: false,
+        input: true,
+        visible_range: false,
+    }));
+    let node = UiReflectorNode::new(
+        node_id,
+        UiNodePath::new("root/launch"),
+        "button",
+        "Launch Button",
+    )
+    .with_property(label_property)
+    .with_property(visibility_property);
+    let mut snapshot =
+        UiReflectorSnapshot::new(UiTreeId::new("ui.reflector"), vec![node_id], vec![node]);
+    snapshot.focused = Some(node_id);
+    snapshot.hovered = vec![node_id];
+    snapshot.hit_context = Some(UiReflectorHitContext {
+        query_point: UiPoint::new(10.0, 12.0),
+        hit_target: Some(node_id),
+        hit_stack: vec![node_id],
+        rejected: vec!["outside clip".to_string()],
+    });
+
+    let serialized = serde_json::to_string(&snapshot).unwrap();
+    let round_trip: UiReflectorSnapshot = serde_json::from_str(&serialized).unwrap();
+    let reflected_node = round_trip.node(node_id).expect("reflected node");
+    let label = reflected_node
+        .properties
+        .get("label")
+        .expect("label property");
+    let visibility = reflected_node
+        .properties
+        .get("visibility")
+        .expect("visibility property");
+
+    assert_eq!(round_trip.focused, Some(node_id));
+    assert_eq!(
+        round_trip
+            .hit_context
+            .as_ref()
+            .expect("hit context")
+            .hit_target,
+        Some(node_id)
+    );
+    assert_eq!(reflected_node.lifecycle, UiWidgetLifecycleState::Declared);
+    assert_eq!(label.source, UiReflectedPropertySource::Authored);
+    assert_eq!(label.value_kind, UiValueKind::String);
+    assert_eq!(
+        label.descriptor_default_value,
+        Some(UiValue::String("Button".to_string()))
+    );
+    assert!(label.invalidation.dirty.layout);
+    assert!(label.invalidation.any());
+    assert!(visibility.visibility_affecting);
+    assert!(visibility.invalidation.dirty.hit_test);
+}
+
+#[test]
 fn ui_binding_and_event_contracts_construct_and_serialize() {
     let path = UiEventPath::new("panel", "submit", UiEventKind::Click);
     let binding = UiEventBinding::new(
@@ -295,6 +585,22 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
     let tree_id = crate::ui::event_ui::UiTreeId::new("main-tree");
     let node_id = crate::ui::event_ui::UiNodeId::new(7);
     let frame = UiFrame::new(0.0, 0.0, 320.0, 180.0);
+    let editable = crate::ui::surface::UiEditableTextState {
+        text: "hello".to_string(),
+        caret: crate::ui::surface::UiTextCaret {
+            offset: 5,
+            affinity: crate::ui::surface::UiTextCaretAffinity::Downstream,
+        },
+        selection: Some(crate::ui::surface::UiTextSelection {
+            anchor: 0,
+            focus: 5,
+        }),
+        composition: Some(crate::ui::surface::UiTextComposition {
+            range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+            text: "hello".to_string(),
+        }),
+        read_only: false,
+    };
     let command = UiRenderCommand {
         node_id,
         kind: UiRenderCommandKind::Text,
@@ -304,9 +610,41 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         style: UiResolvedStyle {
             text_align: UiTextAlign::Center,
             wrap: UiTextWrap::Word,
+            text_direction: crate::ui::surface::UiTextDirection::Auto,
+            text_overflow: crate::ui::surface::UiTextOverflow::Ellipsis,
+            rich_text: true,
             ..UiResolvedStyle::default()
         },
-        text_layout: None,
+        text_layout: Some(crate::ui::surface::UiResolvedTextLayout {
+            text_align: UiTextAlign::Center,
+            wrap: UiTextWrap::Word,
+            direction: crate::ui::surface::UiTextDirection::LeftToRight,
+            overflow: crate::ui::surface::UiTextOverflow::Ellipsis,
+            font_size: 16.0,
+            line_height: 20.0,
+            measured_width: 40.0,
+            measured_height: 20.0,
+            source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+            lines: vec![crate::ui::surface::UiResolvedTextLine {
+                text: "hello".to_string(),
+                frame,
+                source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+                visual_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+                measured_width: 40.0,
+                baseline: 12.0,
+                direction: crate::ui::surface::UiTextDirection::LeftToRight,
+                runs: vec![crate::ui::surface::UiResolvedTextRun {
+                    kind: crate::ui::surface::UiTextRunKind::Plain,
+                    text: "hello".to_string(),
+                    source_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+                    visual_range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
+                    direction: crate::ui::surface::UiTextDirection::LeftToRight,
+                }],
+                ellipsized: false,
+            }],
+            overflow_clipped: false,
+            editable: Some(editable),
+        }),
         text: Some("hello".to_string()),
         image: None,
         opacity: 1.0,
@@ -328,14 +666,19 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         route: crate::ui::surface::UiPointerRoute {
             kind: event.kind,
             button: event.button,
+            activation_phase: crate::ui::surface::UiPointerActivationPhase::Hover,
             point: event.point,
             scroll_delta: event.scroll_delta,
             target: Some(node_id),
+            hit_path: crate::ui::surface::UiHitPath::default(),
             bubbled: Vec::new(),
             stacked: vec![node_id],
             entered: Vec::new(),
             left: Vec::new(),
             captured: None,
+            pressed: None,
+            click_target: None,
+            release_inside_pressed: false,
             focused: None,
             fallback_to_root: false,
             root_targets: vec![node_id],
@@ -355,6 +698,9 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
 
     assert_eq!(extract.list.commands.len(), 1);
     assert_eq!(context.route.point.x, 1.0);
+    let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(context.route.clone());
+    assert!(pointer_result.diagnostics.pointer_routed);
+    assert!(pointer_result.diagnostics.ignored_same_target_hover);
     assert_eq!(tree.roots, vec![node_id]);
     assert!(serde_json::to_string(&extract)
         .unwrap()

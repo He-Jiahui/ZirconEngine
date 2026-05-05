@@ -197,7 +197,7 @@ impl SlintEditorHost {
             Ok(effects) => {
                 self.apply_dispatch_effects(effects);
                 if !self.layout_dirty {
-                    self.presentation_dirty = true;
+                    self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
                 }
             }
             Err(error) => self.set_status_line(error),

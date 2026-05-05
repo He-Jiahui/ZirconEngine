@@ -650,8 +650,7 @@ impl SlintEditorHost {
             changed = true;
         }
         if changed {
-            self.layout_dirty = true;
-            self.presentation_dirty = true;
+            self.mark_layout_dirty();
         }
     }
 
@@ -674,14 +673,14 @@ impl SlintEditorHost {
             } => {
                 self.desktop_export_output_overrides
                     .insert(profile_name.to_string(), PathBuf::from(output_root));
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} set to {output_root}"
                 ));
             }
             BuildExportAction::ClearOutput { profile_name } => {
                 self.desktop_export_output_overrides.remove(profile_name);
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} reset to project default"
                 ));
@@ -723,7 +722,7 @@ impl SlintEditorHost {
                     manifest,
                     output_root,
                 );
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export {} queued -> {}",
                     snapshot.profile_name,
@@ -744,11 +743,11 @@ impl SlintEditorHost {
                 let message = summary.status_message();
                 self.desktop_export_reports
                     .insert(summary.profile_name.clone(), summary);
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(message);
             }
             DesktopExportCancellation::ActiveCancelRequested(snapshot) => {
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Cancel requested for desktop export {}",
                     snapshot.profile_name
@@ -772,7 +771,7 @@ impl SlintEditorHost {
             Ok(Some(output_root)) => {
                 self.desktop_export_output_overrides
                     .insert(profile_name.to_string(), output_root.clone());
-                self.layout_dirty = true;
+                self.mark_layout_dirty();
                 self.set_status_line(format!(
                     "Desktop export output for {profile_name} set to {}",
                     output_root.display()

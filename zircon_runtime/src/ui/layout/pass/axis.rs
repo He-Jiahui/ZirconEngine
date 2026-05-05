@@ -13,7 +13,14 @@ pub(crate) fn resolve_linear_child_main_extents(
     available_extent: f32,
     gap: f32,
 ) -> Result<Vec<f32>, UiTreeError> {
-    let gap_total = gap.max(0.0) * children.len().saturating_sub(1) as f32;
+    let layout_child_count = children
+        .iter()
+        .filter(|child_id| {
+            tree.node(**child_id)
+                .is_some_and(|node| node.effective_visibility().occupies_layout())
+        })
+        .count();
+    let gap_total = gap.max(0.0) * layout_child_count.saturating_sub(1) as f32;
     let available_extent = (available_extent - gap_total).max(0.0);
     let mut constraints = Vec::with_capacity(children.len());
 
@@ -21,10 +28,29 @@ pub(crate) fn resolve_linear_child_main_extents(
         let node = tree
             .node(*child_id)
             .ok_or(UiTreeError::MissingNode(*child_id))?;
-        constraints.push(match axis {
-            UiAxis::Horizontal => node.constraints.width,
-            UiAxis::Vertical => node.constraints.height,
-        });
+        if !node.effective_visibility().occupies_layout() {
+            constraints.push(collapsed_axis_constraint());
+            continue;
+        }
+        let desired_extent = size_axis_extent(
+            UiSize::new(
+                node.layout_cache.desired_size.width,
+                node.layout_cache.desired_size.height,
+            ),
+            axis,
+        );
+        let preserve_stretch = match axis {
+            UiAxis::Horizontal => node.layout_stretch_width,
+            UiAxis::Vertical => node.layout_stretch_height,
+        };
+        constraints.push(linear_main_axis_constraint(
+            match axis {
+                UiAxis::Horizontal => node.constraints.width,
+                UiAxis::Vertical => node.constraints.height,
+            },
+            desired_extent,
+            preserve_stretch,
+        ));
     }
 
     Ok(solve_axis_constraints(available_extent, &constraints)
@@ -71,6 +97,32 @@ pub(crate) fn arranged_axis_extent(
         StretchMode::Stretch => available,
     };
     clamp_axis(base, resolved.min, resolved.max)
+}
+
+fn linear_main_axis_constraint(
+    mut constraint: AxisConstraint,
+    desired_extent: f32,
+    preserve_stretch: bool,
+) -> AxisConstraint {
+    if desired_extent <= 0.0 {
+        return constraint;
+    }
+    if constraint == AxisConstraint::default() && !preserve_stretch {
+        constraint.preferred = desired_extent;
+        constraint.stretch_mode = StretchMode::Fixed;
+    }
+    constraint
+}
+
+fn collapsed_axis_constraint() -> AxisConstraint {
+    AxisConstraint {
+        min: 0.0,
+        max: 0.0,
+        preferred: 0.0,
+        priority: 0,
+        weight: 1.0,
+        stretch_mode: StretchMode::Fixed,
+    }
 }
 
 pub(crate) fn stacked_axis_extent(constraint: AxisConstraint, desired: f32) -> f32 {

@@ -6,5 +6,7 @@ use crate::ui::event_ui::UiNodeId;
 pub struct UiFocusState {
     pub focused: Option<UiNodeId>,
     pub captured: Option<UiNodeId>,
+    #[serde(default)]
+    pub pressed: Option<UiNodeId>,
     pub hovered: Vec<UiNodeId>,
 }

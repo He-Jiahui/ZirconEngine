@@ -21,7 +21,7 @@ impl UiRuntimeTreeRenderOrderExt for UiTree {
         let mut current = Some(node_id);
         while let Some(id) = current {
             let node = self.nodes.get(&id).ok_or(UiTreeError::MissingNode(id))?;
-            if !node.state_flags.visible {
+            if !node.is_render_visible() {
                 return Ok(false);
             }
             current = node.parent;

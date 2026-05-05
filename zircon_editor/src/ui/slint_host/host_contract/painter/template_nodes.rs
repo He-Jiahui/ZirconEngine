@@ -2,8 +2,9 @@ use slint::{Model, ModelRc};
 
 use super::super::data::{FrameRect, TemplatePaneNodeData};
 use super::frame::HostRgbaFrame;
-use super::geometry::{frame_from_template, inset, is_visible_frame, translated};
+use super::geometry::{frame_from_template, is_visible_frame, translated};
 use super::render_commands::{draw_host_paint_commands, HostPaintCommand};
+use super::visual_assets::{slint_image_pixels, template_image_tint};
 
 const PANEL: [u8; 4] = [32, 37, 46, 255];
 const PANEL_INSET: [u8; 4] = [23, 28, 36, 255];
@@ -17,6 +18,10 @@ const ACCENT: [u8; 4] = [92, 156, 255, 255];
 const TEXT: [u8; 4] = [210, 220, 235, 255];
 const TEXT_MUTED: [u8; 4] = [133, 149, 170, 255];
 const TEXT_DISABLED: [u8; 4] = [91, 99, 113, 255];
+const DEFAULT_TEMPLATE_FONT_SIZE: f32 = 12.0;
+const TEXT_HORIZONTAL_INSET: f32 = 5.0;
+const TEXT_VERTICAL_INSET: f32 = 5.0;
+const MIN_TEXT_RECT_HEIGHT: f32 = 12.0;
 
 pub(super) fn draw_template_nodes(
     frame: &mut HostRgbaFrame,
@@ -55,7 +60,7 @@ fn push_template_node_commands(
         commands.push(HostPaintCommand::quad(
             rect.clone(),
             Some(clip.clone()),
-            order,
+            order * 4,
             Some(surface_color(node)),
             draws_border(node).then_some(border_color(node)),
             node.border_width.max(0.0),
@@ -63,23 +68,101 @@ fn push_template_node_commands(
         ));
     }
 
+    push_template_image_command(commands, node, &rect, clip, order * 4 + 1);
+
     let label = node_label(node);
     if !label.is_empty() || node.role.as_str() == "Label" || node.role.as_str() == "Button" {
-        let text_rect = inset(&rect, 5.0);
+        let text_rect = text_rect_for_node(&rect);
+        let font_size = node_font_size(node, text_rect.height);
         commands.push(HostPaintCommand::text(
             FrameRect {
                 x: text_rect.x,
-                y: text_rect.y + (text_rect.height * 0.5).min(10.0).max(3.0),
+                y: text_rect.y,
                 width: text_rect.width,
-                height: 3.0,
+                height: text_rect.height,
             },
             Some(clip.clone()),
-            order,
+            order * 4 + 2,
             label,
             text_color(node),
+            font_size,
+            font_size * 1.2,
             1.0,
         ));
     }
+}
+
+fn push_template_image_command(
+    commands: &mut Vec<HostPaintCommand>,
+    node: &TemplatePaneNodeData,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    order: i32,
+) {
+    if !node.has_preview_image {
+        return;
+    }
+    let Some(image) = slint_image_pixels(
+        &node.preview_image,
+        template_image_tint(is_icon_node(node)),
+    ) else {
+        return;
+    };
+    let image_rect = image_rect_for_node(node, rect);
+    if !is_visible_frame(&image_rect) {
+        return;
+    }
+    commands.push(HostPaintCommand::image_pixels(
+        image_rect,
+        Some(clip.clone()),
+        order,
+        image.width,
+        image.height,
+        image.rgba,
+        1.0,
+    ));
+}
+
+fn image_rect_for_node(node: &TemplatePaneNodeData, rect: &FrameRect) -> FrameRect {
+    if is_icon_node(node) {
+        let inset = (rect.width.min(rect.height) * 0.16).min(4.0).max(0.0);
+        let size = (rect.width.min(rect.height) - inset * 2.0).max(1.0);
+        return FrameRect {
+            x: rect.x + (rect.width - size) * 0.5,
+            y: rect.y + (rect.height - size) * 0.5,
+            width: size,
+            height: size,
+        };
+    }
+    rect.clone()
+}
+
+fn is_icon_node(node: &TemplatePaneNodeData) -> bool {
+    matches!(node.role.as_str(), "Icon" | "IconButton" | "SvgIcon") || !node.icon_name.is_empty()
+}
+
+fn text_rect_for_node(rect: &FrameRect) -> FrameRect {
+    let horizontal = TEXT_HORIZONTAL_INSET
+        .min((rect.width * 0.25).max(0.0))
+        .max(0.0);
+    let vertical = TEXT_VERTICAL_INSET
+        .min(((rect.height - MIN_TEXT_RECT_HEIGHT) * 0.5).max(1.0))
+        .max(0.0);
+    FrameRect {
+        x: rect.x + horizontal,
+        y: rect.y + vertical,
+        width: (rect.width - horizontal * 2.0).max(0.0),
+        height: (rect.height - vertical * 2.0).max(0.0),
+    }
+}
+
+fn node_font_size(node: &TemplatePaneNodeData, available_height: f32) -> f32 {
+    let requested = if node.font_size.is_finite() && node.font_size > 0.0 {
+        node.font_size
+    } else {
+        DEFAULT_TEMPLATE_FONT_SIZE
+    };
+    requested.min(available_height.max(1.0)).max(1.0)
 }
 
 fn draws_surface(node: &TemplatePaneNodeData) -> bool {
@@ -146,8 +229,6 @@ fn node_label(node: &TemplatePaneNodeData) -> String {
         node.text.as_str(),
         node.value_text.as_str(),
         node.options_text.as_str(),
-        node.control_id.as_str(),
-        node.node_id.as_str(),
     ])
     .to_string()
 }

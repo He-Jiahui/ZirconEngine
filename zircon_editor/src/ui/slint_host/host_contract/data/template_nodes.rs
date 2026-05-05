@@ -139,6 +139,7 @@ pub(crate) struct TemplatePaneNodeData {
     pub disabled: bool,
     pub dispatch_kind: SharedString,
     pub action_id: SharedString,
+    pub binding_id: SharedString,
     pub begin_drag_action_id: SharedString,
     pub drag_action_id: SharedString,
     pub end_drag_action_id: SharedString,

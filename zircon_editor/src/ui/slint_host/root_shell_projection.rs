@@ -59,6 +59,74 @@ pub(crate) fn resolve_root_bottom_region_frame(
     resolve_root_layout_frames(geometry, shared_root_frames).bottom
 }
 
+pub(crate) fn resolve_root_left_splitter_frame(
+    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> ShellFrame {
+    let geometry_splitter = geometry.splitter_frame(ShellRegionId::Left);
+    if !frame_is_visible(geometry_splitter) {
+        return geometry_splitter;
+    }
+
+    let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
+    if layout_frames.has_visible_drawers && frame_is_visible(layout_frames.left) {
+        return vertical_splitter_frame_at(
+            layout_frames.left.right(),
+            layout_frames.left.y,
+            layout_frames.left.height,
+        );
+    }
+
+    geometry_splitter
+}
+
+pub(crate) fn resolve_root_right_splitter_frame(
+    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> ShellFrame {
+    let geometry_splitter = geometry.splitter_frame(ShellRegionId::Right);
+    if !frame_is_visible(geometry_splitter) {
+        return geometry_splitter;
+    }
+
+    let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
+    if layout_frames.has_visible_drawers && frame_is_visible(layout_frames.right) {
+        let metrics = WorkbenchChromeMetrics::default();
+        return vertical_splitter_frame_at(
+            layout_frames.right.x - metrics.separator_thickness.max(0.0),
+            layout_frames.right.y,
+            layout_frames.right.height,
+        );
+    }
+
+    geometry_splitter
+}
+
+pub(crate) fn resolve_root_bottom_splitter_frame(
+    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> ShellFrame {
+    let geometry_splitter = geometry.splitter_frame(ShellRegionId::Bottom);
+    if !frame_is_visible(geometry_splitter) {
+        return geometry_splitter;
+    }
+
+    let layout_frames = resolve_root_layout_frames(geometry, shared_root_frames);
+    if layout_frames.has_visible_drawers && frame_is_visible(layout_frames.bottom) {
+        let metrics = WorkbenchChromeMetrics::default();
+        return ShellFrame::new(
+            layout_frames.bottom.x,
+            layout_frames.bottom.y
+                - metrics.separator_thickness.max(0.0)
+                - metrics.splitter_hit_size.max(0.0) * 0.5,
+            layout_frames.bottom.width,
+            metrics.splitter_hit_size.max(0.0),
+        );
+    }
+
+    geometry_splitter
+}
+
 pub(crate) fn resolve_root_activity_rail_frame(
     geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
@@ -322,6 +390,16 @@ fn activity_rail_frame_from_region(
         left_region.y,
         metrics.rail_width.min(left_region.width.max(0.0)),
         left_region.height.max(0.0),
+    )
+}
+
+fn vertical_splitter_frame_at(edge_x: f32, y: f32, height: f32) -> ShellFrame {
+    let metrics = WorkbenchChromeMetrics::default();
+    ShellFrame::new(
+        edge_x - metrics.splitter_hit_size.max(0.0) * 0.5,
+        y,
+        metrics.splitter_hit_size.max(0.0),
+        height.max(0.0),
     )
 }
 

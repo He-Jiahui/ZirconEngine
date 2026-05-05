@@ -5,7 +5,43 @@ version = 1
 display_name = "UI Component Showcase"
 
 [imports]
-widgets = ["res://ui/editor/component_widgets.ui.toml#ShowcaseSection"]
+widgets = [
+  "res://ui/editor/component_widgets.ui.toml#ShowcaseSection",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialStateLayer",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialRipple",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialButtonBase",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTextButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialIconButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialToggleButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialCheckboxRow",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialCheckBox",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialOutlinedField",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialSliderField",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialListItem",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialComboBox",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialDatePickerPopup",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialGroupBox",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialLineEdit",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialMenuBarItem",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialMenuBar",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialMenuFrame",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialMenuItem",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialProgressIndicator",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialScrollView",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialSlider",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialSpinner",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialSwitch",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialStandardTableView",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTabWidgetImpl",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTabImpl",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTabBarHorizontalImpl",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTabBarVerticalImpl",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTabWidget",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTextEdit",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTimePickerPopup",
+]
 styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [root]
@@ -240,23 +276,21 @@ layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 1
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "progress_demo"
-kind = "native"
-type = "ProgressBar"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialProgressIndicator"
 control_id = "ProgressBarDemo"
 classes = ["showcase-field"]
-props = { value = 0.62, validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+params = { value = 0.62, indeterminate = false }
 
 [[root.children.node.children.node.children.node.children]]
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "spinner_demo"
-kind = "native"
-type = "Spinner"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSpinner"
 control_id = "SpinnerDemo"
 classes = ["showcase-field"]
-props = { text = "Spinner" }
-layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+params = { text = "Spinner" }
 
 [[root.children.node.children.node.children.node.children]]
 mount = "content"
@@ -291,12 +325,11 @@ params = { title = "Inputs and Numeric Fields" }
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "button_demo"
-kind = "native"
-type = "Button"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "ButtonDemo"
 classes = ["showcase-field"]
-props = { text = "Button", validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { text = "Button", surface_variant = "accent", button_variant = "primary", validation_level = "normal" }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ButtonCommit"
@@ -307,12 +340,11 @@ route = "UiComponentShowcase.Commit.Button"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "icon_button_demo"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialIconButton"
 control_id = "IconButtonDemo"
 classes = ["showcase-field"]
-props = { text = "Icon Button", icon = "add-outline" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { text = "Icon Button", icon = "add-outline" }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/IconButtonCommit"
@@ -323,12 +355,11 @@ route = "UiComponentShowcase.Commit.IconButton"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "toggle_button_demo"
-kind = "native"
-type = "ToggleButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSwitch"
 control_id = "ToggleButtonDemo"
 classes = ["showcase-field"]
-props = { text = "Toggle Button", value = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { text = "Toggle Button", checked = true }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ToggleButtonChanged"
@@ -339,12 +370,11 @@ route = "UiComponentShowcase.Change.ToggleButton"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "checkbox_demo"
-kind = "native"
-type = "Checkbox"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialCheckBox"
 control_id = "CheckboxDemo"
 classes = ["showcase-field"]
-props = { text = "Checkbox", value = true, checked = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { text = "Checkbox", checked = true }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/CheckboxChanged"
@@ -387,12 +417,11 @@ route = "UiComponentShowcase.SelectOption.SegmentedControl"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "text_field_demo"
-kind = "native"
-type = "InputField"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialLineEdit"
 control_id = "InputFieldDemo"
 classes = ["showcase-field"]
-props = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal" }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/InputFieldChanged"
@@ -408,12 +437,11 @@ route = "UiComponentShowcase.Commit.InputField"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "text_area_demo"
-kind = "native"
-type = "TextField"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialTextEdit"
 control_id = "TextFieldDemo"
 classes = ["showcase-field"]
-props = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+params = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal", height = 34.0 }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/TextFieldChanged"
@@ -429,12 +457,11 @@ route = "UiComponentShowcase.Commit.TextField"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "number_field_demo"
-kind = "native"
-type = "NumberField"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox"
 control_id = "NumberFieldDemo"
 classes = ["showcase-field"]
-props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0 }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/NumberFieldDragBegin"
@@ -470,12 +497,11 @@ route = "UiComponentShowcase.Commit.NumberField"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "range_field_demo"
-kind = "native"
-type = "RangeField"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSlider"
 control_id = "RangeFieldDemo"
 classes = ["showcase-field"]
-props = { value = 68.0, min = 0.0, max = 100.0, step = 1.0 }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { value = 68.0, min = 0.0, max = 100.0, step = 1.0 }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/RangeFieldDragUpdate"
@@ -593,12 +619,11 @@ route = "UiComponentShowcase.ClosePopup.Dropdown"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "combo_box_demo"
-kind = "native"
-type = "ComboBox"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialComboBox"
 control_id = "ComboBoxDemo"
 classes = ["showcase-field"]
-props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single" }
-layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+params = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single" }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ComboBoxChanged"
@@ -812,12 +837,11 @@ params = { title = "Collections and Inspector Structures" }
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "group_demo"
-kind = "native"
-type = "Group"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialGroupBox"
 control_id = "GroupDemo"
 classes = ["showcase-panel"]
-props = { text = "Foldout Group", expanded = true, validation_level = "normal" }
-layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+params = { text = "Foldout Group", expanded = true }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/GroupToggled"
@@ -938,12 +962,11 @@ route = "UiComponentShowcase.RemoveMapEntry.MapField"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "list_row_demo"
-kind = "native"
-type = "ListRow"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialListItem"
 control_id = "ListRowDemo"
 classes = ["showcase-field"]
-props = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true, pressed = false }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ListRowClicked"
@@ -964,12 +987,11 @@ route = "UiComponentShowcase.Press.ListRow"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "virtual_list_demo"
-kind = "native"
-type = "VirtualList"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialStandardTableView"
 control_id = "VirtualListDemo"
 classes = ["showcase-field"]
-props = { data_source = "showcase.large_items", total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, overscan = 4, items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" } }
+params = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0 }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/VirtualListScrolled"
@@ -1033,12 +1055,11 @@ route = "UiComponentShowcase.ToggleExpanded.TreeRow"
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
 node_id = "context_action_menu_demo"
-kind = "native"
-type = "ContextActionMenu"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialMenuFrame"
 control_id = "ContextActionMenuDemo"
 classes = ["showcase-field"]
-props = { value = "Inspect", options = ["Inspect", "Duplicate", "Delete"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"] }
-layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+params = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ContextActionMenuChanged"

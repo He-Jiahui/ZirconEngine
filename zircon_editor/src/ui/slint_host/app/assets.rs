@@ -56,12 +56,14 @@ impl SlintEditorHost {
         if plan.reload_default_scene {
             self.reload_default_scene()?;
         }
+        let mut invalidation = HostInvalidationMask::NONE;
         if plan.mark_render_dirty {
-            self.render_dirty = true;
+            invalidation.insert(HostInvalidationMask::RENDER);
         }
         if plan.mark_presentation_dirty {
-            self.presentation_dirty = true;
+            invalidation.insert(HostInvalidationMask::PRESENTATION_DATA);
         }
+        self.invalidate_host(invalidation);
 
         Ok(())
     }
@@ -123,7 +125,7 @@ impl SlintEditorHost {
         {
             self.mark_render_and_presentation_dirty();
         } else {
-            self.presentation_dirty = true;
+            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
         }
         Ok(())
     }
@@ -150,13 +152,13 @@ impl SlintEditorHost {
     pub(super) fn sync_asset_catalog(&mut self) {
         self.runtime
             .sync_asset_catalog(self.editor_asset_server.catalog_snapshot());
-        self.presentation_dirty = true;
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn sync_asset_resources(&mut self) {
         self.runtime
             .sync_asset_resources(self.resource_server.list_resources());
-        self.presentation_dirty = true;
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn refresh_selected_asset_details(&mut self) {

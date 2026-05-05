@@ -10,6 +10,8 @@ pub use control::{
 };
 pub use reflection::{
     UiActionDescriptor, UiNodeDescriptor, UiNodeId, UiNodePath, UiParameterDescriptor,
-    UiPropertyDescriptor, UiReflectionDiff, UiReflectionSnapshot, UiStateFlags, UiTreeId,
-    UiValueType,
+    UiPropertyDescriptor, UiPropertyInvalidationReason, UiReflectedProperty,
+    UiReflectedPropertySource, UiReflectionDiff, UiReflectionSnapshot, UiReflectorHitContext,
+    UiReflectorNode, UiReflectorSnapshot, UiStateFlags, UiTreeId, UiValueType,
+    UiWidgetLifecycleState,
 };

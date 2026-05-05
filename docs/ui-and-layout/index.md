@@ -8,6 +8,8 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/mod.rs
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/metrics.rs
+  - zircon_runtime_interface/src/ui/layout/slot.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/layout/virtualization.rs
@@ -15,6 +17,13 @@ related_code:
   - zircon_runtime/src/ui/tree/node/mod.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
+  - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
+  - zircon_runtime_interface/src/ui/surface/hit.rs
+  - zircon_runtime_interface/src/ui/surface/frame.rs
+  - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/tree/node/visibility.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
@@ -60,6 +69,8 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/mod.rs
   - zircon_runtime/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/metrics.rs
+  - zircon_runtime_interface/src/ui/layout/slot.rs
   - zircon_runtime/src/ui/layout/pass/mod.rs
   - zircon_runtime/src/ui/layout/scroll.rs
   - zircon_runtime/src/ui/layout/virtualization.rs
@@ -67,6 +78,13 @@ implementation_files:
   - zircon_runtime/src/ui/tree/node/mod.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/surface/mod.rs
+  - zircon_runtime/src/ui/surface/arranged.rs
+  - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/arranged.rs
+  - zircon_runtime_interface/src/ui/surface/hit.rs
+  - zircon_runtime_interface/src/ui/surface/frame.rs
+  - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/tree/node/visibility.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
@@ -143,6 +161,9 @@ tests:
   - visual screenshot: target/visual-layout/editor-window-20260428-catalog-actions-first-900x500.png
   - visual screenshot: target/visual-layout/editor-window-20260428-catalog-actions-first-1280x520.png
   - cargo test -p zircon_runtime --locked
+  - cargo test -p zircon_runtime_interface --lib ui_visibility_contract_separates_layout_render_and_hit_policy --locked --target-dir E:\zircon-build\targets\slate-ui-framework
+  - cargo test -p zircon_runtime --lib hit_grid_respects_slate_visibility_and_clip_semantics --locked --target-dir E:\zircon-build\targets\slate-ui-framework
+  - cargo test -p zircon_runtime --lib diagnostics --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo check --workspace --locked
 doc_type: category-index
 ---
@@ -161,6 +182,10 @@ doc_type: category-index
 
 - [Shared UI Core Foundation](./shared-ui-core-foundation.md): `zircon_runtime::ui` 新增的共享约束类型、measure/arrange pass、`HorizontalBox`/`VerticalBox`/`ScrollableBox` 容器、retained tree、dirty/invalidation、scroll state、命中索引、pointer/focus/navigation route、统一 pointer dispatcher、虚拟化窗口工具，以及 `zircon_editor` workbench autolayout 的复用边界。
   这一轮还补上了显式 `Container` / `Overlay` / `Space` 共享容器名、pointer button payload、capture 后移出命中范围仍保持派发的底层语义、host viewport pointer/scroll -> shared `UiSurface + UiPointerDispatcher` 的宿主接线，以及 editor shell drag target hit-test / dock target route 的 host-owned shared bridge。
+- [Slate Style UI Surface Frame](./slate-style-ui-surface-frame.md): `UiVisibility`、`UiArrangedTree`、`UiHitTestGrid`、`UiHitPath` 和 `UiSurfaceFrame` 的 Slate-style 空间模型，记录 render extract 与 hit grid 共享 arranged geometry、SurfaceFrame 诊断快照、Widget Reflector 基线数据、drawcall/overdraw/material batch/hittest 统计，以及 editor native toolbar/template-node 命中收束到共享 hit-grid adapter 的迁移状态。
+- [Zircon UI 与 Unreal Slate 布局差异审计](./zircon-ui-unreal-slate-layout-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 布局源码，细化 prepass、`FGeometry`、arranged children、parent-owned slot policy、Overlay/Canvas/Linear/Grid/Flow/Scroll/Splitter/Scale panel、DPI、pixel snapping 和 clipping 与当前 Zircon layout pass 的差距及后续布局里程碑。
+  该文档现在也记录了 `zircon_runtime_interface::ui::layout` 的 L1 起步契约：`UiGeometry`、layout/render transform、`UiLayoutMetrics`、`UiPixelSnapping`、`UiSlot`、`UiMargin` 和 `UiAlignment2D`。
+- [Zircon UI 与 Unreal Slate 渲染差异审计](../assets-and-rendering/runtime-ui-slate-rendering-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 渲染源码，细化 paint element、brush/material payload、batch plan、cached render elements、runtime renderer/debug visualizer 与当前 shared UI render extract 的差距及后续渲染里程碑。
 - [Shared UI Template Runtime](./shared-ui-template-runtime.md): `zircon_runtime::ui::template` 的 TOML 文档模型、component/slot 节点语义、模板校验规则、运行时实例展开、shared `UiTree` / `UiSurface` 桥接，以及 `.ui.toml -> UiSurface -> host projection / UiRenderExtract` 的显式映射；它记录 no-Slint generic host fence、Rust-owned `host_contract` DTO/callback seam、runtime fixture acceptance，以及 workbench pane body、HostMenuChrome business rows/popup、top menu/Page tab/Dock header/status bar/floating header/activity rail chrome 从手写 `.slint` 迁到 `.ui.toml -> TemplatePane` 的 cutover 状态。
 - [Runtime UI Component Showcase](./runtime-ui-component-showcase.md): Runtime UI 组件描述注册表、typed value/event/state/drop 契约、`editor.ui_component_showcase` Activity Window、Showcase `.ui.toml` 资产和 Slint Material generic component-row projection。
 - [UI Asset Documents And Editor Protocol](./ui-asset-documents-and-editor-protocol.md): `zircon_runtime::ui::template::asset` 当前 tree-shaped `.ui.toml` authority、flat-to-tree 一次性迁移器、shared loader/compiler/surface builder，以及 editor/runtime 如何继续共用同一条资产消费链路。
@@ -209,6 +234,7 @@ doc_type: category-index
 - editor root generated Slint bootstrap 已退场，当前 `UiHostWindow`、`UiHostContext`、`HostWindowSceneData`、`host_scene_data`、`HostWindowSurface*` scene contract 名称和 `host_drag_pointer_event` / `host_resize_pointer_event` 宿主事件由 Rust-owned `host_contract/**` 暴露，并用源码守卫阻止旧 workbench host bootstrap 名称或 deleted Slint source authority 回流
 - `zircon_runtime/src/ui/mod.rs` 进一步收缩为 crate 导航层，`UiConfig`、`UI_MODULE_NAME` 和 `module_descriptor` 已下沉到 `zircon_runtime/src/ui/module.rs`
 - shared pointer button payload、capture 持续派发语义，以及第一条 editor host viewport pointer/scroll shared bridge 已经接到 `zircon_runtime::ui`
+- Slate-style `UiVisibility` / `UiArrangedTree` / `UiSurfaceFrame` 契约已经进入 `zircon_runtime_interface::ui`；runtime arranged-tree builder 会把 legacy `state_flags.visible=false` 规范化为 effective `Hidden`，render extract、hit grid、focus/navigation 和 scroll candidate 都消费同一份 effective visibility helper
 - editor shell drag target route 已经开始通过 host-owned `WorkbenchDragTargetBridge` 复用 shared `UiSurface + UiPointerDispatcher`
 - editor workbench layout 数学改为直接复用共享 solver 和共享 frame/size/constraint 类型
 - `zircon_editor::ui::asset_editor` 已经承接 `editor.ui_asset` 的窗口协议、session 和 source/preview authoring 入口，为后续更深的 tree-native editor refactor 保留稳定 id、mode 和 route 载荷

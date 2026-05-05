@@ -117,6 +117,15 @@ impl EditorUiHost {
                 .open_view_instances
                 .insert(restored.instance_id.clone(), restored);
         }
+        let snapshot = self.lock_capability_snapshot().clone();
+        let subsystem_report = self.lock_subsystem_report().clone();
+        ensure_builtin_shell_instances(&mut registry, &mut session, &snapshot)?;
+        let open_instances = session
+            .open_view_instances
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        repair_builtin_shell_layout(&mut session.layout, &open_instances, &subsystem_report);
         session.active_center_tab = workspace.active_center_tab;
         session.active_drawers = workspace.active_drawers;
         self.layout_manager
@@ -171,7 +180,12 @@ impl EditorUiHost {
         if let Some(layout) = self.load_global_default_layout() {
             let mut session = self.lock_session();
             session.layout = layout;
-            repair_builtin_shell_layout(&mut session.layout, &subsystem_report);
+            let open_instances = session
+                .open_view_instances
+                .values()
+                .cloned()
+                .collect::<Vec<_>>();
+            repair_builtin_shell_layout(&mut session.layout, &open_instances, &subsystem_report);
             self.layout_manager
                 .normalize(&mut session.layout, &registry);
             self.recompute_session_metadata(&mut session);

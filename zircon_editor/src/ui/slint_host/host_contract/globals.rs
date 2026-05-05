@@ -6,9 +6,11 @@ use slint::{CloseRequestResponse, Image, ModelRc, PhysicalPosition, PhysicalSize
 
 use super::data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, HostDragStateData,
-    HostMenuStateData, HostWindowPresentationData, ProjectOverviewData, RecentProjectData,
-    WelcomePaneData,
+    HostMenuStateData, HostPaneInteractionStateData, HostViewportImageData,
+    HostWindowPresentationData, ProjectOverviewData, RecentProjectData, WelcomePaneData,
 };
+use super::diagnostics::HostInvalidationDiagnostics;
+use super::redraw::HostRedrawRequest;
 
 type Callback0 = Rc<dyn Fn()>;
 type Callback1<A> = Rc<dyn Fn(A)>;
@@ -30,7 +32,15 @@ pub(crate) struct HostContractState {
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: HostWindowPresentationData,
+    pub(crate) refresh_invalidation_diagnostics: HostInvalidationDiagnostics,
+    pub(crate) presentation_rebuild_count: u64,
+    pub(crate) external_redraw_request: HostRedrawRequest,
+    pub(crate) external_redraw_queued_count: u64,
+    pub(crate) external_redraw_drained_count: u64,
+    pub(crate) external_redraw_coalesced_count: u64,
+    pub(crate) viewport_image: Option<HostViewportImageData>,
     pub(crate) menu_state: HostMenuStateData,
+    pub(crate) pane_interaction_state: HostPaneInteractionStateData,
     pub(crate) drag_state: HostDragStateData,
     pub(crate) welcome_pane: WelcomePaneData,
     ui_callbacks: UiHostCallbacks,
@@ -46,7 +56,15 @@ impl HostContractState {
             window_maximized: false,
             close_requested: None,
             host_presentation: HostWindowPresentationData::default(),
+            refresh_invalidation_diagnostics: HostInvalidationDiagnostics::default(),
+            presentation_rebuild_count: 0,
+            external_redraw_request: HostRedrawRequest::none(),
+            external_redraw_queued_count: 0,
+            external_redraw_drained_count: 0,
+            external_redraw_coalesced_count: 0,
+            viewport_image: None,
             menu_state: HostMenuStateData::default(),
+            pane_interaction_state: HostPaneInteractionStateData::default(),
             drag_state: HostDragStateData::default(),
             welcome_pane: WelcomePaneData::default(),
             ui_callbacks: UiHostCallbacks::default(),
@@ -167,7 +185,13 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().drag_state = value;
     }
 
-    callback_methods!(ui_callbacks, on_frame_requested, invoke_frame_requested, frame_requested, ());
+    callback_methods!(
+        ui_callbacks,
+        on_frame_requested,
+        invoke_frame_requested,
+        frame_requested,
+        ()
+    );
     callback_methods!(ui_callbacks, on_menu_pointer_clicked, invoke_menu_pointer_clicked, menu_pointer_clicked, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_moved, invoke_menu_pointer_moved, menu_pointer_moved, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_scrolled, invoke_menu_pointer_scrolled, menu_pointer_scrolled, (x: f32, y: f32, delta: f32));
@@ -225,25 +249,61 @@ impl PaneSurfaceHostContext<'_> {
         self.state.borrow().welcome_pane.clone()
     }
     pub(crate) fn set_mesh_import_path(&self, _value: SharedString) {}
-    pub(crate) fn set_viewport_image(&self, _value: Image) {}
+    pub(crate) fn set_viewport_image(&self, value: Image) -> bool {
+        let Some(image) = HostViewportImageData::from_image(&value) else {
+            return false;
+        };
+        self.state.borrow_mut().viewport_image = Some(image);
+        true
+    }
     pub(crate) fn set_welcome_recent_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_hovered_welcome_recent_index(&self, _value: i32) {}
     pub(crate) fn set_hovered_welcome_recent_action(&self, _value: i32) {}
-    pub(crate) fn set_hierarchy_scroll_px(&self, _value: f32) {}
-    pub(crate) fn set_hovered_hierarchy_index(&self, _value: i32) {}
+    pub(crate) fn set_hierarchy_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .hierarchy_scroll_px = value.max(0.0);
+    }
+    pub(crate) fn set_hovered_hierarchy_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .hovered_hierarchy_index = value;
+    }
     pub(crate) fn set_console_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_inspector_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_browser_asset_details_scroll_px(&self, _value: f32) {}
-    pub(crate) fn set_activity_asset_tree_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_activity_asset_tree_scroll_px(&self, _value: f32) {}
+    pub(crate) fn set_activity_asset_tree_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_tree_hovered_index = value;
+    }
+    pub(crate) fn set_activity_asset_tree_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .activity_asset_tree_scroll_px = value.max(0.0);
+    }
     pub(crate) fn set_activity_asset_content_hovered_index(&self, _value: i32) {}
     pub(crate) fn set_activity_asset_content_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_activity_asset_references_hovered_index(&self, _value: i32) {}
     pub(crate) fn set_activity_asset_references_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_activity_asset_used_by_hovered_index(&self, _value: i32) {}
     pub(crate) fn set_activity_asset_used_by_scroll_px(&self, _value: f32) {}
-    pub(crate) fn set_browser_asset_tree_hovered_index(&self, _value: i32) {}
-    pub(crate) fn set_browser_asset_tree_scroll_px(&self, _value: f32) {}
+    pub(crate) fn set_browser_asset_tree_hovered_index(&self, value: i32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_tree_hovered_index = value;
+    }
+    pub(crate) fn set_browser_asset_tree_scroll_px(&self, value: f32) {
+        self.state
+            .borrow_mut()
+            .pane_interaction_state
+            .browser_asset_tree_scroll_px = value.max(0.0);
+    }
     pub(crate) fn set_browser_asset_content_hovered_index(&self, _value: i32) {}
     pub(crate) fn set_browser_asset_content_scroll_px(&self, _value: f32) {}
     pub(crate) fn set_browser_asset_references_hovered_index(&self, _value: i32) {}

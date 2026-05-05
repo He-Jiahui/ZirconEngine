@@ -36,6 +36,8 @@ pub(crate) use ui::apply_presentation;
 #[cfg(test)]
 pub(crate) use ui::to_host_contract_animation_editor_pane_from_host_pane;
 #[cfg(test)]
+pub(crate) use ui::to_host_contract_component_showcase_pane_from_host_pane_with_runtime;
+#[cfg(test)]
 pub(crate) use ui::to_host_contract_console_pane_from_host_pane;
 #[cfg(test)]
 pub(crate) use ui::to_host_contract_hierarchy_pane_from_host_pane;

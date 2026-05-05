@@ -144,15 +144,23 @@ fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_sl
         .expect("inspector body section node");
     assert!(body_section.frame.width > 0.0);
     assert!(body_section.frame.height > 0.0);
-    assert!(
-        nodes
-            .iter()
-            .any(|node| node.control_id == "ApplyDraft" && node.text == "Apply Draft"),
-        "projected nodes: {:?}",
-        nodes
-            .iter()
-            .map(|node| (node.control_id.to_string(), node.text.to_string()))
-            .collect::<Vec<_>>()
+    let apply_draft = nodes
+        .iter()
+        .find(|node| node.control_id == "ApplyDraft")
+        .unwrap_or_else(|| {
+            panic!(
+                "projected nodes: {:?}",
+                nodes
+                    .iter()
+                    .map(|node| (node.control_id.to_string(), node.text.to_string()))
+                    .collect::<Vec<_>>()
+            )
+        });
+    assert_eq!(apply_draft.text.as_str(), "Apply Draft");
+    assert_eq!(
+        (apply_draft.frame.width, apply_draft.frame.height),
+        (106.0, 27.2),
+        "projected ApplyDraft frame should include text intrinsic size plus runtime button padding"
     );
     assert!(!nodes
         .iter()

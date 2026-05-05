@@ -153,6 +153,11 @@ control_id = "OpenButton"
 classes = ["primary"]
 params = { label = "Open", icon = "folder-open-outline" }
 style_overrides = { self = { text = "Open Override" } }
+
+[[root.children.node.children.node.bindings]]
+id = "Toolbar/Open"
+event = "Click"
+route = "Toolbar.Open"
 "##;
 
 const FLAT_LAYOUT_ASSET_TOML: &str = r##"
@@ -945,6 +950,12 @@ fn ui_document_compiler_expands_imported_widget_references_and_applies_styleshee
     assert_eq!(
         open_button.attributes.get("icon").unwrap().as_str(),
         Some("folder-open-outline")
+    );
+    assert_eq!(open_button.bindings.len(), 1);
+    assert_eq!(open_button.bindings[0].id, "Toolbar/Open");
+    assert_eq!(
+        open_button.bindings[0].route.as_deref(),
+        Some("Toolbar.Open")
     );
     assert_eq!(open_button.classes, vec!["toolbar-button", "primary"]);
     assert_eq!(

@@ -15,9 +15,14 @@ related_code:
   - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.ui.toml
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/ui/surface/render/resolved_style.rs
-  - zircon_runtime/src/ui/surface/render/text_layout.rs
-  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime/src/ui/text/mod.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/rich_text.rs
+  - zircon_runtime/src/ui/text/edit_state.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+  - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
@@ -39,6 +44,9 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -57,9 +65,14 @@ implementation_files:
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
-  - zircon_runtime/src/ui/surface/render/resolved_style.rs
-  - zircon_runtime/src/ui/surface/render/text_layout.rs
-  - zircon_runtime/src/ui/surface/render/typography.rs
+  - zircon_runtime/src/ui/text/mod.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_runtime/src/ui/text/rich_text.rs
+  - zircon_runtime/src/ui/text/edit_state.rs
+  - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
+  - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
+  - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
@@ -81,6 +94,9 @@ implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/src/ui/workbench/state/editor_state_render.rs
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -100,9 +116,11 @@ plan_sources:
   - user: 2026-04-21 继续推进 M1，把 .font.toml 接进正式 asset/resource/importer 主链，并让 UI loader 复用公共 FontAsset
   - user: 2026-04-21 继续推进 M1，让项目内 res:// 字体资产通过 ProjectAssetManager 进入 runtime UI 文本链路
   - user: 2026-04-28 继续文本的 SDF 渲染和排版能力任务
+  - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
+  - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
 tests:
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/ui/tests/asset.rs
@@ -137,7 +155,8 @@ tests:
   - cargo check -p zircon_runtime --locked --lib
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo check -p zircon_editor --lib --locked
-doc_type: module-detail
+  - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  doc_type: module-detail
 ---
 
 # Runtime UI Graphics Integration
@@ -229,6 +248,14 @@ flat asset 迁移逻辑只存在于 shared UI 的 test support 和 editor test s
 
 所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 tree `.ui.toml` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
 
+## Editor Native Visual Asset Rasterization
+
+The shared runtime render contract already carries visual references through `UiRenderCommand.image: Option<UiVisualAssetRef>`. The Rust-owned editor host now consumes that contract instead of treating every runtime image command as a deterministic placeholder. `host_contract/painter/visual_assets.rs` resolves `UiVisualAssetRef::Image` through the same runtime asset path helper with the editor `assets/` root as a development fallback, resolves `UiVisualAssetRef::Icon` through the editor icon and ionicons folders, decodes the result with `slint::Image::load_from_path(...)`, and converts the loaded bitmap or SVG into RGBA pixels with `Image::to_rgba8()`.
+
+`render_commands.rs` keeps the placeholder path only as the missing-asset fallback. When decode succeeds, `UiRenderCommandKind::Image` emits a host image-pixel command and `primitives.rs::draw_rgba_image_clipped(...)` scales, clips, and alpha-blends those pixels into the retained native host frame. Icon references are tinted in the painter-local decoded-pixel cache, while ordinary image references preserve source colors. This keeps the `.ui.toml -> UiSurface.render_extract -> UiRenderCommand` path as the renderer authority; the native host does not add a generated Slint UI or a second image schema.
+
+The cache stores both successful decodes and misses for the editor process, so repeated host repaints do not reload the same SVG/icon during pointer damage or viewport-image region redraws. There is no hot-reload invalidation for this cache yet; file edits are picked up on process restart or a future explicit cache-busting path.
+
 ## Typography Contract
 
 `zircon_runtime::ui::surface::render::UiResolvedStyle` 现在不再只有背景和边框字段，它已经补齐 runtime 文本底座要用到的最小 typography 合同：
@@ -249,23 +276,30 @@ flat asset 迁移逻辑只存在于 shared UI 的 test support 和 editor test s
 - `line_height = 24.0`
 - `text_align = "center"`
 - `wrap = "word"`
+- `text_direction = "auto"` / `"ltr"` / `"rtl"` / `"mixed"`
+- `text_overflow = "clip"` / `"ellipsis"`
+- `rich_text = true`
 - `text_render_mode = "auto"` / `"native"` / `"sdf"`
 
 `[font]` table 也能承载相同语义，便于后续把字体资产、family、尺寸与 render mode 收到一处。
 
 ## Text Layout Extract Contract
 
-`UiRenderExtract` 现在不再只把文本当成 `kind = Text` 加一段裸字符串交给 renderer。每条带 `text` 的 `UiRenderCommand` 同时携带 `text_layout: Option<UiResolvedTextLayout>`，由 [`text_layout.rs`](../../zircon_runtime/src/ui/surface/render/text_layout.rs) 在 surface extract 阶段生成。少量 editor-side 手写 overlay 或测试命令仍可以显式写入 `text_layout: None`，表示它们只提供 text/style/frame 合同，不绕过 renderer 的通用 text batch planning。
+`UiRenderExtract` 现在不再只把文本当成 `kind = Text` 加一段裸字符串交给 renderer。每条带 `text` 的 `UiRenderCommand` 同时携带 `text_layout: Option<UiResolvedTextLayout>`，由 [`layout_engine.rs`](../../zircon_runtime/src/ui/text/layout_engine.rs) 在 surface extract 阶段生成。少量 editor-side 手写 overlay 或测试命令仍可以显式写入 `text_layout: None`，表示它们只提供 text/style/frame 合同，不绕过 renderer 的通用 text batch planning。
 
 当前 layout DTO 固定承载：
 
 - `font_size` / `line_height`
 - `text_align`
 - `wrap`
-- 已分行的 `UiResolvedTextLine { text, frame }`
+- `direction` / `overflow`
+- `source_range`、每行 `visual_range`、`measured_width`、`baseline`
+- 已分行的 `UiResolvedTextLine { text, frame, runs }`
+- rich text run kind：plain、strong、emphasis、code、link
+- editable text state DTO：caret、selection、composition 和 text edit action 合同
 - `overflow_clipped`
 
-这条 extract 层布局是 runtime/editor 共享的中性数据，不依赖 Slint，也不把 editor authoring 状态写进 runtime。它先提供基础 word/glyph wrapping、left/center/right 对齐和 `clip_frame` 裁剪后的可见行集合；复杂脚本 shaping、fallback 字体和最终 atlas packing 仍留在 glyphon/SDF backend 边界。
+这条 extract 层布局是 runtime/editor 共享的中性数据，不依赖 Slint，也不把 editor authoring 状态写进 runtime。它现在按 Unreal Slate 的职责拆分靠拢：`zircon_runtime::ui::text` 承担类似 `FTextLayout` 的 range、run、wrap、overflow 和 editable 状态合同，`zircon_runtime_interface::ui::surface::render` 承担跨层 DTO，glyphon/SDF backend 继续承担最终 shaping、font fallback、atlas/cache 和提交。当前 rich text parser 是最小 marker 解析，BiDi 是范围检测和方向标记，不等同于 HarfBuzz 级 glyph reordering；这部分仍由 renderer/font backend 后续深化。
 
 screen-space UI batch planner 会优先消费 `text_layout.lines`：每个 resolved line 会变成独立 `ScreenSpaceUiTextBatch`，并保留该行自己的 frame。只有手写 overlay 或测试命令显式给出 `text_layout: None` 时，planner 才回退到旧的整段 `text + command.frame` 批次。这让 extract 层的分行、对齐和裁剪结果真正进入 glyphon/native/SDF backend，而不是在 renderer 内重新退回节点级整块排版。
 

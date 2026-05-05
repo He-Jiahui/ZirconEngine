@@ -1,8 +1,8 @@
 use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
-    UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
-    UiVisualAssetRef,
+    UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextOverflow,
+    UiTextRenderMode, UiTextWrap, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
@@ -60,6 +60,15 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
             .or_else(|| resolve_string_attribute(metadata, "wrap"))
             .and_then(parse_text_wrap)
             .unwrap_or_default(),
+        text_direction: resolve_table_string(metadata, "font", "direction")
+            .or_else(|| resolve_string_attribute(metadata, "text_direction"))
+            .and_then(parse_text_direction)
+            .unwrap_or_default(),
+        text_overflow: resolve_table_string(metadata, "font", "overflow")
+            .or_else(|| resolve_string_attribute(metadata, "text_overflow"))
+            .and_then(parse_text_overflow)
+            .unwrap_or_default(),
+        rich_text: resolve_bool_attribute(metadata, "rich_text").unwrap_or(false),
         text_render_mode: resolve_table_string(metadata, "font", "render_mode")
             .or_else(|| resolve_string_attribute(metadata, "text_render_mode"))
             .and_then(parse_text_render_mode)
@@ -108,6 +117,12 @@ fn resolve_number_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str
     metadata
         .and_then(|metadata| metadata.attributes.get(key))
         .and_then(value_as_f32)
+}
+
+fn resolve_bool_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<bool> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(Value::as_bool)
 }
 
 fn resolve_table_number(
@@ -181,6 +196,24 @@ fn parse_text_render_mode(value: &str) -> Option<UiTextRenderMode> {
         "auto" | "default" => Some(UiTextRenderMode::Auto),
         "native" | "glyphon" => Some(UiTextRenderMode::Native),
         "sdf" => Some(UiTextRenderMode::Sdf),
+        _ => None,
+    }
+}
+
+fn parse_text_direction(value: &str) -> Option<UiTextDirection> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "auto" | "default" => Some(UiTextDirection::Auto),
+        "ltr" | "left_to_right" | "left-to-right" => Some(UiTextDirection::LeftToRight),
+        "rtl" | "right_to_left" | "right-to-left" => Some(UiTextDirection::RightToLeft),
+        "mixed" => Some(UiTextDirection::Mixed),
+        _ => None,
+    }
+}
+
+fn parse_text_overflow(value: &str) -> Option<UiTextOverflow> {
+    match value.trim().to_ascii_lowercase().as_str() {
+        "clip" | "clipped" => Some(UiTextOverflow::Clip),
+        "ellipsis" | "truncate" => Some(UiTextOverflow::Ellipsis),
         _ => None,
     }
 }

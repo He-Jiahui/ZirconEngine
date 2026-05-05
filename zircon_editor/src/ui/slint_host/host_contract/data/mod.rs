@@ -6,6 +6,7 @@ mod host_scene;
 mod panes;
 mod template_nodes;
 mod ui_asset;
+mod viewport_image;
 mod welcome;
 mod world_space_submission;
 
@@ -17,6 +18,7 @@ pub(crate) use host_scene::*;
 pub(crate) use panes::*;
 pub(crate) use template_nodes::*;
 pub(crate) use ui_asset::*;
+pub(crate) use viewport_image::*;
 pub(crate) use welcome::*;
 #[allow(unused_imports)]
 pub(crate) use world_space_submission::*;

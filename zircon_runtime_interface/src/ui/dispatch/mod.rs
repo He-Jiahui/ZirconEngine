@@ -6,6 +6,7 @@ pub use navigation::{
     UiNavigationDispatchResult,
 };
 pub use pointer::{
+    UiPointerComponentEvent, UiPointerComponentEventReason,
     UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchInvocation,
-    UiPointerDispatchResult, UiPointerEvent,
+    UiPointerDispatchDiagnostics, UiPointerDispatchResult, UiPointerEvent,
 };

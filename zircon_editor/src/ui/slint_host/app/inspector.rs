@@ -137,7 +137,7 @@ impl SlintEditorHost {
                         .unwrap_or_else(|| format!("Inspector field updated: {field_id}")),
                 );
                 if refresh_presentation {
-                    self.presentation_dirty = true;
+                    self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
                 }
             }
             Err(error) => {

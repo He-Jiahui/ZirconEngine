@@ -55,6 +55,7 @@ impl UiTemplateTreeBuilder {
             .with_position(layout.position)
             .with_input_policy(layout.input_policy.unwrap_or(input_policy))
             .with_layout_boundary(layout.layout_boundary)
+            .with_layout_stretch_axes(layout.stretch_width, layout.stretch_height)
             .with_z_index(layout.z_index)
             .with_container(container)
             .with_clip_to_bounds(layout.clip_to_bounds || container.clips_to_bounds())

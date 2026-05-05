@@ -4,9 +4,9 @@ use crate::ui::slint_host::{
     paint_runtime_render_commands_for_test, FloatingWindowData, FrameRect,
     HostBottomDockSurfaceData, HostChromeControlFrameData, HostDocumentDockSurfaceData,
     HostFloatingWindowLayerData, HostMenuChromeData, HostMenuChromeMenuData,
-    HostSideDockSurfaceData, HostStatusBarData, HostWindowLayoutData, PaneData,
-    SceneViewportChromeData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
-    UiHostWindow,
+    HostSideDockSurfaceData, HostStatusBarData, HostWindowLayoutData, HostWindowShellData,
+    PaneData, SceneViewportChromeData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
+    UiHostWindow, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY,
 };
 use slint::{ModelRc, PhysicalSize, SharedString, VecModel};
 use zircon_runtime_interface::ui::{
@@ -93,6 +93,38 @@ fn rust_owned_host_window_snapshot_contains_editor_chrome_pixels() {
             .chunks_exact(4)
             .any(|pixel| pixel[3] == 255),
         "snapshot should contain opaque painted pixels instead of an empty surface"
+    );
+}
+
+#[test]
+fn rust_owned_host_window_snapshot_draws_top_right_debug_refresh_rate() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(320, 120));
+
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(320.0, 120.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(320.0, 120.0);
+    presentation.host_shell = HostWindowShellData {
+        project_path: "res://debug".into(),
+        status_secondary: "Ready".into(),
+        debug_refresh_rate: STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.into(),
+        viewport_label: "Scene".into(),
+        ..HostWindowShellData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("debug refresh-rate overlay should render");
+
+    assert!(
+        lit_row_count(snapshot.width(), snapshot.as_bytes(), 196, 4, 118, 28) > 4,
+        "top-right debug refresh-rate marker should draw visible pixels"
     );
 }
 
@@ -463,6 +495,85 @@ fn rust_owned_host_window_snapshot_respects_template_node_order_and_clip() {
 }
 
 #[test]
+fn rust_owned_host_painter_does_not_render_structural_control_ids_as_text() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(320, 200));
+
+    let mut anonymous = ui.get_host_presentation();
+    anonymous.host_layout = host_window_layout_for_test(320.0, 200.0);
+    anonymous.host_scene_data.layout = host_window_layout_for_test(320.0, 200.0);
+    anonymous.host_scene_data.page_chrome.template_nodes =
+        model_rc(vec![template_node("", "Panel", "", 0.0, 26.0, 320.0, 30.0)]);
+    ui.set_host_presentation(anonymous.clone());
+    let anonymous_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("anonymous structural panel snapshot should render");
+
+    let mut with_control_id = anonymous;
+    with_control_id.host_scene_data.page_chrome.template_nodes = model_rc(vec![template_node(
+        "WorkbenchPageBar",
+        "Panel",
+        "",
+        0.0,
+        26.0,
+        320.0,
+        30.0,
+    )]);
+    ui.set_host_presentation(with_control_id.clone());
+    let control_id_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("structural panel snapshot should render");
+
+    let mut with_text = with_control_id;
+    with_text.host_scene_data.page_chrome.template_nodes = model_rc(vec![template_node(
+        "WorkbenchPageBar",
+        "Panel",
+        "Workbench",
+        0.0,
+        26.0,
+        320.0,
+        30.0,
+    )]);
+    ui.set_host_presentation(with_text);
+    let text_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("labeled structural panel snapshot should render");
+
+    assert_eq!(
+        changed_pixel_count(
+            anonymous_snapshot.width(),
+            anonymous_snapshot.as_bytes(),
+            control_id_snapshot.as_bytes(),
+            0,
+            26,
+            160,
+            30,
+        ),
+        0,
+        "empty structural panel text should not fall back to control_id/node_id glyphs"
+    );
+    assert!(
+        changed_pixel_count(
+            text_snapshot.width(),
+            anonymous_snapshot.as_bytes(),
+            text_snapshot.as_bytes(),
+            0,
+            26,
+            160,
+            30,
+        ) > 0,
+        "explicit text should still render glyphs for labeled nodes"
+    );
+}
+
+#[test]
 fn rust_owned_host_painter_draws_runtime_render_commands() {
     let commands = vec![
         runtime_quad_command(1, 10.0, 10.0, 70.0, 36.0, 0, "#112233", "#89abcd"),
@@ -479,9 +590,8 @@ fn rust_owned_host_painter_draws_runtime_render_commands() {
         [68, 170, 102, 255],
         "higher z-index runtime commands should paint over lower commands"
     );
-    assert_ne!(
-        pixel(150, &bytes, 18, 70),
-        [0, 0, 0, 255],
+    assert!(
+        lit_row_count(150, &bytes, 12, 58, 130, 20) > 0,
         "runtime text command should draw glyph pixels"
     );
     assert!(
@@ -491,7 +601,46 @@ fn rust_owned_host_painter_draws_runtime_render_commands() {
     assert_ne!(
         pixel(150, &bytes, 108, 28),
         [0, 0, 0, 255],
-        "runtime image command should draw deterministic image placeholder"
+        "runtime image command should draw resolved icon pixels"
+    );
+}
+
+#[test]
+fn rust_owned_host_painter_resolves_runtime_svg_image_assets() {
+    let image = paint_runtime_render_commands_for_test(
+        80,
+        56,
+        &[runtime_image_command_with_asset(
+            41,
+            10.0,
+            10.0,
+            36.0,
+            36.0,
+            UiVisualAssetRef::Image("ui/editor/showcase_checker.svg".to_string()),
+        )],
+    );
+    let fallback = paint_runtime_render_commands_for_test(
+        80,
+        56,
+        &[runtime_image_command_with_asset(
+            42,
+            10.0,
+            10.0,
+            36.0,
+            36.0,
+            UiVisualAssetRef::Image("missing/not-found.svg".to_string()),
+        )],
+    );
+
+    assert_ne!(
+        pixel(80, &image, 28, 28),
+        pixel(80, &fallback, 28, 28),
+        "runtime SVG image assets should draw decoded pixels instead of the deterministic placeholder"
+    );
+    assert_eq!(
+        pixel(80, &image, 16, 16),
+        [77, 137, 255, 255],
+        "showcase checker SVG should preserve decoded RGBA image color"
     );
 }
 
@@ -516,11 +665,19 @@ fn native_host_pointer_input_forwards_menu_callbacks_and_requests_redraw() {
     let host = ui.global::<UiHostContext>();
     {
         let events = events.clone();
-        host.on_menu_pointer_moved(move |x, y| events.borrow_mut().push(format!("move:{x:.0},{y:.0}")));
+        let ui = ui.clone_strong();
+        host.on_menu_pointer_moved(move |x, y| {
+            events.borrow_mut().push(format!("move:{x:.0},{y:.0}"));
+            let mut menu_state = ui.get_menu_state();
+            menu_state.hovered_menu_index = 0;
+            ui.global::<UiHostContext>().set_menu_state(menu_state);
+        });
     }
     {
         let events = events.clone();
-        host.on_menu_pointer_clicked(move |x, y| events.borrow_mut().push(format!("click:{x:.0},{y:.0}")));
+        host.on_menu_pointer_clicked(move |x, y| {
+            events.borrow_mut().push(format!("click:{x:.0},{y:.0}"))
+        });
     }
     {
         let events = events.clone();
@@ -763,7 +920,13 @@ fn model_rc<T: Clone + 'static>(values: Vec<T>) -> ModelRc<T> {
     ModelRc::from(Rc::new(VecModel::from(values)))
 }
 
-fn control_frame(control_id: &str, x: f32, y: f32, width: f32, height: f32) -> HostChromeControlFrameData {
+fn control_frame(
+    control_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> HostChromeControlFrameData {
     HostChromeControlFrameData {
         control_id: control_id.into(),
         frame: host_frame(x, y, width, height),
@@ -829,11 +992,42 @@ fn runtime_text_command(
     }
 }
 
-fn lit_row_count(width: u32, bytes: &[u8], x: u32, y: u32, region_width: u32, region_height: u32) -> usize {
+fn lit_row_count(
+    width: u32,
+    bytes: &[u8],
+    x: u32,
+    y: u32,
+    region_width: u32,
+    region_height: u32,
+) -> usize {
     let x1 = x.saturating_add(region_width).min(width);
-    let y1 = y.saturating_add(region_height).min((bytes.len() / 4 / width as usize) as u32);
+    let y1 = y
+        .saturating_add(region_height)
+        .min((bytes.len() / 4 / width as usize) as u32);
     (y..y1)
         .filter(|row| (x..x1).any(|column| pixel(width, bytes, column, *row) != [0, 0, 0, 255]))
+        .count()
+}
+
+fn changed_pixel_count(
+    width: u32,
+    left: &[u8],
+    right: &[u8],
+    x: u32,
+    y: u32,
+    region_width: u32,
+    region_height: u32,
+) -> usize {
+    let x1 = x.saturating_add(region_width).min(width);
+    let y1 = y
+        .saturating_add(region_height)
+        .min((left.len() / 4 / width as usize) as u32)
+        .min((right.len() / 4 / width as usize) as u32);
+    (y..y1)
+        .flat_map(|row| (x..x1).map(move |column| (column, row)))
+        .filter(|(column, row)| {
+            pixel(width, left, *column, *row) != pixel(width, right, *column, *row)
+        })
         .count()
 }
 
@@ -845,6 +1039,24 @@ fn has_antialias_pixel(bytes: &[u8], foreground: [u8; 4]) -> bool {
 }
 
 fn runtime_image_command(node_id: u64, x: f32, y: f32, width: f32, height: f32) -> UiRenderCommand {
+    runtime_image_command_with_asset(
+        node_id,
+        x,
+        y,
+        width,
+        height,
+        UiVisualAssetRef::Icon("options-outline".to_string()),
+    )
+}
+
+fn runtime_image_command_with_asset(
+    node_id: u64,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    image: UiVisualAssetRef,
+) -> UiRenderCommand {
     UiRenderCommand {
         node_id: UiNodeId::new(node_id),
         kind: UiRenderCommandKind::Image,
@@ -854,7 +1066,7 @@ fn runtime_image_command(node_id: u64, x: f32, y: f32, width: f32, height: f32) 
         style: runtime_style(),
         text_layout: None,
         text: None,
-        image: Some(UiVisualAssetRef::Icon("rocket-outline".to_string())),
+        image: Some(image),
         opacity: 1.0,
     }
 }

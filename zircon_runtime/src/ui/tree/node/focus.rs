@@ -25,7 +25,7 @@ impl UiRuntimeTreeFocusExt for UiTree {
                 .nodes
                 .get(node_id)
                 .ok_or(UiTreeError::MissingNode(*node_id))?;
-            if node.state_flags.visible && node.state_flags.enabled && node.state_flags.focusable {
+            if node.is_focus_candidate() {
                 return Ok(Some(*node_id));
             }
         }
@@ -106,7 +106,7 @@ fn collect_focusable_nodes(
         .nodes
         .get(&node_id)
         .ok_or(UiTreeError::MissingNode(node_id))?;
-    if node.state_flags.visible && node.state_flags.enabled && node.state_flags.focusable {
+    if node.is_focus_candidate() {
         focusable.push(node_id);
     }
     for child_id in &node.children {

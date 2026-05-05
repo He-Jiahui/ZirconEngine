@@ -22,8 +22,10 @@ related_code:
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
   - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
   - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -63,6 +65,11 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
+  - zircon_editor/src/ui/layouts/views/preview_images.rs
+  - zircon_editor/src/ui/layouts/views/view_data.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_value_conversion.rs
@@ -74,6 +81,7 @@ related_code:
   - zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs
   - zircon_editor/src/tests/ui/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
+  - zircon_editor/src/ui/slint_host/mod.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
@@ -92,6 +100,8 @@ related_code:
   - zircon_editor/src/ui/slint_host/app/tests.rs
   - zircon_editor/src/ui/slint_host/app/tests/drag_sources.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/shell_window.rs
   - zircon_editor/src/ui/slint_host/asset_pointer/content/bridge.rs
   - zircon_editor/src/ui/slint_host/asset_pointer/reference/bridge.rs
   - zircon_editor/src/ui/slint_host/host_contract/mod.rs
@@ -109,6 +119,7 @@ related_code:
   - zircon_editor/build.rs
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
+  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 implementation_files:
   - zircon_runtime/src/ui/component/mod.rs
@@ -133,8 +144,10 @@ implementation_files:
   - zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs
   - zircon_runtime_interface/src/ui/binding/model/event_kind.rs
   - zircon_runtime/src/ui/mod.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -173,6 +186,11 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
+  - zircon_editor/src/ui/layouts/views/preview_images.rs
+  - zircon_editor/src/ui/layouts/views/view_data.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_menu_projection.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_option_projection.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_value_conversion.rs
@@ -184,6 +202,7 @@ implementation_files:
   - zircon_editor/src/tests/ui/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/ui/slint_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/ui/slint_host/mod.rs
   - zircon_editor/src/ui/slint_host/ui.rs
   - zircon_editor/src/ui/slint_host/app.rs
   - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
@@ -201,6 +220,8 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/app/tests.rs
   - zircon_editor/src/ui/slint_host/app/tests/drag_sources.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/shell_window.rs
   - zircon_editor/src/ui/slint_host/asset_pointer/content/bridge.rs
   - zircon_editor/src/ui/slint_host/asset_pointer/reference/bridge.rs
   - zircon_editor/src/ui/slint_host/host_contract/mod.rs
@@ -218,10 +239,12 @@ implementation_files:
   - zircon_editor/build.rs
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
+  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 plan_sources:
   - user: 2026-04-27 Runtime UI 组件库与 Slint Material Showcase Cutover
   - user: 2026-04-28 继续修复 Component Showcase Slint host retained row state 验证阻断
+  - user: 2026-05-05 SVG/Image components and SVG icons must render from .ui.toml without restoring generated Slint UI
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - docs/superpowers/plans/2026-04-28-runtime-ui-drag-source-metadata.md
@@ -233,6 +256,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-01-runtime-ui-complex-components-design.md
 tests:
   - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/selection.rs
   - zircon_runtime/src/ui/tests/binding.rs
@@ -247,10 +271,15 @@ tests:
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/shell_window.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - zircon_editor/src/ui/slint_host/app/tests.rs
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
   - cargo test -p zircon_runtime --lib ui_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
@@ -551,6 +580,8 @@ The follow-up module-slimming pass moves real drag-source tests out of the overs
 
 The WSL follow-up on 2026-04-28 verifies the generic media-preview path for the showcase: `TemplatePaneNodeData` carries `preview_image: image` and `has_preview_image`, `ImageDemo` uses the local `ui/editor/showcase_checker.svg` asset, `IconDemo` resolves `icon_name` through the ionicons asset folder, and `SvgIconDemo` resolves its retained source into a loaded Slint SVG image with non-zero dimensions. The same WSL pass verifies the ContextActionMenu popup anchor values projected from `.ui.toml`.
 
+The 2026-05-06 native painter follow-up closes the visible part of that media-preview path. The shared preview loader now lives at `ui/layouts/views/preview_images.rs`, and the Rust-owned host painter consumes loaded `preview_image` pixels for `Image`, `Icon`, and `SvgIcon` template nodes instead of stopping at placeholder panels. Runtime image render commands also resolve `UiVisualAssetRef::Image` and `UiVisualAssetRef::Icon` through the editor asset roots before falling back to deterministic placeholders. In practice, `ImageDemo` draws the decoded checker SVG, `IconDemo` draws an ionicons SVG tinted for the native host, and `SvgIconDemo` draws the retained SVG source while control rows, bindings, and layout still come from `component_showcase.ui.toml`.
+
 The next Array/Map row-edit follow-up on 2026-04-28 extends `TemplatePaneCollectionFieldData` with `edit_action_id`. ArrayField and MapField child rows now project their row-specific Set binding ids, and the generic collection `LineEdit` dispatches `row_id=value` through `component_showcase_control_edited`. `pane_surface_actions.rs` converts `array-<index>=...` payloads into `UiComponentShowcaseDemoEventInput::SetElement` and `map-<key>=...` payloads into `SetMapEntry`, parsing numeric collection text into `UiValue::Float` and keeping non-numeric text as `UiValue::String`. This keeps row-level editing in the retained event path instead of adding showcase-specific Slint business logic.
 
 Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the touched files with only existing LF-to-CRLF warnings, and a first Windows compile attempt caught and fixed an invalid `SlintUiHostBindingProjection.dispatch_kind` field access. Focused Cargo tests could not be completed in this pass because concurrent Windows and WSL Cargo sessions repeatedly held editor/runtime build work for more than the tool timeout; the timed-out Cargo processes started by this pass were terminated, while unrelated concurrent validation processes were left untouched. The pending focused checks are:
@@ -808,7 +839,7 @@ The same closeout pass then reran the editor Runtime UI host gates in the isolat
 
 The first real Inspector binding slice connects that seam without removing the existing editor event journal path. `EditorEventRuntime::dispatch_ui_component_adapter_event` now routes `UiComponentEventEnvelope` values through `EditorUiComponentAdapterRegistry`, refreshes editor reflection after changed component adapter results, and surfaces adapter status text through the existing status line. The Inspector adapter supports `ValueChanged` and `Commit` envelopes for `name`, `parent`, and `transform.translation.{x,y,z}` targets under the `inspector` domain, mapping Runtime UI `UiValue` payloads into the existing draft/apply binding dispatch so subject resolution, selected-node synchronization, and scene mutation policy remain shared with the legacy Inspector commands. The Slint host Inspector change callback now creates a real Runtime UI component envelope before dispatching the old `DraftCommand.SetInspectorField` route, so actual window callbacks exercise the new data-binding adapter while preserving focus handling, journal records, and presentation effects. Focused evidence: `cargo test -p zircon_editor --lib child_window_inspector_control_focuses_source_window_before_runtime_dispatch --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, and the post-slice `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 17 tests. The remaining warnings are the pre-existing runtime graphics warnings recorded above.
 
-The follow-up merge pass aligned the Inspector adapter implementation with the parallel real-data-source session interface: the editor runtime entry point is `dispatch_ui_component_adapter_event`, and `UiComponentAdapterError::MissingSource` uses `source_name` so `thiserror` does not interpret the field as an error source. The Inspector adapter now returns structured `UiComponentAdapterError` values directly, rejects unsupported subjects/properties/fields without mutation, and the migrated Inspector change callback uses the adapter as the authoritative path for supported fields instead of falling back to legacy draft dispatch. Dedicated adapter regressions live in `zircon_editor/src/tests/ui/component_adapter.rs`; the wider confirmation gate `cargo test -p zircon_editor --lib inspector --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 57 tests. During that run the Inspector pane template projection also regained action-control text fallback for empty authored text/label values, so `ApplyDraft` projects as `Apply Draft` through the Runtime UI host-node path.
+The follow-up merge pass aligned the Inspector adapter implementation with the parallel real-data-source session interface: the editor runtime entry point is `dispatch_ui_component_adapter_event`, and `UiComponentAdapterError::MissingSource` uses `source_name` so `thiserror` does not interpret the field as an error source. The Inspector adapter now returns structured `UiComponentAdapterError` values directly, rejects unsupported subjects/properties/fields without mutation, and the migrated Inspector change callback uses the adapter as the authoritative path for supported fields instead of falling back to legacy draft dispatch. Dedicated adapter regressions live in `zircon_editor/src/tests/ui/component_adapter.rs`; the wider confirmation gate `cargo test -p zircon_editor --lib inspector --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 57 tests. During that run the Inspector pane template projection also regained the bound/button-like control label fallback for empty authored text/label values, so `ApplyDraft` projects as `Apply Draft` through the Runtime UI host-node path.
 
 The 2026-05-01 real-data-source adapter milestone hardens the shared Runtime UI envelope contract and the editor adapter bridge. `zircon_runtime::ui::component::data_binding` now owns the typed `UiComponentBindingTarget`, `UiComponentEventEnvelope`, `UiComponentProjectionPatch`, `UiComponentAdapterResult`, and `UiComponentAdapterError` surface, and serde rejects mismatched wire event kinds before they can reach runtime dispatch. `zircon_editor::ui::template_runtime::component_adapter` now routes showcase envelopes through a registry-backed adapter path and resolves the `inspector` domain into the existing inspector draft mutation flow for `entity://selected`. Focused validation passed for the new slice with `cargo test -p zircon_editor --lib inspector_component_adapter --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`, `cargo test -p zircon_editor --lib inspector --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`. The matching runtime-only focused test remains blocked by unrelated active graphics/plugin cutover paths and `--locked` lockfile drift, so the accepted evidence for this milestone is the editor adapter bridge plus the shared contract tests rather than a clean workspace-wide pass.
 
@@ -1096,3 +1127,66 @@ Validation evidence:
 
 Known non-blocking output:
 - Existing runtime graphics test warnings remain around unused virtual-geometry debug/readback helpers and one unused render local. These warnings predate the Runtime UI bridge convergence and do not block the focused UI bridge validation.
+
+## 2026-05-05 Material meta component slice
+
+Related code:
+- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
+- `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
+- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
+- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs`
+- `zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs`
+- `zircon_runtime/src/ui/tests/asset.rs`
+- `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
+- `zircon_editor/src/tests/ui/boundary/template_assets.rs`
+
+This slice introduces TOML-authored Material-style meta components based on the structure used by `dev/slint/internal/compiler/widgets/material`: a state layer component plus base button, icon button, toggle, checkbox row, outlined field, and slider field wrappers. The implementation stays native to Zircon: the meta components expand to existing Runtime UI controls, carry semantic style attributes such as `surface_variant`, `button_variant`, `text_tone`, `font_size`, `corner_radius`, and `border_width`, and keep the layout frame as the only hit/render authority.
+
+The shared asset compiler now copies bindings authored on a component instance to the expanded component root. That lets `component_showcase.ui.toml` swap Button/Input/Range rows to reference-based Material meta components without losing click, change, or drag routes. The editor native projection also forwards those visual attributes into `TemplatePaneNodeData`, so Rust-owned painting consumes the same component metadata that runtime render extraction already sees.
+
+## 2026-05-06 Slint Material export coverage
+
+Related code:
+- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
+- `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
+- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
+- `zircon_editor/src/ui/slint_host/host_contract/window.rs`
+- `zircon_editor/src/ui/slint_host/mod.rs`
+- `zircon_editor/src/ui/slint_host/ui.rs`
+- `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
+- `zircon_editor/src/tests/host/slint_window/native_host_contract.rs`
+- `zircon_editor/src/tests/host/slint_window/shell_window.rs`
+- `zircon_editor/src/tests/ui/boundary/template_assets.rs`
+
+The Material meta component asset now covers the exported widget set under `dev/slint/internal/compiler/widgets/material`: `MaterialButtonBase`, `MaterialButton`, `MaterialTextButton`, `MaterialIconButton`, `MaterialCheckBox`, `MaterialComboBox`, `MaterialRipple`, `MaterialStateLayer`, `MaterialListItem`, `MaterialDatePickerPopup`, `MaterialGroupBox`, `MaterialLineEdit`, `MaterialMenuBarItem`, `MaterialMenuBar`, `MaterialMenuFrame`, `MaterialMenuItem`, `MaterialProgressIndicator`, `MaterialScrollView`, `MaterialSlider`, `MaterialSpinBox`, `MaterialSpinner`, `MaterialSwitch`, `MaterialStandardTableView`, the tab-widget family, `MaterialTextEdit`, and `MaterialTimePickerPopup`.
+
+`component_showcase.ui.toml` imports the full Material meta component asset and now routes the matching showcase rows through reference nodes instead of handwritten native nodes for progress, spinner, switch, checkbox, line edit, text edit, spin box, slider, combo box, group box, list item, virtual table, and menu frame. Instance bindings remain authored at the showcase call site, while the compiler moves them onto the expanded root control. Focused coverage was added for static asset coverage and host projection semantics; final evidence is recorded with the validation commands for this slice.
+
+The native host fast-paint guard now exposes a test-only presentation rebuild counter and verifies the Slate-style pointer-only path directly. The hierarchy hover test asserts that the first hover only requests local paint damage without a frame update, then repeats the same target 100 times and confirms no repaint request and no presentation rebuild. The menu callback test was tightened to mutate hover state before expecting redraw, so the menu path also distinguishes real state damage from callback-only pointer traffic. That keeps Material/status hover feedback on the local damage path instead of forcing a full host projection rebuild.
+
+The native host route acceptance now also builds a real Component Showcase pane through `EditorUiHostRuntime`, projects the `.ui.toml` Material `ButtonDemo` node into `TemplatePaneNodeData`, constructs the shared `UiSurfaceFrame` hit grid, and dispatches a native document-pane click through `PaneSurfaceHostContext::component_showcase_control_activated`. This proves the Material meta component is a real routed control in the Rust-owned editor host, not a visual wrapper or a hand-authored native coordinate entry.
+
+Validation evidence on `E:\zircon-build\targets`:
+- `cargo fmt --package zircon_runtime --package zircon_editor -- --check`: passed.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib material_meta_components_cover_slint_material_exports --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib component_showcase_projection_carries_runtime_component_semantics --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib component_showcase_uses_material_meta_component_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib showcase_demo_state --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib native_host_pointer_click_routes_projected_material_showcase_button --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib native_host --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `git diff --check` over this slice's tracked docs, TOML assets, and tests: passed with only Windows LF-to-CRLF notices.
+
+Follow-up validation on 2026-05-06 for the projected Material native-hit route:
+- `rustfmt --edition 2021 --check --config skip_children=true zircon_editor\src\ui\slint_host\mod.rs zircon_editor\src\ui\slint_host\ui.rs zircon_editor\src\tests\host\slint_window\native_host_contract.rs`: passed.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warning noise.
+- `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warning noise.
+- `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with 5 tests.
+- `cargo test -p zircon_editor --lib native_host_pointer_click_routes_projected_material_showcase_button --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib native_host --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with 19 tests.
+- Package `cargo fmt --package zircon_editor -- --check` is currently blocked by active sibling rustfmt drift outside this slice.
+- `component_showcase_projection_carries_runtime_component_semantics` is currently blocked in the active Material layout foundation slice because the edited test reads arranged frame sizes from an uncomputed shared surface, while the normal Component Showcase host conversion computes layout before building host nodes.
+- The shared runtime event-routing compile blocker was cleared by importing the existing `UiRuntimeTreeAccessExt` test helper in `zircon_runtime/src/ui/tests/event_routing.rs`; `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never` first passed 4 tests, then the E3 multi-binding regression expanded it to 5 passing tests. The new `click_component_events_preserve_every_matching_binding_on_target` case proved a Material-like button with two `Click` bindings now emits two `UiPointerComponentEvent` envelopes instead of silently keeping only the first binding. `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never` remains 5 passing tests.

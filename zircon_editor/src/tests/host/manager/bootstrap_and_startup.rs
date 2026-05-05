@@ -7,8 +7,9 @@ use zircon_runtime::scene::DefaultLevelManager;
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
 use crate::ui::workbench::layout::{
-    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowId, DocumentNode,
-    LayoutCommand, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
+    ActivityDrawerLayout, ActivityDrawerMode, ActivityDrawerSlot, ActivityWindowHostMode,
+    ActivityWindowId, ActivityWindowLayout, DocumentNode, LayoutCommand, MainHostPageLayout,
+    MainPageId, TabStackLayout, WorkbenchLayout,
 };
 use crate::ui::workbench::project::{EditorProjectDocument, ProjectEditorWorkspace};
 use crate::ui::workbench::startup::{
@@ -264,7 +265,18 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
                     visible: true,
                 },
             )]),
-            activity_windows: Default::default(),
+            activity_windows: BTreeMap::from([(
+                ActivityWindowId::workbench(),
+                ActivityWindowLayout {
+                    window_id: ActivityWindowId::workbench(),
+                    descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
+                    host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
+                    activity_drawers: BTreeMap::new(),
+                    content_workspace: DocumentNode::default(),
+                    region_overrides: BTreeMap::new(),
+                    view_overrides: BTreeMap::new(),
+                },
+            )]),
             floating_windows: Vec::new(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),
@@ -275,11 +287,188 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
     };
 
     manager.apply_project_workspace(Some(workspace)).unwrap();
+    let layout = manager.current_layout();
+    let left_top = layout
+        .drawers
+        .get(&ActivityDrawerSlot::LeftTop)
+        .expect("left top drawer");
+    assert!(left_top
+        .tab_stack
+        .tabs
+        .contains(&restored_instance.instance_id));
+    assert!(!left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.hierarchy#1")));
+    let activity_left_top = layout
+        .activity_windows
+        .get(&ActivityWindowId::workbench())
+        .and_then(|window| window.activity_drawers.get(&ActivityDrawerSlot::LeftTop))
+        .expect("workbench activity left top drawer");
+    assert!(activity_left_top
+        .tab_stack
+        .tabs
+        .contains(&restored_instance.instance_id));
+
     let reopened = manager
         .open_view(ViewDescriptorId::new("editor.hierarchy"), None)
         .unwrap();
 
     assert_eq!(reopened, restored_instance.instance_id);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+}
+
+#[test]
+fn applying_project_workspace_preserves_builtin_shell_drawers() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_workbench_project_shell_drawers");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+
+    let workspace = ProjectEditorWorkspace {
+        layout_version: 1,
+        workbench: WorkbenchLayout {
+            active_main_page: MainPageId::workbench(),
+            main_pages: vec![MainHostPageLayout::WorkbenchPage {
+                id: MainPageId::workbench(),
+                title: "Workbench".to_string(),
+                activity_window: ActivityWindowId::workbench(),
+                document_workspace: DocumentNode::Tabs(TabStackLayout {
+                    tabs: vec![
+                        ViewInstanceId::new("editor.scene#1"),
+                        ViewInstanceId::new("editor.game#1"),
+                    ],
+                    active_tab: Some(ViewInstanceId::new("editor.scene#1")),
+                }),
+            }],
+            drawers: BTreeMap::from([(
+                ActivityDrawerSlot::LeftTop,
+                ActivityDrawerLayout {
+                    slot: ActivityDrawerSlot::LeftTop,
+                    tab_stack: TabStackLayout::default(),
+                    active_view: None,
+                    mode: ActivityDrawerMode::Collapsed,
+                    extent: 0.0,
+                    visible: false,
+                },
+            )]),
+            activity_windows: BTreeMap::from([(
+                ActivityWindowId::workbench(),
+                ActivityWindowLayout {
+                    window_id: ActivityWindowId::workbench(),
+                    descriptor_id: ViewDescriptorId::new("editor.workbench_window"),
+                    host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
+                    activity_drawers: BTreeMap::from([(
+                        ActivityDrawerSlot::BottomLeft,
+                        ActivityDrawerLayout {
+                            slot: ActivityDrawerSlot::BottomLeft,
+                            tab_stack: TabStackLayout::default(),
+                            active_view: None,
+                            mode: ActivityDrawerMode::Collapsed,
+                            extent: 0.0,
+                            visible: false,
+                        },
+                    )]),
+                    content_workspace: DocumentNode::default(),
+                    region_overrides: BTreeMap::new(),
+                    view_overrides: BTreeMap::new(),
+                },
+            )]),
+            floating_windows: Vec::new(),
+            region_overrides: BTreeMap::new(),
+            view_overrides: BTreeMap::new(),
+        },
+        open_view_instances: vec![
+            ViewInstance {
+                instance_id: ViewInstanceId::new("editor.scene#1"),
+                descriptor_id: ViewDescriptorId::new("editor.scene"),
+                title: "Scene".to_string(),
+                serializable_payload: serde_json::Value::Null,
+                dirty: false,
+                host: ViewHost::Document(MainPageId::workbench(), vec![]),
+            },
+            ViewInstance {
+                instance_id: ViewInstanceId::new("editor.game#1"),
+                descriptor_id: ViewDescriptorId::new("editor.game"),
+                title: "Game".to_string(),
+                serializable_payload: serde_json::Value::Null,
+                dirty: false,
+                host: ViewHost::Document(MainPageId::workbench(), vec![]),
+            },
+        ],
+        active_center_tab: Some(ViewInstanceId::new("editor.scene#1")),
+        active_drawers: Vec::new(),
+    };
+
+    manager.apply_project_workspace(Some(workspace)).unwrap();
+    let layout = manager.current_layout();
+
+    let left_top = layout
+        .drawers
+        .get(&ActivityDrawerSlot::LeftTop)
+        .expect("left top drawer");
+    assert!(left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.project#1")));
+    assert_eq!(left_top.mode, ActivityDrawerMode::Pinned);
+    assert!(left_top.visible);
+    assert!(left_top.extent > 0.0);
+
+    let right_top = layout
+        .drawers
+        .get(&ActivityDrawerSlot::RightTop)
+        .expect("right top drawer");
+    assert_eq!(
+        right_top.tab_stack.tabs,
+        vec![ViewInstanceId::new("editor.inspector#1")]
+    );
+
+    let bottom_left = layout
+        .drawers
+        .get(&ActivityDrawerSlot::BottomLeft)
+        .expect("bottom left drawer");
+    assert_eq!(
+        bottom_left.tab_stack.tabs,
+        vec![ViewInstanceId::new("editor.console#1")]
+    );
+
+    let workbench_window = layout
+        .activity_windows
+        .get(&ActivityWindowId::workbench())
+        .expect("workbench activity window");
+    let activity_left_top = workbench_window
+        .activity_drawers
+        .get(&ActivityDrawerSlot::LeftTop)
+        .expect("workbench activity left top drawer");
+    assert!(activity_left_top
+        .tab_stack
+        .tabs
+        .contains(&ViewInstanceId::new("editor.project#1")));
+    let activity_bottom_left = workbench_window
+        .activity_drawers
+        .get(&ActivityDrawerSlot::BottomLeft)
+        .expect("workbench activity bottom left drawer");
+    assert_eq!(
+        activity_bottom_left.tab_stack.tabs,
+        vec![ViewInstanceId::new("editor.console#1")]
+    );
+    assert_eq!(activity_bottom_left.mode, ActivityDrawerMode::Pinned);
+    assert!(activity_bottom_left.visible);
+    assert!(activity_bottom_left.extent > 0.0);
+
+    let instances = manager
+        .current_view_instances()
+        .into_iter()
+        .map(|instance| instance.instance_id)
+        .collect::<Vec<_>>();
+    assert!(instances.contains(&ViewInstanceId::new("editor.project#1")));
+    assert!(instances.contains(&ViewInstanceId::new("editor.inspector#1")));
+    assert!(instances.contains(&ViewInstanceId::new("editor.console#1")));
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);

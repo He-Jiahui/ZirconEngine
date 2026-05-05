@@ -81,6 +81,10 @@ impl EditorEventRuntime {
         Self::refresh_reflection_locked(&mut inner);
     }
 
+    pub fn status_line(&self) -> String {
+        self.lock_inner().state.status_line.clone()
+    }
+
     pub(crate) fn dispatch_ui_component_adapter_event(
         &self,
         envelope: &UiComponentEventEnvelope,

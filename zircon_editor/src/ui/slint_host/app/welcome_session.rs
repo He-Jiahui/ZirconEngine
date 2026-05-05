@@ -4,7 +4,7 @@ impl SlintEditorHost {
     pub(super) fn refresh_welcome_snapshot(&mut self) {
         let snapshot = self.startup_session.welcome_pane_snapshot(false);
         self.runtime.set_welcome_snapshot(snapshot);
-        self.presentation_dirty = true;
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn present_welcome_surface(
@@ -61,7 +61,7 @@ impl SlintEditorHost {
                 self.editor_manager
                     .show_welcome_page()
                     .map_err(|error| error.to_string())?;
-                self.presentation_dirty = true;
+                self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
             }
             (EditorSessionMode::Project, None) => {
                 return Err("startup session is missing project document".to_string());

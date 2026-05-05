@@ -9,7 +9,9 @@ use zircon_runtime_interface::ui::{
 use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
 use super::geometry::{inset, is_visible_frame};
-use super::primitives::{draw_border_clipped, draw_rect_clipped, draw_text_bars_clipped};
+use super::primitives::{draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped};
+use super::text::draw_text_with_size;
+use super::visual_assets::{load_visual_asset_pixels, HostPaintImagePixels};
 
 const FALLBACK_PANEL: [u8; 4] = [32, 37, 46, 255];
 const FALLBACK_TEXT: [u8; 4] = [210, 220, 235, 255];
@@ -34,7 +36,10 @@ pub(super) struct HostPaintCommand {
     border_color: Option<[u8; 4]>,
     border_width: f32,
     text: Option<String>,
+    font_size: f32,
+    line_height: f32,
     image_key: Option<String>,
+    image_pixels: Option<HostPaintImagePixels>,
     opacity: f32,
 }
 
@@ -58,7 +63,10 @@ impl HostPaintCommand {
             border_color,
             border_width,
             text: None,
+            font_size: 12.0,
+            line_height: 14.0,
             image_key: None,
+            image_pixels: None,
             opacity,
         }
     }
@@ -69,6 +77,8 @@ impl HostPaintCommand {
         z_index: i32,
         text: String,
         foreground_color: [u8; 4],
+        font_size: f32,
+        line_height: f32,
         opacity: f32,
     ) -> Self {
         Self {
@@ -81,7 +91,10 @@ impl HostPaintCommand {
             border_color: None,
             border_width: 0.0,
             text: Some(text),
+            font_size,
+            line_height,
             image_key: None,
+            image_pixels: None,
             opacity,
         }
     }
@@ -97,7 +110,10 @@ impl HostPaintCommand {
             border_color: None,
             border_width: 0.0,
             text: None,
+            font_size: 12.0,
+            line_height: 14.0,
             image_key: None,
+            image_pixels: None,
             opacity,
         }
     }
@@ -119,7 +135,41 @@ impl HostPaintCommand {
             border_color: Some(FALLBACK_IMAGE_BORDER),
             border_width: 1.0,
             text: None,
+            font_size: 12.0,
+            line_height: 14.0,
             image_key: Some(image_key),
+            image_pixels: None,
+            opacity,
+        }
+    }
+
+    pub(super) fn image_pixels(
+        frame: FrameRect,
+        clip_frame: Option<FrameRect>,
+        z_index: i32,
+        image_width: u32,
+        image_height: u32,
+        rgba: Vec<u8>,
+        opacity: f32,
+    ) -> Self {
+        Self {
+            kind: HostPaintCommandKind::Image,
+            frame,
+            clip_frame,
+            z_index,
+            background_color: None,
+            foreground_color: None,
+            border_color: None,
+            border_width: 0.0,
+            text: None,
+            font_size: 12.0,
+            line_height: 14.0,
+            image_key: None,
+            image_pixels: Some(HostPaintImagePixels {
+                width: image_width,
+                height: image_height,
+                rgba,
+            }),
             opacity,
         }
     }
@@ -205,18 +255,39 @@ fn draw_text_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
         command.foreground_color.unwrap_or(FALLBACK_TEXT),
         command.opacity,
     );
-    draw_text_bars_clipped(
+    draw_text_with_size(
         frame,
-        command.frame.x,
-        command.frame.y,
+        command.frame.clone(),
         text,
         command.clip_frame.as_ref(),
         color,
+        command.font_size,
+        command.line_height,
     );
     true
 }
 
 fn draw_image_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> bool {
+    if let Some(image) = command.image_pixels.as_ref() {
+        let rgba;
+        let source = if command.opacity < 1.0 {
+            rgba = image_pixels_with_opacity(image, command.opacity);
+            &rgba
+        } else {
+            image.rgba.as_slice()
+        };
+        if draw_rgba_image_clipped(
+            frame,
+            command.frame.clone(),
+            command.clip_frame.as_ref(),
+            image.width,
+            image.height,
+            source,
+        ) {
+            return true;
+        }
+    }
+
     let image_key = command.image_key.as_deref().unwrap_or("image");
     let color = color_with_opacity(image_placeholder_color(image_key), command.opacity);
     let clip = command.clip_frame.as_ref();
@@ -292,13 +363,25 @@ fn push_runtime_command(
         }
         UiRenderCommandKind::Image => {
             let image_key = image_key(command.image.as_ref());
-            output.push(HostPaintCommand::image(
-                frame,
-                command_clip,
-                command.z_index,
-                image_key,
-                command.opacity,
-            ));
+            if let Some(image) = command.image.as_ref().and_then(load_visual_asset_pixels) {
+                output.push(HostPaintCommand::image_pixels(
+                    frame,
+                    command_clip,
+                    command.z_index,
+                    image.width,
+                    image.height,
+                    image.rgba,
+                    command.opacity,
+                ));
+            } else {
+                output.push(HostPaintCommand::image(
+                    frame,
+                    command_clip,
+                    command.z_index,
+                    image_key,
+                    command.opacity,
+                ));
+            }
         }
     }
 }
@@ -327,14 +410,20 @@ fn push_runtime_text_command(
     output.push(HostPaintCommand::text(
         FrameRect {
             x: text_x,
-            y: frame.y + text_vertical_offset(&command.style, frame.height),
+            y: frame.y,
             width: frame.width,
-            height: 3.0,
+            height: frame.height,
         },
         clip_frame,
         command.z_index,
         text,
         color,
+        command.style.font_size.max(1.0),
+        command
+            .style
+            .line_height
+            .max(command.style.font_size)
+            .max(1.0),
         command.opacity,
     ));
 }
@@ -354,6 +443,8 @@ fn push_text_layout_commands(
             z_index,
             line.text.clone(),
             color,
+            12.0,
+            line.frame.height.max(14.0),
             opacity,
         ));
     }
@@ -389,11 +480,6 @@ fn aligned_text_x(frame: &FrameRect, text: &str, style: &UiResolvedStyle) -> f32
     }
 }
 
-fn text_vertical_offset(style: &UiResolvedStyle, frame_height: f32) -> f32 {
-    let line_height = style.line_height.max(style.font_size).max(1.0);
-    ((frame_height - line_height) * 0.5).max(0.0) + (line_height * 0.55).min(8.0)
-}
-
 fn image_key(image: Option<&UiVisualAssetRef>) -> String {
     match image {
         Some(UiVisualAssetRef::Icon(icon)) => format!("icon:{icon}"),
@@ -412,6 +498,15 @@ fn image_placeholder_color(key: &str) -> [u8; 4] {
         96 + ((seed >> 13) & 0x5f) as u8,
         255,
     ]
+}
+
+fn image_pixels_with_opacity(image: &HostPaintImagePixels, opacity: f32) -> Vec<u8> {
+    let opacity = opacity.clamp(0.0, 1.0);
+    let mut rgba = image.rgba.clone();
+    for pixel in rgba.chunks_exact_mut(4) {
+        pixel[3] = ((pixel[3] as f32 * opacity).round()).clamp(0.0, 255.0) as u8;
+    }
+    rgba
 }
 
 fn color_with_opacity(mut color: [u8; 4], opacity: f32) -> [u8; 4] {

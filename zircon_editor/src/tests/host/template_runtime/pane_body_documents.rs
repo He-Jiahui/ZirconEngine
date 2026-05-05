@@ -12,7 +12,9 @@ use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostValue};
+use crate::ui::template_runtime::{
+    EditorUiHostRuntime, SlintUiHostNodeModel, SlintUiHostValue,
+};
 use crate::ui::workbench::view::ViewDescriptorId;
 
 fn editor_runtime() -> CoreRuntime {
@@ -82,6 +84,46 @@ fn collect_showcase_prop_schema_mismatches(
     }
 }
 
+fn host_numeric_property(node: &SlintUiHostNodeModel, property: &str) -> Option<f64> {
+    match node.properties.get(property) {
+        Some(SlintUiHostValue::Float(value)) => Some(*value),
+        Some(SlintUiHostValue::Integer(value)) => Some(*value as f64),
+        _ => None,
+    }
+}
+
+fn assert_host_numeric_property(node: &SlintUiHostNodeModel, property: &str, expected: f64) {
+    let actual = host_numeric_property(node, property)
+        .unwrap_or_else(|| panic!("missing numeric property `{property}` on `{}`", node.node_id));
+    assert_eq!(actual, expected);
+}
+
+fn assert_material_button_layout_properties(node: &SlintUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 24.0);
+    assert_host_numeric_property(node, "layout_padding_right", 24.0);
+    assert_host_numeric_property(node, "layout_padding_top", 10.0);
+    assert_host_numeric_property(node, "layout_padding_bottom", 10.0);
+    assert_host_numeric_property(node, "layout_spacing", 8.0);
+    assert_host_numeric_property(node, "layout_min_width", 40.0);
+    assert_host_numeric_property(node, "layout_min_height", 40.0);
+    assert_host_numeric_property(node, "layout_icon_size", 18.0);
+}
+
+fn assert_material_field_layout_properties(node: &SlintUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 16.0);
+    assert_host_numeric_property(node, "layout_padding_right", 16.0);
+    assert_host_numeric_property(node, "layout_padding_top", 4.0);
+    assert_host_numeric_property(node, "layout_padding_bottom", 4.0);
+    assert_host_numeric_property(node, "layout_min_height", 56.0);
+}
+
+fn assert_material_list_layout_properties(node: &SlintUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 16.0);
+    assert_host_numeric_property(node, "layout_padding_right", 16.0);
+    assert_host_numeric_property(node, "layout_spacing", 8.0);
+    assert_host_numeric_property(node, "layout_min_height", 40.0);
+}
+
 #[test]
 fn builtin_activity_window_documents_are_registered_in_host_runtime() {
     let _guard = crate::tests::support::env_lock()
@@ -143,9 +185,32 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .build_slint_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
+    let material_button = host_projection
+        .node_by_control_id("ButtonDemo")
+        .expect("component showcase should project ButtonDemo through the Material meta component");
+    assert_eq!(material_button.component, "Button");
+    assert_material_button_layout_properties(material_button);
+    assert!(
+        material_button.frame.width >= 84.0,
+        "ButtonDemo arranged width should include text intrinsic width plus Material horizontal padding, got {}",
+        material_button.frame.width
+    );
+    assert!(
+        material_button.frame.height >= 40.0,
+        "ButtonDemo arranged height should include Material control height, got {}",
+        material_button.frame.height
+    );
+
+    let material_input = host_projection.node_by_control_id("InputFieldDemo").expect(
+        "component showcase should project InputFieldDemo through the Material meta component",
+    );
+    assert_eq!(material_input.component, "InputField");
+    assert_material_field_layout_properties(material_input);
+
     let number = host_projection
         .node_by_control_id("NumberFieldDemo")
-        .expect("component showcase should project NumberFieldDemo");
+        .expect("component showcase should project NumberFieldDemo through MaterialSpinBox");
+    assert_eq!(number.component, "NumberField");
     assert_eq!(number.component_role.as_deref(), Some("number-field"));
     assert_eq!(number.value_text.as_deref(), Some("42"));
     assert_eq!(number.validation_level.as_deref(), Some("normal"));
@@ -157,6 +222,18 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         route.binding_id == "UiComponentShowcase/NumberFieldCommitted"
             && route.event_kind == UiEventKind::Submit
     }));
+
+    let combo_box = host_projection
+        .node_by_control_id("ComboBoxDemo")
+        .expect("component showcase should project ComboBoxDemo through MaterialComboBox");
+    assert_eq!(combo_box.component, "ComboBox");
+    assert_material_field_layout_properties(combo_box);
+
+    let material_list = host_projection
+        .node_by_control_id("ListRowDemo")
+        .expect("component showcase should project ListRowDemo through MaterialListItem");
+    assert_eq!(material_list.component, "ListRow");
+    assert_material_list_layout_properties(material_list);
 
     let dropdown = host_projection
         .node_by_control_id("DropdownDemo")

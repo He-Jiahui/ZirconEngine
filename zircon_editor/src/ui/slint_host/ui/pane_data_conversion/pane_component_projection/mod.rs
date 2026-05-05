@@ -5,10 +5,10 @@ use crate::ui::slint_host as host_contract;
 use crate::ui::template_runtime::SlintUiHostNodeProjection;
 use slint::ModelRc;
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime_interface::ui::component::UiValue;
+use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
 
 mod collection_fields;
-mod preview_images;
+pub(crate) mod preview_images;
 mod showcase_actions;
 
 use self::collection_fields::collection_fields_for_component;
@@ -303,6 +303,7 @@ pub(super) fn host_template_node(
     let action_id = component_descriptor
         .and_then(|_| preferred_showcase_action_id(&control_id, popup_open, &node.bindings))
         .unwrap_or_default();
+    let binding_id = primary_click_binding_id(&node.bindings).unwrap_or_default();
     let drag_action_id = component_descriptor
         .and_then(|_| preferred_showcase_drag_action_id(&control_id, &node.bindings))
         .unwrap_or_default();
@@ -339,10 +340,56 @@ pub(super) fn host_template_node(
         .and_then(value_as_string)
         .filter(|value| !value.is_empty())
         .or_else(|| {
-            (!node.bindings.is_empty() || is_action_control_id(&control_id))
+            (!node.bindings.is_empty() || should_humanize_control_label(&control_id))
                 .then(|| humanize_control_id(&control_id))
         })
         .unwrap_or_default();
+    let surface_variant = node
+        .attributes
+        .get("surface_variant")
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let text_tone = node
+        .attributes
+        .get("text_tone")
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let button_variant = node
+        .attributes
+        .get("button_variant")
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let font_size = node
+        .attributes
+        .get("font_size")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let font_weight = node
+        .attributes
+        .get("font_weight")
+        .and_then(value_as_i32)
+        .unwrap_or(0);
+    let text_align = node
+        .attributes
+        .get("text_align")
+        .and_then(value_as_string)
+        .unwrap_or_else(|| "left".to_string());
+    let overflow = node
+        .attributes
+        .get("overflow")
+        .and_then(value_as_string)
+        .unwrap_or_default();
+    let corner_radius = node
+        .attributes
+        .get("corner_radius")
+        .or_else(|| node.attributes.get("radius"))
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let border_width = node
+        .attributes
+        .get("border_width")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
 
     Some(host_contract::TemplatePaneNodeData {
         node_id: node.node_id.into(),
@@ -461,20 +508,21 @@ pub(super) fn host_template_node(
         disabled,
         dispatch_kind: dispatch_kind.into(),
         action_id: action_id.into(),
+        binding_id: binding_id.into(),
         begin_drag_action_id: begin_drag_action_id.into(),
         drag_action_id: drag_action_id.into(),
         end_drag_action_id: end_drag_action_id.into(),
         commit_action_id: commit_action_id.into(),
         edit_action_id: edit_action_id.into(),
-        surface_variant: "".into(),
-        text_tone: "".into(),
-        button_variant: "".into(),
-        font_size: 0.0,
-        font_weight: 0,
-        text_align: "left".into(),
-        overflow: "".into(),
-        corner_radius: 0.0,
-        border_width: 0.0,
+        surface_variant: surface_variant.into(),
+        text_tone: text_tone.into(),
+        button_variant: button_variant.into(),
+        font_size,
+        font_weight,
+        text_align: text_align.into(),
+        overflow: overflow.into(),
+        corner_radius,
+        border_width,
         frame: host_contract::TemplateNodeFrameData {
             x: node.frame.x,
             y: node.frame.y,
@@ -530,11 +578,20 @@ fn humanize_control_id(control_id: &str) -> String {
     text
 }
 
-fn is_action_control_id(control_id: &str) -> bool {
+fn should_humanize_control_label(control_id: &str) -> bool {
     control_id.starts_with("Apply")
         || control_id.starts_with("Delete")
         || control_id.ends_with("Button")
         || control_id.ends_with("Action")
+}
+
+fn primary_click_binding_id(
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    bindings
+        .iter()
+        .find(|binding| binding.event_kind == UiEventKind::Click)
+        .map(|binding| binding.binding_id.clone())
 }
 
 fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
@@ -547,6 +604,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
+    use crate::ui::template_runtime::SlintUiHostBindingProjection;
     use slint::Model;
     use toml::Value;
     use zircon_runtime_interface::ui::layout::UiFrame;
@@ -674,6 +732,54 @@ mod tests {
         .expect("VirtualList should project oversized overscan deterministically");
 
         assert_eq!(oversized_overscan.collection_items.row_count(), 4);
+    }
+
+    #[test]
+    fn runtime_component_projection_preserves_primary_click_binding_id() {
+        let mut button = projected_node("Button", [("text", Value::String("Apply".to_owned()))]);
+        button.bindings.push(SlintUiHostBindingProjection {
+            binding_id: "InspectorPaneBody/ApplyDraft".to_owned(),
+            event_kind: UiEventKind::Click,
+            route_id: None,
+        });
+
+        let projected = host_template_node(button)
+            .expect("button with a primary click binding should project into the host contract");
+
+        assert_eq!(
+            projected.binding_id.as_str(),
+            "InspectorPaneBody/ApplyDraft"
+        );
+        assert_eq!(projected.action_id.as_str(), "");
+    }
+
+    #[test]
+    fn runtime_component_projection_preserves_material_visual_metadata() {
+        let button = host_template_node(projected_node(
+            "Button",
+            [
+                ("surface_variant", Value::String("accent".to_owned())),
+                ("text_tone", Value::String("muted".to_owned())),
+                ("button_variant", Value::String("primary".to_owned())),
+                ("font_size", Value::Float(13.0)),
+                ("font_weight", Value::Integer(600)),
+                ("text_align", Value::String("center".to_owned())),
+                ("overflow", Value::String("clip".to_owned())),
+                ("corner_radius", Value::Float(5.0)),
+                ("border_width", Value::Float(1.0)),
+            ],
+        ))
+        .expect("material button metadata should project into the host contract");
+
+        assert_eq!(button.surface_variant.as_str(), "accent");
+        assert_eq!(button.text_tone.as_str(), "muted");
+        assert_eq!(button.button_variant.as_str(), "primary");
+        assert_eq!(button.font_size, 13.0);
+        assert_eq!(button.font_weight, 600);
+        assert_eq!(button.text_align.as_str(), "center");
+        assert_eq!(button.overflow.as_str(), "clip");
+        assert_eq!(button.corner_radius, 5.0);
+        assert_eq!(button.border_width, 1.0);
     }
 
     #[test]

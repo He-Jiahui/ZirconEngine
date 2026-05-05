@@ -6,7 +6,7 @@ use crate::ui::layout::{
     UiScrollState,
 };
 
-use super::{UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiTemplateNodeMetadata};
+use super::{UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiTemplateNodeMetadata, UiVisibility};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiTreeNode {
@@ -15,6 +15,8 @@ pub struct UiTreeNode {
     pub parent: Option<UiNodeId>,
     pub children: Vec<UiNodeId>,
     pub state_flags: UiStateFlags,
+    #[serde(default)]
+    pub visibility: UiVisibility,
     #[serde(default)]
     pub constraints: BoxConstraints,
     #[serde(default)]
@@ -25,6 +27,12 @@ pub struct UiTreeNode {
     pub position: Position,
     #[serde(default)]
     pub container: UiContainerKind,
+    /// Preserves an explicitly-authored stretch axis in linear layout instead of treating
+    /// a default-looking stretch constraint as a content-driven fixed fallback.
+    #[serde(default)]
+    pub layout_stretch_width: bool,
+    #[serde(default)]
+    pub layout_stretch_height: bool,
     #[serde(default)]
     pub scroll_state: Option<UiScrollState>,
     pub input_policy: UiInputPolicy,
@@ -55,11 +63,14 @@ impl UiTreeNode {
                 checked: false,
                 dirty: false,
             },
+            visibility: UiVisibility::Visible,
             constraints: BoxConstraints::default(),
             anchor: Anchor::default(),
             pivot: Pivot::default(),
             position: Position::default(),
             container: UiContainerKind::default(),
+            layout_stretch_width: false,
+            layout_stretch_height: false,
             scroll_state: None,
             input_policy: UiInputPolicy::Inherit,
             clip_to_bounds: false,
@@ -80,6 +91,39 @@ impl UiTreeNode {
     pub fn with_state_flags(mut self, state_flags: UiStateFlags) -> Self {
         self.state_flags = state_flags;
         self
+    }
+
+    pub fn with_visibility(mut self, visibility: UiVisibility) -> Self {
+        self.visibility = visibility;
+        self
+    }
+
+    pub fn effective_visibility(&self) -> UiVisibility {
+        self.visibility.effective(self.state_flags.visible)
+    }
+
+    pub fn is_render_visible(&self) -> bool {
+        self.effective_visibility().is_render_visible()
+    }
+
+    pub fn is_self_hit_test_visible(&self) -> bool {
+        self.effective_visibility().allows_self_hit_test()
+    }
+
+    pub fn allows_child_hit_test(&self) -> bool {
+        self.effective_visibility().allows_child_hit_test()
+    }
+
+    pub fn is_focus_candidate(&self) -> bool {
+        self.state_flags.enabled && self.state_flags.focusable && self.is_render_visible()
+    }
+
+    pub fn supports_pointer(&self) -> bool {
+        self.state_flags.enabled
+            && self.is_self_hit_test_visible()
+            && (self.state_flags.clickable
+                || self.state_flags.hoverable
+                || self.state_flags.focusable)
     }
 
     pub fn with_constraints(mut self, constraints: BoxConstraints) -> Self {
@@ -104,6 +148,12 @@ impl UiTreeNode {
 
     pub fn with_container(mut self, container: UiContainerKind) -> Self {
         self.container = container;
+        self
+    }
+
+    pub fn with_layout_stretch_axes(mut self, width: bool, height: bool) -> Self {
+        self.layout_stretch_width = width;
+        self.layout_stretch_height = height;
         self
     }
 

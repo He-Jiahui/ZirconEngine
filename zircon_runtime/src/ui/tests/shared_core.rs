@@ -1,14 +1,16 @@
 use crate::ui::{
     dispatch::{UiNavigationDispatcher, UiPointerDispatcher},
     layout::{compute_virtual_list_window, solve_axis_constraints},
-    surface::UiSurface,
+    surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface},
     tree::{
-        UiHitTestIndex, UiRuntimeTreeAccessExt, UiRuntimeTreeLayoutExt, UiRuntimeTreeScrollExt,
+        UiHitTestIndex, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt, UiRuntimeTreeInteractionExt,
+        UiRuntimeTreeLayoutExt, UiRuntimeTreeScrollExt,
     },
 };
 use zircon_runtime_interface::ui::{
+    component::{UiValue, UiValueKind},
     dispatch::{UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent},
-    event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
+    event_ui::{UiNodeId, UiNodePath, UiReflectedPropertySource, UiStateFlags, UiTreeId},
     layout::{
         Anchor, AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, Pivot, Position,
         StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState,
@@ -20,7 +22,7 @@ use zircon_runtime_interface::ui::{
         UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
         UiVisualAssetRef,
     },
-    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeNode},
+    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeNode, UiVisibility},
 };
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
@@ -31,6 +33,19 @@ fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> A
         priority,
         weight,
         stretch_mode: StretchMode::Stretch,
+    }
+}
+
+fn pointer_state() -> UiStateFlags {
+    UiStateFlags {
+        visible: true,
+        enabled: true,
+        clickable: true,
+        hoverable: true,
+        focusable: true,
+        pressed: false,
+        checked: false,
+        dirty: false,
     }
 }
 
@@ -165,6 +180,114 @@ fn layout_pass_measures_content_driven_roots_and_arranges_anchored_children() {
             .frame,
         UiFrame::new(150.0, 125.0, 120.0, 40.0)
     );
+}
+
+#[test]
+fn layout_pass_measures_label_leaf_from_text_intrinsic_size() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: stretch_constraint(0.0, 0.0, 100, 1.0),
+                height: stretch_constraint(0.0, 0.0, 100, 1.0),
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/title"))
+                .with_layout_boundary(LayoutBoundary::ContentDriven)
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Label".to_string(),
+                    control_id: Some("TitleLabel".to_string()),
+                    classes: Vec::new(),
+                    attributes: toml::from_str(
+                        r#"
+text = "Inspect"
+font_size = 10.0
+line_height = 12.0
+"#,
+                    )
+                    .unwrap(),
+                    slot_attributes: Default::default(),
+                    style_overrides: Default::default(),
+                    style_tokens: Default::default(),
+                    bindings: Vec::new(),
+                }),
+        )
+        .unwrap();
+
+    surface.compute_layout(UiSize::new(200.0, 80.0)).unwrap();
+
+    let label = surface.tree.node(UiNodeId::new(2)).unwrap();
+    assert_eq!(
+        label.layout_cache.desired_size,
+        DesiredSize::new(35.0, 12.0)
+    );
+    assert_eq!(label.layout_cache.frame.height, 12.0);
+    assert!(label.layout_cache.frame.width >= 35.0);
+}
+
+#[test]
+fn layout_pass_measures_button_leaf_as_text_plus_padding() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: stretch_constraint(0.0, 0.0, 100, 1.0),
+                height: stretch_constraint(0.0, 0.0, 100, 1.0),
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/apply"))
+                .with_layout_boundary(LayoutBoundary::ContentDriven)
+                .with_state_flags(UiStateFlags {
+                    visible: true,
+                    enabled: true,
+                    clickable: true,
+                    hoverable: true,
+                    focusable: true,
+                    pressed: false,
+                    checked: false,
+                    dirty: false,
+                })
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("ApplyDraft".to_string()),
+                    classes: Vec::new(),
+                    attributes: toml::from_str(
+                        r#"
+text = "Apply"
+font_size = 10.0
+line_height = 12.0
+"#,
+                    )
+                    .unwrap(),
+                    slot_attributes: Default::default(),
+                    style_overrides: Default::default(),
+                    style_tokens: Default::default(),
+                    bindings: Vec::new(),
+                }),
+        )
+        .unwrap();
+
+    surface.compute_layout(UiSize::new(200.0, 80.0)).unwrap();
+
+    let button = surface.tree.node(UiNodeId::new(2)).unwrap();
+    assert_eq!(
+        button.layout_cache.desired_size,
+        DesiredSize::new(43.0, 20.0)
+    );
+    assert_eq!(button.layout_cache.frame.height, 20.0);
+    assert!(button.layout_cache.frame.width >= 43.0);
 }
 
 #[test]
@@ -366,6 +489,9 @@ radius = 6.0
             line_height: 24.0,
             text_align: UiTextAlign::Center,
             wrap: UiTextWrap::Word,
+            text_direction: Default::default(),
+            text_overflow: Default::default(),
+            rich_text: false,
             text_render_mode: UiTextRenderMode::Sdf,
         }
     );
@@ -899,6 +1025,411 @@ fn hit_testing_respects_z_order_input_policy_and_clip_chain() {
 }
 
 #[test]
+fn surface_rebuild_derives_render_and_hit_from_same_arranged_geometry() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    let root_frame = UiFrame::new(0.0, 0.0, 160.0, 80.0);
+    let mut root = UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+        .with_frame(root_frame)
+        .with_clip_to_bounds(true)
+        .with_input_policy(UiInputPolicy::Ignore);
+    root.layout_cache.clip_frame = Some(root_frame);
+    surface.tree.insert_root(root);
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/button"))
+                .with_frame(UiFrame::new(10.0, 5.0, 80.0, 20.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(pointer_state())
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("primary".to_string()),
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let arranged = surface.arranged_tree.get(UiNodeId::new(2)).unwrap();
+    let command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .unwrap();
+    let hit_entry = surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .find(|entry| entry.node_id == UiNodeId::new(2))
+        .unwrap();
+    assert_eq!(arranged.frame, UiFrame::new(10.0, 5.0, 80.0, 20.0));
+    assert_eq!(command.frame, arranged.frame);
+    assert_eq!(hit_entry.frame, arranged.frame);
+    assert_eq!(
+        surface.hit_test(UiPoint::new(50.0, 15.0)).top_hit,
+        Some(UiNodeId::new(2))
+    );
+
+    surface
+        .tree
+        .node_mut(UiNodeId::new(2))
+        .unwrap()
+        .layout_cache
+        .frame = UiFrame::new(30.0, 25.0, 90.0, 24.0);
+    surface.rebuild();
+
+    let moved = surface.arranged_tree.get(UiNodeId::new(2)).unwrap();
+    let moved_command = surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .find(|command| command.node_id == UiNodeId::new(2))
+        .unwrap();
+    let moved_hit_entry = surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .find(|entry| entry.node_id == UiNodeId::new(2))
+        .unwrap();
+    assert_eq!(moved.frame, UiFrame::new(30.0, 25.0, 90.0, 24.0));
+    assert_eq!(moved_command.frame, moved.frame);
+    assert_eq!(moved_hit_entry.frame, moved.frame);
+    assert_eq!(surface.hit_test(UiPoint::new(50.0, 15.0)).top_hit, None);
+    assert_eq!(
+        surface.hit_test(UiPoint::new(50.0, 35.0)).top_hit,
+        Some(UiNodeId::new(2))
+    );
+}
+
+#[test]
+fn hit_grid_respects_slate_visibility_and_clip_semantics() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    let root_frame = UiFrame::new(0.0, 0.0, 120.0, 120.0);
+    let mut root = UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+        .with_frame(root_frame)
+        .with_clip_to_bounds(true)
+        .with_input_policy(UiInputPolicy::Ignore);
+    root.layout_cache.clip_frame = Some(root_frame);
+    surface.tree.insert_root(root);
+
+    for (node_id, path, frame, z, visibility) in [
+        (
+            UiNodeId::new(2),
+            "root/base",
+            UiFrame::new(10.0, 10.0, 30.0, 20.0),
+            0,
+            UiVisibility::Visible,
+        ),
+        (
+            UiNodeId::new(3),
+            "root/hidden",
+            UiFrame::new(10.0, 10.0, 30.0, 20.0),
+            20,
+            UiVisibility::Hidden,
+        ),
+        (
+            UiNodeId::new(4),
+            "root/collapsed",
+            UiFrame::new(10.0, 10.0, 30.0, 20.0),
+            30,
+            UiVisibility::Collapsed,
+        ),
+    ] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(node_id, UiNodePath::new(path))
+                    .with_frame(frame)
+                    .with_z_index(z)
+                    .with_input_policy(UiInputPolicy::Receive)
+                    .with_visibility(visibility)
+                    .with_state_flags(pointer_state()),
+            )
+            .unwrap();
+    }
+
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(5), UiNodePath::new("root/hit_test_invisible"))
+                .with_frame(UiFrame::new(60.0, 10.0, 40.0, 40.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_visibility(UiVisibility::HitTestInvisible)
+                .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(5),
+            UiTreeNode::new(
+                UiNodeId::new(6),
+                UiNodePath::new("root/hit_test_invisible/child"),
+            )
+            .with_frame(UiFrame::new(65.0, 15.0, 25.0, 20.0))
+            .with_z_index(50)
+            .with_input_policy(UiInputPolicy::Receive)
+            .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(
+                UiNodeId::new(7),
+                UiNodePath::new("root/self_hit_test_invisible"),
+            )
+            .with_frame(UiFrame::new(50.0, 60.0, 50.0, 40.0))
+            .with_input_policy(UiInputPolicy::Receive)
+            .with_visibility(UiVisibility::SelfHitTestInvisible)
+            .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(7),
+            UiTreeNode::new(
+                UiNodeId::new(8),
+                UiNodePath::new("root/self_hit_test_invisible/child"),
+            )
+            .with_frame(UiFrame::new(55.0, 65.0, 30.0, 20.0))
+            .with_z_index(60)
+            .with_input_policy(UiInputPolicy::Receive)
+            .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    assert_eq!(
+        surface.hit_test(UiPoint::new(20.0, 18.0)).top_hit,
+        Some(UiNodeId::new(2)),
+        "hidden and collapsed overlap should not displace the visible base button"
+    );
+    assert_eq!(
+        surface.hit_test(UiPoint::new(70.0, 22.0)).top_hit,
+        None,
+        "HitTestInvisible should block its own subtree from hit testing"
+    );
+    assert_eq!(
+        surface.hit_test(UiPoint::new(70.0, 72.0)).top_hit,
+        Some(UiNodeId::new(8)),
+        "SelfHitTestInvisible should skip the parent but preserve child hits"
+    );
+    assert!(surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .any(|command| command.node_id == UiNodeId::new(5)));
+    assert!(!surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .any(|command| command.node_id == UiNodeId::new(3)));
+}
+
+#[test]
+fn legacy_visible_false_is_normalized_into_hidden_visibility_for_surface_outputs() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 120.0, 80.0))
+            .with_input_policy(UiInputPolicy::Ignore),
+    );
+    let mut hidden_state = pointer_state();
+    hidden_state.visible = false;
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/legacy_hidden"))
+                .with_frame(UiFrame::new(10.0, 10.0, 60.0, 20.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(hidden_state),
+        )
+        .unwrap();
+
+    surface.rebuild();
+
+    let arranged = surface.arranged_tree.get(UiNodeId::new(2)).unwrap();
+    assert_eq!(arranged.visibility, UiVisibility::Hidden);
+    assert!(surface
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .all(|command| command.node_id != UiNodeId::new(2)));
+    assert!(surface
+        .hit_test
+        .grid
+        .entries
+        .iter()
+        .all(|entry| entry.node_id != UiNodeId::new(2)));
+    assert_eq!(surface.hit_test(UiPoint::new(20.0, 15.0)).top_hit, None);
+}
+
+#[test]
+fn explicit_collapsed_visibility_preserves_layout_collapse_with_legacy_visible_false() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_constraints(BoxConstraints {
+                width: fixed_constraint(100.0),
+                height: fixed_constraint(100.0),
+            }),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/top")).with_constraints(
+                BoxConstraints {
+                    width: fixed_constraint(100.0),
+                    height: fixed_constraint(20.0),
+                },
+            ),
+        )
+        .unwrap();
+    let mut legacy_hidden_state = pointer_state();
+    legacy_hidden_state.visible = false;
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(3), UiNodePath::new("root/collapsed"))
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(100.0),
+                    height: fixed_constraint(20.0),
+                })
+                .with_visibility(UiVisibility::Collapsed)
+                .with_state_flags(legacy_hidden_state),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(4), UiNodePath::new("root/bottom")).with_constraints(
+                BoxConstraints {
+                    width: fixed_constraint(100.0),
+                    height: fixed_constraint(20.0),
+                },
+            ),
+        )
+        .unwrap();
+
+    surface.compute_layout(UiSize::new(100.0, 100.0)).unwrap();
+
+    let collapsed = surface.arranged_tree.get(UiNodeId::new(3)).unwrap();
+    assert_eq!(collapsed.visibility, UiVisibility::Collapsed);
+    assert_eq!(collapsed.frame, UiFrame::default());
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .expect("bottom node should be arranged")
+            .layout_cache
+            .frame
+            .y,
+        20.0
+    );
+}
+
+#[test]
+fn focus_navigation_and_scroll_candidates_use_effective_visibility() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 160.0, 120.0)),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/visible_focus"))
+                .with_frame(UiFrame::new(0.0, 0.0, 40.0, 20.0))
+                .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(
+                UiNodeId::new(3),
+                UiNodePath::new("root/hit_test_invisible_focus"),
+            )
+            .with_frame(UiFrame::new(50.0, 0.0, 40.0, 20.0))
+            .with_visibility(UiVisibility::HitTestInvisible)
+            .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    let mut legacy_hidden_state = pointer_state();
+    legacy_hidden_state.visible = false;
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(
+                UiNodeId::new(4),
+                UiNodePath::new("root/legacy_hidden_focus"),
+            )
+            .with_frame(UiFrame::new(100.0, 0.0, 40.0, 20.0))
+            .with_state_flags(legacy_hidden_state),
+        )
+        .unwrap();
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(5), UiNodePath::new("root/scroll"))
+                .with_frame(UiFrame::new(0.0, 40.0, 100.0, 50.0))
+                .with_container(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
+                    axis: UiAxis::Vertical,
+                    gap: 0.0,
+                    scrollbar_visibility: UiScrollbarVisibility::Auto,
+                    virtualization: None,
+                }))
+                .with_scroll_state(UiScrollState::default())
+                .with_visibility(UiVisibility::SelfHitTestInvisible)
+                .with_state_flags({
+                    let mut state = pointer_state();
+                    state.focusable = false;
+                    state
+                }),
+        )
+        .unwrap();
+
+    assert_eq!(surface.focus_node(UiNodeId::new(3)), Ok(()));
+    assert!(surface.focus_node(UiNodeId::new(4)).is_err());
+    let focus_order = surface.tree.focusable_nodes_in_navigation_order().unwrap();
+    assert!(focus_order.contains(&UiNodeId::new(2)));
+    assert!(focus_order.contains(&UiNodeId::new(3)));
+    assert!(!focus_order.contains(&UiNodeId::new(4)));
+    assert_eq!(
+        surface
+            .tree
+            .first_scrollable_in_candidates(&[UiNodeId::new(5)])
+            .unwrap(),
+        Some(UiNodeId::new(5))
+    );
+}
+
+#[test]
 fn pointer_capture_routes_move_and_up_to_the_captured_node() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
     surface.tree.insert_root(
@@ -958,6 +1489,15 @@ fn pointer_capture_routes_move_and_up_to_the_captured_node() {
         .unwrap();
     assert_eq!(down.target, Some(UiNodeId::new(3)));
     assert_eq!(down.bubbled, vec![UiNodeId::new(3), UiNodeId::new(1)]);
+    assert_eq!(down.hit_path.target, Some(UiNodeId::new(3)));
+    assert_eq!(
+        down.hit_path.root_to_leaf,
+        vec![UiNodeId::new(1), UiNodeId::new(3)]
+    );
+    assert_eq!(
+        down.hit_path.bubble_route,
+        vec![UiNodeId::new(3), UiNodeId::new(1)]
+    );
     assert_eq!(surface.focus.focused, Some(UiNodeId::new(3)));
     assert_eq!(
         surface.focus.hovered,
@@ -1017,6 +1557,7 @@ fn navigation_routes_from_focus_and_falls_back_to_roots() {
     surface.focus = UiFocusState {
         focused: Some(UiNodeId::new(2)),
         captured: None,
+        pressed: None,
         hovered: Vec::new(),
     };
 
@@ -1090,6 +1631,7 @@ fn navigation_dispatcher_bubbles_from_focus_and_can_move_focus() {
     surface.focus = UiFocusState {
         focused: Some(UiNodeId::new(2)),
         captured: None,
+        pressed: None,
         hovered: Vec::new(),
     };
 
@@ -1855,6 +2397,106 @@ fn scroll_pointer_event_scrolls_the_nearest_scrollable_box_when_unhandled() {
         50.0
     );
     assert!(surface.tree.node(UiNodeId::new(2)).unwrap().dirty.layout);
+}
+
+#[test]
+fn surface_property_mutation_marks_dirty_only_when_values_change() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_state_flags(pointer_state())
+            .with_input_policy(UiInputPolicy::Receive),
+    );
+
+    let unchanged = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(1),
+            "enabled",
+            UiValue::Bool(true),
+        ))
+        .unwrap();
+    assert_eq!(unchanged.status, UiPropertyMutationStatus::Unchanged);
+    assert!(!surface.tree.node(UiNodeId::new(1)).unwrap().dirty.any());
+
+    let changed = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(1),
+            "enabled",
+            UiValue::Bool(false),
+        ))
+        .unwrap();
+    assert_eq!(changed.status, UiPropertyMutationStatus::Accepted);
+    assert!(changed.invalidation.dirty.input);
+    assert!(changed.invalidation.dirty.hit_test);
+    let node = surface.tree.node(UiNodeId::new(1)).unwrap();
+    assert!(!node.state_flags.enabled);
+    assert!(node.state_flags.dirty);
+    assert!(node.dirty.input);
+
+    let rejected = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(1),
+            "enabled",
+            UiValue::String("false".to_string()),
+        ))
+        .unwrap();
+    assert_eq!(rejected.status, UiPropertyMutationStatus::Rejected);
+    assert!(rejected.message.unwrap().contains("boolean"));
+}
+
+#[test]
+fn surface_property_mutation_updates_authored_metadata_and_reflector_snapshot() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 160.0, 80.0)),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/title"))
+                .with_frame(UiFrame::new(8.0, 8.0, 80.0, 20.0))
+                .with_state_flags(pointer_state())
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Label".to_string(),
+                    control_id: Some("TitleLabel".to_string()),
+                    attributes: toml::from_str("text = 'Inspect'").unwrap(),
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let report = surface
+        .mutate_property(
+            UiPropertyMutationRequest::new(
+                UiNodeId::new(2),
+                "text",
+                UiValue::String("Reflect".to_string()),
+            )
+            .with_source(UiReflectedPropertySource::Authored),
+        )
+        .unwrap();
+    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+    assert!(report.invalidation.dirty.layout);
+    assert!(report.invalidation.dirty.text);
+
+    let snapshot = surface.reflector_snapshot(Some(
+        zircon_runtime_interface::ui::surface::UiHitTestQuery::new(UiPoint::new(10.0, 10.0)),
+    ));
+    let reflected = snapshot.node(UiNodeId::new(2)).expect("reflected title");
+    let text = reflected.properties.get("text").expect("text property");
+    assert_eq!(reflected.display_name, "TitleLabel");
+    assert_eq!(text.source, UiReflectedPropertySource::Authored);
+    assert_eq!(text.value_kind, UiValueKind::String);
+    assert_eq!(text.resolved_value, UiValue::String("Reflect".to_string()));
+    assert!(text.invalidation.dirty.layout);
+    assert_eq!(
+        snapshot.hit_context.unwrap().hit_target,
+        Some(UiNodeId::new(2))
+    );
 }
 
 fn fixed_constraint(size: f32) -> AxisConstraint {

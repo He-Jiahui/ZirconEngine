@@ -264,6 +264,7 @@ fn mount_node(
         corner_radius: 0.0,
         border_width: 0.0,
         frame: template_frame(x, y, width, height),
+        ..Default::default()
     }
 }
 
@@ -925,6 +926,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                         width: 688.0,
                         height: 654.0,
                     },
+                    ..Default::default()
                 },
                 crate::ui::layouts::views::ViewTemplateNodeData {
                     node_id: "root/header_path".into(),
@@ -948,6 +950,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                         width: 656.0,
                         height: 16.0,
                     },
+                    ..Default::default()
                 },
                 crate::ui::layouts::views::ViewTemplateNodeData {
                     node_id: "root/catalog_panel".into(),
@@ -971,6 +974,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                         width: 656.0,
                         height: 68.0,
                     },
+                    ..Default::default()
                 },
             ]),
         };
@@ -999,6 +1003,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 680.0,
                     height: 122.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/tree_panel".into(),
@@ -1022,6 +1027,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 248.0,
                     height: 284.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/utility_tabs_row".into(),
@@ -1045,6 +1051,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 656.0,
                     height: 32.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/reference_right_panel".into(),
@@ -1068,6 +1075,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 322.0,
                     height: 110.0,
                 },
+                ..Default::default()
             },
         ]),
     };
@@ -1094,6 +1102,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                 width: 184.0,
                 height: 260.0,
             },
+            ..Default::default()
         }]),
         hierarchy_nodes: model_rc(vec![
             host_window::SceneNodeData {
@@ -1134,6 +1143,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 180.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/header_panel".into(),
@@ -1157,6 +1167,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 22.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/name_row".into(),
@@ -1180,6 +1191,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 22.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/parent_row".into(),
@@ -1203,6 +1215,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 22.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/position_row".into(),
@@ -1226,6 +1239,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 22.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/separator_row".into(),
@@ -1249,6 +1263,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 1.0,
                 },
+                ..Default::default()
             },
             crate::ui::layouts::views::ViewTemplateNodeData {
                 node_id: "root/actions_row".into(),
@@ -1272,6 +1287,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                     width: 220.0,
                     height: 24.0,
                 },
+                ..Default::default()
             },
         ]),
         info: "Node 42".into(),
@@ -1306,6 +1322,7 @@ fn host_scene_projection_converts_host_owned_panes_to_host_contract_panes() {
                 width: 640.0,
                 height: 152.0,
             },
+            ..Default::default()
         }]),
         status_text: "Build finished".into(),
     };
@@ -2278,6 +2295,123 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
             width: host_layout.document_region_frame.width,
             height: host_layout.document_region_frame.height - viewport_chrome_height,
         }
+    );
+}
+
+#[test]
+fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let (_fixture, chrome, model, ui_asset_panes, animation_panes) = root_shell_fixture();
+    let ui =
+        crate::ui::slint_host::UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in the test backend");
+    ui.window().set_size(slint::PhysicalSize::new(1280, 750));
+
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 750.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(
+            UiSize::new(1280.0, 750.0),
+            &model,
+            &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
+        )
+        .unwrap();
+    let projection_frames = bridge.root_shell_frames();
+    let geometry = WorkbenchShellGeometry {
+        center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            5.0, 17.0, 400.0, 500.0,
+        ),
+        status_bar_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            11.0, 520.0, 700.0, 18.0,
+        ),
+        region_frames: [
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Left,
+                crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 180.0, 320.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Document,
+                crate::ui::workbench::autolayout::ShellFrame::new(493.0, 91.0, 531.0, 320.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                crate::ui::workbench::autolayout::ShellFrame::new(620.0, 117.0, 144.0, 320.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                crate::ui::workbench::autolayout::ShellFrame::new(0.0, 460.0, 760.0, 120.0),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+        splitter_frames: [
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Right,
+                crate::ui::workbench::autolayout::ShellFrame::new(615.0, 17.0, 8.0, 500.0),
+            ),
+            (
+                crate::ui::workbench::autolayout::ShellRegionId::Bottom,
+                crate::ui::workbench::autolayout::ShellFrame::new(0.0, 455.0, 760.0, 8.0),
+            ),
+        ]
+        .into_iter()
+        .collect(),
+        viewport_content_frame: crate::ui::workbench::autolayout::ShellFrame::new(
+            66.0, 120.0, 320.0, 180.0,
+        ),
+        ..WorkbenchShellGeometry::default()
+    };
+    let floating_window_projection_bundle = build_floating_window_projection_bundle(
+        &model,
+        &geometry,
+        &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
+        &[],
+    );
+
+    apply_presentation(
+        &ui,
+        &model,
+        &chrome,
+        &geometry,
+        &[],
+        None,
+        &ui_asset_panes,
+        &animation_panes,
+        None,
+        Some(&projection_frames),
+        &floating_window_projection_bundle,
+    );
+
+    let host_layout = ui.get_host_presentation().host_layout;
+    let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let split_half = metrics.splitter_hit_size * 0.5;
+
+    assert_eq!(
+        host_layout.right_splitter_frame,
+        crate::ui::slint_host::FrameRect {
+            x: host_layout.right_region_frame.x - metrics.separator_thickness - split_half,
+            y: host_layout.right_region_frame.y,
+            width: metrics.splitter_hit_size,
+            height: host_layout.right_region_frame.height,
+        }
+    );
+    assert_eq!(
+        host_layout.bottom_splitter_frame,
+        crate::ui::slint_host::FrameRect {
+            x: host_layout.bottom_region_frame.x,
+            y: host_layout.bottom_region_frame.y - metrics.separator_thickness - split_half,
+            width: host_layout.bottom_region_frame.width,
+            height: metrics.splitter_hit_size,
+        }
+    );
+    assert!(
+        host_layout.right_splitter_frame.x >= host_layout.document_region_frame.x,
+        "right splitter should stay aligned with the shared right dock instead of stale legacy geometry"
+    );
+    assert!(
+        host_layout.bottom_splitter_frame.y >= host_layout.document_region_frame.y,
+        "bottom splitter should stay aligned with the shared bottom dock instead of stale legacy geometry"
     );
 }
 

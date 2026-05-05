@@ -97,6 +97,116 @@ fn host_template_assets_are_toml_authority_for_editor_shells() {
 }
 
 #[test]
+fn component_showcase_uses_material_meta_component_assets() {
+    for (relative, markers) in [
+        (
+            "assets/ui/editor/material_meta_components.ui.toml",
+            &[
+                "MaterialStateLayer",
+                "MaterialRipple",
+                "MaterialButtonBase",
+                "MaterialButton",
+                "MaterialTextButton",
+                "MaterialIconButton",
+                "MaterialToggleButton",
+                "MaterialCheckboxRow",
+                "MaterialCheckBox",
+                "MaterialOutlinedField",
+                "MaterialSliderField",
+                "MaterialListItem",
+                "MaterialComboBox",
+                "MaterialDatePickerPopup",
+                "MaterialGroupBox",
+                "MaterialLineEdit",
+                "MaterialMenuBarItem",
+                "MaterialMenuBar",
+                "MaterialMenuFrame",
+                "MaterialMenuItem",
+                "MaterialProgressIndicator",
+                "MaterialScrollView",
+                "MaterialSlider",
+                "MaterialSpinBox",
+                "MaterialSpinner",
+                "MaterialSwitch",
+                "MaterialStandardTableView",
+                "MaterialTabWidgetImpl",
+                "MaterialTabImpl",
+                "MaterialTabBarHorizontalImpl",
+                "MaterialTabBarVerticalImpl",
+                "MaterialTabWidget",
+                "MaterialTextEdit",
+                "MaterialTimePickerPopup",
+            ] as &[_],
+        ),
+        (
+            "assets/ui/editor/component_showcase.ui.toml",
+            &[
+                "material_meta_components.ui.toml#MaterialButton",
+                "material_meta_components.ui.toml#MaterialSwitch",
+                "material_meta_components.ui.toml#MaterialCheckBox",
+                "material_meta_components.ui.toml#MaterialLineEdit",
+                "material_meta_components.ui.toml#MaterialTextEdit",
+                "material_meta_components.ui.toml#MaterialSpinBox",
+                "material_meta_components.ui.toml#MaterialSlider",
+                "material_meta_components.ui.toml#MaterialComboBox",
+                "material_meta_components.ui.toml#MaterialGroupBox",
+                "material_meta_components.ui.toml#MaterialListItem",
+                "material_meta_components.ui.toml#MaterialStandardTableView",
+                "material_meta_components.ui.toml#MaterialMenuFrame",
+            ],
+        ),
+    ] {
+        let asset = source(relative);
+        for marker in markers {
+            assert!(asset.contains(marker), "{relative} missing `{marker}`");
+        }
+    }
+}
+
+#[test]
+fn material_meta_components_cover_slint_material_exports() {
+    let asset = source("assets/ui/editor/material_meta_components.ui.toml");
+    for component in [
+        "ButtonBase",
+        "Button",
+        "TextButton",
+        "IconButton",
+        "CheckBox",
+        "ComboBox",
+        "Ripple",
+        "StateLayer",
+        "ListItem",
+        "DatePickerPopup",
+        "GroupBox",
+        "LineEdit",
+        "MenuBarItem",
+        "MenuBar",
+        "MenuFrame",
+        "MenuItem",
+        "ProgressIndicator",
+        "ScrollView",
+        "Slider",
+        "SpinBox",
+        "Spinner",
+        "Switch",
+        "StandardTableView",
+        "TabWidgetImpl",
+        "TabImpl",
+        "TabBarHorizontalImpl",
+        "TabBarVerticalImpl",
+        "TabWidget",
+        "TextEdit",
+        "TimePickerPopup",
+    ] {
+        let marker = format!("[components.Material{component}]");
+        assert!(
+            asset.contains(&marker),
+            "material_meta_components.ui.toml missing Slint Material export `{component}`"
+        );
+    }
+}
+
+#[test]
 fn rust_owned_template_node_contract_keeps_retained_widget_state() {
     let template_nodes = source("src/ui/slint_host/host_contract/data/template_nodes.rs");
 
@@ -114,6 +224,15 @@ fn rust_owned_template_node_contract_keeps_retained_widget_state() {
         "pub collection_fields: ModelRc<TemplatePaneCollectionFieldData>",
         "pub structured_menu_items: ModelRc<TemplatePaneMenuItemData>",
         "pub actions: ModelRc<TemplatePaneActionData>",
+        "pub surface_variant: SharedString",
+        "pub text_tone: SharedString",
+        "pub button_variant: SharedString",
+        "pub font_size: f32",
+        "pub font_weight: i32",
+        "pub text_align: SharedString",
+        "pub overflow: SharedString",
+        "pub corner_radius: f32",
+        "pub border_width: f32",
     ] {
         assert!(
             template_nodes.contains(required),
