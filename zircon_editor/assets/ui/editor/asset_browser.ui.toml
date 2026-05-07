@@ -96,9 +96,9 @@ control_id = "LocateSelectedAsset"
 text = "Locate In Assets"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 124.0
-preferred = 124.0
-max = 124.0
+min = 156.0
+preferred = 156.0
+max = 156.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -207,9 +207,9 @@ control_id = "AssetBrowserKindAllChip"
 text = "All"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 34.0
-preferred = 34.0
-max = 34.0
+min = 44.0
+preferred = 44.0
+max = 44.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -226,9 +226,9 @@ control_id = "AssetBrowserKindTextureChip"
 text = "Texture"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 78.0
+preferred = 78.0
+max = 78.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -245,9 +245,9 @@ control_id = "AssetBrowserKindMaterialChip"
 text = "Material"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 84.0
+preferred = 84.0
+max = 84.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -264,9 +264,9 @@ control_id = "AssetBrowserKindSceneChip"
 text = "Scene"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 46.0
-preferred = 46.0
-max = 46.0
+min = 64.0
+preferred = 64.0
+max = 64.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -283,9 +283,9 @@ control_id = "AssetBrowserKindModelChip"
 text = "Model"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 50.0
-preferred = 50.0
-max = 50.0
+min = 64.0
+preferred = 64.0
+max = 64.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -302,9 +302,9 @@ control_id = "AssetBrowserKindShaderChip"
 text = "Shader"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 54.0
-preferred = 54.0
-max = 54.0
+min = 72.0
+preferred = 72.0
+max = 72.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -333,9 +333,9 @@ control_id = "AssetBrowserViewModeListButton"
 text = "List"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 44.0
-preferred = 44.0
-max = 44.0
+min = 58.0
+preferred = 58.0
+max = 58.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -352,9 +352,9 @@ control_id = "AssetBrowserViewModeThumbButton"
 text = "Thumb"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 70.0
+preferred = 70.0
+max = 70.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -391,9 +391,9 @@ control_id = "AssetBrowserKindPhysicsChip"
 text = "Physics"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 78.0
+preferred = 78.0
+max = 78.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -410,9 +410,9 @@ control_id = "AssetBrowserKindSkeletonChip"
 text = "Skeleton"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 62.0
-preferred = 62.0
-max = 62.0
+min = 86.0
+preferred = 86.0
+max = 86.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -429,9 +429,9 @@ control_id = "AssetBrowserKindClipChip"
 text = "Clip"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 38.0
-preferred = 38.0
-max = 38.0
+min = 52.0
+preferred = 52.0
+max = 52.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -448,9 +448,9 @@ control_id = "AssetBrowserKindSequenceChip"
 text = "Sequence"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 64.0
-preferred = 64.0
-max = 64.0
+min = 88.0
+preferred = 88.0
+max = 88.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -467,9 +467,9 @@ control_id = "AssetBrowserKindGraphChip"
 text = "Graph"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 66.0
+preferred = 66.0
+max = 66.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -486,9 +486,9 @@ control_id = "AssetBrowserKindStateChip"
 text = "State"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 48.0
-preferred = 48.0
-max = 48.0
+min = 62.0
+preferred = 62.0
+max = 62.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -542,9 +542,9 @@ text_tone = "muted"
 font_size = 9.0
 
 [root.children.node.children.node.layout.width]
-min = 60.0
-preferred = 60.0
-max = 60.0
+min = 86.0
+preferred = 86.0
+max = 86.0
 stretch = "Fixed"
 
 [root.children.node.children.node.layout.height]
@@ -578,9 +578,9 @@ text = "Import"
 button_variant = "primary"
 
 [root.children.node.children.node.layout.width]
-min = 68.0
-preferred = 68.0
-max = 68.0
+min = 86.0
+preferred = 86.0
+max = 86.0
 stretch = "Fixed"
 
 [root.children.node.children.node.layout.height]
@@ -1968,9 +1968,9 @@ control_id = "AssetBrowserPreviewTabButton"
 text = "Preview"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 78.0
+preferred = 78.0
+max = 78.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -1987,9 +1987,9 @@ control_id = "AssetBrowserReferencesTabButton"
 text = "References"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 74.0
-preferred = 74.0
-max = 74.0
+min = 106.0
+preferred = 106.0
+max = 106.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -2006,9 +2006,9 @@ control_id = "AssetBrowserMetadataTabButton"
 text = "Metadata"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 74.0
-preferred = 74.0
-max = 74.0
+min = 96.0
+preferred = 96.0
+max = 96.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -2025,9 +2025,9 @@ control_id = "AssetBrowserPluginsTabButton"
 text = "Plugins"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 64.0
-preferred = 64.0
-max = 64.0
+min = 80.0
+preferred = 80.0
+max = 80.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]

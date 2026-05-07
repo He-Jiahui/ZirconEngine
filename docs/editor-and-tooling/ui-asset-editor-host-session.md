@@ -33,6 +33,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/localization.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
   - zircon_editor/src/ui/template/mod.rs
   - zircon_editor/src/ui/template/registry.rs
@@ -63,6 +64,10 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/style_state.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_state.rs
+  - zircon_editor/src/ui/asset_editor/session/designer_state.rs
+  - zircon_editor/src/ui/asset_editor/session/emergency_state.rs
+  - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
+  - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/source/mod.rs
   - zircon_editor/assets/ui/editor/asset_browser.ui.toml
   - zircon_editor/assets/ui/editor/animation_editor.ui.toml
@@ -128,10 +133,17 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/mod.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/reflection.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
+  - zircon_editor/src/tests/editing/ui_asset/designer_tools.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/editor_layouts.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/action_localization_reports.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
+  - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
+  - zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs
+  - zircon_editor/src/tests/editing/ui_asset/emergency_shell.rs
   - zircon_editor/tests/workbench_slint_shell.rs
 implementation_files:
   - zircon_editor/Cargo.toml
@@ -164,6 +176,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
+  - zircon_editor/src/ui/asset_editor/diagnostics/localization.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
   - zircon_editor/src/ui/template/mod.rs
   - zircon_editor/src/ui/template/registry.rs
@@ -194,6 +207,10 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/style_state.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/preview_state.rs
+  - zircon_editor/src/ui/asset_editor/session/designer_state.rs
+  - zircon_editor/src/ui/asset_editor/session/emergency_state.rs
+  - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
+  - zircon_editor/src/ui/asset_editor/session/resolver_state.rs
   - zircon_editor/src/ui/asset_editor/source/mod.rs
   - zircon_editor/assets/ui/editor/asset_browser.ui.toml
   - zircon_editor/assets/ui/editor/animation_editor.ui.toml
@@ -260,6 +277,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-01-ui-asset-workspace-full-watcher-design.md
   - docs/superpowers/plans/2026-05-01-ui-asset-workspace-full-watcher.md
   - .codex/plans/UI 后续产品化与验证归档计划.md
+  - docs/superpowers/plans/2026-05-01-ui-asset-resource-refs-m15.md
   - docs/superpowers/plans/2026-05-01-ui-productization-editor-binding-parity.md
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
@@ -271,6 +289,7 @@ tests:
   - zircon_editor/src/tests/editing/ui_asset_theme_authoring.rs
   - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
+  - zircon_editor/src/tests/editing/ui_asset/emergency_shell.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
@@ -302,6 +321,11 @@ tests:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/action_localization_reports.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
+  - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
+  - zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - cargo test -p zircon_editor --lib editor_asset_boundary_lives_in_editor_crate --locked
@@ -445,11 +469,29 @@ M5 的 workspace owner 现在也收口在 host 层，而不是塞回 `UiAssetEdi
 - `refresh_ui_asset_workspace_for_changes(...)` 是 deterministic refresh 入口；真实 watcher poll、保存后的 dependent refresh、promotion undo/redo 外部 effect 都走同一条入口
 - `UiAssetWorkspaceEntry` 持有 disk baseline、external conflict、diff snapshot 和 stale import diagnostics；`UiAssetEditorSession` 仍只负责 source/document/preview 与 authoring state
 - clean direct asset change 会从磁盘重建 session、更新 baseline、清理 conflict，并重新 hydrate imports
-- dirty direct asset change 不覆盖本地 source，而是记录 `UiAssetExternalConflict`；pane/reflection 暴露 `has_external_conflict`、reload/keep-local/diff snapshot affordance
+- dirty direct asset change 不覆盖本地 source，而是记录 `UiAssetExternalConflict`；pane/reflection 暴露 `has_external_conflict`、reload/keep-local/save-local-copy/diff snapshot affordance
+- save-local-copy 只把当前本地 canonical source 写入显式路径或原文件旁的 `*.local-copy.toml`，不更新 disk baseline、不清理 dirty/conflict，也不覆盖外部变更
 - removed direct asset change 也进入 conflict state，而不是让 promotion undo 或外部删除因为 `NotFound` 中断 session 流程
 - import asset change 会尝试重新收集 imported widget/style documents；解析失败、kind mismatch 或 missing file 会变成 stale import diagnostic，并保留 last-good preview/session，直到 import 恢复后清空 stale state
 
-对外 editor manager 只新增薄 façade 方法：`reload_ui_asset_editor_from_disk`、`keep_ui_asset_editor_local_and_save`、`refresh_ui_asset_workspace_for_changes`、`poll_ui_asset_workspace_watcher`，以及 crate 内测试/诊断用的 diff snapshot accessor。UI shell 可以通过 pane presentation 决定是否展示 reload/keep-local/diff/stale import 操作，但真正的冲突裁决仍由 host workspace pipeline 执行。
+对外 editor manager 只新增薄 façade 方法：`reload_ui_asset_editor_from_disk`、`keep_ui_asset_editor_local_and_save`、`revert_ui_asset_editor_to_last_valid`、`save_ui_asset_editor_local_copy`、`save_ui_asset_editor_local_copy_next_to_source`、`refresh_ui_asset_workspace_for_changes`、`poll_ui_asset_workspace_watcher`，以及 crate 内诊断用的 diff snapshot accessor。UI shell 可以通过 pane presentation 决定是否展示 reload/keep-local/revert/save-local-copy/diff/stale import 操作，但真正的冲突裁决和 emergency recovery 仍由 host workspace pipeline 执行。
+
+### Emergency Shell And Last-Valid Recovery
+
+M24 的 recovery owner 也收口在同一条 session/host 边界上，而不是新增 Slint 真源或独立 watcher policy：
+
+- `UiAssetEditorShellState::{Valid, Stale, Invalid, Emergency}` 是 editor contract 的状态出口；`Stale` 来自外部冲突，`Emergency` 表示当前 source 有诊断但仍保留 last-valid preview host。
+- `UiAssetEditorSession` 持有 `last_valid_source_text`、`last_valid_document`、`last_valid_compiled` 和 `preview_host`；当前 source 解析失败时只更新 diagnostics/source buffer，不覆盖 last-valid document/compiled/preview。
+- `emergency_state.rs` 负责 shell-state 计算、diagnostic summary、revert affordance 和 `revert_source_to_last_valid()`；revert 仍走 `UiAssetEditorCommand::edit_source(...)`，所以 undo/replay 语义保持一致。
+- `UiAssetEditorReflectionModel`、pane presentation、Slint/native host DTO 和 `pane_ui_asset_conversion.rs` 投影 `shell_state`、`emergency_summary`、`can_emergency_reload`、`can_emergency_revert`、`can_emergency_open_asset_browser`。
+- `dispatch_ui_asset_action(...)` 把 `emergency.reload_from_disk`、`emergency.revert_last_valid`、`emergency.open_asset_browser` 分别路由到现有 `EditorUiHost` reload/revert/open-view 方法；reload/keep-local/diff 继续复用 M5 workspace conflict pipeline。
+
+M24 focused validation on 2026-05-07:
+
+- `cargo test -p zircon_editor --lib emergency_shell --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1` passed after the first cold compile timed out and the warmed rerun completed, `4 passed; 0 failed; 1128 filtered out`.
+- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1` passed, `6 passed; 0 failed; 1126 filtered out`.
+- `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1` passed, `211 passed; 0 failed; 921 filtered out`.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never` passed with existing runtime/editor warnings.
 
 ### Session Folder Split
 
@@ -595,8 +637,8 @@ The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks th
 
 - `DesignerToolModeRow` 是明确的工具模式壳层，给后续 select/move/resize/preview-interact 模式切换提供稳定 host band
 - `DesignerDiagnosticOverlayPanel` 是画布诊断 overlay 壳层，给 parse/compile/layout/slot 诊断提供不依赖业务 Slint 坐标的落点
-- `EmergencyShellPanel` 是 self-host fallback 壳层，先把 plan 中的 last-valid/emergency shell 边界钉进 `.ui.toml` authority；真正的 reload/revert/open-asset-browser 行为仍属于后续 host command slice
-- 本轮只承诺“作者态壳层存在、能编译、能投影出 frame”，不宣称完整 emergency fallback state machine 或 preview interact dispatch 已完成
+- `EmergencyShellPanel` 是 self-host fallback 壳层，先把 plan 中的 last-valid/emergency shell 边界钉进 `.ui.toml` authority；2026-05-07 后续切片已把 reload/revert/open-asset-browser 行为接到 host command path，并用 focused recovery tests 验证
+- 2026-05-01 这一轮只承诺“作者态壳层存在、能编译、能投影出 frame”；2026-05-07 后续验证才关闭完整 emergency fallback state machine
 
 根 pane 自己持有的 popup 壳层也继续缩了一步：
 
@@ -879,8 +921,20 @@ The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks th
   - 追加验证 21 个 preview/binding authoring 回归，确认 `preview_state.rs` 切分后 preview mock subject/property/nested value/suggestion 流程仍然稳定驱动 preview rebuild 与表达式求值
 - `F:/cargo-targets/zircon-codex-a/debug/deps/zircon_editor-0e7c5fdfee4db764.exe tests::host::manager::ui_asset_session_preview:: --nocapture`
   - 追加验证 8 个 host-facing preview/session 回归，确认 editor manager 继续通过稳定 session API 驱动 preview preset、mock preview、source byte offset 选中与交互式 session command
-- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked -- --nocapture`
-  - 追加验证 4 个 M5 workspace watcher/conflict 回归，覆盖 clean external reload、dirty conflict preservation、diff snapshot、reload/keep-local resolution、stale import failure/recovery
+- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-hot-reload-m5 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 5 个 M5 workspace watcher/conflict 回归，覆盖 clean external reload、dirty conflict preservation、save-local-copy 不解除冲突、diff snapshot、reload/keep-local resolution、stale import failure/recovery
+- `cargo test -p zircon_editor --lib emergency_shell --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 4 个 M24 emergency shell/host 回归，覆盖 invalid source -> Emergency、last-valid preview retention、manager revert 和 Slint/native emergency action routing；首次冷编译超时后，后台编译完成，warmed rerun 通过
+- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证同一 recovery target 下 6 个 workspace conflict/recovery 回归，覆盖 clean reload、dirty conflict、diff snapshot、reload/keep-local、save-local-copy、stale import recovery 和 manager emergency revert
+- `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 211 个 UI Asset Editor authoring/session 回归，确认 emergency shell state、host action routing 和 last-valid recovery 没有破坏 source/preview/tree/style/binding/replay 语义
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never`
+  - 证明 M24 emergency shell state、host action routing、Slint/native DTO projection 和 editor session surface 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warning
+- `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-hot-reload-m5 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 205 个 UI Asset Editor authoring/session 回归，确认 workspace conflict action projection 没有破坏 source/preview/tree/style/binding/replay 语义
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-hot-reload-m5 --message-format short --color never`
+  - 证明 M5 hot reload/conflict façade、Slint/native action dispatch 和 pane presentation surface 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warning
 - `cargo test -p zircon_editor --lib ui_asset_reference_and_promotion --locked -- --nocapture`
   - 追加验证 12 个 reference/promotion host 回归，确认 promotion undo/redo 删除或恢复外部 `.ui.toml` 时 dependent refresh 不再把 missing file 当作 fatal host error
 - `cargo test -p zircon_editor --lib ui_asset_replay --locked -- --nocapture`
@@ -893,8 +947,76 @@ The guard `ui_asset_editor_host_genericizes_detail_event_dispatch` now checks th
   - 证明 UI Asset Editor detail callbacks 通过 `dispatch_ui_asset_component_adapter_commit` 和 `asset_editor` component adapter mutation route，而不是回退成直接 detail-manager field dispatch
 - `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-validation-closeout --message-format short --color never`
   - 作为 Milestone 0 editor closeout package gate 通过，当前结果为 876 passed / 0 failed / 1 ignored；runtime/workspace broad green 仍未声明
+- `cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-designer-m6 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 9 个 UI Asset Editor bootstrap/projection 回归，确认 `ui_asset_editor.ui.toml` authored shell、header rows、panel columns 和 route 仍能打开并投影
+- `cargo test -p zircon_editor --lib designer_tools --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-designer-m6 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 3 个 M6 designer tool 行为：Select/Resize Slot/Preview Interact 工具状态投影、slot preferred size 单次 undoable transaction、preview canvas node binding dispatch
+- `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-designer-m6 --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 208 个 UI Asset Editor authoring/session 回归，确认 designer tool state、slot resize 和 preview interact 投影没有破坏 source/preview/tree/style/binding/replay 语义
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-designer-m6 --message-format short --color never`
+  - 证明 M6 designer tool session state、host façade、Slint/native action DTO 和 pane presentation surface 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warnings
+- `cargo test -p zircon_editor --lib action_localization_reports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 2 个 M21/M14 runtime report projection 回归，覆盖 action policy report rows 和 localization diagnostic/report rows
+- `cargo test -p zircon_editor --lib runtime_reports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 1 个 UI Asset Editor runtime-report projection 回归，覆盖 action-policy rows、locale dependency rows、locale extraction rows 和 diagnostics-empty happy path
+- `cargo test -p zircon_editor --lib runtime_report_productization --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 1 个 M21/M14/M15 productization 回归，覆盖 action policy、capability explanations、locale preview selection 和 resource dependency/diagnostic rows
+- `cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 219 个 UI Asset Editor authoring/session 回归，确认 runtime-report projection 没有破坏 source/preview/tree/style/binding/replay/emergency/designer 语义
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m21-m14-editor-reports --message-format short --color never`
+  - 证明 `runtime_report_state.rs`、`diagnostics/localization.rs`、pane presentation、Slint/native DTO conversion 和 editor template-service façade 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warnings
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/slint_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
+  - 追加验证 M15 editor dependency view 相关 session/presentation/DTO/test 文件格式，通过且无输出
+- `cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 4 个 M15 editor dependency-view 回归，覆盖 `UiAssetEditorSession` typed resource dependency/diagnostic accessors、source edit 刷新和资源编译失败后清空
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never`
+  - 证明 `UiAssetEditorSession::resource_dependencies()`、`UiAssetEditorSession::resource_diagnostics()` 和 preview compile refresh wiring 在当前 editor lib 下可编译；输出仍包含既有 runtime/editor warnings
+- `cargo test -p zircon_editor --lib dual_host_parity --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m22-parity --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 2 个 M22 runtime/editor parity 回归，覆盖 generic host window、UI Asset Editor shell、Component Showcase、Workbench 在 runtime `UiSurface`、editor host model、Slint/native projection 下的 layout frame、稳定模板属性、style token、binding/route id parity，以及 Material value change/commit/action route 的状态 reducer
+- `cargo test -p zircon_editor --lib template_runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m22-parity --message-format short --color never -- --nocapture --test-threads=1`
+  - 追加验证 44 个 template runtime 回归，确认 parity fixture 没有破坏 host model、shared surface、pane payload、Component Showcase state、viewport toolbar、welcome/inspector/asset surface 等投影路径
 
 这组测试组合起来，覆盖了“代码物理位置”“owner 边界”“shared 资产链路”“导航/光标行为回归”和“Slint 入口约束”几个最关键的验收面。
+
+## Designer Canvas Tools Status
+
+M6 designer canvas tools now have a focused behavior closure inside the UI Asset Editor session. `UiDesignerToolMode` is part of the shared editor contract and is projected through the reflection model, pane presentation, Slint/native DTO conversion, and action dispatch IDs for Select, Resize Slot, and Preview Interact.
+
+`designer_state.rs` owns the session behavior: it reports resize/interact capability from the selected node and preview host, changes the active tool mode without dirtying source, resizes selected slot preferred width/height through one replay-aware document edit labeled `Resize Slot`, and dispatches preview canvas interactions by selecting the preview node and projecting the matched `.ui.toml` binding/action payload into `UiDesignerPreviewInteractDispatch`.
+
+This is intentionally editor authoring behavior. It does not replace runtime input dispatch or add RHI/rendering dependencies. Remaining UI productization can now build recovery UX, policy/locale inspector projection, resource UX, and runtime/editor parity on top of a tested designer command surface instead of treating the canvas as a read-only projection.
+
+## Runtime Report Productization Status
+
+M21/M14 editor productization now has a focused UI Asset Editor closure. `runtime_report_state.rs` is the session owner for runtime-owned report projection: it validates the last-valid `.ui.toml` document against both `UiActionHostPolicy::runtime_default()` and `UiActionHostPolicy::editor_authoring()`, collects localization dependency/extraction/diagnostic rows, collects resource dependency/diagnostic rows, and exposes locale preview selection state through `UiAssetEditorPanePresentation`.
+
+For action safety, the pane now carries four distinct report groups. `action_policy_items` keeps the editor-authoring diagnostics used by the existing action report; `capability_explanation_items` keeps the static side-effect allow/block summary; `host_enforcement_items` shows runtime-default and editor-authoring profile enforcement side by side; and `unsafe_action_guidance_items` gives per-binding authoring guidance for editor-only asset IO and side effects that require an explicit host capability, such as network or external process work.
+
+The 2026-05-07 host-enforcement presentation slice is covered by focused editor validation in `D:\cargo-targets\zircon-ui-m14-m15-resolver`: `runtime_reports` passed 1 test, `runtime_report_productization` passed 1 test, the broader `ui_asset_editor` filter passed 221 tests, and `cargo check -p zircon_editor --lib` passed with existing warnings.
+
+`resolver_state.rs` now wires the runtime-owned locale/resource resolvers into the editor session. The editor can register external locale table keys for a selected preview locale and configure a `UiResourcePathResolver`; it then projects missing locale tables, missing keys, and missing resource files as pane rows without taking over localization/resource classification semantics.
+
+M15 editor resource dependency view is also focused-accepted at the resolver-backed read-only scope. `UiAssetEditorSession` stores the latest successful `UiCompiledDocument.resource_dependencies()` and `resource_diagnostics()` vectors, refreshes them after valid source edits, clears them when resource validation prevents compile, extends diagnostics with configured resolver file-existence results, and exposes the data through session accessors plus `resource_dependency_items` / `resource_diagnostic_items` rows.
+
+Localization report diagnostics are also mapped into `UiAssetEditorDiagnostic` through `diagnostics/localization.rs`, so invalid localized text refs carry source-path and node-target metadata instead of remaining only pane row strings.
+
+This keeps policy, localization, and resource semantics in runtime/interface-owned DTOs. The editor does not classify side effects, infer localization references, or rescan resources independently; it formats the report rows and forwards them through the existing pane presentation and native/Slint data conversion surfaces.
+
+The accepted scope is intentionally narrow: action policy rows, capability explanation rows, host enforcement rows, unsafe action guidance rows, locale preview/dependency/extraction/missing-key diagnostic rows, and resource dependency/file-existence diagnostic rows are visible to the editor host. Resource browser UX, watcher-driven reload, runtime loader backends, and graphics/RHI resource consumption remain separate follow-up milestones.
+
+## Resource Dependency Accessors
+
+M15 now has a resolver-backed editor session view in addition to the runtime-report pane rows. `UiAssetEditorSession` stores `Vec<UiResourceDependency>` and `Vec<UiResourceDiagnostic>` from the latest preview compile and exposes them through `resource_dependencies()` and `resource_diagnostics()`. The vectors are refreshed after a successful preview rebuild or source edit, can be refreshed when configured resolver roots or files change, and are cleared when parse/resource validation fails so stale dependency rows cannot survive a bad compile.
+
+This remains a read-only editor boundary. The editor does not infer resource references, watch resources, load GPU resources, or rescan `.ui.toml` independently; it consumes `UiCompiledDocument::resource_dependencies()` and `UiCompiledDocument::resource_diagnostics()` from the runtime-owned compiler surface, then asks runtime `UiResourcePathResolver` to validate configured roots.
+
+## Dual Host Parity
+
+M22 now has a focused representative parity fixture in `zircon_editor/src/tests/host/template_runtime/dual_host_parity.rs`. The test builds one runtime `UiSurface`, computes layout once, then compares that same frame authority against the editor host model and Slint/native host projection for the generic host window, UI Asset Editor shell, Component Showcase, and Workbench templates.
+
+The parity check treats `UiSurface` as the layout/render/hit/input frame source of truth: frame entries, stable authored attributes, style tokens, binding ids, and registered route ids must survive the host/native projection path. Component Showcase intentionally overlays retained demo state in the editor host model, so the fixture filters only those state-owned overlay fields (`selected`, `selection_state`, `value_text`, validation rows, generated `collection_items`) from the raw-template attribute comparison and then verifies the overlay separately through projected collection rows, virtualization metadata, world-space metadata, and material event dispatch.
+
+Accepted focused evidence is `dual_host_parity` passing 2 tests, `template_runtime` passing 44 tests, and `cargo check -p zircon_editor --lib` passing in `D:\cargo-targets\zircon-ui-m22-parity`. This does not claim Graphics/RHI rendering parity or broad workspace green.
 
 ## Runtime Interface UI DTO Cutover Status
 

@@ -37,9 +37,9 @@ fn host_side_activity_rails_use_projected_toml_template_nodes() {
     for required in [
         "ActivityRailPanel",
         "ActivityRailButton0",
-        "ActivityRailButtonLabel0",
+        "ActivityRailButtonIcon0",
         "ActivityRailButton1",
-        "ActivityRailButtonLabel1",
+        "ActivityRailButtonIcon1",
     ] {
         assert!(
             activity_asset.contains(required),

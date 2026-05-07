@@ -26,8 +26,15 @@ pub use invalidation::{
     NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD,
 };
 pub use loader::UiAssetLoader;
-pub use localization::{collect_document_localization_report, validate_document_localization};
-pub use resource_ref::collect_document_resource_dependencies;
+pub use localization::{
+    collect_document_localization_report, localization_table_keys_from_toml_str,
+    validate_document_localization, validate_localization_report_against_catalog,
+    UiLocalizationTableCatalog,
+};
+pub use resource_ref::{
+    collect_document_resource_dependencies, validate_resource_dependency_files,
+    UiResourcePathResolver,
+};
 pub use schema::{
     UiAssetSchemaMigrator, UiAssetSchemaVersionPolicy, UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION,
     UI_ASSET_MINIMUM_SUPPORTED_SOURCE_SCHEMA_VERSION,

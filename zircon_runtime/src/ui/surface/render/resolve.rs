@@ -1,8 +1,9 @@
 use toml::Value;
 
 use zircon_runtime_interface::ui::surface::{
-    UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextOverflow,
-    UiTextRenderMode, UiTextWrap, UiVisualAssetRef,
+    UiEditableTextState, UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextCaret,
+    UiTextComposition, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRenderMode,
+    UiTextSelection, UiTextWrap, UiVisualAssetRef,
 };
 use zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata;
 
@@ -17,10 +18,10 @@ pub(super) fn resolve_command_kind(
         || style.corner_radius > 0.0
     {
         UiRenderCommandKind::Quad
-    } else if text.is_some() {
-        UiRenderCommandKind::Text
     } else if image.is_some() {
         UiRenderCommandKind::Image
+    } else if text.is_some() {
+        UiRenderCommandKind::Text
     } else {
         UiRenderCommandKind::Group
     }
@@ -77,9 +78,19 @@ pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiReso
 }
 
 pub(super) fn resolve_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
-    resolve_non_empty_string_attribute(metadata, "text")
-        .or_else(|| resolve_non_empty_string_attribute(metadata, "label"))
-        .map(str::to_string)
+    if let Some(label) = resolve_visible_label_text(metadata) {
+        return Some(label);
+    }
+
+    if let Some(text) = resolve_non_empty_string_attribute(metadata, "text") {
+        return Some(text.to_string());
+    }
+
+    if icon_button_label_is_accessibility_only(metadata) {
+        return None;
+    }
+
+    resolve_control_fallback_text(metadata)
 }
 
 pub(super) fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option<UiVisualAssetRef> {
@@ -89,12 +100,45 @@ pub(super) fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option
             resolve_string_attribute(metadata, "image")
                 .map(|image| UiVisualAssetRef::Image(image.to_string()))
         })
+        .or_else(|| {
+            resolve_string_attribute(metadata, "source")
+                .map(|source| UiVisualAssetRef::Image(source.to_string()))
+        })
 }
 
 pub(super) fn resolve_opacity(metadata: Option<&UiTemplateNodeMetadata>) -> f32 {
     resolve_number_attribute(metadata, "opacity")
         .unwrap_or(1.0)
         .clamp(0.0, 1.0)
+}
+
+pub(super) fn resolve_editable_text_state(
+    metadata: Option<&UiTemplateNodeMetadata>,
+    visible_text: Option<&str>,
+) -> Option<UiEditableTextState> {
+    let metadata = metadata?;
+    if !is_editable_text_component(metadata) {
+        return None;
+    }
+    let text = resolve_editable_text_value(metadata, visible_text);
+    let caret = UiTextCaret {
+        offset: clamp_text_boundary(
+            &text,
+            resolve_usize_attribute(Some(metadata), "caret_offset").unwrap_or(text.len()),
+        ),
+        affinity: Default::default(),
+    };
+    let selection = resolve_selection(metadata, &text);
+    let composition = resolve_composition(metadata, &text);
+    Some(UiEditableTextState {
+        text,
+        caret,
+        selection,
+        composition,
+        read_only: resolve_bool_attribute(Some(metadata), "read_only")
+            .or_else(|| resolve_bool_attribute(Some(metadata), "input_read_only"))
+            .unwrap_or(false),
+    })
 }
 
 fn resolve_string_attribute<'a>(
@@ -113,10 +157,186 @@ fn resolve_non_empty_string_attribute<'a>(
     resolve_string_attribute(metadata, key).filter(|value| !value.is_empty())
 }
 
+fn resolve_visible_value_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+    let value = metadata.and_then(|metadata| metadata.attributes.get("value"))?;
+    resolve_scalar_text(value)
+}
+
+fn icon_button_label_is_accessibility_only(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    let Some(metadata) = metadata else {
+        return false;
+    };
+    metadata.component == "IconButton"
+        && (["icon", "image", "source"]
+            .iter()
+            .any(|key| metadata.attributes.contains_key(*key))
+            || resolve_number_attribute(Some(metadata), "layout_icon_size")
+                .is_some_and(|size| size > 0.0))
+}
+
+fn resolve_control_fallback_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+    if !supports_visible_value_fallback(metadata) {
+        return None;
+    }
+
+    resolve_visible_value_text(metadata)
+        .or_else(|| resolve_non_empty_string_attribute(metadata, "value_text").map(str::to_string))
+        .or_else(|| resolve_non_empty_string_attribute(metadata, "placeholder").map(str::to_string))
+        .or_else(|| resolve_first_option_text(metadata))
+}
+
+fn resolve_visible_label_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+    if icon_button_label_is_accessibility_only(metadata) {
+        return None;
+    }
+    if !supports_visible_label(metadata) {
+        return None;
+    }
+    resolve_non_empty_string_attribute(metadata, "label").map(str::to_string)
+}
+
+fn supports_visible_label(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    let Some(metadata) = metadata else {
+        return false;
+    };
+
+    matches!(
+        metadata.component.as_str(),
+        "Button"
+            | "ToggleButton"
+            | "Checkbox"
+            | "ComboBox"
+            | "MenuItem"
+            | "Tab"
+            | "TableRow"
+            | "ListRow"
+            | "Dropdown"
+            | "Radio"
+            | "SegmentedControl"
+    )
+}
+
+fn supports_visible_value_fallback(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    let Some(metadata) = metadata else {
+        return false;
+    };
+
+    matches!(
+        metadata.component.as_str(),
+        "Button"
+            | "ToggleButton"
+            | "Checkbox"
+            | "InputField"
+            | "TextField"
+            | "ComboBox"
+            | "RangeField"
+            | "NumberField"
+            | "Switch"
+            | "ContextActionMenu"
+            | "MenuItem"
+            | "Tab"
+            | "TableRow"
+            | "Label"
+            | "ListRow"
+            | "Dropdown"
+            | "Radio"
+            | "SegmentedControl"
+            | "ColorField"
+            | "Vector2Field"
+            | "Vector3Field"
+            | "Vector4Field"
+    )
+}
+
+fn is_editable_text_component(metadata: &UiTemplateNodeMetadata) -> bool {
+    resolve_bool_attribute(Some(metadata), "editable_text").unwrap_or(false)
+        || matches!(
+            metadata.component.as_str(),
+            "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"
+        )
+}
+
+fn resolve_editable_text_value(
+    metadata: &UiTemplateNodeMetadata,
+    visible_text: Option<&str>,
+) -> String {
+    metadata
+        .attributes
+        .get("value")
+        .and_then(resolve_scalar_text)
+        .or_else(|| {
+            resolve_non_empty_string_attribute(Some(metadata), "value_text").map(str::to_string)
+        })
+        .or_else(|| resolve_non_empty_string_attribute(Some(metadata), "text").map(str::to_string))
+        .or_else(|| visible_text.map(str::to_string))
+        .unwrap_or_default()
+}
+
+fn resolve_selection(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<UiTextSelection> {
+    let anchor = resolve_usize_attribute(Some(metadata), "selection_anchor")?;
+    let focus = resolve_usize_attribute(Some(metadata), "selection_focus")?;
+    Some(UiTextSelection {
+        anchor: clamp_text_boundary(text, anchor),
+        focus: clamp_text_boundary(text, focus),
+    })
+}
+
+fn resolve_composition(metadata: &UiTemplateNodeMetadata, text: &str) -> Option<UiTextComposition> {
+    let start = resolve_usize_attribute(Some(metadata), "composition_start")?;
+    let end = resolve_usize_attribute(Some(metadata), "composition_end")?;
+    let composition_text = resolve_string_attribute(Some(metadata), "composition_text")?;
+    Some(UiTextComposition {
+        range: UiTextRange {
+            start: clamp_text_boundary(text, start),
+            end: clamp_text_boundary(text, end),
+        },
+        text: composition_text.to_string(),
+        restore_text: resolve_string_attribute(Some(metadata), "composition_restore_text")
+            .map(str::to_string),
+    })
+}
+
+fn resolve_first_option_text(metadata: Option<&UiTemplateNodeMetadata>) -> Option<String> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get("options"))
+        .and_then(Value::as_array)
+        .and_then(|options| options.iter().find_map(resolve_option_text))
+}
+
+fn resolve_option_text(value: &Value) -> Option<String> {
+    match value {
+        Value::Table(table) => ["text", "label", "value", "name", "title"]
+            .iter()
+            .filter_map(|key| table.get(*key))
+            .find_map(resolve_scalar_text),
+        scalar => resolve_scalar_text(scalar),
+    }
+}
+
+fn resolve_scalar_text(value: &Value) -> Option<String> {
+    match value {
+        Value::String(value) if !value.is_empty() => Some(value.clone()),
+        Value::Integer(value) => Some(value.to_string()),
+        Value::Float(value) => Some(value.to_string()),
+        Value::Boolean(value) => Some(value.to_string()),
+        _ => None,
+    }
+}
+
 fn resolve_number_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<f32> {
     metadata
         .and_then(|metadata| metadata.attributes.get(key))
         .and_then(value_as_f32)
+}
+
+fn resolve_usize_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<usize> {
+    metadata
+        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(|value| match value {
+            Value::Integer(value) => (*value >= 0).then_some(*value as usize),
+            Value::Float(value) if value.is_finite() && *value >= 0.0 => Some(*value as usize),
+            _ => None,
+        })
 }
 
 fn resolve_bool_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<bool> {
@@ -171,6 +391,14 @@ fn value_as_f32(value: &Value) -> Option<f32> {
         .as_float()
         .or_else(|| value.as_integer().map(|value| value as f64))
         .map(|value| value as f32)
+}
+
+fn clamp_text_boundary(text: &str, offset: usize) -> usize {
+    let mut offset = offset.min(text.len());
+    while offset > 0 && !text.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    offset
 }
 
 fn parse_text_align(value: &str) -> Option<UiTextAlign> {

@@ -45,7 +45,13 @@ pub(crate) fn parse_source_runs(text: &str, rich_text: bool) -> Vec<UiTextSource
     }
 
     if plain_start < text.len() || runs.is_empty() {
-        push_run(&mut runs, UiTextRunKind::Plain, text, plain_start, text.len());
+        push_run(
+            &mut runs,
+            UiTextRunKind::Plain,
+            text,
+            plain_start,
+            text.len(),
+        );
     }
 
     runs.retain(|run| !run.text.is_empty());

@@ -126,6 +126,7 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
         crate::ui::RuntimeUiFixture::PauseMenu,
         crate::ui::RuntimeUiFixture::SettingsDialog,
         crate::ui::RuntimeUiFixture::InventoryList,
+        crate::ui::RuntimeUiFixture::QuestLogDialog,
     ] {
         let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
         manager.load_builtin_fixture(fixture).unwrap();

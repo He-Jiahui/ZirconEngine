@@ -1,10 +1,14 @@
 use crate::ui::asset_editor::{
-    UiAssetEditorDiagnostic, UiAssetEditorRoute, UiDesignerSelectionModel,
-    UiStyleInspectorReflectionModel,
+    UiAssetEditorDiagnostic, UiAssetEditorRoute, UiDesignerPreviewInteractDispatch,
+    UiDesignerSelectionModel, UiDesignerToolMode, UiStyleInspectorReflectionModel,
 };
 use thiserror::Error;
-use zircon_runtime::ui::template::{UiCompiledDocument, UiTemplateBuildError};
-use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError, UiAssetKind};
+use zircon_runtime::ui::template::{
+    UiCompiledDocument, UiLocalizationTableCatalog, UiResourcePathResolver, UiTemplateBuildError,
+};
+use zircon_runtime_interface::ui::template::{
+    UiAssetDocument, UiAssetError, UiAssetKind, UiResourceDependency, UiResourceDiagnostic,
+};
 use zircon_runtime_interface::ui::tree::UiTreeError;
 
 use super::{
@@ -80,6 +84,10 @@ pub struct UiAssetEditorSession {
     pub(super) last_valid_source_text: String,
     pub(super) last_valid_document: UiAssetDocument,
     pub(super) last_valid_compiled: Option<UiCompiledDocument>,
+    pub(super) resource_dependencies: Vec<UiResourceDependency>,
+    pub(super) resource_diagnostics: Vec<UiResourceDiagnostic>,
+    pub(super) resource_resolver: UiResourcePathResolver,
+    pub(super) localization_catalog: UiLocalizationTableCatalog,
     pub(super) preview_host: Option<UiAssetPreviewHost>,
     pub(super) undo_stack: UiAssetEditorUndoStack,
     pub(super) diagnostics: Vec<String>,
@@ -87,6 +95,8 @@ pub struct UiAssetEditorSession {
     pub(super) source_cursor_byte_offset: usize,
     pub(super) source_cursor_anchor: Option<UiAssetSourceCursorAnchor>,
     pub(super) selection: UiDesignerSelectionModel,
+    pub(super) designer_tool_mode: UiDesignerToolMode,
+    pub(super) last_preview_interact_dispatch: Option<UiDesignerPreviewInteractDispatch>,
     pub(super) style_inspector: UiStyleInspectorReflectionModel,
     pub(super) selected_style_rule_index: Option<usize>,
     pub(super) selected_style_rule_id: Option<String>,
@@ -98,6 +108,7 @@ pub struct UiAssetEditorSession {
     pub(super) selected_binding_payload_key: Option<String>,
     pub(super) selected_slot_semantic_path: Option<String>,
     pub(super) selected_layout_semantic_path: Option<String>,
+    pub(super) selected_locale_preview: String,
     pub(super) selected_palette_index: Option<usize>,
     pub(super) palette_target_chooser: Option<UiAssetPaletteTargetChooser>,
     pub(super) selected_promote_source_component_name: Option<String>,

@@ -15,6 +15,11 @@ pub(crate) struct TemplateNodePointerHit {
     pub(crate) action_id: SharedString,
     pub(crate) binding_id: SharedString,
     pub(crate) dispatch_kind: SharedString,
+    pub(crate) component_role: SharedString,
+    pub(crate) value_text: SharedString,
+    pub(crate) edit_action_id: SharedString,
+    pub(crate) commit_action_id: SharedString,
+    pub(crate) frame: FrameRect,
 }
 
 pub(crate) fn hit_test_pane_template_node(
@@ -46,8 +51,10 @@ fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>
         "Console" => Some(&pane.console.nodes),
         "Assets" => Some(&pane.assets_activity.nodes),
         "AssetBrowser" => Some(&pane.asset_browser.nodes),
+        "Welcome" => Some(&pane.welcome.nodes),
         "Project" | "UiComponentShowcase" => Some(&pane.project_overview.nodes),
-        "ModulePlugins" | "RuntimeDiagnostics" => Some(&pane.module_plugins.nodes),
+        "RuntimeDiagnostics" => Some(&pane.runtime_diagnostics.nodes),
+        "ModulePlugins" => Some(&pane.module_plugins.nodes),
         "BuildExport" => Some(&pane.build_export.nodes),
         "UiAssetEditor" => Some(&pane.ui_asset.nodes),
         "AnimationSequenceEditor" | "AnimationGraphEditor" => Some(&pane.animation.nodes),
@@ -65,11 +72,22 @@ fn hit_test_template_nodes(
     let hit = hit_test_host_surface_frame(surface_frame, origin, x, y)?;
     let row = hit.node_id.0.checked_sub(2)? as usize;
     let node = nodes.row_data(row)?;
+    let frame = FrameRect {
+        x: origin.x + node.frame.x,
+        y: origin.y + node.frame.y,
+        width: node.frame.width,
+        height: node.frame.height,
+    };
     Some(TemplateNodePointerHit {
         control_id: node.control_id,
         action_id: node.action_id,
         binding_id: node.binding_id,
         dispatch_kind: node.dispatch_kind,
+        component_role: node.component_role,
+        value_text: node.value_text,
+        edit_action_id: node.edit_action_id,
+        commit_action_id: node.commit_action_id,
+        frame,
     })
 }
 
@@ -78,7 +96,10 @@ fn is_dispatchable(node: &TemplatePaneNodeData) -> bool {
         && !node.control_id.is_empty()
         && (!node.action_id.is_empty()
             || !node.binding_id.is_empty()
-            || !node.dispatch_kind.is_empty())
+            || !node.dispatch_kind.is_empty()
+            || !node.edit_action_id.is_empty()
+            || !node.commit_action_id.is_empty()
+            || matches!(node.component_role.as_str(), "input-field" | "number-field"))
 }
 
 fn template_nodes_surface_frame(

@@ -23,10 +23,6 @@ pub(super) fn floating_window_attach_node_id(index: usize) -> UiNodeId {
     UiNodeId::new(FLOATING_NODE_ID_BASE + index as u64 * FLOATING_NODE_STRIDE)
 }
 
-pub(super) fn floating_window_projection_exclusion_node_id(index: usize) -> UiNodeId {
-    UiNodeId::new(FLOATING_NODE_ID_BASE + index as u64 * FLOATING_NODE_STRIDE + 5)
-}
-
 pub(super) fn floating_window_edge_node_id(index: usize, edge: DockEdge) -> UiNodeId {
     let offset = match edge {
         DockEdge::Left => 1,

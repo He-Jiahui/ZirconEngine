@@ -482,6 +482,10 @@ fn runtime_component_registry_filters_by_host_capabilities_and_reports_missing()
         .descriptors_for_host(&runtime_basic)
         .iter()
         .all(|descriptor| descriptor.id != "TextField"));
+    assert!(registry
+        .descriptors_for_host(&runtime_basic)
+        .iter()
+        .all(|descriptor| descriptor.id != "WorldSpaceSurface"));
 
     assert!(registry
         .descriptors_for_host(&runtime_basic)
@@ -492,6 +496,17 @@ fn runtime_component_registry_filters_by_host_capabilities_and_reports_missing()
         .missing_capabilities("TextField", &runtime_basic)
         .expect("TextField descriptor should exist");
     assert!(missing.contains(&UiHostCapability::TextInput));
+
+    let missing_world = registry
+        .missing_capabilities("WorldSpaceSurface", &runtime_basic)
+        .expect("WorldSpaceSurface descriptor should exist");
+    assert!(missing_world.contains(&UiHostCapability::WorldSpaceUi));
+
+    let runtime_world_space = UiHostCapabilitySet::runtime_world_space();
+    assert!(registry
+        .descriptors_for_host(&runtime_world_space)
+        .iter()
+        .any(|descriptor| descriptor.id == "WorldSpaceSurface"));
 }
 
 #[test]

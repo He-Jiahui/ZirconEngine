@@ -48,9 +48,9 @@ y = 0.0
 stretch = "Stretch"
 
 [root.children.node.layout.height]
-min = 25.0
-preferred = 25.0
-max = 25.0
+min = 24.0
+preferred = 24.0
+max = 24.0
 stretch = "Fixed"
 
 [[root.children]]
@@ -67,7 +67,7 @@ border_width = 0.0
 
 [root.children.node.layout.position]
 x = 0.0
-y = 25.0
+y = 24.0
 
 [root.children.node.layout.width]
 stretch = "Stretch"

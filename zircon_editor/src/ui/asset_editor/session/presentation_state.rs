@@ -58,6 +58,18 @@ impl UiAssetEditorSession {
         .with_source_dirty(self.source_buffer.is_dirty())
         .with_undo_state(self.can_undo(), self.can_redo())
         .with_preview_available(self.preview_host.is_some())
+        .with_shell_state(
+            self.shell_state(),
+            self.emergency_summary(),
+            !self.diagnostics.is_empty(),
+            self.can_revert_to_last_valid_source(),
+            !self.diagnostics.is_empty(),
+        )
+        .with_designer_tool_state(
+            self.designer_tool_mode(),
+            self.can_resize_selected_slot(),
+            self.can_preview_interact(),
+        )
         .with_selection(self.selection.clone())
         .with_style_inspector(self.style_inspector.clone());
         if let Some(error) = self.diagnostics.first() {
@@ -158,6 +170,7 @@ impl UiAssetEditorSession {
             self.selected_binding_index,
             self.selected_binding_payload_key.as_deref(),
         );
+        let runtime_report = self.runtime_report_projection();
         let slot_semantic_group =
             build_slot_semantic_group(&self.last_valid_document, &self.selection);
         let structured_slot_semantic =
@@ -406,10 +419,16 @@ impl UiAssetEditorSession {
             stale_import_items: reflection.stale_import_items.clone(),
             can_reload_from_disk: reflection.can_reload_from_disk,
             can_keep_local_and_save: reflection.can_keep_local_and_save,
+            can_save_local_copy: reflection.can_save_local_copy,
             can_open_diff_snapshot: reflection.can_open_diff_snapshot,
             can_save: reflection.source_dirty && reflection.last_error.is_none(),
             can_undo: reflection.can_undo,
             can_redo: reflection.can_redo,
+            shell_state: reflection.shell_state.label().to_string(),
+            emergency_summary: reflection.emergency_summary.clone(),
+            can_emergency_reload: reflection.can_emergency_reload,
+            can_emergency_revert: reflection.can_emergency_revert,
+            can_emergency_open_asset_browser: reflection.can_emergency_open_asset_browser,
             can_insert_child,
             can_insert_after,
             can_move_up,
@@ -426,6 +445,10 @@ impl UiAssetEditorSession {
             can_create_rule,
             can_extract_rule,
             preview_available: reflection.preview_available,
+            designer_tool_mode: reflection.designer_tool_mode.label().to_string(),
+            can_designer_select: reflection.can_designer_select,
+            can_designer_resize_slot: reflection.can_designer_resize_slot,
+            can_designer_preview_interact: reflection.can_designer_preview_interact,
             style_state_hover: pseudo_state_active(&reflection.style_inspector, "hover"),
             style_state_focus: pseudo_state_active(&reflection.style_inspector, "focus"),
             style_state_pressed: pseudo_state_active(&reflection.style_inspector, "pressed"),
@@ -604,6 +627,53 @@ impl UiAssetEditorSession {
             preview_mock_nested_can_add: preview_mock_fields.nested_can_add,
             preview_mock_nested_can_delete: preview_mock_fields.nested_can_delete,
             preview_summary,
+            preview_interact_node_id: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.node_id.clone())
+                .unwrap_or_default(),
+            preview_interact_event: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.event.native_name().to_string())
+                .unwrap_or_default(),
+            preview_interact_route: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.route.clone())
+                .unwrap_or_default(),
+            preview_interact_action: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.action.clone())
+                .unwrap_or_default(),
+            preview_interact_side_effect: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| format!("{:?}", dispatch.side_effect_class))
+                .unwrap_or_default(),
+            preview_interact_payload_items: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.payload_items.clone())
+                .unwrap_or_default(),
+            preview_interact_target_items: self
+                .last_preview_interact_dispatch
+                .as_ref()
+                .map(|dispatch| dispatch.target_items.clone())
+                .unwrap_or_default(),
+            action_policy_items: runtime_report.action_policy_items,
+            capability_explanation_items: runtime_report.capability_explanation_items,
+            host_enforcement_items: runtime_report.host_enforcement_items,
+            unsafe_action_guidance_items: runtime_report.unsafe_action_guidance_items,
+            locale_preview_items: runtime_report.locale_preview_items,
+            locale_preview_selected_locale: runtime_report.locale_preview_selected_locale,
+            locale_preview_selected_index: runtime_report.locale_preview_selected_index,
+            locale_dependency_items: runtime_report.locale_dependency_items,
+            locale_extraction_items: runtime_report.locale_extraction_items,
+            locale_diagnostic_items: runtime_report.locale_diagnostic_items,
+            resource_dependency_items: runtime_report.resource_dependency_items,
+            resource_diagnostic_items: runtime_report.resource_diagnostic_items,
             palette_selected_index: self
                 .selected_palette_index
                 .map(|index| index as i32)

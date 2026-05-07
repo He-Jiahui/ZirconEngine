@@ -68,7 +68,7 @@ impl UiBatchPlan {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiBatch {
     pub key: UiBatchKey,
     pub range: UiBatchRange,
@@ -82,7 +82,7 @@ pub struct UiBatchRange {
     pub element_count: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiBatchKey {
     pub z_index: i32,
     pub clip: Option<String>,
@@ -103,12 +103,9 @@ impl UiBatchKey {
                 None,
                 Some(text.render_mode),
             ),
-            UiPaintPayload::Brush { brushes } => brush_batch_key(
-                brushes
-                    .fill
-                    .as_ref()
-                    .or(brushes.border.as_ref()),
-            ),
+            UiPaintPayload::Brush { brushes } => {
+                brush_batch_key(brushes.fill.as_ref().or(brushes.border.as_ref()))
+            }
         };
 
         Self {
@@ -157,10 +154,15 @@ fn brush_batch_key(
     Option<UiTextRenderMode>,
 ) {
     match brush {
-        Some(UiBrushPayload::Solid(_)) => (UiBatchPrimitive::Quad, UiBatchShader::Color, None, None),
-        Some(UiBrushPayload::Rounded(_)) => {
-            (UiBatchPrimitive::RoundedRect, UiBatchShader::Color, None, None)
+        Some(UiBrushPayload::Solid(_)) => {
+            (UiBatchPrimitive::Quad, UiBatchShader::Color, None, None)
         }
+        Some(UiBrushPayload::Rounded(_)) => (
+            UiBatchPrimitive::RoundedRect,
+            UiBatchShader::Color,
+            None,
+            None,
+        ),
         Some(UiBrushPayload::Border(_)) => {
             (UiBatchPrimitive::Border, UiBatchShader::Color, None, None)
         }
@@ -182,9 +184,12 @@ fn brush_batch_key(
             Some(payload.resource_key()),
             None,
         ),
-        Some(UiBrushPayload::Gradient(_)) => {
-            (UiBatchPrimitive::Gradient, UiBatchShader::Gradient, None, None)
-        }
+        Some(UiBrushPayload::Gradient(_)) => (
+            UiBatchPrimitive::Gradient,
+            UiBatchShader::Gradient,
+            None,
+            None,
+        ),
         None => (UiBatchPrimitive::Empty, UiBatchShader::None, None, None),
     }
 }

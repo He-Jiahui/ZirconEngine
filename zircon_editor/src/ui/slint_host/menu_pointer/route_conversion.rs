@@ -6,10 +6,19 @@ pub(in crate::ui::slint_host::menu_pointer) fn to_public_route(
 ) -> HostMenuPointerRoute {
     match target {
         HostMenuPointerTarget::MenuButton(index) => HostMenuPointerRoute::MenuButton(index),
+        HostMenuPointerTarget::SubmenuBranch {
+            menu_index,
+            item_index,
+            ..
+        } => HostMenuPointerRoute::SubmenuBranch {
+            menu_index,
+            item_index,
+        },
         HostMenuPointerTarget::MenuItem {
             menu_index,
             item_index,
             action_id,
+            ..
         } => HostMenuPointerRoute::MenuItem {
             menu_index,
             item_index,

@@ -19,7 +19,6 @@ use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
 use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
-use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::FloatingWindowModel;
 
 use super::drag_surface::build_drag_surface;
@@ -42,14 +41,8 @@ impl Default for HostShellPointerBridge {
 
 impl HostShellPointerBridge {
     pub(crate) fn new() -> Self {
-        let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
-            ShellSizePx::new(1.0, 1.0),
-            &WorkbenchShellGeometry::default(),
-            false,
-            &[],
-            None,
-            None,
-        );
+        let (drag_surface, drag_dispatcher, drag_routes) =
+            build_drag_surface(ShellSizePx::new(1.0, 1.0), false, &[], None, None);
         let (resize_surface, resize_dispatcher) = build_resize_surface();
         Self {
             drag_surface,
@@ -60,39 +53,26 @@ impl HostShellPointerBridge {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn update_layout(
-        &mut self,
-        root_size: ShellSizePx,
-        geometry: &WorkbenchShellGeometry,
-        drawers_visible: bool,
-    ) {
-        self.update_layout_with_root_shell_frames(
-            root_size,
-            geometry,
-            drawers_visible,
-            &[],
-            None,
-            None,
-        );
-    }
-
     #[cfg(test)]
     pub(crate) fn update_layout_with_floating_windows(
         &mut self,
         root_size: ShellSizePx,
-        geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
-        _native_window_hosts: &[NativeWindowHostState],
     ) {
+        let floating_window_projection_bundle =
+            build_floating_window_projection_bundle_from_windows(
+                floating_windows,
+                None,
+                &WorkbenchChromeMetrics::default(),
+                &[],
+            );
         self.update_layout_with_root_shell_frames(
             root_size,
-            geometry,
             drawers_visible,
             floating_windows,
             None,
-            None,
+            Some(&floating_window_projection_bundle),
         );
     }
 
@@ -100,7 +80,6 @@ impl HostShellPointerBridge {
     pub(crate) fn update_layout_with_native_window_hosts(
         &mut self,
         root_size: ShellSizePx,
-        geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
         shared_root_frames: Option<&BuiltinHostRootShellFrames>,
@@ -109,13 +88,12 @@ impl HostShellPointerBridge {
         let floating_window_projection_bundle =
             build_floating_window_projection_bundle_from_windows(
                 floating_windows,
-                geometry,
+                None,
                 &WorkbenchChromeMetrics::default(),
                 native_window_hosts,
             );
         self.update_layout_with_root_shell_frames(
             root_size,
-            geometry,
             drawers_visible,
             floating_windows,
             shared_root_frames,
@@ -126,7 +104,6 @@ impl HostShellPointerBridge {
     pub(crate) fn update_layout_with_root_shell_frames(
         &mut self,
         root_size: ShellSizePx,
-        geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         floating_windows: &[FloatingWindowModel],
         shared_root_frames: Option<&BuiltinHostRootShellFrames>,
@@ -134,7 +111,6 @@ impl HostShellPointerBridge {
     ) {
         let (drag_surface, drag_dispatcher, drag_routes) = build_drag_surface(
             root_size,
-            geometry,
             drawers_visible,
             floating_windows,
             shared_root_frames,
@@ -143,7 +119,7 @@ impl HostShellPointerBridge {
         self.drag_surface = drag_surface;
         self.drag_dispatcher = drag_dispatcher;
         self.drag_routes = drag_routes;
-        update_resize_surface(&mut self.resize_surface, root_size, geometry);
+        update_resize_surface(&mut self.resize_surface, root_size, shared_root_frames);
     }
 
     pub(crate) fn drag_target_at(&mut self, point: UiPoint) -> Option<HostDragTargetGroup> {

@@ -4,7 +4,7 @@ use crate::ui::binding::{
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 use crate::core::editor_event::EditorEventRuntime;
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_editor_binding;
 
@@ -14,7 +14,7 @@ pub(crate) fn dispatch_inspector_draft_field(
     subject_path: impl Into<String>,
     field_id: impl Into<String>,
     value: impl Into<String>,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let field_id = field_id.into();
     let control_id = inspector_field_control_id(field_id.as_str())
         .map(str::to_string)

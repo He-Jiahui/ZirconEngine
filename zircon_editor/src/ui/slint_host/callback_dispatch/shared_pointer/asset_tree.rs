@@ -8,7 +8,7 @@ use crate::ui::slint_host::{
     asset_pointer::{
         AssetFolderTreePointerBridge, AssetFolderTreePointerDispatch, AssetPointerTreeRoute,
     },
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
 };
 
 use super::super::{dispatch_builtin_asset_surface_control, BuiltinAssetSurfaceTemplateBridge};
@@ -16,7 +16,7 @@ use super::super::{dispatch_builtin_asset_surface_control, BuiltinAssetSurfaceTe
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedAssetTreePointerClickDispatch {
     pub pointer: AssetFolderTreePointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_asset_tree_pointer_click(

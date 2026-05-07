@@ -25,7 +25,8 @@ pub use command::{
 };
 pub use contract::{
     ui_asset_editor_window_descriptor, UiAssetEditorMode, UiAssetEditorReflectionModel,
-    UiAssetEditorRoute, UiAssetPreviewPreset, UiDesignerSelectionModel,
+    UiAssetEditorRoute, UiAssetEditorShellState, UiAssetPreviewPreset,
+    UiDesignerPreviewInteractDispatch, UiDesignerSelectionModel, UiDesignerToolMode,
     UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
     UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,

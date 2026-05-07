@@ -1,8 +1,7 @@
 use crate::ui::workbench::view::ViewRegistry;
 
 use super::super::{
-    ActivityDrawerLayout, ActivityDrawerSlot, LayoutManager, LayoutNormalizationReport, MainPageId,
-    WorkbenchLayout,
+    ActivityDrawerMode, LayoutManager, LayoutNormalizationReport, MainPageId, WorkbenchLayout,
 };
 
 impl LayoutManager {
@@ -11,26 +10,21 @@ impl LayoutManager {
         layout: &mut WorkbenchLayout,
         _registry: &ViewRegistry,
     ) -> LayoutNormalizationReport {
-        for slot in ActivityDrawerSlot::ALL {
-            layout
-                .drawers
-                .entry(slot)
-                .or_insert_with(|| ActivityDrawerLayout::new(slot));
+        if layout.activity_windows.is_empty() && !layout.drawers.is_empty() {
+            layout.activity_windows =
+                super::super::workbench_layout::activity_windows_from_legacy_drawers(
+                    layout.drawers.clone(),
+                );
         }
 
         let mut removed_missing_active_tabs = 0;
-        for drawer in layout.drawers.values_mut() {
-            if let Some(active) = drawer.tab_stack.active_tab.clone() {
-                if !drawer.tab_stack.tabs.contains(&active) {
-                    drawer.tab_stack.active_tab = drawer.tab_stack.tabs.first().cloned();
-                    removed_missing_active_tabs += 1;
-                }
-            }
-            if let Some(active) = drawer.active_view.clone() {
-                if !drawer.tab_stack.tabs.contains(&active) {
-                    drawer.active_view = drawer.tab_stack.active_tab.clone();
-                    removed_missing_active_tabs += 1;
-                }
+        for activity_window in layout.activity_windows.values_mut() {
+            activity_window.activity_drawers =
+                super::super::workbench_layout::canonical_activity_drawers(std::mem::take(
+                    &mut activity_window.activity_drawers,
+                ));
+            for drawer in activity_window.activity_drawers.values_mut() {
+                normalize_drawer(drawer, &mut removed_missing_active_tabs);
             }
         }
 
@@ -46,9 +40,33 @@ impl LayoutManager {
                 .unwrap_or_else(MainPageId::workbench);
         }
 
+        layout.sync_legacy_drawers_from_active_activity_window();
+
         LayoutNormalizationReport {
             placeholders: Vec::new(),
             removed_missing_active_tabs,
         }
+    }
+}
+
+fn normalize_drawer(
+    drawer: &mut super::super::ActivityDrawerLayout,
+    removed_missing_active_tabs: &mut usize,
+) {
+    if let Some(active) = drawer.tab_stack.active_tab.clone() {
+        if !drawer.tab_stack.tabs.contains(&active) {
+            drawer.tab_stack.active_tab = drawer.tab_stack.tabs.first().cloned();
+            *removed_missing_active_tabs += 1;
+        }
+    }
+    if let Some(active) = drawer.active_view.clone() {
+        if !drawer.tab_stack.tabs.contains(&active) {
+            drawer.active_view = drawer.tab_stack.active_tab.clone();
+            *removed_missing_active_tabs += 1;
+        }
+    }
+    if drawer.mode == ActivityDrawerMode::Collapsed {
+        drawer.tab_stack.active_tab = None;
+        drawer.active_view = None;
     }
 }

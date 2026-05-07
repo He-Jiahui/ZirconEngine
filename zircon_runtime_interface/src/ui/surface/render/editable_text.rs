@@ -42,6 +42,9 @@ impl UiTextSelection {
 pub struct UiTextComposition {
     pub range: UiTextRange,
     pub text: String,
+    /// Text that occupied `range` before visible preedit replacement; absent for paint-only snapshots.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub restore_text: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,12 +59,23 @@ pub struct UiEditableTextState {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case", tag = "kind")]
 pub enum UiTextEditAction {
-    Insert { text: String },
+    Insert {
+        text: String,
+    },
     Backspace,
     Delete,
-    MoveCaret { offset: usize, extend_selection: bool },
-    SetSelection { anchor: usize, focus: usize },
-    SetComposition { range: UiTextRange, text: String },
+    MoveCaret {
+        offset: usize,
+        extend_selection: bool,
+    },
+    SetSelection {
+        anchor: usize,
+        focus: usize,
+    },
+    SetComposition {
+        range: UiTextRange,
+        text: String,
+    },
     CommitComposition,
     CancelComposition,
 }

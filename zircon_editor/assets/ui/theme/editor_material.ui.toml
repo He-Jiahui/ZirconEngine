@@ -21,12 +21,90 @@ error = "#d96b63"
 material_surface = "#242b35"
 material_surface_inset = "#171c24"
 material_surface_hover = "#2c3542"
-material_accent = "#3c68b0"
+material_surface_pressed = "#2f405e"
+material_surface_selected = "#365382"
+material_surface_disabled = "#1e2127"
+material_accent = "#4c7dd5"
+material_accent_soft = "#365382"
 material_border = "#424c5c"
 material_text = "#d2dceb"
 material_text_muted = "#8595aa"
+material_text_disabled = "#5b6371"
+material_warning = "#d8a24d"
+material_error = "#d96b63"
+material_warning_container = "#443318"
 material_popup = "#151a21"
 material_track = "#303947"
+material_focus_ring = "#92b5ff"
+material_primary = "#4c7dd5"
+material_on_primary = "#eef3ff"
+material_surface_container = "#242b35"
+material_surface_container_low = "#20252d"
+material_surface_container_high = "#2c3542"
+material_outline = "#424c5c"
+material_outline_variant = "#303947"
+material_error_container = "#4a2529"
+material_on_error = "#fff0ee"
+material_shadow = "#00000066"
+material_shadow_soft = "#00000033"
+material_scrim = "#0b1020cc"
+material_inverse_surface = "#d2dceb"
+material_inverse_on_surface = "#171a20"
+material_color_primary = "$material_primary"
+material_color_on_primary = "$material_on_primary"
+material_color_surface = "$material_surface"
+material_color_surface_container = "$material_surface_container"
+material_color_surface_container_low = "$material_surface_container_low"
+material_color_surface_container_high = "$material_surface_container_high"
+material_color_on_surface = "$material_text"
+material_color_on_surface_variant = "$material_text_muted"
+material_color_outline = "$material_outline"
+material_color_outline_variant = "$material_outline_variant"
+material_color_error = "$material_error"
+material_color_on_error = "$material_on_error"
+material_color_shadow = "$material_shadow"
+material_color_scrim = "$material_scrim"
+material_state_layer_opacity_hover = 0.08
+material_state_layer_opacity_focus = 0.12
+material_state_layer_opacity_pressed = 0.12
+material_state_layer_opacity_disabled = 0.38
+material_state_layer_opacity_dragged = 0.16
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_focus_ring_width = 1.0
+material_focus_ring_offset = 1.0
+material_elevation_level0 = 0.0
+material_elevation_level1 = 1.0
+material_elevation_level2 = 3.0
+material_radius_none = 0.0
+material_radius_control = 5.0
+material_radius_surface = 6.0
+material_radius_small = 4.0
+material_radius_medium = 8.0
+material_radius_large = 16.0
+material_radius_pill = 28.0
+material_border_width = 1.0
+material_border_width_none = 0.0
+material_density_compact_height = 32.0
+material_density_default_height = 40.0
+material_density_prominent_height = 56.0
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_prominent_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12.0
+material_spacing_button_content_y = 6.0
+material_spacing_button_gap = 6.0
+material_spacing_field_content_x = 10.0
+material_spacing_field_content_y = 4.0
+material_spacing_list_item_content_x = 10.0
+material_spacing_list_item_gap = 6.0
+material_icon_size_button = 16.0
+material_icon_size_standard = 18.0
+material_font_size_body = 12.0
+material_font_size_meta = 11.0
+material_font_size_title = 15.0
 
 [[stylesheets]]
 id = "editor_material"
@@ -37,31 +115,35 @@ set = { self = { background = { color = "$field_bg" } } }
 
 [[stylesheets.rules]]
 selector = ".showcase-panel"
-set = { self = { background = { color = "$panel_bg" }, border = { color = "$border", width = 1.0, radius = 6.0 } } }
+set = { self = { background = { color = "$panel_bg" }, border = { color = "$border", width = "$material_border_width", radius = "$material_radius_surface" } } }
 
 [[stylesheets.rules]]
 selector = ".showcase-field"
-set = { self = { background = { color = "$panel_bg_soft" }, border = { color = "$border", width = 1.0, radius = 4.0 } } }
+set = { self = { background = { color = "$panel_bg_soft" }, border = { color = "$border", width = "$material_border_width", radius = "$material_radius_small" } } }
 
 [[stylesheets.rules]]
 selector = ".showcase-title"
-set = { self = { foreground = { color = "$text" }, font = { size = 15.0 } } }
+set = { self = { foreground = { color = "$text" }, font = { size = "$material_font_size_title" } } }
 
 [[stylesheets.rules]]
 selector = ".showcase-muted"
-set = { self = { foreground = { color = "$muted" }, font = { size = 11.0 } } }
+set = { self = { foreground = { color = "$muted" }, font = { size = "$material_font_size_meta" } } }
 
 [[stylesheets.rules]]
 selector = ".material-state-layer"
-set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-control"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button"
 set = { self = { background = { color = "$material_surface_hover" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary"
+set = { self = { background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button-base"
@@ -89,15 +171,19 @@ set = { self = { background = { color = "$material_surface_inset" } } }
 
 [[stylesheets.rules]]
 selector = ".material-ripple"
-set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_surface_hover", width = 0.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_surface_hover", width = "$material_border_width_none", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-list-item"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
 
 [[stylesheets.rules]]
+selector = ".material-table-row"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
 selector = ".material-text-button"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = 0.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-check-box"
@@ -109,11 +195,19 @@ set = { self = { background = { color = "$material_surface_inset" }, foreground 
 
 [[stylesheets.rules]]
 selector = ".material-popup-frame"
-set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-date-picker-popup"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-time-picker-popup"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" } } }
 
 [[stylesheets.rules]]
 selector = ".material-group-box"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-line-edit"
@@ -121,7 +215,7 @@ set = { self = { background = { color = "$material_surface_inset" }, foreground 
 
 [[stylesheets.rules]]
 selector = ".material-menu-bar"
-set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-menu-bar-item"
@@ -141,7 +235,7 @@ set = { self = { background = { color = "$material_track" }, foreground = { colo
 
 [[stylesheets.rules]]
 selector = ".material-scroll-view"
-set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-slider"
@@ -153,32 +247,64 @@ set = { self = { background = { color = "$material_surface_inset" }, foreground 
 
 [[stylesheets.rules]]
 selector = ".material-spinner"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = 0.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-switch"
-set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_accent" }, border = { color = "$material_border", width = 1.0, radius = 16.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_accent" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_large" } } }
 
 [[stylesheets.rules]]
 selector = ".material-standard-table-view"
-set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-tab-widget"
-set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-tab-widget-impl"
-set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-tab-bar"
-set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = 1.0, radius = 5.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-horizontal"
+set = { self = { background = { color = "$material_surface_inset" } } }
+
+[[stylesheets.rules]]
+selector = ".material-tab-bar-vertical"
+set = { self = { background = { color = "$material_surface_inset" } } }
 
 [[stylesheets.rules]]
 selector = ".material-tab-impl"
-set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_inset", width = 0.0, radius = 0.0 } } }
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_surface_inset", width = "$material_border_width_none", radius = "$material_radius_none" } } }
 
 [[stylesheets.rules]]
 selector = ".material-text-edit"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-dialog"
+set = { self = { background = { color = "$material_popup" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_medium" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-hud"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".material-runtime-backdrop"
+set = { self = { background = { color = "$material_color_scrim" } } }
+
+[[stylesheets.rules]]
+selector = ".material-title"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".material-body"
+set = { self = { foreground = { color = "$material_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".material-meta"
+set = { self = { foreground = { color = "$material_text_muted" }, font = { size = "$material_font_size_meta" } } }

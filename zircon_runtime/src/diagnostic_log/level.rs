@@ -37,12 +37,8 @@ pub enum DiagnosticLogFilter {
 }
 
 impl DiagnosticLogFilter {
-    pub const fn default_for_debug_assertions(debug_assertions: bool) -> Self {
-        if debug_assertions {
-            Self::Minimum(DiagnosticLogLevel::Verbose)
-        } else {
-            Self::Minimum(DiagnosticLogLevel::Log)
-        }
+    pub const fn default_for_debug_assertions(_debug_assertions: bool) -> Self {
+        Self::Minimum(DiagnosticLogLevel::Log)
     }
 
     pub fn default_for_build_profile() -> Self {
@@ -136,7 +132,7 @@ mod tests {
     fn default_filter_matches_build_profile_policy() {
         assert_eq!(
             DiagnosticLogFilter::default_for_debug_assertions(true),
-            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Verbose)
+            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Log)
         );
         assert_eq!(
             DiagnosticLogFilter::default_for_debug_assertions(false),

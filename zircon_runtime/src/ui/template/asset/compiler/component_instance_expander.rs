@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use toml::Value;
+use toml::{map::Map, Value};
 
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetKind, UiChildMount, UiComponentDefinition,
@@ -125,6 +125,7 @@ fn decorate_component_root(
     }
     append_classes(&mut root.classes, &instance_node.classes);
     root.bindings.extend(instance_node.bindings.clone());
+    merge_instance_layout_override(&mut root.style_overrides, instance_node, tokens, params);
     let inline = resolve_value_map(&instance_node.style_overrides.self_values, tokens, params);
     merge_value_maps(&mut root.style_overrides, &inline);
     merge_value_maps_resolved(
@@ -133,6 +134,25 @@ fn decorate_component_root(
         tokens,
         params,
     );
+}
+
+fn merge_instance_layout_override(
+    target: &mut BTreeMap<String, Value>,
+    instance_node: &UiNodeDefinition,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+) {
+    let Some(layout) = &instance_node.layout else {
+        return;
+    };
+
+    let mut inline = BTreeMap::new();
+    let layout = resolve_value_map(layout, tokens, params)
+        .into_iter()
+        .collect::<Map<_, _>>();
+    inline.insert("layout".to_string(), Value::Table(layout));
+    normalize_layout(&mut inline);
+    merge_value_maps(target, &inline);
 }
 
 fn validate_slot_mounts(

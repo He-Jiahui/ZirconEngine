@@ -7,6 +7,7 @@ use crate::ui::layouts::views::{
 };
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data, side_expanded};
+use crate::ui::workbench::startup::{display_project_text, display_project_title};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
 use crate::ui::slint_host::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
@@ -53,13 +54,7 @@ impl ShellPresentation {
                 ActivityDrawerSlot::RightBottom,
             ],
         );
-        let bottom_tabs = collect_tabs(
-            model,
-            &[
-                ActivityDrawerSlot::BottomLeft,
-                ActivityDrawerSlot::BottomRight,
-            ],
-        );
+        let bottom_tabs = collect_tabs(model, &[ActivityDrawerSlot::Bottom]);
 
         let left_expanded = side_expanded(
             model,
@@ -72,16 +67,11 @@ impl ShellPresentation {
                 ActivityDrawerSlot::RightBottom,
             ],
         );
-        let bottom_expanded = side_expanded(
-            model,
-            &[
-                ActivityDrawerSlot::BottomLeft,
-                ActivityDrawerSlot::BottomRight,
-            ],
-        );
+        let bottom_expanded = side_expanded(model, &[ActivityDrawerSlot::Bottom]);
         let activity = asset_surface_presentation(&chrome.asset_activity);
         let browser = asset_surface_presentation(&chrome.asset_browser);
         let welcome = welcome_presentation(&chrome.welcome);
+        let status_secondary = model.status_bar.secondary_text.clone().unwrap_or_default();
         let preset_names = model_rc(
             preset_names
                 .iter()
@@ -143,10 +133,7 @@ impl ShellPresentation {
                 bottom_pane: side_pane(
                     model,
                     chrome,
-                    &[
-                        ActivityDrawerSlot::BottomLeft,
-                        ActivityDrawerSlot::BottomRight,
-                    ],
+                    &[ActivityDrawerSlot::Bottom],
                     ui_asset_panes,
                     animation_panes,
                     runtime_diagnostics,
@@ -168,13 +155,8 @@ impl ShellPresentation {
             activity,
             browser,
             host_shell: HostWindowShellData {
-                project_path: chrome.project_path.clone().into(),
-                status_secondary: model
-                    .status_bar
-                    .secondary_text
-                    .clone()
-                    .unwrap_or_default()
-                    .into(),
+                project_path: display_project_title(&chrome.project_path).into(),
+                status_secondary: display_project_text(&status_secondary).into(),
                 debug_refresh_rate: STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.into(),
                 viewport_label: model.status_bar.viewport_label.clone().into(),
                 drawers_visible: model.drawer_ring.visible,
@@ -198,7 +180,7 @@ impl ShellPresentation {
                     height: 0.0,
                 },
             },
-            status_primary: chrome.status_line.clone().into(),
+            status_primary: display_project_text(&chrome.status_line).into(),
             mesh_import_path: chrome.mesh_import_path.clone().into(),
         }
     }

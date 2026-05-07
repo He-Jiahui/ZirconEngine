@@ -3,7 +3,10 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame,
 };
-use crate::ui::slint_host::tab_drag::resolve_host_tab_drop_route_with_root_frames;
+use crate::ui::slint_host::tab_drag::{
+    resolve_host_tab_drop_route_with_root_frames, HostDragTargetGroup, ResolvedHostTabDropRoute,
+    ResolvedHostTabDropTarget,
+};
 use crate::ui::slint_host::UiHostContext;
 use crate::ui::workbench::autolayout::ShellFrame;
 
@@ -73,7 +76,7 @@ impl SlintEditorHost {
         let drag_state = host_shell.get_drag_state();
         let tab_id = drag_state.drag_tab_id.to_string();
         let target_group = drag_state.active_drag_target_group.to_string();
-        if tab_id.is_empty() || target_group.is_empty() {
+        if tab_id.is_empty() {
             return;
         }
 
@@ -82,11 +85,15 @@ impl SlintEditorHost {
         let model = WorkbenchViewModel::build(&chrome);
         let pointer_route = self.shell_pointer_bridge.drag_route_at(UiPoint::new(x, y));
         let root_shell_frames = self.template_bridge.root_shell_frames();
-        let Some(resolved) = self.shell_geometry.as_ref().and_then(|geometry| {
+        let resolved = if target_group.is_empty() && pointer_route.is_none() {
+            Some(detached_window_drop_route(
+                &tab_id,
+                drag_state.drag_source_group.as_str(),
+            ))
+        } else {
             resolve_host_tab_drop_route_with_root_frames(
                 &layout,
                 &model,
-                geometry,
                 &self.chrome_metrics,
                 &tab_id,
                 pointer_route,
@@ -95,7 +102,8 @@ impl SlintEditorHost {
                 y,
                 Some(&root_shell_frames),
             )
-        }) else {
+        };
+        let Some(resolved) = resolved else {
             self.set_status_line(format!("Unsupported drop target {target_group}"));
             return;
         };
@@ -123,20 +131,11 @@ impl SlintEditorHost {
         else {
             return;
         };
-        let Some(geometry) = self.shell_geometry.as_ref() else {
-            return;
-        };
         let root_shell_frames = self.template_bridge.root_shell_frames();
         let frame = match region {
-            ShellRegionId::Left => {
-                resolve_root_left_region_frame(geometry, Some(&root_shell_frames))
-            }
-            ShellRegionId::Right => {
-                resolve_root_right_region_frame(geometry, Some(&root_shell_frames))
-            }
-            ShellRegionId::Bottom => {
-                resolve_root_bottom_region_frame(geometry, Some(&root_shell_frames))
-            }
+            ShellRegionId::Left => resolve_root_left_region_frame(Some(&root_shell_frames)),
+            ShellRegionId::Right => resolve_root_right_region_frame(Some(&root_shell_frames)),
+            ShellRegionId::Bottom => resolve_root_bottom_region_frame(Some(&root_shell_frames)),
             ShellRegionId::Document => ShellFrame::default(),
         };
         let base_preferred = match region {
@@ -205,6 +204,40 @@ impl SlintEditorHost {
 
         self.recompute_if_dirty();
     }
+}
+
+fn detached_window_drop_route(instance_id: &str, source_group: &str) -> ResolvedHostTabDropRoute {
+    let drawer_source = matches!(source_group, "left" | "right" | "bottom");
+    ResolvedHostTabDropRoute {
+        target_group: HostDragTargetGroup::Document,
+        target_label: if drawer_source {
+            "detached drawer window"
+        } else {
+            "detached window"
+        },
+        target: ResolvedHostTabDropTarget::DetachToWindow {
+            new_window: detached_window_id(instance_id, drawer_source),
+        },
+    }
+}
+
+fn detached_window_id(instance_id: &str, drawer_source: bool) -> MainPageId {
+    let prefix = if drawer_source {
+        "drawer-window"
+    } else {
+        "window"
+    };
+    let suffix = instance_id
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '.' || ch == '-' || ch == '_' {
+                ch
+            } else {
+                ':'
+            }
+        })
+        .collect::<String>();
+    MainPageId::new(format!("{prefix}:{suffix}"))
 }
 
 fn map_host_pointer_kind(kind: i32, channel: &str) -> Result<HostPointerFactKind, String> {

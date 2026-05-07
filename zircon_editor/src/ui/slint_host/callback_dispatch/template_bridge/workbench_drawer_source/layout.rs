@@ -53,10 +53,7 @@ impl BuiltinHostDrawerLayoutInputs {
             ),
             bottom: drawer_region_input(
                 &model.drawer_ring.drawers,
-                &[
-                    ActivityDrawerSlot::BottomLeft,
-                    ActivityDrawerSlot::BottomRight,
-                ],
+                &[ActivityDrawerSlot::Bottom],
                 metrics.panel_header_height,
             ),
         }

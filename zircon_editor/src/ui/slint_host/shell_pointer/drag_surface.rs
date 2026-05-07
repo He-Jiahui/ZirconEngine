@@ -20,8 +20,7 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_right_region_frame, resolve_root_status_bar_frame,
 };
 use crate::ui::slint_host::tab_drag::HostDragTargetGroup;
-use crate::ui::workbench::autolayout::ShellSizePx;
-use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
+use crate::ui::workbench::autolayout::{ShellFrame, ShellSizePx};
 use crate::ui::workbench::layout::DockEdge;
 use crate::ui::workbench::model::FloatingWindowModel;
 
@@ -29,8 +28,7 @@ use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, up
 use super::drag_frames::DragTargetFrames;
 use super::effects::{document_edge_effect, edge_effect_in_frame, side_target_effect};
 use super::node_ids::{
-    floating_window_attach_node_id, floating_window_edge_node_id,
-    floating_window_projection_exclusion_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
+    floating_window_attach_node_id, floating_window_edge_node_id, DOCUMENT_EDGE_BOTTOM_NODE_ID,
     DOCUMENT_EDGE_LEFT_NODE_ID, DOCUMENT_EDGE_RIGHT_NODE_ID, DOCUMENT_EDGE_TOP_NODE_ID,
     DRAG_POINTER_ROOT_NODE_ID, DRAG_TARGET_BOTTOM_NODE_ID, DRAG_TARGET_DOCUMENT_NODE_ID,
     DRAG_TARGET_LEFT_NODE_ID, DRAG_TARGET_RIGHT_NODE_ID,
@@ -42,7 +40,6 @@ const MIN_BOTTOM_DROP_EXTENT: f32 = 92.0;
 
 pub(super) fn build_drag_surface(
     root_size: ShellSizePx,
-    geometry: &WorkbenchShellGeometry,
     drawers_visible: bool,
     floating_windows: &[FloatingWindowModel],
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
@@ -122,14 +119,15 @@ pub(super) fn build_drag_surface(
         root_size.width.max(0.0),
         root_size.height.max(0.0),
     );
-    let resolved_center_band_frame = resolve_root_center_band_frame(geometry, shared_root_frames);
-    let resolved_status_bar_frame = resolve_root_status_bar_frame(geometry, shared_root_frames);
-    let resolved_document_region_frame =
-        resolve_root_document_region_frame(geometry, shared_root_frames);
-    let resolved_left_region_frame = resolve_root_left_region_frame(geometry, shared_root_frames);
-    let resolved_right_region_frame = resolve_root_right_region_frame(geometry, shared_root_frames);
-    let resolved_bottom_region_frame =
-        resolve_root_bottom_region_frame(geometry, shared_root_frames);
+    let resolved_center_band_frame = resolve_root_center_band_frame(shared_root_frames);
+    let resolved_status_bar_frame = resolve_root_status_bar_frame(shared_root_frames);
+    let resolved_document_region_frame = resolve_direct_document_host_frame(shared_root_frames)
+        .unwrap_or_else(|| resolve_root_document_region_frame(shared_root_frames));
+    let resolved_left_region_frame = resolve_root_left_region_frame(shared_root_frames);
+    let resolved_right_region_frame = resolve_root_right_region_frame(shared_root_frames);
+    let resolved_bottom_region_frame = resolve_root_bottom_region_frame(shared_root_frames);
+    let root_projection_visible =
+        frame_is_visible(resolved_center_band_frame) && frame_is_visible(resolved_status_bar_frame);
     let overlay_top = resolved_center_band_frame.y.max(0.0);
     let overlay_bottom = resolved_status_bar_frame
         .y
@@ -143,7 +141,7 @@ pub(super) fn build_drag_surface(
         .height
         .max(MIN_BOTTOM_DROP_EXTENT);
 
-    let left_drag_frame = drawers_visible
+    let left_drag_frame = (drawers_visible && root_projection_visible)
         .then(|| {
             frame_if_visible(clamp_frame_to_root(
                 UiFrame::new(0.0, overlay_top, left_width, overlay_height),
@@ -151,7 +149,7 @@ pub(super) fn build_drag_surface(
             ))
         })
         .flatten();
-    let right_drag_frame = drawers_visible
+    let right_drag_frame = (drawers_visible && root_projection_visible)
         .then(|| {
             frame_if_visible(clamp_frame_to_root(
                 UiFrame::new(
@@ -164,7 +162,7 @@ pub(super) fn build_drag_surface(
             ))
         })
         .flatten();
-    let bottom_drag_frame = drawers_visible
+    let bottom_drag_frame = (drawers_visible && root_projection_visible)
         .then(|| {
             frame_if_visible(clamp_frame_to_root(
                 UiFrame::new(
@@ -298,47 +296,9 @@ pub(super) fn build_drag_surface(
     );
 
     for (index, window) in floating_windows.iter().enumerate() {
-        let projected_frame = floating_window_projection_bundle
+        let frame = floating_window_projection_bundle
             .and_then(|bundle| bundle.outer_frame(&window.window_id))
-            .or_else(|| {
-                floating_window_projection_bundle
-                    .is_none()
-                    .then_some(geometry.floating_window_frame(&window.window_id))
-            });
-        let frame = projected_frame
             .and_then(|frame| frame_if_visible(clamp_frame_to_root(frame, root_frame)));
-        let exclusion_frame = if floating_window_projection_bundle.is_some() && frame.is_none() {
-            frame_if_visible(clamp_frame_to_root(
-                geometry.floating_window_frame(&window.window_id),
-                root_frame,
-            ))
-        } else {
-            None
-        };
-
-        if let Some(exclusion_frame) = exclusion_frame {
-            let exclusion_id = floating_window_projection_exclusion_node_id(index);
-            surface
-                .tree
-                .insert_child(
-                    DRAG_POINTER_ROOT_NODE_ID,
-                    UiTreeNode::new(
-                        exclusion_id,
-                        UiNodePath::new(format!(
-                            "editor.workbench.shell_pointer/floating/{}/exclusion",
-                            window.window_id.0
-                        )),
-                    )
-                    .with_z_index(99 + index as i32 * 10)
-                    .with_input_policy(UiInputPolicy::Receive)
-                    .with_state_flags(base_target_state(true)),
-                )
-                .expect("drag pointer root must exist");
-            update_target_node(&mut surface, exclusion_id, Some(exclusion_frame));
-            drag_dispatcher.register(exclusion_id, UiPointerEventKind::Move, |_context| {
-                UiPointerDispatchEffect::handled()
-            });
-        }
 
         let Some(frame) = frame else {
             continue;
@@ -405,4 +365,21 @@ pub(super) fn build_drag_surface(
 
     surface.rebuild();
     (surface, drag_dispatcher, drag_routes)
+}
+
+fn resolve_direct_document_host_frame(
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+) -> Option<ShellFrame> {
+    shared_root_frames
+        .and_then(|frames| frames.document_host_frame)
+        .map(shell_frame)
+        .filter(|frame| frame.width > 0.0 && frame.height > 0.0)
+}
+
+fn shell_frame(frame: UiFrame) -> ShellFrame {
+    ShellFrame::new(frame.x, frame.y, frame.width, frame.height)
+}
+
+fn frame_is_visible(frame: ShellFrame) -> bool {
+    frame.width > f32::EPSILON && frame.height > f32::EPSILON
 }

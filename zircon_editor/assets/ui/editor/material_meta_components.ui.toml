@@ -9,24 +9,61 @@ widgets = []
 styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
-material_control_height = 40.0
-material_compact_control_height = 32.0
-material_icon_button_size = 40.0
-material_button_min_width = 40.0
-material_button_padding_x = 24.0
-material_button_padding_y = 10.0
-material_button_icon_size = 18.0
-material_button_spacing = 8.0
-material_field_min_height = 56.0
-material_field_padding_x = 16.0
-material_field_padding_y = 4.0
-material_list_item_height = 40.0
-material_list_item_padding_x = 16.0
-material_list_item_spacing = 8.0
-material_icon_size = 30.0
-material_radius = 5.0
+material_control_height = "$material_density_default_control_height"
+material_compact_control_height = "$material_density_compact_control_height"
+material_icon_button_size = "$material_density_default_control_height"
+material_button_min_width = "$material_density_default_control_height"
+material_button_padding_x = "$material_spacing_button_content_x"
+material_button_padding_y = "$material_spacing_button_content_y"
+material_button_icon_size = "$material_icon_size_button"
+material_button_spacing = "$material_spacing_button_gap"
+material_field_min_height = "$material_density_field_control_height"
+material_field_padding_x = "$material_spacing_field_content_x"
+material_field_padding_y = "$material_spacing_field_content_y"
+material_list_item_height = "$material_density_list_item_height"
+material_list_item_padding_x = "$material_spacing_list_item_content_x"
+material_list_item_spacing = "$material_spacing_list_item_gap"
+material_icon_size = "$material_icon_size_standard"
+material_radius = "$material_radius_control"
+material_radius_control = 5.0
+material_radius_small = 4.0
+material_radius_medium = 8.0
+material_radius_large = 16.0
+material_radius_pill = 28.0
 material_border_width = 1.0
-material_font_size = 12.0
+material_font_size = "$material_font_size_body"
+material_font_size_body = 12.0
+material_font_size_meta = 11.0
+material_font_size_title = 15.0
+material_density_compact_height = 28.0
+material_density_default_height = 32.0
+material_density_prominent_height = 40.0
+material_density_compact_control_height = "$material_density_compact_height"
+material_density_default_control_height = "$material_density_default_height"
+material_density_field_control_height = "$material_density_default_height"
+material_density_list_item_height = "$material_density_default_height"
+material_spacing_button_content_x = 12.0
+material_spacing_button_content_y = 6.0
+material_spacing_button_gap = 6.0
+material_spacing_field_content_x = 10.0
+material_spacing_field_content_y = 3.0
+material_spacing_list_item_content_x = 10.0
+material_spacing_list_item_gap = 6.0
+material_icon_size_button = 16.0
+material_icon_size_standard = 18.0
+material_focus_ring_width = 1.0
+material_focus_ring_offset = 1.0
+material_state_layer_opacity_hover = 0.08
+material_state_layer_opacity_focus = 0.12
+material_state_layer_opacity_pressed = 0.12
+material_state_layer_opacity_disabled = 0.12
+material_state_layer_opacity_dragged = 0.16
+material_state_layer_opacity_press = "$material_state_layer_opacity_pressed"
+material_state_layer_opacity_drag = "$material_state_layer_opacity_dragged"
+material_disabled_opacity = 0.38
+material_elevation_level0 = 0.0
+material_elevation_level1 = 1.0
+material_elevation_level2 = 3.0
 material_popup_width = 220.0
 material_popup_height = 120.0
 material_scroll_height = 84.0
@@ -104,6 +141,22 @@ default = "default"
 type = "string"
 default = "primary"
 
+[components.MaterialButtonBase.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialButtonBase.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialButtonBase.params.height]
 type = "number"
 default = "$material_control_height"
@@ -114,7 +167,7 @@ kind = "native"
 type = "Button"
 control_id = "MaterialButtonBase"
 classes = ["material-control", "material-button-base"]
-props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", text_tone = "$param.text_tone", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$material_control_height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", text_tone = "$param.text_tone", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialButton]
@@ -144,6 +197,42 @@ default = ""
 type = "string"
 default = "normal"
 
+[components.MaterialButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialButton.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialButton.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialButton.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialButton.params.height]
 type = "number"
 default = "$material_control_height"
@@ -153,7 +242,7 @@ node_id = "material_button_root"
 kind = "native"
 type = "Button"
 classes = ["material-control", "material-button"]
-props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", text_tone = "$param.text_tone", validation_level = "$param.validation_level", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$material_control_height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", text_tone = "$param.text_tone", validation_level = "$param.validation_level", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialIconButton]
@@ -175,6 +264,54 @@ default = "inset"
 type = "string"
 default = ""
 
+[components.MaterialIconButton.params.text_tone]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.validation_level]
+type = "string"
+default = "normal"
+
+[components.MaterialIconButton.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialIconButton.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialIconButton.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialIconButton.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialIconButton.params.height]
 type = "number"
 default = "$material_icon_button_size"
@@ -184,7 +321,7 @@ node_id = "material_icon_button_root"
 kind = "native"
 type = "IconButton"
 classes = ["material-control", "material-icon-button"]
-props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 0.0, layout_padding_bottom = 0.0, layout_spacing = 0.0, layout_min_width = "$material_icon_button_size", layout_min_height = "$material_icon_button_size", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", icon = "$param.icon", surface_variant = "$param.surface_variant", button_variant = "$param.button_variant", text_tone = "$param.text_tone", validation_level = "$param.validation_level", selected = "$param.selected", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = 0.0, layout_padding_right = 0.0, layout_padding_top = 0.0, layout_padding_bottom = 0.0, layout_spacing = 0.0, layout_min_width = "$material_icon_button_size", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialToggleButton]
@@ -202,6 +339,22 @@ default = false
 type = "string"
 default = "inset"
 
+[components.MaterialToggleButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialToggleButton.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialToggleButton.params.height]
 type = "number"
 default = "$material_control_height"
@@ -211,7 +364,7 @@ node_id = "material_toggle_button_root"
 kind = "native"
 type = "ToggleButton"
 classes = ["material-control", "material-toggle-button"]
-props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", surface_variant = "$param.surface_variant", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$material_control_height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "$param.surface_variant", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialCheckboxRow]
@@ -229,6 +382,22 @@ default = false
 type = "string"
 default = "inset"
 
+[components.MaterialCheckboxRow.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialCheckboxRow.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialCheckboxRow.params.height]
 type = "number"
 default = "$material_list_item_height"
@@ -238,7 +407,7 @@ node_id = "material_checkbox_row_root"
 kind = "native"
 type = "Checkbox"
 classes = ["material-control", "material-checkbox-row"]
-props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", surface_variant = "$param.surface_variant", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
+props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "$param.surface_variant", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialOutlinedField]
@@ -260,6 +429,42 @@ default = "normal"
 type = "string"
 default = ""
 
+[components.MaterialOutlinedField.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialOutlinedField.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.edit_action_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.commit_action_id]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialOutlinedField.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialOutlinedField.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialOutlinedField.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -269,7 +474,7 @@ node_id = "material_outlined_field_root"
 kind = "native"
 type = "InputField"
 classes = ["material-control", "material-outlined-field"]
-props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", surface_variant = "inset", text_tone = "$param.text_tone", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", surface_variant = "inset", text_tone = "$param.text_tone", binding_id = "$param.binding_id", edit_action_id = "$param.edit_action_id", commit_action_id = "$param.commit_action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialSliderField]
@@ -291,6 +496,22 @@ default = 100.0
 type = "number"
 default = 1.0
 
+[components.MaterialSliderField.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSliderField.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialSliderField.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -300,7 +521,7 @@ node_id = "material_slider_field_root"
 kind = "native"
 type = "RangeField"
 classes = ["material-control", "material-slider-field"]
-props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialRipple]
@@ -349,6 +570,30 @@ default = false
 type = "bool"
 default = false
 
+[components.MaterialListItem.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialListItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialListItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialListItem.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialListItem.params.height]
 type = "number"
 default = "$material_list_item_height"
@@ -358,7 +603,50 @@ node_id = "material_list_item_root"
 kind = "native"
 type = "ListRow"
 classes = ["material-control", "material-list-item"]
-props = { text = "$param.text", value = "$param.value", selected = "$param.selected", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
+props = { text = "$param.text", value = "$param.value", selected = "$param.selected", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", disabled = "$param.disabled", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
+layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
+
+[components.MaterialTableRow]
+style_scope = "open"
+
+[components.MaterialTableRow.params.text]
+type = "string"
+default = "Table row"
+
+[components.MaterialTableRow.params.value]
+type = "string"
+default = ""
+
+[components.MaterialTableRow.params.selected]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTableRow.params.height]
+type = "number"
+default = "$material_list_item_height"
+
+[components.MaterialTableRow.root]
+node_id = "material_table_row_root"
+kind = "native"
+type = "TableRow"
+classes = ["material-control", "material-table-row"]
+props = { text = "$param.text", value = "$param.value", selected = "$param.selected", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", disabled = "$param.disabled", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialTextButton]
@@ -367,6 +655,22 @@ style_scope = "open"
 [components.MaterialTextButton.params.text]
 type = "string"
 default = "Text Button"
+
+[components.MaterialTextButton.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTextButton.params.pressed]
+type = "bool"
+default = false
 
 [components.MaterialTextButton.params.height]
 type = "number"
@@ -377,7 +681,7 @@ node_id = "material_text_button_root"
 kind = "native"
 type = "Button"
 classes = ["material-control", "material-text-button"]
-props = { text = "$param.text", surface_variant = "transparent", button_variant = "text", text_tone = "accent", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$material_control_height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", surface_variant = "transparent", button_variant = "text", text_tone = "accent", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialCheckBox]
@@ -391,6 +695,22 @@ default = "CheckBox"
 type = "bool"
 default = false
 
+[components.MaterialCheckBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialCheckBox.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialCheckBox.params.height]
 type = "number"
 default = "$material_list_item_height"
@@ -400,7 +720,7 @@ node_id = "material_check_box_root"
 kind = "native"
 type = "Checkbox"
 classes = ["material-control", "material-check-box"]
-props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
+props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialComboBox]
@@ -418,6 +738,30 @@ default = []
 type = "bool"
 default = false
 
+[components.MaterialComboBox.params.popup_anchor_x]
+type = "number"
+default = 0.0
+
+[components.MaterialComboBox.params.popup_anchor_y]
+type = "number"
+default = 0.0
+
+[components.MaterialComboBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialComboBox.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialComboBox.params.multiple]
 type = "bool"
 default = false
@@ -425,6 +769,26 @@ default = false
 [components.MaterialComboBox.params.selection_state]
 type = "string"
 default = "single"
+
+[components.MaterialComboBox.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialComboBox.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialComboBox.params.accessibility_label]
+type = "string"
+default = ""
 
 [components.MaterialComboBox.params.height]
 type = "number"
@@ -435,7 +799,7 @@ node_id = "material_combo_box_root"
 kind = "native"
 type = "ComboBox"
 classes = ["material-control", "material-combo-box"]
-props = { value = "$param.value", options = "$param.options", popup_open = "$param.popup_open", multiple = "$param.multiple", selection_state = "$param.selection_state", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", options = "$param.options", popup_open = "$param.popup_open", popup_anchor_x = "$param.popup_anchor_x", popup_anchor_y = "$param.popup_anchor_y", multiple = "$param.multiple", selection_state = "$param.selection_state", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialDatePickerPopup]
@@ -453,12 +817,36 @@ default = []
 type = "bool"
 default = true
 
+[components.MaterialDatePickerPopup.params.popup_anchor_x]
+type = "number"
+default = 0.0
+
+[components.MaterialDatePickerPopup.params.popup_anchor_y]
+type = "number"
+default = 0.0
+
+[components.MaterialDatePickerPopup.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialDatePickerPopup.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialDatePickerPopup.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialDatePickerPopup.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialDatePickerPopup.root]
 node_id = "material_date_picker_popup_root"
 kind = "native"
 type = "ContextActionMenu"
 classes = ["material-control", "material-date-picker-popup", "material-popup-frame"]
-props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", popup_anchor_x = "$param.popup_anchor_x", popup_anchor_y = "$param.popup_anchor_y", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$material_popup_height", preferred = "$material_popup_height", max = "$material_popup_height", stretch = "Fixed" } }
 
 [components.MaterialGroupBox]
@@ -472,6 +860,34 @@ default = "Group"
 type = "bool"
 default = true
 
+[components.MaterialGroupBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialGroupBox.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialGroupBox.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialGroupBox.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialGroupBox.params.height]
 type = "number"
 default = 32.0
@@ -481,7 +897,7 @@ node_id = "material_group_box_root"
 kind = "native"
 type = "Group"
 classes = ["material-control", "material-group-box"]
-props = { text = "$param.text", expanded = "$param.expanded", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { text = "$param.text", expanded = "$param.expanded", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialLineEdit]
@@ -499,6 +915,18 @@ default = ""
 type = "string"
 default = "normal"
 
+[components.MaterialLineEdit.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialLineEdit.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialLineEdit.params.hovered]
+type = "bool"
+default = false
+
 [components.MaterialLineEdit.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -508,7 +936,7 @@ node_id = "material_line_edit_root"
 kind = "native"
 type = "InputField"
 classes = ["material-control", "material-line-edit"]
-props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialMenuBarItem]
@@ -517,6 +945,42 @@ style_scope = "open"
 [components.MaterialMenuBarItem.params.text]
 type = "string"
 default = "Menu"
+
+[components.MaterialMenuBarItem.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialMenuBarItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuBarItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuBarItem.params.accessibility_label]
+type = "string"
+default = ""
 
 [components.MaterialMenuBarItem.params.height]
 type = "number"
@@ -527,7 +991,7 @@ node_id = "material_menu_bar_item_root"
 kind = "native"
 type = "Button"
 classes = ["material-control", "material-menu-bar-item"]
-props = { text = "$param.text", surface_variant = "transparent", button_variant = "text", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.text", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "transparent", button_variant = "text", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialMenuBar]
@@ -566,12 +1030,36 @@ default = []
 type = "bool"
 default = true
 
+[components.MaterialMenuFrame.params.popup_anchor_x]
+type = "number"
+default = 0.0
+
+[components.MaterialMenuFrame.params.popup_anchor_y]
+type = "number"
+default = 0.0
+
+[components.MaterialMenuFrame.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuFrame.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuFrame.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuFrame.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialMenuFrame.root]
 node_id = "material_menu_frame_root"
 kind = "native"
 type = "ContextActionMenu"
 classes = ["material-control", "material-menu-frame", "material-popup-frame"]
-props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", popup_anchor_x = "$param.popup_anchor_x", popup_anchor_y = "$param.popup_anchor_y", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$material_popup_height", preferred = "$material_popup_height", max = "$material_popup_height", stretch = "Fixed" } }
 
 [components.MaterialMenuItem]
@@ -589,6 +1077,38 @@ default = false
 type = "bool"
 default = false
 
+[components.MaterialMenuItem.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialMenuItem.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialMenuItem.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialMenuItem.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialMenuItem.params.height]
 type = "number"
 default = 40.0
@@ -596,9 +1116,9 @@ default = 40.0
 [components.MaterialMenuItem.root]
 node_id = "material_menu_item_root"
 kind = "native"
-type = "Button"
+type = "MenuItem"
 classes = ["material-control", "material-menu-item"]
-props = { text = "$param.text", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
+props = { text = "$param.text", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialProgressIndicator]
@@ -621,11 +1141,23 @@ node_id = "material_progress_indicator_root"
 kind = "native"
 type = "ProgressBar"
 classes = ["material-control", "material-progress-indicator"]
-props = { value = "$param.value", indeterminate = "$param.indeterminate", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius" }
+props = { value = "$param.value", indeterminate = "$param.indeterminate", surface_variant = "inset", border_width = 0.0, corner_radius = "$material_radius", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialScrollView]
 style_scope = "open"
+
+[components.MaterialScrollView.params.input_focusable]
+type = "bool"
+default = false
+
+[components.MaterialScrollView.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialScrollView.params.accessibility_label]
+type = "string"
+default = ""
 
 [components.MaterialScrollView.slots.content]
 required = false
@@ -636,7 +1168,7 @@ node_id = "material_scroll_view_root"
 kind = "native"
 type = "ScrollableBox"
 classes = ["material-control", "material-scroll-view"]
-props = { surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius" }
+props = { capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", input_interactive = false, input_clickable = false, input_hoverable = true, input_focusable = "$param.input_focusable" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$material_scroll_height", preferred = "$material_scroll_height", max = "$material_scroll_height", stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 4.0 }, scroll = { vertical = true } }
 
 [[components.MaterialScrollView.root.children]]
@@ -665,6 +1197,22 @@ default = 100.0
 type = "number"
 default = 1.0
 
+[components.MaterialSlider.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSlider.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialSlider.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -674,7 +1222,7 @@ node_id = "material_slider_root"
 kind = "native"
 type = "RangeField"
 classes = ["material-control", "material-slider"]
-props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialSpinBox]
@@ -704,6 +1252,22 @@ default = 10.0
 type = "string"
 default = "normal"
 
+[components.MaterialSpinBox.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSpinBox.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialSpinBox.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -713,7 +1277,7 @@ node_id = "material_spin_box_root"
 kind = "native"
 type = "NumberField"
 classes = ["material-control", "material-spin-box"]
-props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", large_step = "$param.large_step", validation_level = "$param.validation_level", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", min = "$param.min", max = "$param.max", step = "$param.step", large_step = "$param.large_step", validation_level = "$param.validation_level", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialSpinner]
@@ -732,7 +1296,7 @@ node_id = "material_spinner_root"
 kind = "native"
 type = "Spinner"
 classes = ["material-control", "material-spinner"]
-props = { text = "$param.text", surface_variant = "transparent", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { text = "$param.text", surface_variant = "transparent", border_width = 0.0, corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_control_height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialSwitch]
@@ -746,6 +1310,22 @@ default = "Switch"
 type = "bool"
 default = false
 
+[components.MaterialSwitch.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialSwitch.params.pressed]
+type = "bool"
+default = false
+
 [components.MaterialSwitch.params.height]
 type = "number"
 default = "$material_list_item_height"
@@ -755,7 +1335,7 @@ node_id = "material_switch_root"
 kind = "native"
 type = "ToggleButton"
 classes = ["material-control", "material-switch"]
-props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", surface_variant = "inset", button_variant = "switch", border_width = "$material_border_width", corner_radius = 16.0, font_size = "$material_font_size", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
+props = { text = "$param.text", value = "$param.checked", checked = "$param.checked", selected = "$param.checked", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", surface_variant = "inset", button_variant = "switch", border_width = "$material_border_width", corner_radius = 16.0, font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialStandardTableView]
@@ -786,7 +1366,7 @@ node_id = "material_standard_table_view_root"
 kind = "native"
 type = "VirtualList"
 classes = ["material-control", "material-standard-table-view"]
-props = { items = "$param.items", total_count = "$param.total_count", viewport_start = "$param.viewport_start", viewport_count = "$param.viewport_count", item_extent = "$param.item_extent", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { items = "$param.items", total_count = "$param.total_count", viewport_start = "$param.viewport_start", viewport_count = "$param.viewport_count", item_extent = "$param.item_extent", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$material_scroll_height", preferred = "$material_scroll_height", max = "$material_scroll_height", stretch = "Fixed" } }
 
 [components.MaterialTabWidgetImpl]
@@ -821,6 +1401,42 @@ default = "Tab"
 type = "bool"
 default = false
 
+[components.MaterialTabImpl.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.hovered]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.pressed]
+type = "bool"
+default = false
+
+[components.MaterialTabImpl.params.binding_id]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialTabImpl.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialTabImpl.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialTabImpl.params.height]
 type = "number"
 default = 36.0
@@ -828,9 +1444,9 @@ default = 36.0
 [components.MaterialTabImpl.root]
 node_id = "material_tab_impl_root"
 kind = "native"
-type = "ToggleButton"
+type = "Tab"
 classes = ["material-control", "material-tab-impl"]
-props = { text = "$param.title", value = "$param.selected", checked = "$param.selected", selected = "$param.selected", surface_variant = "transparent", button_variant = "tab", border_width = 0.0, corner_radius = 0.0, font_size = "$material_font_size", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
+props = { text = "$param.title", value = "$param.selected", checked = "$param.selected", selected = "$param.selected", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", pressed = "$param.pressed", binding_id = "$param.binding_id", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "transparent", button_variant = "tab", border_width = 0.0, corner_radius = 0.0, font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_button_padding_x", layout_padding_right = "$material_button_padding_x", layout_padding_top = "$material_button_padding_y", layout_padding_bottom = "$material_button_padding_y", layout_spacing = "$material_button_spacing", layout_min_width = "$material_button_min_width", layout_min_height = "$param.height", layout_icon_size = "$material_button_icon_size" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height", preferred = "$param.height", max = "$param.height", stretch = "Fixed" } }
 
 [components.MaterialTabBarHorizontalImpl]
@@ -911,6 +1527,18 @@ default = ""
 type = "string"
 default = "normal"
 
+[components.MaterialTextEdit.params.disabled]
+type = "bool"
+default = false
+
+[components.MaterialTextEdit.params.focused]
+type = "bool"
+default = false
+
+[components.MaterialTextEdit.params.hovered]
+type = "bool"
+default = false
+
 [components.MaterialTextEdit.params.height]
 type = "number"
 default = "$material_field_min_height"
@@ -920,7 +1548,7 @@ node_id = "material_text_edit_root"
 kind = "native"
 type = "TextField"
 classes = ["material-control", "material-text-edit"]
-props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$material_field_min_height" }
+props = { value = "$param.value", placeholder = "$param.placeholder", validation_level = "$param.validation_level", disabled = "$param.disabled", focused = "$param.focused", hovered = "$param.hovered", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true, layout_padding_left = "$material_field_padding_x", layout_padding_right = "$material_field_padding_x", layout_padding_top = "$material_field_padding_y", layout_padding_bottom = "$material_field_padding_y", layout_min_height = "$param.height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$param.height" } }
 
 [components.MaterialTimePickerPopup]
@@ -938,10 +1566,34 @@ default = []
 type = "bool"
 default = true
 
+[components.MaterialTimePickerPopup.params.popup_anchor_x]
+type = "number"
+default = 0.0
+
+[components.MaterialTimePickerPopup.params.popup_anchor_y]
+type = "number"
+default = 0.0
+
+[components.MaterialTimePickerPopup.params.action_id]
+type = "string"
+default = ""
+
+[components.MaterialTimePickerPopup.params.input_focusable]
+type = "bool"
+default = true
+
+[components.MaterialTimePickerPopup.params.capability]
+type = "string"
+default = ""
+
+[components.MaterialTimePickerPopup.params.accessibility_label]
+type = "string"
+default = ""
+
 [components.MaterialTimePickerPopup.root]
 node_id = "material_time_picker_popup_root"
 kind = "native"
 type = "ContextActionMenu"
 classes = ["material-control", "material-time-picker-popup", "material-popup-frame"]
-props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size" }
+props = { value = "$param.value", menu_items = "$param.menu_items", popup_open = "$param.popup_open", popup_anchor_x = "$param.popup_anchor_x", popup_anchor_y = "$param.popup_anchor_y", action_id = "$param.action_id", capability = "$param.capability", accessibility_label = "$param.accessibility_label", surface_variant = "inset", border_width = "$material_border_width", corner_radius = "$material_radius", font_size = "$material_font_size", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = "$param.input_focusable", layout_padding_left = "$material_list_item_padding_x", layout_padding_right = "$material_list_item_padding_x", layout_spacing = "$material_list_item_spacing", layout_min_height = "$material_list_item_height" }
 layout = { width = { stretch = "Stretch" }, height = { min = "$material_popup_height", preferred = "$material_popup_height", max = "$material_popup_height", stretch = "Fixed" } }

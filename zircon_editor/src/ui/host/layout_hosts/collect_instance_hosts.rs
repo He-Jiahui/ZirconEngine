@@ -10,9 +10,11 @@ pub(in crate::ui::host) fn collect_instance_hosts(
 ) -> BTreeMap<ViewInstanceId, ViewHost> {
     let mut placements = BTreeMap::new();
 
-    for (slot, drawer) in &layout.drawers {
-        for instance_id in &drawer.tab_stack.tabs {
-            placements.insert(instance_id.clone(), ViewHost::Drawer(*slot));
+    for activity_window in layout.activity_windows().values() {
+        for (slot, drawer) in &activity_window.activity_drawers {
+            for instance_id in &drawer.tab_stack.tabs {
+                placements.insert(instance_id.clone(), ViewHost::Drawer(*slot));
+            }
         }
     }
 

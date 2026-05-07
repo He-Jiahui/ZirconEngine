@@ -1,5 +1,9 @@
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
+use crate::ui::workbench::debug_reflector::{
+    EditorUiDebugReflectorModel, EditorUiDebugReflectorOverlayState,
+};
+
 use super::super::pane_payload::{PanePayload, RuntimeDiagnosticsPanePayload};
 use super::super::pane_presentation::PanePayloadBuildContext;
 
@@ -8,6 +12,15 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
         .runtime_diagnostics
         .cloned()
         .unwrap_or_else(RuntimeDiagnosticsSnapshot::default);
+    let active_ui_debug_snapshot = context.active_ui_debug_snapshot;
+    let (reflector, overlay_primitives) = active_ui_debug_snapshot
+        .map(|snapshot| {
+            (
+                EditorUiDebugReflectorModel::from_snapshot(snapshot),
+                EditorUiDebugReflectorOverlayState::default().primitives_from_snapshot(snapshot),
+            )
+        })
+        .unwrap_or_else(|| (EditorUiDebugReflectorModel::no_active_surface(), Vec::new()));
 
     PanePayload::RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload {
         summary: summary(&diagnostics),
@@ -15,6 +28,12 @@ pub(super) fn build(context: &PanePayloadBuildContext<'_>) -> PanePayload {
         physics_status: physics_status(&diagnostics),
         animation_status: animation_status(&diagnostics),
         detail_items: detail_items(&diagnostics),
+        ui_debug_reflector_summary: reflector.summary.title,
+        ui_debug_reflector_nodes: reflector.nodes.into_iter().map(|node| node.label).collect(),
+        ui_debug_reflector_details: reflector.details,
+        ui_debug_reflector_export_status: reflector.summary.export_status,
+        ui_debug_reflector_overlay_primitives: overlay_primitives,
+        ui_debug_reflector_has_active_snapshot: active_ui_debug_snapshot.is_some(),
     })
 }
 

@@ -114,11 +114,7 @@ pub(crate) fn apply_presentation(
     pane_surface_host.set_browser_asset_view_mode(presentation.browser.view_mode);
     pane_surface_host.set_browser_asset_utility_tab(presentation.browser.utility_tab);
 
-    let host_layout = host_window_layout(
-        geometry,
-        shared_root_frames,
-        document_pane_shows_viewport_toolbar,
-    );
+    let host_layout = host_window_layout(shared_root_frames, document_pane_shows_viewport_toolbar);
     let host_scene_data = build_host_scene_data(
         &model.menu_bar,
         &presentation.host_surface_data,
@@ -129,6 +125,8 @@ pub(crate) fn apply_presentation(
         &chrome.project_overview,
     );
     let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
+    let host_welcome_pane =
+        to_host_contract_welcome_pane(&welcome_pane, &presentation.welcome.recent_projects);
     let native_floating_surface_data = build_native_floating_surface_data(
         &presentation.host_surface_data,
         &presentation.host_shell,
@@ -139,57 +137,40 @@ pub(crate) fn apply_presentation(
         host_scene_data: to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
             component_showcase_runtime,
+            Some(&presentation.welcome),
         ),
         native_floating_surface_data: to_host_contract_native_floating_surface_data_with_runtime(
             &native_floating_surface_data,
             component_showcase_runtime,
+            Some(&presentation.welcome),
         ),
         host_shell: to_host_contract_host_shell(&presentation.host_shell),
         host_layout: to_host_contract_host_window_layout(&host_layout),
         menu_state: current_host_presentation.menu_state,
+        close_prompt: current_host_presentation.close_prompt,
         pane_interaction_state: current_host_presentation.pane_interaction_state,
         viewport_image: current_host_presentation.viewport_image,
     };
     ui.set_host_presentation(host_presentation);
-    pane_surface_host.set_welcome_pane(to_host_contract_welcome_pane(&welcome_pane));
+    pane_surface_host.set_welcome_pane(host_welcome_pane);
     pane_surface_host.set_mesh_import_path(presentation.mesh_import_path);
 }
 
 fn host_window_layout(
-    geometry: &WorkbenchShellGeometry,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     document_pane_shows_viewport_toolbar: bool,
 ) -> host_window::HostWindowLayoutData {
     host_window::HostWindowLayoutData {
-        center_band_frame: frame_rect(resolve_root_center_band_frame(geometry, shared_root_frames)),
-        status_bar_frame: frame_rect(resolve_root_status_bar_frame(geometry, shared_root_frames)),
-        left_region_frame: frame_rect(resolve_root_left_region_frame(geometry, shared_root_frames)),
-        document_region_frame: frame_rect(resolve_root_document_region_frame(
-            geometry,
-            shared_root_frames,
-        )),
-        right_region_frame: frame_rect(resolve_root_right_region_frame(
-            geometry,
-            shared_root_frames,
-        )),
-        bottom_region_frame: frame_rect(resolve_root_bottom_region_frame(
-            geometry,
-            shared_root_frames,
-        )),
-        left_splitter_frame: frame_rect(resolve_root_left_splitter_frame(
-            geometry,
-            shared_root_frames,
-        )),
-        right_splitter_frame: frame_rect(resolve_root_right_splitter_frame(
-            geometry,
-            shared_root_frames,
-        )),
-        bottom_splitter_frame: frame_rect(resolve_root_bottom_splitter_frame(
-            geometry,
-            shared_root_frames,
-        )),
+        center_band_frame: frame_rect(resolve_root_center_band_frame(shared_root_frames)),
+        status_bar_frame: frame_rect(resolve_root_status_bar_frame(shared_root_frames)),
+        left_region_frame: frame_rect(resolve_root_left_region_frame(shared_root_frames)),
+        document_region_frame: frame_rect(resolve_root_document_region_frame(shared_root_frames)),
+        right_region_frame: frame_rect(resolve_root_right_region_frame(shared_root_frames)),
+        bottom_region_frame: frame_rect(resolve_root_bottom_region_frame(shared_root_frames)),
+        left_splitter_frame: frame_rect(resolve_root_left_splitter_frame(shared_root_frames)),
+        right_splitter_frame: frame_rect(resolve_root_right_splitter_frame(shared_root_frames)),
+        bottom_splitter_frame: frame_rect(resolve_root_bottom_splitter_frame(shared_root_frames)),
         viewport_content_frame: frame_rect(resolve_root_viewport_content_frame(
-            geometry,
             shared_root_frames,
             document_pane_shows_viewport_toolbar,
         )),
@@ -238,6 +219,7 @@ fn to_host_contract_floating_window_data(
     window: host_window::FloatingWindowData,
     header_height_px: f32,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::FloatingWindowData {
     let resolved_header_height_px = if window.header_frame.height > 0.0 {
         window.header_frame.height
@@ -266,6 +248,7 @@ fn to_host_contract_floating_window_data(
             window.active_pane,
             pane_size,
             component_showcase_runtime,
+            welcome,
         ),
     }
 }
@@ -274,9 +257,15 @@ fn to_host_contract_floating_windows(
     windows: &ModelRc<host_window::FloatingWindowData>,
     header_height_px: f32,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> ModelRc<host_contract::FloatingWindowData> {
     map_model_rc(windows, |window| {
-        to_host_contract_floating_window_data(window, header_height_px, component_showcase_runtime)
+        to_host_contract_floating_window_data(
+            window,
+            header_height_px,
+            component_showcase_runtime,
+            welcome,
+        )
     })
 }
 
@@ -297,14 +286,67 @@ fn to_host_contract_new_project_form(
 
 fn to_host_contract_welcome_pane(
     pane: &view_data::WelcomePaneData,
+    recent_projects: &ModelRc<view_data::RecentProjectData>,
 ) -> host_contract::WelcomePaneData {
+    let nodes = welcome_nodes_with_native_dispatch(
+        to_host_contract_template_nodes(&pane.nodes),
+        &pane.form,
+    );
     host_contract::WelcomePaneData {
-        nodes: to_host_contract_template_nodes(&pane.nodes),
+        nodes,
         title: pane.title.clone(),
         subtitle: pane.subtitle.clone(),
         status_message: pane.status_message.clone(),
         form: to_host_contract_new_project_form(&pane.form),
+        recent_projects: to_host_contract_recent_projects(recent_projects),
     }
+}
+
+fn welcome_nodes_with_native_dispatch(
+    nodes: ModelRc<host_contract::TemplatePaneNodeData>,
+    form: &view_data::NewProjectFormData,
+) -> ModelRc<host_contract::TemplatePaneNodeData> {
+    model_rc(
+        (0..nodes.row_count())
+            .filter_map(|row| nodes.row_data(row))
+            .map(|mut node| {
+                match node.control_id.as_str() {
+                    "WelcomeProjectNameField" => {
+                        node.component_role = "input-field".into();
+                        node.dispatch_kind = "welcome_text".into();
+                        node.action_id = "ProjectNameEdited".into();
+                        node.edit_action_id = "ProjectNameEdited".into();
+                        node.value_text = form.project_name.clone();
+                        if node.text.is_empty() {
+                            node.text = form.project_name.clone();
+                        }
+                    }
+                    "WelcomeLocationField" => {
+                        node.component_role = "input-field".into();
+                        node.dispatch_kind = "welcome_text".into();
+                        node.action_id = "LocationEdited".into();
+                        node.edit_action_id = "LocationEdited".into();
+                        node.value_text = form.location.clone();
+                        if node.text.is_empty() {
+                            node.text = form.location.clone();
+                        }
+                    }
+                    "WelcomeCreateProjectButton" => {
+                        node.dispatch_kind = "welcome".into();
+                        node.action_id = "CreateProject".into();
+                        node.disabled = !form.can_create;
+                    }
+                    "WelcomeOpenExistingButton" => {
+                        node.dispatch_kind = "welcome".into();
+                        node.action_id = "OpenExistingProject".into();
+                        node.disabled = !form.can_open_existing;
+                    }
+                    _ => {}
+                }
+                node
+            })
+            .collect(),
+    )
 }
 
 fn project_welcome_pane(
@@ -315,6 +357,16 @@ fn project_welcome_pane(
     if let Some(size) = resolve_visible_welcome_pane_size(scene) {
         pane.nodes = view_data::welcome_pane_nodes(size);
     }
+    pane
+}
+
+fn project_welcome_pane_for_size(
+    pane: &view_data::WelcomePaneData,
+    size: host_window::PaneContentSize,
+) -> view_data::WelcomePaneData {
+    let mut pane = pane.clone();
+    pane.nodes =
+        view_data::welcome_pane_nodes(UiSize::new(size.width.max(1.0), size.height.max(1.0)));
     pane
 }
 
@@ -548,6 +600,13 @@ fn to_host_contract_build_export_pane(
     pane_data_conversion::to_host_contract_build_export_pane_from_host_pane(data, pane_size)
 }
 
+fn to_host_contract_runtime_diagnostics_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::RuntimeDiagnosticsPaneData {
+    pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane(data, pane_size)
+}
+
 fn to_host_contract_ui_asset_pane(
     data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
 ) -> host_contract::UiAssetEditorPaneData {
@@ -558,43 +617,101 @@ fn to_host_contract_pane(
     data: host_window::PaneData,
     pane_size: host_window::PaneContentSize,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::PaneData {
     let pane_kind = data.kind.to_string();
-    let hierarchy = if pane_kind == "Hierarchy" {
+    let has_hierarchy_payload =
+        pane_kind == "Hierarchy" || data.native_body.hierarchy.nodes.row_count() > 0;
+    let has_inspector_payload =
+        pane_kind == "Inspector" || data.native_body.inspector.nodes.row_count() > 0;
+    let has_console_payload =
+        pane_kind == "Console" || data.native_body.console.nodes.row_count() > 0;
+    let has_assets_activity_payload =
+        pane_kind == "Assets" || data.native_body.assets_activity.nodes.row_count() > 0;
+    let has_asset_browser_payload =
+        pane_kind == "AssetBrowser" || data.native_body.asset_browser.nodes.row_count() > 0;
+    let has_project_overview_payload =
+        pane_kind == "Project" || data.native_body.project_overview.nodes.row_count() > 0;
+    let has_component_showcase_payload = pane_kind == "UiComponentShowcase"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::UiComponentShowcaseV1(_)
+            )
+        });
+    let has_runtime_diagnostics_payload = pane_kind == "RuntimeDiagnostics"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::RuntimeDiagnosticsV1(_)
+            )
+        });
+    let has_module_plugins_payload = pane_kind == "ModulePlugins"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::ModulePluginsV1(_)
+            )
+        });
+    let has_build_export_payload = pane_kind == "BuildExport"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::BuildExportV1(_)
+            )
+        });
+    let has_ui_asset_payload = pane_kind == "UiAssetEditor"
+        || data.native_body.ui_asset
+            != crate::ui::asset_editor::UiAssetEditorPanePresentation::default();
+    let has_animation_payload = matches!(
+        pane_kind.as_str(),
+        "AnimationSequenceEditor" | "AnimationGraphEditor"
+    ) || data.native_body.animation.nodes.row_count() > 0;
+    let welcome_pane = if pane_kind == "Welcome" {
+        welcome.map_or_else(host_contract::WelcomePaneData::default, |welcome| {
+            let pane = project_welcome_pane_for_size(&welcome.pane, pane_size);
+            to_host_contract_welcome_pane(&pane, &welcome.recent_projects)
+        })
+    } else {
+        host_contract::WelcomePaneData::default()
+    };
+    let hierarchy = if has_hierarchy_payload {
         to_host_contract_hierarchy_pane(&data, pane_size)
     } else {
         host_contract::HierarchyPaneData::default()
     };
-    let inspector = if pane_kind == "Inspector" {
+    let inspector = if has_inspector_payload {
         to_host_contract_inspector_pane(&data, pane_size)
     } else {
         host_contract::InspectorPaneData::default()
     };
-    let console = if pane_kind == "Console" {
+    let console = if has_console_payload {
         to_host_contract_console_pane(&data, pane_size)
     } else {
         host_contract::ConsolePaneData::default()
     };
-    let animation = if matches!(
-        pane_kind.as_str(),
-        "AnimationSequenceEditor" | "AnimationGraphEditor"
-    ) {
+    let animation = if has_animation_payload {
         to_host_contract_animation_editor_pane(&data, pane_size)
     } else {
         host_contract::AnimationEditorPaneData::default()
     };
-    let module_plugins = if matches!(pane_kind.as_str(), "ModulePlugins" | "RuntimeDiagnostics") {
+    let module_plugins = if has_module_plugins_payload {
         to_host_contract_module_plugins_pane(&data, pane_size)
     } else {
         host_contract::ModulePluginsPaneData::default()
     };
-    let build_export = if pane_kind == "BuildExport" {
+    let runtime_diagnostics = if has_runtime_diagnostics_payload {
+        to_host_contract_runtime_diagnostics_pane(&data, pane_size)
+    } else {
+        host_contract::RuntimeDiagnosticsPaneData::default()
+    };
+    let build_export = if has_build_export_payload {
         to_host_contract_build_export_pane(&data, pane_size)
     } else {
         host_contract::BuildExportPaneData::default()
     };
-    let project_overview = match pane_kind.as_str() {
-        "UiComponentShowcase" => component_showcase_runtime.map_or_else(
+    let project_overview = if has_component_showcase_payload {
+        component_showcase_runtime.map_or_else(
             || {
                 pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
                     &data, pane_size,
@@ -605,9 +722,11 @@ fn to_host_contract_pane(
                     &data, pane_size, runtime,
                 )
             },
-        ),
-        "Project" => to_host_contract_project_overview_pane(data.native_body.project_overview.clone()),
-        _ => host_contract::ProjectOverviewPaneData::default(),
+        )
+    } else if has_project_overview_payload {
+        to_host_contract_project_overview_pane(data.native_body.project_overview.clone())
+    } else {
+        host_contract::ProjectOverviewPaneData::default()
     };
 
     let mut pane = host_contract::PaneData {
@@ -627,26 +746,28 @@ fn to_host_contract_pane(
         secondary_action_id: data.secondary_action_id,
         secondary_hint: data.secondary_hint,
         show_toolbar: data.show_toolbar,
+        welcome: welcome_pane,
         viewport: to_host_contract_scene_viewport_chrome(&data.viewport),
         hierarchy,
         inspector,
         console,
-        assets_activity: if pane_kind == "Assets" {
+        assets_activity: if has_assets_activity_payload {
             to_host_contract_assets_activity_pane(data.native_body.assets_activity)
         } else {
             host_contract::AssetsActivityPaneData::default()
         },
         asset_browser: pane_data_conversion::to_host_contract_asset_browser_pane(
-            if pane_kind == "AssetBrowser" {
+            if has_asset_browser_payload {
                 data.native_body.asset_browser
             } else {
                 host_window::AssetBrowserPaneViewData::default()
             },
         ),
         project_overview,
+        runtime_diagnostics,
         module_plugins,
         build_export,
-        ui_asset: if pane_kind == "UiAssetEditor" {
+        ui_asset: if has_ui_asset_payload {
             to_host_contract_ui_asset_pane(data.native_body.ui_asset)
         } else {
             host_contract::UiAssetEditorPaneData::default()
@@ -658,6 +779,14 @@ fn to_host_contract_pane(
         &pane,
         UiSize::new(pane_size.width.max(1.0), pane_size.height.max(1.0)),
     );
+    if pane_data_conversion::refresh_runtime_diagnostics_debug_reflector_from_body_surface(
+        &mut pane, pane_size,
+    ) {
+        pane.body_surface_frame = host_contract::build_pane_template_surface_frame(
+            &pane,
+            UiSize::new(pane_size.width.max(1.0), pane_size.height.max(1.0)),
+        );
+    }
     pane
 }
 
@@ -809,6 +938,7 @@ fn to_host_contract_menu_chrome_item(
         shortcut: item.shortcut,
         action_id: item.action_id,
         enabled: item.enabled,
+        children: map_model_rc(&item.children, to_host_contract_menu_chrome_item),
     }
 }
 
@@ -871,6 +1001,7 @@ fn to_host_contract_drag_overlay(
 fn to_host_contract_side_dock(
     dock: &host_window::HostSideDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostSideDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.panel_width_px,
@@ -891,7 +1022,12 @@ fn to_host_contract_side_dock(
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&dock.tabs),
-        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        pane: to_host_contract_pane(
+            dock.pane.clone(),
+            pane_size,
+            component_showcase_runtime,
+            welcome,
+        ),
         rail_width_px: dock.rail_width_px,
         panel_width_px: dock.panel_width_px,
         panel_header_height_px: dock.panel_header_height_px,
@@ -901,6 +1037,7 @@ fn to_host_contract_side_dock(
 fn to_host_contract_document_dock(
     dock: &host_window::HostDocumentDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostDocumentDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -915,7 +1052,12 @@ fn to_host_contract_document_dock(
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&dock.tabs),
-        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        pane: to_host_contract_pane(
+            dock.pane.clone(),
+            pane_size,
+            component_showcase_runtime,
+            welcome,
+        ),
         header_height_px: dock.header_height_px,
     }
 }
@@ -923,6 +1065,7 @@ fn to_host_contract_document_dock(
 fn to_host_contract_bottom_dock(
     dock: &host_window::HostBottomDockSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostBottomDockSurfaceData {
     let pane_size = host_window::PaneContentSize::new(
         dock.region_frame.width,
@@ -936,7 +1079,12 @@ fn to_host_contract_bottom_dock(
         content_frame: to_host_contract_frame_rect(&dock.content_frame),
         tab_frames: map_model_rc(&dock.tab_frames, to_host_contract_chrome_tab),
         tabs: to_host_contract_tabs(&dock.tabs),
-        pane: to_host_contract_pane(dock.pane.clone(), pane_size, component_showcase_runtime),
+        pane: to_host_contract_pane(
+            dock.pane.clone(),
+            pane_size,
+            component_showcase_runtime,
+            welcome,
+        ),
         expanded: dock.expanded,
         header_height_px: dock.header_height_px,
     }
@@ -945,12 +1093,14 @@ fn to_host_contract_bottom_dock(
 fn to_host_contract_floating_layer(
     layer: &host_window::HostFloatingWindowLayerData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostFloatingWindowLayerData {
     host_contract::HostFloatingWindowLayerData {
         floating_windows: to_host_contract_floating_windows(
             &layer.floating_windows,
             layer.header_height_px,
             component_showcase_runtime,
+            welcome,
         ),
         header_height_px: layer.header_height_px,
     }
@@ -960,12 +1110,13 @@ fn to_host_contract_floating_layer(
 pub(super) fn to_host_contract_host_scene_data(
     scene: &host_window::HostWindowSceneData,
 ) -> host_contract::HostWindowSceneData {
-    to_host_contract_host_scene_data_with_runtime(scene, None)
+    to_host_contract_host_scene_data_with_runtime(scene, None, None)
 }
 
 fn to_host_contract_host_scene_data_with_runtime(
     scene: &host_window::HostWindowSceneData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostWindowSceneData {
     host_contract::HostWindowSceneData {
         layout: to_host_contract_host_window_layout(&scene.layout),
@@ -976,16 +1127,30 @@ fn to_host_contract_host_scene_data_with_runtime(
         status_bar: to_host_contract_status_bar(&scene.status_bar),
         resize_layer: to_host_contract_resize_layer(&scene.resize_layer),
         drag_overlay: to_host_contract_drag_overlay(&scene.drag_overlay),
-        left_dock: to_host_contract_side_dock(&scene.left_dock, component_showcase_runtime),
+        left_dock: to_host_contract_side_dock(
+            &scene.left_dock,
+            component_showcase_runtime,
+            welcome,
+        ),
         document_dock: to_host_contract_document_dock(
             &scene.document_dock,
             component_showcase_runtime,
+            welcome,
         ),
-        right_dock: to_host_contract_side_dock(&scene.right_dock, component_showcase_runtime),
-        bottom_dock: to_host_contract_bottom_dock(&scene.bottom_dock, component_showcase_runtime),
+        right_dock: to_host_contract_side_dock(
+            &scene.right_dock,
+            component_showcase_runtime,
+            welcome,
+        ),
+        bottom_dock: to_host_contract_bottom_dock(
+            &scene.bottom_dock,
+            component_showcase_runtime,
+            welcome,
+        ),
         floating_layer: to_host_contract_floating_layer(
             &scene.floating_layer,
             component_showcase_runtime,
+            welcome,
         ),
     }
 }
@@ -993,12 +1158,14 @@ fn to_host_contract_host_scene_data_with_runtime(
 fn to_host_contract_native_floating_surface_data_with_runtime(
     surface: &host_window::HostNativeFloatingWindowSurfaceData,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
+    welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostNativeFloatingWindowSurfaceData {
     host_contract::HostNativeFloatingWindowSurfaceData {
         floating_windows: to_host_contract_floating_windows(
             &surface.floating_windows,
             surface.header_height_px,
             component_showcase_runtime,
+            welcome,
         ),
         native_floating_window_id: surface.native_floating_window_id.clone(),
         native_window_bounds: to_host_contract_frame_rect(&surface.native_window_bounds),

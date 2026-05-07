@@ -3,6 +3,14 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/command_kind.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/parity.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
@@ -45,6 +53,14 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/command_kind.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/parity.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
@@ -79,7 +95,23 @@ plan_sources:
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
 tests:
-  - Not run; documentation-only Unreal Slate rendering audit update.
+  - cargo check -p zircon_runtime_interface
+  - cargo check -p zircon_runtime_interface --tests
+  - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture
+  - rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/surface/render/debug.rs" "zircon_runtime_interface/src/ui/surface/render/parity.rs" "zircon_runtime_interface/src/ui/surface/render/visualizer.rs" "zircon_runtime_interface/src/ui/surface/render/mod.rs" "zircon_runtime_interface/src/ui/surface/mod.rs" "zircon_runtime_interface/src/tests/render_contracts.rs"
+  - rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/layout/slot.rs" "zircon_runtime_interface/src/ui/layout/linear_sizing.rs" "zircon_runtime_interface/src/ui/surface/render/debug.rs" "zircon_runtime_interface/src/ui/surface/render/parity.rs" "zircon_runtime_interface/src/ui/surface/render/mod.rs" "zircon_runtime_interface/src/ui/surface/mod.rs" "zircon_runtime_interface/src/tests/render_contracts.rs" (R8 final closeout: passed with no output after scoped target clean)
+  - CARGO_TARGET_DIR=E:\zircon-build\targets\ui-render-r4-interface cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=E:\zircon-build\targets\ui-render-r4-interface cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture (R7 review fixes: 19 passed, 0 failed)
+  - CARGO_TARGET_DIR=E:\zircon-build\targets\ui-render-r4-interface cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --message-format short --color never (R8 shared parity seam: passed)
+  - CARGO_TARGET_DIR=E:\zircon-build\targets\ui-render-r4-interface cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture (R8 shared parity seam: 21 passed, 0 failed, 31 filtered out)
+  - cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-r8-closeout --message-format short --color never (R8 shared parity seam: passed)
+  - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-r8-closeout --message-format short --color never -- --nocapture (R8 shared parity seam: 21 passed, 0 failed, 31 filtered out)
+  - rustfmt --edition 2021 --check "zircon_runtime_interface/src/tests/render_contracts.rs" (R9 interface parity harness: passed with no output)
+  - cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-r9-offscreen-parity --message-format short --color never (R9 interface parity harness: passed)
+  - cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-r9-offscreen-parity --message-format short --color never -- --nocapture (R9 interface parity harness: 23 passed, 0 failed, 32 filtered out)
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never (passed with existing warnings)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short --color never (attempted; timed out during dependency compilation and background cargo/rustc continued)
+  - cargo test -p zircon_editor --lib rust_owned_host_painter_draws_runtime_render_commands --locked --jobs 1 --message-format short --color never -- --nocapture (attempted; timed out during dependency compilation)
 doc_type: milestone-detail
 ---
 
@@ -138,6 +170,28 @@ doc_type: milestone-detail
 3. Render extract 从 arranged tree 生成 `UiRenderCommand` 或下一代 `UiPaintElement`，并附带 brush/text/image/material payload、resource revision 和 invalidation generation。
 4. Batcher 把 commands 转成 `UiBatchPlan`：batch key、draw ranges、clip/scissor/stencil need、resource handles、merge/split reason、debug counters。
 5. Runtime WGPU UI renderer、editor host painter 和未来 offscreen/world-space UI 都消费同一 command/batch/debug 合同；host 不重新解释 `.ui.toml` 视觉。
+
+## R1-R8 Contract Slice Status
+
+本轮已经把 R1-R8 的 neutral DTO 底座落到 `zircon_runtime_interface::ui::surface::render`：
+
+- `UiPaintElement` / `UiPaintPayload` 拆出 geometry、clip、effect、brush/text payload 和 cache/debug 预留字段。
+- `UiBrushPayload` / `UiRenderResourceKey` 覆盖 solid、image、box、border、rounded、gradient、vector、material，以及 revision/atlas page/UV rect/fallback resource 这些 batch/cache key 必需字段。
+- `UiRenderResourceState` 在 brush payload 中保留 resolved revision、atlas page、UV rect、pixel size 和 fallback resource，先把 image/icon/SVG/font atlas 与 material variant 的可观测状态纳入 shared contract。
+- `UiShapedText` / `UiTextPaint` 先从 `UiResolvedTextLayout` 派生，保留 source/visual ranges、run kind、line frame、baseline、direction、overflow 和 text render mode，并扩展 font/atlas resource、ellipsis range、per-glyph id/advance/atlas UV、selection/caret/composition/decorator payload，作为后续真实 glyph shaping 的 shared artifact 槽位。
+- `UiBatchKey` / `UiBatchPlan` / `UiBatchSplitReason` 提供 layer、clip、primitive、shader、resource、text backend、opacity 的稳定合并合同。
+- `UiRenderCachePlan` / `UiRenderCacheInvalidationReason` / `UiRenderCacheStatus` 提供 paint/batch cache hit、rebuild、resource revision、clip、text shape、dirty node 等可复盘合同，但不在本切片抢占 runtime invalidation/performance 实现。
+- `UiRenderDebugSnapshot` 可从 `UiRenderExtract` 导出 paint/batch/cache replay 数据，并接入 `UiSurfaceDebugSnapshot.render_batches`。
+- `UiRenderVisualizerSnapshot` / `UiRenderVisualizerOverlay` / `UiRenderVisualizerStats` 提供 R7 Widget Reflector 类 render 面板所需的中立导出合同：paint element 表、batch group 表、wireframe/clip/batch/overdraw/resource/text overlay、overdraw regions、resource bindings、text backend/glyph/decorator stats 和 cache reuse/rebuild counters。
+- `UiRendererParitySnapshot` / `UiRendererParityPaintRow` / `UiRendererParityBatchRow` 提供 R8 shared seam：runtime renderer、editor painter、offscreen capture 可以比较同一份 paint order、batch order、clip key、payload kind、resource key、text render mode 和 opacity identity，再把像素差异归因到明确 backend divergence。
+
+当前仍保留 `UiRenderCommand` 作为迁移输入，没有给旧 struct literal 增加必填字段。R1-R6 已经完成 runtime diagnostics 的 `render_batches` 挂载与 editor Rust-owned painter 的派生 `UiPaintElement`/`UiPaintPayload` 消费；R7 只新增 shared visualizer export/replay DTO，不新增 live editor panel 或 runtime overlay 行为；R8 当前只新增 shared parity packet，不删除 editor painter/runtime renderer 的旧 consumption 分支。R4-R8 目前是合同层接入：真实 atlas 分配、资源 revision 驱动的局部 cache invalidation、runtime image/material shader 采样、GPU overdraw pass、live editor visualizer 面板、HarfBuzz 级 shaping、平台 IME 绘制以及 runtime/editor/offscreen parity golden tests 仍在后续 runtime renderer/text/editor 实现中完成。
+
+R8 focused validation ran on 2026-05-06 with no runtime/editor painter edits. The final closeout rerun saw E: below the 50 GB cleanup threshold, so `cargo clean --target-dir "E:\zircon-build\targets\ui-render-r4-interface"` removed 755.6 MiB before validation. `rustfmt --edition 2021 --check "zircon_runtime_interface/src/ui/layout/slot.rs" "zircon_runtime_interface/src/ui/layout/linear_sizing.rs" "zircon_runtime_interface/src/ui/surface/render/debug.rs" "zircon_runtime_interface/src/ui/surface/render/parity.rs" "zircon_runtime_interface/src/ui/surface/render/mod.rs" "zircon_runtime_interface/src/ui/surface/mod.rs" "zircon_runtime_interface/src/tests/render_contracts.rs"` passed with no output. With `CARGO_TARGET_DIR=E:\zircon-build\targets\ui-render-r4-interface`, `cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --message-format short --color never` finished successfully and `cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --message-format short --color never -- --nocapture` passed with `21 passed; 0 failed; 31 filtered out`.
+
+R9 starts the parity/golden harness path without declaring renderer cleanup complete. The first slice remains interface-owned and uses hand-authored `UiRenderExtract` fixtures to prove `UiRendererParitySnapshot` semantic equality before any backend pixel output is considered. Runtime WGPU adapter output, editor painter adapter output, and offscreen RGBA golden comparison remain later implementation milestones; the acceptance order is shared paint/batch/clip/resource/text identity first, optional backend pixels second.
+
+R9 focused validation ran on 2026-05-06 with no runtime/editor painter edits. D: had 125,702,815,744 bytes free, above the 50 GB cleanup threshold, so no target clean was needed. `rustfmt --edition 2021 --check "zircon_runtime_interface/src/tests/render_contracts.rs"` passed with no output. `cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-render-r9-offscreen-parity" --message-format short --color never` finished successfully, and `cargo test -p zircon_runtime_interface --lib render_contracts --locked --jobs 1 --target-dir "D:\cargo-targets\zircon-render-r9-offscreen-parity" --message-format short --color never -- --nocapture` passed with `23 passed; 0 failed; 32 filtered out`.
 
 ## Rendering Milestones
 

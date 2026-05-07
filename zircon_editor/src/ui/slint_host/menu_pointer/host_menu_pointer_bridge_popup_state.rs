@@ -5,6 +5,8 @@ impl HostMenuPointerBridge {
         self.state.open_menu_index = None;
         self.state.hovered_menu_index = None;
         self.state.hovered_item_index = None;
+        self.state.hovered_item_path.clear();
+        self.state.open_submenu_path.clear();
         self.rebuild_surface();
     }
 
@@ -12,6 +14,8 @@ impl HostMenuPointerBridge {
         self.state.open_menu_index = Some(menu_index);
         self.state.hovered_menu_index = Some(menu_index);
         self.state.hovered_item_index = None;
+        self.state.hovered_item_path.clear();
+        self.state.open_submenu_path.clear();
         self.state.popup_scroll_offset = 0.0;
         self.rebuild_surface();
     }

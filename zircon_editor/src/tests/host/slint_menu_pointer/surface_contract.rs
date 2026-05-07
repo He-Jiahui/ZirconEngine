@@ -40,6 +40,7 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
     let popup_asset = source("assets/ui/editor/workbench_menu_popup.ui.toml");
 
     assert!(host_components.contains("pub menu_frames: ModelRc<HostChromeControlFrameData>"));
+    assert!(host_interaction.contains("pub menu_bar_scroll_px: f32"));
     assert!(host_interaction.contains("pub window_menu_scroll_px: f32"));
     for required in [
         "menu_button_frames_from_chrome_asset",

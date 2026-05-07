@@ -212,6 +212,22 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
                 "payload_detail_items".to_string(),
                 string_array(&payload.detail_items),
             );
+            root.attributes.insert(
+                "payload_ui_debug_reflector_summary".to_string(),
+                Value::String(payload.ui_debug_reflector_summary.clone()),
+            );
+            root.attributes.insert(
+                "payload_ui_debug_reflector_nodes".to_string(),
+                string_array(&payload.ui_debug_reflector_nodes),
+            );
+            root.attributes.insert(
+                "payload_ui_debug_reflector_details".to_string(),
+                string_array(&payload.ui_debug_reflector_details),
+            );
+            root.attributes.insert(
+                "payload_ui_debug_reflector_export_status".to_string(),
+                Value::String(payload.ui_debug_reflector_export_status.clone()),
+            );
         }
         PanePayload::ModulePluginsV1(payload) => {
             root.attributes.insert(

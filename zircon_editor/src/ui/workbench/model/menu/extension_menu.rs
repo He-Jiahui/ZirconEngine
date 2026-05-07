@@ -30,22 +30,21 @@ pub(super) fn append_extension_menus(
             let Ok(operation_path) = view.open_operation_path() else {
                 continue;
             };
-            if menu_bar
-                .menus
-                .iter()
-                .flat_map(|menu| menu.items.iter())
-                .any(|item| item.operation_path.as_ref() == Some(&operation_path))
-            {
+            if menu_bar.menus.iter().any(|menu| {
+                menu.items
+                    .iter()
+                    .any(|item| item_contains_operation(item, &operation_path))
+            }) {
                 continue;
             }
-            let item = MenuItemModel {
-                label: view.display_name().to_string(),
-                action: None,
-                binding: editor_operation_binding(&operation_path),
-                operation_path: Some(operation_path),
-                shortcut: None,
-                enabled: true,
-            };
+            let item = MenuItemModel::leaf(
+                view.display_name(),
+                None,
+                editor_operation_binding(&operation_path),
+                Some(operation_path),
+                None,
+                true,
+            );
             if let Some(menu) = menu_bar
                 .menus
                 .iter_mut()
@@ -74,38 +73,74 @@ fn descriptor_enabled(
 }
 
 fn append_extension_menu_item(menu_bar: &mut MenuBarModel, descriptor: &EditorMenuItemDescriptor) {
-    let mut segments = descriptor
+    let segments = descriptor
         .path()
         .split('/')
         .filter(|segment| !segment.trim().is_empty())
+        .map(str::trim)
         .collect::<Vec<_>>();
     let Some(menu_label) = segments.first().copied() else {
         return;
     };
-    let Some(item_label) = segments.pop() else {
+    let Some(item_label) = segments.last().copied() else {
         return;
     };
 
-    let item = MenuItemModel {
-        label: item_label.to_string(),
-        action: None,
-        binding: editor_operation_binding(descriptor.operation()),
-        operation_path: Some(descriptor.operation().clone()),
-        shortcut: descriptor.shortcut().map(str::to_string),
-        enabled: descriptor.enabled(),
-    };
+    let item = MenuItemModel::leaf(
+        item_label,
+        None,
+        editor_operation_binding(descriptor.operation()),
+        Some(descriptor.operation().clone()),
+        descriptor.shortcut().map(str::to_string),
+        descriptor.enabled(),
+    );
+    let branch_path = &segments[1..segments.len().saturating_sub(1)];
 
-    if let Some(menu) = menu_bar
+    let menu = if let Some(index) = menu_bar
         .menus
-        .iter_mut()
-        .find(|menu| menu.label.eq_ignore_ascii_case(menu_label))
+        .iter()
+        .position(|menu| menu.label.eq_ignore_ascii_case(menu_label))
     {
-        menu.items.push(item);
+        &mut menu_bar.menus[index]
+    } else {
+        menu_bar.menus.push(MenuModel {
+            label: menu_label.to_string(),
+            items: Vec::new(),
+        });
+        menu_bar
+            .menus
+            .last_mut()
+            .expect("just pushed extension menu")
+    };
+    insert_menu_item(&mut menu.items, branch_path, item);
+}
+
+fn insert_menu_item(items: &mut Vec<MenuItemModel>, branch_path: &[&str], item: MenuItemModel) {
+    let Some((branch_label, remaining_path)) = branch_path.split_first() else {
+        items.push(item);
+        return;
+    };
+    if let Some(branch) = items.iter_mut().find(|candidate| {
+        candidate.label.eq_ignore_ascii_case(branch_label) && candidate.has_children()
+    }) {
+        insert_menu_item(&mut branch.children, remaining_path, item);
+        branch.enabled = branch.children.iter().any(|child| child.enabled);
         return;
     }
 
-    menu_bar.menus.push(MenuModel {
-        label: menu_label.to_string(),
-        items: vec![item],
-    });
+    let mut branch = MenuItemModel::branch(*branch_label, Vec::new());
+    insert_menu_item(&mut branch.children, remaining_path, item);
+    branch.enabled = branch.children.iter().any(|child| child.enabled);
+    items.push(branch);
+}
+
+fn item_contains_operation(
+    item: &MenuItemModel,
+    operation_path: &crate::core::editor_operation::EditorOperationPath,
+) -> bool {
+    item.operation_path.as_ref() == Some(operation_path)
+        || item
+            .children
+            .iter()
+            .any(|child| item_contains_operation(child, operation_path))
 }

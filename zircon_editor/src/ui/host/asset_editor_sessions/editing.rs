@@ -13,6 +13,7 @@ use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::asset_editor::{
     UiAssetEditorCommand, UiAssetEditorExternalEffect, UiAssetEditorMode, UiAssetPreviewPreset,
+    UiDesignerToolMode,
 };
 use crate::ui::workbench::autolayout::default_constraints_for_content;
 use crate::ui::workbench::snapshot::ViewContentKind;

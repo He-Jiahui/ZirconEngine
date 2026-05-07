@@ -86,11 +86,12 @@ fn collect_value(path: &str, value: &Value, report: &mut UiLocalizationReport) {
         Value::Table(table) => {
             if let Some(reference) = localized_text_ref(table) {
                 if let Some(message) = reference.validate(path) {
-                    report.diagnostics.push(UiLocalizationDiagnostic {
-                        severity: UiLocalizationDiagnosticSeverity::Error,
-                        path: path.to_string(),
+                    report.diagnostics.push(UiLocalizationDiagnostic::new(
+                        "empty_localized_text_key",
+                        UiLocalizationDiagnosticSeverity::Error,
+                        path,
                         message,
-                    });
+                    ));
                     return;
                 }
                 report.dependencies.push(UiLocalizationDependency {

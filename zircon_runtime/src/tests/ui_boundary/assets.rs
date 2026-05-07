@@ -17,6 +17,7 @@ fn production_ui_entry_assets_live_under_crate_assets_not_src() {
         "pause_menu.ui.toml",
         "settings_dialog.ui.toml",
         "inventory_list.ui.toml",
+        "quest_log_dialog.ui.toml",
     ] {
         assert!(
             runtime_assets.join(relative).exists(),

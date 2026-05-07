@@ -123,9 +123,6 @@ impl SlintEditorHost {
         }
 
         let root_shell_frames = self.template_bridge.root_shell_frames();
-        let default_geometry = WorkbenchShellGeometry::default();
-        let geometry = self.shell_geometry.as_ref().unwrap_or(&default_geometry);
-
         let width = current_instance
             .map(|instance| match instance.host {
                 ViewHost::FloatingWindow(_, _) => unreachable!(
@@ -137,11 +134,8 @@ impl SlintEditorHost {
                     .filter(|frame| frame.width > f32::EPSILON)
                     .map(|frame| frame.width)
                     .or_else(|| {
-                        let frame = resolve_root_viewport_content_frame(
-                            geometry,
-                            Some(&root_shell_frames),
-                            true,
-                        );
+                        let frame =
+                            resolve_root_viewport_content_frame(Some(&root_shell_frames), true);
                         (frame.width > f32::EPSILON).then_some(frame.width)
                     })
                     .unwrap_or(self.shell_size.width)
@@ -154,9 +148,9 @@ impl SlintEditorHost {
                         ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom => {
                             ShellRegionId::Right
                         }
-                        ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight => {
-                            ShellRegionId::Bottom
-                        }
+                        ActivityDrawerSlot::Bottom
+                        | ActivityDrawerSlot::BottomLeft
+                        | ActivityDrawerSlot::BottomRight => ShellRegionId::Bottom,
                     };
                     root_shell_frames
                         .drawer_content_frame(region)
@@ -164,18 +158,15 @@ impl SlintEditorHost {
                         .map(|frame| frame.width)
                         .or_else(|| {
                             let frame = match region {
-                                ShellRegionId::Left => resolve_root_left_region_frame(
-                                    geometry,
-                                    Some(&root_shell_frames),
-                                ),
-                                ShellRegionId::Right => resolve_root_right_region_frame(
-                                    geometry,
-                                    Some(&root_shell_frames),
-                                ),
-                                ShellRegionId::Bottom => resolve_root_bottom_region_frame(
-                                    geometry,
-                                    Some(&root_shell_frames),
-                                ),
+                                ShellRegionId::Left => {
+                                    resolve_root_left_region_frame(Some(&root_shell_frames))
+                                }
+                                ShellRegionId::Right => {
+                                    resolve_root_right_region_frame(Some(&root_shell_frames))
+                                }
+                                ShellRegionId::Bottom => {
+                                    resolve_root_bottom_region_frame(Some(&root_shell_frames))
+                                }
                                 ShellRegionId::Document => Default::default(),
                             };
                             (frame.width > f32::EPSILON).then_some(frame.width)
@@ -185,7 +176,7 @@ impl SlintEditorHost {
                 ViewHost::ExclusivePage(_) => self.shell_size.width,
             })
             .unwrap_or_else(|| {
-                resolve_root_viewport_content_frame(geometry, Some(&root_shell_frames), true)
+                resolve_root_viewport_content_frame(Some(&root_shell_frames), true)
                     .width
                     .max(1.0)
             });

@@ -3,7 +3,6 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::shell_pointer::HostShellPointerBridge;
 use crate::ui::workbench::autolayout::ShellSizePx;
-use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 
 use super::group::HostDragTargetGroup;
 
@@ -27,13 +26,11 @@ impl HostDragTargetBridge {
     pub(crate) fn update_layout_with_root_frames(
         &mut self,
         root_size: ShellSizePx,
-        geometry: &WorkbenchShellGeometry,
         drawers_visible: bool,
         shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     ) {
         self.shell_pointer.update_layout_with_root_shell_frames(
             root_size,
-            geometry,
             drawers_visible,
             &[],
             shared_root_frames,
@@ -48,27 +45,19 @@ impl HostDragTargetBridge {
 
 pub fn resolve_host_drag_target_group(
     root_size: ShellSizePx,
-    geometry: &WorkbenchShellGeometry,
     drawers_visible: bool,
     point: UiPoint,
 ) -> Option<HostDragTargetGroup> {
-    resolve_host_drag_target_group_with_root_frames(
-        root_size,
-        geometry,
-        drawers_visible,
-        point,
-        None,
-    )
+    resolve_host_drag_target_group_with_root_frames(root_size, drawers_visible, point, None)
 }
 
 pub fn resolve_host_drag_target_group_with_root_frames(
     root_size: ShellSizePx,
-    geometry: &WorkbenchShellGeometry,
     drawers_visible: bool,
     point: UiPoint,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> Option<HostDragTargetGroup> {
     let mut bridge = HostDragTargetBridge::new();
-    bridge.update_layout_with_root_frames(root_size, geometry, drawers_visible, shared_root_frames);
+    bridge.update_layout_with_root_frames(root_size, drawers_visible, shared_root_frames);
     bridge.resolve(point)
 }

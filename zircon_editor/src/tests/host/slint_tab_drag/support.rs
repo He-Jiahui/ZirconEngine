@@ -9,10 +9,10 @@ pub(super) use crate::ui::slint_host::shell_pointer::{
 pub(super) use crate::ui::slint_host::tab_drag::{
     document_edge_group_key, drop_host_for_group, drop_host_for_tab, estimate_dock_tab_width,
     estimate_document_tab_width, floating_window_edge_group_key, floating_window_group_key,
-    host_shell_pointer_route_group_key, resolve_host_drag_target_group,
-    resolve_host_drag_target_group_with_root_frames, resolve_host_tab_drop_route,
-    resolve_host_tab_drop_route_with_root_frames, resolve_tab_drop, HostDragTargetGroup,
-    ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, ResolvedTabDrop,
+    host_shell_pointer_route_group_key, resolve_host_drag_target_group_with_root_frames,
+    resolve_host_tab_drop_route, resolve_host_tab_drop_route_with_root_frames,
+    resolve_tab_drop_with_root_frames, HostDragTargetGroup, ResolvedHostTabDropRoute,
+    ResolvedHostTabDropTarget, ResolvedTabDrop,
 };
 pub(super) use crate::ui::template_runtime::EditorUiCompatibilityHarness;
 pub(super) use crate::ui::workbench::autolayout::{
@@ -182,10 +182,26 @@ pub(super) fn floating_window(
     tabs: Vec<DocumentTabModel>,
     focused_view: Option<&str>,
 ) -> FloatingWindowModel {
+    floating_window_with_frame(
+        window_id,
+        title,
+        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
+        tabs,
+        focused_view,
+    )
+}
+
+pub(super) fn floating_window_with_frame(
+    window_id: MainPageId,
+    title: &str,
+    requested_frame: ShellFrame,
+    tabs: Vec<DocumentTabModel>,
+    focused_view: Option<&str>,
+) -> FloatingWindowModel {
     FloatingWindowModel {
         window_id,
         title: title.to_string(),
-        requested_frame: ShellFrame::default(),
+        requested_frame,
         focused_view: focused_view.map(ViewInstanceId::new),
         tabs,
     }
@@ -236,4 +252,46 @@ pub(super) fn shell_geometry(
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     }
+}
+
+pub(super) fn root_frames_from_geometry(
+    geometry: &WorkbenchShellGeometry,
+) -> BuiltinHostRootShellFrames {
+    root_frames_from_geometry_with_drawers(geometry, &[])
+}
+
+pub(super) fn root_frames_from_geometry_with_drawers(
+    geometry: &WorkbenchShellGeometry,
+    drawer_regions: &[ShellRegionId],
+) -> BuiltinHostRootShellFrames {
+    let shell_width = geometry
+        .center_band_frame
+        .width
+        .max(geometry.status_bar_frame.width)
+        .max(geometry.region_frame(ShellRegionId::Document).right());
+    let shell_height = geometry
+        .status_bar_frame
+        .bottom()
+        .max(geometry.center_band_frame.bottom());
+
+    BuiltinHostRootShellFrames {
+        shell_frame: Some(UiFrame::new(0.0, 0.0, shell_width, shell_height)),
+        host_body_frame: Some(ui_frame(geometry.center_band_frame)),
+        left_drawer_shell_frame: drawer_regions
+            .contains(&ShellRegionId::Left)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Left))),
+        right_drawer_shell_frame: drawer_regions
+            .contains(&ShellRegionId::Right)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Right))),
+        bottom_drawer_shell_frame: drawer_regions
+            .contains(&ShellRegionId::Bottom)
+            .then(|| ui_frame(geometry.region_frame(ShellRegionId::Bottom))),
+        document_host_frame: Some(ui_frame(geometry.region_frame(ShellRegionId::Document))),
+        status_bar_frame: Some(ui_frame(geometry.status_bar_frame)),
+        ..BuiltinHostRootShellFrames::default()
+    }
+}
+
+fn ui_frame(frame: ShellFrame) -> UiFrame {
+    UiFrame::new(frame.x, frame.y, frame.width, frame.height)
 }

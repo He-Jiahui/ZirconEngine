@@ -230,13 +230,24 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
             .iter()
             .map(|item| item.label.as_str())
             .collect::<Vec<_>>(),
-        vec!["Refresh Cloud Layers"]
+        vec!["Weather"]
     );
     assert_eq!(
-        disabled_tools.items[0].shortcut.as_deref(),
+        disabled_tools.items[0]
+            .children
+            .first()
+            .and_then(|item| item.shortcut.as_deref()),
         Some("Ctrl+Alt+R")
     );
     assert!(!disabled_tools.items[0].enabled);
+    assert_eq!(
+        disabled_tools.items[0]
+            .children
+            .iter()
+            .map(|item| item.label.as_str())
+            .collect::<Vec<_>>(),
+        vec!["Refresh Cloud Layers"]
+    );
 
     let enabled_capabilities = vec![weather_capability.to_string()];
     let enabled_model = WorkbenchViewModel::build_with_extensions_and_capabilities(
@@ -251,8 +262,8 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
         .find(|menu| menu.label == "Tools")
         .expect("tools menu");
     assert_eq!(
-        enabled_tools
-            .items
+        enabled_tools.items[0]
+            .children
             .iter()
             .map(|item| (item.label.as_str(), item.shortcut.as_deref()))
             .collect::<Vec<_>>(),
@@ -346,6 +357,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                         workbench_drawer,
                     )]),
                     content_workspace: DocumentNode::default(),
+                    menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
                 },
@@ -358,6 +370,7 @@ fn sample_two_activity_windows_chrome(active_window: ActivityWindowId) -> Editor
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
                     activity_drawers: BTreeMap::new(),
                     content_workspace: DocumentNode::default(),
+                    menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
                 },

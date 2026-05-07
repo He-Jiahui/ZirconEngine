@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
     viewport_toolbar_pointer::{ViewportToolbarPointerBridge, ViewportToolbarPointerDispatch},
 };
 
@@ -14,7 +14,7 @@ use super::super::{
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedViewportToolbarPointerClickDispatch {
     pub pointer: ViewportToolbarPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -70,7 +70,7 @@ fn dispatch_projection_control(
     runtime: &EditorEventRuntime,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     control_id: &str,
-) -> Option<Result<SlintDispatchEffects, String>> {
+) -> Option<Result<UiHostEventEffects, String>> {
     for event_kind in [
         zircon_runtime_interface::ui::binding::UiEventKind::Click,
         zircon_runtime_interface::ui::binding::UiEventKind::Change,

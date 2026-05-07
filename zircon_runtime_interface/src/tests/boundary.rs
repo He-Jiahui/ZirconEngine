@@ -2,7 +2,15 @@ use std::collections::BTreeSet;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-const ALLOWED_DEPENDENCIES: &[&str] = &["glam", "serde", "serde_json", "thiserror", "toml", "uuid"];
+const ALLOWED_DEPENDENCIES: &[&str] = &[
+    "glam",
+    "serde",
+    "serde_json",
+    "thiserror",
+    "toml",
+    "unicode-segmentation",
+    "uuid",
+];
 
 const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "#[path",

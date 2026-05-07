@@ -4,12 +4,14 @@ use std::sync::Arc;
 use slint::Model;
 use softbuffer::{Context, Rect, Surface};
 use winit::window::Window;
-use zircon_runtime::diagnostic_log::write_diagnostic_log;
+use zircon_runtime::diagnostic_log::{
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+};
 
 use super::data::{FrameRect, HostWindowPresentationData};
 use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::painter::{
-    debug_refresh_overlay_frame, fallback_debug_top_bar_frame, paint_host_frame,
+    debug_refresh_overlay_frame, paint_host_frame, presentation_top_bar_frame,
     repaint_host_frame_region, union_frames, HostRgbaFrame,
 };
 
@@ -31,6 +33,13 @@ struct RepaintOutcome {
     painted_pixels: u64,
     full_paint: bool,
     region_paint: bool,
+}
+
+struct PlannedPresent {
+    presentation: HostWindowPresentationData,
+    damage: Option<FrameRect>,
+    diagnostics: HostRefreshDiagnostics,
+    overlay_text: String,
 }
 
 impl SoftbufferHostPresenter {
@@ -71,53 +80,51 @@ impl SoftbufferHostPresenter {
             self.resize(size)?;
         }
 
-        let planned = self.plan_repaint(damage.as_ref(), size);
-        let mut overlay_diagnostics = self.diagnostics.clone();
-        overlay_diagnostics.record_present(
-            planned.painted_pixels,
-            planned.full_paint,
-            planned.region_paint,
+        let planned = plan_present_for_diagnostics(
+            &self.diagnostics,
+            self.can_region_repaint(),
+            self.last_debug_overlay_text.as_deref(),
+            presentation,
+            damage,
+            invalidation,
+            size,
         );
-        let mut presentation = presentation.clone();
-        presentation.host_shell.debug_refresh_rate = overlay_diagnostics
-            .with_invalidation_diagnostics(invalidation)
-            .overlay_text()
-            .into();
-        let debug_overlay_text = presentation.host_shell.debug_refresh_rate.to_string();
-        let damage = self.damage_with_debug_overlay(damage, &debug_overlay_text, size);
-
-        let summary = presentation_summary(&presentation);
-        let outcome = self.repaint_backbuffer(&presentation, damage, size);
-        self.last_debug_overlay_text = Some(debug_overlay_text);
-        self.diagnostics.record_present(
-            outcome.painted_pixels,
-            outcome.full_paint,
-            outcome.region_paint,
+        let outcome = self.repaint_backbuffer(&planned.presentation, planned.damage, size);
+        debug_assert_eq!(
+            planned.diagnostics.painted_pixel_count,
+            self.diagnostics
+                .painted_pixel_count
+                .saturating_add(outcome.painted_pixels)
         );
-        if self.diagnostics.present_count <= 8
-            || self.last_logged_size != Some(size)
-            || self.last_logged_presentation.as_deref() != Some(summary.as_str())
-        {
-            write_diagnostic_log(
-                "editor_host_presenter",
-                format!(
-                    "present frame={} frame_size={}x{} damage={} painted_pixels={} full_paints={} region_paints={} total_painted_pixels={} {}",
-                    self.diagnostics.present_count,
-                    size.0,
-                    size.1,
-                    outcome.damage
-                        .as_ref()
-                        .map(frame_summary)
-                        .unwrap_or_else(|| "full".to_string()),
-                    outcome.painted_pixels,
-                    self.diagnostics.full_paint_count,
-                    self.diagnostics.region_paint_count,
-                    self.diagnostics.painted_pixel_count,
-                    summary
-                ),
-            );
-            self.last_logged_size = Some(size);
-            self.last_logged_presentation = Some(summary);
+        self.last_debug_overlay_text = Some(planned.overlay_text);
+        self.diagnostics = planned.diagnostics;
+        if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+            let summary = presentation_summary(&planned.presentation);
+            if self.diagnostics.present_count <= 8
+                || self.last_logged_size != Some(size)
+                || self.last_logged_presentation.as_deref() != Some(summary.as_str())
+            {
+                write_diagnostic_log(
+                    "editor_host_presenter",
+                    format!(
+                        "present frame={} frame_size={}x{} damage={} painted_pixels={} full_paints={} region_paints={} total_painted_pixels={} {}",
+                        self.diagnostics.present_count,
+                        size.0,
+                        size.1,
+                        outcome.damage
+                            .as_ref()
+                            .map(frame_summary)
+                            .unwrap_or_else(|| "full".to_string()),
+                        outcome.painted_pixels,
+                        self.diagnostics.full_paint_count,
+                        self.diagnostics.region_paint_count,
+                        self.diagnostics.painted_pixel_count,
+                        summary
+                    ),
+                );
+                self.last_logged_size = Some(size);
+                self.last_logged_presentation = Some(summary);
+            }
         }
         let frame = self
             .backbuffer
@@ -141,30 +148,6 @@ impl SoftbufferHostPresenter {
 
     pub(super) fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
         self.diagnostics.clone()
-    }
-
-    fn plan_repaint(&self, damage: Option<&FrameRect>, size: (u32, u32)) -> RepaintOutcome {
-        let region_paint = self.can_region_repaint()
-            && damage.is_some_and(|damage| pixel_bounds(damage, size).is_some());
-        if region_paint {
-            let damage = damage.cloned();
-            return RepaintOutcome {
-                painted_pixels: damage
-                    .as_ref()
-                    .map(|damage| damage_pixel_count(damage, size))
-                    .unwrap_or(0),
-                damage,
-                full_paint: false,
-                region_paint: true,
-            };
-        }
-
-        RepaintOutcome {
-            damage: None,
-            painted_pixels: (size.0 as u64) * (size.1 as u64),
-            full_paint: true,
-            region_paint: false,
-        }
     }
 
     fn can_region_repaint(&self) -> bool {
@@ -202,25 +185,121 @@ impl SoftbufferHostPresenter {
             region_paint: false,
         }
     }
+}
 
-    fn damage_with_debug_overlay(
-        &self,
-        damage: Option<FrameRect>,
-        debug_overlay_text: &str,
-        size: (u32, u32),
-    ) -> Option<FrameRect> {
-        if self.last_debug_overlay_text.as_deref() == Some(debug_overlay_text) {
-            return damage;
+fn plan_present_for_diagnostics(
+    current: &HostRefreshDiagnostics,
+    can_region_repaint: bool,
+    last_debug_overlay_text: Option<&str>,
+    presentation: &HostWindowPresentationData,
+    damage: Option<FrameRect>,
+    invalidation: HostInvalidationDiagnostics,
+    size: (u32, u32),
+) -> PlannedPresent {
+    let mut damage = if can_region_repaint
+        && damage
+            .as_ref()
+            .is_some_and(|damage| pixel_bounds(damage, size).is_some())
+    {
+        damage
+    } else {
+        None
+    };
+
+    // The overlay text includes the painted pixel total, and text width can expand
+    // the region damage. Iterate until the text and expanded damage describe the
+    // same present so the same-frame overlay matches the recorded diagnostics.
+    for _ in 0..8 {
+        let outcome = repaint_outcome_for_damage(damage.clone(), size);
+        let mut diagnostics = current.clone();
+        diagnostics.record_present(
+            outcome.painted_pixels,
+            outcome.full_paint,
+            outcome.region_paint,
+        );
+        let overlay_text = diagnostics
+            .clone()
+            .with_invalidation_diagnostics(invalidation)
+            .overlay_text();
+        let expanded_damage = if outcome.region_paint {
+            damage_with_debug_overlay(
+                damage.clone(),
+                last_debug_overlay_text,
+                &overlay_text,
+                size,
+                presentation,
+            )
+        } else {
+            None
+        };
+        if expanded_damage == damage {
+            let mut presentation = presentation.clone();
+            presentation.host_shell.debug_refresh_rate = overlay_text.clone().into();
+            return PlannedPresent {
+                presentation,
+                damage: expanded_damage,
+                diagnostics,
+                overlay_text,
+            };
         }
-        let overlay = debug_refresh_overlay_frame(
-            &fallback_debug_top_bar_frame(size.0, size.1),
-            debug_overlay_text,
-        )?;
-        Some(match damage {
-            Some(damage) => union_frames(&damage, &overlay),
-            None => overlay,
-        })
+        damage = expanded_damage;
     }
+
+    let outcome = repaint_outcome_for_damage(damage.clone(), size);
+    let mut diagnostics = current.clone();
+    diagnostics.record_present(
+        outcome.painted_pixels,
+        outcome.full_paint,
+        outcome.region_paint,
+    );
+    let overlay_text = diagnostics
+        .clone()
+        .with_invalidation_diagnostics(invalidation)
+        .overlay_text();
+    let mut presentation = presentation.clone();
+    presentation.host_shell.debug_refresh_rate = overlay_text.clone().into();
+    PlannedPresent {
+        presentation,
+        damage,
+        diagnostics,
+        overlay_text,
+    }
+}
+
+fn repaint_outcome_for_damage(damage: Option<FrameRect>, size: (u32, u32)) -> RepaintOutcome {
+    if let Some(damage) = damage {
+        return RepaintOutcome {
+            painted_pixels: damage_pixel_count(&damage, size),
+            damage: Some(damage),
+            full_paint: false,
+            region_paint: true,
+        };
+    }
+
+    RepaintOutcome {
+        damage: None,
+        painted_pixels: (size.0 as u64) * (size.1 as u64),
+        full_paint: true,
+        region_paint: false,
+    }
+}
+
+fn damage_with_debug_overlay(
+    damage: Option<FrameRect>,
+    last_debug_overlay_text: Option<&str>,
+    debug_overlay_text: &str,
+    size: (u32, u32),
+    presentation: &HostWindowPresentationData,
+) -> Option<FrameRect> {
+    let damage = damage?;
+    if last_debug_overlay_text == Some(debug_overlay_text) {
+        return Some(damage);
+    }
+    let overlay = debug_refresh_overlay_frame(
+        &presentation_top_bar_frame(size.0, size.1, presentation),
+        debug_overlay_text,
+    )?;
+    Some(union_frames(&damage, &overlay))
 }
 
 fn copy_rgba_to_softbuffer(
@@ -333,6 +412,35 @@ fn non_zero(value: u32) -> NonZeroU32 {
 mod tests {
     use super::*;
 
+    fn region_damage() -> FrameRect {
+        FrameRect {
+            x: 10.0,
+            y: 80.0,
+            width: 20.0,
+            height: 10.0,
+        }
+    }
+
+    fn top_bar_probe_damage() -> FrameRect {
+        FrameRect {
+            x: 10.0,
+            y: 40.0,
+            width: 20.0,
+            height: 2.0,
+        }
+    }
+
+    fn presentation_with_top_bar_height(height: f32) -> HostWindowPresentationData {
+        let mut presentation = HostWindowPresentationData::default();
+        presentation.host_layout.center_band_frame = FrameRect {
+            x: 0.0,
+            y: height,
+            width: 200.0,
+            height: 120.0 - height,
+        };
+        presentation
+    }
+
     #[test]
     fn region_copy_updates_only_damaged_softbuffer_pixels() {
         let mut frame = HostRgbaFrame::filled(4, 3, [0, 0, 0, 255]);
@@ -376,17 +484,16 @@ mod tests {
 
     #[test]
     fn overlay_text_change_expands_region_damage_without_full_repaint() {
-        let mut presenter = presenter_for_damage_tests(Some("FPS 59"));
-        let damage = FrameRect {
-            x: 10.0,
-            y: 80.0,
-            width: 20.0,
-            height: 10.0,
-        };
+        let damage = region_damage();
 
-        let expanded = presenter
-            .damage_with_debug_overlay(Some(damage.clone()), "FPS 60", (200, 120))
-            .expect("changed overlay should keep region repaint damage");
+        let expanded = damage_with_debug_overlay(
+            Some(damage.clone()),
+            Some("FPS 59"),
+            "FPS 60",
+            (200, 120),
+            &HostWindowPresentationData::default(),
+        )
+        .expect("changed overlay should keep region repaint damage");
 
         assert_eq!(expanded.x, 10.0);
         assert_eq!(expanded.y, 6.0);
@@ -396,29 +503,111 @@ mod tests {
 
     #[test]
     fn unchanged_overlay_text_keeps_existing_region_damage() {
-        let presenter = presenter_for_damage_tests(Some("FPS 60"));
-        let damage = FrameRect {
-            x: 10.0,
-            y: 80.0,
-            width: 20.0,
-            height: 10.0,
-        };
+        let damage = region_damage();
 
-        let unchanged = presenter.damage_with_debug_overlay(Some(damage.clone()), "FPS 60", (200, 120));
+        let unchanged = damage_with_debug_overlay(
+            Some(damage.clone()),
+            Some("FPS 60"),
+            "FPS 60",
+            (200, 120),
+            &HostWindowPresentationData::default(),
+        );
 
         assert_eq!(unchanged, Some(damage));
     }
 
-    fn presenter_for_damage_tests(last_overlay: Option<&str>) -> SoftbufferHostPresenter {
-        SoftbufferHostPresenter {
-            context: unsafe { std::mem::zeroed() },
-            surface: unsafe { std::mem::zeroed() },
-            size: (200, 120),
-            backbuffer: Some(HostRgbaFrame::filled(200, 120, [0, 0, 0, 255])),
-            diagnostics: HostRefreshDiagnostics::default(),
-            last_debug_overlay_text: last_overlay.map(ToString::to_string),
-            last_logged_presentation: None,
-            last_logged_size: None,
-        }
+    #[test]
+    fn overlay_text_change_does_not_turn_full_repaint_into_region_damage() {
+        let damage = damage_with_debug_overlay(
+            None,
+            Some("FPS 59"),
+            "FPS 60",
+            (200, 120),
+            &HostWindowPresentationData::default(),
+        );
+
+        assert_eq!(damage, None);
+    }
+
+    #[test]
+    fn overlay_text_change_expands_region_damage_to_presentation_top_bar_height() {
+        let damage = top_bar_probe_damage();
+        let presentation = presentation_with_top_bar_height(58.0);
+
+        let expanded = damage_with_debug_overlay(
+            Some(damage.clone()),
+            Some("FPS 59"),
+            "FPS 60",
+            (200, 120),
+            &presentation,
+        )
+        .expect("changed overlay should keep region repaint damage");
+
+        assert_eq!(expanded.y, 6.0);
+        assert_eq!(expanded.height, 46.0);
+    }
+
+    #[test]
+    fn presenter_diagnostics_plan_same_frame_overlay_pixels_match_expanded_region_damage() {
+        use super::super::diagnostics::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
+
+        let planned = plan_present_for_diagnostics(
+            &HostRefreshDiagnostics::default(),
+            true,
+            Some(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY),
+            &presentation_with_top_bar_height(58.0),
+            Some(top_bar_probe_damage()),
+            HostInvalidationDiagnostics::default(),
+            (200, 120),
+        );
+        let damage = planned
+            .damage
+            .as_ref()
+            .expect("changed overlay text should expand region damage");
+        let expected_pixels = damage_pixel_count(damage, (200, 120));
+
+        assert_eq!(planned.diagnostics.present_count, 1);
+        assert_eq!(planned.diagnostics.full_paint_count, 0);
+        assert_eq!(planned.diagnostics.region_paint_count, 1);
+        assert_eq!(planned.diagnostics.painted_pixel_count, expected_pixels);
+        assert_eq!(damage.y, 6.0);
+        assert_eq!(damage.height, 46.0);
+        assert!(
+            planned
+                .overlay_text
+                .contains(&format!("pixels {expected_pixels}")),
+            "overlay text should report the same painted pixels as diagnostics: {}",
+            planned.overlay_text
+        );
+        assert_eq!(
+            planned.presentation.host_shell.debug_refresh_rate.as_str(),
+            planned.overlay_text
+        );
+    }
+
+    #[test]
+    fn presenter_diagnostics_plan_full_repaint_records_full_pixels_in_same_frame_overlay() {
+        let planned = plan_present_for_diagnostics(
+            &HostRefreshDiagnostics::default(),
+            false,
+            None,
+            &HostWindowPresentationData::default(),
+            Some(region_damage()),
+            HostInvalidationDiagnostics {
+                slow_path_rebuild_count: 2,
+                render_rebuild_count: 3,
+                paint_only_request_count: 4,
+            },
+            (200, 120),
+        );
+
+        assert_eq!(planned.damage, None);
+        assert_eq!(planned.diagnostics.full_paint_count, 1);
+        assert_eq!(planned.diagnostics.region_paint_count, 0);
+        assert_eq!(planned.diagnostics.painted_pixel_count, 24_000);
+        assert!(planned.overlay_text.contains("pixels 24000"));
+        assert!(planned.overlay_text.contains("slow 2"));
+        assert!(planned.overlay_text.contains("render 3"));
+        assert!(planned.overlay_text.contains("paint-only 4"));
     }
 }

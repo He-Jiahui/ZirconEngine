@@ -5,8 +5,9 @@ use crate::ui::slint_host::{
     HostBottomDockSurfaceData, HostChromeControlFrameData, HostDocumentDockSurfaceData,
     HostFloatingWindowLayerData, HostMenuChromeData, HostMenuChromeMenuData,
     HostSideDockSurfaceData, HostStatusBarData, HostWindowLayoutData, HostWindowShellData,
-    PaneData, SceneViewportChromeData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
-    UiHostWindow, STARTUP_REFRESH_DIAGNOSTICS_OVERLAY,
+    NewProjectFormData, PaneData, RecentProjectData, SceneViewportChromeData,
+    TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext, UiHostWindow, WelcomePaneData,
+    STARTUP_REFRESH_DIAGNOSTICS_OVERLAY,
 };
 use slint::{ModelRc, PhysicalSize, SharedString, VecModel};
 use zircon_runtime_interface::ui::{
@@ -356,6 +357,67 @@ fn rust_owned_host_window_snapshot_reflects_pane_template_nodes() {
 }
 
 #[test]
+fn rust_owned_host_window_snapshot_draws_welcome_main_content() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(640, 360));
+
+    let mut baseline = ui.get_host_presentation();
+    baseline.host_layout = host_window_layout_for_test(640.0, 360.0);
+    baseline.host_scene_data.layout = host_window_layout_for_test(640.0, 360.0);
+    baseline.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(72.0, 58.0, 548.0, 278.0),
+        header_frame: host_frame(0.0, 0.0, 548.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 548.0, 245.0),
+        pane: PaneData {
+            kind: "Welcome".into(),
+            title: "Welcome".into(),
+            ..PaneData::default()
+        },
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(baseline.clone());
+    let fallback_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("fallback welcome snapshot should render");
+
+    let mut with_welcome = baseline;
+    with_welcome.host_scene_data.document_dock.pane = welcome_pane_with_content();
+    ui.set_host_presentation(with_welcome);
+    let snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("welcome content snapshot should render");
+
+    assert!(
+        changed_pixel_count(
+            snapshot.width(),
+            fallback_snapshot.as_bytes(),
+            snapshot.as_bytes(),
+            88,
+            102,
+            510,
+            218,
+        ) > 2400,
+        "welcome pane should render the projected Material/Slate content instead of the fallback label"
+    );
+    assert_ne!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 318, 266),
+        pixel(
+            fallback_snapshot.width(),
+            fallback_snapshot.as_bytes(),
+            318,
+            266
+        ),
+        "new-project field area should contain visible native host paint"
+    );
+}
+
+#[test]
 fn rust_owned_host_window_snapshot_renders_template_node_styles() {
     i_slint_backend_testing::init_no_event_loop();
 
@@ -412,7 +474,7 @@ fn rust_owned_host_window_snapshot_renders_template_node_styles() {
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 176, 102),
-        [60, 104, 176, 255],
+        [76, 125, 213, 255],
         "primary button variant should use primary surface color"
     );
     assert_eq!(
@@ -424,6 +486,72 @@ fn rust_owned_host_window_snapshot_renders_template_node_styles() {
         pixel(snapshot.width(), snapshot.as_bytes(), 180, 148),
         [24, 29, 37, 255],
         "label-only template nodes should render deterministic text bars"
+    );
+}
+
+#[test]
+fn rust_owned_host_window_snapshot_renders_template_icon_states() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(260, 160));
+
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(260.0, 160.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(260.0, 160.0);
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(40.0, 58.0, 180.0, 78.0),
+        header_frame: host_frame(0.0, 0.0, 180.0, 0.0),
+        content_frame: host_frame(0.0, 0.0, 180.0, 78.0),
+        pane: pane_with_nodes(
+            "Inspector",
+            vec![
+                icon_state_node("HoveredIcon", 18.0, 16.0, false, true, false, false),
+                icon_state_node("PressedIcon", 70.0, 16.0, false, false, true, false),
+                icon_state_node("SelectedIcon", 122.0, 16.0, true, false, false, false),
+                icon_state_node("DisabledIcon", 18.0, 50.0, false, false, false, true),
+            ],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("icon-state template node snapshot should render");
+
+    assert_eq!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 59, 75),
+        [44, 53, 66, 255],
+        "hovered icon controls should paint the Material hover state layer"
+    );
+    assert_eq!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 111, 75),
+        [47, 64, 94, 255],
+        "pressed icon controls should paint a distinct pressed state"
+    );
+    assert_eq!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 163, 75),
+        [54, 83, 130, 255],
+        "selected icon controls should paint the active selected surface"
+    );
+    assert_eq!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 59, 109),
+        [30, 33, 39, 255],
+        "disabled icon controls should paint the disabled surface"
+    );
+    assert_eq!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 178, 90),
+        [123, 156, 224, 255],
+        "selected icons should use the active icon tint"
+    );
+    assert_ne!(
+        pixel(snapshot.width(), snapshot.as_bytes(), 178, 90),
+        pixel(snapshot.width(), snapshot.as_bytes(), 74, 124),
+        "selected and disabled icon glyphs should be visually distinguishable"
     );
 }
 
@@ -631,6 +759,30 @@ fn rust_owned_host_painter_resolves_runtime_svg_image_assets() {
             UiVisualAssetRef::Image("missing/not-found.svg".to_string()),
         )],
     );
+    let res_icon_as_image = paint_runtime_render_commands_for_test(
+        80,
+        56,
+        &[runtime_image_command_with_asset(
+            43,
+            10.0,
+            10.0,
+            36.0,
+            36.0,
+            UiVisualAssetRef::Image("res://icons/ionicons/options-outline.svg".to_string()),
+        )],
+    );
+    let ionicons_icon_alias = paint_runtime_render_commands_for_test(
+        80,
+        56,
+        &[runtime_image_command_with_asset(
+            44,
+            10.0,
+            10.0,
+            36.0,
+            36.0,
+            UiVisualAssetRef::Icon("ionicons/options-outline.svg".to_string()),
+        )],
+    );
 
     assert_ne!(
         pixel(80, &image, 28, 28),
@@ -641,6 +793,16 @@ fn rust_owned_host_painter_resolves_runtime_svg_image_assets() {
         pixel(80, &image, 16, 16),
         [77, 137, 255, 255],
         "showcase checker SVG should preserve decoded RGBA image color"
+    );
+    assert_ne!(
+        pixel(80, &res_icon_as_image, 28, 28),
+        pixel(80, &fallback, 28, 28),
+        "res:// icon SVG image aliases should resolve through the editor assets tree"
+    );
+    assert_ne!(
+        pixel(80, &ionicons_icon_alias, 28, 28),
+        pixel(80, &fallback, 28, 28),
+        "ionicons/name.svg icon aliases should resolve through the icon asset tree"
     );
 }
 
@@ -818,13 +980,116 @@ fn pane_with_nodes(kind: &str, nodes: Vec<TemplatePaneNodeData>) -> PaneData {
         "Assets" => pane.assets_activity.nodes = node_model,
         "AssetBrowser" => pane.asset_browser.nodes = node_model,
         "Project" => pane.project_overview.nodes = node_model,
-        "ModulePlugins" | "RuntimeDiagnostics" => pane.module_plugins.nodes = node_model,
+        "RuntimeDiagnostics" => pane.runtime_diagnostics.nodes = node_model,
+        "ModulePlugins" => pane.module_plugins.nodes = node_model,
         "BuildExport" => pane.build_export.nodes = node_model,
         "UiAssetEditor" => pane.ui_asset.nodes = node_model,
         "AnimationSequenceEditor" | "AnimationGraphEditor" => pane.animation.nodes = node_model,
         _ => {}
     }
     pane
+}
+
+fn welcome_pane_with_content() -> PaneData {
+    PaneData {
+        kind: "Welcome".into(),
+        title: "Welcome".into(),
+        welcome: WelcomePaneData {
+            title: "Open or Create".into(),
+            subtitle: "Recent projects and a renderable empty-project template".into(),
+            status_message: "No recent project".into(),
+            form: NewProjectFormData {
+                project_name: "ZirconProject".into(),
+                location: "C:/Users/Tester/Documents/ZirconProjects".into(),
+                project_path_preview: "C:/Users/Tester/Documents/ZirconProjects/ZirconProject"
+                    .into(),
+                template_label: "Renderable Empty".into(),
+                validation_message: "Project settings are valid".into(),
+                can_create: true,
+                can_open_existing: true,
+                browse_supported: true,
+            },
+            recent_projects: model_rc(vec![RecentProjectData {
+                display_name: "ZirconProject4".into(),
+                path: "C:/Users/Tester/Documents/ZirconProjects/ZirconProject4".into(),
+                last_opened_label: "Reopened".into(),
+                status_label: "".into(),
+                invalid: false,
+            }]),
+            nodes: model_rc(vec![
+                template_node("WelcomeOuterPanel", "Panel", "", 16.0, 12.0, 516.0, 220.0),
+                template_node("WelcomeRecentPanel", "Panel", "", 16.0, 12.0, 180.0, 220.0),
+                template_node(
+                    "WelcomeRecentHeaderPanel",
+                    "Panel",
+                    "",
+                    16.0,
+                    24.0,
+                    180.0,
+                    54.0,
+                ),
+                template_node(
+                    "WelcomeRecentListPanel",
+                    "Panel",
+                    "",
+                    26.0,
+                    92.0,
+                    160.0,
+                    130.0,
+                ),
+                template_node("WelcomeMainPanel", "Panel", "", 196.0, 12.0, 336.0, 220.0),
+                template_node("WelcomeHeroPanel", "Panel", "", 224.0, 24.0, 280.0, 54.0),
+                template_node("WelcomeStatusPanel", "Panel", "", 224.0, 84.0, 280.0, 30.0),
+                template_node(
+                    "WelcomeNewProjectHeaderPanel",
+                    "Panel",
+                    "",
+                    224.0,
+                    124.0,
+                    280.0,
+                    34.0,
+                ),
+                template_node(
+                    "WelcomeProjectNameField",
+                    "Panel",
+                    "",
+                    224.0,
+                    162.0,
+                    280.0,
+                    44.0,
+                ),
+                template_node(
+                    "WelcomeLocationField",
+                    "Panel",
+                    "",
+                    224.0,
+                    212.0,
+                    280.0,
+                    44.0,
+                ),
+                template_node(
+                    "WelcomePreviewPanel",
+                    "Panel",
+                    "",
+                    224.0,
+                    262.0,
+                    280.0,
+                    50.0,
+                ),
+                template_node(
+                    "WelcomeValidationPanel",
+                    "Panel",
+                    "",
+                    224.0,
+                    318.0,
+                    280.0,
+                    24.0,
+                ),
+                template_node("WelcomeActionsRow", "Panel", "", 224.0, 346.0, 280.0, 32.0),
+            ]),
+        },
+        ..PaneData::default()
+    }
 }
 
 fn selected_template_node(
@@ -871,6 +1136,37 @@ fn disabled_template_node(
         disabled: true,
         ..template_node(control_id, role, text, x, y, width, height)
     }
+}
+
+fn icon_state_node(
+    control_id: &str,
+    x: f32,
+    y: f32,
+    selected: bool,
+    hovered: bool,
+    pressed: bool,
+    disabled: bool,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        role: "IconButton".into(),
+        icon_name: "options-outline".into(),
+        has_preview_image: true,
+        preview_image: solid_test_icon_image(),
+        selected,
+        hovered,
+        pressed,
+        disabled,
+        border_width: 1.0,
+        corner_radius: 5.0,
+        ..template_node(control_id, "IconButton", "", x, y, 32.0, 32.0)
+    }
+}
+
+fn solid_test_icon_image() -> slint::Image {
+    let pixels = [[255, 255, 255, 255]; 4].concat();
+    slint::Image::from_rgba8(
+        slint::SharedPixelBuffer::<slint::Rgba8Pixel>::clone_from_slice(&pixels, 2, 2),
+    )
 }
 
 fn muted_label_node(

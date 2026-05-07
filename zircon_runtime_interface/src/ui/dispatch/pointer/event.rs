@@ -9,6 +9,8 @@ pub struct UiPointerEvent {
     pub button: Option<UiPointerButton>,
     pub point: UiPoint,
     pub scroll_delta: f32,
+    #[serde(default = "default_click_count")]
+    pub click_count: u8,
 }
 
 impl UiPointerEvent {
@@ -18,6 +20,7 @@ impl UiPointerEvent {
             button: None,
             point,
             scroll_delta: 0.0,
+            click_count: 1,
         }
     }
 
@@ -30,4 +33,13 @@ impl UiPointerEvent {
         self.scroll_delta = scroll_delta;
         self
     }
+
+    pub const fn with_click_count(mut self, click_count: u8) -> Self {
+        self.click_count = if click_count == 0 { 1 } else { click_count };
+        self
+    }
+}
+
+const fn default_click_count() -> u8 {
+    1
 }

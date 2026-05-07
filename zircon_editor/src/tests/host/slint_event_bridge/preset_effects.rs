@@ -1,11 +1,11 @@
 use crate::core::editor_event::{EditorEvent, EditorEventEffect, LayoutCommand, MenuAction};
-use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 
 use super::support::record_with_event_and_effects;
 
 #[test]
 fn layout_preset_events_project_active_preset_name_into_slint_effects() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_event_and_effects(
@@ -28,7 +28,7 @@ fn layout_preset_events_project_active_preset_name_into_slint_effects() {
 
 #[test]
 fn reset_layout_event_clears_active_preset_selection_in_host_effects() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_event_and_effects(
@@ -48,7 +48,7 @@ fn reset_layout_event_clears_active_preset_selection_in_host_effects() {
 
 #[test]
 fn menu_reset_layout_event_also_clears_active_preset_selection_in_host_effects() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_event_and_effects(

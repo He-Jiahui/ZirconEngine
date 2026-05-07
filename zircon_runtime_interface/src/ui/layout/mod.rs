@@ -1,5 +1,6 @@
 mod constraints;
 mod geometry;
+mod linear_sizing;
 mod metrics;
 mod scroll;
 mod slot;
@@ -13,10 +14,14 @@ pub use geometry::{
     Anchor, Pivot, Position, UiFrame, UiGeometry, UiLayoutTransform, UiPixelSnapping, UiPoint,
     UiRenderTransform, UiSize,
 };
+pub use linear_sizing::{UiLinearSlotSizeRule, UiLinearSlotSizing};
 pub use metrics::{UiFlowDirection, UiLayoutMetrics};
 pub use scroll::{
-    UiAxis, UiContainerKind, UiLinearBoxConfig, UiScrollState, UiScrollableBoxConfig,
-    UiScrollbarVisibility, UiVirtualListConfig,
+    UiAxis, UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig, UiScrollState,
+    UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig, UiWrapBoxConfig,
 };
-pub use slot::{UiAlignment, UiAlignment2D, UiMargin, UiSlot, UiSlotKind};
+pub use slot::{
+    UiAlignment, UiAlignment2D, UiCanvasSlotPlacement, UiGridSlotPlacement, UiMargin, UiSlot,
+    UiSlotKind,
+};
 pub use virtualization::UiVirtualListWindow;

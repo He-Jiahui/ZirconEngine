@@ -18,7 +18,7 @@ pub(crate) use route_resolution::resolve_host_tab_drop_route_with_root_frames;
 #[cfg(test)]
 pub(crate) use bridge::resolve_host_drag_target_group_with_root_frames;
 #[cfg(test)]
-pub(crate) use drop_resolution::resolve_tab_drop;
+pub(crate) use drop_resolution::resolve_tab_drop_with_root_frames;
 #[cfg(test)]
 pub(crate) use group::document_edge_group_key;
 #[cfg(test)]

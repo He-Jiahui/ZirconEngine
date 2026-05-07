@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::UiNodeId;
+use crate::ui::layout::UiFrame;
 use crate::ui::surface::UiPointerRoute;
+use crate::ui::tree::UiDirtyFlags;
 
 use super::{UiPointerComponentEvent, UiPointerDispatchInvocation};
 
@@ -13,8 +15,12 @@ pub struct UiPointerDispatchDiagnostics {
     pub hover_entered: usize,
     pub hover_left: usize,
     pub focus_changed: bool,
+    pub capture_started: bool,
     pub capture_released: bool,
     pub click_target_resolved: bool,
+    pub default_click_rejected: bool,
+    pub component_event_count: usize,
+    pub scroll_defaulted: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -25,6 +31,16 @@ pub struct UiPointerDispatchResult {
     pub blocked_by: Option<UiNodeId>,
     pub passthrough: Vec<UiNodeId>,
     pub captured_by: Option<UiNodeId>,
+    #[serde(default)]
+    pub released_capture: Option<UiNodeId>,
+    #[serde(default)]
+    pub focus_changed_to: Option<UiNodeId>,
+    #[serde(default)]
+    pub focus_cleared: bool,
+    #[serde(default)]
+    pub requested_dirty: UiDirtyFlags,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub requested_damage: Vec<UiFrame>,
     #[serde(default)]
     pub diagnostics: UiPointerDispatchDiagnostics,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -51,6 +67,11 @@ impl UiPointerDispatchResult {
             blocked_by: None,
             passthrough: Vec::new(),
             captured_by: None,
+            released_capture: None,
+            focus_changed_to: None,
+            focus_cleared: false,
+            requested_dirty: UiDirtyFlags::default(),
+            requested_damage: Vec::new(),
             diagnostics,
             component_events: Vec::new(),
         }

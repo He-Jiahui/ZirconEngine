@@ -4,7 +4,7 @@ use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::root_shell_projection::{
     resolve_root_activity_rail_frame, resolve_root_right_region_frame,
 };
-use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
@@ -13,7 +13,6 @@ use super::host_activity_rail_pointer_layout::HostActivityRailPointerLayout;
 
 pub(crate) fn build_host_activity_rail_pointer_layout(
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> HostActivityRailPointerLayout {
@@ -28,10 +27,9 @@ pub(crate) fn build_host_activity_rail_pointer_layout(
             ActivityDrawerSlot::RightBottom,
         ],
     );
-    let right_region = resolve_root_right_region_frame(geometry, shared_root_frames);
+    let right_region = resolve_root_right_region_frame(shared_root_frames);
     let rail_width = metrics.rail_width.max(0.0);
-    let resolved_left_strip_frame =
-        resolve_root_activity_rail_frame(geometry, metrics, shared_root_frames);
+    let resolved_left_strip_frame = resolve_root_activity_rail_frame(metrics, shared_root_frames);
 
     let left_strip_frame = if resolved_left_strip_frame.width > 0.0
         && resolved_left_strip_frame.height > 0.0

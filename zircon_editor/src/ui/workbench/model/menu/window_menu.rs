@@ -15,6 +15,7 @@ pub(super) fn build_window_menu() -> MenuModel {
             operation_path: operation_path_for_menu_action(&MenuAction::ResetLayout),
             shortcut: None,
             enabled: true,
+            children: Vec::new(),
         }],
     }
 }

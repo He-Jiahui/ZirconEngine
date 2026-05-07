@@ -1,6 +1,6 @@
 use super::*;
-use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset};
-use crate::ui::workbench::view::ViewInstanceId;
+use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset, UiDesignerToolMode};
+use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 use zircon_runtime_interface::ui::component::{
     UiComponentBindingTarget, UiComponentEvent, UiComponentEventEnvelope, UiValue,
 };
@@ -13,6 +13,50 @@ impl SlintEditorHost {
             "save" => self
                 .editor_manager
                 .save_ui_asset_editor(&instance_id)
+                .map(|_| ()),
+            "workspace.reload_from_disk" => self
+                .editor_manager
+                .reload_ui_asset_editor_from_disk(&instance_id)
+                .map(|_| ()),
+            "workspace.keep_local_and_save" => self
+                .editor_manager
+                .keep_ui_asset_editor_local_and_save(&instance_id)
+                .map(|_| ()),
+            "workspace.save_local_copy" => match self
+                .editor_manager
+                .save_ui_asset_editor_local_copy_next_to_source(&instance_id)
+            {
+                Ok(path) => {
+                    self.set_status_line(format!("Saved UI asset local copy {}", path.display()));
+                    Ok(())
+                }
+                Err(error) => Err(error),
+            },
+            "workspace.diff_snapshot" => match self
+                .editor_manager
+                .open_ui_asset_editor_diff_snapshot(&instance_id)
+            {
+                Ok(Some(snapshot)) => {
+                    self.set_status_line(snapshot.summary);
+                    Ok(())
+                }
+                Ok(None) => {
+                    self.set_status_line("No UI asset conflict diff available".to_string());
+                    Ok(())
+                }
+                Err(error) => Err(error),
+            },
+            "emergency.reload_from_disk" => self
+                .editor_manager
+                .reload_ui_asset_editor_from_disk(&instance_id)
+                .map(|_| ()),
+            "emergency.revert_last_valid" => self
+                .editor_manager
+                .revert_ui_asset_editor_to_last_valid(&instance_id)
+                .map(|_| ()),
+            "emergency.open_asset_browser" => self
+                .editor_manager
+                .open_view(ViewDescriptorId::new("editor.asset_browser"), None)
                 .map(|_| ()),
             "undo" => self
                 .editor_manager
@@ -180,6 +224,36 @@ impl SlintEditorHost {
             "mode.preview" => self
                 .editor_manager
                 .set_ui_asset_editor_mode(&instance_id, UiAssetEditorMode::Preview),
+            "designer.tool.select" => self
+                .editor_manager
+                .set_ui_asset_editor_designer_tool_mode(&instance_id, UiDesignerToolMode::Select)
+                .map(|_| ()),
+            "designer.tool.resize_slot" => self
+                .editor_manager
+                .set_ui_asset_editor_designer_tool_mode(
+                    &instance_id,
+                    UiDesignerToolMode::ResizeSlot,
+                )
+                .map(|_| ()),
+            "designer.tool.preview_interact" => self
+                .editor_manager
+                .set_ui_asset_editor_designer_tool_mode(
+                    &instance_id,
+                    UiDesignerToolMode::PreviewInteract,
+                )
+                .map(|_| ()),
+            "locale.preview.authoring_fallback" => self
+                .editor_manager
+                .set_ui_asset_editor_locale_preview(&instance_id, "authoring-fallback")
+                .map(|_| ()),
+            "locale.preview.en_us" => self
+                .editor_manager
+                .set_ui_asset_editor_locale_preview(&instance_id, "en-US")
+                .map(|_| ()),
+            "locale.preview.zh_cn" => self
+                .editor_manager
+                .set_ui_asset_editor_locale_preview(&instance_id, "zh-CN")
+                .map(|_| ()),
             other if other.starts_with("theme.source.select.") => {
                 let index = other
                     .trim_start_matches("theme.source.select.")
@@ -205,7 +279,7 @@ impl SlintEditorHost {
 
         match result {
             Ok(()) => {
-                if action_id == "save" {
+                if action_id == "save" || action_id == "workspace.keep_local_and_save" {
                     self.sync_asset_workspace();
                 }
                 self.presentation_dirty = true;

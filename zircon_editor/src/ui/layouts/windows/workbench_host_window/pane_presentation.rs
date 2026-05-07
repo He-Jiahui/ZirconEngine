@@ -4,6 +4,7 @@ use crate::ui::workbench::snapshot::EditorChromeSnapshot;
 use crate::ui::workbench::view::{
     PaneBodySpec, PaneInteractionMode, PanePayloadKind, PaneRouteNamespace,
 };
+use zircon_runtime_interface::ui::surface::UiSurfaceDebugSnapshot;
 
 use super::pane_payload::PanePayload;
 use super::pane_payload_builders::build_payload;
@@ -15,6 +16,7 @@ pub(crate) struct PanePayloadBuildContext<'a> {
     pub animation_pane: Option<&'a AnimationEditorPanePresentation>,
     pub runtime_diagnostics:
         Option<&'a zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot>,
+    pub active_ui_debug_snapshot: Option<&'a UiSurfaceDebugSnapshot>,
     pub module_plugins: Option<&'a ModulePluginsPaneViewData>,
     pub build_export: Option<&'a BuildExportPaneViewData>,
 }
@@ -25,6 +27,7 @@ impl<'a> PanePayloadBuildContext<'a> {
             chrome,
             animation_pane: None,
             runtime_diagnostics: None,
+            active_ui_debug_snapshot: None,
             module_plugins: None,
             build_export: None,
         }
@@ -43,6 +46,11 @@ impl<'a> PanePayloadBuildContext<'a> {
         runtime_diagnostics: &'a zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot,
     ) -> Self {
         self.runtime_diagnostics = Some(runtime_diagnostics);
+        self
+    }
+
+    pub fn with_active_ui_debug_snapshot(mut self, snapshot: &'a UiSurfaceDebugSnapshot) -> Self {
+        self.active_ui_debug_snapshot = Some(snapshot);
         self
     }
 

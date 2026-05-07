@@ -12,6 +12,7 @@ pub(crate) use builtin::UI_HOST_WINDOW_DOCUMENT_ID;
 pub use harness::{EditorUiCompatibilityHarness, EditorUiCompatibilitySnapshot};
 pub use host_nodes::{SlintUiHostBindingProjection, SlintUiHostModel, SlintUiHostNodeProjection};
 pub use model::{SlintUiBindingProjection, SlintUiNodeProjection, SlintUiProjection};
+pub(crate) use runtime::collect_builtin_template_imports;
 pub use runtime::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 pub(crate) use showcase_demo_state::{
     UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,

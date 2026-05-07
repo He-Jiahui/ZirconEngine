@@ -21,6 +21,7 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 )),
                 shortcut: None,
                 enabled: true,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Create Camera".to_string(),
@@ -31,6 +32,7 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 )),
                 shortcut: None,
                 enabled: true,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Create Directional Light".to_string(),
@@ -41,6 +43,7 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 )),
                 shortcut: None,
                 enabled: true,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Delete Selection".to_string(),
@@ -49,6 +52,7 @@ pub(super) fn build_selection_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::DeleteSelected),
                 shortcut: Some("Delete".to_string()),
                 enabled: chrome.inspector.is_some(),
+                children: Vec::new(),
             },
         ],
     }

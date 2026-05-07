@@ -30,12 +30,14 @@ pub fn extract_ui_render_tree_from_arranged(
                 .filter(|visible| *visible)
                 .map(|_| {
                     let text_layout = visual.text.as_deref().map(|text| {
-                        layout_text(
+                        let mut layout = layout_text(
                             text,
                             &visual.style,
                             arranged_node.frame,
                             Some(arranged_node.clip_frame),
-                        )
+                        );
+                        layout.editable = visual.editable.clone();
+                        layout
                     });
                     UiRenderCommand {
                         node_id,

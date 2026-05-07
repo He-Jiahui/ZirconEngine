@@ -3,9 +3,7 @@ use crate::ui::slint_host::root_shell_projection::{
     resolve_root_bottom_region_frame, resolve_root_left_region_frame,
     resolve_root_right_region_frame,
 };
-use crate::ui::workbench::autolayout::{
-    ShellRegionId, WorkbenchChromeMetrics, WorkbenchShellGeometry,
-};
+use crate::ui::workbench::autolayout::{ShellRegionId, WorkbenchChromeMetrics};
 use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime_interface::ui::layout::UiFrame;
@@ -15,7 +13,6 @@ use super::host_drawer_header_pointer_layout::HostDrawerHeaderPointerLayout;
 
 pub(crate) fn build_host_drawer_header_pointer_layout(
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) -> HostDrawerHeaderPointerLayout {
@@ -24,7 +21,7 @@ pub(crate) fn build_host_drawer_header_pointer_layout(
     if let Some(surface) = build_surface_for_region(
         "left",
         ShellRegionId::Left,
-        resolve_root_left_region_frame(geometry, shared_root_frames),
+        resolve_root_left_region_frame(shared_root_frames),
         model,
         &[ActivityDrawerSlot::LeftTop, ActivityDrawerSlot::LeftBottom],
         metrics,
@@ -36,7 +33,7 @@ pub(crate) fn build_host_drawer_header_pointer_layout(
     if let Some(surface) = build_surface_for_region(
         "right",
         ShellRegionId::Right,
-        resolve_root_right_region_frame(geometry, shared_root_frames),
+        resolve_root_right_region_frame(shared_root_frames),
         model,
         &[
             ActivityDrawerSlot::RightTop,
@@ -51,12 +48,9 @@ pub(crate) fn build_host_drawer_header_pointer_layout(
     if let Some(surface) = build_surface_for_region(
         "bottom",
         ShellRegionId::Bottom,
-        resolve_root_bottom_region_frame(geometry, shared_root_frames),
+        resolve_root_bottom_region_frame(shared_root_frames),
         model,
-        &[
-            ActivityDrawerSlot::BottomLeft,
-            ActivityDrawerSlot::BottomRight,
-        ],
+        &[ActivityDrawerSlot::Bottom],
         metrics,
         false,
         shared_root_frames,

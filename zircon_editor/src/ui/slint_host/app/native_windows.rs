@@ -121,7 +121,6 @@ impl NativeWindowPresenterStore {
         self.windows.keys().cloned().collect()
     }
 
-    #[cfg(test)]
     pub(crate) fn window(&self, window_id: &MainPageId) -> Option<UiHostWindow> {
         self.windows.get(window_id).map(UiHostWindow::clone_strong)
     }

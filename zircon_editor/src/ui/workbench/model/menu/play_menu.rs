@@ -19,6 +19,7 @@ pub(super) fn build_play_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::EnterPlayMode),
                 shortcut: Some("F5".to_string()),
                 enabled: chrome.project_open && !playing,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Exit Play Mode".to_string(),
@@ -27,6 +28,7 @@ pub(super) fn build_play_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::ExitPlayMode),
                 shortcut: Some("Shift+F5".to_string()),
                 enabled: playing,
+                children: Vec::new(),
             },
         ],
     }

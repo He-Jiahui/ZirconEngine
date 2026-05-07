@@ -21,6 +21,7 @@ pub(super) fn build_help_menu() -> MenuModel {
             )),
             shortcut: None,
             enabled: true,
+            children: Vec::new(),
         }],
     }
 }

@@ -49,7 +49,7 @@
 - [x] Add borrowed `UiHitTestIndex::hit_test_grid_arranged(...)` and make `hit_test_arranged(...)` delegate to it.
 - [x] Update `hit_test_surface_frame(...)` to call the borrowed helper on `surface_frame.hit_grid`.
 - [x] Extend `UiSurfaceRebuildReport` with `dirty_flags`, `dirty_node_count`, `arranged_node_count`, `render_command_count`, `hit_grid_entry_count`, `hit_grid_cell_count`, and elapsed microseconds for layout/arranged/hit/render phases.
-- [x] Add runtime tests proving borrowed surface-frame hit test returns the same path as the surface index and reports rebuild metrics for render-only and layout dirty paths.
+- [x] Add runtime tests proving borrowed surface-frame hit test returns the same path as the surface index and reports rebuild metrics for render-only, layout dirty, and clean cached-count paths.
 
 ### Testing Stage: Runtime Metrics Gate
 
@@ -74,7 +74,7 @@ cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir "E:\zircon-bu
 
 ### Implementation Slices
 
-- [x] Create `painter/diagnostics_overlay.rs` with `debug_refresh_overlay_frame(top_bar, label)`.
+- [x] Create `painter/diagnostics_overlay.rs` with `debug_refresh_overlay_frame(top_bar, label)` and the matching presenter damage helpers.
 - [x] Use that helper from `workbench.rs` for drawing the overlay.
 - [x] Update `SoftbufferHostPresenter` to track the last diagnostics overlay text and union the overlay frame into the current region damage when the overlay text changes.
 - [x] Add presenter unit tests for overlay damage expansion and unchanged-text no-op.

@@ -132,6 +132,11 @@ pub(crate) struct ViewTemplateNodeData {
     pub overflow: SharedString,
     pub corner_radius: f32,
     pub border_width: f32,
+    pub selected: bool,
+    pub focused: bool,
+    pub hovered: bool,
+    pub pressed: bool,
+    pub disabled: bool,
     pub media_source: SharedString,
     pub icon_name: SharedString,
     pub has_preview_image: bool,
@@ -159,6 +164,11 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("overflow", &self.overflow)
             .field("corner_radius", &self.corner_radius)
             .field("border_width", &self.border_width)
+            .field("selected", &self.selected)
+            .field("focused", &self.focused)
+            .field("hovered", &self.hovered)
+            .field("pressed", &self.pressed)
+            .field("disabled", &self.disabled)
             .field("media_source", &self.media_source)
             .field("icon_name", &self.icon_name)
             .field("has_preview_image", &self.has_preview_image)
@@ -190,6 +200,11 @@ impl PartialEq for ViewTemplateNodeData {
             && self.overflow == other.overflow
             && self.corner_radius == other.corner_radius
             && self.border_width == other.border_width
+            && self.selected == other.selected
+            && self.focused == other.focused
+            && self.hovered == other.hovered
+            && self.pressed == other.pressed
+            && self.disabled == other.disabled
             && self.media_source == other.media_source
             && self.icon_name == other.icon_name
             && self.has_preview_image == other.has_preview_image
@@ -217,6 +232,11 @@ impl Default for ViewTemplateNodeData {
             overflow: SharedString::default(),
             corner_radius: 0.0,
             border_width: 0.0,
+            selected: false,
+            focused: false,
+            hovered: false,
+            pressed: false,
+            disabled: false,
             media_source: SharedString::default(),
             icon_name: SharedString::default(),
             has_preview_image: false,

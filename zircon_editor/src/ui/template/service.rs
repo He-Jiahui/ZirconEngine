@@ -3,13 +3,14 @@ use std::path::Path;
 
 use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
 use zircon_runtime::ui::template::{
-    collect_asset_binding_report, UiAssetLoader, UiCompiledDocument, UiDocumentCompiler,
-    UiTemplateBuildError, UiTemplateInstance, UiTemplateSurfaceBuilder,
+    collect_asset_binding_report, collect_document_localization_report, UiAssetLoader,
+    UiCompiledDocument, UiDocumentCompiler, UiTemplateBuildError, UiTemplateInstance,
+    UiTemplateSurfaceBuilder,
 };
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
-use zircon_runtime_interface::ui::template::UiBindingReport;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
+use zircon_runtime_interface::ui::template::{UiBindingReport, UiLocalizationReport};
 
 use crate::ui::template::{EditorTemplateError, EditorTemplateRegistry};
 
@@ -46,6 +47,10 @@ impl EditorTemplateRuntimeService {
 
     pub fn collect_binding_report(&self, document: &UiAssetDocument) -> UiBindingReport {
         collect_asset_binding_report(document, UiDocumentCompiler::default().component_registry())
+    }
+
+    pub fn collect_localization_report(&self, document: &UiAssetDocument) -> UiLocalizationReport {
+        collect_document_localization_report(document)
     }
 
     pub fn compile_document_with_import_maps(

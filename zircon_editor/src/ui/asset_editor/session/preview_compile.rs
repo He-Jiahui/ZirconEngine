@@ -20,10 +20,14 @@ pub(super) fn compile_preview(
     }
 
     let template_service = EditorTemplateRuntimeService;
+    let (mut widget_imports, mut style_imports) =
+        crate::ui::template_runtime::collect_builtin_template_imports(&template_service, document)?;
+    widget_imports.extend(imports.widgets.clone());
+    style_imports.extend(imports.styles.clone());
     let compiled = template_service.compile_document_with_import_maps(
         document,
-        &imports.widgets,
-        &imports.styles,
+        &widget_imports,
+        &style_imports,
     )?;
     let preview_host = UiAssetPreviewHost::new(preview_size, &document.asset.id, &compiled)?;
     Ok((Some(compiled), Some(preview_host)))

@@ -4,7 +4,7 @@ use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorPanePresentation, UiAssetEditorReflectionModel,
-    UiAssetEditorRoute, UiAssetEditorSession,
+    UiAssetEditorRoute, UiAssetEditorSession, UiAssetEditorShellState,
 };
 use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
@@ -44,7 +44,14 @@ impl EditorUiHost {
         pane.stale_import_items = entry.stale_import_items();
         pane.can_reload_from_disk = pane.has_external_conflict;
         pane.can_keep_local_and_save = pane.has_external_conflict;
+        pane.can_save_local_copy = pane.has_external_conflict;
         pane.can_open_diff_snapshot = pane.has_external_conflict;
+        if pane.has_external_conflict && pane.shell_state == UiAssetEditorShellState::Valid.label()
+        {
+            pane.shell_state = UiAssetEditorShellState::Stale.label().to_string();
+        }
+        pane.can_emergency_reload |= pane.has_external_conflict;
+        pane.can_emergency_open_asset_browser |= !pane.emergency_summary.is_empty();
         Ok(pane)
     }
 

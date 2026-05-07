@@ -6,7 +6,7 @@ use crate::ui::slint_host::{
         HostActivityRailPointerBridge, HostActivityRailPointerDispatch,
         HostActivityRailPointerRoute, HostActivityRailPointerSide,
     },
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
 };
 
 use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplateBridge};
@@ -14,7 +14,7 @@ use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplat
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedActivityRailPointerClickDispatch {
     pub pointer: HostActivityRailPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_activity_rail_pointer_click(

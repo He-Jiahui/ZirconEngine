@@ -30,4 +30,5 @@ pub(crate) struct WelcomePaneData {
     pub subtitle: SharedString,
     pub status_message: SharedString,
     pub form: NewProjectFormData,
+    pub recent_projects: ModelRc<RecentProjectData>,
 }

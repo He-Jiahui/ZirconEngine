@@ -236,6 +236,7 @@ impl UiAssetEditorSession {
 
     fn select_node_id(&mut self, node_id: &str) {
         self.selection = selection_for_node(&self.last_valid_document, node_id);
+        self.last_preview_interact_dispatch = None;
         self.clear_palette_drag_state();
         self.reconcile_promote_widget_draft();
         reconcile_preview_mock_state(

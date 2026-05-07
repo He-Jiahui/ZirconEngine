@@ -1,6 +1,9 @@
+use crate::core::editor_operation::EditorOperationPath;
+use crate::ui::binding::{EditorUiBindingPayload, EditorUiEventKind};
 use crate::ui::control::EditorUiControlService;
+use crate::ui::workbench::event::editor_operation_binding;
 use crate::ui::workbench::fixture::default_preview_fixture;
-use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::model::{MenuBarModel, MenuItemModel, MenuModel, WorkbenchViewModel};
 use crate::ui::workbench::reflection::{
     activity_descriptors_from_views, build_workbench_reflection_model,
 };
@@ -80,4 +83,47 @@ fn workbench_reflection_model_projects_menu_and_activity_descriptors() {
                 && node.actions["import_model"].binding_symbol
                     == "AssetCommand.ImportModel"
     ));
+}
+
+#[test]
+fn workbench_reflection_model_projects_nested_menu_leaves() {
+    let fixture = default_preview_fixture();
+    let chrome = fixture.build_chrome();
+    let operation_path = EditorOperationPath::parse("Weather.CloudLayer.Refresh").unwrap();
+    let mut view_model = WorkbenchViewModel::build(&chrome);
+    view_model.menu_bar = MenuBarModel {
+        menus: vec![MenuModel {
+            label: "Tools".to_string(),
+            items: vec![MenuItemModel::branch(
+                "Weather",
+                vec![MenuItemModel::leaf(
+                    "Refresh Cloud Layers",
+                    None,
+                    editor_operation_binding(&operation_path),
+                    Some(operation_path.clone()),
+                    Some("Ctrl+Alt+R".to_string()),
+                    true,
+                )],
+            )],
+        }],
+    };
+
+    let reflection = build_workbench_reflection_model(&chrome, &view_model);
+
+    assert_eq!(reflection.menu_items.len(), 1);
+    let item = &reflection.menu_items[0];
+    assert_eq!(item.menu_id, "tools");
+    assert_eq!(item.control_id, "Weather.CloudLayer.Refresh");
+    assert_eq!(item.label, "Refresh Cloud Layers");
+    assert_eq!(
+        item.operation_path.as_deref(),
+        Some(operation_path.as_str())
+    );
+    assert_eq!(item.shortcut.as_deref(), Some("Ctrl+Alt+R"));
+    assert!(matches!(
+        item.binding.payload(),
+        EditorUiBindingPayload::EditorOperation { operation_id, .. }
+            if operation_id == operation_path.as_str()
+    ));
+    assert_eq!(item.binding.path().event_kind, EditorUiEventKind::Click);
 }

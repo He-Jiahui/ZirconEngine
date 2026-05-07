@@ -6,7 +6,7 @@ display_name = "Editor Base"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 accent = "#4d89ff"

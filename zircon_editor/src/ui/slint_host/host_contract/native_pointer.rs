@@ -1,7 +1,10 @@
-use slint::{Model, SharedString};
+use slint::{Model, ModelRc, SharedString};
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
-use super::data::{FrameRect, HostPaneInteractionStateData, HostWindowPresentationData};
+use super::data::{
+    FrameRect, HostDragStateData, HostMenuChromeItemData, HostPaneInteractionStateData,
+    HostResizeStateData, HostTextInputFocusData, HostWindowPresentationData, TabData,
+};
 use super::globals::{PaneSurfaceHostContext, UiHostContext};
 use super::redraw::NativePointerDispatchResult;
 use super::surface_hit_test::{self, TemplateNodePointerHit, ViewportToolbarPointerHit};
@@ -21,6 +24,7 @@ const VIEWPORT_POINTER_BUTTON_NONE: i32 = 0;
 const VIEWPORT_POINTER_BUTTON_PRIMARY: i32 = 1;
 const VIEWPORT_POINTER_BUTTON_SECONDARY: i32 = 2;
 const VIEWPORT_POINTER_BUTTON_MIDDLE: i32 = 3;
+const TAB_DRAG_START_DISTANCE_PX: f32 = 4.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) enum NativePointerButtonState {
@@ -33,6 +37,14 @@ pub(super) fn dispatch_native_pointer_move(
     x: f32,
     y: f32,
 ) -> NativePointerDispatchResult {
+    if let Some(result) = dispatch_native_resize_move(ui, x, y) {
+        return result;
+    }
+
+    if let Some(result) = dispatch_native_tab_drag_move(ui, x, y) {
+        return result;
+    }
+
     let presentation = ui.get_host_presentation();
     if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y) {
         let before = ui.get_menu_state();
@@ -147,6 +159,39 @@ pub(super) fn dispatch_native_pointer_button(
     let Some(button_id) = viewport_button_id(button) else {
         return NativePointerDispatchResult::idle();
     };
+
+    if state == NativePointerButtonState::Released && button == UiPointerButton::Primary {
+        if let Some(result) = finish_native_resize(ui, x, y) {
+            return result;
+        }
+        if let Some(result) = finish_native_tab_drag(ui, x, y) {
+            return result;
+        }
+    }
+
+    if let Some(action_id) = close_prompt_action_at(&presentation, x, y) {
+        if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+            ui.global::<UiHostContext>()
+                .invoke_close_prompt_action_clicked(action_id);
+            return NativePointerDispatchResult::full_frame();
+        }
+        return NativePointerDispatchResult::idle();
+    }
+    if presentation.close_prompt.visible && contains(&presentation.close_prompt.overlay_frame, x, y)
+    {
+        return NativePointerDispatchResult::idle();
+    }
+
+    let cleared_text_input_focus =
+        if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+            let host = ui.global::<UiHostContext>();
+            let had_text_input_focus = host.get_text_input_focus().is_active();
+            host.clear_text_input_focus();
+            had_text_input_focus
+        } else {
+            false
+        };
+
     if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
         if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y)
         {
@@ -158,6 +203,7 @@ pub(super) fn dispatch_native_pointer_button(
 
     if let Some(route) = route_top_level_chrome(&presentation, x, y) {
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
+            arm_native_tab_drag(ui, &presentation, &route, x, y);
             dispatch_chrome_press(ui, route, x, y);
             return NativePointerDispatchResult::full_frame();
         }
@@ -277,16 +323,28 @@ pub(super) fn dispatch_native_pointer_button(
                 );
                 return NativePointerDispatchResult::full_frame();
             }
-            PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
-                kind,
-                button_id,
-                pointer.local_x,
-                pointer.local_y,
-                0.0,
-            ),
+            PanePointerTarget::Viewport(_) => {
+                pane_host.invoke_viewport_pointer_event(
+                    kind,
+                    button_id,
+                    pointer.local_x,
+                    pointer.local_y,
+                    0.0,
+                );
+                if cleared_text_input_focus {
+                    return NativePointerDispatchResult::full_frame();
+                }
+                return NativePointerDispatchResult::idle();
+            }
             PanePointerTarget::TemplateNode(hit) => {
                 if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary
                 {
+                    if hit_is_text_input(&hit) {
+                        if focus_template_node_text_input(ui, &hit) {
+                            return NativePointerDispatchResult::region(hit.frame.clone());
+                        }
+                        return NativePointerDispatchResult::idle();
+                    }
                     dispatch_template_node_primary_press(&pane_host, hit);
                 }
             }
@@ -382,13 +440,16 @@ pub(super) fn dispatch_native_pointer_scroll(
                     pointer.width,
                     pointer.height,
                 ),
-            PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
-                VIEWPORT_POINTER_SCROLL,
-                VIEWPORT_POINTER_BUTTON_NONE,
-                pointer.local_x,
-                pointer.local_y,
-                delta,
-            ),
+            PanePointerTarget::Viewport(_) => {
+                pane_host.invoke_viewport_pointer_event(
+                    VIEWPORT_POINTER_SCROLL,
+                    VIEWPORT_POINTER_BUTTON_NONE,
+                    pointer.local_x,
+                    pointer.local_y,
+                    delta,
+                );
+                return NativePointerDispatchResult::idle();
+            }
             PanePointerTarget::TemplateNode(_)
             | PanePointerTarget::ViewportToolbar(_)
             | PanePointerTarget::UiAsset
@@ -467,6 +528,12 @@ fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y
             host.invoke_floating_window_header_pointer_clicked(x, y);
         }
         ChromePointerRoute::Resize => {
+            host.set_resize_state(HostResizeStateData {
+                resize_active: true,
+                resize_pointer_x: x,
+                resize_pointer_y: y,
+                ..HostResizeStateData::default()
+            });
             host.invoke_host_resize_pointer_event(HOST_POINTER_DOWN, x, y)
         }
     }
@@ -479,6 +546,8 @@ fn dispatch_template_node_primary_press(
     match hit.dispatch_kind.as_str() {
         "inspector" => pane_host.invoke_inspector_control_clicked(hit.control_id),
         "asset" => pane_host.invoke_asset_control_clicked("activity".into(), hit.control_id),
+        "welcome" => pane_host.invoke_welcome_control_clicked(action_or_control_id(&hit)),
+        "welcome_text" => {}
         "showcase" => {
             pane_host.invoke_component_showcase_control_activated(hit.control_id, hit.action_id)
         }
@@ -486,6 +555,251 @@ fn dispatch_template_node_primary_press(
             pane_host.invoke_surface_control_clicked(hit.control_id, hit.binding_id)
         }
         _ => pane_host.invoke_surface_control_clicked(hit.control_id, hit.action_id),
+    }
+}
+
+fn action_or_control_id(hit: &TemplateNodePointerHit) -> SharedString {
+    if hit.action_id.is_empty() {
+        hit.control_id.clone()
+    } else {
+        hit.action_id.clone()
+    }
+}
+
+fn hit_is_text_input(hit: &TemplateNodePointerHit) -> bool {
+    hit.dispatch_kind.as_str() == "welcome_text"
+        || hit.component_role.as_str() == "input-field"
+        || hit.component_role.as_str() == "number-field"
+        || !hit.edit_action_id.is_empty()
+}
+
+fn focus_template_node_text_input(ui: &UiHostWindow, hit: &TemplateNodePointerHit) -> bool {
+    let target_id = text_input_edit_target_id(hit);
+    if target_id.is_empty() {
+        return false;
+    }
+    ui.global::<UiHostContext>()
+        .set_text_input_focus(HostTextInputFocusData {
+            control_id: hit.control_id.clone(),
+            dispatch_kind: hit.dispatch_kind.clone(),
+            action_id: hit.action_id.clone(),
+            edit_action_id: target_id,
+            commit_action_id: hit.commit_action_id.clone(),
+            value_text: hit.value_text.clone(),
+            edit_frame: hit.frame.clone(),
+        });
+    true
+}
+
+fn text_input_edit_target_id(hit: &TemplateNodePointerHit) -> SharedString {
+    if !hit.edit_action_id.is_empty() {
+        hit.edit_action_id.clone()
+    } else if hit.dispatch_kind.as_str() == "welcome_text" && !hit.action_id.is_empty() {
+        hit.action_id.clone()
+    } else if matches!(hit.component_role.as_str(), "input-field" | "number-field")
+        && !hit.binding_id.is_empty()
+    {
+        hit.binding_id.clone()
+    } else {
+        SharedString::new()
+    }
+}
+
+fn dispatch_native_resize_move(
+    ui: &UiHostWindow,
+    x: f32,
+    y: f32,
+) -> Option<NativePointerDispatchResult> {
+    let host = ui.global::<UiHostContext>();
+    let mut resize_state = host.get_resize_state();
+    if !resize_state.resize_active {
+        return None;
+    }
+
+    resize_state.resize_pointer_x = x;
+    resize_state.resize_pointer_y = y;
+    host.set_resize_state(resize_state);
+    host.invoke_host_resize_pointer_event(HOST_POINTER_MOVE, x, y);
+    Some(NativePointerDispatchResult::full_frame())
+}
+
+fn finish_native_resize(ui: &UiHostWindow, x: f32, y: f32) -> Option<NativePointerDispatchResult> {
+    let host = ui.global::<UiHostContext>();
+    if !host.get_resize_state().resize_active {
+        return None;
+    }
+
+    host.invoke_host_resize_pointer_event(HOST_POINTER_UP, x, y);
+    host.clear_resize_state();
+    Some(NativePointerDispatchResult::full_frame())
+}
+
+fn arm_native_tab_drag(
+    ui: &UiHostWindow,
+    presentation: &HostWindowPresentationData,
+    route: &ChromePointerRoute,
+    x: f32,
+    y: f32,
+) {
+    let Some((tab, source_group)) = tab_drag_payload_for_route(presentation, route) else {
+        return;
+    };
+    ui.global::<UiHostContext>()
+        .set_drag_state(HostDragStateData {
+            drag_tab_id: tab.id,
+            drag_tab_title: tab.title,
+            drag_tab_icon_key: tab.icon_key,
+            drag_source_group: source_group,
+            drag_pointer_x: x,
+            drag_pointer_y: y,
+            ..HostDragStateData::default()
+        });
+}
+
+fn dispatch_native_tab_drag_move(
+    ui: &UiHostWindow,
+    x: f32,
+    y: f32,
+) -> Option<NativePointerDispatchResult> {
+    let host = ui.global::<UiHostContext>();
+    let mut drag_state = host.get_drag_state();
+    if drag_state.drag_tab_id.is_empty() {
+        return None;
+    }
+
+    if !drag_state.drag_active {
+        let distance_x = x - drag_state.drag_pointer_x;
+        let distance_y = y - drag_state.drag_pointer_y;
+        if distance_x.hypot(distance_y) < TAB_DRAG_START_DISTANCE_PX {
+            return Some(NativePointerDispatchResult::idle());
+        }
+        drag_state.drag_active = true;
+        drag_state.drag_pointer_x = x;
+        drag_state.drag_pointer_y = y;
+        host.set_drag_state(drag_state);
+        host.invoke_host_drag_pointer_event(HOST_POINTER_DOWN, x, y);
+        return Some(NativePointerDispatchResult::idle());
+    }
+
+    drag_state.drag_pointer_x = x;
+    drag_state.drag_pointer_y = y;
+    host.set_drag_state(drag_state);
+    host.invoke_host_drag_pointer_event(HOST_POINTER_MOVE, x, y);
+    Some(NativePointerDispatchResult::idle())
+}
+
+fn finish_native_tab_drag(
+    ui: &UiHostWindow,
+    x: f32,
+    y: f32,
+) -> Option<NativePointerDispatchResult> {
+    let host = ui.global::<UiHostContext>();
+    let drag_state = host.get_drag_state();
+    if drag_state.drag_tab_id.is_empty() {
+        return None;
+    }
+    if drag_state.drag_active {
+        host.invoke_host_drag_pointer_event(HOST_POINTER_UP, x, y);
+        host.set_drag_state(HostDragStateData::default());
+        return Some(NativePointerDispatchResult::full_frame());
+    }
+    host.set_drag_state(HostDragStateData::default());
+    Some(NativePointerDispatchResult::idle())
+}
+
+fn tab_drag_payload_for_route(
+    presentation: &HostWindowPresentationData,
+    route: &ChromePointerRoute,
+) -> Option<(TabData, SharedString)> {
+    match route {
+        ChromePointerRoute::DocumentTab {
+            surface_key,
+            index,
+            close,
+            ..
+        } => {
+            if *close {
+                return None;
+            }
+            if surface_key.as_str() == "document" {
+                return presentation
+                    .host_scene_data
+                    .document_dock
+                    .tabs
+                    .row_data(*index)
+                    .map(|tab| {
+                        (
+                            tab,
+                            presentation
+                                .host_scene_data
+                                .document_dock
+                                .surface_key
+                                .clone(),
+                        )
+                    });
+            }
+            for row in 0..presentation
+                .host_scene_data
+                .floating_layer
+                .floating_windows
+                .row_count()
+            {
+                let window = presentation
+                    .host_scene_data
+                    .floating_layer
+                    .floating_windows
+                    .row_data(row)?;
+                if window.window_id.as_str() == surface_key.as_str() {
+                    return window
+                        .tabs
+                        .row_data(*index)
+                        .map(|tab| (tab, window.target_group.clone()));
+                }
+            }
+            None
+        }
+        ChromePointerRoute::DrawerHeaderTab {
+            surface_key, index, ..
+        } => match surface_key.as_str() {
+            "left" => presentation
+                .host_scene_data
+                .left_dock
+                .tabs
+                .row_data(*index)
+                .map(|tab| {
+                    (
+                        tab,
+                        presentation.host_scene_data.left_dock.surface_key.clone(),
+                    )
+                }),
+            "right" => presentation
+                .host_scene_data
+                .right_dock
+                .tabs
+                .row_data(*index)
+                .map(|tab| {
+                    (
+                        tab,
+                        presentation.host_scene_data.right_dock.surface_key.clone(),
+                    )
+                }),
+            "bottom" => presentation
+                .host_scene_data
+                .bottom_dock
+                .tabs
+                .row_data(*index)
+                .map(|tab| {
+                    (
+                        tab,
+                        presentation.host_scene_data.bottom_dock.surface_key.clone(),
+                    )
+                }),
+            _ => None,
+        },
+        ChromePointerRoute::ActivityRail { .. }
+        | ChromePointerRoute::HostPageTab { .. }
+        | ChromePointerRoute::FloatingWindowHeader
+        | ChromePointerRoute::Resize => None,
     }
 }
 
@@ -513,6 +827,26 @@ fn route_top_level_chrome(
             scene.document_dock.region_frame.y,
         ),
         &scene.document_dock.tab_frames,
+        x,
+        y,
+    ) {
+        return Some(route);
+    }
+    if let Some(route) = route_activity_rail(
+        &scene.left_dock.region_frame,
+        true,
+        scene.left_dock.rail_width_px,
+        &scene.left_dock.rail_button_frames,
+        x,
+        y,
+    ) {
+        return Some(route);
+    }
+    if let Some(route) = route_activity_rail(
+        &scene.right_dock.region_frame,
+        false,
+        scene.right_dock.rail_width_px,
+        &scene.right_dock.rail_button_frames,
         x,
         y,
     ) {
@@ -549,26 +883,6 @@ fn route_top_level_chrome(
         return Some(route);
     }
     if let Some(route) = route_host_page_tabs(&scene.page_chrome.tab_frames, x, y) {
-        return Some(route);
-    }
-    if let Some(route) = route_activity_rail(
-        &scene.left_dock.region_frame,
-        true,
-        scene.left_dock.rail_width_px,
-        &scene.left_dock.rail_button_frames,
-        x,
-        y,
-    ) {
-        return Some(route);
-    }
-    if let Some(route) = route_activity_rail(
-        &scene.right_dock.region_frame,
-        false,
-        scene.right_dock.rail_width_px,
-        &scene.right_dock.rail_button_frames,
-        x,
-        y,
-    ) {
         return Some(route);
     }
 
@@ -609,8 +923,8 @@ fn route_host_page_tabs(
                 index: row,
                 tab_x: tab.frame.x,
                 tab_width: tab.frame.width,
-                local_x: x,
-                local_y: y,
+                local_x: x - tab.frame.x,
+                local_y: y - tab.frame.y,
             });
         }
     }
@@ -777,6 +1091,27 @@ fn route_pointer_to_pane(
     None
 }
 
+fn close_prompt_action_at(
+    presentation: &HostWindowPresentationData,
+    x: f32,
+    y: f32,
+) -> Option<SharedString> {
+    let prompt = &presentation.close_prompt;
+    if !prompt.visible {
+        return None;
+    }
+    if prompt.can_save && contains(&prompt.save_button_frame, x, y) {
+        return Some("save".into());
+    }
+    if contains(&prompt.discard_button_frame, x, y) {
+        return Some("discard".into());
+    }
+    if contains(&prompt.cancel_button_frame, x, y) {
+        return Some("cancel".into());
+    }
+    None
+}
+
 fn pane_route_from_pane(
     pane: &super::data::PaneData,
     content: &FrameRect,
@@ -866,7 +1201,9 @@ fn menu_handles_point(presentation: &HostWindowPresentationData, x: f32, y: f32)
             .menu_chrome
             .menu_frames
             .row_data(row)
-            .is_some_and(|control| contains(&control.frame, x, y))
+            .is_some_and(|control| {
+                contains(&scrolled_menu_frame(&control.frame, presentation), x, y)
+            })
     })
 }
 
@@ -892,16 +1229,15 @@ fn menu_popup_handles_point(presentation: &HostWindowPresentationData, x: f32, y
     else {
         return false;
     };
-    let popup = FrameRect {
-        x: menu_frame.frame.x,
-        y: menu_frame.frame.y + menu_frame.frame.height + 3.0,
-        width: menu.popup_width_px.max(menu_frame.frame.width),
-        height: menu
-            .popup_height_px
-            .max(state.window_menu_popup_height_px)
-            .max(1.0),
-    };
+    let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+    let popup = constrained_menu_popup_frame(
+        presentation,
+        &menu_frame_rect,
+        menu.popup_width_px.max(menu_frame_rect.width).max(1.0),
+        menu.popup_height_px.max(1.0),
+    );
     contains(&popup, x, y)
+        || nested_menu_popup_handles_point(presentation, menu.items.clone(), popup, x, y)
         || contains(
             &FrameRect {
                 x: 0.0,
@@ -942,24 +1278,231 @@ fn menu_damage_frame(presentation: &HostWindowPresentationData) -> FrameRect {
         .max(scene.layout.center_band_frame.width)
         .max(1.0);
     let base_height = scene.menu_chrome.top_bar_height_px.max(0.0);
-    let popup_height = if presentation.menu_state.open_menu_index >= 0 {
+    let popup_bottom = if presentation.menu_state.open_menu_index >= 0 {
         scene
             .menu_chrome
             .menus
             .row_data(presentation.menu_state.open_menu_index as usize)
-            .map(|menu| {
-                menu.popup_height_px
-                    .max(presentation.menu_state.window_menu_popup_height_px)
+            .and_then(|menu| {
+                let menu_frame = scene
+                    .menu_chrome
+                    .menu_frames
+                    .row_data(presentation.menu_state.open_menu_index as usize)?;
+                let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+                let popup = constrained_menu_popup_frame(
+                    presentation,
+                    &menu_frame_rect,
+                    menu.popup_width_px.max(menu_frame_rect.width).max(1.0),
+                    menu.popup_height_px.max(1.0),
+                );
+                Some(menu_popup_stack_bottom(
+                    presentation,
+                    menu.items.clone(),
+                    popup,
+                ))
             })
-            .unwrap_or(0.0)
+            .unwrap_or(base_height)
     } else {
-        0.0
+        base_height
     };
     FrameRect {
         x: 0.0,
         y: 0.0,
         width,
-        height: (base_height + popup_height + 4.0).max(base_height),
+        height: (popup_bottom + 4.0).max(base_height),
+    }
+}
+
+fn constrained_menu_popup_frame(
+    presentation: &HostWindowPresentationData,
+    menu_frame: &FrameRect,
+    width: f32,
+    requested_height: f32,
+) -> FrameRect {
+    let shell_width = presentation
+        .host_layout
+        .status_bar_frame
+        .width
+        .max(presentation.host_scene_data.layout.status_bar_frame.width)
+        .max(presentation.host_scene_data.layout.center_band_frame.width)
+        .max(1.0);
+    let shell_height = presentation
+        .host_layout
+        .status_bar_frame
+        .y
+        .max(presentation.host_scene_data.layout.status_bar_frame.y)
+        .max(1.0);
+    let width = width.min(shell_width).max(1.0);
+    let popup_y = menu_frame.y + menu_frame.height + 3.0;
+    let x = menu_frame.x.clamp(0.0, (shell_width - width).max(0.0));
+    let available_below = (shell_height - popup_y - 8.0).max(0.0);
+    let available_above = (menu_frame.y - 8.0).max(0.0);
+    let available_height = available_below
+        .max(available_above)
+        .max(72.0)
+        .min(shell_height);
+    let height = requested_height.min(available_height).max(1.0);
+    let y = if popup_y + height <= shell_height {
+        popup_y
+    } else {
+        (menu_frame.y - height - 3.0).max(0.0)
+    };
+    FrameRect {
+        x,
+        y,
+        width,
+        height,
+    }
+}
+
+fn scrolled_menu_frame(
+    menu_frame: &FrameRect,
+    presentation: &HostWindowPresentationData,
+) -> FrameRect {
+    FrameRect {
+        x: menu_frame.x - presentation.menu_state.menu_bar_scroll_px,
+        y: menu_frame.y,
+        width: menu_frame.width,
+        height: menu_frame.height,
+    }
+}
+
+fn nested_menu_popup_handles_point(
+    presentation: &HostWindowPresentationData,
+    mut items: ModelRc<HostMenuChromeItemData>,
+    mut parent_popup: FrameRect,
+    x: f32,
+    y: f32,
+) -> bool {
+    for (level, selected_index) in presentation
+        .menu_state
+        .open_submenu_path
+        .iter()
+        .copied()
+        .enumerate()
+    {
+        let Some(branch) = items.row_data(selected_index) else {
+            return false;
+        };
+        if branch.children.row_count() == 0 {
+            return false;
+        }
+        let scroll_px = if level == 0 {
+            presentation.menu_state.window_menu_scroll_px
+        } else {
+            0.0
+        };
+        let anchor = menu_popup_row_frame(&parent_popup, selected_index, scroll_px);
+        let popup = constrained_submenu_popup_frame(
+            presentation,
+            &anchor,
+            parent_popup.width.max(1.0),
+            menu_popup_height(branch.children.row_count()).max(1.0),
+        );
+        if contains(&popup, x, y) {
+            return true;
+        }
+        items = branch.children.clone();
+        parent_popup = popup;
+    }
+    false
+}
+
+fn menu_popup_stack_bottom(
+    presentation: &HostWindowPresentationData,
+    mut items: ModelRc<HostMenuChromeItemData>,
+    mut parent_popup: FrameRect,
+) -> f32 {
+    let mut bottom = parent_popup.y + parent_popup.height;
+    for (level, selected_index) in presentation
+        .menu_state
+        .open_submenu_path
+        .iter()
+        .copied()
+        .enumerate()
+    {
+        let Some(branch) = items.row_data(selected_index) else {
+            break;
+        };
+        if branch.children.row_count() == 0 {
+            break;
+        }
+        let scroll_px = if level == 0 {
+            presentation.menu_state.window_menu_scroll_px
+        } else {
+            0.0
+        };
+        let anchor = menu_popup_row_frame(&parent_popup, selected_index, scroll_px);
+        let popup = constrained_submenu_popup_frame(
+            presentation,
+            &anchor,
+            parent_popup.width.max(1.0),
+            menu_popup_height(branch.children.row_count()).max(1.0),
+        );
+        bottom = bottom.max(popup.y + popup.height);
+        items = branch.children.clone();
+        parent_popup = popup;
+    }
+    bottom
+}
+
+fn menu_popup_row_frame(popup: &FrameRect, row: usize, scroll_px: f32) -> FrameRect {
+    FrameRect {
+        x: popup.x + 6.0,
+        y: popup.y + 6.0 + row as f32 * 30.0 - scroll_px,
+        width: (popup.width - 12.0).max(0.0),
+        height: 28.0,
+    }
+}
+
+fn menu_popup_height(item_count: usize) -> f32 {
+    if item_count == 0 {
+        0.0
+    } else {
+        12.0 + item_count as f32 * 28.0 + (item_count as f32 - 1.0) * 2.0
+    }
+}
+
+fn constrained_submenu_popup_frame(
+    presentation: &HostWindowPresentationData,
+    anchor: &FrameRect,
+    width: f32,
+    requested_height: f32,
+) -> FrameRect {
+    let shell_width = presentation
+        .host_layout
+        .status_bar_frame
+        .width
+        .max(presentation.host_scene_data.layout.status_bar_frame.width)
+        .max(presentation.host_scene_data.layout.center_band_frame.width)
+        .max(1.0);
+    let shell_height = presentation
+        .host_layout
+        .status_bar_frame
+        .y
+        .max(presentation.host_scene_data.layout.status_bar_frame.y)
+        .max(1.0);
+    let width = width.min((shell_width - 16.0).max(1.0)).max(1.0);
+    let min_x = 8.0;
+    let max_x = (shell_width - width - 8.0).max(min_x);
+    let right_x = anchor.x + anchor.width + 3.0;
+    let left_x = anchor.x - width - 3.0;
+    let x = if right_x + width <= shell_width - 8.0 {
+        right_x.clamp(min_x, max_x)
+    } else {
+        left_x.clamp(min_x, max_x)
+    };
+    let height = requested_height
+        .min((shell_height - 16.0).max(1.0))
+        .max(1.0);
+    let min_y = 8.0;
+    let max_y = (shell_height - height - 8.0).max(min_y);
+    let y = anchor.y.clamp(min_y, max_y);
+    FrameRect {
+        x,
+        y,
+        width,
+        height,
     }
 }
 

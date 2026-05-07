@@ -59,31 +59,25 @@ fn default_preview_fixture_projects_drawers_and_document_workspace() {
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::Inspector));
 
-    let bottom_left = model
+    let bottom = model
         .drawer_ring
         .drawers
-        .get(&ActivityDrawerSlot::BottomLeft)
-        .expect("bottom left drawer");
-    assert!(bottom_left
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("bottom drawer");
+    assert!(bottom
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::Console));
-
-    let bottom_right = model
-        .drawer_ring
-        .drawers
-        .get(&ActivityDrawerSlot::BottomRight)
-        .expect("bottom right drawer");
-    assert!(bottom_right
+    assert!(bottom
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::RuntimeDiagnostics));
-    assert!(bottom_right
+    assert!(bottom
         .tabs
         .iter()
         .any(|tab| tab.content_kind == ViewContentKind::BuildExport));
     assert_eq!(
-        bottom_right
+        bottom
             .tabs
             .iter()
             .filter(|tab| tab.content_kind == ViewContentKind::BuildExport)
@@ -197,11 +191,11 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         Some("Nothing selected")
     );
 
-    let bottom_left = model
+    let bottom = model
         .tool_windows
-        .get(&ActivityDrawerSlot::BottomLeft)
-        .expect("bottom left tool window");
-    let console_tab = bottom_left
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("bottom tool window");
+    let console_tab = bottom
         .tabs
         .iter()
         .find(|tab| tab.content_kind == ViewContentKind::Console)
@@ -214,19 +208,15 @@ fn default_preview_fixture_exposes_hybrid_shell_tool_windows_and_empty_states() 
         Some("No output yet")
     );
 
-    let bottom_right = model
-        .tool_windows
-        .get(&ActivityDrawerSlot::BottomRight)
-        .expect("bottom right tool window");
-    assert_eq!(bottom_right.mode, ActivityDrawerMode::Collapsed);
-    let runtime_diagnostics_tab = bottom_right
+    assert_eq!(bottom.mode, ActivityDrawerMode::Pinned);
+    let runtime_diagnostics_tab = bottom
         .tabs
         .iter()
         .find(|tab| tab.content_kind == ViewContentKind::RuntimeDiagnostics)
         .expect("runtime diagnostics tab");
     assert_eq!(runtime_diagnostics_tab.title, "Runtime Diagnostics");
     assert!(!runtime_diagnostics_tab.closeable);
-    let build_export_tab = bottom_right
+    let build_export_tab = bottom
         .tabs
         .iter()
         .find(|tab| tab.content_kind == ViewContentKind::BuildExport)

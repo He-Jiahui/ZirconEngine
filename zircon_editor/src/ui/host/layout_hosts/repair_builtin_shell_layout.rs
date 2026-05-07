@@ -20,24 +20,22 @@ pub(in crate::ui::host) fn repair_builtin_shell_layout(
     let baseline = builtin_hybrid_layout_for_subsystems(subsystems);
     let mut present: BTreeSet<_> = collect_instance_hosts(layout).into_keys().collect();
 
-    repair_drawers(
-        &mut layout.drawers,
-        &baseline.drawers,
-        open_instances,
-        &mut present,
-    );
+    if layout.activity_windows.is_empty() {
+        let _ = layout.default_activity_window_mut();
+    }
 
     if let Some(workbench_window) = layout
         .activity_windows
         .get_mut(&ActivityWindowId::workbench())
     {
-        let mut activity_present = drawer_instance_ids(&workbench_window.activity_drawers);
+        let mut activity_present = present.clone();
         repair_drawers(
             &mut workbench_window.activity_drawers,
             &baseline.drawers,
             open_instances,
             &mut activity_present,
         );
+        present.extend(activity_present);
     }
 
     let Some(baseline_stack) = baseline_main_page_tabs(&baseline) else {
@@ -147,13 +145,4 @@ fn has_repaired_shell_tab(
             matching_open_instance(instance_id, open_instances)
                 .is_some_and(|repaired_id| drawer.tab_stack.tabs.contains(&repaired_id))
         })
-}
-
-fn drawer_instance_ids(
-    drawers: &BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
-) -> BTreeSet<ViewInstanceId> {
-    drawers
-        .values()
-        .flat_map(|drawer| drawer.tab_stack.tabs.iter().cloned())
-        .collect()
 }

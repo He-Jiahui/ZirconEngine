@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
     host_page_pointer::{HostPagePointerBridge, HostPagePointerDispatch, HostPagePointerRoute},
 };
 use crate::ui::workbench::layout::LayoutCommand;
@@ -14,7 +14,7 @@ use super::super::{
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedHostPagePointerClickDispatch {
     pub pointer: HostPagePointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_host_page_pointer_click(

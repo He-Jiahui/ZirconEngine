@@ -8,8 +8,7 @@ use crate::ui::workbench::view::ViewDescriptorId;
 
 use super::super::editor_subsystems::EditorSubsystemReport;
 use super::layout_drawers::{
-    bottom_left_drawer, bottom_right_drawer, left_bottom_drawer, left_top_drawer,
-    right_bottom_drawer, right_top_drawer,
+    bottom_drawer, left_bottom_drawer, left_top_drawer, right_bottom_drawer, right_top_drawer,
 };
 use super::workbench_page::builtin_workbench_page;
 
@@ -25,11 +24,7 @@ pub(crate) fn builtin_hybrid_layout_for_subsystems(
         (ActivityDrawerSlot::LeftBottom, left_bottom_drawer()),
         (ActivityDrawerSlot::RightTop, right_top_drawer()),
         (ActivityDrawerSlot::RightBottom, right_bottom_drawer()),
-        (ActivityDrawerSlot::BottomLeft, bottom_left_drawer()),
-        (
-            ActivityDrawerSlot::BottomRight,
-            bottom_right_drawer(subsystems),
-        ),
+        (ActivityDrawerSlot::Bottom, bottom_drawer(subsystems)),
     ]);
     WorkbenchLayout {
         active_main_page: crate::ui::workbench::layout::MainPageId::workbench(),
@@ -43,6 +38,7 @@ pub(crate) fn builtin_hybrid_layout_for_subsystems(
                 host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
                 activity_drawers: drawers,
                 content_workspace: DocumentNode::default(),
+                menu_overflow_mode: Default::default(),
                 region_overrides: BTreeMap::new(),
                 view_overrides: BTreeMap::new(),
             },

@@ -1,6 +1,6 @@
 use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
-use crate::ui::workbench::autolayout::{WorkbenchChromeMetrics, WorkbenchShellGeometry};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::layout::{
     DockEdge, MainPageId, SplitAxis, SplitPlacement, WorkbenchLayout, WorkspaceTarget,
 };
@@ -19,7 +19,6 @@ use super::resolved_drop::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget, 
 pub(crate) fn resolve_host_tab_drop_route(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     instance_id: &str,
     pointer_route: Option<HostShellPointerRoute>,
@@ -30,7 +29,6 @@ pub(crate) fn resolve_host_tab_drop_route(
     resolve_host_tab_drop_route_with_root_frames(
         layout,
         model,
-        geometry,
         metrics,
         instance_id,
         pointer_route,
@@ -44,7 +42,6 @@ pub(crate) fn resolve_host_tab_drop_route(
 pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     instance_id: &str,
     pointer_route: Option<HostShellPointerRoute>,
@@ -72,7 +69,6 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
             let drop = resolve_tab_drop_with_root_frames(
                 layout,
                 model,
-                geometry,
                 metrics,
                 instance_id,
                 target_group.as_str(),
@@ -89,7 +85,6 @@ pub(crate) fn resolve_host_tab_drop_route_with_root_frames(
         Some(HostShellPointerRoute::Resize(_)) | None => resolve_fallback_drop_route(
             layout,
             model,
-            geometry,
             metrics,
             instance_id,
             fallback_target_group,
@@ -204,7 +199,6 @@ fn edge_placement(edge: DockEdge) -> SplitPlacement {
 fn resolve_fallback_drop_route(
     layout: &WorkbenchLayout,
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     instance_id: &str,
     fallback_target_group: &str,
@@ -226,7 +220,6 @@ fn resolve_fallback_drop_route(
     let drop = resolve_tab_drop_with_root_frames(
         layout,
         model,
-        geometry,
         metrics,
         instance_id,
         target_group.as_str(),

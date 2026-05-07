@@ -81,6 +81,12 @@ pub fn write_diagnostic_log(scope: &str, message: impl AsRef<str>) {
     write_diagnostic_log_at(DiagnosticLogLevel::Verbose, scope, message);
 }
 
+pub fn diagnostic_log_allows(level: DiagnosticLogLevel) -> bool {
+    LOG_STATE
+        .get()
+        .is_some_and(|state| state.filter.allows(level))
+}
+
 pub fn write_debug_log(scope: &str, message: impl AsRef<str>) {
     write_diagnostic_log_at(DiagnosticLogLevel::Debug, scope, message);
 }

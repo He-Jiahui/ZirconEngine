@@ -6,15 +6,14 @@ use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
-use zircon_runtime_interface::ui::binding::UiEventKind;
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiSize};
 
 use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::template_runtime::{
-    EditorUiHostRuntime, SlintUiHostNodeModel, SlintUiHostValue,
-};
+use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostNodeModel, SlintUiHostValue};
 use crate::ui::workbench::view::ViewDescriptorId;
 
 fn editor_runtime() -> CoreRuntime {
@@ -52,6 +51,14 @@ fn editor_component_showcase_path() -> std::path::PathBuf {
         .join("ui")
         .join("editor")
         .join("component_showcase.ui.toml")
+}
+
+fn runtime_ui_asset_path(file_name: &str) -> std::path::PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join("ui")
+        .join("runtime")
+        .join(file_name)
 }
 
 fn collect_showcase_prop_schema_mismatches(
@@ -93,8 +100,20 @@ fn host_numeric_property(node: &SlintUiHostNodeModel, property: &str) -> Option<
 }
 
 fn assert_host_numeric_property(node: &SlintUiHostNodeModel, property: &str, expected: f64) {
-    let actual = host_numeric_property(node, property)
-        .unwrap_or_else(|| panic!("missing numeric property `{property}` on `{}`", node.node_id));
+    let actual = host_numeric_property(node, property).unwrap_or_else(|| {
+        panic!(
+            "missing numeric property `{property}` on `{}`",
+            node.node_id
+        )
+    });
+    assert_eq!(actual, expected);
+}
+
+fn assert_host_bool_property(node: &SlintUiHostNodeModel, property: &str, expected: bool) {
+    let actual = match node.properties.get(property) {
+        Some(SlintUiHostValue::Bool(value)) => *value,
+        _ => panic!("missing bool property `{property}` on `{}`", node.node_id),
+    };
     assert_eq!(actual, expected);
 }
 
@@ -122,6 +141,138 @@ fn assert_material_list_layout_properties(node: &SlintUiHostNodeModel) {
     assert_host_numeric_property(node, "layout_padding_right", 16.0);
     assert_host_numeric_property(node, "layout_spacing", 8.0);
     assert_host_numeric_property(node, "layout_min_height", 40.0);
+}
+
+fn assert_runtime_material_button_metadata(
+    source_file: &str,
+    document_id: &str,
+    control_ids: &[&str],
+) {
+    let source = fs::read_to_string(runtime_ui_asset_path(source_file)).unwrap();
+    let mut ui_runtime = EditorUiHostRuntime::default();
+    ui_runtime
+        .register_document_source(document_id, &source)
+        .unwrap();
+    let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    surface.compute_layout(UiSize::new(360.0, 240.0)).unwrap();
+
+    for control_id in control_ids {
+        let expected_control_id = *control_id;
+        let node = surface
+            .tree
+            .nodes
+            .values()
+            .find(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.control_id.as_deref())
+                    == Some(expected_control_id)
+            })
+            .unwrap_or_else(|| {
+                panic!("runtime asset `{source_file}` should contain `{control_id}`")
+            });
+        let metadata = node
+            .template_metadata
+            .as_ref()
+            .unwrap_or_else(|| panic!("`{control_id}` should carry template metadata"));
+        assert_eq!(metadata.component, "Button");
+        assert_eq!(node.layout_cache.desired_size.height, 40.0);
+        assert!(
+            node.layout_cache.desired_size.width >= 40.0,
+            "`{control_id}` should be measured through Material button metrics"
+        );
+        assert_eq!(
+            metadata.attributes.get("layout_padding_left"),
+            Some(&toml::Value::Float(24.0))
+        );
+        assert_eq!(
+            metadata.attributes.get("layout_min_height"),
+            Some(&toml::Value::Float(40.0))
+        );
+    }
+}
+
+fn assert_frame_covers_text_with_horizontal_padding(
+    node: &SlintUiHostNodeModel,
+    padding_left: f64,
+    padding_right: f64,
+) {
+    let text = node
+        .text
+        .as_deref()
+        .or(node.value_text.as_deref())
+        .unwrap_or_else(|| {
+            panic!(
+                "node `{}` should project visible text or value text",
+                node.node_id
+            )
+        });
+    let font_size = host_numeric_property(node, "font_size").unwrap_or(12.0);
+    let expected_width =
+        text.chars().count() as f64 * (font_size * 0.5).max(1.0) + padding_left + padding_right;
+    assert!(
+        f64::from(node.frame.width) >= expected_width,
+        "node `{}` frame width {} should cover text `{}` plus Material padding {}",
+        node.node_id,
+        node.frame.width,
+        text,
+        expected_width
+    );
+}
+
+fn projected_visible_text(node: &SlintUiHostNodeModel) -> &str {
+    node.text
+        .as_deref()
+        .or(node.value_text.as_deref())
+        .unwrap_or_else(|| {
+            panic!(
+                "node `{}` should project visible text or value text",
+                node.node_id
+            )
+        })
+}
+
+fn text_width_with_padding(
+    node: &SlintUiHostNodeModel,
+    padding_left: f64,
+    padding_right: f64,
+) -> f64 {
+    let text = projected_visible_text(node);
+    let font_size = host_numeric_property(node, "font_size").unwrap_or(12.0);
+    text.chars().count() as f64 * (font_size * 0.5).max(1.0) + padding_left + padding_right
+}
+
+fn surface_desired_width_for_control(surface: &UiSurface, control_id: &str) -> f32 {
+    surface
+        .tree
+        .nodes
+        .values()
+        .find_map(|node| {
+            let metadata = node.template_metadata.as_ref()?;
+            (metadata.control_id.as_deref() == Some(control_id))
+                .then_some(node.layout_cache.desired_size.width)
+        })
+        .unwrap_or_else(|| panic!("shared surface should contain control `{control_id}`"))
+}
+
+fn assert_desired_size_covers_projected_text_with_horizontal_padding(
+    surface: &UiSurface,
+    node: &SlintUiHostNodeModel,
+    padding_left: f64,
+    padding_right: f64,
+) {
+    let control_id = node
+        .control_id
+        .as_deref()
+        .unwrap_or_else(|| panic!("node `{}` should have a control id", node.node_id));
+    let expected_width = text_width_with_padding(node, padding_left, padding_right);
+    let desired_width = surface_desired_width_for_control(surface, control_id);
+    assert!(
+        f64::from(desired_width) >= expected_width,
+        "control `{control_id}` desired width {desired_width} should cover projected text `{}` plus Material padding {}",
+        projected_visible_text(node),
+        expected_width
+    );
 }
 
 #[test]
@@ -180,7 +331,8 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
 
     let document_id = "editor.window.ui_component_showcase";
     let projection = ui_runtime.project_document(document_id).unwrap();
-    let surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
     let host_projection = ui_runtime
         .build_slint_host_projection_with_surface(&projection, &surface)
         .unwrap();
@@ -190,6 +342,17 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .expect("component showcase should project ButtonDemo through the Material meta component");
     assert_eq!(material_button.component, "Button");
     assert_material_button_layout_properties(material_button);
+    assert_host_bool_property(material_button, "input_interactive", true);
+    assert_host_bool_property(material_button, "input_clickable", true);
+    assert_host_bool_property(material_button, "input_hoverable", true);
+    assert_host_bool_property(material_button, "input_focusable", true);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(
+        &surface,
+        material_button,
+        24.0,
+        24.0,
+    );
+    assert_frame_covers_text_with_horizontal_padding(material_button, 24.0, 24.0);
     assert!(
         material_button.frame.width >= 84.0,
         "ButtonDemo arranged width should include text intrinsic width plus Material horizontal padding, got {}",
@@ -206,11 +369,25 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     );
     assert_eq!(material_input.component, "InputField");
     assert_material_field_layout_properties(material_input);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(
+        &surface,
+        material_input,
+        16.0,
+        16.0,
+    );
+    assert_frame_covers_text_with_horizontal_padding(material_input, 16.0, 16.0);
 
     let number = host_projection
         .node_by_control_id("NumberFieldDemo")
         .expect("component showcase should project NumberFieldDemo through MaterialSpinBox");
     assert_eq!(number.component, "NumberField");
+    assert_material_field_layout_properties(number);
+    assert_host_bool_property(number, "input_interactive", true);
+    assert_host_bool_property(number, "input_clickable", true);
+    assert_host_bool_property(number, "input_hoverable", true);
+    assert_host_bool_property(number, "input_focusable", true);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(&surface, number, 16.0, 16.0);
+    assert_frame_covers_text_with_horizontal_padding(number, 16.0, 16.0);
     assert_eq!(number.component_role.as_deref(), Some("number-field"));
     assert_eq!(number.value_text.as_deref(), Some("42"));
     assert_eq!(number.validation_level.as_deref(), Some("normal"));
@@ -228,12 +405,37 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .expect("component showcase should project ComboBoxDemo through MaterialComboBox");
     assert_eq!(combo_box.component, "ComboBox");
     assert_material_field_layout_properties(combo_box);
+    assert_host_bool_property(combo_box, "input_interactive", true);
+    assert_host_bool_property(combo_box, "input_clickable", true);
+    assert_host_bool_property(combo_box, "input_hoverable", true);
+    assert_host_bool_property(combo_box, "input_focusable", true);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(
+        &surface, combo_box, 16.0, 16.0,
+    );
+    assert_frame_covers_text_with_horizontal_padding(combo_box, 16.0, 16.0);
 
     let material_list = host_projection
         .node_by_control_id("ListRowDemo")
         .expect("component showcase should project ListRowDemo through MaterialListItem");
     assert_eq!(material_list.component, "ListRow");
     assert_material_list_layout_properties(material_list);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(
+        &surface,
+        material_list,
+        16.0,
+        16.0,
+    );
+    assert_frame_covers_text_with_horizontal_padding(material_list, 16.0, 16.0);
+
+    let table_row = host_projection
+        .node_by_control_id("TableRowDemo")
+        .expect("component showcase should project TableRowDemo through MaterialTableRow");
+    assert_eq!(table_row.component, "TableRow");
+    assert_material_list_layout_properties(table_row);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(
+        &surface, table_row, 16.0, 16.0,
+    );
+    assert_frame_covers_text_with_horizontal_padding(table_row, 16.0, 16.0);
 
     let dropdown = host_projection
         .node_by_control_id("DropdownDemo")
@@ -257,6 +459,47 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         route.binding_id == "UiComponentShowcase/DropdownChanged"
             && route.event_kind == UiEventKind::Change
     }));
+
+    let icon_button = host_projection
+        .node_by_control_id("IconButtonDemo")
+        .expect("component showcase should project IconButtonDemo through MaterialIconButton");
+    assert_eq!(icon_button.component, "IconButton");
+    assert_host_numeric_property(icon_button, "layout_min_width", 40.0);
+    assert_host_numeric_property(icon_button, "layout_min_height", 40.0);
+    assert!(
+        icon_button.frame.width >= 40.0 && icon_button.frame.height >= 40.0,
+        "IconButtonDemo should keep a square Material frame, got {}x{}",
+        icon_button.frame.width,
+        icon_button.frame.height
+    );
+
+    let menu_frame = host_projection
+        .node_by_control_id("ContextActionMenuDemo")
+        .expect(
+            "component showcase should project ContextActionMenuDemo through MaterialMenuFrame",
+        );
+    assert_eq!(menu_frame.component, "ContextActionMenu");
+    assert_material_list_layout_properties(menu_frame);
+    assert!(menu_frame.has_popup_anchor);
+    assert_eq!(menu_frame.popup_anchor_x, 156.0);
+    assert_eq!(menu_frame.popup_anchor_y, 24.0);
+    assert!(
+        menu_frame.frame.height >= 40.0,
+        "ContextActionMenuDemo should carry Material row height, got {}",
+        menu_frame.frame.height
+    );
+
+    let virtual_list = host_projection
+        .node_by_control_id("VirtualListDemo")
+        .expect(
+            "component showcase should project VirtualListDemo through MaterialStandardTableView",
+        );
+    assert_eq!(virtual_list.component, "VirtualList");
+    assert_material_list_layout_properties(virtual_list);
+    assert_host_bool_property(virtual_list, "input_interactive", true);
+    assert_host_bool_property(virtual_list, "input_clickable", true);
+    assert_host_bool_property(virtual_list, "input_hoverable", true);
+    assert_host_bool_property(virtual_list, "input_focusable", true);
 
     let asset = host_projection
         .node_by_control_id("AssetFieldDemo")
@@ -289,6 +532,35 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
 }
 
 #[test]
+fn runtime_dialog_and_hud_buttons_participate_in_material_measurement() {
+    assert_runtime_material_button_metadata(
+        "runtime_hud.ui.toml",
+        "test.runtime.sample_hud",
+        &["UseAction", "InventoryAction"],
+    );
+    assert_runtime_material_button_metadata(
+        "pause_dialog.ui.toml",
+        "test.runtime.pause_dialog",
+        &["ResumeAction", "QuitAction"],
+    );
+    assert_runtime_material_button_metadata(
+        "settings_dialog.ui.toml",
+        "test.runtime.settings_dialog",
+        &["ApplySettings", "CloseSettings"],
+    );
+    assert_runtime_material_button_metadata(
+        "inventory_dialog.ui.toml",
+        "test.runtime.inventory_dialog",
+        &["EquipItem", "CloseInventory"],
+    );
+    assert_runtime_material_button_metadata(
+        "quest_log_dialog.ui.toml",
+        "test.runtime.quest_log_dialog",
+        &["TrackQuest", "CloseQuestLog"],
+    );
+}
+
+#[test]
 fn host_projection_carries_runtime_component_properties_and_routes() {
     let _guard = crate::tests::support::env_lock()
         .lock()
@@ -306,14 +578,40 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
     let name_field = host_projection
         .node_by_control_id("NameField")
         .expect("inspector surface should project NameField");
-    assert_eq!(name_field.component, "IconButton");
-    assert_eq!(name_field.text.as_deref(), Some("NameField"));
+    assert_eq!(name_field.component, "InputField");
+    assert_eq!(name_field.text.as_deref(), None);
     assert_eq!(
-        name_field.properties.get("label"),
-        Some(&SlintUiHostValue::String("NameField".to_string()))
+        name_field.properties.get("placeholder"),
+        Some(&SlintUiHostValue::String("Name".to_string()))
     );
+    assert_host_numeric_property(name_field, "layout_min_height", 32.0);
+    assert_host_bool_property(name_field, "input_focusable", true);
     assert!(name_field.routes.iter().any(|route| {
         route.binding_id == "InspectorView/NameField" && route.event_kind == UiEventKind::Change
+    }));
+
+    let position_x = host_projection
+        .node_by_control_id("PositionXField")
+        .expect("inspector surface should project PositionXField");
+    assert_eq!(position_x.component, "NumberField");
+    assert_eq!(position_x.value_text.as_deref(), Some("0"));
+    assert_host_numeric_property(position_x, "layout_min_height", 32.0);
+    assert_host_bool_property(position_x, "input_focusable", true);
+    assert!(position_x.routes.iter().any(|route| {
+        route.binding_id == "InspectorView/PositionXField"
+            && route.event_kind == UiEventKind::Change
+    }));
+
+    let apply_button = host_projection
+        .node_by_control_id("ApplyBatchButton")
+        .expect("inspector surface should project ApplyBatchButton");
+    assert_eq!(apply_button.component, "Button");
+    assert_eq!(apply_button.text.as_deref(), Some("Apply"));
+    assert_host_numeric_property(apply_button, "layout_min_height", 32.0);
+    assert_host_bool_property(apply_button, "input_clickable", true);
+    assert!(apply_button.routes.iter().any(|route| {
+        route.binding_id == "InspectorView/ApplyBatchButton"
+            && route.event_kind == UiEventKind::Click
     }));
 }
 
@@ -416,6 +714,34 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
                 .iter()
                 .any(|binding| binding.binding_id == binding_id),
             "document `{document_id}` must expose binding `{binding_id}` through runtime projection"
+        );
+    }
+}
+
+#[test]
+fn runtime_diagnostics_body_exposes_ui_debug_reflector_section() {
+    let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.ui.toml"))
+        .expect("runtime diagnostics pane body asset should be readable");
+    let document =
+        load_test_ui_asset(&source).expect("runtime diagnostics pane body asset should parse");
+    let component = document
+        .components
+        .get("RuntimeDiagnosticsPaneBody")
+        .expect("runtime diagnostics component should exist");
+
+    for control_id in [
+        "UiDebugReflectorSummary",
+        "UiDebugReflectorExportStatus",
+        "UiDebugReflectorDetail",
+        "UiDebugReflectorNodeList",
+    ] {
+        assert!(
+            component
+                .root
+                .children
+                .iter()
+                .any(|child| child.node.control_id.as_deref() == Some(control_id)),
+            "runtime diagnostics body should expose `{control_id}`"
         );
     }
 }

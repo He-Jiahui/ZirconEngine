@@ -25,6 +25,7 @@ mod slint_host_page_pointer;
 mod slint_inspector_template_body;
 mod slint_list_pointer;
 mod slint_menu_pointer;
+mod slint_runtime_diagnostics_template_body;
 mod slint_tab_drag;
 mod slint_viewport_toolbar_pointer;
 mod slint_window;

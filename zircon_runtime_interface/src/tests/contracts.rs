@@ -4,11 +4,27 @@ use crate::{
     ui::{
         binding::{UiEventBinding, UiEventKind, UiEventPath},
         component::{
-            UiComponentCategory, UiComponentDescriptor, UiComponentEventKind, UiComponentState,
-            UiDragSourceMetadata, UiDropPolicy, UiHostCapability, UiPropSchema, UiRenderCapability,
-            UiSlotSchema, UiValue, UiValueKind,
+            UiComponentCategory, UiComponentDescriptor, UiComponentEvent, UiComponentEventKind,
+            UiComponentState, UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiDropPolicy,
+            UiHostCapability, UiPropSchema, UiRenderCapability, UiSlotSchema, UiValue, UiValueKind,
         },
-        dispatch::{UiPointerDispatchContext, UiPointerEvent},
+        dispatch::{
+            UiAnalogInputEvent, UiComponentEmissionPolicy, UiComponentEventReport, UiDeviceId,
+            UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect,
+            UiDispatchHostRequest, UiDispatchHostRequestKind, UiDispatchPhase,
+            UiDispatchRejectedEffect, UiDispatchReply, UiDispatchReplyStep, UiDragDropEffectKind,
+            UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
+            UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics,
+            UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
+            UiInputMethodRequestKind, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
+            UiKeyboardInputState, UiNavigationInputEvent, UiNavigationRequestPolicy,
+            UiPointerCaptureReason, UiPointerComponentEventReason, UiPointerDispatchContext,
+            UiPointerDispatchEffect, UiPointerDispatchResult, UiPointerEvent, UiPointerId,
+            UiPointerInputEvent, UiPointerLockPolicy, UiPopupEffectKind, UiPopupInputEvent,
+            UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit,
+            UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
+            UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+        },
         event_ui::{
             UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
             UiPropertyInvalidationReason, UiReflectedProperty, UiReflectedPropertySource,
@@ -17,12 +33,18 @@ use crate::{
         },
         layout::{BoxConstraints, UiFrame, UiPoint},
         surface::{
-            UiArrangedNode, UiArrangedTree, UiHitGridDebugStats, UiHitPath, UiHitTestCell,
-            UiHitTestEntry, UiHitTestGrid, UiHitTestQuery, UiMaterialBatchDebugStat,
-            UiOverdrawDebugStats, UiPointerEventKind, UiRenderCommand, UiRenderCommandKind,
+            UiArrangedNode, UiArrangedTree, UiBackendRenderDebugStats, UiDamageDebugReport,
+            UiDebugEventRecord, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
+            UiHitCoordinateSpace, UiHitGridCellDebugRecord, UiHitGridDebugStats, UiHitPath,
+            UiHitTestCell, UiHitTestEntry, UiHitTestGrid, UiHitTestQuery, UiHitTestReject,
+            UiHitTestRejectReason, UiHitTestScope, UiInvalidationDebugReport,
+            UiMaterialBatchDebugStat, UiNavigationEventKind, UiOverdrawCellDebugRecord,
+            UiOverdrawDebugStats, UiPointerButton, UiPointerEventKind, UiRenderCommand,
+            UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot,
             UiRenderDebugStats, UiRenderExtract, UiRenderList, UiResolvedStyle,
-            UiSurfaceDebugOptions, UiSurfaceDebugSnapshot, UiSurfaceFrame, UiTextAlign, UiTextWrap,
-            UiVirtualPointerPosition, UiWidgetReflectorNode,
+            UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
+            UiSurfaceFrame, UiTextAlign, UiTextWrap, UiVirtualPointerPosition,
+            UiWidgetReflectorNode, UiWorldHitRay, UI_SURFACE_DEBUG_SCHEMA_VERSION,
         },
         template::{
             UiActionHostPolicy, UiActionPolicyReport, UiActionSideEffectClass, UiAssetDocument,
@@ -49,6 +71,27 @@ use crate::{
     ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
     ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
 };
+
+fn sample_ui_input_metadata() -> UiInputEventMetadata {
+    let mut metadata = UiInputEventMetadata::new(
+        UiInputTimestamp::from_micros(123_456),
+        UiInputSequence::new(7),
+    );
+    metadata.user_id = Some(UiUserId::new(1));
+    metadata.device_id = Some(UiDeviceId::new(2));
+    metadata.window_id = Some(UiWindowId::new("main-window"));
+    metadata.surface_id = Some(UiSurfaceId::new("main-surface"));
+    metadata.pointer_id = Some(UiPointerId::new(3));
+    metadata.modifiers.shift = true;
+    metadata
+}
+
+fn ui_input_round_trip<T>(value: &T) -> T
+where
+    T: serde::Serialize + serde::de::DeserializeOwned,
+{
+    serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
+}
 
 #[test]
 fn math_contract_exposes_shared_transform_and_glam_aliases() {
@@ -97,6 +140,7 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
         cell_size: 64.0,
         columns: 1,
         rows: 1,
+        scope: UiHitTestScope::default(),
         entries: vec![UiHitTestEntry {
             node_id,
             frame: arranged.frame,
@@ -144,9 +188,55 @@ fn ui_surface_frame_contract_carries_arranged_render_and_hit_state() {
 }
 
 #[test]
+fn ui_hit_metadata_contract_carries_scope_space_and_world_ray() {
+    let scope = UiHitTestScope::default()
+        .with_user_id(UiUserId::new(42))
+        .with_window_id(UiWindowId::new("editor.main"))
+        .with_surface_id(UiSurfaceId::new("viewport.toolbar"))
+        .with_pointer_id(UiPointerId::new(7));
+    let other_window = UiHitTestScope::default().with_window_id(UiWindowId::new("floating"));
+    let virtual_pointer =
+        UiVirtualPointerPosition::new(UiPoint::new(80.0, 48.0), UiPoint::new(72.0, 40.0));
+    let world_ray = UiWorldHitRay::new([0.0, 1.0, 2.0], [0.0, 0.0, -1.0]);
+    let query = UiHitTestQuery::new(UiPoint::new(4.0, 6.0))
+        .with_scope(scope.clone())
+        .with_cursor_radius(-4.0)
+        .with_projected_world_hit(world_ray, virtual_pointer);
+    let grid = UiHitTestGrid::default().with_scope(scope.clone());
+    let path = UiHitPath::from_query(&query).with_route(
+        Some(UiNodeId::new(5)),
+        vec![UiNodeId::new(1), UiNodeId::new(5)],
+        vec![UiNodeId::new(5), UiNodeId::new(1)],
+    );
+
+    assert_eq!(query.hit_point(), UiPoint::new(80.0, 48.0));
+    assert_eq!(query.sanitized_cursor_radius(), 0.0);
+    assert!(query.uses_surface_coordinates());
+    assert!(query.has_projected_world_hit());
+    assert!(world_ray.is_finite());
+    assert!(grid.scope.accepts_query(&query.scope));
+    assert!(scope.conflicts_with(&other_window));
+    assert_eq!(query.scope, scope);
+    assert_eq!(query.coordinate_space, UiHitCoordinateSpace::World);
+    assert_eq!(path.virtual_pointer, Some(virtual_pointer));
+
+    let round_trip: UiHitTestQuery = ui_input_round_trip(&query);
+    assert_eq!(round_trip, query);
+}
+
+#[test]
 fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
     let node_id = UiNodeId::new(9);
     let snapshot = UiSurfaceDebugSnapshot {
+        capture: UiSurfaceDebugCaptureContext {
+            schema_version: UI_SURFACE_DEBUG_SCHEMA_VERSION,
+            surface_name: Some("Editor Surface".to_string()),
+            source_asset: Some("res://ui/debug.ui.toml".to_string()),
+            frame_index: Some(12),
+            captured_at_millis: Some(34_000),
+            selected_node: Some(node_id),
+            pick_query: Some(UiHitTestQuery::new(UiPoint::new(12.0, 12.0))),
+        },
         tree_id: UiTreeId::new("ui.surface.debug"),
         roots: vec![node_id],
         nodes: vec![UiWidgetReflectorNode {
@@ -183,15 +273,47 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
                 clipped_command_count: 0,
                 node_ids: vec![node_id],
             }],
+            command_records: vec![UiRenderCommandDebugRecord {
+                command_id: 1,
+                node_id,
+                kind: UiRenderCommandKind::Quad,
+                frame: UiFrame::new(8.0, 8.0, 48.0, 20.0),
+                clip_frame: Some(UiFrame::new(0.0, 0.0, 64.0, 32.0)),
+                visible_frame: Some(UiFrame::new(8.0, 8.0, 48.0, 20.0)),
+                z_index: 2,
+                paint_order: 3,
+                opacity: 1.0,
+                material_key: "kind=Quad;bg=#224466".to_string(),
+                batch_key: "kind=Quad;bg=#224466".to_string(),
+                batch_break_reason: "same material".to_string(),
+                estimated_draw_calls: 1,
+                text_summary: None,
+                image_summary: None,
+            }],
+            measured: Some(UiBackendRenderDebugStats {
+                submitted_draw_calls: Some(1),
+                pipeline_switches: Some(1),
+                texture_switches: Some(0),
+                glyph_batches: Some(0),
+                clipped_batches: Some(0),
+            }),
             ..UiRenderDebugStats::default()
         },
+        render_batches: UiRenderDebugSnapshot::default(),
         hit_test: UiHitGridDebugStats {
             entry_count: 1,
             cell_count: 2,
             occupied_cell_count: 2,
             max_entries_per_cell: 1,
             average_entries_per_occupied_cell: 1.0,
+            cell_records: vec![UiHitGridCellDebugRecord {
+                cell_id: 0,
+                bounds: UiFrame::new(0.0, 0.0, 32.0, 32.0),
+                entry_indices: vec![0],
+                entry_node_ids: vec![node_id],
+            }],
         },
+        pick_hit_test: None,
         overdraw: UiOverdrawDebugStats {
             sample_cell_size: UiSurfaceDebugOptions::default().overdraw_sample_cell_size,
             bounds: UiFrame::new(8.0, 8.0, 48.0, 20.0),
@@ -201,14 +323,63 @@ fn ui_surface_debug_snapshot_contract_serializes_reflector_and_batch_stats() {
             overdrawn_cells: 0,
             max_layers: 1,
             total_layer_samples: 2,
+            cells: vec![UiOverdrawCellDebugRecord {
+                cell_id: 0,
+                bounds: UiFrame::new(8.0, 8.0, 32.0, 20.0),
+                layer_count: 1,
+                node_ids: vec![node_id],
+            }],
         },
         focus_state: Default::default(),
+        invalidation: UiInvalidationDebugReport {
+            rebuild: Default::default(),
+            dirty_flags: UiDirtyFlags::default(),
+            dirty_node_count: 1,
+            recompute_reasons: vec!["initial build".to_string()],
+            warnings: Vec::new(),
+        },
+        damage: UiDamageDebugReport {
+            damage_region: Some(UiFrame::new(8.0, 8.0, 48.0, 20.0)),
+            painted_pixels: Some(960),
+            full_paint_count: Some(0),
+            region_paint_count: Some(1),
+            total_painted_pixels: Some(960),
+            warnings: Vec::new(),
+        },
+        events: vec![UiDebugEventRecord {
+            event_id: 1,
+            kind: "pointer.move".to_string(),
+            node_id: Some(node_id),
+            route: vec![node_id],
+            summary: "hovered debug button".to_string(),
+            handled: true,
+        }],
+        overlay_primitives: vec![UiDebugOverlayPrimitive {
+            kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
+            node_id: Some(node_id),
+            frame: UiFrame::new(8.0, 8.0, 48.0, 20.0),
+            label: Some("debug.button".to_string()),
+            severity: None,
+        }],
+    };
+    let reject = UiHitTestReject {
+        node_id,
+        control_id: Some("debug.button".to_string()),
+        reason: UiHitTestRejectReason::OutsideClip,
+        message: "outside clip".to_string(),
     };
 
     let serialized = serde_json::to_string(&snapshot).unwrap();
+    let reject_json = serde_json::to_string(&reject).unwrap();
 
+    assert!(serialized.contains("schema_version"));
+    assert!(serialized.contains("command_records"));
+    assert!(serialized.contains("cell_records"));
     assert!(serialized.contains("material_batches"));
+    assert!(serialized.contains("overdraw"));
+    assert!(serialized.contains("overlay_primitives"));
     assert!(serialized.contains("debug.button"));
+    assert!(reject_json.contains("OutsideClip"));
     assert_eq!(
         snapshot.nodes[0].node_path,
         UiNodePath::new("root/debug_button")
@@ -598,6 +769,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         composition: Some(crate::ui::surface::UiTextComposition {
             range: crate::ui::surface::UiTextRange { start: 0, end: 5 },
             text: "hello".to_string(),
+            restore_text: None,
         }),
         read_only: false,
     };
@@ -660,6 +832,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         button: None,
         point: UiPoint { x: 1.0, y: 2.0 },
         scroll_delta: 0.0,
+        click_count: 1,
     };
     let context = UiPointerDispatchContext {
         node_id,
@@ -693,6 +866,7 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
         tree_id: tree_id.clone(),
         roots: vec![node_id],
         nodes: Default::default(),
+        slots: Vec::new(),
     };
     let _ = tree.nodes.insert(node_id, node);
 
@@ -701,10 +875,424 @@ fn ui_layout_surface_dispatch_and_tree_contracts_construct_and_serialize() {
     let pointer_result = crate::ui::dispatch::UiPointerDispatchResult::new(context.route.clone());
     assert!(pointer_result.diagnostics.pointer_routed);
     assert!(pointer_result.diagnostics.ignored_same_target_hover);
+    assert!(!pointer_result.diagnostics.click_target_resolved);
+    assert!(!pointer_result.diagnostics.focus_changed);
+    assert!(!pointer_result.diagnostics.capture_started);
+    assert!(!pointer_result.diagnostics.capture_released);
+    assert!(!pointer_result.diagnostics.default_click_rejected);
+    assert_eq!(pointer_result.diagnostics.component_event_count, 0);
+    assert!(!pointer_result.diagnostics.scroll_defaulted);
+    assert_eq!(pointer_result.released_capture, None);
+    assert_eq!(pointer_result.focus_changed_to, None);
+    assert!(!pointer_result.focus_cleared);
+    assert!(!pointer_result.requested_dirty.any());
+    assert!(pointer_result.requested_damage.is_empty());
+    let dirty_request = UiDirtyFlags {
+        input: true,
+        render: true,
+        ..UiDirtyFlags::default()
+    };
+    let damage_request = UiFrame::new(2.0, 3.0, 4.0, 5.0);
+    assert_eq!(
+        UiPointerDispatchEffect::release_capture(),
+        UiPointerDispatchEffect::ReleasePointerCapture
+    );
+    assert_eq!(
+        UiPointerDispatchEffect::set_focus(false),
+        UiPointerDispatchEffect::SetFocus {
+            focus_visible: false,
+        }
+    );
+    assert_eq!(
+        UiPointerDispatchEffect::clear_focus(),
+        UiPointerDispatchEffect::ClearFocus
+    );
+    assert_eq!(
+        UiPointerDispatchEffect::request_dirty(dirty_request),
+        UiPointerDispatchEffect::RequestDirty(dirty_request)
+    );
+    assert_eq!(
+        UiPointerDispatchEffect::request_damage(damage_request),
+        UiPointerDispatchEffect::RequestDamage(damage_request)
+    );
+    let pointer_reasons = [
+        UiPointerComponentEventReason::DefaultClickRejected,
+        UiPointerComponentEventReason::FocusGained,
+        UiPointerComponentEventReason::FocusLost,
+        UiPointerComponentEventReason::ScrollFallback,
+    ];
+    assert_eq!(pointer_reasons.len(), 4);
+    assert_eq!(
+        pointer_reasons[0],
+        UiPointerComponentEventReason::DefaultClickRejected
+    );
+
+    let legacy_json = serde_json::json!({
+        "route": context.route,
+        "invocations": [],
+        "handled_by": null,
+        "blocked_by": null,
+        "passthrough": [],
+        "captured_by": null,
+        "diagnostics": {
+            "pointer_routed": true,
+            "ignored_same_target_hover": false,
+            "hover_entered": 0,
+            "hover_left": 0,
+            "focus_changed": false,
+            "capture_released": false,
+            "click_target_resolved": false
+        },
+        "component_events": []
+    });
+    let legacy_result: UiPointerDispatchResult = serde_json::from_value(legacy_json).unwrap();
+    assert_eq!(legacy_result.released_capture, None);
+    assert_eq!(legacy_result.focus_changed_to, None);
+    assert!(!legacy_result.focus_cleared);
+    assert!(!legacy_result.requested_dirty.any());
+    assert!(legacy_result.requested_damage.is_empty());
     assert_eq!(tree.roots, vec![node_id]);
     assert!(serde_json::to_string(&extract)
         .unwrap()
         .contains("commands"));
+}
+
+#[test]
+fn ui_input_event_contract_constructs_every_event_family() {
+    let metadata = sample_ui_input_metadata();
+    let payload = UiDragPayload::new(UiDragPayloadKind::Asset, "res://textures/grid.png");
+    let events = vec![
+        UiInputEvent::Pointer(UiPointerInputEvent {
+            metadata: metadata.clone(),
+            event: UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(10.0, 20.0))
+                .with_button(UiPointerButton::Primary),
+            precise_scroll: None,
+        }),
+        UiInputEvent::Keyboard(UiKeyboardInputEvent {
+            metadata: metadata.clone(),
+            state: UiKeyboardInputState::Pressed,
+            key_code: 65,
+            scan_code: Some(30),
+            physical_key: "KeyA".to_string(),
+            logical_key: "A".to_string(),
+            text: Some("a".to_string()),
+        }),
+        UiInputEvent::Text(UiTextInputEvent {
+            metadata: metadata.clone(),
+            text: "typed".to_string(),
+        }),
+        UiInputEvent::Ime(UiImeInputEvent {
+            metadata: metadata.clone(),
+            kind: UiImeInputEventKind::Preedit,
+            text: "preedit".to_string(),
+            cursor_range: Some(UiTextByteRange::new(0, 7)),
+        }),
+        UiInputEvent::Navigation(UiNavigationInputEvent {
+            metadata: metadata.clone(),
+            kind: UiNavigationEventKind::Next,
+        }),
+        UiInputEvent::Analog(UiAnalogInputEvent {
+            metadata: metadata.clone(),
+            control: "GamepadLeftX".to_string(),
+            value: 0.5,
+        }),
+        UiInputEvent::DragDrop(UiDragDropInputEvent {
+            metadata: metadata.clone(),
+            kind: UiDragDropInputEventKind::Drop,
+            session_id: Some(UiDragSessionId::new(42)),
+            point: UiPoint::new(4.0, 8.0),
+            payload: Some(payload),
+        }),
+        UiInputEvent::Popup(UiPopupInputEvent {
+            metadata: metadata.clone(),
+            kind: UiPopupInputEventKind::OpenRequested,
+            popup_id: "context-menu".to_string(),
+            anchor: Some(UiPoint::new(12.0, 16.0)),
+        }),
+        UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
+            metadata,
+            kind: UiTooltipTimerInputEventKind::Elapsed,
+            tooltip_id: "save-tooltip".to_string(),
+        }),
+    ];
+
+    assert_eq!(events.len(), 9);
+    assert!(matches!(events[0], UiInputEvent::Pointer(_)));
+    assert!(matches!(events[8], UiInputEvent::TooltipTimer(_)));
+}
+
+#[test]
+fn ui_dispatch_effect_contract_constructs_every_effect_family() {
+    let target = UiNodeId::new(11);
+    let pointer_id = UiPointerId::new(4);
+    let dirty = UiDirtyFlags {
+        input: true,
+        render: true,
+        ..UiDirtyFlags::default()
+    };
+    let component_event = UiComponentEvent::Focus { focused: true };
+    let payload = UiDragPayload::new(UiDragPayloadKind::Object, "object://entity/1");
+    let effects = vec![
+        UiDispatchEffect::SetFocus {
+            target,
+            reason: UiFocusEffectReason::Input,
+        },
+        UiDispatchEffect::ClearFocus {
+            target,
+            reason: UiFocusEffectReason::Dismissal,
+        },
+        UiDispatchEffect::CapturePointer {
+            target,
+            pointer_id,
+            reason: UiPointerCaptureReason::Press,
+        },
+        UiDispatchEffect::ReleasePointerCapture {
+            target,
+            pointer_id,
+            reason: UiPointerCaptureReason::Cancel,
+        },
+        UiDispatchEffect::LockPointer {
+            target,
+            policy: UiPointerLockPolicy::RawDelta,
+        },
+        UiDispatchEffect::UnlockPointer {
+            target,
+            policy: UiPointerLockPolicy::HiddenCursor,
+        },
+        UiDispatchEffect::UseHighPrecisionPointer {
+            target,
+            enabled: true,
+        },
+        UiDispatchEffect::DragDrop {
+            kind: UiDragDropEffectKind::Begin,
+            target,
+            pointer_id,
+            session_id: Some(UiDragSessionId::new(9)),
+            point: Some(UiPoint::new(1.0, 2.0)),
+            payload: Some(payload),
+        },
+        UiDispatchEffect::RequestNavigation {
+            kind: UiNavigationEventKind::Down,
+            policy: UiNavigationRequestPolicy::Wrap,
+        },
+        UiDispatchEffect::Popup {
+            kind: UiPopupEffectKind::Open,
+            popup_id: "context-menu".to_string(),
+            anchor: Some(UiPoint::new(1.0, 2.0)),
+        },
+        UiDispatchEffect::Tooltip {
+            kind: UiTooltipEffectKind::Arm,
+            tooltip_id: "hint".to_string(),
+        },
+        UiDispatchEffect::RequestInputMethod {
+            request: UiInputMethodRequest {
+                kind: UiInputMethodRequestKind::Enable,
+                owner: target,
+                cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
+                composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
+            },
+        },
+        UiDispatchEffect::DirtyRedraw {
+            target,
+            dirty,
+            reason: UiRedrawRequestReason::Input,
+        },
+        UiDispatchEffect::EmitComponentEvent {
+            target,
+            event: component_event.clone(),
+            policy: UiComponentEmissionPolicy::Immediate,
+        },
+    ];
+    let reply = UiDispatchReply::handled().with_effects(effects.clone());
+    let result = UiInputDispatchResult {
+        event: UiInputEvent::Text(UiTextInputEvent {
+            metadata: sample_ui_input_metadata(),
+            text: "commit".to_string(),
+        }),
+        reply,
+        diagnostics: UiInputDispatchDiagnostics {
+            routed: true,
+            handled_phase: Some("bubble".to_string()),
+            route_target: Some(target),
+            blocked_by: None,
+            notes: vec!["handled".to_string()],
+        },
+        applied_effects: vec![UiDispatchAppliedEffect {
+            effect_index: 0,
+            effect: effects[0].clone(),
+        }],
+        rejected_effects: vec![UiDispatchRejectedEffect {
+            effect_index: 1,
+            effect: effects[1].clone(),
+            reason: "no focused node".to_string(),
+        }],
+        host_requests: vec![UiDispatchHostRequest {
+            effect_index: 11,
+            request: UiDispatchHostRequestKind::InputMethod(UiInputMethodRequest {
+                kind: UiInputMethodRequestKind::Enable,
+                owner: target,
+                cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
+                composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
+            }),
+            reason: "ime owner changed".to_string(),
+        }],
+        component_events: vec![UiComponentEventReport {
+            target,
+            event: component_event,
+            delivered: true,
+        }],
+    };
+
+    assert_eq!(effects.len(), 14);
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.reply.effects.len(), effects.len());
+    assert!(result.diagnostics.routed);
+    assert_eq!(
+        UiDispatchReply::unhandled().disposition,
+        UiDispatchDisposition::Unhandled
+    );
+    assert_eq!(
+        UiDispatchReply::blocked().disposition,
+        UiDispatchDisposition::Blocked
+    );
+    assert_eq!(
+        UiDispatchReply::passthrough().disposition,
+        UiDispatchDisposition::Passthrough
+    );
+}
+
+#[test]
+fn ui_dispatch_reply_merge_records_phase_handler_and_stops_route() {
+    let root = UiNodeId::new(1);
+    let field = UiNodeId::new(2);
+    let sibling = UiNodeId::new(3);
+    let report = UiDispatchReply::merge_route([
+        UiDispatchReplyStep::new(
+            UiDispatchPhase::Preprocess,
+            None,
+            UiDispatchReply::unhandled(),
+        ),
+        UiDispatchReplyStep::new(
+            UiDispatchPhase::PreviewTunnel,
+            Some(root),
+            UiDispatchReply::passthrough().with_effect(UiDispatchEffect::DirtyRedraw {
+                target: root,
+                dirty: UiDirtyFlags {
+                    input: true,
+                    ..UiDirtyFlags::default()
+                },
+                reason: UiRedrawRequestReason::Input,
+            }),
+        ),
+        UiDispatchReplyStep::new(
+            UiDispatchPhase::Target,
+            Some(field),
+            UiDispatchReply::handled()
+                .from_handler(field)
+                .in_phase(UiDispatchPhase::Target)
+                .with_effect(UiDispatchEffect::SetFocus {
+                    target: field,
+                    reason: UiFocusEffectReason::Input,
+                }),
+        ),
+        UiDispatchReplyStep::new(
+            UiDispatchPhase::Bubble,
+            Some(sibling),
+            UiDispatchReply::handled().with_effect(UiDispatchEffect::SetFocus {
+                target: sibling,
+                reason: UiFocusEffectReason::Input,
+            }),
+        ),
+    ]);
+
+    assert_eq!(report.step_count, 3);
+    assert!(report.stopped);
+    assert_eq!(report.stopped_at, Some(field));
+    assert_eq!(report.stopped_phase, Some(UiDispatchPhase::Target));
+    assert_eq!(report.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(report.reply.handler, Some(field));
+    assert_eq!(report.reply.phase, Some(UiDispatchPhase::Target));
+    assert_eq!(report.reply.effects.len(), 2);
+    assert!(report.reply.stops_propagation());
+}
+
+#[test]
+fn ui_input_payloads_round_trip_through_serde() {
+    let metadata = sample_ui_input_metadata();
+    let pointer = UiInputEvent::Pointer(UiPointerInputEvent {
+        metadata: metadata.clone(),
+        event: UiPointerEvent::new(UiPointerEventKind::Scroll, UiPoint::new(1.0, 2.0))
+            .with_scroll_delta(-2.0)
+            .with_click_count(2),
+        precise_scroll: Some(UiPreciseScrollDelta::pixels(1.25, -2.5)),
+    });
+    let keyboard = UiInputEvent::Keyboard(UiKeyboardInputEvent {
+        metadata: metadata.clone(),
+        state: UiKeyboardInputState::Repeated,
+        key_code: 13,
+        scan_code: Some(28),
+        physical_key: "Enter".to_string(),
+        logical_key: "Enter".to_string(),
+        text: None,
+    });
+    let ime = UiInputEvent::Ime(UiImeInputEvent {
+        metadata: metadata.clone(),
+        kind: UiImeInputEventKind::Commit,
+        text: "ime commit".to_string(),
+        cursor_range: None,
+    });
+    let drag_drop = UiInputEvent::DragDrop(UiDragDropInputEvent {
+        metadata: metadata.clone(),
+        kind: UiDragDropInputEventKind::Over,
+        session_id: Some(UiDragSessionId::new(12)),
+        point: UiPoint::new(9.0, 10.0),
+        payload: Some(UiDragPayload::new(
+            UiDragPayloadKind::SceneInstance,
+            "scene://entity/hero",
+        )),
+    });
+    let popup = UiInputEvent::Popup(UiPopupInputEvent {
+        metadata: metadata.clone(),
+        kind: UiPopupInputEventKind::Dismissed,
+        popup_id: "menu.file".to_string(),
+        anchor: Some(UiPoint::new(3.0, 4.0)),
+    });
+    let tooltip = UiInputEvent::TooltipTimer(UiTooltipTimerInputEvent {
+        metadata,
+        kind: UiTooltipTimerInputEventKind::Canceled,
+        tooltip_id: "status.hint".to_string(),
+    });
+    let input_method_request = UiDispatchEffect::RequestInputMethod {
+        request: UiInputMethodRequest {
+            kind: UiInputMethodRequestKind::UpdateCursor,
+            owner: UiNodeId::new(77),
+            cursor_rect: Some(UiFrame::new(14.0, 15.0, 1.0, 18.0)),
+            composition_rects: vec![UiFrame::new(14.0, 15.0, 48.0, 18.0)],
+        },
+    };
+
+    assert_eq!(ui_input_round_trip(&pointer), pointer);
+    let UiInputEvent::Pointer(round_tripped_pointer) = ui_input_round_trip(&pointer) else {
+        panic!("pointer payload changed family");
+    };
+    assert_eq!(
+        round_tripped_pointer.precise_scroll,
+        Some(UiPreciseScrollDelta {
+            x: 1.25,
+            y: -2.5,
+            unit: UiScrollDeltaUnit::Pixels,
+        })
+    );
+    assert_eq!(round_tripped_pointer.event.click_count, 2);
+    assert_eq!(ui_input_round_trip(&keyboard), keyboard);
+    assert_eq!(ui_input_round_trip(&ime), ime);
+    assert_eq!(ui_input_round_trip(&drag_drop), drag_drop);
+    assert_eq!(ui_input_round_trip(&popup), popup);
+    assert_eq!(ui_input_round_trip(&tooltip), tooltip);
+    assert_eq!(
+        ui_input_round_trip(&input_method_request),
+        input_method_request
+    );
 }
 
 #[test]

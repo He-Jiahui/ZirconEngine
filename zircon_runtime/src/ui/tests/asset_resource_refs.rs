@@ -1,4 +1,9 @@
-use crate::ui::template::{resource_dependencies_fingerprint, UiAssetLoader, UiDocumentCompiler};
+use std::path::Path;
+
+use crate::ui::template::{
+    resource_dependencies_fingerprint, validate_resource_dependency_files, UiAssetLoader,
+    UiDocumentCompiler, UiResourcePathResolver,
+};
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiResourceDependencySource, UiResourceFallbackMode, UiResourceFallbackPolicy,
     UiResourceKind, UiResourceRef,
@@ -340,4 +345,49 @@ props = { background_image = "asset://images/shared.png" }
             .unwrap();
 
     assert_eq!(first_fingerprint, second_fingerprint);
+}
+
+#[test]
+fn resource_path_resolver_reports_missing_primary_and_placeholder_files() {
+    let layout = UiAssetLoader::load_toml_str(RESOURCE_COLLECTION_LAYOUT).unwrap();
+    let widget = UiAssetLoader::load_toml_str(RESOURCE_COLLECTION_WIDGET).unwrap();
+    let style = UiAssetLoader::load_toml_str(RESOURCE_COLLECTION_STYLE).unwrap();
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_widget_import("asset://ui/resource/card.ui#Card", widget)
+        .unwrap()
+        .register_style_import("asset://ui/resource/theme.ui", style)
+        .unwrap();
+    let compiled = compiler.compile(&layout).unwrap();
+    let temp_root = std::env::temp_dir().join(format!(
+        "zircon_resource_path_resolver_{}",
+        std::process::id()
+    ));
+    let res_root = temp_root.join("res");
+    let asset_root = temp_root.join("asset");
+    write_fixture(&res_root.join("fonts/inter.font.toml"));
+
+    let resolver = UiResourcePathResolver::default()
+        .with_res_root(&res_root)
+        .with_asset_root(&asset_root);
+
+    let diagnostics =
+        validate_resource_dependency_files(compiled.resource_dependencies(), &resolver);
+    let _ = std::fs::remove_dir_all(&temp_root);
+
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "missing_resource_file"
+            && diagnostic.path == "imports.resources[0].fallback"
+            && diagnostic.message.contains("res://fonts/system.ttf")
+    }));
+    assert!(diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == "missing_resource_file"
+            && diagnostic.path == "tokens.hero_image"
+            && diagnostic.message.contains("asset://images/hero.png")
+    }));
+}
+
+fn write_fixture(path: &Path) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, b"fixture").unwrap();
 }

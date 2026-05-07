@@ -104,6 +104,8 @@ pub(crate) fn build_view_template_nodes_with_imports(
         let text = text_overrides
             .get(&control_id)
             .cloned()
+            .or_else(|| string_attribute(metadata, "label"))
+            .or_else(|| string_attribute(metadata, "text"))
             .or(command.text.clone())
             .unwrap_or_default();
         let visual_assets = resolve_visual_assets(metadata);
@@ -142,6 +144,12 @@ pub(crate) fn build_view_template_nodes_with_imports(
                 .unwrap_or(command.style.corner_radius.max(0.0)),
             border_width: number_attribute(metadata, "border_width")
                 .unwrap_or(command.style.border_width.max(0.0)),
+            selected: bool_attribute(metadata, "selected").unwrap_or(false),
+            focused: bool_attribute(metadata, "focused").unwrap_or(false),
+            hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
+            pressed: bool_attribute(metadata, "pressed").unwrap_or(false),
+            disabled: bool_attribute(metadata, "disabled").unwrap_or(false)
+                || bool_attribute(metadata, "enabled") == Some(false),
             media_source: visual_assets.media_source.into(),
             icon_name: visual_assets.icon_name.into(),
             has_preview_image: visual_assets.has_preview_image,
@@ -203,6 +211,9 @@ fn resolve_role(
     match component {
         "Button" => "Button",
         "Label" => "Label",
+        "Icon" => "Icon",
+        "IconButton" => "IconButton",
+        "SvgIcon" => "SvgIcon",
         _ if string_attribute(metadata, "surface_variant").is_some()
             || matches!(kind, UiRenderCommandKind::Quad) =>
         {
@@ -227,6 +238,10 @@ fn number_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<f32>
         Value::Integer(value) => Some(*value as f32),
         _ => None,
     })
+}
+
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
+    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn integer_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<i32> {

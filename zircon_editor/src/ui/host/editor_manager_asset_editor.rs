@@ -2,7 +2,7 @@ use super::editor_error::EditorError;
 use super::editor_manager::EditorManager;
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorPanePresentation, UiAssetEditorReflectionModel,
-    UiAssetPreviewPreset,
+    UiAssetPreviewPreset, UiDesignerToolMode,
 };
 use crate::ui::workbench::view::ViewInstanceId;
 use std::path::Path;
@@ -239,6 +239,34 @@ impl EditorManager {
     ) -> Result<bool, EditorError> {
         self.host
             .set_ui_asset_editor_selected_slot_height_preferred(instance_id, literal)
+    }
+
+    pub fn set_ui_asset_editor_designer_tool_mode(
+        &self,
+        instance_id: &ViewInstanceId,
+        mode: UiDesignerToolMode,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_designer_tool_mode(instance_id, mode)
+    }
+
+    pub fn set_ui_asset_editor_locale_preview(
+        &self,
+        instance_id: &ViewInstanceId,
+        locale: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_locale_preview(instance_id, locale)
+    }
+
+    pub fn resize_ui_asset_editor_selected_slot_preferred_size(
+        &self,
+        instance_id: &ViewInstanceId,
+        width: f32,
+        height: f32,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .resize_ui_asset_editor_selected_slot_preferred_size(instance_id, width, height)
     }
 
     pub fn set_ui_asset_editor_selected_layout_width_preferred(

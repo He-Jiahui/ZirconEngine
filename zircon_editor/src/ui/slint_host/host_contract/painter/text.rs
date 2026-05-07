@@ -2,6 +2,7 @@ use std::sync::OnceLock;
 
 use fontdue::layout::{CoordinateSystem, Layout, LayoutSettings, TextStyle};
 use fontdue::{Font, FontSettings};
+use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
@@ -40,6 +41,28 @@ pub(super) fn draw_text_with_size(
     color: [u8; 4],
     font_size: f32,
     line_height: f32,
+) {
+    draw_text_with_size_and_style(
+        frame,
+        rect,
+        text,
+        clip,
+        color,
+        font_size,
+        line_height,
+        UiTextRunPaintStyle::default(),
+    );
+}
+
+pub(super) fn draw_text_with_size_and_style(
+    frame: &mut HostRgbaFrame,
+    rect: FrameRect,
+    text: &str,
+    clip: Option<&FrameRect>,
+    color: [u8; 4],
+    font_size: f32,
+    line_height: f32,
+    style: UiTextRunPaintStyle,
 ) {
     if text.trim().is_empty() || color[3] == 0 {
         return;
@@ -85,16 +108,28 @@ pub(super) fn draw_text_with_size(
                 if coverage == 0 {
                     continue;
                 }
-                let x = glyph_x + column as i32;
-                if x < clip.x0 as i32 || x >= clip.x1 as i32 {
-                    continue;
+                let italic_offset = italic_pixel_offset(style, row, metrics.height);
+                let draw_count = if style.strong { 2 } else { 1 };
+                for pass in 0..draw_count {
+                    let x = glyph_x + column as i32 + italic_offset + pass;
+                    if x < clip.x0 as i32 || x >= clip.x1 as i32 {
+                        continue;
+                    }
+                    let mut pixel = color;
+                    pixel[3] = ((pixel[3] as u16 * coverage as u16) / 255) as u8;
+                    blend_pixel(frame, x as u32, y as u32, pixel);
                 }
-                let mut pixel = color;
-                pixel[3] = ((pixel[3] as u16 * coverage as u16) / 255) as u8;
-                blend_pixel(frame, x as u32, y as u32, pixel);
             }
         }
     }
+}
+
+fn italic_pixel_offset(style: UiTextRunPaintStyle, row: usize, height: usize) -> i32 {
+    if !style.emphasis || height == 0 {
+        return 0;
+    }
+    let top_bias = height.saturating_sub(row) as f32 / height.max(1) as f32;
+    (top_bias * 2.0).round() as i32
 }
 
 fn fallback_font() -> &'static Font {

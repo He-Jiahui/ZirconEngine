@@ -1,8 +1,11 @@
 use crate::ui::{
-    surface::{hit_test_surface_frame, UiSurface},
+    surface::{debug_hit_test_surface_frame_with_query, hit_test_surface_frame, UiSurface},
     tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeScrollExt},
 };
-use zircon_runtime_interface::ui::surface::{UiHitTestQuery, UiVirtualPointerPosition};
+use zircon_runtime_interface::ui::dispatch::{UiPointerId, UiSurfaceId, UiUserId, UiWindowId};
+use zircon_runtime_interface::ui::surface::{
+    UiHitTestQuery, UiHitTestRejectReason, UiHitTestScope, UiVirtualPointerPosition, UiWorldHitRay,
+};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
@@ -66,7 +69,7 @@ fn hit_grid_omits_disabled_nodes_and_debug_dump_reports_why() {
         .iter()
         .any(|reject| reject.node_id == UiNodeId::new(3)
             && reject.control_id.as_deref() == Some("disabled.button")
-            && reject.reason == "disabled"));
+            && reject.reason == UiHitTestRejectReason::Disabled));
 }
 
 #[test]
@@ -282,8 +285,10 @@ fn virtual_pointer_query_maps_custom_3d_hits_into_surface_local_hit_path() {
 
     let virtual_pointer =
         UiVirtualPointerPosition::new(UiPoint::new(90.0, 50.0), UiPoint::new(85.0, 45.0));
+    let world_ray = UiWorldHitRay::new([0.0, 0.0, 8.0], [0.0, 0.0, -1.0]);
     let hit = surface.hit_test_with_query(
-        UiHitTestQuery::new(UiPoint::new(5.0, 5.0)).with_virtual_pointer(virtual_pointer),
+        UiHitTestQuery::new(UiPoint::new(5.0, 5.0))
+            .with_projected_world_hit(world_ray, virtual_pointer),
     );
 
     assert_eq!(hit.top_hit, Some(UiNodeId::new(2)));
@@ -292,6 +297,129 @@ fn virtual_pointer_query_maps_custom_3d_hits_into_surface_local_hit_path() {
         hit.path.bubble_route,
         vec![UiNodeId::new(2), UiNodeId::new(1)]
     );
+}
+
+#[test]
+fn hit_grid_scope_and_world_queries_require_the_shared_surface_frame() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 200.0, 120.0)),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/button"))
+                .with_frame(UiFrame::new(40.0, 32.0, 60.0, 28.0))
+                .with_input_policy(UiInputPolicy::Receive)
+                .with_state_flags(pointer_state()),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let scope = UiHitTestScope::default()
+        .with_user_id(UiUserId::new(1))
+        .with_window_id(UiWindowId::new("main"))
+        .with_surface_id(UiSurfaceId::new("main.surface"))
+        .with_pointer_id(UiPointerId::new(9));
+    surface.hit_test.grid = surface.hit_test.grid.clone().with_scope(scope.clone());
+
+    assert_eq!(
+        surface
+            .hit_test_with_query(UiHitTestQuery::new(UiPoint::new(48.0, 40.0)))
+            .top_hit,
+        Some(UiNodeId::new(2))
+    );
+    assert_eq!(
+        surface
+            .hit_test_with_query(
+                UiHitTestQuery::new(UiPoint::new(48.0, 40.0)).with_scope(scope.clone())
+            )
+            .top_hit,
+        Some(UiNodeId::new(2))
+    );
+
+    let other_scope = UiHitTestScope::default()
+        .with_user_id(UiUserId::new(2))
+        .with_window_id(UiWindowId::new("floating"))
+        .with_surface_id(UiSurfaceId::new("floating.surface"))
+        .with_pointer_id(UiPointerId::new(9));
+    let rejected = surface.hit_test_with_query(
+        UiHitTestQuery::new(UiPoint::new(48.0, 40.0)).with_scope(other_scope.clone()),
+    );
+
+    assert_eq!(rejected.top_hit, None);
+    assert!(rejected.stacked.is_empty());
+
+    let other_surface = UiHitTestScope::default()
+        .with_user_id(UiUserId::new(1))
+        .with_window_id(UiWindowId::new("main"))
+        .with_surface_id(UiSurfaceId::new("overlay.surface"))
+        .with_pointer_id(UiPointerId::new(9));
+    assert_eq!(
+        surface
+            .hit_test_with_query(
+                UiHitTestQuery::new(UiPoint::new(48.0, 40.0)).with_scope(other_surface)
+            )
+            .top_hit,
+        None
+    );
+
+    let frame = surface.surface_frame();
+    let dump = debug_hit_test_surface_frame_with_query(
+        &frame,
+        UiHitTestQuery::new(UiPoint::new(48.0, 40.0)).with_scope(other_scope),
+    );
+
+    assert!(dump
+        .rejected
+        .iter()
+        .any(|reject| reject.reason == UiHitTestRejectReason::ScopeMismatch));
+
+    let projected_world_query = UiHitTestQuery::new(UiPoint::new(0.0, 0.0))
+        .with_scope(scope.clone())
+        .with_projected_world_hit(
+            UiWorldHitRay::new([0.0, 0.0, 8.0], [0.0, 0.0, -1.0]),
+            UiVirtualPointerPosition::new(UiPoint::new(48.0, 40.0), UiPoint::new(44.0, 38.0)),
+        );
+    assert_eq!(
+        surface.hit_test_with_query(projected_world_query).top_hit,
+        Some(UiNodeId::new(2))
+    );
+
+    let world_query = UiHitTestQuery::new(UiPoint::new(0.0, 0.0))
+        .with_scope(scope.clone())
+        .with_world_ray(UiWorldHitRay::new([0.0, 0.0, 8.0], [0.0, 0.0, -1.0]));
+    assert_eq!(
+        surface.hit_test_with_query(world_query.clone()).top_hit,
+        None
+    );
+
+    let world_dump = debug_hit_test_surface_frame_with_query(&frame, world_query);
+    assert!(world_dump
+        .rejected
+        .iter()
+        .any(|reject| reject.reason == UiHitTestRejectReason::WorldHitUnavailable));
+
+    let non_finite_world_query = UiHitTestQuery::new(UiPoint::new(0.0, 0.0))
+        .with_scope(scope)
+        .with_projected_world_hit(
+            UiWorldHitRay::new([f32::NAN, 0.0, 8.0], [0.0, 0.0, -1.0]),
+            UiVirtualPointerPosition::new(UiPoint::new(48.0, 40.0), UiPoint::new(44.0, 38.0)),
+        );
+    assert_eq!(
+        surface
+            .hit_test_with_query(non_finite_world_query.clone())
+            .top_hit,
+        None
+    );
+    let non_finite_world_dump =
+        debug_hit_test_surface_frame_with_query(&frame, non_finite_world_query);
+    assert!(non_finite_world_dump
+        .rejected
+        .iter()
+        .any(|reject| reject.reason == UiHitTestRejectReason::WorldHitUnavailable));
 }
 
 #[test]
@@ -381,9 +509,18 @@ fn surface_dirty_rebuild_keeps_render_only_changes_out_of_layout() {
     assert_eq!(render_report.dirty_node_count, 1);
     assert_eq!(render_report.arranged_node_count, 2);
     assert_eq!(render_report.render_command_count, 2);
-    assert_eq!(render_report.hit_grid_entry_count, surface.hit_test.grid.entries.len());
-    assert_eq!(render_report.hit_grid_cell_count, surface.hit_test.grid.cells.len());
-    assert_eq!(surface.surface_frame().last_rebuild, render_report.debug_stats());
+    assert_eq!(
+        render_report.hit_grid_entry_count,
+        surface.hit_test.grid.entries.len()
+    );
+    assert_eq!(
+        render_report.hit_grid_cell_count,
+        surface.hit_test.grid.cells.len()
+    );
+    assert_eq!(
+        surface.surface_frame().last_rebuild,
+        render_report.debug_stats()
+    );
     assert_eq!(
         surface
             .arranged_tree
@@ -410,9 +547,18 @@ fn surface_dirty_rebuild_keeps_render_only_changes_out_of_layout() {
     assert_eq!(layout_report.dirty_node_count, 1);
     assert_eq!(layout_report.arranged_node_count, 2);
     assert_eq!(layout_report.render_command_count, 2);
-    assert_eq!(layout_report.hit_grid_entry_count, surface.hit_test.grid.entries.len());
-    assert_eq!(layout_report.hit_grid_cell_count, surface.hit_test.grid.cells.len());
-    assert_eq!(surface.surface_frame().last_rebuild, layout_report.debug_stats());
+    assert_eq!(
+        layout_report.hit_grid_entry_count,
+        surface.hit_test.grid.entries.len()
+    );
+    assert_eq!(
+        layout_report.hit_grid_cell_count,
+        surface.hit_test.grid.cells.len()
+    );
+    assert_eq!(
+        surface.surface_frame().last_rebuild,
+        layout_report.debug_stats()
+    );
     assert!(!surface.dirty_flags().any());
 }
 
@@ -442,8 +588,14 @@ fn surface_dirty_rebuild_records_cached_counts_when_no_dirty_flags_exist() {
     assert_eq!(report.dirty_node_count, 0);
     assert_eq!(report.arranged_node_count, 2);
     assert_eq!(report.render_command_count, 2);
-    assert_eq!(report.hit_grid_entry_count, surface.hit_test.grid.entries.len());
-    assert_eq!(report.hit_grid_cell_count, surface.hit_test.grid.cells.len());
+    assert_eq!(
+        report.hit_grid_entry_count,
+        surface.hit_test.grid.entries.len()
+    );
+    assert_eq!(
+        report.hit_grid_cell_count,
+        surface.hit_test.grid.cells.len()
+    );
     assert_eq!(surface.surface_frame().last_rebuild, report.debug_stats());
 }
 

@@ -19,6 +19,7 @@ widgets = [
   "res://ui/editor/material_meta_components.ui.toml#MaterialOutlinedField",
   "res://ui/editor/material_meta_components.ui.toml#MaterialSliderField",
   "res://ui/editor/material_meta_components.ui.toml#MaterialListItem",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTableRow",
   "res://ui/editor/material_meta_components.ui.toml#MaterialComboBox",
   "res://ui/editor/material_meta_components.ui.toml#MaterialDatePickerPopup",
   "res://ui/editor/material_meta_components.ui.toml#MaterialGroupBox",
@@ -986,6 +987,16 @@ route = "UiComponentShowcase.Press.ListRow"
 [[root.children.node.children.node.children.node.children]]
 mount = "content"
 [root.children.node.children.node.children.node.children.node]
+node_id = "table_row_demo"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialTableRow"
+control_id = "TableRowDemo"
+classes = ["showcase-field"]
+params = { text = "Table Row", value = "row-42", selected = true, focused = true, hovered = false, pressed = false }
+
+[[root.children.node.children.node.children.node.children]]
+mount = "content"
+[root.children.node.children.node.children.node.children.node]
 node_id = "virtual_list_demo"
 kind = "reference"
 component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialStandardTableView"
@@ -1059,7 +1070,7 @@ kind = "reference"
 component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialMenuFrame"
 control_id = "ContextActionMenuDemo"
 classes = ["showcase-field"]
-params = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true }
+params = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0 }
 
 [[root.children.node.children.node.children.node.children.node.bindings]]
 id = "UiComponentShowcase/ContextActionMenuChanged"

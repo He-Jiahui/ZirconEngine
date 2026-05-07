@@ -9,9 +9,14 @@ use zircon_runtime_interface::ui::{
     tree::{UiInputPolicy, UiTreeNode},
 };
 
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
+use crate::ui::slint_host::root_shell_projection::{
+    resolve_root_bottom_splitter_frame, resolve_root_left_splitter_frame,
+    resolve_root_right_splitter_frame,
+};
+use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::autolayout::ShellSizePx;
-use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 
 use super::common::{base_target_state, clamp_frame_to_root, frame_if_visible, update_target_node};
 use super::node_ids::{
@@ -97,7 +102,7 @@ pub(super) fn build_resize_surface() -> (UiSurface, UiPointerDispatcher) {
 pub(super) fn update_resize_surface(
     surface: &mut UiSurface,
     root_size: ShellSizePx,
-    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
 ) {
     let root_frame = UiFrame::new(
         0.0,
@@ -121,11 +126,23 @@ pub(super) fn update_resize_surface(
             surface,
             node_id,
             frame_if_visible(clamp_frame_to_root(
-                geometry.splitter_frame(region),
+                resize_splitter_frame(shared_root_frames, region),
                 root_frame,
             )),
         );
     }
 
     surface.rebuild();
+}
+
+fn resize_splitter_frame(
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
+    region: ShellRegionId,
+) -> ShellFrame {
+    match region {
+        ShellRegionId::Left => resolve_root_left_splitter_frame(shared_root_frames),
+        ShellRegionId::Right => resolve_root_right_splitter_frame(shared_root_frames),
+        ShellRegionId::Bottom => resolve_root_bottom_splitter_frame(shared_root_frames),
+        ShellRegionId::Document => Default::default(),
+    }
 }

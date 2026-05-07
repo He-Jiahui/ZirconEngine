@@ -1,7 +1,7 @@
 use std::ffi::OsStr;
 use std::path::{Component, Path, PathBuf};
 
-use crate::diagnostic_log::write_diagnostic_log;
+use crate::diagnostic_log::{diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel};
 
 const ZIRCON_ASSET_ROOT_ENV: &str = "ZIRCON_ASSET_ROOT";
 
@@ -21,52 +21,60 @@ pub fn runtime_asset_path_with_dev_asset_root(
 
 pub fn runtime_asset_root() -> PathBuf {
     for candidate in runtime_asset_root_candidates() {
-        write_diagnostic_log(
-            "runtime_asset_path",
-            format!(
-                "root_candidate path={} exists={} is_dir={}",
-                candidate.display(),
-                candidate.exists(),
-                candidate.is_dir()
-            ),
-        );
-        if candidate.exists() && candidate.is_dir() {
+        if runtime_asset_path_verbose_enabled() {
             write_diagnostic_log(
                 "runtime_asset_path",
-                format!("selected_root path={}", candidate.display()),
+                format!(
+                    "root_candidate path={} exists={} is_dir={}",
+                    candidate.display(),
+                    candidate.exists(),
+                    candidate.is_dir()
+                ),
             );
+        }
+        if candidate.exists() && candidate.is_dir() {
+            if runtime_asset_path_verbose_enabled() {
+                write_diagnostic_log(
+                    "runtime_asset_path",
+                    format!("selected_root path={}", candidate.display()),
+                );
+            }
             return candidate;
         }
     }
     let fallback = crate_asset_root();
-    write_diagnostic_log(
-        "runtime_asset_path",
-        format!("selected_root_fallback path={}", fallback.display()),
-    );
+    if runtime_asset_path_verbose_enabled() {
+        write_diagnostic_log(
+            "runtime_asset_path",
+            format!("selected_root_fallback path={}", fallback.display()),
+        );
+    }
     fallback
 }
 
 fn runtime_asset_path_from_roots(path: &Path, dev_asset_roots: Vec<PathBuf>) -> PathBuf {
     let relative = normalize_runtime_asset_relative_path(path);
     let candidates = runtime_asset_root_candidates_with_dev_roots(dev_asset_roots);
-    write_diagnostic_log(
-        "runtime_asset_path",
-        format!(
-            "resolve relative={} normalized={} candidates={}",
-            path.display(),
-            relative.display(),
-            candidates
-                .iter()
-                .map(|candidate| format!(
-                    "{}|exists={}|dir={}",
-                    candidate.display(),
-                    candidate.exists(),
-                    candidate.is_dir()
-                ))
-                .collect::<Vec<_>>()
-                .join("; ")
-        ),
-    );
+    if runtime_asset_path_verbose_enabled() {
+        write_diagnostic_log(
+            "runtime_asset_path",
+            format!(
+                "resolve relative={} normalized={} candidates={}",
+                path.display(),
+                relative.display(),
+                candidates
+                    .iter()
+                    .map(|candidate| format!(
+                        "{}|exists={}|dir={}",
+                        candidate.display(),
+                        candidate.exists(),
+                        candidate.is_dir()
+                    ))
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            ),
+        );
+    }
     let mut first_existing_root = None;
     for candidate in candidates {
         if !(candidate.exists() && candidate.is_dir()) {
@@ -77,44 +85,54 @@ fn runtime_asset_path_from_roots(path: &Path, dev_asset_roots: Vec<PathBuf>) -> 
             first_existing_root = Some((candidate.clone(), resolved.clone()));
         }
         if resolved.exists() {
-            write_diagnostic_log(
-                "runtime_asset_path",
-                format!(
-                    "resolved relative={} selected_root={} path={} path_exists={}",
-                    relative.display(),
-                    candidate.display(),
-                    resolved.display(),
-                    resolved.exists()
-                ),
-            );
+            if runtime_asset_path_verbose_enabled() {
+                write_diagnostic_log(
+                    "runtime_asset_path",
+                    format!(
+                        "resolved relative={} selected_root={} path={} path_exists={}",
+                        relative.display(),
+                        candidate.display(),
+                        resolved.display(),
+                        resolved.exists()
+                    ),
+                );
+            }
             return resolved;
         }
     }
     if let Some((candidate, resolved)) = first_existing_root {
-        write_diagnostic_log(
-            "runtime_asset_path",
-            format!(
-                "resolved_missing relative={} selected_root={} path={} path_exists=false",
-                relative.display(),
-                candidate.display(),
-                resolved.display()
-            ),
-        );
+        if runtime_asset_path_verbose_enabled() {
+            write_diagnostic_log(
+                "runtime_asset_path",
+                format!(
+                    "resolved_missing relative={} selected_root={} path={} path_exists=false",
+                    relative.display(),
+                    candidate.display(),
+                    resolved.display()
+                ),
+            );
+        }
         return resolved;
     }
     let fallback_root = crate_asset_root();
     let resolved = fallback_root.join(&relative);
-    write_diagnostic_log(
-        "runtime_asset_path",
-        format!(
-            "resolved_fallback relative={} selected_root={} path={} path_exists={}",
-            relative.display(),
-            fallback_root.display(),
-            resolved.display(),
-            resolved.exists()
-        ),
-    );
+    if runtime_asset_path_verbose_enabled() {
+        write_diagnostic_log(
+            "runtime_asset_path",
+            format!(
+                "resolved_fallback relative={} selected_root={} path={} path_exists={}",
+                relative.display(),
+                fallback_root.display(),
+                resolved.display(),
+                resolved.exists()
+            ),
+        );
+    }
     resolved
+}
+
+fn runtime_asset_path_verbose_enabled() -> bool {
+    diagnostic_log_allows(DiagnosticLogLevel::Verbose)
 }
 
 fn runtime_asset_root_candidates() -> Vec<PathBuf> {

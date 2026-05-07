@@ -1,6 +1,7 @@
 mod arranged;
 mod diagnostics;
 mod frame_hit_test;
+mod input;
 mod property_mutation;
 mod reflection_snapshot;
 mod render;
@@ -11,11 +12,15 @@ pub(crate) use arranged::{
     arranged_bubble_route, arranged_effective_input_policy, build_arranged_tree,
     is_arranged_child_hit_path_visible, is_arranged_render_visible,
 };
-pub use diagnostics::{debug_surface_frame, debug_surface_frame_with_options};
+pub use diagnostics::{
+    debug_surface_frame, debug_surface_frame_for_pick, debug_surface_frame_for_selection,
+    debug_surface_frame_with_options,
+};
 pub use frame_hit_test::{
     debug_hit_test_surface_frame, debug_hit_test_surface_frame_with_query, hit_test_surface_frame,
     hit_test_surface_frame_with_query,
 };
+pub use input::UiSurfaceInputState;
 pub use property_mutation::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
 };

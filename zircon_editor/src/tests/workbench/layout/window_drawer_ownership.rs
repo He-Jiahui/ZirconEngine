@@ -26,6 +26,12 @@ fn default_workbench_layout_seeds_drawers_inside_workbench_activity_window() {
         .contains_key(&ActivityDrawerSlot::LeftTop));
     assert!(workbench_window
         .activity_drawers
+        .contains_key(&ActivityDrawerSlot::Bottom));
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomLeft));
+    assert!(!workbench_window
+        .activity_drawers
         .contains_key(&ActivityDrawerSlot::BottomRight));
 }
 
@@ -47,6 +53,57 @@ fn default_workbench_layout_stores_activity_window_drawers_as_layout_state() {
     assert!(workbench_window
         .activity_drawers
         .contains_key(&ActivityDrawerSlot::LeftTop));
+    assert!(workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::Bottom));
+}
+
+#[test]
+fn legacy_bottom_left_and_bottom_right_drawers_merge_into_single_bottom_slot() {
+    let console = ViewInstanceId::new("editor.console#1");
+    let diagnostics = ViewInstanceId::new("editor.runtime_diagnostics#1");
+    let mut bottom_left = ActivityDrawerLayout::new(ActivityDrawerSlot::BottomLeft);
+    bottom_left.tab_stack.tabs = vec![console.clone()];
+    bottom_left.tab_stack.active_tab = Some(console.clone());
+    bottom_left.active_view = Some(console.clone());
+    bottom_left.mode = ActivityDrawerMode::Pinned;
+    bottom_left.extent = 168.0;
+
+    let mut bottom_right = ActivityDrawerLayout::new(ActivityDrawerSlot::BottomRight);
+    bottom_right.tab_stack.tabs = vec![diagnostics.clone()];
+    bottom_right.tab_stack.active_tab = None;
+    bottom_right.active_view = None;
+    bottom_right.mode = ActivityDrawerMode::Collapsed;
+    bottom_right.extent = 240.0;
+
+    let legacy_layout = WorkbenchLayout {
+        drawers: BTreeMap::from([
+            (ActivityDrawerSlot::BottomLeft, bottom_left),
+            (ActivityDrawerSlot::BottomRight, bottom_right),
+        ]),
+        activity_windows: BTreeMap::new(),
+        ..WorkbenchLayout::default()
+    };
+    let activity_windows = legacy_layout.activity_windows();
+    let workbench_window = activity_windows
+        .get(&ActivityWindowId::workbench())
+        .expect("legacy drawers should migrate into workbench activity window");
+    let bottom = workbench_window
+        .activity_drawers
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("legacy bottom drawers should merge into Bottom");
+
+    assert_eq!(bottom.slot, ActivityDrawerSlot::Bottom);
+    assert_eq!(bottom.tab_stack.tabs, vec![console.clone(), diagnostics]);
+    assert_eq!(bottom.active_view, Some(console));
+    assert_eq!(bottom.mode, ActivityDrawerMode::Pinned);
+    assert_eq!(bottom.extent, 168.0);
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomLeft));
+    assert!(!workbench_window
+        .activity_drawers
+        .contains_key(&ActivityDrawerSlot::BottomRight));
 }
 
 #[test]
@@ -103,6 +160,7 @@ fn drawer_layout_commands_mutate_active_activity_window_drawers() {
             host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
             activity_drawers: BTreeMap::from([(ActivityDrawerSlot::LeftTop, asset_drawer)]),
             content_workspace: DocumentNode::default(),
+            menu_overflow_mode: Default::default(),
             region_overrides: BTreeMap::new(),
             view_overrides: BTreeMap::new(),
         },

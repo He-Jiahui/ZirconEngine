@@ -14,6 +14,15 @@ use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    layout::UiFrame,
+    surface::{
+        UiRenderDebugStats, UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot,
+        UiWidgetReflectorNode,
+    },
+    tree::{UiInputPolicy, UiVisibility},
+};
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
@@ -108,6 +117,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         project_open: true,
         can_undo: true,
         can_redo: false,
+        menu_overflow_mode: Default::default(),
     }
 }
 
@@ -176,6 +186,65 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
     }
 }
 
+fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
+    UiSurfaceDebugSnapshot {
+        capture: UiSurfaceDebugCaptureContext {
+            selected_node: Some(UiNodeId::new(2)),
+            ..UiSurfaceDebugCaptureContext::default()
+        },
+        tree_id: UiTreeId::new("editor.runtime_diagnostics.projection_debug"),
+        roots: vec![UiNodeId::new(1)],
+        nodes: vec![
+            UiWidgetReflectorNode {
+                node_id: UiNodeId::new(1),
+                node_path: UiNodePath::new("runtime/projection"),
+                parent: None,
+                children: vec![UiNodeId::new(2)],
+                frame: UiFrame::new(0.0, 0.0, 160.0, 80.0),
+                clip_frame: UiFrame::new(0.0, 0.0, 160.0, 80.0),
+                z_index: 0,
+                paint_order: 0,
+                visibility: UiVisibility::Visible,
+                input_policy: UiInputPolicy::Ignore,
+                enabled: true,
+                clickable: false,
+                hoverable: false,
+                focusable: false,
+                control_id: Some("RuntimeDiagnosticsProjectionRoot".to_string()),
+                render_command_count: 1,
+                hit_entry_count: 0,
+                hit_cell_count: 0,
+            },
+            UiWidgetReflectorNode {
+                node_id: UiNodeId::new(2),
+                node_path: UiNodePath::new("runtime/projection/live_label"),
+                parent: Some(UiNodeId::new(1)),
+                children: Vec::new(),
+                frame: UiFrame::new(8.0, 12.0, 120.0, 18.0),
+                clip_frame: UiFrame::new(8.0, 12.0, 120.0, 18.0),
+                z_index: 1,
+                paint_order: 1,
+                visibility: UiVisibility::Visible,
+                input_policy: UiInputPolicy::Receive,
+                enabled: true,
+                clickable: true,
+                hoverable: true,
+                focusable: false,
+                control_id: Some("LiveProjectionLabel".to_string()),
+                render_command_count: 1,
+                hit_entry_count: 1,
+                hit_cell_count: 1,
+            },
+        ],
+        render: UiRenderDebugStats {
+            command_count: 2,
+            estimated_draw_calls: 2,
+            ..UiRenderDebugStats::default()
+        },
+        ..UiSurfaceDebugSnapshot::default()
+    }
+}
+
 #[test]
 fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attributes() {
     let _guard = crate::tests::support::env_lock()
@@ -184,9 +253,11 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
     let chrome = chrome_fixture();
     let animation = animation_fixture();
     let runtime_diagnostics = runtime_diagnostics_fixture();
+    let active_snapshot = active_ui_debug_snapshot_fixture();
     let context = PanePayloadBuildContext::new(&chrome)
         .with_animation_pane(&animation)
-        .with_runtime_diagnostics(&runtime_diagnostics);
+        .with_runtime_diagnostics(&runtime_diagnostics)
+        .with_active_ui_debug_snapshot(&active_snapshot);
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -258,6 +329,31 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
             "Render: wgpu-test (3 viewports, 11 frames)".to_string()
         ))
     );
+    assert_eq!(
+        diagnostics_projection
+            .root
+            .attributes
+            .get("payload_ui_debug_reflector_summary"),
+        Some(&Value::String(
+            "UI Debug Reflector: 2 nodes, 2 commands, schema v1".to_string()
+        ))
+    );
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_export_status")
+        .and_then(Value::as_str)
+        .is_some_and(|text| text.contains("JSON export ready")));
+    assert!(diagnostics_projection
+        .root
+        .attributes
+        .get("payload_ui_debug_reflector_details")
+        .and_then(Value::as_array)
+        .is_some_and(|details| details.iter().any(|detail| {
+            detail
+                .as_str()
+                .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
+        })));
 }
 
 #[test]

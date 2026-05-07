@@ -118,7 +118,19 @@ fn supports_material_layout(component: &str) -> bool {
             | "ComboBox"
             | "RangeField"
             | "NumberField"
+            | "ProgressBar"
+            | "Spinner"
             | "Switch"
+            | "ContextActionMenu"
+            | "MenuItem"
+            | "Tab"
+            | "TableRow"
+            | "VirtualList"
+            | "ColorField"
+            | "Vector2Field"
+            | "Vector3Field"
+            | "Vector4Field"
+            | "Label"
     )
 }
 

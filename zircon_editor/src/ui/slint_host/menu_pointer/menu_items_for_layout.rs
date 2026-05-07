@@ -63,6 +63,7 @@ fn menu_action(action_id: impl Into<String>, enabled: bool) -> MenuItemSpec {
     MenuItemSpec {
         action_id: enabled.then(|| action_id.into()),
         enabled,
+        children: Vec::new(),
     }
 }
 
@@ -70,5 +71,6 @@ fn disabled_item() -> MenuItemSpec {
     MenuItemSpec {
         action_id: None,
         enabled: false,
+        children: Vec::new(),
     }
 }

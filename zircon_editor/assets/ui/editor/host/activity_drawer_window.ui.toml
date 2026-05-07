@@ -80,7 +80,7 @@ gap = 0.0
 
 [components.ActivityDrawerWindow.root.children.node.children.node.layout.width]
 min = 0.0
-preferred = 260.0
+preferred = 340.0
 stretch = "Fixed"
 
 [components.ActivityDrawerWindow.root.children.node.children.node.layout.height]

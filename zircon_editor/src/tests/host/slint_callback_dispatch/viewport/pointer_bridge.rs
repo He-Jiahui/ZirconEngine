@@ -116,7 +116,7 @@ fn shared_viewport_pointer_bridge_respects_updated_viewport_frame_bounds() {
 
     assert_eq!(
         effects,
-        crate::ui::slint_host::event_bridge::SlintDispatchEffects::default()
+        crate::ui::slint_host::event_bridge::UiHostEventEffects::default()
     );
     assert_eq!(
         harness.runtime.journal().records().len(),

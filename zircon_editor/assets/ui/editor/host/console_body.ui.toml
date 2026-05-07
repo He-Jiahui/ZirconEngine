@@ -28,5 +28,5 @@ children = [
   { node = { node_id = "console_header", kind = "native", type = "HorizontalBox", children = [
     { node = { node_id = "console_focus_action", kind = "native", type = "IconButton", control_id = "FocusConsole", bindings = [{ id = "ConsolePaneBody/FocusConsole", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Console" } } }
   ] } },
-  { node = { node_id = "console_body_section", kind = "native", type = "Container", control_id = "ConsoleBodySection" } },
+  { node = { node_id = "console_body_section", kind = "native", type = "Container", control_id = "ConsoleBodySection", layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } } } },
 ]

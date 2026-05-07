@@ -55,10 +55,7 @@ pub fn compute_workbench_shell_geometry(
         layout,
         &descriptor_map,
         ShellRegionId::Bottom,
-        &[
-            ActivityDrawerSlot::BottomLeft,
-            ActivityDrawerSlot::BottomRight,
-        ],
+        &[ActivityDrawerSlot::Bottom],
         transient_region_preferred,
         metrics,
     );

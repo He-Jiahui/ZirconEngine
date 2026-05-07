@@ -1,3 +1,4 @@
+use super::display_project_path::{display_project_path, display_project_text};
 use super::editor_startup_session_document::EditorStartupSessionDocument;
 use super::format_recent_project_time::format_recent_project_time;
 use super::new_project_form_snapshot::NewProjectFormSnapshot;
@@ -9,7 +10,7 @@ impl EditorStartupSessionDocument {
         let project_path_preview = self
             .draft
             .project_root()
-            .map(|path| path.to_string_lossy().into_owned())
+            .map(|path| display_project_path(path.to_string_lossy()))
             .unwrap_or_default();
         let creation_validation = self
             .draft
@@ -22,7 +23,7 @@ impl EditorStartupSessionDocument {
             title: "Open or Create".to_string(),
             subtitle: "Continue from a recent project or scaffold a renderable empty project."
                 .to_string(),
-            status_message: self.status_message.clone(),
+            status_message: display_project_text(&self.status_message),
             browse_supported,
             recent_projects: self
                 .recent_projects
@@ -30,7 +31,7 @@ impl EditorStartupSessionDocument {
                 .enumerate()
                 .map(|(index, entry)| RecentProjectItemSnapshot {
                     display_name: entry.display_name.clone(),
-                    path: entry.path.clone(),
+                    path: display_project_path(&entry.path),
                     validation: entry.validation,
                     last_opened_label: format_recent_project_time(entry.last_opened_unix_ms),
                     selected: index == 0,

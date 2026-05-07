@@ -319,9 +319,11 @@ pub(super) fn host_template_node(
         .unwrap_or_default();
     let edit_action_id = component_descriptor
         .and_then(|_| preferred_showcase_edit_action_id(&control_id, &node.bindings))
+        .or_else(|| primary_change_binding_id(&node.bindings))
         .unwrap_or_default();
     let commit_action_id = component_descriptor
         .and_then(|_| preferred_showcase_commit_action_id(&control_id, &node.bindings))
+        .or_else(|| primary_submit_binding_id(&node.bindings))
         .unwrap_or_default();
     let actions = if component_descriptor.is_some() {
         preferred_showcase_action_buttons(&control_id, &node.bindings)
@@ -594,6 +596,24 @@ fn primary_click_binding_id(
         .map(|binding| binding.binding_id.clone())
 }
 
+fn primary_change_binding_id(
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    bindings
+        .iter()
+        .find(|binding| binding.event_kind == UiEventKind::Change)
+        .map(|binding| binding.binding_id.clone())
+}
+
+fn primary_submit_binding_id(
+    bindings: &[crate::ui::template_runtime::SlintUiHostBindingProjection],
+) -> Option<String> {
+    bindings
+        .iter()
+        .find(|binding| binding.event_kind == UiEventKind::Submit)
+        .map(|binding| binding.binding_id.clone())
+}
+
 fn runtime_component_registry() -> &'static UiComponentDescriptorRegistry {
     static UI_COMPONENT_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
     UI_COMPONENT_REGISTRY.get_or_init(UiComponentDescriptorRegistry::editor_showcase)
@@ -754,6 +774,35 @@ mod tests {
     }
 
     #[test]
+    fn runtime_component_projection_derives_text_edit_targets_from_change_and_submit_bindings() {
+        let mut input = projected_node(
+            "InputField",
+            [("value_text", Value::String("Draft".into()))],
+        );
+        input.control_id = Some("NameField".to_owned());
+        input.bindings.push(SlintUiHostBindingProjection {
+            binding_id: "InspectorView/NameField".to_owned(),
+            event_kind: UiEventKind::Change,
+            route_id: None,
+        });
+        input.bindings.push(SlintUiHostBindingProjection {
+            binding_id: "InspectorView/ApplyBatchButton".to_owned(),
+            event_kind: UiEventKind::Submit,
+            route_id: None,
+        });
+
+        let projected = host_template_node(input)
+            .expect("input with change and commit bindings should project edit targets");
+
+        assert_eq!(projected.component_role.as_str(), "input-field");
+        assert_eq!(projected.edit_action_id.as_str(), "InspectorView/NameField");
+        assert_eq!(
+            projected.commit_action_id.as_str(),
+            "InspectorView/ApplyBatchButton"
+        );
+    }
+
+    #[test]
     fn runtime_component_projection_preserves_material_visual_metadata() {
         let button = host_template_node(projected_node(
             "Button",
@@ -767,6 +816,12 @@ mod tests {
                 ("overflow", Value::String("clip".to_owned())),
                 ("corner_radius", Value::Float(5.0)),
                 ("border_width", Value::Float(1.0)),
+                ("validation_level", Value::String("error".to_owned())),
+                ("selected", Value::Boolean(true)),
+                ("hovered", Value::Boolean(true)),
+                ("pressed", Value::Boolean(true)),
+                ("focused", Value::Boolean(true)),
+                ("disabled", Value::Boolean(true)),
             ],
         ))
         .expect("material button metadata should project into the host contract");
@@ -774,6 +829,12 @@ mod tests {
         assert_eq!(button.surface_variant.as_str(), "accent");
         assert_eq!(button.text_tone.as_str(), "muted");
         assert_eq!(button.button_variant.as_str(), "primary");
+        assert_eq!(button.validation_level.as_str(), "error");
+        assert!(button.selected);
+        assert!(button.hovered);
+        assert!(button.pressed);
+        assert!(button.focused);
+        assert!(button.disabled);
         assert_eq!(button.font_size, 13.0);
         assert_eq!(button.font_weight, 600);
         assert_eq!(button.text_align.as_str(), "center");

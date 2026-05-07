@@ -4,7 +4,6 @@ use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::slint_host::root_shell_projection::resolve_root_document_tabs_frame;
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
-use crate::ui::workbench::autolayout::WorkbenchShellGeometry;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::host_document_tab_pointer_item::HostDocumentTabPointerItem;
@@ -13,14 +12,13 @@ use super::host_document_tab_pointer_surface::HostDocumentTabPointerSurface;
 
 pub(crate) fn build_host_document_tab_pointer_layout(
     model: &WorkbenchViewModel,
-    geometry: &WorkbenchShellGeometry,
     metrics: &WorkbenchChromeMetrics,
     shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
 ) -> HostDocumentTabPointerLayout {
     let mut surfaces = Vec::new();
     if !model.document_tabs.is_empty() {
-        let document_tabs = resolve_root_document_tabs_frame(geometry, metrics, shared_root_frames);
+        let document_tabs = resolve_root_document_tabs_frame(metrics, shared_root_frames);
         surfaces.push(HostDocumentTabPointerSurface {
             key: "document".to_string(),
             strip_frame: UiFrame::new(

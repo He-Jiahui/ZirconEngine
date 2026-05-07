@@ -3,17 +3,20 @@ related_code:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/localization/mod.rs
+  - zircon_runtime_interface/src/ui/template/asset/localization/diagnostic.rs
   - zircon_runtime_interface/src/ui/binding/mod.rs
   - zircon_runtime/src/ui/template/asset/binding/mod.rs
   - zircon_runtime/src/ui/template/asset/binding/validation.rs
   - zircon_runtime/src/ui/template/asset/resource_ref/mod.rs
   - zircon_runtime/src/ui/template/asset/resource_ref/collect.rs
+  - zircon_runtime/src/ui/template/asset/resource_ref/resolve.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_kind.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/fallback_policy.rs
   - zircon_runtime_interface/src/ui/template/asset/resource_ref/resource_ref.rs
@@ -47,6 +50,7 @@ related_code:
   - zircon_runtime/src/ui/template/asset/action_policy/validate.rs
   - zircon_runtime/src/ui/template/asset/localization/mod.rs
   - zircon_runtime/src/ui/template/asset/localization/collect.rs
+  - zircon_runtime/src/ui/template/asset/localization/resolve.rs
   - zircon_runtime/src/ui/template/asset/component_contract/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
@@ -90,6 +94,7 @@ related_code:
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/asset_invalidation.rs
@@ -110,6 +115,7 @@ related_code:
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
+  - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
   - zircon_editor/src/tests/support.rs
@@ -122,6 +128,7 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
@@ -129,6 +136,7 @@ implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
   - zircon_runtime/src/ui/template/asset/document.rs
+  - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/expression.rs
   - zircon_runtime_interface/src/ui/template/asset/binding/target.rs
@@ -211,6 +219,7 @@ implementation_files:
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
+  - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
   - zircon_runtime/src/ui/tests/asset_invalidation.rs
@@ -231,6 +240,7 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
+  - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
@@ -241,6 +251,9 @@ implementation_files:
   - zircon_editor/src/tests/ui/ui_asset_editor/editor_layouts.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
+  - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
@@ -271,6 +284,7 @@ plan_sources:
   - user: 2026-05-04 stage editor/runtime assets into exported ZirconEngine folder
   - user: 2026-05-04 inspect exported editor display through file-backed diagnostics
 tests:
+  - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/asset_resource_refs.rs
   - zircon_runtime/src/ui/tests/asset_compile_cache.rs
@@ -292,6 +306,8 @@ tests:
   - zircon_editor/src/tests/ui/ui_asset_editor/palette_descriptor_registry.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
+  - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo test -p zircon_runtime --lib ui::tests::asset_schema_migration --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture
@@ -301,11 +317,23 @@ tests:
   - cargo test -p zircon_runtime --lib asset_resource_refs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-resource-refs-m15 --message-format short --color never (M15 M1 accepted: 7 passed)
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-resource-refs-m15 --message-format short --color never (M15 M1 downstream constructor check accepted with unrelated graphics warnings)
   - cargo test -p zircon_runtime --lib asset_resource_refs --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation: 9 passed)
+  - cargo test -p zircon_runtime --lib asset_localization --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 resolver closure: 7 passed)
+  - cargo test -p zircon_runtime --lib asset_resource_refs --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 resolver closure: 12 passed)
+  - cargo test -p zircon_editor --lib action_localization_reports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 resolver closure: 3 passed)
+  - cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 resolver closure: 5 passed)
+  - cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 resolver closure: 221 passed)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never (2026-05-07 resolver closure: passed with existing warnings)
+  - cargo test -p zircon_editor --lib runtime_reports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M21 host enforcement presentation: 1 passed)
+  - cargo test -p zircon_editor --lib runtime_report_productization --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M21 host enforcement presentation: 1 passed)
+  - cargo test -p zircon_editor --lib ui_asset_editor --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M21 host enforcement presentation: 221 passed)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m14-m15-resolver --message-format short --color never (2026-05-07 M21 host enforcement presentation: passed with existing warnings)
   - cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation: 9 passed)
   - cargo test -p zircon_runtime --lib asset_compile_cache --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation: 9 passed)
   - cargo test -p zircon_runtime --lib asset_invalidation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation: 6 passed)
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation: 86 passed)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never (M15/M16 reconciliation passed with unrelated graphics/plugin warnings)
+  - cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1 (2026-05-07 M15 editor dependency view: 4 passed)
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never (2026-05-07 M15 editor dependency view passed with existing runtime/editor warnings)
   - cargo test -p zircon_runtime --lib asset_action_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
   - cargo test -p zircon_runtime --lib asset_localization --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
   - cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never
@@ -496,21 +524,23 @@ Legacy string inference 的基础规则放在 `UiResourceKind::infer_from_path_a
 
 `UiResourceDependency` 和 `UiResourceDependencySource` 已作为 runtime-owned row type 被 `collect_document_resource_dependencies(...)` 使用。collector 会从 root document、当前 compiler 注册的 widget/style imports、显式 `imports.resources`、tokens、node props/params/layout、node style overrides、child slot metadata、stylesheet declaration blocks 和 component roots 中收集资源引用；字符串 URI 走 `UiResourceKind::infer_from_path_and_uri(...)`，typed TOML table 走严格 `UiResourceRef` validation。typed table classifier 只把含 supported resource `kind`、显式 `uri` 或 table-shaped `fallback` 的 TOML table 当作 resource table；因此 M14 localized text refs 的 string `fallback` 不会被误判为 resource fallback，layout/component metadata 里的 `kind = "VerticalBox"` 这类非资源表也会继续按普通 TOML table 递归扫描。这里的 import 范围刻意保持 package-input scope：M12 cache key 与 M16 widget/style dependency manifest 也以当前 registered import registry 为输入，而不是只记录本次展开实际触达的 import 子集。`UiCompiledDocument` 现在暴露 `resource_dependencies()` 和 `resource_diagnostics()`，使 package/editor/reporting consumer 不需要重新扫描 source。
 
+2026-05-07 的 M15 editor slice 把这个 compiled report 接入 `UiAssetEditorSession`：成功 preview compile 后保存 dependency/diagnostic vectors，source edit 后刷新，compile failure 时清空旧 resource rows。后续 resolver closure 加入 runtime-owned `UiResourcePathResolver`，当 editor 配置 `res://` / `asset://` / `project://` roots 后，pane presentation 会把 missing primary file 和 placeholder fallback file 输出为 read-only `resource_diagnostic_items`；仍不增加 resource browser、watcher、loader 或新的 Slint callback。
+
 M12 cache key 和 invalidation snapshot 现在包含 `resource_dependencies_revision`。`compile_with_cache(...)` 会先跑 document shape 与 component contract preconditions，再构建含资源 fingerprint 的 cache key，避免 invalid resource fingerprint error 掩盖更底层的 shape/contract 错误。资源依赖变化通过 `UiAssetChange::ResourceDependency` 映射到 `UiInvalidationStage::ResourceDependency`，并让 runtime render dirty 与 editor projection dirty，而不是触发无关的 document-shape 或 descriptor stage。M16 back-half 消费 compiled document 的完整 `resource_dependencies()` 写入 `UiCompiledAssetDependencyManifest.resource_dependencies`，所以 package manifest 没有第二套资源扫描规则。
 
-剩余 productization 不在当前 M15/M16 收口内：resource diagnostics persistence beyond compile errors、resolver/file existence check、watcher/hot reload、editor read-only dependency view、resource browser、drag/drop picker、runtime loader backend 和 graphics/RHI consumption。
+剩余 productization 不在当前 M15/M16 收口内：watcher/hot reload、resource browser、drag/drop picker、runtime loader backend 和 graphics/RHI consumption。resolver-backed editor read-only dependency/diagnostic view 已由 `resource_dependency_view` 聚焦测试验收。
 
 ## M14 Localization Asset Metadata
 
 M14 runtime foundation keeps localization collection and validation behavior in `zircon_runtime::ui::template::asset::localization`, while the neutral localized-text DTO/report declarations are canonical under `zircon_runtime_interface::ui::template::asset`. Authored values can use a TOML table with `text_key`, optional `table`, optional `fallback`, and optional `direction`; `UiLocalizedTextRef` validates the key, while `UiTextDirection` records `auto`, `left_to_right`, or `right_to_left` direction intent for runtime/editor consumers.
 
-`collect_document_localization_report(...)` scans node props/layout/params and stylesheet declarations for localized tables, then records deterministic `UiLocalizationDependency` rows. Literal `text`, `label`, and `title` string values become `UiLocalizationTextCandidate` rows for extraction. `validate_document_localization(...)` runs during compiler preconditions, before component expansion, so invalid localization keys fail package validation without producing partial artifacts. Component prop validation treats a non-empty `{ text_key = ... }` table as a valid string-family prop while preserving the structured table in compiled attributes for package/report/runtime consumers. M14 does not resolve external locale tables, perform missing-key IO, or add editor locale preview UI in this slice.
+`collect_document_localization_report(...)` scans node props/layout/params and stylesheet declarations for localized tables, then records deterministic `UiLocalizationDependency` rows. Literal `text`, `label`, and `title` string values become `UiLocalizationTextCandidate` rows for extraction. `validate_document_localization(...)` runs during compiler preconditions, before component expansion, so invalid localization keys fail package validation without producing partial artifacts. Component prop validation treats a non-empty `{ text_key = ... }` table as a valid string-family prop while preserving the structured table in compiled attributes for package/report/runtime consumers. Resolver closure adds runtime-owned `UiLocalizationTableCatalog`, TOML key flattening, missing-table diagnostics, and missing-key diagnostics for selected editor preview locales; editor session code registers externally loaded table keys and only projects runtime diagnostics.
 
 ## M21 Action Host Policy
 
 M21 runtime foundation keeps action side-effect classification and host-policy validation behavior in `zircon_runtime::ui::template::asset::action_policy`, while the neutral policy/report DTO declarations are canonical under `zircon_runtime_interface::ui::template::asset`. `UiActionSideEffectClass` classifies existing `UiBindingRef` route/action strings into local UI, editor mutation, asset IO, scene mutation, external process, or network classes, so this does not create a second action path next to the existing binding model.
 
-Package validation now emits `UiActionPolicyReport`. Runtime profile uses `UiActionHostPolicy::runtime_default()` and only allows local UI actions; editor profile uses `UiActionHostPolicy::editor_authoring()` and also allows editor mutation and asset IO. Unsafe side effects remain diagnostics in the package report for host enforcement/inspection; editor policy-inspector UX remains future work, while M18 binding-expression semantics now lives in the runtime-owned binding module described below.
+Package validation now emits `UiActionPolicyReport`. Runtime profile uses `UiActionHostPolicy::runtime_default()` and only allows local UI actions; editor profile uses `UiActionHostPolicy::editor_authoring()` and also allows editor mutation and asset IO. Unsafe side effects remain diagnostics in the package report for host enforcement/inspection. The UI Asset Editor runtime-report pane now projects both runtime-default and editor-authoring enforcement rows plus unsafe-action authoring guidance, while any richer interactive policy inspector remains future work. M18 binding-expression semantics now lives in the runtime-owned binding module described below.
 
 ## M18 Binding Expression Semantics
 
@@ -679,6 +709,26 @@ M15 resource collector/cache/invalidation/package reconciliation uses these focu
 - `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m15-m16-resource-package --message-format short --color never`
   - 2026-05-01：通过；输出仍包含当前 graphics/plugin active-session 区域的 unused/dead-code warnings。
 
+M15 editor dependency view uses these focused commands:
+
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/slint_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
+  - 2026-05-07：通过，无输出。
+- `cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1`
+  - 2026-05-07：通过，`4 passed; 0 failed; 1136 filtered out`。覆盖 session dependency accessors、diagnostic-empty happy path、source edit refresh 和 compile-failure clearing。
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never`
+  - 2026-05-07：通过；输出仍包含既有 runtime/editor warnings。
+
+M15 asset-browser reference graph slice uses these focused commands:
+
+- `rustfmt --edition 2021 --check zircon_runtime/src/asset/assets/ui.rs zircon_runtime/src/asset/tests/assets/ui.rs`
+  - 2026-05-08：通过。
+- `git diff --check -- zircon_runtime/src/asset/assets/ui.rs zircon_runtime/src/asset/tests/assets/ui.rs`
+  - 2026-05-08：通过；Git 仅提示这两个文件未来会按仓库设置从 LF 转 CRLF。
+- `cargo test -p zircon_runtime --lib ui_asset_direct_references --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-browser --message-format short --color never -- --nocapture --test-threads=1`
+  - 2026-05-08：被 active incremental layout lane 阻塞，新增 tests 未执行。当前 blocker 是 `zircon_runtime/src/ui/surface/surface.rs` 的 `UiSurfaceRebuildDebugStats` initializer 与 `zircon_runtime/src/ui/tests/surface_dirty_domains.rs` 的 `UiSurfaceRebuildReport` field access 不匹配。
+
+The 2026-05-08 reference-graph slice keeps resource ownership in the existing M15 collector. `zircon_runtime::asset::assets::ui_asset_references(...)` now calls `collect_document_resource_dependencies(...)` for document-local resource dependencies, adds primary and fallback resource URIs to the returned `AssetReference` list, strips component/style import labels back to the owning asset file, and dedupes by normalized locator before the editor asset manager builds its direct-reference graph. This covers the asset-browser dependency graph surface; broader resource browser UX, watcher/hot reload, runtime loader backend, and graphics/RHI consumption remain outside this slice.
+
 M21/M14 runtime foundation uses these focused commands:
 
 - `cargo test -p zircon_runtime --lib asset_action_policy --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never`
@@ -697,4 +747,4 @@ M21/M14 runtime foundation uses these focused commands:
   - 2026-05-02：通过；`git diff --check -- <same touched files>` 仅输出当前仓库 LF-to-CRLF normalization warnings。
 - `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-m21-m14 --message-format short --color never`
 
-这几组证据组合起来，覆盖 production schema migrator、loader report API、future-version policy、flat/legacy migration ownership、M13 descriptor authority、M10 contract/private-boundary validation、M12 invalidation/cache key behavior、M15 M1 typed resource reference model、M16 package validation report surface、binary artifact envelope、cache record、package manifest writer/importer、M21 runtime host action policy report、M14 localization dependency/extraction report，以及 editor/runtime 共用消费链路。具体执行结果记录在归档与当前 session note 中。当前仍未声明完成的是 cross-process persistent cache store、resolver/runtime-loader/editor resource UX、graphics/RHI resource consumption、editor action policy inspector、editor locale preview UI 与 broad workspace green。
+这几组证据组合起来，覆盖 production schema migrator、loader report API、future-version policy、flat/legacy migration ownership、M13 descriptor authority、M10 contract/private-boundary validation、M12 invalidation/cache key behavior、M15 M1 typed resource reference model、M15 resolver-backed editor read-only dependency view、M16 package validation report surface、binary artifact envelope、cache record、package manifest writer/importer、M21 runtime host action policy report、M21 editor host-enforcement/guidance projection、M14 localization dependency/extraction/missing-key report，以及 editor/runtime 共用消费链路。具体执行结果记录在归档与当前 session note 中。当前仍未声明完成的是 cross-process persistent cache store、runtime-loader/broader resource UX、graphics/RHI resource consumption、dedicated interactive action-policy inspector 与 broad workspace green。

@@ -293,3 +293,72 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
         );
     }
 }
+
+#[test]
+fn editor_host_input_translation_uses_shared_dispatch_contracts_without_private_effect_types() {
+    let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let slint_host_root = crate_root.join("ui").join("slint_host");
+    let host_contract_root = slint_host_root.join("host_contract");
+    let native_translation_source =
+        std::fs::read_to_string(host_contract_root.join("native_input_translation.rs"))
+            .expect("native input translation source");
+    let host_contract_mod_source =
+        std::fs::read_to_string(host_contract_root.join("mod.rs")).expect("host contract mod");
+    let native_translation_tests = crate_root
+        .join("tests")
+        .join("host")
+        .join("slint_window")
+        .join("native_input_translation.rs");
+
+    for required in [
+        "UiInputEvent::Keyboard(UiKeyboardInputEvent",
+        "UiInputEvent::Text(UiTextInputEvent",
+        "UiInputEvent::Ime(UiImeInputEvent",
+        "UiInputEvent::Pointer(UiPointerInputEvent",
+        "UiPreciseScrollDelta::pixels",
+        "UiPreciseScrollDelta::lines",
+    ] {
+        assert!(
+            native_translation_source.contains(required),
+            "expected native_input_translation.rs to translate host input through shared `{required}`"
+        );
+    }
+    for required_export in [
+        "native_keyboard_event_to_shared_input",
+        "native_ime_event_to_shared_input",
+        "native_mouse_wheel_event_to_shared_input",
+    ] {
+        assert!(
+            host_contract_mod_source.contains(required_export),
+            "expected host_contract/mod.rs to expose `{required_export}` for editor host input"
+        );
+    }
+    assert!(
+        native_translation_tests.exists(),
+        "expected editor host shared input translation tests at {:?}",
+        native_translation_tests
+    );
+
+    for path in collect_rust_files(&slint_host_root) {
+        let source = std::fs::read_to_string(&path).expect("slint host source");
+        for forbidden in [
+            "HostDispatchReply",
+            "HostDispatchEffect",
+            "EditorDispatchReply",
+            "EditorDispatchEffect",
+            "SlintDispatchReply",
+            "SlintDispatchEffect",
+            "PrivateDispatchReply",
+            "PrivateDispatchEffect",
+            "HostInputEffect",
+            "EditorInputEffect",
+            "SlintInputEffect",
+        ] {
+            assert!(
+                !source.contains(forbidden),
+                "expected {:?} to avoid host-private event side effect type `{forbidden}`; use zircon_runtime_interface::ui::dispatch reply/effect DTOs instead",
+                path.file_name().expect("file name")
+            );
+        }
+    }
+}

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ui::workbench::autolayout::{PaneConstraintOverride, ShellRegionId};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
+use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 use super::{
     ActivityDrawerLayout, ActivityDrawerSlot, ActivityWindowHostMode, ActivityWindowId,
@@ -17,6 +18,8 @@ pub struct ActivityWindowLayout {
     pub host_mode: ActivityWindowHostMode,
     pub activity_drawers: BTreeMap<ActivityDrawerSlot, ActivityDrawerLayout>,
     pub content_workspace: DocumentNode,
+    #[serde(default)]
+    pub menu_overflow_mode: MenuOverflowMode,
     #[serde(default)]
     pub region_overrides: BTreeMap<ShellRegionId, PaneConstraintOverride>,
     #[serde(default)]

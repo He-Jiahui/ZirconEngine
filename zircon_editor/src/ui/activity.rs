@@ -5,10 +5,10 @@ use zircon_runtime_interface::ui::event_ui::UiNodePath;
 pub enum ActivityDrawerSlotPreference {
     LeftTop,
     LeftBottom,
+    #[serde(alias = "BottomLeft", alias = "BottomRight")]
+    Bottom,
     RightTop,
     RightBottom,
-    BottomLeft,
-    BottomRight,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

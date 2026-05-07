@@ -1,13 +1,22 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+use crate::ui::{layout::UiFrame, tree::UiDirtyFlags};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum UiPointerDispatchEffect {
     #[default]
     Unhandled,
     Handled,
     Blocked,
     Passthrough,
-    Captured,
+    CapturePointer,
+    ReleasePointerCapture,
+    SetFocus {
+        focus_visible: bool,
+    },
+    ClearFocus,
+    RequestDirty(UiDirtyFlags),
+    RequestDamage(UiFrame),
 }
 
 impl UiPointerDispatchEffect {
@@ -24,6 +33,26 @@ impl UiPointerDispatchEffect {
     }
 
     pub const fn capture() -> Self {
-        Self::Captured
+        Self::CapturePointer
+    }
+
+    pub const fn release_capture() -> Self {
+        Self::ReleasePointerCapture
+    }
+
+    pub const fn set_focus(focus_visible: bool) -> Self {
+        Self::SetFocus { focus_visible }
+    }
+
+    pub const fn clear_focus() -> Self {
+        Self::ClearFocus
+    }
+
+    pub const fn request_dirty(flags: UiDirtyFlags) -> Self {
+        Self::RequestDirty(flags)
+    }
+
+    pub const fn request_damage(frame: UiFrame) -> Self {
+        Self::RequestDamage(frame)
     }
 }

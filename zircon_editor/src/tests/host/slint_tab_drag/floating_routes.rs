@@ -62,17 +62,10 @@ fn resolve_host_tab_drop_route_accepts_floating_window_group_fallback_key() {
             Some("editor.prefab#float"),
         )],
     );
-    let geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-
     assert_eq!(
         resolve_host_tab_drop_route(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.console#1",
             None,
@@ -154,15 +147,6 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
             Some("editor.prefab#float"),
         )],
     );
-    let mut geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-    geometry.floating_window_frames.insert(
-        floating_window_id.clone(),
-        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
-    );
     let floating_windows = vec![floating_window(
         floating_window_id.clone(),
         "Preview Popout",
@@ -172,17 +156,14 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &floating_windows,
-        &[],
     );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(600.0, 300.0));
     let from_pointer = resolve_host_tab_drop_route(
         &layout,
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         "editor.console#1",
         pointer_route,
@@ -194,7 +175,6 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
     let from_group_key = resolve_host_tab_drop_route(
         &layout,
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         "editor.console#1",
         None,
@@ -277,17 +257,10 @@ fn resolve_host_tab_drop_route_accepts_floating_window_edge_fallback_key() {
             Some("editor.prefab#float"),
         )],
     );
-    let geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-
     assert_eq!(
         resolve_host_tab_drop_route(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.console#1",
             None,

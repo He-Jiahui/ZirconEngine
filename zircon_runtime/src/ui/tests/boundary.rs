@@ -1011,10 +1011,11 @@ fn runtime_fixture_assets_live_under_crate_assets() {
     let actual_files = collect_ui_toml_files(&fixture_root);
 
     let expected_files = vec![
-        PathBuf::from("assets/ui/runtime/fixtures/hud_overlay.ui.toml"),
-        PathBuf::from("assets/ui/runtime/fixtures/inventory_list.ui.toml"),
-        PathBuf::from("assets/ui/runtime/fixtures/pause_menu.ui.toml"),
-        PathBuf::from("assets/ui/runtime/fixtures/settings_dialog.ui.toml"),
+        "assets/ui/runtime/fixtures/hud_overlay.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/inventory_list.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/pause_menu.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/quest_log_dialog.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/settings_dialog.ui.toml".to_string(),
     ];
 
     assert_eq!(
@@ -1100,14 +1101,21 @@ fn collect_ui_toml_files_inner(root: &Path, files: &mut Vec<PathBuf>) {
     }
 }
 
-fn rel_paths(paths: &[PathBuf], base: &Path) -> Vec<PathBuf> {
-    paths.iter().map(|path| relative_path(path, base)).collect()
+fn rel_paths(paths: &[PathBuf], base: &Path) -> Vec<String> {
+    paths
+        .iter()
+        .map(|path| {
+            relative_path(path, base)
+                .to_string_lossy()
+                .replace('\\', "/")
+        })
+        .collect()
 }
 
 fn format_paths(paths: &[PathBuf], base: &Path) -> String {
     rel_paths(paths, base)
         .into_iter()
-        .map(|path| path.display().to_string())
+        .map(|path| path.to_string())
         .collect::<Vec<_>>()
         .join(", ")
 }

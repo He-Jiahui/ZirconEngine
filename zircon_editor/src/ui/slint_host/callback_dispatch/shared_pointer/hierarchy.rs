@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
     hierarchy_pointer::{HierarchyPointerBridge, HierarchyPointerDispatch, HierarchyPointerRoute},
 };
 
@@ -11,7 +11,7 @@ use super::super::dispatch_hierarchy_selection;
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedHierarchyPointerClickDispatch {
     pub pointer: HierarchyPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_hierarchy_pointer_click(

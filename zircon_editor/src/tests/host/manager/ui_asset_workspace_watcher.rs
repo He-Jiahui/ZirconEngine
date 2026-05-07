@@ -86,6 +86,7 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
     assert!(pane.has_external_conflict);
     assert!(pane.can_reload_from_disk);
     assert!(pane.can_keep_local_and_save);
+    assert!(pane.can_save_local_copy);
 
     let snapshot = manager
         .open_ui_asset_editor_diff_snapshot(&instance_id)
@@ -94,6 +95,115 @@ fn editor_manager_marks_dirty_ui_asset_session_conflicted_without_overwriting_lo
     assert!(snapshot.local_source.contains("Local"));
     assert!(snapshot.external_source.contains("External"));
     assert_ne!(snapshot.local_hash, snapshot.external_hash);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_saves_dirty_conflict_local_source_as_copy_without_resolving_conflict() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_hot_reload_save_copy");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_file").join("test.ui.toml");
+    let copy_path =
+        unique_temp_dir("zircon_editor_asset_hot_reload_save_copy_output").join("copy.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+
+    let manager = manager_for(&path);
+    let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
+    manager
+        .update_ui_asset_editor_source(
+            &instance_id,
+            SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Local Copy"),
+        )
+        .unwrap();
+    write_ui_asset(
+        &ui_asset_path,
+        &SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "External Copy"),
+    );
+    manager
+        .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
+        .unwrap();
+
+    let saved = manager
+        .save_ui_asset_editor_local_copy(&instance_id, &copy_path)
+        .expect("save local copy");
+    assert!(saved.contains("Local Copy"));
+    assert!(fs::read_to_string(&copy_path)
+        .unwrap()
+        .contains("Local Copy"));
+    assert!(fs::read_to_string(&ui_asset_path)
+        .unwrap()
+        .contains("External Copy"));
+    let adjacent_copy_path = manager
+        .save_ui_asset_editor_local_copy_next_to_source(&instance_id)
+        .expect("save adjacent local copy");
+    assert!(adjacent_copy_path
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .contains("local-copy"));
+    assert!(fs::read_to_string(&adjacent_copy_path)
+        .unwrap()
+        .contains("Local Copy"));
+
+    let pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap();
+    assert!(pane.has_external_conflict);
+    assert!(pane.source_dirty);
+    assert!(pane.can_reload_from_disk);
+    assert!(pane.can_keep_local_and_save);
+    assert!(pane.can_save_local_copy);
+    assert!(pane.can_open_diff_snapshot);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
+    let _ = fs::remove_dir_all(copy_path.parent().unwrap());
+}
+
+#[test]
+fn editor_manager_emergency_shell_reverts_invalid_ui_asset_source_to_last_valid() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_asset_emergency_revert");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_asset_emergency_revert_file").join("test.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    write_ui_asset(&ui_asset_path, SIMPLE_UI_LAYOUT_ASSET);
+
+    let manager = manager_for(&path);
+    let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
+    let edited = SIMPLE_UI_LAYOUT_ASSET.replace("Ready", "Edited");
+    manager
+        .update_ui_asset_editor_source(&instance_id, edited.clone())
+        .unwrap();
+    manager
+        .update_ui_asset_editor_source(&instance_id, "not valid toml".to_string())
+        .unwrap();
+
+    let emergency = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap();
+    assert_eq!(emergency.shell_state, "Emergency");
+    assert!(emergency.source_text.contains("not valid toml"));
+    assert!(emergency.can_emergency_reload);
+    assert!(emergency.can_emergency_revert);
+    assert!(emergency.can_emergency_open_asset_browser);
+
+    assert!(manager
+        .revert_ui_asset_editor_to_last_valid(&instance_id)
+        .expect("revert emergency source"));
+    let recovered = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap();
+    assert_eq!(recovered.shell_state, "Valid");
+    assert!(recovered.source_text.contains("Edited"));
+    assert!(!recovered.source_text.contains("not valid toml"));
+    assert!(!recovered.can_emergency_revert);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);

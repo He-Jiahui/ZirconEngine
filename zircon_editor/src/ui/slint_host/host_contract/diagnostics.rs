@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 pub(crate) const STARTUP_REFRESH_DIAGNOSTICS_OVERLAY: &str =
-    "FPS 0.0 | present 0 | full 0 | region 0";
+    "FPS 0.0 | present 0 | full 0 | region 0 | pixels 0 | slow 0 | render 0 | paint-only 0";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) struct HostInvalidationDiagnostics {
@@ -157,5 +157,17 @@ mod tests {
         assert!(text.contains("slow 2"));
         assert!(text.contains("render 3"));
         assert!(text.contains("paint-only 4"));
+    }
+
+    #[test]
+    fn startup_overlay_matches_live_overlay_field_shape() {
+        assert_eq!(
+            HostRefreshDiagnostics::default().overlay_text(),
+            STARTUP_REFRESH_DIAGNOSTICS_OVERLAY
+        );
+        assert!(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.contains("pixels 0"));
+        assert!(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.contains("slow 0"));
+        assert!(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.contains("render 0"));
+        assert!(STARTUP_REFRESH_DIAGNOSTICS_OVERLAY.contains("paint-only 0"));
     }
 }

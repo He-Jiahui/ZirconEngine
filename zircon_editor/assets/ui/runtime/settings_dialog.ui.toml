@@ -8,7 +8,7 @@ display_name = "Settings Dialog"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -17,7 +17,7 @@ node_id = "settings_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "SettingsDialogRoot"
-classes = []
+classes = ["material-runtime-dialog"]
 bindings = []
 
 [root.params]
@@ -46,7 +46,7 @@ node_id = "backdrop"
 kind = "native"
 type = "Canvas"
 control_id = "SettingsBackdrop"
-classes = []
+classes = ["material-runtime-backdrop"]
 bindings = []
 children = []
 
@@ -92,7 +92,7 @@ node_id = "dialog_panel"
 kind = "native"
 type = "VerticalBox"
 control_id = "SettingsDialogPanel"
-classes = ["dialog-panel"]
+classes = ["dialog-panel", "material-runtime-dialog"]
 bindings = []
 
 [root.children.node.params]
@@ -127,7 +127,7 @@ node_id = "title"
 kind = "native"
 type = "Label"
 control_id = "SettingsTitle"
-classes = []
+classes = ["material-title"]
 bindings = []
 children = []
 
@@ -149,7 +149,7 @@ node_id = "graphics_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "GraphicsRow"
-classes = []
+classes = ["material-meta"]
 bindings = []
 
 [root.children.node.children.node.params]
@@ -179,7 +179,7 @@ node_id = "graphics_label"
 kind = "native"
 type = "Label"
 control_id = "GraphicsLabel"
-classes = []
+classes = ["material-body"]
 bindings = []
 children = []
 
@@ -201,7 +201,7 @@ node_id = "graphics_value"
 kind = "native"
 type = "Label"
 control_id = "GraphicsValue"
-classes = []
+classes = ["material-meta"]
 bindings = []
 children = []
 
@@ -223,7 +223,7 @@ node_id = "audio_row"
 kind = "native"
 type = "HorizontalBox"
 control_id = "AudioRow"
-classes = []
+classes = ["material-body"]
 bindings = []
 
 [root.children.node.children.node.params]
@@ -253,7 +253,7 @@ node_id = "audio_label"
 kind = "native"
 type = "Label"
 control_id = "AudioLabel"
-classes = []
+classes = ["material-body"]
 bindings = []
 children = []
 
@@ -275,7 +275,7 @@ node_id = "audio_value"
 kind = "native"
 type = "Label"
 control_id = "AudioValue"
-classes = []
+classes = ["material-meta"]
 bindings = []
 children = []
 
@@ -324,7 +324,7 @@ node_id = "apply_button"
 kind = "native"
 type = "Button"
 control_id = "ApplySettings"
-classes = []
+classes = ["material-control", "material-button", "material-button-primary"]
 bindings = []
 children = []
 
@@ -332,6 +332,19 @@ children = []
 
 [root.children.node.children.node.children.node.props]
 text = "Apply"
+font_size = 12.0
+surface_variant = "accent"
+button_variant = "primary"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
@@ -346,7 +359,7 @@ node_id = "close_button"
 kind = "native"
 type = "Button"
 control_id = "CloseSettings"
-classes = []
+classes = ["material-control", "material-button"]
 bindings = []
 children = []
 
@@ -354,6 +367,18 @@ children = []
 
 [root.children.node.children.node.children.node.props]
 text = "Close"
+font_size = 12.0
+surface_variant = "inset"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 

@@ -6,7 +6,7 @@ display_name = "Quest Log Dialog"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -15,7 +15,7 @@ node_id = "quest_log_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "QuestLogDialogRoot"
-classes = []
+classes = ["material-runtime-dialog"]
 bindings = []
 
 [root.params]
@@ -44,7 +44,7 @@ node_id = "backdrop"
 kind = "native"
 type = "Label"
 control_id = "QuestLogBackdrop"
-classes = ["dialog-backdrop"]
+classes = ["dialog-backdrop", "material-runtime-backdrop"]
 bindings = []
 children = []
 
@@ -66,7 +66,7 @@ node_id = "dialog_panel"
 kind = "native"
 type = "VerticalBox"
 control_id = "QuestLogPanel"
-classes = ["dialog-panel"]
+classes = ["dialog-panel", "material-runtime-dialog"]
 bindings = []
 
 [root.children.node.params]
@@ -102,7 +102,7 @@ node_id = "title_label"
 kind = "native"
 type = "Label"
 control_id = "QuestLogTitle"
-classes = ["dialog-title"]
+classes = ["dialog-title", "material-title"]
 bindings = []
 children = []
 
@@ -124,7 +124,7 @@ node_id = "quest_rows"
 kind = "native"
 type = "VerticalBox"
 control_id = "QuestRows"
-classes = ["dialog-body"]
+classes = ["dialog-body", "material-body"]
 bindings = []
 
 [root.children.node.children.node.params]
@@ -154,7 +154,7 @@ node_id = "quest_primary"
 kind = "native"
 type = "Label"
 control_id = "QuestPrimary"
-classes = ["dialog-body"]
+classes = ["dialog-body", "material-body"]
 bindings = []
 children = []
 
@@ -176,7 +176,7 @@ node_id = "quest_secondary"
 kind = "native"
 type = "Label"
 control_id = "QuestSecondary"
-classes = ["dialog-meta"]
+classes = ["dialog-meta", "material-meta"]
 bindings = []
 children = []
 
@@ -226,16 +226,32 @@ kind = "native"
 type = "Button"
 control_id = "TrackQuest"
 classes = [
+    "material-control",
+    "material-button",
+    "material-button-primary",
     "dialog-button",
     "dialog-button-primary",
 ]
-bindings = []
+bindings = [{ id = "QuestLog/Track", event = "Click", route = "RuntimeAction.TrackQuest" }]
 children = []
 
 [root.children.node.children.node.children.node.params]
 
 [root.children.node.children.node.children.node.props]
 text = "Track"
+font_size = 12.0
+surface_variant = "accent"
+button_variant = "primary"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
@@ -250,14 +266,26 @@ node_id = "close_button"
 kind = "native"
 type = "Button"
 control_id = "CloseQuestLog"
-classes = ["dialog-button"]
-bindings = []
+classes = ["material-control", "material-button", "dialog-button"]
+bindings = [{ id = "QuestLog/Close", event = "Click", route = "RuntimeAction.CloseQuestLog" }]
 children = []
 
 [root.children.node.children.node.children.node.params]
 
 [root.children.node.children.node.children.node.props]
 text = "Close"
+font_size = 12.0
+surface_variant = "inset"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
@@ -272,7 +300,7 @@ id = "quest_log_dialog"
 selector = ".dialog-backdrop"
 
 [stylesheets.rules.set.self.background]
-color = "#0b1020"
+color = "#0b1020cc"
 
 [stylesheets.rules.set.slot]
 
@@ -280,7 +308,7 @@ color = "#0b1020"
 selector = ".dialog-panel"
 
 [stylesheets.rules.set.self.background]
-color = "#182132"
+color = "$material_popup"
 
 [stylesheets.rules.set.slot]
 
@@ -288,7 +316,7 @@ color = "#182132"
 selector = ".dialog-title"
 
 [stylesheets.rules.set.self]
-text = "#f4f7ff"
+foreground = "$material_text"
 
 [stylesheets.rules.set.slot]
 
@@ -296,7 +324,7 @@ text = "#f4f7ff"
 selector = ".dialog-meta"
 
 [stylesheets.rules.set.self]
-text = "#95a8c9"
+foreground = "$material_text_muted"
 
 [stylesheets.rules.set.slot]
 
@@ -304,7 +332,7 @@ text = "#95a8c9"
 selector = ".dialog-body"
 
 [stylesheets.rules.set.self]
-text = "#d7e0f2"
+foreground = "$material_text"
 
 [stylesheets.rules.set.slot]
 
@@ -312,10 +340,10 @@ text = "#d7e0f2"
 selector = "Button.dialog-button"
 
 [stylesheets.rules.set.self]
-text = "#e1e9f7"
+foreground = "$material_text"
 
 [stylesheets.rules.set.self.background]
-color = "#24324b"
+color = "$material_surface_inset"
 
 [stylesheets.rules.set.slot]
 
@@ -323,6 +351,6 @@ color = "#24324b"
 selector = "Button.dialog-button-primary"
 
 [stylesheets.rules.set.self.background]
-color = "#2f5fb8"
+color = "$material_accent"
 
 [stylesheets.rules.set.slot]

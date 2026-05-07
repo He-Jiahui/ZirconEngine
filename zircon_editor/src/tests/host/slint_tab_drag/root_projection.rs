@@ -2,7 +2,7 @@ use super::support::*;
 
 #[test]
 fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
-    let geometry = WorkbenchShellGeometry {
+    let _geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 830.0),
@@ -26,13 +26,19 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
         floating_window_frames: BTreeMap::new(),
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
+    let root_projection = BuiltinHostRootShellFrames {
+        host_body_frame: Some(UiFrame::new(0.0, 50.0, 1440.0, 830.0)),
+        document_host_frame: Some(UiFrame::new(0.0, 50.0, 1440.0, 738.0)),
+        status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
+        ..BuiltinHostRootShellFrames::default()
+    };
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout_with_floating_windows(
+    bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &[],
-        &[],
+        Some(&root_projection),
+        None,
     );
 
     assert_eq!(
@@ -48,7 +54,7 @@ fn shared_shell_pointer_route_reports_document_edge_before_document_group() {
 #[test]
 fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed(
 ) {
-    let geometry = WorkbenchShellGeometry {
+    let _geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
@@ -81,7 +87,6 @@ fn shared_shell_pointer_route_uses_shared_root_projection_document_bounds_when_d
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 720.0),
-        &geometry,
         false,
         &[],
         Some(&root_projection),
@@ -164,20 +169,20 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
         Vec::new(),
         Vec::new(),
     );
-    let geometry = shell_geometry(
+    let _legacy_geometry = shell_geometry(
         ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
         ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
         ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
     );
     let root_projection = BuiltinHostRootShellFrames {
         host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        right_drawer_shell_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
         ..BuiltinHostRootShellFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         true,
         &[],
         Some(&root_projection),
@@ -194,7 +199,6 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_tab_strip_when_drawer
         resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
             pointer_route,
@@ -277,7 +281,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
         Vec::new(),
         Vec::new(),
     );
-    let geometry = WorkbenchShellGeometry {
+    let _legacy_geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 830.0),
@@ -304,13 +308,13 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
     let root_projection = BuiltinHostRootShellFrames {
         shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
         host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        right_drawer_shell_frame: Some(UiFrame::new(1120.0, 40.0, 320.0, 840.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
         ..BuiltinHostRootShellFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         true,
         &[],
         Some(&root_projection),
@@ -328,7 +332,6 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_right_tab_strip_when_
         resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
             pointer_route,
@@ -357,58 +360,38 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
     let layout = WorkbenchLayout {
         active_main_page: MainPageId::workbench(),
         main_pages: vec![workbench_page(MainPageId::workbench())],
-        drawers: BTreeMap::from([
-            (
-                ActivityDrawerSlot::BottomLeft,
-                drawer(
-                    ActivityDrawerSlot::BottomLeft,
-                    &["editor.console#1"],
-                    Some("editor.console#1"),
-                    ActivityDrawerMode::Pinned,
-                    true,
-                ),
+        drawers: BTreeMap::from([(
+            ActivityDrawerSlot::Bottom,
+            drawer(
+                ActivityDrawerSlot::Bottom,
+                &["editor.console#1", "editor.project#1"],
+                Some("editor.console#1"),
+                ActivityDrawerMode::Pinned,
+                true,
             ),
-            (
-                ActivityDrawerSlot::BottomRight,
-                drawer(
-                    ActivityDrawerSlot::BottomRight,
-                    &["editor.project#1"],
-                    Some("editor.project#1"),
-                    ActivityDrawerMode::Pinned,
-                    true,
-                ),
-            ),
-        ]),
+        )]),
         activity_windows: Default::default(),
         floating_windows: Vec::new(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };
     let model = workbench_model(
-        BTreeMap::from([
-            (
-                ActivityDrawerSlot::BottomLeft,
-                tool_window_stack(
-                    ActivityDrawerSlot::BottomLeft,
-                    &[pane_tab("editor.console#1", "Console", true)],
-                    Some("editor.console#1"),
-                    true,
-                ),
+        BTreeMap::from([(
+            ActivityDrawerSlot::Bottom,
+            tool_window_stack(
+                ActivityDrawerSlot::Bottom,
+                &[
+                    pane_tab("editor.console#1", "Console", true),
+                    pane_tab("editor.project#1", "Project", false),
+                ],
+                Some("editor.console#1"),
+                true,
             ),
-            (
-                ActivityDrawerSlot::BottomRight,
-                tool_window_stack(
-                    ActivityDrawerSlot::BottomRight,
-                    &[pane_tab("editor.project#1", "Project", false)],
-                    Some("editor.project#1"),
-                    true,
-                ),
-            ),
-        ]),
+        )]),
         Vec::new(),
         Vec::new(),
     );
-    let geometry = WorkbenchShellGeometry {
+    let _legacy_geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 830.0),
@@ -432,13 +415,13 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
     let root_projection = BuiltinHostRootShellFrames {
         shell_frame: Some(UiFrame::new(0.0, 0.0, 1440.0, 900.0)),
         host_body_frame: Some(UiFrame::new(0.0, 40.0, 1440.0, 840.0)),
+        bottom_drawer_shell_frame: Some(UiFrame::new(0.0, 788.0, 1440.0, 92.0)),
         status_bar_frame: Some(UiFrame::new(0.0, 880.0, 1440.0, 20.0)),
         ..BuiltinHostRootShellFrames::default()
     };
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         true,
         &[],
         Some(&root_projection),
@@ -453,7 +436,6 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
         resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
             pointer_route,
@@ -466,7 +448,7 @@ fn resolve_host_tab_drop_route_uses_shared_root_projection_bottom_tab_strip_when
             target_group: HostDragTargetGroup::Bottom,
             target_label: "bottom tool stack",
             target: ResolvedHostTabDropTarget::Attach(ResolvedTabDrop {
-                host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
+                host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
                 anchor: Some(TabInsertionAnchor {
                     target_id: ViewInstanceId::new("editor.project#1"),
                     side: TabInsertionSide::Before,

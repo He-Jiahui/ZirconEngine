@@ -5,7 +5,6 @@ use std::io::ErrorKind;
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use super::super::project_access::normalize_ui_asset_asset_id;
-#[cfg(test)]
 use super::UiAssetDiffSnapshot;
 use super::{
     preview_size_for_preset, ui_asset_source_hash, UiAssetExternalConflict,
@@ -70,7 +69,6 @@ impl EditorUiHost {
         self.save_ui_asset_editor(instance_id)
     }
 
-    #[cfg(test)]
     pub fn open_ui_asset_editor_diff_snapshot(
         &self,
         instance_id: &ViewInstanceId,
@@ -84,6 +82,28 @@ impl EditorUiHost {
             entry.diff_snapshot = entry.conflict.as_ref().map(UiAssetDiffSnapshot::from);
         }
         Ok(entry.diff_snapshot.clone())
+    }
+
+    pub fn revert_ui_asset_editor_to_last_valid(
+        &self,
+        instance_id: &ViewInstanceId,
+    ) -> Result<bool, EditorError> {
+        self.ensure_ui_asset_editor_session(instance_id)?;
+        let changed = {
+            let mut sessions = self.lock_ui_asset_sessions();
+            let entry = sessions.get_mut(instance_id).ok_or_else(|| {
+                EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
+            })?;
+            entry
+                .session
+                .revert_source_to_last_valid()
+                .map_err(|error| EditorError::UiAsset(error.to_string()))?
+        };
+        if changed {
+            self.hydrate_ui_asset_editor_imports(instance_id)?;
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
+        Ok(changed)
     }
 
     fn apply_ui_asset_workspace_changes(

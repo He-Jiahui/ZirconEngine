@@ -23,11 +23,8 @@ pub(crate) fn drop_host_for_group(
         ))),
         "bottom" => Some(ViewHost::Drawer(preferred_drawer_slot(
             layout,
-            &[
-                ActivityDrawerSlot::BottomLeft,
-                ActivityDrawerSlot::BottomRight,
-            ],
-            ActivityDrawerSlot::BottomLeft,
+            &[ActivityDrawerSlot::Bottom],
+            ActivityDrawerSlot::Bottom,
         ))),
         "document" => {
             preferred_document_page(layout).map(|page_id| ViewHost::Document(page_id, Vec::new()))
@@ -89,35 +86,32 @@ fn preferred_drawer_slot(
     slots: &[ActivityDrawerSlot],
     fallback: ActivityDrawerSlot,
 ) -> ActivityDrawerSlot {
+    let active_drawers = layout.active_activity_window_drawers();
     slots
         .iter()
         .copied()
         .find(|slot| {
-            layout
-                .drawers
+            active_drawers
                 .get(slot)
                 .is_some_and(|drawer| drawer.visible && drawer.active_view.is_some())
         })
         .or_else(|| {
             slots.iter().copied().find(|slot| {
-                layout
-                    .drawers
+                active_drawers
                     .get(slot)
                     .is_some_and(|drawer| drawer.visible && drawer.tab_stack.active_tab.is_some())
             })
         })
         .or_else(|| {
             slots.iter().copied().find(|slot| {
-                layout
-                    .drawers
+                active_drawers
                     .get(slot)
                     .is_some_and(|drawer| drawer.visible && !drawer.tab_stack.tabs.is_empty())
             })
         })
         .or_else(|| {
             slots.iter().copied().find(|slot| {
-                layout
-                    .drawers
+                active_drawers
                     .get(slot)
                     .is_some_and(|drawer| drawer.visible)
             })
@@ -151,9 +145,9 @@ fn preferred_workspace_path(node: &DocumentNode) -> Option<Vec<usize>> {
 }
 
 fn find_instance_host(layout: &WorkbenchLayout, instance_id: &ViewInstanceId) -> Option<ViewHost> {
-    for (slot, drawer) in &layout.drawers {
+    for (slot, drawer) in layout.active_activity_window_drawers() {
         if drawer.tab_stack.tabs.contains(instance_id) {
-            return Some(ViewHost::Drawer(*slot));
+            return Some(ViewHost::Drawer(slot));
         }
     }
 
@@ -223,9 +217,11 @@ fn host_group(host: &ViewHost) -> Option<&'static str> {
         ViewHost::Drawer(ActivityDrawerSlot::RightTop | ActivityDrawerSlot::RightBottom) => {
             Some("right")
         }
-        ViewHost::Drawer(ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight) => {
-            Some("bottom")
-        }
+        ViewHost::Drawer(
+            ActivityDrawerSlot::Bottom
+            | ActivityDrawerSlot::BottomLeft
+            | ActivityDrawerSlot::BottomRight,
+        ) => Some("bottom"),
         ViewHost::Document(..) => Some("document"),
         ViewHost::FloatingWindow(..) | ViewHost::ExclusivePage(..) => None,
     }

@@ -28,3 +28,24 @@ fn editor_ui_control_service_registers_activity_descriptors() {
     assert!(service.activity_view("editor.hierarchy").is_some());
     assert!(service.activity_window("editor.prefab").is_some());
 }
+
+#[test]
+fn activity_drawer_slot_preference_exposes_single_bottom_dock_and_migrates_legacy_bottom_slots() {
+    let descriptor = ActivityViewDescriptor::new("editor.console", "Console", "terminal")
+        .with_default_drawer(ActivityDrawerSlotPreference::Bottom);
+
+    assert_eq!(
+        serde_json::to_string(&descriptor.default_drawer).unwrap(),
+        r#""Bottom""#,
+        "external activity descriptors should expose one Bottom drawer position"
+    );
+
+    for legacy in [r#""BottomLeft""#, r#""BottomRight""#] {
+        let decoded: ActivityDrawerSlotPreference = serde_json::from_str(legacy).unwrap();
+        assert_eq!(
+            decoded,
+            ActivityDrawerSlotPreference::Bottom,
+            "legacy serialized bottom drawer slots should migrate to Bottom"
+        );
+    }
+}

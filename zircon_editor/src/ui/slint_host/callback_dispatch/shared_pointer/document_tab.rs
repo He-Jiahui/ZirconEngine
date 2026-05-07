@@ -5,7 +5,7 @@ use crate::ui::slint_host::{
     document_tab_pointer::{
         HostDocumentTabPointerBridge, HostDocumentTabPointerDispatch, HostDocumentTabPointerRoute,
     },
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
 };
 use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
@@ -18,7 +18,7 @@ use super::super::{
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDocumentTabPointerClickDispatch {
     pub pointer: HostDocumentTabPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_document_tab_pointer_click(

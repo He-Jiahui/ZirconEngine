@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects, viewport_toolbar_pointer::ViewportToolbarPointerRoute,
+    event_bridge::UiHostEventEffects, viewport_toolbar_pointer::ViewportToolbarPointerRoute,
 };
 
 use super::super::BuiltinViewportToolbarTemplateBridge;
@@ -16,7 +16,7 @@ pub(crate) fn dispatch_viewport_toolbar_pointer_route(
     runtime: &EditorEventRuntime,
     bridge: &BuiltinViewportToolbarTemplateBridge,
     route: &ViewportToolbarPointerRoute,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let settings = runtime.chrome_snapshot().scene_viewport_settings;
     let (control_id, event_kind, arguments) = match route {
         ViewportToolbarPointerRoute::SetTool { tool, .. } => (

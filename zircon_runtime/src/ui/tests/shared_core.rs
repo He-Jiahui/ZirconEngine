@@ -8,6 +8,7 @@ use crate::ui::{
     },
 };
 use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
     component::{UiValue, UiValueKind},
     dispatch::{UiNavigationDispatchEffect, UiPointerDispatchEffect, UiPointerEvent},
     event_ui::{UiNodeId, UiNodePath, UiReflectedPropertySource, UiStateFlags, UiTreeId},
@@ -15,13 +16,14 @@ use zircon_runtime_interface::ui::{
         Anchor, AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, Pivot, Position,
         StretchMode, UiAxis, UiContainerKind, UiFrame, UiPoint, UiScrollState,
         UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
-        UiVirtualListWindow,
+        UiVirtualListWindow, UiWrapBoxConfig,
     },
     surface::{
         UiFocusState, UiNavigationEventKind, UiPointerButton, UiPointerEventKind,
         UiRenderCommandKind, UiResolvedStyle, UiTextAlign, UiTextRenderMode, UiTextWrap,
         UiVisualAssetRef,
     },
+    template::UiBindingRef,
     tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTree, UiTreeNode, UiVisibility},
 };
 
@@ -498,7 +500,7 @@ radius = 6.0
 }
 
 #[test]
-fn render_extract_uses_label_when_schema_text_default_is_empty() {
+fn render_extract_uses_label_when_schema_text_default_is_placeholder() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
     surface.tree.insert_root(
         UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
@@ -536,7 +538,7 @@ fn render_extract_uses_label_when_schema_text_default_is_empty() {
                     classes: Vec::new(),
                     attributes: toml::from_str(
                         r#"
-text = ""
+text = "Button"
 label = "Locate In Assets"
 "#,
                     )
@@ -860,6 +862,227 @@ fn vertical_box_resolves_main_axis_stretch_and_cross_axis_fill() {
             .layout_cache
             .frame,
         UiFrame::new(0.0, 76.0, 120.0, 124.0)
+    );
+}
+
+#[test]
+fn wrap_box_arranges_children_into_rows_by_available_width() {
+    let container = UiContainerKind::WrapBox(UiWrapBoxConfig {
+        horizontal_gap: 8.0,
+        vertical_gap: 6.0,
+        item_min_width: 50.0,
+    });
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(container)
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: stretch_constraint(0.0, 0.0, 100, 1.0),
+                height: stretch_constraint(0.0, 0.0, 100, 1.0),
+            }),
+    );
+    for (id, width, height) in [(2, 50.0, 20.0), (3, 50.0, 30.0), (4, 50.0, 24.0)] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
+                    .with_constraints(BoxConstraints {
+                        width: fixed_constraint(width),
+                        height: fixed_constraint(height),
+                    }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(120.0, 100.0)).unwrap();
+
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 0.0, 50.0, 20.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(3))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(58.0, 0.0, 50.0, 30.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(0.0, 36.0, 50.0, 24.0)
+    );
+}
+
+#[test]
+fn wrap_box_keeps_children_on_one_row_when_width_allows() {
+    let container: UiContainerKind = serde_json::from_str(
+        r#"{"WrapBox":{"horizontal_gap":8.0,"vertical_gap":6.0,"item_min_width":50.0}}"#,
+    )
+    .unwrap();
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(container)
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: stretch_constraint(0.0, 0.0, 100, 1.0),
+                height: stretch_constraint(0.0, 0.0, 100, 1.0),
+            }),
+    );
+    for id in 2..=4 {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
+                    .with_constraints(BoxConstraints {
+                        width: fixed_constraint(40.0),
+                        height: fixed_constraint(20.0),
+                    }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(180.0, 80.0)).unwrap();
+
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(4))
+            .unwrap()
+            .layout_cache
+            .frame,
+        UiFrame::new(116.0, 0.0, 50.0, 20.0)
+    );
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(1))
+            .unwrap()
+            .layout_cache
+            .content_size,
+        UiSize::new(166.0, 20.0)
+    );
+}
+
+#[test]
+fn wrap_box_content_size_tracks_wrapped_rows() {
+    let container = UiContainerKind::WrapBox(UiWrapBoxConfig {
+        horizontal_gap: 8.0,
+        vertical_gap: 6.0,
+        item_min_width: 50.0,
+    });
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(container)
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: AxisConstraint {
+                    min: 0.0,
+                    max: 120.0,
+                    preferred: 0.0,
+                    priority: 100,
+                    weight: 1.0,
+                    stretch_mode: StretchMode::Fixed,
+                },
+                height: stretch_constraint(0.0, 0.0, 100, 1.0),
+            }),
+    );
+    for (id, width, height) in [(2, 50.0, 20.0), (3, 50.0, 30.0), (4, 50.0, 24.0)] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
+                    .with_constraints(BoxConstraints {
+                        width: fixed_constraint(width),
+                        height: fixed_constraint(height),
+                    }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(120.0, 100.0)).unwrap();
+
+    let root = surface.tree.node(UiNodeId::new(1)).unwrap();
+    assert_eq!(root.layout_cache.content_size, UiSize::new(108.0, 60.0));
+    assert_eq!(
+        root.layout_cache.frame,
+        UiFrame::new(0.0, 0.0, 120.0, 100.0)
+    );
+}
+
+#[test]
+fn wrap_box_measurement_uses_width_bounds_before_root_arrange() {
+    let container = UiContainerKind::WrapBox(UiWrapBoxConfig {
+        horizontal_gap: 8.0,
+        vertical_gap: 6.0,
+        item_min_width: 50.0,
+    });
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(container)
+            .with_layout_boundary(LayoutBoundary::ContentDriven)
+            .with_constraints(BoxConstraints {
+                width: AxisConstraint {
+                    min: 0.0,
+                    max: 108.0,
+                    preferred: 0.0,
+                    priority: 100,
+                    weight: 1.0,
+                    stretch_mode: StretchMode::Fixed,
+                },
+                height: AxisConstraint {
+                    min: 0.0,
+                    max: 100.0,
+                    preferred: 0.0,
+                    priority: 100,
+                    weight: 1.0,
+                    stretch_mode: StretchMode::Fixed,
+                },
+            }),
+    );
+    for (id, width, height) in [(2, 50.0, 20.0), (3, 50.0, 30.0), (4, 50.0, 24.0)] {
+        surface
+            .tree
+            .insert_child(
+                UiNodeId::new(1),
+                UiTreeNode::new(UiNodeId::new(id), UiNodePath::new(format!("root/{id}")))
+                    .with_constraints(BoxConstraints {
+                        width: fixed_constraint(width),
+                        height: fixed_constraint(height),
+                    }),
+            )
+            .unwrap();
+    }
+
+    surface.compute_layout(UiSize::new(240.0, 160.0)).unwrap();
+
+    let root = surface.tree.node(UiNodeId::new(1)).unwrap();
+    assert_eq!(
+        root.layout_cache.desired_size,
+        DesiredSize::new(108.0, 60.0)
+    );
+    assert_eq!(root.layout_cache.content_size, UiSize::new(166.0, 30.0));
+    assert_eq!(
+        root.layout_cache.frame,
+        UiFrame::new(0.0, 0.0, 240.0, 160.0)
     );
 }
 
@@ -2445,6 +2668,103 @@ fn surface_property_mutation_marks_dirty_only_when_values_change() {
 }
 
 #[test]
+fn surface_property_mutation_restores_collapsed_visibility_with_layout_dirty() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_container(UiContainerKind::VerticalBox(Default::default()))
+            .with_layout_boundary(LayoutBoundary::ContentDriven),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/details"))
+                .with_visibility(UiVisibility::Collapsed)
+                .with_constraints(BoxConstraints {
+                    width: fixed_constraint(120.0),
+                    height: fixed_constraint(32.0),
+                }),
+        )
+        .unwrap();
+    surface.compute_layout(UiSize::new(240.0, 120.0)).unwrap();
+    surface.clear_dirty_flags();
+
+    let report = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(2),
+            "visibility",
+            UiValue::Enum("visible".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+    assert!(report.invalidation.dirty.layout);
+    assert!(report.invalidation.dirty.hit_test);
+    assert!(report.invalidation.dirty.render);
+    assert!(report.invalidation.dirty.input);
+    assert!(surface.tree.node(UiNodeId::new(2)).unwrap().dirty.layout);
+
+    let rebuild = surface.rebuild_dirty(UiSize::new(240.0, 120.0)).unwrap();
+    assert!(rebuild.layout_recomputed);
+    assert_eq!(
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .layout_cache
+            .desired_size,
+        DesiredSize::new(120.0, 32.0)
+    );
+}
+
+#[test]
+fn surface_property_mutation_marks_material_layout_metadata_as_layout_dirty() {
+    let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
+    surface.tree.insert_root(
+        UiTreeNode::new(UiNodeId::new(1), UiNodePath::new("root"))
+            .with_frame(UiFrame::new(0.0, 0.0, 160.0, 80.0)),
+    );
+    surface
+        .tree
+        .insert_child(
+            UiNodeId::new(1),
+            UiTreeNode::new(UiNodeId::new(2), UiNodePath::new("root/apply"))
+                .with_frame(UiFrame::new(8.0, 8.0, 80.0, 24.0))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "Button".to_string(),
+                    control_id: Some("ApplyButton".to_string()),
+                    attributes: toml::from_str("layout_min_width = 80.0").unwrap(),
+                    ..Default::default()
+                }),
+        )
+        .unwrap();
+
+    let report = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            UiNodeId::new(2),
+            "layout_min_width",
+            UiValue::Float(120.0),
+        ))
+        .unwrap();
+
+    assert_eq!(report.status, UiPropertyMutationStatus::Accepted);
+    assert!(report.invalidation.dirty.layout);
+    assert!(report.invalidation.dirty.hit_test);
+    assert!(report.invalidation.dirty.render);
+
+    let snapshot = surface.reflector_snapshot(None);
+    let reflected = snapshot.node(UiNodeId::new(2)).expect("reflected button");
+    let property = reflected
+        .properties
+        .get("layout_min_width")
+        .expect("layout metadata property");
+    assert!(property.invalidation.dirty.layout);
+    assert!(property.invalidation.dirty.hit_test);
+    assert!(property.invalidation.dirty.render);
+}
+
+#[test]
 fn surface_property_mutation_updates_authored_metadata_and_reflector_snapshot() {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.reflector"));
     surface.tree.insert_root(
@@ -2463,6 +2783,13 @@ fn surface_property_mutation_updates_authored_metadata_and_reflector_snapshot() 
                     component: "Label".to_string(),
                     control_id: Some("TitleLabel".to_string()),
                     attributes: toml::from_str("text = 'Inspect'").unwrap(),
+                    bindings: vec![UiBindingRef {
+                        id: "Title/Activate".to_string(),
+                        event: UiEventKind::Click,
+                        route: Some("MenuAction.OpenProject".to_string()),
+                        action: None,
+                        targets: Vec::new(),
+                    }],
                     ..Default::default()
                 }),
         )
@@ -2493,6 +2820,14 @@ fn surface_property_mutation_updates_authored_metadata_and_reflector_snapshot() 
     assert_eq!(text.value_kind, UiValueKind::String);
     assert_eq!(text.resolved_value, UiValue::String("Reflect".to_string()));
     assert!(text.invalidation.dirty.layout);
+    assert_eq!(
+        reflected
+            .actions
+            .get("Title/Activate")
+            .expect("route-backed action")
+            .binding_symbol,
+        "MenuAction.OpenProject"
+    );
     assert_eq!(
         snapshot.hit_context.unwrap().hit_target,
         Some(UiNodeId::new(2))

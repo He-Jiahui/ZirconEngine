@@ -1,7 +1,9 @@
 use std::path::PathBuf;
 
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
-use zircon_runtime::diagnostic_log::write_diagnostic_log;
+use zircon_runtime::diagnostic_log::{
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+};
 
 pub(crate) const UI_HOST_WINDOW_DOCUMENT_ID: &str = "ui.host_window";
 pub(crate) const EDITOR_MAIN_FRAME_DOCUMENT_ID: &str = "editor.host.editor_main_frame";
@@ -142,16 +144,18 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 22] {
         ),
     ];
 
-    for (document_id, path) in &documents {
-        write_diagnostic_log(
-            "editor_builtin_templates",
-            format!(
-                "document id={} path={} exists={}",
-                document_id,
-                path.display(),
-                path.exists()
-            ),
-        );
+    if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+        for (document_id, path) in &documents {
+            write_diagnostic_log(
+                "editor_builtin_templates",
+                format!(
+                    "document id={} path={} exists={}",
+                    document_id,
+                    path.display(),
+                    path.exists()
+                ),
+            );
+        }
     }
 
     documents

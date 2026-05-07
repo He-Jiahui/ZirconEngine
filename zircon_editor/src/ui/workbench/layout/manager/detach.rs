@@ -1,6 +1,8 @@
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::{DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout};
+use super::super::{
+    ActivityDrawerMode, DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout,
+};
 
 impl LayoutManager {
     pub(crate) fn detach_instance(
@@ -16,13 +18,9 @@ impl LayoutManager {
                 if drawer.active_view.as_ref() == Some(instance_id) {
                     drawer.active_view = drawer.tab_stack.active_tab.clone();
                 }
-            }
-        }
-
-        for drawer in layout.drawers.values_mut() {
-            drawer.tab_stack.remove(instance_id);
-            if drawer.active_view.as_ref() == Some(instance_id) {
-                drawer.active_view = drawer.tab_stack.active_tab.clone();
+                if drawer.active_view.is_none() {
+                    drawer.mode = ActivityDrawerMode::Collapsed;
+                }
             }
         }
 

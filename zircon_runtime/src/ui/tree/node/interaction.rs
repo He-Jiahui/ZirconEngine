@@ -11,6 +11,7 @@ pub trait UiRuntimeTreeInteractionExt {
         &self,
         candidates: &[UiNodeId],
     ) -> Result<Option<UiNodeId>, UiTreeError>;
+    fn scrollable_candidates(&self, candidates: &[UiNodeId]) -> Result<Vec<UiNodeId>, UiTreeError>;
     fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError>;
 }
 
@@ -39,6 +40,11 @@ impl UiRuntimeTreeInteractionExt for UiTree {
         &self,
         candidates: &[UiNodeId],
     ) -> Result<Option<UiNodeId>, UiTreeError> {
+        Ok(self.scrollable_candidates(candidates)?.into_iter().next())
+    }
+
+    fn scrollable_candidates(&self, candidates: &[UiNodeId]) -> Result<Vec<UiNodeId>, UiTreeError> {
+        let mut scrollables = Vec::new();
         for node_id in candidates {
             let node = self
                 .nodes
@@ -48,10 +54,10 @@ impl UiRuntimeTreeInteractionExt for UiTree {
                 && node.state_flags.enabled
                 && node.is_render_visible()
             {
-                return Ok(Some(*node_id));
+                scrollables.push(*node_id);
             }
         }
-        Ok(None)
+        Ok(scrollables)
     }
 
     fn passes_clip_chain(&self, node_id: UiNodeId, point: UiPoint) -> Result<bool, UiTreeError> {

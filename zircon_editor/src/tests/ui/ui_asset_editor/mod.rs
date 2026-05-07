@@ -1,8 +1,11 @@
+mod action_localization_reports;
 mod binding_semantics;
 mod bootstrap_assets;
 mod contract_diagnostics;
 mod editor_layouts;
 mod palette_descriptor_registry;
 mod reflection;
+mod resource_dependency_view;
 mod runtime_previews;
+mod runtime_reports;
 mod support;

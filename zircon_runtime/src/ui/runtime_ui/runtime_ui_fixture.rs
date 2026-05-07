@@ -8,6 +8,7 @@ pub(crate) enum RuntimeUiFixture {
     PauseMenu,
     SettingsDialog,
     InventoryList,
+    QuestLogDialog,
 }
 
 impl RuntimeUiFixture {
@@ -17,6 +18,7 @@ impl RuntimeUiFixture {
             Self::PauseMenu => "runtime.ui.pause_menu",
             Self::SettingsDialog => "runtime.ui.settings_dialog",
             Self::InventoryList => "runtime.ui.inventory_list",
+            Self::QuestLogDialog => "runtime.ui.quest_log_dialog",
         }
     }
 
@@ -26,6 +28,7 @@ impl RuntimeUiFixture {
             Self::PauseMenu => Path::new("ui/runtime/fixtures/pause_menu.ui.toml"),
             Self::SettingsDialog => Path::new("ui/runtime/fixtures/settings_dialog.ui.toml"),
             Self::InventoryList => Path::new("ui/runtime/fixtures/inventory_list.ui.toml"),
+            Self::QuestLogDialog => Path::new("ui/runtime/fixtures/quest_log_dialog.ui.toml"),
         }
     }
 

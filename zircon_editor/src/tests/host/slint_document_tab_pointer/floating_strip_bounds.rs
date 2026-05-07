@@ -1,9 +1,7 @@
 use crate::ui::host::NativeWindowHostState;
 use crate::ui::slint_host::document_tab_pointer::build_host_document_tab_pointer_layout;
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, ShellFrame, ShellSizePx, WorkbenchChromeMetrics,
-};
+use crate::ui::workbench::autolayout::{ShellFrame, WorkbenchChromeMetrics};
 use crate::ui::workbench::fixture::default_preview_fixture;
 use crate::ui::workbench::layout::{
     DocumentNode, FloatingWindowLayout, MainPageId, TabStackLayout,
@@ -38,18 +36,9 @@ fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floa
 
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
-    let geometry = compute_workbench_shell_geometry(
-        &model,
-        &chrome,
-        &fixture.layout,
-        &fixture.descriptors,
-        ShellSizePx::new(1440.0, 900.0),
-        &WorkbenchChromeMetrics::default(),
-        None,
-    );
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &WorkbenchChromeMetrics::default(),
         &[NativeWindowHostState {
             window_id: window_id.clone(),
@@ -59,7 +48,6 @@ fn shared_document_tab_pointer_layout_prefers_native_window_host_bounds_for_floa
     );
     let layout = build_host_document_tab_pointer_layout(
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         None,
         &floating_window_projection_bundle,

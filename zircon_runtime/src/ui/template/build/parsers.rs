@@ -1,8 +1,9 @@
 use toml::Value;
 
 use zircon_runtime_interface::ui::layout::{
-    AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiContainerKind, UiLinearBoxConfig,
-    UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig,
+    AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiContainerKind, UiGridBoxConfig,
+    UiLinearBoxConfig, UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig,
+    UiWrapBoxConfig,
 };
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
@@ -90,6 +91,31 @@ pub(super) fn parse_container(
             )?
             .unwrap_or_default(),
             virtualization: parse_virtualization(table.get("virtualization"), node_path)?,
+        }),
+        "WrapBox" => UiContainerKind::WrapBox(UiWrapBoxConfig {
+            horizontal_gap: parse_f32(table.get("horizontal_gap")).unwrap_or(0.0),
+            vertical_gap: parse_f32(table.get("vertical_gap")).unwrap_or(0.0),
+            item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
+        }),
+        "FlowBox" => UiContainerKind::WrapBox(UiWrapBoxConfig {
+            horizontal_gap: parse_f32(table.get("horizontal_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0),
+            vertical_gap: parse_f32(table.get("vertical_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0),
+            item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
+        }),
+        "GridBox" => UiContainerKind::GridBox(UiGridBoxConfig {
+            columns: parse_usize(table.get("columns"), node_path, "container.columns")?
+                .unwrap_or(1),
+            rows: parse_usize(table.get("rows"), node_path, "container.rows")?.unwrap_or(1),
+            column_gap: parse_f32(table.get("column_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0),
+            row_gap: parse_f32(table.get("row_gap"))
+                .or_else(|| parse_f32(table.get("gap")))
+                .unwrap_or(0.0),
         }),
         other => {
             return Err(UiTemplateBuildError::InvalidLayoutContract {
@@ -255,7 +281,7 @@ pub(super) fn parse_i32(
         .map(Some)
 }
 
-fn parse_usize(
+pub(super) fn parse_usize(
     value: Option<&Value>,
     node_path: &str,
     field: &str,

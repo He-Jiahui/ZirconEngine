@@ -29,7 +29,7 @@ children = [
     { node = { node_id = "module_plugins_focus_action", kind = "native", type = "IconButton", control_id = "FocusModulePlugins", bindings = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Plugins" } } }
   ] } },
   { node = { node_id = "module_plugins_summary", kind = "native", type = "Label", control_id = "ModulePluginsSummary", props = { text = "Project plugins" } } },
-  { node = { node_id = "module_plugin_list_slot_node", kind = "slot", slot_name = "module_plugin_list_slot", control_id = "ModulePluginListPanel" } },
+  { node = { node_id = "module_plugin_list_slot_node", kind = "slot", slot_name = "module_plugin_list_slot", control_id = "ModulePluginListPanel", layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } } } },
 ]
 
 [components.ModulePluginsPaneBody.slots.module_plugin_list_slot]

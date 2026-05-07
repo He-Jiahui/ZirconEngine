@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use glyphon::{
-    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, SwashCache,
-    TextArea, TextAtlas, TextBounds, TextRenderer, Viewport, Wrap,
+    Attrs, Buffer, Cache, Color, Family, FontSystem, Metrics, Resolution, Shaping, Style,
+    SwashCache, TextArea, TextAtlas, TextBounds, TextRenderer, Viewport, Weight, Wrap,
 };
 
 use super::font_asset::load_ui_font_manifest_with_asset_manager;
@@ -11,7 +11,9 @@ use super::render::ScreenSpaceUiTextBatch;
 use crate::asset::ProjectAssetManager;
 use glyphon::cosmic_text::Align;
 use zircon_runtime_interface::ui::layout::UiFrame;
-use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextRenderMode, UiTextWrap};
+use zircon_runtime_interface::ui::surface::{
+    UiTextAlign, UiTextRenderMode, UiTextRunPaintStyle, UiTextWrap,
+};
 
 use super::sdf_atlas::ScreenSpaceUiSdfAtlas;
 use super::sdf_render::ScreenSpaceUiSdfRenderer;
@@ -213,10 +215,7 @@ impl ScreenSpaceUiTextBackend {
                 text.font.as_deref(),
                 text.font_family.as_deref(),
             );
-            let attrs = family_name
-                .as_deref()
-                .map(|family| Attrs::new().family(Family::Name(family)))
-                .unwrap_or_else(Attrs::new);
+            let attrs = text_attrs(family_name.as_deref(), text.style);
             let mut buffer =
                 Buffer::new(font_system, Metrics::new(text.font_size, text.line_height));
             buffer.set_size(
@@ -271,6 +270,23 @@ impl ScreenSpaceUiTextBackend {
             swash_cache,
         );
     }
+}
+
+fn text_attrs<'a>(family_name: Option<&'a str>, style: UiTextRunPaintStyle) -> Attrs<'a> {
+    let mut attrs = if style.code {
+        Attrs::new().family(Family::Monospace)
+    } else {
+        family_name
+            .map(|family| Attrs::new().family(Family::Name(family)))
+            .unwrap_or_else(Attrs::new)
+    };
+    if style.strong {
+        attrs = attrs.weight(Weight::BOLD);
+    }
+    if style.emphasis {
+        attrs = attrs.style(Style::Italic);
+    }
+    attrs
 }
 
 fn resolve_family_name(
@@ -481,6 +497,33 @@ mod tests {
         assert_eq!(resolved, UiTextRenderMode::Native);
     }
 
+    #[test]
+    fn text_attrs_maps_shared_rich_run_style_to_glyphon_attrs() {
+        let attrs = text_attrs(
+            Some("Zircon Sans"),
+            UiTextRunPaintStyle {
+                strong: true,
+                emphasis: true,
+                code: false,
+            },
+        );
+
+        assert_eq!(attrs.family, Family::Name("Zircon Sans"));
+        assert_eq!(attrs.weight, Weight::BOLD);
+        assert_eq!(attrs.style, Style::Italic);
+
+        let code_attrs = text_attrs(
+            Some("Zircon Sans"),
+            UiTextRunPaintStyle {
+                strong: false,
+                emphasis: false,
+                code: true,
+            },
+        );
+
+        assert_eq!(code_attrs.family, Family::Monospace);
+    }
+
     fn text_batch(text: &str, _mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         ScreenSpaceUiTextBatch {
             text: text.to_string(),
@@ -493,6 +536,7 @@ mod tests {
             line_height: 20.0,
             text_align: UiTextAlign::Left,
             wrap: UiTextWrap::None,
+            style: Default::default(),
         }
     }
 }

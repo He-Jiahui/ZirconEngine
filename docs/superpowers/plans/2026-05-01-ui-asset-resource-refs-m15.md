@@ -385,47 +385,47 @@ Expose compiler resource dependencies and resource diagnostics to the UI asset e
 
 ### Implementation Slices
 
-- [ ] Add fields to `UiAssetEditorSession`:
+- [x] Add fields to `UiAssetEditorSession`:
 
 ```rust
 pub(super) resource_dependencies: Vec<UiResourceDependency>,
 pub(super) resource_diagnostics: Vec<UiResourceDiagnostic>,
 ```
 
-- [ ] Import `UiResourceDependency` and `UiResourceDiagnostic` from `zircon_runtime::ui::template`.
-- [ ] Add public session accessors in `lifecycle.rs` or a focused session child file:
+- [x] Import `UiResourceDependency` and `UiResourceDiagnostic` from `zircon_runtime_interface::ui::template`.
+- [x] Add public session accessors in `lifecycle.rs` or a focused session child file:
 
 ```rust
 pub fn resource_dependencies(&self) -> &[UiResourceDependency];
 pub fn resource_diagnostics(&self) -> &[UiResourceDiagnostic];
 ```
 
-- [ ] In `from_source(...)`, populate the fields from `last_valid_compiled` when preview compile succeeds and use empty vectors when it fails.
-- [ ] In `apply_valid_document(...)`, refresh the fields when `compile_preview(...)` succeeds and clear them when compile fails before resource dependency collection completes.
-- [ ] Keep presentation changes minimal: expose the session accessors to tests; do not add UI widgets, slint callbacks, browser state, or watcher state.
+- [x] In `from_source(...)`, populate the fields from `last_valid_compiled` when preview compile succeeds and use empty vectors when it fails.
+- [x] In `apply_valid_document(...)`, refresh the fields when `compile_preview(...)` succeeds and clear them when compile fails before resource dependency collection completes.
+- [x] Keep presentation changes minimal: expose the session accessors to tests; do not add UI widgets, slint callbacks, browser state, or watcher state.
 
 ### Unit-Test Code To Write
 
-- [ ] Create `zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs` with tests named:
+- [x] Create `zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs` with tests named:
   - `ui_asset_editor_session_exposes_resource_dependencies_after_compile`
   - `ui_asset_editor_session_exposes_resource_diagnostics_after_compile`
   - `ui_asset_editor_resource_dependencies_refresh_after_source_edit`
 
 ### Testing Stage
 
-- [ ] Run targeted format check:
+- [x] Run targeted format check:
 
 ```powershell
 rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
 ```
 
-- [ ] Run focused editor tests:
+- [x] Run focused editor tests:
 
 ```powershell
 cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-resource-refs-m15 --message-format short --color never
 ```
 
-- [ ] Run editor type check:
+- [x] Run editor type check:
 
 ```powershell
 cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-resource-refs-m15 --message-format short --color never
@@ -436,6 +436,12 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targe
 - Editor session tests pass.
 - Editor crate type-checks with existing unrelated warnings only.
 - No resource browser, watcher, or chrome behavior was added.
+
+### 2026-05-07 Execution Evidence
+
+- `rustfmt --edition 2021 --check zircon_editor\src\ui\asset_editor\session\lifecycle.rs zircon_editor\src\ui\asset_editor\session\ui_asset_editor_session.rs zircon_editor\src\ui\asset_editor\session\presentation_state.rs zircon_editor\src\ui\asset_editor\session\runtime_report_state.rs zircon_editor\src\ui\asset_editor\presentation.rs zircon_editor\src\ui\slint_host\host_contract\data\ui_asset.rs zircon_editor\src\ui\slint_host\ui\pane_data_conversion\pane_ui_asset_conversion.rs zircon_editor\src\tests\ui\ui_asset_editor\mod.rs zircon_editor\src\tests\ui\ui_asset_editor\resource_dependency_view.rs` passed.
+- `cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1` passed, `4 passed; 0 failed; 1136 filtered out`.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never` passed with existing runtime/editor warnings.
 
 ## Milestone 5: Documentation, Archive, And Batch Acceptance
 
@@ -455,12 +461,12 @@ Update the UI asset documentation and archive with M15 implementation evidence, 
 
 ### Implementation Slices
 
-- [ ] Update `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` frontmatter to include resource-ref files, new tests, and this spec/plan.
-- [ ] Add an M15 section to `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` describing serialized resource syntax and editor/runtime consumption.
-- [ ] Update `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` frontmatter to include resource-ref, cache, invalidation, and editor session files.
-- [ ] Add an M15 section to `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` describing compiler diagnostics and cache/invalidation fingerprints.
-- [ ] Update `.codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md` only after validation: change M15 from missing to partial-to-mostly-complete foundation gate, record exact commands and remaining productization gaps.
-- [ ] Move `.codex/sessions/20260501-2012-ui-asset-resource-refs-m15.md` to `.codex/sessions/archive/20260501-2012-ui-asset-resource-refs-m15.md` with `status: completed` and evidence bullets.
+- [x] Update `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` frontmatter to include resource-ref files, new tests, and this spec/plan.
+- [x] Add an M15 section to `docs/ui-and-layout/ui-asset-documents-and-editor-protocol.md` describing serialized resource syntax and editor/runtime consumption.
+- [x] Update `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` frontmatter to include resource-ref, cache, invalidation, and editor session files.
+- [x] Add an M15 section to `docs/ui-and-layout/ui-asset-foundation-descriptors-contracts-invalidation.md` describing compiler diagnostics and cache/invalidation fingerprints.
+- [x] Update `.codex/plans/UI Asset Editor 与共享 Layout 未完成内容归档.md` only after validation: change M15 from missing to partial-to-mostly-complete foundation gate, record exact commands and remaining productization gaps.
+- [x] Move the active 2026-05-07 M15 continuation session note to `.codex/sessions/archive/` with `status: completed` and evidence bullets.
 
 ### Testing Stage
 
@@ -478,6 +484,8 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targe
 
 - [ ] If `E:` free space is still under 50 GB, follow `cargo-target-disk-policy.md`: avoid conflicting Cargo writers and clean the selected target directory only when no process owns it.
 - [ ] If a failure occurs in broad graphics/plugin/test drift outside M15, record it as external only after confirming the M15 focused tests and scoped checks passed.
+
+2026-05-07 editor-view closeout did not rerun the already accepted runtime/package M15/M16 suite because `E:` was below the 50 GB Cargo target threshold and unrelated Cargo writers were active. Fresh validation for this continuation used the D-drive editor target and was scoped to the newly closed minimal editor dependency view.
 
 ### Exit Evidence
 

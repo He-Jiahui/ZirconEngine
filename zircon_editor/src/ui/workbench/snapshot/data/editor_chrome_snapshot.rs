@@ -3,6 +3,7 @@ use crate::scene::viewport::SceneViewportSettings;
 use zircon_runtime_interface::math::UVec2;
 
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
+use crate::ui::workbench::window_registry::MenuOverflowMode;
 
 use super::super::asset::AssetWorkspaceSnapshot;
 use super::super::workbench::WorkbenchSnapshot;
@@ -27,4 +28,5 @@ pub struct EditorChromeSnapshot {
     pub project_open: bool,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub menu_overflow_mode: MenuOverflowMode,
 }

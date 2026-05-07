@@ -20,6 +20,11 @@ use crate::ui::slint_host::callback_dispatch::BuiltinHostWindowTemplateBridge;
 use crate::ui::slint_host::floating_window_projection::{
     build_floating_window_projection_bundle, FloatingWindowProjectionBundle,
 };
+use crate::ui::slint_host::root_shell_projection::{
+    resolve_root_bottom_region_frame, resolve_root_document_region_frame,
+    resolve_root_left_region_frame, resolve_root_right_region_frame,
+    resolve_root_viewport_content_frame,
+};
 use crate::ui::slint_host::shell_pointer::HostShellPointerRoute;
 use crate::ui::slint_host::tab_drag::host_shell_pointer_route_group_key;
 use crate::ui::template_runtime::{
@@ -1710,7 +1715,7 @@ fn apply_presentation_uses_shared_root_projection_frames_when_drawers_are_collap
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -1766,39 +1771,23 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
-    let projection_frames = bridge.root_shell_frames();
-    let shell_frame = projection_frames
-        .shell_frame
-        .expect("root shell projection frame should exist");
-    let body_frame = projection_frames
-        .host_body_frame
-        .expect("workbench body projection frame should exist");
     let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .unwrap();
+    let projection_frames = bridge.root_shell_frames();
     let left_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 312.0, 440.0);
     let right_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 440.0);
     let bottom_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 1232.0, 180.0);
-    let expected_document_frame = crate::ui::workbench::autolayout::ShellFrame::new(
-        shell_frame.x + left_geometry.width + metrics.separator_thickness,
-        body_frame.y,
-        body_frame.width
-            - left_geometry.width
-            - right_geometry.width
-            - metrics.separator_thickness * 2.0,
-        body_frame.height - bottom_geometry.height - metrics.separator_thickness,
-    );
+    let expected_document_frame = resolve_root_document_region_frame(Some(&projection_frames));
     let geometry_document_frame =
         crate::ui::workbench::autolayout::ShellFrame::new(734.0, 91.0, 222.0, 109.0);
-    let document_chrome_height = metrics.document_header_height + metrics.separator_thickness;
-    let expected_viewport_frame = crate::ui::workbench::autolayout::ShellFrame::new(
-        expected_document_frame.x,
-        expected_document_frame.y + document_chrome_height + metrics.viewport_toolbar_height,
-        expected_document_frame.width,
-        expected_document_frame.height - document_chrome_height - metrics.viewport_toolbar_height,
-    );
+    let expected_viewport_frame =
+        resolve_root_viewport_content_frame(Some(&projection_frames), true);
     let geometry_viewport_frame =
         crate::ui::workbench::autolayout::ShellFrame::new(888.0, 144.0, 155.0, 77.0);
     let geometry = WorkbenchShellGeometry {
@@ -1833,7 +1822,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_document
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -1928,7 +1917,7 @@ fn apply_presentation_prefers_drawer_derived_viewport_when_pane_surface_is_stale
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -1968,23 +1957,21 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
         .expect("workbench shell should show in the test backend");
     ui.window().set_size(slint::PhysicalSize::new(1280, 720));
 
-    let bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
-    let projection_frames = bridge.root_shell_frames();
-    let shell_frame = projection_frames
-        .shell_frame
-        .expect("root shell projection frame should exist");
-    let body_frame = projection_frames
-        .host_body_frame
-        .expect("workbench body projection frame should exist");
     let metrics = crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default();
+    let mut bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
+    bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .unwrap();
+    let projection_frames = bridge.root_shell_frames();
     let left_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(180.0, 91.0, 312.0, 519.0);
     let right_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(1024.0, 117.0, 256.0, 401.0);
     let bottom_geometry =
         crate::ui::workbench::autolayout::ShellFrame::new(48.0, 712.0, 777.0, 180.0);
-    let expected_center_height =
-        body_frame.height - bottom_geometry.height - metrics.separator_thickness;
+    let expected_left_region = resolve_root_left_region_frame(Some(&projection_frames));
+    let expected_right_region = resolve_root_right_region_frame(Some(&projection_frames));
+    let expected_bottom_region = resolve_root_bottom_region_frame(Some(&projection_frames));
     let geometry = WorkbenchShellGeometry {
         center_band_frame: crate::ui::workbench::autolayout::ShellFrame::new(
             5.0, 17.0, 400.0, 500.0,
@@ -2016,7 +2003,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2037,28 +2024,22 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_p
 
     let host_layout = ui.get_host_presentation().host_layout;
     let left_region = host_layout.left_region_frame;
-    assert_eq!(left_region.x, shell_frame.x);
-    assert_eq!(left_region.y, body_frame.y);
-    assert_eq!(left_region.width, left_geometry.width);
-    assert_eq!(left_region.height, expected_center_height);
+    assert_eq!(left_region.x, expected_left_region.x);
+    assert_eq!(left_region.y, expected_left_region.y);
+    assert_eq!(left_region.width, expected_left_region.width);
+    assert_eq!(left_region.height, expected_left_region.height);
 
     let right_region = host_layout.right_region_frame;
-    assert_eq!(
-        right_region.x,
-        shell_frame.x + shell_frame.width - right_geometry.width
-    );
-    assert_eq!(right_region.y, body_frame.y);
-    assert_eq!(right_region.width, right_geometry.width);
-    assert_eq!(right_region.height, expected_center_height);
+    assert_eq!(right_region.x, expected_right_region.x);
+    assert_eq!(right_region.y, expected_right_region.y);
+    assert_eq!(right_region.width, expected_right_region.width);
+    assert_eq!(right_region.height, expected_right_region.height);
 
     let bottom_region = host_layout.bottom_region_frame;
-    assert_eq!(bottom_region.x, shell_frame.x);
-    assert_eq!(
-        bottom_region.y,
-        body_frame.y + body_frame.height - bottom_geometry.height
-    );
-    assert_eq!(bottom_region.width, body_frame.width);
-    assert_eq!(bottom_region.height, bottom_geometry.height);
+    assert_eq!(bottom_region.x, expected_bottom_region.x);
+    assert_eq!(bottom_region.y, expected_bottom_region.y);
+    assert_eq!(bottom_region.width, expected_bottom_region.width);
+    assert_eq!(bottom_region.height, expected_bottom_region.height);
 }
 
 #[test]
@@ -2112,7 +2093,7 @@ fn apply_presentation_prefers_shared_root_projection_for_visible_drawer_region_e
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2215,7 +2196,7 @@ fn apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geome
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2364,7 +2345,7 @@ fn apply_presentation_resolves_splitters_from_shared_visible_drawer_projection()
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2459,7 +2440,7 @@ fn apply_presentation_projects_welcome_mount_nodes_into_global_context() {
     };
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2615,7 +2596,7 @@ fn floating_windows_project_tabs_and_active_pane_for_host_presentation() {
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &WorkbenchShellGeometry::default(),
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2686,7 +2667,7 @@ fn floating_windows_ignore_stale_focused_view_when_projecting_focus_target() {
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &WorkbenchShellGeometry::default(),
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2756,7 +2737,7 @@ fn floating_window_overlay_snapshot_captures_shared_frame_and_route_keys() {
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );
@@ -2845,7 +2826,7 @@ fn floating_window_overlay_route_keys_match_shared_shell_pointer_route_normaliza
     let ui_asset_panes = BTreeMap::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &crate::ui::workbench::autolayout::WorkbenchChromeMetrics::default(),
         &[],
     );

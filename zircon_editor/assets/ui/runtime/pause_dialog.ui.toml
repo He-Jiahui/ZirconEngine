@@ -6,7 +6,7 @@ display_name = "Pause Dialog"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -15,7 +15,7 @@ node_id = "pause_dialog_root"
 kind = "native"
 type = "Overlay"
 control_id = "PauseDialogRoot"
-classes = ["dialog-root"]
+classes = ["dialog-root", "material-runtime-dialog"]
 bindings = []
 
 [root.params]
@@ -44,7 +44,7 @@ node_id = "backdrop"
 kind = "native"
 type = "Canvas"
 control_id = "PauseBackdrop"
-classes = ["dialog-backdrop"]
+classes = ["dialog-backdrop", "material-runtime-backdrop"]
 bindings = []
 children = []
 
@@ -84,7 +84,7 @@ node_id = "dialog"
 kind = "native"
 type = "VerticalBox"
 control_id = "PauseDialogCard"
-classes = ["dialog-card"]
+classes = ["dialog-card", "material-runtime-dialog"]
 bindings = []
 
 [root.children.node.params]
@@ -114,7 +114,7 @@ node_id = "title"
 kind = "native"
 type = "Label"
 control_id = "PauseTitle"
-classes = ["dialog-title"]
+classes = ["dialog-title", "material-title"]
 bindings = []
 children = []
 
@@ -136,7 +136,7 @@ node_id = "message"
 kind = "native"
 type = "Label"
 control_id = "PauseMessage"
-classes = ["dialog-message"]
+classes = ["dialog-message", "material-body"]
 bindings = []
 children = []
 
@@ -186,6 +186,9 @@ kind = "native"
 type = "Button"
 control_id = "ResumeAction"
 classes = [
+    "material-control",
+    "material-button",
+    "material-button-primary",
     "dialog-button",
     "dialog-button-primary",
 ]
@@ -196,6 +199,19 @@ children = []
 
 [root.children.node.children.node.children.node.props]
 text = "Resume"
+font_size = 12.0
+surface_variant = "accent"
+button_variant = "primary"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
@@ -210,7 +226,7 @@ node_id = "quit_button"
 kind = "native"
 type = "Button"
 control_id = "QuitAction"
-classes = ["dialog-button"]
+classes = ["material-control", "material-button", "dialog-button"]
 bindings = []
 children = []
 
@@ -218,6 +234,18 @@ children = []
 
 [root.children.node.children.node.children.node.props]
 text = "Quit To Menu"
+font_size = 12.0
+surface_variant = "inset"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.children.node.style_overrides.self]
 
@@ -240,7 +268,7 @@ color = "#111621cc"
 selector = ".dialog-card"
 
 [stylesheets.rules.set.self.background]
-color = "#202737"
+color = "$material_popup"
 
 [stylesheets.rules.set.slot]
 
@@ -248,7 +276,7 @@ color = "#202737"
 selector = ".dialog-title"
 
 [stylesheets.rules.set.self]
-text = "#eef3ff"
+foreground = "$material_text"
 
 [stylesheets.rules.set.slot]
 
@@ -256,7 +284,7 @@ text = "#eef3ff"
 selector = ".dialog-message"
 
 [stylesheets.rules.set.self]
-text = "#aab7d4"
+foreground = "$material_text_muted"
 
 [stylesheets.rules.set.slot]
 
@@ -264,10 +292,10 @@ text = "#aab7d4"
 selector = "Button.dialog-button"
 
 [stylesheets.rules.set.self]
-text = "#f1f5ff"
+foreground = "$material_text"
 
 [stylesheets.rules.set.self.background]
-color = "#293349"
+color = "$material_surface_inset"
 
 [stylesheets.rules.set.slot]
 
@@ -275,6 +303,6 @@ color = "#293349"
 selector = "Button.dialog-button-primary"
 
 [stylesheets.rules.set.self.background]
-color = "#4d89ff"
+color = "$material_accent"
 
 [stylesheets.rules.set.slot]

@@ -1,5 +1,6 @@
 use crate::ui::workbench::startup::{
-    EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft, RecentProjectValidation,
+    display_project_path, EditorSessionMode, EditorStartupSessionDocument, NewProjectDraft,
+    RecentProjectValidation,
 };
 
 use super::super::editor_error::EditorError;
@@ -22,14 +23,15 @@ impl EditorUiHost {
                 self.dismiss_welcome_page()?;
                 session.mode = EditorSessionMode::Project;
                 session.project = Some(document);
-                session.status_message = format!("Reopened {}", path);
+                session.status_message = format!("Reopened {}", display_project_path(path));
                 return Ok(session);
             }
 
             self.show_welcome_page()?;
             session.mode = EditorSessionMode::Welcome;
             session.status_message = format!(
-                "Last project is unavailable: {path}. Choose a recent project or create a new one."
+                "Last project is unavailable: {}. Choose a recent project or create a new one.",
+                display_project_path(path)
             );
             return Ok(session);
         }

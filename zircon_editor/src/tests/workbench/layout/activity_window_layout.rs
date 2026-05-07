@@ -45,6 +45,7 @@ fn activity_window_layout_owns_drawers_per_window() {
         host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
         activity_drawers: drawers,
         content_workspace: DocumentNode::default(),
+        menu_overflow_mode: Default::default(),
         region_overrides: BTreeMap::new(),
         view_overrides: BTreeMap::new(),
     };

@@ -93,13 +93,17 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
         vec![ViewInstanceId::new("editor.inspector#1")]
     );
 
-    let bottom_left = layout
+    let bottom = layout
         .drawers
-        .get(&ActivityDrawerSlot::BottomLeft)
-        .expect("bottom left drawer");
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("bottom drawer");
     assert_eq!(
-        bottom_left.tab_stack.tabs,
-        vec![ViewInstanceId::new("editor.console#1")]
+        bottom.tab_stack.tabs,
+        vec![
+            ViewInstanceId::new("editor.console#1"),
+            ViewInstanceId::new("editor.runtime_diagnostics#1"),
+            ViewInstanceId::new("editor.build_export_desktop#1"),
+        ]
     );
 
     let workbench_page = layout
@@ -273,6 +277,7 @@ fn applying_project_workspace_restores_single_instance_registry_state() {
                     host_mode: ActivityWindowHostMode::EmbeddedMainFrame,
                     activity_drawers: BTreeMap::new(),
                     content_workspace: DocumentNode::default(),
+                    menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
                 },
@@ -374,6 +379,7 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
                         },
                     )]),
                     content_workspace: DocumentNode::default(),
+                    menu_overflow_mode: Default::default(),
                     region_overrides: BTreeMap::new(),
                     view_overrides: BTreeMap::new(),
                 },
@@ -428,13 +434,17 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
         vec![ViewInstanceId::new("editor.inspector#1")]
     );
 
-    let bottom_left = layout
+    let bottom = layout
         .drawers
-        .get(&ActivityDrawerSlot::BottomLeft)
-        .expect("bottom left drawer");
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("bottom drawer");
     assert_eq!(
-        bottom_left.tab_stack.tabs,
-        vec![ViewInstanceId::new("editor.console#1")]
+        bottom.tab_stack.tabs,
+        vec![
+            ViewInstanceId::new("editor.console#1"),
+            ViewInstanceId::new("editor.runtime_diagnostics#1"),
+            ViewInstanceId::new("editor.build_export_desktop#1"),
+        ]
     );
 
     let workbench_window = layout
@@ -449,17 +459,21 @@ fn applying_project_workspace_preserves_builtin_shell_drawers() {
         .tab_stack
         .tabs
         .contains(&ViewInstanceId::new("editor.project#1")));
-    let activity_bottom_left = workbench_window
+    let activity_bottom = workbench_window
         .activity_drawers
-        .get(&ActivityDrawerSlot::BottomLeft)
-        .expect("workbench activity bottom left drawer");
+        .get(&ActivityDrawerSlot::Bottom)
+        .expect("workbench activity bottom drawer");
     assert_eq!(
-        activity_bottom_left.tab_stack.tabs,
-        vec![ViewInstanceId::new("editor.console#1")]
+        activity_bottom.tab_stack.tabs,
+        vec![
+            ViewInstanceId::new("editor.console#1"),
+            ViewInstanceId::new("editor.runtime_diagnostics#1"),
+            ViewInstanceId::new("editor.build_export_desktop#1"),
+        ]
     );
-    assert_eq!(activity_bottom_left.mode, ActivityDrawerMode::Pinned);
-    assert!(activity_bottom_left.visible);
-    assert!(activity_bottom_left.extent > 0.0);
+    assert_eq!(activity_bottom.mode, ActivityDrawerMode::Pinned);
+    assert!(activity_bottom.visible);
+    assert!(activity_bottom.extent > 0.0);
 
     let instances = manager
         .current_view_instances()

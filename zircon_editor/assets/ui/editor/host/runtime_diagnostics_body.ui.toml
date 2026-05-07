@@ -29,5 +29,9 @@ children = [
     { node = { node_id = "runtime_diagnostics_focus_action", kind = "native", type = "IconButton", control_id = "FocusDiagnostics", bindings = [{ id = "RuntimeDiagnosticsPaneBody/FocusDiagnostics", event = "Click", route = "DockCommand.FocusView" }], props = { label = "Focus Diagnostics" } } }
   ] } },
   { node = { node_id = "runtime_diagnostics_summary", kind = "native", type = "Label", control_id = "RuntimeDiagnosticsSummary", props = { text = "Runtime diagnostics" } } },
+  { node = { node_id = "runtime_diagnostics_reflector_summary", kind = "native", type = "Label", control_id = "UiDebugReflectorSummary", props = { text = "UI Debug Reflector" } } },
+  { node = { node_id = "runtime_diagnostics_reflector_export", kind = "native", type = "Label", control_id = "UiDebugReflectorExportStatus", props = { text = "JSON export unavailable" } } },
+  { node = { node_id = "runtime_diagnostics_reflector_detail", kind = "native", type = "Label", control_id = "UiDebugReflectorDetail", props = { text = "Waiting for shared UI surface snapshot" } } },
+  { node = { node_id = "runtime_diagnostics_reflector_nodes", kind = "native", type = "Container", control_id = "UiDebugReflectorNodeList", layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } } } },
   { node = { node_id = "runtime_diagnostics_body_section", kind = "native", type = "Container", control_id = "RuntimeDiagnosticsBodySection" } },
 ]

@@ -1,4 +1,4 @@
-use slint::{Model, SharedString};
+use slint::{Model, ModelRc, SharedString};
 
 use super::chrome_template_projection::{
     activity_rail_active_control_id, activity_rail_button_frames, activity_rail_nodes,
@@ -332,7 +332,7 @@ fn host_menu_chrome_menu_data(
     let mut items = if menu.label.eq_ignore_ascii_case("Window") {
         window_menu_items(menu, host_shell, resolved_preset_name)
     } else {
-        menu.items.iter().map(host_menu_chrome_item_data).collect()
+        host_menu_items(&menu.items)
     };
     let popup_height_px = menu_popup_height(items.len());
     let popup_width_px = MENU_POPUP_WIDTHS_PX
@@ -361,8 +361,9 @@ fn window_menu_items(
         shortcut: resolved_preset_name.clone(),
         action_id: format!("SavePreset.{resolved_preset_name}").into(),
         enabled: true,
+        children: ModelRc::default(),
     }];
-    items.extend(menu.items.iter().map(host_menu_chrome_item_data));
+    items.extend(host_menu_items(&menu.items));
     items.extend((0..host_shell.preset_names.row_count()).filter_map(|row| {
         let preset = host_shell.preset_names.row_data(row)?;
         Some(HostMenuChromeItemData {
@@ -374,23 +375,42 @@ fn window_menu_items(
             },
             action_id: format!("LoadPreset.{preset}").into(),
             enabled: true,
+            children: ModelRc::default(),
         })
     }));
     items
 }
 
-fn host_menu_chrome_item_data(item: &MenuItemModel) -> HostMenuChromeItemData {
-    HostMenuChromeItemData {
-        label: item.label.clone().into(),
-        shortcut: item.shortcut.clone().unwrap_or_default().into(),
-        action_id: menu_item_action_id(item),
-        enabled: item.enabled,
+fn host_menu_items(items: &[MenuItemModel]) -> Vec<HostMenuChromeItemData> {
+    items.iter().map(host_menu_chrome_item).collect()
+}
+
+fn host_menu_chrome_item(item: &MenuItemModel) -> HostMenuChromeItemData {
+    if item.has_children() {
+        HostMenuChromeItemData {
+            label: item.label.clone().into(),
+            shortcut: ">".into(),
+            action_id: "".into(),
+            enabled: item.enabled,
+            children: model_rc(host_menu_items(&item.children)),
+        }
+    } else {
+        HostMenuChromeItemData {
+            label: item.label.clone().into(),
+            shortcut: item.shortcut.clone().unwrap_or_default().into(),
+            action_id: menu_item_action_id(item),
+            enabled: item.enabled,
+            children: ModelRc::default(),
+        }
     }
 }
 
 fn menu_item_action_id(item: &MenuItemModel) -> SharedString {
     match item.binding.payload() {
         EditorUiBindingPayload::MenuAction { action_id } => action_id.as_str().into(),
+        EditorUiBindingPayload::EditorOperation { operation_id, .. } => {
+            operation_id.as_str().into()
+        }
         _ => "".into(),
     }
 }

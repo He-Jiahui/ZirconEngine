@@ -15,6 +15,15 @@ use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
 };
 use zircon_runtime_interface::math::UVec2;
+use zircon_runtime_interface::ui::{
+    event_ui::{UiNodeId, UiNodePath, UiTreeId},
+    layout::UiFrame,
+    surface::{
+        UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiRenderDebugStats,
+        UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot, UiWidgetReflectorNode,
+    },
+    tree::{UiInputPolicy, UiVisibility},
+};
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::animation_editor::AnimationEditorPanePresentation;
@@ -171,6 +180,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         project_open: editor_data_fixture().project_open,
         can_undo: editor_data_fixture().can_undo,
         can_redo: editor_data_fixture().can_redo,
+        menu_overflow_mode: Default::default(),
     }
 }
 
@@ -236,6 +246,73 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             }),
             error: None,
         },
+    }
+}
+
+fn active_ui_debug_snapshot_fixture() -> UiSurfaceDebugSnapshot {
+    UiSurfaceDebugSnapshot {
+        capture: UiSurfaceDebugCaptureContext {
+            surface_name: Some("Runtime Diagnostics fixture".to_string()),
+            selected_node: Some(UiNodeId::new(2)),
+            ..UiSurfaceDebugCaptureContext::default()
+        },
+        tree_id: UiTreeId::new("editor.runtime_diagnostics.active_debug"),
+        roots: vec![UiNodeId::new(1)],
+        nodes: vec![
+            UiWidgetReflectorNode {
+                node_id: UiNodeId::new(1),
+                node_path: UiNodePath::new("runtime/root"),
+                parent: None,
+                children: vec![UiNodeId::new(2)],
+                frame: UiFrame::new(0.0, 0.0, 120.0, 80.0),
+                clip_frame: UiFrame::new(0.0, 0.0, 120.0, 80.0),
+                z_index: 0,
+                paint_order: 0,
+                visibility: UiVisibility::Visible,
+                input_policy: UiInputPolicy::Ignore,
+                enabled: true,
+                clickable: false,
+                hoverable: false,
+                focusable: false,
+                control_id: Some("RuntimeDiagnosticsRoot".to_string()),
+                render_command_count: 1,
+                hit_entry_count: 0,
+                hit_cell_count: 0,
+            },
+            UiWidgetReflectorNode {
+                node_id: UiNodeId::new(2),
+                node_path: UiNodePath::new("runtime/root/live_button"),
+                parent: Some(UiNodeId::new(1)),
+                children: Vec::new(),
+                frame: UiFrame::new(8.0, 12.0, 64.0, 24.0),
+                clip_frame: UiFrame::new(8.0, 12.0, 64.0, 24.0),
+                z_index: 1,
+                paint_order: 1,
+                visibility: UiVisibility::Visible,
+                input_policy: UiInputPolicy::Receive,
+                enabled: true,
+                clickable: true,
+                hoverable: true,
+                focusable: true,
+                control_id: Some("LiveDebugButton".to_string()),
+                render_command_count: 2,
+                hit_entry_count: 1,
+                hit_cell_count: 1,
+            },
+        ],
+        render: UiRenderDebugStats {
+            command_count: 3,
+            estimated_draw_calls: 3,
+            ..UiRenderDebugStats::default()
+        },
+        overlay_primitives: vec![UiDebugOverlayPrimitive {
+            kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
+            node_id: Some(UiNodeId::new(2)),
+            frame: UiFrame::new(8.0, 12.0, 64.0, 24.0),
+            label: Some("live".to_string()),
+            severity: None,
+        }],
+        ..UiSurfaceDebugSnapshot::default()
     }
 }
 
@@ -405,6 +482,19 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert!(payload
                     .detail_items
                     .contains(&"Hybrid GI active probes: 4".to_string()));
+                assert_eq!(
+                    payload.ui_debug_reflector_summary,
+                    "UI Debug Reflector: no active surface snapshot"
+                );
+                assert_eq!(
+                    payload.ui_debug_reflector_details,
+                    vec!["Waiting for Runtime Diagnostics to receive a UiSurfaceDebugSnapshot"]
+                );
+                assert!(payload
+                    .ui_debug_reflector_export_status
+                    .contains("Export unavailable"));
+                assert!(payload.ui_debug_reflector_overlay_primitives.is_empty());
+                assert!(!payload.ui_debug_reflector_has_active_snapshot);
             }
             ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
                 assert_eq!(payload.diagnostics, "plugin catalog ready");
@@ -460,6 +550,46 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             ),
         }
     }
+}
+
+#[test]
+fn runtime_diagnostics_payload_uses_active_ui_debug_snapshot_when_available() {
+    let chrome = chrome_fixture();
+    let runtime_diagnostics = runtime_diagnostics_fixture();
+    let active_snapshot = active_ui_debug_snapshot_fixture();
+    let context = PanePayloadBuildContext::new(&chrome)
+        .with_runtime_diagnostics(&runtime_diagnostics)
+        .with_active_ui_debug_snapshot(&active_snapshot);
+
+    let body =
+        build_pane_body_presentation(&pane_body_spec("editor.runtime_diagnostics"), &context);
+
+    let PanePayload::RuntimeDiagnosticsV1(payload) = body.payload else {
+        panic!("expected runtime diagnostics payload");
+    };
+
+    assert_eq!(payload.summary, "3 runtime systems available");
+    assert_eq!(
+        payload.ui_debug_reflector_summary,
+        "UI Debug Reflector: 2 nodes, 3 commands, schema v1"
+    );
+    assert!(payload
+        .ui_debug_reflector_nodes
+        .iter()
+        .any(|node| node.contains("runtime/root/live_button") && node.contains("node=2")));
+    assert!(payload
+        .ui_debug_reflector_details
+        .iter()
+        .any(|detail| detail.contains("Selected: runtime/root/live_button")));
+    assert!(payload
+        .ui_debug_reflector_export_status
+        .contains("JSON export ready"));
+    assert_eq!(payload.ui_debug_reflector_overlay_primitives.len(), 1);
+    assert_eq!(
+        payload.ui_debug_reflector_overlay_primitives[0].kind,
+        UiDebugOverlayPrimitiveKind::SelectedFrame
+    );
+    assert!(payload.ui_debug_reflector_has_active_snapshot);
 }
 
 #[test]
@@ -659,6 +789,11 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
                         payload.render_status,
                         "Render: wgpu-test (3 viewports, 11 frames)"
                     );
+                    assert_eq!(
+                        payload.ui_debug_reflector_summary,
+                        "UI Debug Reflector: no active surface snapshot"
+                    );
+                    assert!(!payload.ui_debug_reflector_has_active_snapshot);
                 }
                 unexpected => panic!("expected runtime diagnostics payload, found {unexpected:?}"),
             }

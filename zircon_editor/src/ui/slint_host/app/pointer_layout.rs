@@ -44,6 +44,9 @@ impl SlintEditorHost {
                 .hovered_item_index
                 .map(|index| index as i32)
                 .unwrap_or(-1),
+            hovered_menu_item_path: self.menu_pointer_state.hovered_item_path.clone(),
+            open_submenu_path: self.menu_pointer_state.open_submenu_path.clone(),
+            menu_bar_scroll_px: self.menu_pointer_state.menu_bar_scroll_offset,
             window_menu_scroll_px: self.menu_pointer_state.popup_scroll_offset,
             window_menu_popup_height_px: self.menu_pointer_layout.window_popup_height,
         });
@@ -53,16 +56,11 @@ impl SlintEditorHost {
         self.ui.global::<PaneSurfaceHostContext>()
     }
 
-    pub(super) fn sync_activity_rail_pointer_layout(
-        &mut self,
-        model: &WorkbenchViewModel,
-        geometry: &WorkbenchShellGeometry,
-    ) {
+    pub(super) fn sync_activity_rail_pointer_layout(&mut self, model: &WorkbenchViewModel) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.activity_rail_pointer_bridge
             .sync(build_host_activity_rail_pointer_layout(
                 model,
-                geometry,
                 &self.chrome_metrics,
                 Some(&root_shell_frames),
             ));
@@ -81,30 +79,23 @@ impl SlintEditorHost {
     pub(super) fn sync_document_tab_pointer_layout(
         &mut self,
         model: &WorkbenchViewModel,
-        geometry: &WorkbenchShellGeometry,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.document_tab_pointer_bridge
             .sync(build_host_document_tab_pointer_layout(
                 model,
-                geometry,
                 &self.chrome_metrics,
                 Some(&root_shell_frames),
                 floating_window_projection_bundle,
             ));
     }
 
-    pub(super) fn sync_drawer_header_pointer_layout(
-        &mut self,
-        model: &WorkbenchViewModel,
-        geometry: &WorkbenchShellGeometry,
-    ) {
+    pub(super) fn sync_drawer_header_pointer_layout(&mut self, model: &WorkbenchViewModel) {
         let root_shell_frames = self.template_bridge.root_shell_frames();
         self.drawer_header_pointer_bridge
             .sync(build_host_drawer_header_pointer_layout(
                 model,
-                geometry,
                 &self.chrome_metrics,
                 Some(&root_shell_frames),
             ));

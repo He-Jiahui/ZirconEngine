@@ -20,7 +20,10 @@ use crate::ui::template_runtime::{
 use zircon_runtime_interface::ui::component::UiComponentAdapterResult;
 
 use super::{
-    build_session::{compile_template_document_file, load_builtin_host_templates},
+    build_session::{
+        compile_template_document_file, compile_template_document_with_builtin_imports,
+        load_builtin_host_templates,
+    },
     pane_payload_projection::project_pane_body,
     projection::{build_host_model, build_host_model_with_surface, project_document},
 };
@@ -76,8 +79,10 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         document: UiAssetDocument,
     ) -> Result<(), EditorUiHostRuntimeError> {
+        let compiled =
+            compile_template_document_with_builtin_imports(&self.template_service, &document)?;
         self.template_service
-            .register_asset_document(&mut self.template_registry, document_id, document)
+            .register_compiled_document(&mut self.template_registry, document_id, compiled)
             .map_err(EditorUiHostRuntimeError::from)
     }
 

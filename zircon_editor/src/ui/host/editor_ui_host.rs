@@ -5,6 +5,7 @@ use zircon_runtime::core::CoreHandle;
 
 use crate::ui::workbench::layout::LayoutManager;
 use crate::ui::workbench::view::{ViewInstanceId, ViewRegistry};
+use crate::ui::workbench::window_registry::EditorWindowRegistry;
 
 use super::animation_editor_sessions::AnimationEditorWorkspaceEntry;
 use super::asset_editor_sessions::{UiAssetWorkspaceEntry, UiAssetWorkspaceWatcher};
@@ -23,6 +24,7 @@ pub(super) struct EditorUiHost {
     pub(super) view_registry: Mutex<ViewRegistry>,
     pub(super) layout_manager: LayoutManager,
     pub(super) window_host_manager: Mutex<WindowHostManager>,
+    pub(super) window_registry: Mutex<EditorWindowRegistry>,
     pub(super) session: Mutex<EditorSessionState>,
     pub(super) animation_editor_sessions:
         Mutex<BTreeMap<ViewInstanceId, AnimationEditorWorkspaceEntry>>,
@@ -47,6 +49,10 @@ impl EditorUiHost {
 
     pub(super) fn lock_window_host_manager(&self) -> MutexGuard<'_, WindowHostManager> {
         Self::recover_lock(&self.window_host_manager)
+    }
+
+    pub(super) fn lock_window_registry(&self) -> MutexGuard<'_, EditorWindowRegistry> {
+        Self::recover_lock(&self.window_registry)
     }
 
     pub(super) fn lock_session(&self) -> MutexGuard<'_, EditorSessionState> {
@@ -92,6 +98,7 @@ impl EditorUiHost {
             view_registry: Mutex::new(ViewRegistry::default()),
             layout_manager: LayoutManager,
             window_host_manager: Mutex::new(WindowHostManager::default()),
+            window_registry: Mutex::new(EditorWindowRegistry::default()),
             session: Mutex::new(EditorSessionState::default()),
             animation_editor_sessions: Mutex::new(BTreeMap::new()),
             ui_asset_sessions: Mutex::new(BTreeMap::new()),

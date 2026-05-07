@@ -1,11 +1,11 @@
 use crate::core::editor_event::EditorEventEffect;
-use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 
 use super::support::record_with_effects;
 
 #[test]
 fn record_effects_mark_render_layout_and_asset_refresh_flags_for_slint_host() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_effects(vec![
@@ -25,7 +25,7 @@ fn record_effects_mark_render_layout_and_asset_refresh_flags_for_slint_host() {
 
 #[test]
 fn asset_preview_refresh_effect_is_local_to_presentation_without_backend_sync() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_effects(vec![
@@ -45,7 +45,7 @@ fn asset_preview_refresh_effect_is_local_to_presentation_without_backend_sync() 
 
 #[test]
 fn asset_details_refresh_effect_does_not_require_backend_sync() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_effects(vec![

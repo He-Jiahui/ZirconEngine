@@ -1,6 +1,6 @@
 use crate::ui::workbench::layout::{
-    ActivityDrawerSlot, LayoutCommand, LayoutManager, TabInsertionAnchor, TabInsertionSide,
-    WorkbenchLayout,
+    ActivityDrawerMode, ActivityDrawerSlot, LayoutCommand, LayoutManager, TabInsertionAnchor,
+    TabInsertionSide, WorkbenchLayout,
 };
 use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
 
@@ -97,4 +97,64 @@ fn attach_view_to_drawer_inserts_before_anchor_and_keeps_it_active() {
     assert_eq!(drawer.tab_stack.tabs, vec![first, inserted.clone(), second]);
     assert_eq!(drawer.tab_stack.active_tab.as_ref(), Some(&inserted));
     assert_eq!(drawer.active_view.as_ref(), Some(&inserted));
+}
+
+#[test]
+fn drawer_selection_is_normalized_to_one_active_item_after_layout_commands() {
+    let manager = LayoutManager::default();
+    let mut layout = WorkbenchLayout::default();
+    let first = ViewInstanceId::new("editor.project#1");
+    let second = ViewInstanceId::new("editor.inspector#1");
+
+    manager
+        .apply(
+            &mut layout,
+            LayoutCommand::AttachView {
+                instance_id: first.clone(),
+                target: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
+                anchor: None,
+            },
+        )
+        .unwrap();
+    manager
+        .apply(
+            &mut layout,
+            LayoutCommand::AttachView {
+                instance_id: second.clone(),
+                target: ViewHost::Drawer(ActivityDrawerSlot::RightTop),
+                anchor: None,
+            },
+        )
+        .unwrap();
+
+    {
+        let drawer = layout
+            .activity_windows
+            .get_mut(&crate::ui::workbench::layout::ActivityWindowId::workbench())
+            .unwrap()
+            .activity_drawers
+            .get_mut(&ActivityDrawerSlot::RightTop)
+            .unwrap();
+        drawer.mode = ActivityDrawerMode::Pinned;
+        drawer.tab_stack.active_tab = Some(first.clone());
+        drawer.active_view = Some(second.clone());
+    }
+
+    manager
+        .apply(
+            &mut layout,
+            LayoutCommand::SetDrawerExtent {
+                slot: ActivityDrawerSlot::RightTop,
+                extent: 320.0,
+            },
+        )
+        .unwrap();
+
+    let drawer = layout.drawers.get(&ActivityDrawerSlot::RightTop).unwrap();
+    assert_eq!(drawer.tab_stack.active_tab.as_ref(), Some(&first));
+    assert_eq!(
+        drawer.active_view.as_ref(),
+        drawer.tab_stack.active_tab.as_ref(),
+        "drawer selection must have one authoritative active tab or none"
+    );
 }

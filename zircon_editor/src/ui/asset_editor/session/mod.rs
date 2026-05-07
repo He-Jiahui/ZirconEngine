@@ -14,6 +14,8 @@ use super::{
 
 pub(crate) mod binding_state;
 pub(crate) mod command_entry;
+pub(crate) mod designer_state;
+pub(crate) mod emergency_state;
 pub(crate) mod hierarchy_projection;
 pub(crate) mod lifecycle;
 pub(crate) mod navigation_state;
@@ -22,7 +24,9 @@ pub(crate) mod presentation_state;
 pub(crate) mod preview_compile;
 pub(crate) mod preview_state;
 pub(crate) mod promotion_state;
+pub(crate) mod resolver_state;
 pub(crate) mod root_class_policy_state;
+pub(crate) mod runtime_report_state;
 pub(crate) mod session_state;
 pub(crate) mod style_inspection;
 pub(crate) mod style_rule_identity;

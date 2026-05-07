@@ -277,6 +277,16 @@ impl EditorUiCompatibilityHarness {
                     .route_result_entries
                     .push(format!("anchor={:?}", drop.anchor));
             }
+            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::DetachToWindow {
+                new_window,
+            } => {
+                snapshot
+                    .route_result_entries
+                    .push("target=detach".to_string());
+                snapshot
+                    .route_result_entries
+                    .push(format!("new_window={}", new_window.0));
+            }
             crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::Split {
                 workspace,
                 path,

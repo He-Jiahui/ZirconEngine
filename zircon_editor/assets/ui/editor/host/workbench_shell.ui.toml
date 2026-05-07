@@ -130,16 +130,16 @@ bindings = []
 clip = true
 
 [components.ActivityRail.root.layout.container]
-gap = 8.0
+gap = 6.0
 kind = "VerticalBox"
 
 [components.ActivityRail.root.layout.height]
 stretch = "Stretch"
 
 [components.ActivityRail.root.layout.width]
-max = 56.0
-min = 56.0
-preferred = 56.0
+max = 44.0
+min = 44.0
+preferred = 44.0
 stretch = "Fixed"
 
 [components.ActivityRail.root.style_overrides.self]
@@ -169,9 +169,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.height]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [components.ActivityRail.root.children.node.layout.pivot]
@@ -179,9 +179,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.width]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [[components.ActivityRail.root.children.node.bindings]]
@@ -216,9 +216,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.height]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [components.ActivityRail.root.children.node.layout.pivot]
@@ -226,9 +226,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.width]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [[components.ActivityRail.root.children.node.bindings]]
@@ -263,9 +263,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.height]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [components.ActivityRail.root.children.node.layout.pivot]
@@ -273,9 +273,9 @@ x = 0.5
 y = 0.0
 
 [components.ActivityRail.root.children.node.layout.width]
-max = 40.0
-min = 40.0
-preferred = 40.0
+max = 32.0
+min = 32.0
+preferred = 32.0
 stretch = "Fixed"
 
 [[components.ActivityRail.root.children.node.bindings]]
@@ -409,13 +409,13 @@ bindings = []
 [components.MenuBar.root.props]
 
 [components.MenuBar.root.layout.container]
-gap = 8.0
+gap = 6.0
 kind = "HorizontalBox"
 
 [components.MenuBar.root.layout.height]
-max = 26.0
-min = 26.0
-preferred = 26.0
+max = 24.0
+min = 24.0
+preferred = 24.0
 stretch = "Fixed"
 
 [components.MenuBar.root.layout.width]
@@ -444,15 +444,15 @@ icon = "folder-open-outline"
 label = "Open"
 
 [components.MenuBar.root.children.node.layout.height]
-max = 32.0
-min = 32.0
-preferred = 32.0
+max = 24.0
+min = 24.0
+preferred = 24.0
 stretch = "Fixed"
 
 [components.MenuBar.root.children.node.layout.width]
-max = 120.0
-min = 120.0
-preferred = 120.0
+max = 76.0
+min = 76.0
+preferred = 76.0
 stretch = "Fixed"
 
 [[components.MenuBar.root.children.node.bindings]]
@@ -483,15 +483,15 @@ icon = "save-outline"
 label = "Save"
 
 [components.MenuBar.root.children.node.layout.height]
-max = 32.0
-min = 32.0
-preferred = 32.0
+max = 24.0
+min = 24.0
+preferred = 24.0
 stretch = "Fixed"
 
 [components.MenuBar.root.children.node.layout.width]
-max = 120.0
-min = 120.0
-preferred = 120.0
+max = 76.0
+min = 76.0
+preferred = 76.0
 stretch = "Fixed"
 
 [[components.MenuBar.root.children.node.bindings]]
@@ -522,15 +522,15 @@ icon = "grid-outline"
 label = "Reset Layout"
 
 [components.MenuBar.root.children.node.layout.height]
-max = 32.0
-min = 32.0
-preferred = 32.0
+max = 24.0
+min = 24.0
+preferred = 24.0
 stretch = "Fixed"
 
 [components.MenuBar.root.children.node.layout.width]
-max = 120.0
-min = 120.0
-preferred = 120.0
+max = 96.0
+min = 96.0
+preferred = 96.0
 stretch = "Fixed"
 
 [[components.MenuBar.root.children.node.bindings]]

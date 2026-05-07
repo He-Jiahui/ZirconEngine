@@ -4,6 +4,7 @@ mod container_inference;
 mod interaction;
 mod layout_contract;
 mod parsers;
+mod slot_contract;
 mod surface_builder;
 mod tree_builder;
 

@@ -12,6 +12,7 @@ use super::child_segment::child_segment;
 use super::container_inference::infer_container;
 use super::interaction::infer_interaction;
 use super::layout_contract::infer_layout_contract;
+use super::slot_contract::infer_slot_contract;
 
 #[derive(Default)]
 pub struct UiTemplateTreeBuilder {
@@ -74,7 +75,17 @@ impl UiTemplateTreeBuilder {
         }
 
         if let Some(parent_id) = parent_id {
+            let parent_container = tree
+                .node(parent_id)
+                .map(|parent| parent.container)
+                .ok_or_else(|| {
+                    UiTemplateBuildError::Tree(
+                        zircon_runtime_interface::ui::tree::UiTreeError::MissingParent(parent_id),
+                    )
+                })?;
+            let slot = infer_slot_contract(node, parent_id, node_id, parent_container, path)?;
             tree.insert_child(parent_id, tree_node)?;
+            tree.slots.push(slot);
         } else {
             tree.insert_root(tree_node);
         }

@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use super::metrics::UiLayoutMetrics;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiPoint {
     pub x: f32,
@@ -72,6 +74,46 @@ impl UiFrame {
         let height = bottom - top;
         (width > 0.0 && height > 0.0).then_some(Self::new(left, top, width, height))
     }
+
+    pub fn translated(self, translation: UiPoint) -> Self {
+        Self::new(
+            self.x + translation.x,
+            self.y + translation.y,
+            self.width,
+            self.height,
+        )
+    }
+
+    pub fn scaled(self, scale: UiPoint) -> Self {
+        Self::new(
+            self.x * scale.x,
+            self.y * scale.y,
+            self.width * scale.x,
+            self.height * scale.y,
+        )
+    }
+
+    pub fn apply_layout_transform(self, transform: UiLayoutTransform) -> Self {
+        self.scaled(transform.scale)
+            .translated(transform.translation)
+    }
+
+    pub fn apply_render_transform(self, transform: UiRenderTransform) -> Self {
+        self.scaled(transform.scale)
+            .translated(transform.translation)
+    }
+
+    pub fn pixel_snapped(self, dpi_scale: f32) -> Self {
+        if !frame_is_finite(self) {
+            return self;
+        }
+        let scale = sanitized_metric_scale(dpi_scale);
+        let left = snap_floor(self.x, scale);
+        let top = snap_floor(self.y, scale);
+        let right = snap_ceil(self.right(), scale);
+        let bottom = snap_ceil(self.bottom(), scale);
+        Self::new(left, top, (right - left).max(0.0), (bottom - top).max(0.0))
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -84,7 +126,9 @@ pub enum UiPixelSnapping {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiLayoutTransform {
+    #[serde(default)]
     pub translation: UiPoint,
+    #[serde(default = "default_transform_scale")]
     pub scale: UiPoint,
 }
 
@@ -109,7 +153,9 @@ impl UiLayoutTransform {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiRenderTransform {
+    #[serde(default)]
     pub translation: UiPoint,
+    #[serde(default = "default_transform_scale")]
     pub scale: UiPoint,
 }
 
@@ -132,17 +178,29 @@ impl UiRenderTransform {
     }
 }
 
+const fn default_transform_scale() -> UiPoint {
+    UiPoint::new(1.0, 1.0)
+}
+
 /// Retains the unsnapped layout frame separately from render bounds so hit/debug
 /// code can keep using layout geometry after render-side pixel snapping.
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiGeometry {
+    #[serde(default)]
     pub local_size: UiSize,
+    #[serde(default)]
     pub local_offset: UiPoint,
+    #[serde(default)]
     pub layout_transform: UiLayoutTransform,
+    #[serde(default)]
     pub render_transform: UiRenderTransform,
+    #[serde(default)]
     pub absolute_frame: UiFrame,
+    #[serde(default)]
     pub render_bounds: UiFrame,
+    #[serde(default)]
     pub clip_frame: Option<UiFrame>,
+    #[serde(default)]
     pub pixel_snapping: UiPixelSnapping,
 }
 
@@ -165,6 +223,55 @@ impl UiGeometry {
             pixel_snapping: UiPixelSnapping::Enabled,
         }
     }
+
+    pub fn from_frame_with_metrics(frame: UiFrame, metrics: UiLayoutMetrics) -> Self {
+        let dpi_scale = sanitized_metric_scale(metrics.dpi_scale);
+        let layout_scale = sanitized_metric_scale(metrics.layout_scale);
+        let render_bounds = if metrics.pixel_snapping == UiPixelSnapping::Enabled {
+            frame.pixel_snapped(dpi_scale)
+        } else {
+            frame
+        };
+        Self {
+            local_size: UiSize::new(frame.width, frame.height),
+            local_offset: UiPoint::new(0.0, 0.0),
+            layout_transform: UiLayoutTransform::new(
+                UiPoint::new(0.0, 0.0),
+                UiPoint::new(layout_scale, layout_scale),
+            ),
+            render_transform: UiRenderTransform::new(
+                UiPoint::new(0.0, 0.0),
+                UiPoint::new(dpi_scale, dpi_scale),
+            ),
+            absolute_frame: frame,
+            render_bounds,
+            clip_frame: None,
+            pixel_snapping: metrics.pixel_snapping,
+        }
+    }
+}
+
+fn frame_is_finite(frame: UiFrame) -> bool {
+    frame.x.is_finite()
+        && frame.y.is_finite()
+        && frame.width.is_finite()
+        && frame.height.is_finite()
+}
+
+fn sanitized_metric_scale(scale: f32) -> f32 {
+    if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    }
+}
+
+fn snap_floor(value: f32, scale: f32) -> f32 {
+    (value * scale).floor() / scale
+}
+
+fn snap_ceil(value: f32, scale: f32) -> f32 {
+    (value * scale).ceil() / scale
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]

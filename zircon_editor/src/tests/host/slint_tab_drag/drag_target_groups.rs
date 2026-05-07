@@ -10,11 +10,11 @@ fn shared_drag_target_route_prefers_right_over_bottom_in_overlap_when_pointer_is
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 900.0),
-            &geometry,
             true,
             UiPoint::new(1428.0, 860.0),
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(HostDragTargetGroup::Right)
     );
@@ -30,11 +30,11 @@ fn shared_drag_target_route_prefers_bottom_over_right_in_overlap_when_pointer_is
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 900.0),
-            &geometry,
             true,
             UiPoint::new(1380.0, 860.0),
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(HostDragTargetGroup::Bottom)
     );
@@ -49,11 +49,11 @@ fn shared_drag_target_route_returns_document_inside_document_region() {
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 900.0),
-            &geometry,
             true,
             UiPoint::new(720.0, 240.0),
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(HostDragTargetGroup::Document)
     );
@@ -62,7 +62,7 @@ fn shared_drag_target_route_returns_document_inside_document_region() {
 #[test]
 fn resolve_host_drag_target_group_with_root_frames_uses_shared_root_projection_document_bounds_when_drawers_are_collapsed(
 ) {
-    let geometry = WorkbenchShellGeometry {
+    let _legacy_geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
@@ -96,7 +96,6 @@ fn resolve_host_drag_target_group_with_root_frames_uses_shared_root_projection_d
     assert_eq!(
         resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 720.0),
-            &geometry,
             false,
             UiPoint::new(40.0, 240.0),
             Some(&root_projection),
@@ -106,7 +105,6 @@ fn resolve_host_drag_target_group_with_root_frames_uses_shared_root_projection_d
     assert_eq!(
         resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 720.0),
-            &geometry,
             false,
             UiPoint::new(80.0, 240.0),
             Some(&root_projection),
@@ -118,7 +116,7 @@ fn resolve_host_drag_target_group_with_root_frames_uses_shared_root_projection_d
 #[test]
 fn resolve_host_drag_target_group_with_root_frames_prefers_shared_left_drawer_shell_width_when_legacy_geometry_is_stale(
 ) {
-    let geometry = WorkbenchShellGeometry {
+    let _legacy_geometry = WorkbenchShellGeometry {
         window_min_width: 0.0,
         window_min_height: 0.0,
         center_band_frame: ShellFrame::new(0.0, 50.0, 1440.0, 650.0),
@@ -153,7 +151,6 @@ fn resolve_host_drag_target_group_with_root_frames_prefers_shared_left_drawer_sh
     assert_eq!(
         resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 720.0),
-            &geometry,
             true,
             UiPoint::new(180.0, 240.0),
             Some(&root_projection),
@@ -171,11 +168,11 @@ fn shared_drag_target_route_disables_empty_tool_regions_when_drawers_are_hidden(
     );
 
     assert_eq!(
-        resolve_host_drag_target_group(
+        resolve_host_drag_target_group_with_root_frames(
             UiSize::new(1440.0, 900.0),
-            &geometry,
             false,
             UiPoint::new(12.0, 240.0),
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         None
     );

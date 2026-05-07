@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
     menu_pointer::{HostMenuPointerBridge, HostMenuPointerDispatch},
 };
 
@@ -13,7 +13,7 @@ use super::super::{
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedMenuPointerClickDispatch {
     pub pointer: HostMenuPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_menu_pointer_click(

@@ -44,6 +44,7 @@ fn chrome_fixture() -> EditorChromeSnapshot {
         project_open: true,
         can_undo: true,
         can_redo: false,
+        menu_overflow_mode: Default::default(),
     }
 }
 

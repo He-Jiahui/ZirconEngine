@@ -5,9 +5,10 @@ use crate::ui::slint_host::{
     build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FrameRect,
     HostChromeControlFrameData, HostChromeTabData, HostDocumentDockSurfaceData, HostMenuChromeData,
-    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData, HostSideDockSurfaceData,
-    HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData, SceneViewportChromeData,
-    TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext, UiHostWindow,
+    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData, HostResizeLayerData,
+    HostSideDockSurfaceData, HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData,
+    SceneViewportChromeData, TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
+    UiHostWindow,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use slint::{Model, ModelRc, PhysicalSize, VecModel};
@@ -58,6 +59,45 @@ fn native_host_pointer_click_routes_document_tab_with_document_region_origin() {
         clicks.borrow().as_slice(),
         [("document".to_string(), 0, 12.0, 84.0, 24.0, 12.0)],
         "root document tabs should be hit-tested in document-region global coordinates"
+    );
+}
+
+#[test]
+fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.page_chrome.tab_frames = model_rc(vec![chrome_tab(
+        "HostPageTab0",
+        "Workbench",
+        68.0,
+        29.0,
+        116.0,
+        28.0,
+    )]);
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>().on_host_page_pointer_clicked(
+            move |index, tab_x, tab_width, x, y| {
+                clicks.borrow_mut().push((index, tab_x, tab_width, x, y));
+            },
+        );
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(80.0, 41.0);
+
+    assert!(result.request_redraw());
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [(0, 68.0, 116.0, 12.0, 12.0)],
+        "host page tab pointer bridge expects tab-local click coordinates, not global shell coordinates"
     );
 }
 
@@ -171,6 +211,438 @@ fn native_host_pointer_click_routes_binding_only_template_buttons() {
             "InspectorPaneBody/ApplyDraft".to_string()
         )],
         "native template button hit-testing should route projected binding metadata when no literal action_id exists"
+    );
+}
+
+#[test]
+fn native_host_welcome_material_text_field_accepts_keyboard_input() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(40.0, 58.0, 340.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 340.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 340.0, 145.0),
+        pane: welcome_pane_with_nodes(vec![welcome_text_node(
+            "WelcomeProjectNameField",
+            "ProjectNameEdited",
+            "Zircon",
+            20.0,
+            18.0,
+            240.0,
+            32.0,
+        )]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let changes = Rc::new(RefCell::new(Vec::new()));
+    {
+        let changes = changes.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_welcome_control_changed(move |control_id, value| {
+                changes
+                    .borrow_mut()
+                    .push((control_id.to_string(), value.to_string()));
+            });
+    }
+
+    let focus_result =
+        ui.dispatch_native_primary_press_for_test(40.0 + 20.0 + 8.0, 58.0 + 32.0 + 18.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+    let backspace_result = ui.dispatch_native_backspace_for_test();
+    let input_frame = host_frame(40.0 + 20.0, 58.0 + 32.0 + 18.0, 240.0, 32.0);
+
+    assert!(focus_result.request_redraw());
+    assert!(insert_result.request_redraw());
+    assert!(backspace_result.request_redraw());
+    assert!(!insert_result.requires_frame_update());
+    assert_eq!(insert_result.damage_region(), Some(input_frame.clone()));
+    assert!(!backspace_result.requires_frame_update());
+    assert_eq!(backspace_result.damage_region(), Some(input_frame));
+    assert_eq!(
+        changes.borrow().as_slice(),
+        [
+            ("ProjectNameEdited".to_string(), "ZirconX".to_string()),
+            ("ProjectNameEdited".to_string(), "Zircon".to_string())
+        ],
+        "focused Material text fields should forward keyboard edits through the welcome .ui.toml binding route"
+    );
+}
+
+#[test]
+fn native_host_generic_template_text_field_routes_builtin_change_binding() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![template_input_node(
+                "NameField",
+                "Draft Cube",
+                "InspectorView/NameField",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+    let before_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("pre-edit text field snapshot should render");
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_edited(move |control_id, binding_id, value| {
+                edits.borrow_mut().push((
+                    control_id.to_string(),
+                    binding_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    let focus_result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+    let after_snapshot = ui
+        .window()
+        .take_snapshot()
+        .expect("focused text field snapshot should render the edited value");
+    let input_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 14.0, 160.0, 24.0);
+
+    assert!(focus_result.request_redraw());
+    assert!(insert_result.request_redraw());
+    assert!(!focus_result.requires_frame_update());
+    assert_eq!(focus_result.damage_region(), Some(input_frame.clone()));
+    assert!(!insert_result.requires_frame_update());
+    assert_eq!(insert_result.damage_region(), Some(input_frame.clone()));
+    assert_eq!(
+        ui.get_host_presentation()
+            .text_input_focus
+            .value_text
+            .as_str(),
+        "Draft CubeX"
+    );
+    assert!(
+        changed_pixel_count(
+            after_snapshot.width(),
+            before_snapshot.as_bytes(),
+            after_snapshot.as_bytes(),
+            input_frame.x as u32,
+            input_frame.y as u32,
+            input_frame.width as u32,
+            input_frame.height as u32,
+        ) > 0,
+        "local text edit focus should repaint visible input glyphs without waiting for a full presentation rebuild"
+    );
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [(
+            "NameField".to_string(),
+            "InspectorView/NameField".to_string(),
+            "Draft CubeX".to_string()
+        )],
+        "generic template text fields should keep the shared edit binding id and changed value on the native route"
+    );
+}
+
+#[test]
+fn native_host_generic_template_text_field_routes_commit_binding_on_enter() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![template_input_node_with_commit(
+                "NameField",
+                "Draft Cube",
+                "InspectorView/NameField",
+                "InspectorView/ApplyBatchButton",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_edited(move |control_id, binding_id, value| {
+                edits.borrow_mut().push((
+                    control_id.to_string(),
+                    binding_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    ui.dispatch_native_text_input_for_test("X");
+    let commit_result = ui.dispatch_native_enter_for_test();
+
+    assert!(commit_result.request_redraw());
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [
+            (
+                "NameField".to_string(),
+                "InspectorView/NameField".to_string(),
+                "Draft CubeX".to_string()
+            ),
+            (
+                "NameField".to_string(),
+                "InspectorView/ApplyBatchButton".to_string(),
+                "Draft CubeX".to_string()
+            )
+        ],
+        "Enter should dispatch the focused text field commit binding instead of reusing the edit binding"
+    );
+}
+
+#[test]
+fn native_host_binding_only_template_text_field_accepts_keyboard_input() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![template_input_node_with_binding(
+                "NameField",
+                "Draft Cube",
+                "InspectorView/NameField",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_edited(move |control_id, binding_id, value| {
+                edits.borrow_mut().push((
+                    control_id.to_string(),
+                    binding_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    let focus_result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+    let input_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 14.0, 160.0, 24.0);
+
+    assert!(focus_result.request_redraw());
+    assert!(insert_result.request_redraw());
+    assert!(!insert_result.requires_frame_update());
+    assert_eq!(insert_result.damage_region(), Some(input_frame));
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [(
+            "NameField".to_string(),
+            "InspectorView/NameField".to_string(),
+            "Draft CubeX".to_string()
+        )],
+        "binding-only input nodes still need a single native text edit target"
+    );
+}
+
+#[test]
+fn native_host_resize_splitter_forwards_move_and_release_after_capture() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.resize_layer = HostResizeLayerData {
+        left_splitter_frame: host_frame(120.0, 58.0, 8.0, 138.0),
+        ..HostResizeLayerData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let resize_events = Rc::new(RefCell::new(Vec::new()));
+    {
+        let resize_events = resize_events.clone();
+        ui.global::<UiHostContext>()
+            .on_host_resize_pointer_event(move |kind, x, y| {
+                resize_events.borrow_mut().push((kind, x, y));
+            });
+    }
+
+    let press = ui.dispatch_native_primary_press_for_test(124.0, 80.0);
+    let move_result = ui.dispatch_native_pointer_move_for_test(180.0, 82.0);
+    let release = ui.dispatch_native_primary_release_for_test(180.0, 82.0);
+
+    assert!(press.request_redraw());
+    assert!(move_result.request_redraw());
+    assert!(release.request_redraw());
+    assert_eq!(
+        resize_events.borrow().as_slice(),
+        [(0, 124.0, 80.0), (1, 180.0, 82.0), (2, 180.0, 82.0)],
+        "native resize should stay captured until pointer up"
+    );
+}
+
+#[test]
+fn native_host_welcome_material_button_routes_welcome_callback() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(40.0, 58.0, 340.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 340.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 340.0, 145.0),
+        pane: welcome_pane_with_nodes(vec![welcome_button_node(
+            "WelcomeCreateProjectButton",
+            "CreateProject",
+            "Create Project",
+            20.0,
+            64.0,
+            132.0,
+            30.0,
+        )]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_welcome_control_clicked(move |control_id| {
+                clicks.borrow_mut().push(control_id.to_string());
+            });
+    }
+
+    let result =
+        ui.dispatch_native_primary_press_for_test(40.0 + 20.0 + 8.0, 58.0 + 32.0 + 64.0 + 8.0);
+
+    assert!(result.request_redraw());
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        ["CreateProject".to_string()],
+        "welcome Material buttons should route to the welcome surface command bridge"
+    );
+}
+
+#[test]
+fn native_host_document_tab_drag_releases_capture_and_forwards_drop() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(40.0, 58.0, 340.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 340.0, 31.0),
+        tab_frames: model_rc(vec![chrome_tab(
+            "document.scene",
+            "Scene",
+            12.0,
+            4.0,
+            84.0,
+            24.0,
+        )]),
+        tabs: model_rc(vec![tab_data("document.scene", "Scene")]),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let drag_events = Rc::new(RefCell::new(Vec::new()));
+    {
+        let drag_events = drag_events.clone();
+        ui.global::<UiHostContext>()
+            .on_host_drag_pointer_event(move |kind, x, y| {
+                drag_events.borrow_mut().push((kind, x, y));
+            });
+    }
+
+    ui.dispatch_native_primary_press_for_test(40.0 + 24.0, 58.0 + 12.0);
+    ui.dispatch_native_pointer_move_for_test(40.0 + 132.0, 58.0 + 74.0);
+    ui.dispatch_native_primary_release_for_test(40.0 + 132.0, 58.0 + 74.0);
+
+    let drag_state = ui.global::<UiHostContext>().get_drag_state();
+    assert_eq!(
+        drag_events.borrow().as_slice(),
+        [(0, 172.0, 132.0), (2, 172.0, 132.0)],
+        "native document-tab drags should enter and leave the shared Slate drag path"
+    );
+    assert!(
+        drag_state.drag_tab_id.is_empty() && !drag_state.drag_active,
+        "drag capture must be cleared on primary release so native repaint cannot leave stale drag state behind"
     );
 }
 
@@ -538,6 +1010,71 @@ fn native_host_pointer_move_routes_viewport_without_native_repaint() {
 }
 
 #[test]
+fn native_host_viewport_button_and_scroll_wait_for_viewport_image_repaint() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+    let rebuild_count_after_projection = ui.presentation_rebuild_count_for_test();
+
+    let viewport_events = Rc::new(RefCell::new(Vec::new()));
+    {
+        let viewport_events = viewport_events.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_viewport_pointer_event(move |kind, button, x, y, delta| {
+                viewport_events
+                    .borrow_mut()
+                    .push((kind, button, x, y, delta));
+            });
+    }
+
+    let x = 60.0 + 40.0;
+    let y = 58.0 + 32.0 + 28.0 + 12.0;
+    let press = ui.dispatch_native_primary_press_for_test(x, y);
+    let release = ui.dispatch_native_primary_release_for_test(x, y);
+    let scroll = ui.dispatch_native_pointer_scroll_for_test(x, y, -120.0);
+
+    assert!(
+        !press.request_redraw(),
+        "viewport press updates runtime input; native repaint waits for the next viewport image"
+    );
+    assert!(
+        !release.request_redraw(),
+        "viewport release should not force a stale native repaint"
+    );
+    assert!(
+        !scroll.request_redraw(),
+        "viewport scroll should not repaint the old viewport image before the renderer updates it"
+    );
+    assert_eq!(
+        ui.presentation_rebuild_count_for_test(),
+        rebuild_count_after_projection,
+        "viewport pointer events must not rebuild projected presentation state"
+    );
+    assert_eq!(
+        viewport_events.borrow().as_slice(),
+        [
+            (0, 1, 40.0, 12.0, 0.0),
+            (2, 1, 40.0, 12.0, 0.0),
+            (3, 0, 40.0, 12.0, -120.0),
+        ],
+        "viewport press/release/scroll facts should still reach the shared pointer bridge"
+    );
+}
+
+#[test]
 fn native_host_hierarchy_move_updates_visible_hover_state() {
     i_slint_backend_testing::init_no_event_loop();
 
@@ -841,6 +1378,101 @@ fn rust_owned_host_painter_draws_open_menu_popup_above_pane_surfaces() {
     );
 }
 
+#[test]
+fn rust_owned_host_painter_draws_open_nested_menu_popup() {
+    i_slint_backend_testing::init_no_event_loop();
+
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.show()
+        .expect("workbench shell should show in test backend");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.menu_chrome = HostMenuChromeData {
+        top_bar_height_px: 25.0,
+        menu_frames: model_rc(vec![control_frame("MenuSlot0", 8.0, 2.0, 56.0, 22.0)]),
+        menus: model_rc(vec![HostMenuChromeMenuData {
+            label: "Tools".into(),
+            popup_width_px: 144.0,
+            popup_height_px: 38.0,
+            items: model_rc(vec![HostMenuChromeItemData {
+                label: "Weather".into(),
+                shortcut: ">".into(),
+                enabled: true,
+                children: model_rc(vec![HostMenuChromeItemData {
+                    label: "Refresh Clouds".into(),
+                    action_id: "Weather.CloudLayer.Refresh".into(),
+                    enabled: true,
+                    ..HostMenuChromeItemData::default()
+                }]),
+                ..HostMenuChromeItemData::default()
+            }]),
+            popup_nodes: model_rc(vec![
+                template_node("MenuPopupPanel", "Panel", "", 0.0, 0.0, 144.0, 38.0),
+                template_node(
+                    "MenuPopupItemRow0",
+                    "Panel",
+                    "Weather",
+                    6.0,
+                    6.0,
+                    132.0,
+                    26.0,
+                ),
+            ]),
+        }]),
+        ..HostMenuChromeData::default()
+    };
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(0.0, 26.0, 360.0, 170.0),
+        header_frame: host_frame(0.0, 0.0, 360.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 360.0, 137.0),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    presentation.menu_state = HostMenuStateData {
+        open_menu_index: 0,
+        ..HostMenuStateData::default()
+    };
+    let root_menu_state = presentation.menu_state.clone();
+    ui.set_host_presentation(presentation.clone());
+    ui.global::<UiHostContext>().set_menu_state(root_menu_state);
+    let root_only = ui
+        .window()
+        .take_snapshot()
+        .expect("root menu snapshot should render");
+
+    presentation.menu_state = HostMenuStateData {
+        open_menu_index: 0,
+        open_submenu_path: vec![0],
+        hovered_menu_item_path: vec![0, 0],
+        hovered_menu_item_index: 1,
+        ..HostMenuStateData::default()
+    };
+    let nested_menu_state = presentation.menu_state.clone();
+    ui.set_host_presentation(presentation);
+    ui.global::<UiHostContext>()
+        .set_menu_state(nested_menu_state);
+    let nested = ui
+        .window()
+        .take_snapshot()
+        .expect("nested menu snapshot should render");
+
+    assert!(
+        changed_pixel_count(
+            nested.width(),
+            root_only.as_bytes(),
+            nested.as_bytes(),
+            148,
+            33,
+            150,
+            42,
+        ) > 140,
+        "opening a submenu branch should paint a visible child popup beside the root menu"
+    );
+}
+
 fn host_frame(x: f32, y: f32, width: f32, height: f32) -> FrameRect {
     FrameRect {
         x,
@@ -951,6 +1583,17 @@ fn pane_with_nodes(kind: &str, nodes: Vec<TemplatePaneNodeData>) -> PaneData {
         ..PaneData::default()
     };
     pane.project_overview.nodes = model_rc(nodes);
+    pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
+    pane
+}
+
+fn welcome_pane_with_nodes(nodes: Vec<TemplatePaneNodeData>) -> PaneData {
+    let mut pane = PaneData {
+        kind: "Welcome".into(),
+        title: "Welcome".into(),
+        ..PaneData::default()
+    };
+    pane.welcome.nodes = model_rc(nodes);
     pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
     pane
 }
@@ -1112,6 +1755,95 @@ fn template_node_with_binding(
         binding_id: binding_id.into(),
         button_variant: "primary".into(),
         ..template_node(control_id, role, text, x, y, width, height)
+    }
+}
+
+fn welcome_text_node(
+    control_id: &str,
+    edit_action_id: &str,
+    value_text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        component_role: "input-field".into(),
+        dispatch_kind: "welcome_text".into(),
+        action_id: edit_action_id.into(),
+        edit_action_id: edit_action_id.into(),
+        value_text: value_text.into(),
+        surface_variant: "inset".into(),
+        ..template_node(control_id, "LineEdit", value_text, x, y, width, height)
+    }
+}
+
+fn template_input_node(
+    control_id: &str,
+    value_text: &str,
+    edit_action_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        component_role: "input-field".into(),
+        edit_action_id: edit_action_id.into(),
+        value_text: value_text.into(),
+        surface_variant: "inset".into(),
+        ..template_node(control_id, "InputField", value_text, x, y, width, height)
+    }
+}
+
+fn template_input_node_with_binding(
+    control_id: &str,
+    value_text: &str,
+    binding_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        component_role: "input-field".into(),
+        binding_id: binding_id.into(),
+        value_text: value_text.into(),
+        surface_variant: "inset".into(),
+        ..template_node(control_id, "InputField", value_text, x, y, width, height)
+    }
+}
+
+fn template_input_node_with_commit(
+    control_id: &str,
+    value_text: &str,
+    edit_action_id: &str,
+    commit_action_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        commit_action_id: commit_action_id.into(),
+        ..template_input_node(control_id, value_text, edit_action_id, x, y, width, height)
+    }
+}
+
+fn welcome_button_node(
+    control_id: &str,
+    action_id: &str,
+    text: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        dispatch_kind: "welcome".into(),
+        action_id: action_id.into(),
+        button_variant: "primary".into(),
+        ..template_node(control_id, "Button", text, x, y, width, height)
     }
 }
 

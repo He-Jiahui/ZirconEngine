@@ -13,14 +13,10 @@ impl LayoutManager {
         }
         let mut focused_activity_window = None;
         for (activity_window_id, activity_window) in layout.activity_windows.iter_mut() {
-            for (slot, drawer) in &mut activity_window.activity_drawers {
+            for drawer in activity_window.activity_drawers.values_mut() {
                 if drawer.tab_stack.tabs.contains(instance_id) {
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
                     drawer.active_view = Some(instance_id.clone());
-                    if let Some(root_drawer) = layout.drawers.get_mut(slot) {
-                        root_drawer.tab_stack.active_tab = drawer.tab_stack.active_tab.clone();
-                        root_drawer.active_view = drawer.active_view.clone();
-                    }
                     focused_activity_window = Some(activity_window_id.clone());
                     break;
                 }

@@ -9,7 +9,9 @@ use crate::ui::slint_host::floating_window_projection::{
 use crate::ui::slint_host::root_shell_projection::resolve_root_viewport_content_frame;
 use slint::Model;
 use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
-use zircon_runtime::diagnostic_log::write_diagnostic_log;
+use zircon_runtime::diagnostic_log::{
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+};
 
 impl SlintEditorHost {
     pub(super) fn new(
@@ -156,6 +158,7 @@ impl SlintEditorHost {
             shell_geometry: None,
             transient_region_preferred: BTreeMap::new(),
             active_drawer_resize: None,
+            pending_close_prompt: None,
             invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
             presentation_dirty: true,
             layout_dirty: true,
@@ -188,15 +191,17 @@ impl SlintEditorHost {
             };
             let render_rebuild = self.invalidation.record_render_rebuild();
             self.publish_refresh_invalidation_diagnostics();
-            write_diagnostic_log(
-                "editor_host_invalidation",
-                format!(
-                    "render_path count={} reasons={} {}",
-                    render_rebuild,
-                    render_reasons.summary(),
-                    self.invalidation.stats_summary()
-                ),
-            );
+            if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+                write_diagnostic_log(
+                    "editor_host_invalidation",
+                    format!(
+                        "render_path count={} reasons={} {}",
+                        render_rebuild,
+                        render_reasons.summary(),
+                        self.invalidation.stats_summary()
+                    ),
+                );
+            }
             if let Some(submission) = self.runtime.render_frame_submission() {
                 if let Err(error) = self.viewport.submit_extract_with_ui(
                     submission.extract,
@@ -259,19 +264,21 @@ impl SlintEditorHost {
         };
         let slow_path_rebuild = self.invalidation.record_slow_path_rebuild();
         self.publish_refresh_invalidation_diagnostics();
-        write_diagnostic_log(
-            "editor_host_invalidation",
-            format!(
-                "slow_path count={} reasons={} legacy_dirty_flags={{layout:{},presentation:{},window_metrics:{},render:{}}} {}",
-                slow_path_rebuild,
-                recompute_reasons.summary(),
-                self.layout_dirty,
-                self.presentation_dirty,
-                self.window_metrics_dirty,
-                self.render_dirty,
-                self.invalidation.stats_summary()
-            ),
-        );
+        if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+            write_diagnostic_log(
+                "editor_host_invalidation",
+                format!(
+                    "slow_path count={} reasons={} legacy_dirty_flags={{layout:{},presentation:{},window_metrics:{},render:{}}} {}",
+                    slow_path_rebuild,
+                    recompute_reasons.summary(),
+                    self.layout_dirty,
+                    self.presentation_dirty,
+                    self.window_metrics_dirty,
+                    self.render_dirty,
+                    self.invalidation.stats_summary()
+                ),
+            );
+        }
 
         let layout = self.runtime.current_layout();
         let descriptors = self.runtime.descriptors();
@@ -322,7 +329,6 @@ impl SlintEditorHost {
                 &native_window_hosts,
             );
         let viewport_content_frame = resolve_root_viewport_content_frame(
-            &geometry,
             Some(&root_shell_frames),
             active_document_shows_viewport_toolbar(&model),
         );
@@ -351,20 +357,15 @@ impl SlintEditorHost {
         self.shell_pointer_bridge
             .update_layout_with_root_shell_frames(
                 self.shell_size,
-                &geometry,
                 model.drawer_ring.visible,
                 &model.floating_windows,
                 Some(&root_shell_frames),
                 Some(&floating_window_projection_bundle),
             );
-        self.sync_activity_rail_pointer_layout(&model, &geometry);
+        self.sync_activity_rail_pointer_layout(&model);
         self.sync_host_page_pointer_layout(&model);
-        self.sync_document_tab_pointer_layout(
-            &model,
-            &geometry,
-            &floating_window_projection_bundle,
-        );
-        self.sync_drawer_header_pointer_layout(&model, &geometry);
+        self.sync_document_tab_pointer_layout(&model, &floating_window_projection_bundle);
+        self.sync_drawer_header_pointer_layout(&model);
 
         let preset_names = self.runtime.preset_names();
         let ui_asset_panes = self.collect_ui_asset_panes();
@@ -743,7 +744,7 @@ impl SlintEditorHost {
         self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
-    pub(super) fn apply_dispatch_effects(&mut self, effects: SlintDispatchEffects) {
+    pub(super) fn apply_dispatch_effects(&mut self, effects: UiHostEventEffects) {
         if let Some(name) = effects.active_layout_preset_name.clone() {
             self.active_layout_preset = Some(name);
         }
@@ -784,7 +785,7 @@ impl SlintEditorHost {
         }
     }
 
-    pub(super) fn apply_dispatch_result(&mut self, result: Result<SlintDispatchEffects, String>) {
+    pub(super) fn apply_dispatch_result(&mut self, result: Result<UiHostEventEffects, String>) {
         match result {
             Ok(effects) => self.apply_dispatch_effects(effects),
             Err(error) => self.set_status_line(error),

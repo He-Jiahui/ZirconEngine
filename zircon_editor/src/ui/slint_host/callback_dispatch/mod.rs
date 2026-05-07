@@ -26,7 +26,7 @@ pub(crate) use layout::{
     dispatch_builtin_floating_window_focus, dispatch_builtin_floating_window_focus_for_source,
     dispatch_builtin_host_document_tab_activation, dispatch_builtin_host_document_tab_close,
     dispatch_builtin_host_drawer_toggle, dispatch_builtin_host_page_activation,
-    dispatch_layout_command, dispatch_tab_drop, resolve_builtin_floating_window_close_instances,
+    dispatch_layout_command, dispatch_tab_drop,
 };
 pub(crate) use pane::dispatch_builtin_pane_surface_control;
 pub(crate) use shared_pointer::{
@@ -37,7 +37,10 @@ pub(crate) use shared_pointer::{
     dispatch_shared_host_page_pointer_click, dispatch_shared_menu_pointer_click,
     dispatch_shared_viewport_toolbar_pointer_click, dispatch_shared_welcome_recent_pointer_click,
 };
-pub(crate) use template_binding::dispatch_builtin_template_binding;
+pub(crate) use template_binding::{
+    dispatch_builtin_template_binding, dispatch_builtin_template_binding_with_arguments,
+    dispatch_template_binding_with_arguments,
+};
 #[cfg(test)]
 pub(crate) use template_bridge::BuiltinHostDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{

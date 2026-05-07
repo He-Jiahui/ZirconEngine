@@ -119,6 +119,7 @@ related_code:
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
+  - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/pane_content.slint
   - zircon_editor/ui/workbench/assets.slint
@@ -226,6 +227,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
+  - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/ui/workbench.slint
   - zircon_editor/ui/workbench/pane_content.slint
   - zircon_editor/ui/workbench/assets.slint
@@ -407,6 +409,7 @@ tests:
   - zircon_editor/src/tests/workbench/reflection/model_projection.rs
   - zircon_editor/src/tests/workbench/reflection/remote_routes.rs
   - zircon_editor/src/tests/workbench/reflection/action_dispatch.rs
+  - zircon_editor/src/tests/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/tests/ui/boundary/editor_event_cutover.rs
   - cargo test -p zircon_editor --locked
   - cargo test -p zircon_editor --lib --locked
@@ -796,7 +799,7 @@ transient hover/focus/pressed/drawer-resize 投影现在已经迁到 [`transient
 7. journal record 额外写入 `operation_id`、`operation_display_name`、可选 `operation_arguments` 和可选 `operation_group`
 8. undoable operation 成功执行后，`EditorOperationStack` 记录被显式调用的 operation id/display name/sequence/source/group
 
-这让 operation 成为 Unity `MenuItem` / `ExecuteMenuItem` 类似的公共命名入口，而 journal/replay 仍然保留 Zircon 自己的 typed event 权威格式。Operation id 至少需要三段 dotted namespace，例如 `Weather.CloudLayer.Refresh`；更深层路径如 `View.weather.cloud_layers.Open` 也合法，但 `Weather.Refresh` 这种缺少命名空间/叶子层级的短路径会在注册或调用前被拒绝。`EditorOperationDescriptor.menu_path` 使用同一类 Unity 风格 slash path 约束：至少包含顶层菜单和叶子项，且不能有空 segment 或首尾空白 segment；`EditorOperationRegistry::register(...)` 会在接受 descriptor 时校验它，避免远控 discovery 和 Workbench 菜单投影拿到不可构建的菜单元数据。旧 Slint 菜单 callback、`InvokeBinding` 和普通 `CallAction` 仍可按 canonical event 反查 builtin `EditorOperationRegistry`，因此同一个内建菜单行为会得到同一个 `operation_id`。显式 `invoke_operation(...)`、扩展菜单和 CLI 入口则不再在 dispatch 后补写 metadata，而是在提交 canonical event 前携带被调用 descriptor 的身份；这避免插件 operation 复用 `MenuAction::ResetLayout` 这类内建 event 时，journal 或 operation stack 被错误记录成 `Window.Layout.Reset`。`EditorOperation` UI binding 还会保留 `CallAction` / `InvokeRoute` 带入的参数，并把它们转换为 `EditorOperationInvocation.arguments` 与 journal/listener delivery 上的 `operation_arguments`，因此 `ui.toml` 控件事件、反射调用和外部程序可以共享同一条带参数 operation 审计记录。连续编辑还可以设置 `EditorOperationInvocation.operation_group`；journal/listener 仍保留每一次 dispatch 的独立 record，但 `EditorOperationStack` 会把同一 operation id 与 group 的连续 undoable invocation 合并到一条历史项，并把 sequence 更新到最新 dispatch。后续 View、Drawer、Component Inspector 的 `ui.toml` 控件只需要绑定 operation path；控制脚本注册的 handler 也应先进入 operation registry，再由 operation 统一提交 editor event。
+这让 operation 成为 Unity `MenuItem` / `ExecuteMenuItem` 类似的公共命名入口，而 journal/replay 仍然保留 Zircon 自己的 typed event 权威格式。Operation id 至少需要三段 dotted namespace，例如 `Weather.CloudLayer.Refresh`；更深层路径如 `View.weather_cloud_layers.Open` 也合法，但 `Weather.Refresh` 这种缺少命名空间/叶子层级的短路径会在注册或调用前被拒绝。`EditorOperationDescriptor.menu_path` 使用同一类 Unity 风格 slash path 约束：至少包含顶层菜单和叶子项，且不能有空 segment 或首尾空白 segment；`EditorOperationRegistry::register(...)` 会在接受 descriptor 时校验它，避免远控 discovery 和 Workbench 菜单投影拿到不可构建的菜单元数据。旧 Slint 菜单 callback、`InvokeBinding` 和普通 `CallAction` 仍可按 canonical event 反查 builtin `EditorOperationRegistry`，因此同一个内建菜单行为会得到同一个 `operation_id`。显式 `invoke_operation(...)`、扩展菜单和 CLI 入口则不再在 dispatch 后补写 metadata，而是在提交 canonical event 前携带被调用 descriptor 的身份；这避免插件 operation 复用 `MenuAction::ResetLayout` 这类内建 event 时，journal 或 operation stack 被错误记录成 `Window.Layout.Reset`。`EditorOperation` UI binding 的 native call 第 0 个参数始终是 operation id，`CallAction` / `InvokeRoute` 带入的动态参数会作为后续参数附加并转换为 `EditorOperationInvocation.arguments` 与 journal/listener delivery 上的 `operation_arguments`，因此 `ui.toml` 控件事件、反射调用和外部程序可以共享同一条带参数 operation 审计记录。连续编辑还可以设置 `EditorOperationInvocation.operation_group`；journal/listener 仍保留每一次 dispatch 的独立 record，但 `EditorOperationStack` 会把同一 operation id 与 group 的连续 undoable invocation 合并到一条历史项，并把 sequence 更新到最新 dispatch。后续 View、Drawer、Component Inspector 的 `ui.toml` 控件只需要绑定 operation path；控制脚本注册的 handler 也应先进入 operation registry，再由 operation 统一提交 editor event。
 
 失败的 control request 也必须进入同一条记录链路。`EditorEvent::Operation(EditorOperationEvent::ControlFailure)` 是非 undoable event：它会把错误写入 status line、journal result 和 listener delivery，并保留调用方提供的 `operation_group` 供外部批处理/连续交互审计，但不会污染 `EditorOperationStack`。`EditorEventReplay` 会把 journal 中原本就是失败的 record 当作预期失败重放，并继续处理后续记录；原本成功的 record 如果重放失败仍然会中断。这样外部程序、CLI 和 UI 绑定看到的是完整操作审计流，而 undo/redo 栈只保留真正成功并声明可撤回的操作。
 
@@ -823,6 +826,8 @@ Workbench 菜单模型现在也带 operation metadata：
 - [`EditorUiReflectionAdapter`](/E:/Git/ZirconEngine/zircon_editor/src/ui/reflection.rs) 会在 menu item node 上暴露 `operation_path` 和可选 `shortcut` 属性
 
 这样菜单点击仍可沿用旧 `MenuAction` 热路径，外部程序和未来命令行则可以从同一反射节点读到 `File.Project.Save` / `Window.Layout.Reset` 等 operation 路径，再通过 operation control request 触发同一行为。
+
+反射模型只发布可执行叶子菜单项。Workbench/host presentation 可以保留 `Tools / Weather >` 这类分支行用于 popup 视觉和指针布局，但 `build_workbench_reflection_model(...)` 会递归展开 `MenuItemModel.children`，跳过没有 action 的分支节点，并把最终 leaf 的 stable `control_id`、binding、`operation_path` 和 shortcut 注册为远控可调用节点。这样 Unity 风格的 `Tools/Weather/Refresh Cloud Layers` 扩展路径会在 reflection 树中成为 `editor/workbench/menu/tools/Weather.CloudLayer.Refresh`，`CallAction(onClick)` 带入的动态参数仍沿同一 `EditorOperation` binding 进入 `EditorOperationInvocation.arguments`、journal 和 listener delivery，而不会因为中间分支未投影成节点而丢失 route 或参数。
 
 扩展贡献的菜单项不再只停留在 `EditorExtensionRegistry`。`EditorMenuItemDescriptor` 现在支持 Unity `MenuItem` 风格的 `path`、`priority`、`shortcut`、`enabled` 和 `required_capabilities` 元数据；`EditorExtensionRegistry::register_menu_item(...)` 会先拒绝空路径、单段路径、空 segment、首尾 slash、以及带首尾空白的 segment，确保路径至少有顶层菜单和叶子项。`EditorEventRuntime::register_editor_extension(...)` 会拒绝指向不存在 operation 的菜单项，所以 Workbench 不会显示一个无法通过 operation registry 派发的插件菜单。`WorkbenchViewModel::build_with_extensions_and_capabilities(...)` 会先按菜单项 capability 过滤，再按 priority / path 稳定排序，把 `EditorMenuItemDescriptor.path()` 的 Unity 风格路径投影到顶层菜单，把叶子段作为显示 label，并使用 [`editor_operation_binding(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/event/editor_operation_binding.rs) 生成 `EditorOperation` UI payload。`enabled` 是 v1 的菜单验证结果承载字段：插件或后续 Rust/VM validate handler 可以把当前上下文的校验结果投影成 disabled 菜单项，而 capability 仍负责隐藏不可用贡献。`CallAction(onClick)` 进入 `EditorEventRuntime::invoke_editor_binding(...)` 后会直接调用 `invoke_operation(EditorOperationSource::UiBinding, ...)`，因此扩展菜单、远控 route 和显式 operation invocation 都会写入同一个 `operation_id` journal 记录。
 
@@ -1023,6 +1028,8 @@ viewport toolbar 的 typed command 空间已经固定属于 `ViewportCommand`，
 
 `zircon_editor/src/ui/workbench/reflection/mod.rs` 现在作为结构入口，把 workbench snapshot 和 view model 投影拆成 activity descriptor、activity collection、typed route registration 与名称映射几个独立子模块。
 
+The Widget Reflector consumer is deliberately separate from the existing workbench action/reflection model. `WorkbenchWidgetReflectorModel` consumes runtime `UiReflectorSnapshot` data, projects tree rows and selected-node details, and owns only local selection state. It does not query Slint, rebuild layout, or keep an alternate hit index; runtime `UiSurface` remains the source for reflected lifecycle, properties, frames, and hit context.
+
 反射树中固定暴露：
 
 - menu item node
@@ -1133,6 +1140,10 @@ runtime 每次事件执行后只允许从三类输入重建 reflection：
   - inspector
   - viewport
   - runtime-backed `CallAction`
+- workbench Widget Reflector snapshot consumption
+  - row projection
+  - selected-node reflected property view
+  - missing-node selection rejection without losing current selection
 - UI asset editor session/host routes
   - source/hierarchy/canvas selection roundtrip
   - structured binding event/action/payload editing

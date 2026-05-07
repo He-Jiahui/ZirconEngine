@@ -16,12 +16,17 @@ mod pane_menu_projection;
 mod pane_option_projection;
 mod pane_ui_asset_conversion;
 mod pane_value_conversion;
+mod runtime_diagnostics;
 
 pub(crate) use self::build_export::to_host_contract_build_export_pane_from_host_pane;
 pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_host_pane;
 use self::pane_component_projection::host_template_node;
 pub(super) use self::pane_ui_asset_conversion::to_host_contract_ui_asset_pane;
 use self::pane_value_conversion::{value_as_bool, value_as_string};
+pub(crate) use self::runtime_diagnostics::{
+    refresh_runtime_diagnostics_debug_reflector_from_body_surface,
+    to_host_contract_runtime_diagnostics_pane_from_host_pane,
+};
 
 const INSPECTOR_FIELD_ROW_HEIGHT: f32 = 28.0;
 const INSPECTOR_FIELD_ROW_GAP: f32 = 6.0;

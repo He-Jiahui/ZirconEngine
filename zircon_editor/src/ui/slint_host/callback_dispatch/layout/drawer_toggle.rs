@@ -1,7 +1,7 @@
 use crate::ui::binding::{DockCommand, EditorUiBindingPayload};
 
 use crate::core::editor_event::EditorEventRuntime;
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::layout::ActivityDrawerMode;
 use crate::ui::workbench::layout::LayoutCommand;
 use crate::ui::workbench::view::ViewInstanceId;
@@ -17,7 +17,7 @@ pub(crate) fn dispatch_builtin_host_drawer_toggle(
     bridge: &BuiltinHostWindowTemplateBridge,
     slot: &str,
     instance_id: &str,
-) -> Option<Result<SlintDispatchEffects, String>> {
+) -> Option<Result<UiHostEventEffects, String>> {
     let binding = bridge.activity_binding_for_target(slot, instance_id)?;
     let EditorUiBindingPayload::DockCommand(DockCommand::ActivateDrawerTab {
         slot: binding_slot,
@@ -33,7 +33,8 @@ pub(crate) fn dispatch_builtin_host_drawer_toggle(
     };
     let target_instance = ViewInstanceId::new(binding_instance_id);
     let layout = runtime.current_layout();
-    let Some(drawer) = layout.drawers.get(&slot).cloned() else {
+    let active_drawers = layout.active_activity_window_drawers();
+    let Some(drawer) = active_drawers.get(&slot).cloned() else {
         return Some(Err(format!("missing drawer {:?}", slot)));
     };
 

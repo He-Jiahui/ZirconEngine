@@ -13,9 +13,7 @@ use crate::ui::slint_host::document_tab_pointer::{
     HostDocumentTabPointerSurface,
 };
 use crate::ui::slint_host::floating_window_projection::build_floating_window_projection_bundle;
-use crate::ui::workbench::autolayout::{
-    compute_workbench_shell_geometry, ShellSizePx, WorkbenchChromeMetrics,
-};
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -61,27 +59,17 @@ fn shared_document_tab_pointer_click_dispatches_focus_view_through_runtime_dispa
         .expect("builtin workbench template bridge should build");
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
-    let geometry = compute_workbench_shell_geometry(
-        &model,
-        &chrome,
-        &harness.runtime.current_layout(),
-        &harness.runtime.descriptors(),
-        ShellSizePx::new(1280.0, 720.0),
-        &WorkbenchChromeMetrics::default(),
-        None,
-    );
     let mut pointer_bridge = HostDocumentTabPointerBridge::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &WorkbenchChromeMetrics::default(),
         &[],
     );
     pointer_bridge.sync(build_host_document_tab_pointer_layout(
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
-        None,
+        Some(&template_bridge.root_shell_frames()),
         &floating_window_projection_bundle,
     ));
 
@@ -144,27 +132,17 @@ fn shared_document_tab_close_pointer_click_dispatches_close_view_through_runtime
         .enumerate()
         .find(|(_, tab)| tab.closeable)
         .expect("opened asset browser should add a closeable document tab");
-    let geometry = compute_workbench_shell_geometry(
-        &model,
-        &chrome,
-        &harness.runtime.current_layout(),
-        &harness.runtime.descriptors(),
-        ShellSizePx::new(1280.0, 720.0),
-        &WorkbenchChromeMetrics::default(),
-        None,
-    );
     let mut pointer_bridge = HostDocumentTabPointerBridge::new();
     let floating_window_projection_bundle = build_floating_window_projection_bundle(
         &model,
-        &geometry,
+        None,
         &WorkbenchChromeMetrics::default(),
         &[],
     );
     pointer_bridge.sync(build_host_document_tab_pointer_layout(
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
-        None,
+        Some(&template_bridge.root_shell_frames()),
         &floating_window_projection_bundle,
     ));
 

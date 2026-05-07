@@ -262,9 +262,11 @@ fn runtime_library_template(profile: &ExportProfile, host_label: &str) -> String
     )
 }
 
-fn android_manifest_template(_profile: &ExportProfile) -> String {
-    "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <application android:label=\"@string/app_name\" android:hasCode=\"true\" android:extractNativeLibs=\"true\">\n        <activity android:name=\".MainActivity\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>\n"
-        .to_string()
+fn android_manifest_template(profile: &ExportProfile) -> String {
+    format!(
+        "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\">\n    <application android:label=\"@string/app_name\" android:hasCode=\"true\" android:extractNativeLibs=\"true\">\n        <meta-data android:name=\"dev.zircon.export.PROFILE\" android:value=\"{}\" />\n        <activity android:name=\".MainActivity\" android:exported=\"true\">\n            <intent-filter>\n                <action android:name=\"android.intent.action.MAIN\" />\n                <category android:name=\"android.intent.category.LAUNCHER\" />\n            </intent-filter>\n        </activity>\n    </application>\n</manifest>\n",
+        xml_escape(&profile.name)
+    )
 }
 
 fn android_settings_template(profile: &ExportProfile) -> String {

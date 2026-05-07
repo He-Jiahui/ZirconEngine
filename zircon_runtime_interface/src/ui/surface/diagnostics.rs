@@ -4,7 +4,9 @@ use crate::ui::event_ui::{UiNodeId, UiNodePath, UiTreeId};
 use crate::ui::layout::UiFrame;
 use crate::ui::tree::{UiDirtyFlags, UiInputPolicy, UiVisibility};
 
-use super::{UiFocusState, UiHitTestQuery, UiRenderCommandKind};
+use super::{
+    UiFocusState, UiHitTestDebugDump, UiHitTestQuery, UiRenderCommandKind, UiRenderDebugSnapshot,
+};
 
 pub const UI_SURFACE_DEBUG_SCHEMA_VERSION: u32 = 1;
 
@@ -31,6 +33,7 @@ impl Default for UiSurfaceDebugOptions {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct UiSurfaceDebugCaptureContext {
     pub schema_version: u32,
     pub surface_name: Option<String>,
@@ -64,7 +67,11 @@ pub struct UiSurfaceDebugSnapshot {
     pub nodes: Vec<UiWidgetReflectorNode>,
     pub rebuild: UiSurfaceRebuildDebugStats,
     pub render: UiRenderDebugStats,
+    #[serde(default)]
+    pub render_batches: UiRenderDebugSnapshot,
     pub hit_test: UiHitGridDebugStats,
+    #[serde(default)]
+    pub pick_hit_test: Option<UiHitTestDebugDump>,
     pub overdraw: UiOverdrawDebugStats,
     pub focus_state: UiFocusState,
     #[serde(default)]
@@ -130,6 +137,18 @@ pub struct UiSurfaceRebuildDebugStats {
     pub render_command_count: usize,
     pub hit_grid_entry_count: usize,
     pub hit_grid_cell_count: usize,
+    #[serde(default)]
+    pub layout_visited_node_count: usize,
+    #[serde(default)]
+    pub layout_geometry_changed_node_count: usize,
+    #[serde(default)]
+    pub layout_skipped_node_count: usize,
+    #[serde(default)]
+    pub render_command_reused_count: usize,
+    #[serde(default)]
+    pub render_command_rebuilt_count: usize,
+    #[serde(default)]
+    pub render_damage_rect_count: usize,
     pub layout_elapsed_micros: u64,
     pub arranged_elapsed_micros: u64,
     pub hit_grid_elapsed_micros: u64,
@@ -257,10 +276,14 @@ pub struct UiDebugOverlayPrimitive {
 pub enum UiDebugOverlayPrimitiveKind {
     SelectedFrame,
     ClipFrame,
+    Wireframe,
     HitCell,
     HitPath,
     RejectedBounds,
     OverdrawCell,
     MaterialBatchBounds,
+    TextGlyphBounds,
+    TextBaseline,
+    ResourceAtlas,
     DamageRegion,
 }

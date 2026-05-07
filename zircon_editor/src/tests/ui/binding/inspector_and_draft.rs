@@ -79,3 +79,26 @@ fn inspector_draft_binding_with_arguments_rewrites_control_id_from_field_id() {
         r#"InspectorView/PositionYField:onChange(DraftCommand.SetInspectorField("entity://selected","transform.translation.y","12.5"))"#
     );
 }
+
+#[test]
+fn editor_operation_binding_with_arguments_preserves_operation_id_as_native_call_prefix() {
+    let binding = EditorUiBinding::new(
+        "MenuView",
+        "WeatherRefresh",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::editor_operation("Weather.CloudLayer.Refresh"),
+    );
+
+    let rebound = binding
+        .with_editor_operation_call_arguments(vec![
+            UiBindingValue::string("storm"),
+            UiBindingValue::Unsigned(7),
+            UiBindingValue::Bool(true),
+        ])
+        .unwrap();
+
+    assert_eq!(
+        rebound.native_binding(),
+        r#"MenuView/WeatherRefresh:onClick(EditorOperation("Weather.CloudLayer.Refresh","storm",7,true))"#
+    );
+}

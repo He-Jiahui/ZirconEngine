@@ -125,11 +125,14 @@ stretch = "Fixed"
 [root.children.node]
 node_id = "dock_tab_close_0"
 kind = "native"
-type = "Container"
+type = "IconButton"
 control_id = "DockTabClose0"
 
 [root.children.node.props]
 surface_variant = "inset"
+icon = "close-outline"
+value = "ionicons/close-outline.svg"
+text_tone = "muted"
 radius = 8.0
 border_width = 0.0
 
@@ -183,11 +186,14 @@ stretch = "Fixed"
 [root.children.node]
 node_id = "dock_tab_close_1"
 kind = "native"
-type = "Container"
+type = "IconButton"
 control_id = "DockTabClose1"
 
 [root.children.node.props]
 surface_variant = "inset"
+icon = "close-outline"
+value = "ionicons/close-outline.svg"
+text_tone = "muted"
 radius = 8.0
 border_width = 0.0
 

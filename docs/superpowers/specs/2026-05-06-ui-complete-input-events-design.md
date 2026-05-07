@@ -10,9 +10,15 @@ related_code:
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime/src/ui/dispatch
+  - zircon_runtime/src/ui/surface/input/mod.rs
+  - zircon_runtime/src/ui/surface/input/state.rs
+  - zircon_runtime/src/ui/surface/input/validation.rs
+  - zircon_runtime/src/ui/surface/input/effect.rs
+  - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
@@ -24,9 +30,15 @@ implementation_files:
   - zircon_runtime_interface/src/ui/dispatch
   - zircon_runtime_interface/src/ui/surface
   - zircon_runtime/src/ui/dispatch
+  - zircon_runtime/src/ui/surface/input/mod.rs
+  - zircon_runtime/src/ui/surface/input/state.rs
+  - zircon_runtime/src/ui/surface/input/validation.rs
+  - zircon_runtime/src/ui/surface/input/effect.rs
+  - zircon_runtime/src/ui/surface/input/dispatch.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/component/state_reducer.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
@@ -51,13 +63,22 @@ plan_sources:
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
   - cargo test -p zircon_runtime_interface --lib ui --locked
+  - cargo test -p zircon_runtime_interface --lib ui_input --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib event_routing --locked
+  - cargo test -p zircon_runtime --lib runtime_input_ownership --locked
   - cargo test -p zircon_runtime --lib shared_core --locked
   - cargo test -p zircon_editor --lib native_host_contract --locked
   - cargo check -p zircon_runtime --lib --locked
+  - owner-safety-final-validation: rustfmt --edition 2021 --config skip_children=true --check zircon_runtime/src/ui/surface/input/mod.rs zircon_runtime/src/ui/surface/input/state.rs zircon_runtime/src/ui/surface/input/validation.rs zircon_runtime/src/ui/surface/input/dispatch.rs zircon_runtime/src/ui/surface/input/effect.rs zircon_runtime/src/ui/surface/surface.rs zircon_runtime/src/ui/tests/mod.rs zircon_runtime/src/ui/tests/event_routing.rs zircon_runtime/src/ui/tests/runtime_input_ownership.rs (passed)
+  - owner-safety-final-validation: cargo test -p zircon_runtime --lib runtime_input_ownership --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (7 passed, 0 failed, 897 filtered out)
+  - owner-safety-final-validation: cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (20 passed, 0 failed, 884 filtered out)
+  - owner-safety-final-validation: cargo test -p zircon_runtime --lib shared_core --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture (38 passed, 0 failed, 866 filtered out)
+  - owner-safety-final-validation: cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never (passed with existing warnings)
   - cargo check -p zircon_editor --lib --locked
 doc_type: design-spec
 ---
@@ -234,31 +255,24 @@ The reply must not become durable widget state. Durable state belongs in surface
 
 ### UiDispatchEffect
 
-Required effects:
+Current implemented M1/M2 effects:
 
-- `SetFocus { node_id, cause, focus_visible }`
-- `ClearFocus { cause }`
-- `CapturePointer { node_id, pointer_id }`
-- `ReleasePointerCapture { node_id, pointer_id }`
-- `LockPointer { node_id, bounds }`
-- `UnlockPointer { node_id }`
-- `UseHighPrecisionPointer { node_id, enabled }`
-- `SetPointerPosition { position }`
-- `DetectDrag { node_id, pointer_id, button, threshold }`
-- `BeginDragDrop { source, payload, operation }`
-- `UpdateDragDrop { target, operation }`
-- `EndDragDrop { operation }`
-- `CancelDragDrop { reason }`
-- `RequestNavigation { direction_or_target, source, genesis, policy }`
-- `OpenPopup { anchor, popup, method, close_policy }`
-- `ClosePopup { popup, reason }`
-- `ShowTooltip { anchor, content, placement }`
-- `HideTooltip { reason }`
-- `RequestInputMethod { owner, properties }`
-- `DisableInputMethod { owner }`
-- `RequestRedraw { damage }`
-- `RequestDirty { flags }`
-- `EmitComponentEvent { envelope }`
+- `SetFocus { target, reason }`
+- `ClearFocus { target, reason }`
+- `CapturePointer { target, pointer_id, reason }`
+- `ReleasePointerCapture { target, pointer_id, reason }`
+- `LockPointer { target, policy }`
+- `UnlockPointer { target, policy }`
+- `UseHighPrecisionPointer { target, enabled }`
+- `DragDrop { kind, target, pointer_id, session_id, point, payload }`
+- `RequestNavigation { kind, policy }`
+- `Popup { kind, popup_id, anchor }`
+- `Tooltip { kind, tooltip_id }`
+- `RequestInputMethod { request }`
+- `DirtyRedraw { target, dirty, reason }`
+- `EmitComponentEvent { target, event, policy }`
+
+Longer-lived M5 expansions such as pointer repositioning, detect-drag thresholds, explicit popup close policies, tooltip placement, and separate redraw damage DTOs should extend this shared effect family without reintroducing host-local state machines.
 
 Effects should be small and declarative. Applying an effect validates the node still exists, is enabled/visible when required, and belongs to the current surface or permitted popup subtree.
 
@@ -299,7 +313,7 @@ Tab/backtab and mapped gamepad navigation should become `RequestNavigation` effe
 
 Text input requires an owner. The focused text-capable node can request input method activation with surrounding text, cursor position, anchor position, preedit text, preedit offset, cursor rectangle, input type, and clip rectangle. Incoming IME preedit/commit/cancel events are direct-routed to that owner.
 
-When the owner is hidden, disabled, deleted, blurred, or moved out of the active popup/modal root, `UiSurface` clears the IME owner and emits `DisableInputMethod`. Composition cancellation and commit must be explicit result states, not implicit string changes.
+When the owner is hidden, disabled, deleted, blurred, or moved out of the active popup/modal root, `UiSurface` clears the stale local IME owner and rejects stale owner dispatch. Explicit input-method disable requests are represented as `RequestInputMethod { request.kind = Disable, owner }` and are forwarded to the host only when the request owner still matches the active IME owner. Composition cancellation and commit must be explicit result states, not implicit string changes.
 
 ### Navigation And Analog/Gamepad
 
@@ -328,7 +342,7 @@ Tooltip is a timer-driven input feature. Hover starts a pending tooltip for an a
 
 ### Pointer Capture, Lock, And High Precision
 
-Capture routes future pointer move/up/cancel to the captured node. Lock constrains pointer movement to a node or rect. High precision requests raw/high-resolution movement and implies capture for the same pointer. Releasing capture disables high precision unless another valid owner remains.
+Capture routes future pointer move/up/cancel to the captured node. Lock constrains pointer movement to a node or rect. High precision requests raw/high-resolution movement and requires capture for the same owner and pointer. Releasing or replacing capture disables high precision only for the released or replaced captor, so a stale owner cannot clear another owner's high-precision state.
 
 All three are effects applied by `UiSurface` and then translated by the host into platform APIs when available. The shared result must record unsupported-host warnings instead of silently ignoring lock or high-precision requests.
 
@@ -473,6 +487,14 @@ Effect application should prefer structured errors in dispatch results over pani
 - New runtime and editor tests cover normal, boundary, failure, and stress cases for every event family in M5 scope.
 - No new shared path checks concrete `control_id`, component type name, or event spelling to unlock one feature.
 - Docs record Unreal and Slint evidence, implementation files, validation commands, and any deferred M6 text-rendering work.
+
+## Implementation Evidence
+
+Milestone 1 is implemented in `zircon_runtime_interface::ui::dispatch::input` and validated with focused interface contract commands. The final post-review contract gate passed `ui_input` tests with 2 passed, `contracts` tests with 35 passed, and `cargo check -p zircon_runtime_interface --lib` with no errors.
+
+Milestone 2 is implemented in `zircon_runtime::ui::surface::input`. `UiSurfaceInputState` tracks captured pointer id, high-precision owner, pointer-lock owner/policy, input-method owner, and input-method request geometry. `validation.rs` provides the shared valid-owner predicate across effect application and owner-routed dispatch, requiring an existing enabled owner with render-visible self and ancestor chain. `UiSurface::apply_dispatch_reply(...)` consumes ordered shared effects and records applied/rejected effects by `effect_index`; input-method enable/reset/update/disable is encoded through `RequestInputMethod`, returned as a typed host request only when its owner is valid and, for reset/update/disable, still matches current surface IME state. Owner-clearing effects carry explicit targets so stale replies cannot clear another owner: focus clear targets the focused node, pointer capture release targets the current captor plus pointer id, pointer unlock targets the current lock owner, and high-precision disable targets the current high-precision owner. Focus changes clear stale IME ownership only after the focus move succeeds, focus/capture validate hidden ancestors through the same owner predicate, navigation uses the same focus path, direct capture clears stale pointer ids, high-precision enable requires live capture for the same owner, and capture release/transfer clears high precision only for the matching released or replaced captor. `UiSurface::dispatch_input_event(...)` delegates pointer/navigation to existing dispatchers, preserves precise pointer scroll x/y/unit metadata on the shared result event, routes keyboard through focus diagnostics, routes text through a valid IME owner or focus after stale-owner cleanup, rejects invalid IME owners with diagnostics, and clears IME owner on cancel.
+
+The Milestone 2 runtime gate passed on 2026-05-06 with existing warning noise only. After owner-safety final fixes, `cargo test -p zircon_runtime --lib runtime_input_ownership ...` reported 7 passed, 0 failed; `cargo test -p zircon_runtime --lib event_routing ...` reported 20 passed, 0 failed; `cargo test -p zircon_runtime --lib shared_core ...` reported 38 passed, 0 failed; `cargo check -p zircon_runtime --lib ...` passed. Earlier owner-cutover interface gates also passed: `cargo test -p zircon_runtime_interface --lib contracts ...` reported 49 passed, 0 failed, and interface `cargo check --lib` completed successfully. Editor-native translation remains Milestone 3 and was not claimed by this evidence.
 
 ## Risks
 

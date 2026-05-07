@@ -2,42 +2,63 @@ use slint::{Model, ModelRc};
 
 use super::super::data::{
     FloatingWindowData, FrameRect, HostBottomDockSurfaceData, HostDocumentDockSurfaceData,
-    HostPaneInteractionStateData, HostSideDockSurfaceData, HostViewportImageData,
-    HostWindowLayoutData, HostWindowPresentationData, PaneData, TemplatePaneNodeData,
+    HostMenuChromeItemData, HostPaneInteractionStateData, HostSideDockSurfaceData,
+    HostTextInputFocusData, HostViewportImageData, HostWindowLayoutData,
+    HostWindowPresentationData, PaneData, TemplatePaneNodeData,
 };
+use super::close_prompt::draw_close_prompt;
+use super::diagnostics_overlay::{debug_refresh_overlay_frame, presentation_top_bar_frame};
+use super::draw_debug_reflector_overlay;
 use super::frame::HostRgbaFrame;
-use super::diagnostics_overlay::debug_refresh_overlay_frame;
 use super::geometry::{frame_from_template, frame_or, intersect, is_visible_frame, translated};
 use super::primitives::{
     draw_border, draw_border_clipped, draw_label_marker, draw_rect, draw_rect_clipped,
     draw_rgba_image_clipped, draw_separator_line, draw_text_bars, draw_text_bars_clipped,
 };
 use super::template_nodes::{draw_template_nodes, has_template_nodes};
+use super::theme::PALETTE;
 use crate::ui::slint_host::hierarchy_pointer::constants::{
     ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y,
 };
 
-const SHELL_BACKGROUND: [u8; 4] = [18, 20, 25, 255];
-const TOP_BAR: [u8; 4] = [31, 35, 44, 255];
+const SHELL_BACKGROUND: [u8; 4] = PALETTE.shell_background;
+const TOP_BAR: [u8; 4] = PALETTE.popup;
 const CENTER_BAND: [u8; 4] = [23, 27, 34, 255];
-const SIDE_PANEL: [u8; 4] = [27, 32, 40, 255];
+const SIDE_PANEL: [u8; 4] = PALETTE.surface_inset;
 const DOCUMENT_PANEL: [u8; 4] = [13, 16, 22, 255];
 const VIEWPORT_PANEL: [u8; 4] = [7, 10, 15, 255];
-const TOOLBAR: [u8; 4] = [30, 36, 45, 255];
-const STATUS_BAR: [u8; 4] = [36, 44, 56, 255];
+const TOOLBAR: [u8; 4] = PALETTE.surface;
+const STATUS_BAR: [u8; 4] = PALETTE.surface_hover;
 const FLOATING_SHADOW: [u8; 4] = [4, 6, 10, 180];
-const FLOATING_PANEL: [u8; 4] = [29, 35, 44, 255];
-const PANE_EMPTY: [u8; 4] = [24, 29, 37, 255];
-const SEPARATOR: [u8; 4] = [55, 64, 78, 255];
-const ACCENT: [u8; 4] = [92, 156, 255, 255];
-const MUTED_TEXT: [u8; 4] = [137, 151, 170, 255];
-const HIERARCHY_ROW: [u8; 4] = [30, 36, 45, 255];
-const HIERARCHY_ROW_HOVERED: [u8; 4] = [39, 48, 62, 255];
-const HIERARCHY_ROW_SELECTED: [u8; 4] = [54, 83, 130, 255];
+const FLOATING_PANEL: [u8; 4] = PALETTE.surface;
+const PANE_EMPTY: [u8; 4] = PALETTE.surface_inset;
+const SEPARATOR: [u8; 4] = PALETTE.border;
+const ACCENT: [u8; 4] = PALETTE.focus_ring;
+const MUTED_TEXT: [u8; 4] = PALETTE.text_muted;
+const HIERARCHY_ROW: [u8; 4] = PALETTE.surface;
+const HIERARCHY_ROW_HOVERED: [u8; 4] = PALETTE.surface_hover;
+const HIERARCHY_ROW_SELECTED: [u8; 4] = PALETTE.surface_selected;
 const HIERARCHY_ROW_INDENT: f32 = 14.0;
 const HIERARCHY_ROW_TEXT_X: f32 = 8.0;
 const HIERARCHY_ROW_TEXT_Y: f32 = 4.0;
-const ASSET_TREE_ROW_HOVERED: [u8; 4] = [54, 83, 130, 120];
+const ASSET_TREE_ROW_HOVERED: [u8; 4] = [
+    PALETTE.surface_selected[0],
+    PALETTE.surface_selected[1],
+    PALETTE.surface_selected[2],
+    120,
+];
+const WELCOME_BACKGROUND: [u8; 4] = [19, 23, 30, 255];
+const WELCOME_SURFACE: [u8; 4] = PALETTE.surface;
+const WELCOME_SURFACE_INSET: [u8; 4] = PALETTE.surface_inset;
+const WELCOME_SURFACE_HOVERED: [u8; 4] = PALETTE.surface_hover;
+const WELCOME_TEXT: [u8; 4] = PALETTE.text;
+const WELCOME_MUTED_TEXT: [u8; 4] = PALETTE.text_muted;
+const WELCOME_WARNING: [u8; 4] = PALETTE.warning;
+const WELCOME_SUCCESS: [u8; 4] = [88, 168, 112, 255];
+const WELCOME_COLUMN_INSET: f32 = 18.0;
+const WELCOME_CONTENT_MAX_WIDTH: f32 = 680.0;
+const WELCOME_ROW_HEIGHT: f32 = 54.0;
+const WELCOME_ROW_GAP: f32 = 8.0;
 const ACTIVITY_ASSET_TREE_ROW_CONTROL: &str = "AssetsActivityTreeRowPanel";
 const BROWSER_ASSET_TREE_ROW_CONTROL: &str = "AssetBrowserSourcesRowPanel";
 
@@ -147,37 +168,44 @@ fn draw_host_scene(
         &scene.menu_chrome.template_nodes,
         &zero_origin(),
         &root.top_bar,
+        None,
     );
     draw_template_nodes(
         frame,
         &scene.page_chrome.template_nodes,
         &zero_origin(),
         &root.top_bar,
+        None,
     );
+    draw_menu_bar_labels(frame, presentation);
 
     draw_side_dock(
         frame,
         &scene.left_dock,
         &presentation.pane_interaction_state,
         viewport_image,
+        Some(&presentation.text_input_focus),
     );
     draw_document_dock(
         frame,
         &scene.document_dock,
         &presentation.pane_interaction_state,
         viewport_image,
+        Some(&presentation.text_input_focus),
     );
     draw_side_dock(
         frame,
         &scene.right_dock,
         &presentation.pane_interaction_state,
         viewport_image,
+        Some(&presentation.text_input_focus),
     );
     draw_bottom_dock(
         frame,
         &scene.bottom_dock,
         &presentation.pane_interaction_state,
         viewport_image,
+        Some(&presentation.text_input_focus),
     );
     draw_resize_layer(frame, presentation);
     draw_floating_layer(
@@ -185,15 +213,55 @@ fn draw_host_scene(
         presentation,
         &presentation.pane_interaction_state,
         viewport_image,
+        Some(&presentation.text_input_focus),
     );
     draw_open_menu_popup(frame, presentation);
+    draw_close_prompt(frame, presentation);
 
     draw_template_nodes(
         frame,
         &scene.status_bar.template_nodes,
         &scene.status_bar.status_bar_frame,
         &root.status_bar,
+        None,
     );
+}
+
+fn draw_menu_bar_labels(frame: &mut HostRgbaFrame, presentation: &HostWindowPresentationData) {
+    let scene = &presentation.host_scene_data;
+    let clip = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: scene
+            .layout
+            .status_bar_frame
+            .width
+            .max(scene.layout.center_band_frame.width),
+        height: scene.menu_chrome.top_bar_height_px.max(0.0),
+    };
+    for row in 0..scene.menu_chrome.menu_frames.row_count() {
+        let Some(menu_frame) = scene.menu_chrome.menu_frames.row_data(row) else {
+            continue;
+        };
+        let Some(menu) = scene.menu_chrome.menus.row_data(row) else {
+            continue;
+        };
+        let color = if presentation.menu_state.open_menu_index == row as i32 {
+            ACCENT
+        } else {
+            MUTED_TEXT
+        };
+        let frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+        draw_text_bars_clipped(
+            frame,
+            frame_rect.x + 6.0,
+            frame_rect.y + 5.0,
+            menu.label.as_str(),
+            Some(&clip),
+            color,
+        );
+        draw_border_clipped(frame, frame_rect, Some(&clip), SEPARATOR);
+    }
 }
 
 fn draw_open_menu_popup(frame: &mut HostRgbaFrame, presentation: &HostWindowPresentationData) {
@@ -209,21 +277,220 @@ fn draw_open_menu_popup(frame: &mut HostRgbaFrame, presentation: &HostWindowPres
     let Some(menu) = scene.menu_chrome.menus.row_data(menu_index) else {
         return;
     };
-    let popup = FrameRect {
-        x: menu_frame.frame.x,
-        y: menu_frame.frame.y + menu_frame.frame.height + 3.0,
-        width: menu.popup_width_px.max(menu_frame.frame.width).max(1.0),
-        height: menu
-            .popup_height_px
-            .max(presentation.menu_state.window_menu_popup_height_px)
-            .max(1.0),
-    };
+    let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
+    let popup = constrained_menu_popup_frame(
+        presentation,
+        &menu_frame_rect,
+        menu.popup_width_px.max(menu_frame_rect.width).max(1.0),
+        menu.popup_height_px.max(1.0),
+    );
     if !is_visible_frame(&popup) {
         return;
     }
     draw_rect(frame, popup.clone(), TOP_BAR);
     draw_border(frame, popup.clone(), ACCENT);
-    draw_template_nodes(frame, &menu.popup_nodes, &popup, &popup);
+    draw_template_nodes(frame, &menu.popup_nodes, &popup, &popup, None);
+    draw_open_submenu_popups(frame, presentation, menu.items.clone(), popup);
+}
+
+fn draw_open_submenu_popups(
+    frame: &mut HostRgbaFrame,
+    presentation: &HostWindowPresentationData,
+    mut items: ModelRc<HostMenuChromeItemData>,
+    mut parent_popup: FrameRect,
+) {
+    for (level, selected_index) in presentation
+        .menu_state
+        .open_submenu_path
+        .iter()
+        .copied()
+        .enumerate()
+    {
+        let Some(branch) = items.row_data(selected_index) else {
+            break;
+        };
+        if branch.children.row_count() == 0 {
+            break;
+        }
+
+        let scroll_px = if level == 0 {
+            presentation.menu_state.window_menu_scroll_px
+        } else {
+            0.0
+        };
+        let anchor = menu_popup_row_frame(&parent_popup, selected_index, scroll_px);
+        let popup = constrained_submenu_popup_frame(
+            presentation,
+            &anchor,
+            parent_popup.width.max(1.0),
+            menu_popup_height(branch.children.row_count()).max(1.0),
+        );
+        if !is_visible_frame(&popup) {
+            break;
+        }
+        draw_rect(frame, popup.clone(), TOP_BAR);
+        draw_border(frame, popup.clone(), ACCENT);
+        draw_menu_popup_rows(frame, &branch.children, &popup, level + 1, presentation);
+
+        items = branch.children.clone();
+        parent_popup = popup;
+    }
+}
+
+fn draw_menu_popup_rows(
+    frame: &mut HostRgbaFrame,
+    items: &ModelRc<HostMenuChromeItemData>,
+    popup: &FrameRect,
+    level: usize,
+    presentation: &HostWindowPresentationData,
+) {
+    for row in 0..items.row_count() {
+        let Some(item) = items.row_data(row) else {
+            continue;
+        };
+        let row_frame = menu_popup_row_frame(popup, row, 0.0);
+        let hovered = presentation
+            .menu_state
+            .hovered_menu_item_path
+            .get(level)
+            .is_some_and(|hovered_row| *hovered_row == row);
+        if hovered {
+            draw_rect_clipped(frame, row_frame.clone(), Some(popup), PALETTE.surface_hover);
+        }
+        let text_color = if item.enabled { MUTED_TEXT } else { SEPARATOR };
+        draw_text_bars_clipped(
+            frame,
+            row_frame.x + 8.0,
+            row_frame.y + 6.0,
+            item.label.as_str(),
+            Some(popup),
+            text_color,
+        );
+        if !item.shortcut.is_empty() {
+            draw_text_bars_clipped(
+                frame,
+                (row_frame.x + row_frame.width - 34.0).max(row_frame.x + 8.0),
+                row_frame.y + 6.0,
+                item.shortcut.as_str(),
+                Some(popup),
+                text_color,
+            );
+        }
+    }
+}
+
+fn menu_popup_row_frame(popup: &FrameRect, row: usize, scroll_px: f32) -> FrameRect {
+    FrameRect {
+        x: popup.x + 6.0,
+        y: popup.y + 6.0 + row as f32 * 30.0 - scroll_px,
+        width: (popup.width - 12.0).max(0.0),
+        height: 28.0,
+    }
+}
+
+fn menu_popup_height(item_count: usize) -> f32 {
+    if item_count == 0 {
+        0.0
+    } else {
+        12.0 + item_count as f32 * 28.0 + (item_count as f32 - 1.0) * 2.0
+    }
+}
+
+fn constrained_submenu_popup_frame(
+    presentation: &HostWindowPresentationData,
+    anchor: &FrameRect,
+    width: f32,
+    requested_height: f32,
+) -> FrameRect {
+    let shell_width = presentation
+        .host_layout
+        .status_bar_frame
+        .width
+        .max(presentation.host_scene_data.layout.status_bar_frame.width)
+        .max(presentation.host_scene_data.layout.center_band_frame.width)
+        .max(1.0);
+    let shell_height = presentation
+        .host_layout
+        .status_bar_frame
+        .y
+        .max(presentation.host_scene_data.layout.status_bar_frame.y)
+        .max(1.0);
+    let width = width.min((shell_width - 16.0).max(1.0)).max(1.0);
+    let min_x = 8.0;
+    let max_x = (shell_width - width - 8.0).max(min_x);
+    let right_x = anchor.x + anchor.width + 3.0;
+    let left_x = anchor.x - width - 3.0;
+    let x = if right_x + width <= shell_width - 8.0 {
+        right_x.clamp(min_x, max_x)
+    } else {
+        left_x.clamp(min_x, max_x)
+    };
+    let height = requested_height
+        .min((shell_height - 16.0).max(1.0))
+        .max(1.0);
+    let min_y = 8.0;
+    let max_y = (shell_height - height - 8.0).max(min_y);
+    let y = anchor.y.clamp(min_y, max_y);
+    FrameRect {
+        x,
+        y,
+        width,
+        height,
+    }
+}
+
+fn constrained_menu_popup_frame(
+    presentation: &HostWindowPresentationData,
+    menu_frame: &FrameRect,
+    width: f32,
+    requested_height: f32,
+) -> FrameRect {
+    let shell_width = presentation
+        .host_layout
+        .status_bar_frame
+        .width
+        .max(presentation.host_scene_data.layout.status_bar_frame.width)
+        .max(presentation.host_scene_data.layout.center_band_frame.width)
+        .max(1.0);
+    let shell_height = presentation
+        .host_layout
+        .status_bar_frame
+        .y
+        .max(presentation.host_scene_data.layout.status_bar_frame.y)
+        .max(1.0);
+    let width = width.min(shell_width).max(1.0);
+    let popup_y = menu_frame.y + menu_frame.height + 3.0;
+    let x = menu_frame.x.clamp(0.0, (shell_width - width).max(0.0));
+    let available_below = (shell_height - popup_y - 8.0).max(0.0);
+    let available_above = (menu_frame.y - 8.0).max(0.0);
+    let available_height = available_below
+        .max(available_above)
+        .max(72.0)
+        .min(shell_height);
+    let height = requested_height.min(available_height).max(1.0);
+    let y = if popup_y + height <= shell_height {
+        popup_y
+    } else {
+        (menu_frame.y - height - 3.0).max(0.0)
+    };
+    FrameRect {
+        x,
+        y,
+        width,
+        height,
+    }
+}
+
+fn scrolled_menu_frame(
+    menu_frame: &FrameRect,
+    presentation: &HostWindowPresentationData,
+) -> FrameRect {
+    FrameRect {
+        x: menu_frame.x - presentation.menu_state.menu_bar_scroll_px,
+        y: menu_frame.y,
+        width: menu_frame.width,
+        height: menu_frame.height,
+    }
 }
 
 fn draw_side_dock(
@@ -231,6 +498,7 @@ fn draw_side_dock(
     dock: &HostSideDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&dock.region_frame) {
         return;
@@ -271,13 +539,20 @@ fn draw_side_dock(
 
     if is_visible_frame(&rail_origin) {
         draw_rect(frame, rail_origin.clone(), TOP_BAR);
-        draw_template_nodes(frame, &dock.rail_nodes, &rail_origin, &rail_origin);
+        draw_template_nodes(frame, &dock.rail_nodes, &rail_origin, &rail_origin, None);
         draw_active_rail_marker(frame, dock, &rail_origin);
     }
     draw_panel_header(frame, &dock.header_nodes, &panel_origin, &dock.header_frame);
 
     let content = translated(&dock.content_frame, panel_origin.x, panel_origin.y);
-    draw_pane(frame, &dock.pane, &content, interaction, viewport_image);
+    draw_pane(
+        frame,
+        &dock.pane,
+        &content,
+        interaction,
+        viewport_image,
+        text_input_focus,
+    );
 }
 
 fn draw_document_dock(
@@ -285,6 +560,7 @@ fn draw_document_dock(
     dock: &HostDocumentDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&dock.region_frame) {
         return;
@@ -302,7 +578,14 @@ fn draw_document_dock(
         dock.region_frame.x,
         dock.region_frame.y,
     );
-    draw_pane(frame, &dock.pane, &content, interaction, viewport_image);
+    draw_pane(
+        frame,
+        &dock.pane,
+        &content,
+        interaction,
+        viewport_image,
+        text_input_focus,
+    );
 }
 
 fn draw_bottom_dock(
@@ -310,6 +593,7 @@ fn draw_bottom_dock(
     dock: &HostBottomDockSurfaceData,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&dock.region_frame) {
         return;
@@ -327,7 +611,14 @@ fn draw_bottom_dock(
         dock.region_frame.x,
         dock.region_frame.y,
     );
-    draw_pane(frame, &dock.pane, &content, interaction, viewport_image);
+    draw_pane(
+        frame,
+        &dock.pane,
+        &content,
+        interaction,
+        viewport_image,
+        text_input_focus,
+    );
 }
 
 fn draw_panel_header(
@@ -341,7 +632,7 @@ fn draw_panel_header(
         return;
     }
     draw_rect(frame, header.clone(), TOP_BAR);
-    draw_template_nodes(frame, nodes, origin, &header);
+    draw_template_nodes(frame, nodes, origin, &header, None);
     draw_separator_line(
         frame,
         header.x.max(0.0) as u32,
@@ -357,6 +648,7 @@ fn draw_pane(
     content: &FrameRect,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(content) {
         return;
@@ -386,11 +678,27 @@ fn draw_pane(
     };
 
     let painted_viewport = draw_viewport_image(frame, pane, &body, content, viewport_image);
-    let painted_nodes = draw_pane_template_nodes(frame, pane, &body, content);
+    let painted_nodes = draw_pane_template_nodes(frame, pane, &body, content, text_input_focus);
     let painted_native = draw_native_pane_content(frame, pane, &body, content, interaction);
-    if !painted_viewport && !painted_nodes && !painted_native {
+    let painted_debug_overlay = draw_pane_debug_overlay(frame, pane, &body, content);
+    if !painted_viewport && !painted_nodes && !painted_native && !painted_debug_overlay {
         draw_pane_fallback(frame, pane, &body, content);
     }
+}
+
+fn draw_pane_debug_overlay(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+) -> bool {
+    if pane.kind.as_str() != "RuntimeDiagnostics" {
+        return false;
+    }
+    let primitives = (0..pane.runtime_diagnostics.overlay_primitives.row_count())
+        .filter_map(|row| pane.runtime_diagnostics.overlay_primitives.row_data(row))
+        .collect::<Vec<_>>();
+    draw_debug_reflector_overlay(frame, &primitives, body, clip)
 }
 
 fn draw_viewport_image(
@@ -424,6 +732,7 @@ fn draw_native_pane_content(
     interaction: &HostPaneInteractionStateData,
 ) -> bool {
     match pane.kind.as_str() {
+        "Welcome" => draw_welcome_native_content(frame, pane, body, clip),
         "Hierarchy" => draw_hierarchy_rows(frame, pane, body, clip, interaction),
         "Assets" => draw_asset_tree_hover_overlay(
             frame,
@@ -445,6 +754,549 @@ fn draw_native_pane_content(
         ),
         _ => false,
     }
+}
+
+fn draw_welcome_native_content(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    clip: &FrameRect,
+) -> bool {
+    if pane.welcome.nodes.row_count() == 0 && pane.welcome.title.is_empty() {
+        return false;
+    }
+
+    draw_rect_clipped(frame, body.clone(), Some(clip), WELCOME_BACKGROUND);
+
+    let outer = welcome_node_frame(pane, body, "WelcomeOuterPanel")
+        .unwrap_or_else(|| inset_frame(body, WELCOME_COLUMN_INSET, WELCOME_COLUMN_INSET));
+    let recent_panel =
+        welcome_node_frame(pane, body, "WelcomeRecentPanel").unwrap_or_else(|| FrameRect {
+            x: outer.x,
+            y: outer.y,
+            width: 320.0_f32.min(outer.width * 0.34).max(220.0),
+            height: outer.height,
+        });
+    let main_panel =
+        welcome_node_frame(pane, body, "WelcomeMainPanel").unwrap_or_else(|| FrameRect {
+            x: recent_panel.x + recent_panel.width,
+            y: outer.y,
+            width: (outer.width - recent_panel.width).max(0.0),
+            height: outer.height,
+        });
+
+    draw_welcome_panel(frame, &recent_panel, clip, WELCOME_SURFACE);
+    draw_welcome_panel(frame, &main_panel, clip, WELCOME_BACKGROUND);
+    draw_welcome_recent_projects(frame, pane, body, &recent_panel, clip);
+    draw_welcome_main_column(frame, pane, body, &main_panel, clip);
+    true
+}
+
+fn draw_welcome_main_column(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    main_panel: &FrameRect,
+    clip: &FrameRect,
+) {
+    let content_x = main_panel.x + 28.0;
+    let content_width = (main_panel.width - 56.0)
+        .max(0.0)
+        .min(WELCOME_CONTENT_MAX_WIDTH);
+    let hero = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeHeroPanel").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: main_panel.y + 28.0,
+            width: content_width,
+            height: 84.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_hero(frame, pane, &hero, clip);
+
+    let status = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeStatusPanel").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: hero.y + hero.height + 12.0,
+            width: content_width,
+            height: 30.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_status(frame, pane, &status, clip);
+
+    let header = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeNewProjectHeaderPanel").unwrap_or_else(|| {
+            FrameRect {
+                x: content_x,
+                y: status.y + status.height + 22.0,
+                width: content_width,
+                height: 46.0,
+            }
+        }),
+        content_x,
+        content_width,
+    );
+    draw_text_bars_clipped(
+        frame,
+        header.x,
+        header.y + 2.0,
+        "New Project",
+        Some(clip),
+        WELCOME_TEXT,
+    );
+    draw_text_bars_clipped(
+        frame,
+        header.x,
+        header.y + 24.0,
+        pane.welcome.form.template_label.as_str(),
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+
+    let name = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeProjectNameField").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: header.y + header.height + 16.0,
+            width: content_width,
+            height: 56.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_field(
+        frame,
+        &name,
+        "Project name",
+        pane.welcome.form.project_name.as_str(),
+        clip,
+    );
+
+    let location = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeLocationField").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: name.y + name.height + 12.0,
+            width: content_width,
+            height: 56.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_field(
+        frame,
+        &location,
+        "Location",
+        pane.welcome.form.location.as_str(),
+        clip,
+    );
+
+    let preview = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomePreviewPanel").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: location.y + location.height + 14.0,
+            width: content_width,
+            height: 72.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_preview(frame, pane, &preview, clip);
+
+    let validation = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeValidationPanel").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: preview.y + preview.height + 10.0,
+            width: content_width,
+            height: 36.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_validation(frame, pane, &validation, clip);
+
+    let actions = constrain_welcome_content(
+        welcome_node_frame(pane, body, "WelcomeActionsRow").unwrap_or_else(|| FrameRect {
+            x: content_x,
+            y: validation.y + validation.height + 12.0,
+            width: content_width,
+            height: 32.0,
+        }),
+        content_x,
+        content_width,
+    );
+    draw_welcome_actions(frame, pane, &actions, clip);
+}
+
+fn draw_welcome_hero(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    hero: &FrameRect,
+    clip: &FrameRect,
+) {
+    draw_text_bars_clipped(
+        frame,
+        hero.x,
+        hero.y + 4.0,
+        first_non_empty(&[pane.welcome.title.as_str(), "Open or Create"]),
+        Some(clip),
+        WELCOME_TEXT,
+    );
+    draw_text_bars_clipped(
+        frame,
+        hero.x,
+        hero.y + 30.0,
+        first_non_empty(&[
+            pane.welcome.subtitle.as_str(),
+            "Recent projects and a renderable empty-project template",
+        ]),
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+    let accent = FrameRect {
+        x: hero.x,
+        y: hero.y + hero.height - 10.0,
+        width: 96.0_f32.min(hero.width),
+        height: 2.0,
+    };
+    draw_rect_clipped(frame, accent, Some(clip), ACCENT);
+}
+
+fn draw_welcome_status(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    status: &FrameRect,
+    clip: &FrameRect,
+) {
+    draw_rect_clipped(frame, status.clone(), Some(clip), WELCOME_SURFACE_INSET);
+    draw_border_clipped(frame, status.clone(), Some(clip), SEPARATOR);
+    let marker = FrameRect {
+        x: status.x + 10.0,
+        y: status.y + 10.0,
+        width: 8.0,
+        height: 8.0,
+    };
+    draw_rect_clipped(frame, marker, Some(clip), WELCOME_SUCCESS);
+    draw_text_bars_clipped(
+        frame,
+        status.x + 28.0,
+        status.y + 7.0,
+        first_non_empty(&[pane.welcome.status_message.as_str(), "Ready"]),
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+}
+
+fn draw_welcome_field(
+    frame: &mut HostRgbaFrame,
+    rect: &FrameRect,
+    label: &str,
+    value: &str,
+    clip: &FrameRect,
+) {
+    draw_rect_clipped(frame, rect.clone(), Some(clip), WELCOME_SURFACE);
+    draw_border_clipped(frame, rect.clone(), Some(clip), SEPARATOR);
+    draw_text_bars_clipped(
+        frame,
+        rect.x + 14.0,
+        rect.y + 8.0,
+        label,
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+    draw_text_bars_clipped(
+        frame,
+        rect.x + 14.0,
+        rect.y + 30.0,
+        value,
+        Some(clip),
+        WELCOME_TEXT,
+    );
+}
+
+fn draw_welcome_preview(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    preview: &FrameRect,
+    clip: &FrameRect,
+) {
+    draw_rect_clipped(frame, preview.clone(), Some(clip), WELCOME_SURFACE);
+    draw_border_clipped(frame, preview.clone(), Some(clip), SEPARATOR);
+    draw_text_bars_clipped(
+        frame,
+        preview.x + 14.0,
+        preview.y + 10.0,
+        "Project path",
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+    draw_text_bars_clipped(
+        frame,
+        preview.x + 14.0,
+        preview.y + 36.0,
+        first_non_empty(&[
+            pane.welcome.form.project_path_preview.as_str(),
+            "Project path will appear here",
+        ]),
+        Some(clip),
+        if pane.welcome.form.project_path_preview.is_empty() {
+            WELCOME_MUTED_TEXT
+        } else {
+            WELCOME_TEXT
+        },
+    );
+}
+
+fn draw_welcome_validation(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    validation: &FrameRect,
+    clip: &FrameRect,
+) {
+    let message = if !pane.welcome.form.validation_message.trim().is_empty() {
+        pane.welcome.form.validation_message.as_str()
+    } else if pane.welcome.form.can_create {
+        "Project settings are valid"
+    } else {
+        "Enter a project name and location"
+    };
+    let color = if pane.welcome.form.can_create {
+        WELCOME_SUCCESS
+    } else {
+        WELCOME_WARNING
+    };
+    draw_text_bars_clipped(
+        frame,
+        validation.x,
+        validation.y + 8.0,
+        message,
+        Some(clip),
+        color,
+    );
+}
+
+fn draw_welcome_actions(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    actions: &FrameRect,
+    clip: &FrameRect,
+) {
+    let create_width = 154.0_f32.min(actions.width * 0.45);
+    let open_width = 116.0_f32.min(actions.width * 0.34);
+    let gap = 10.0_f32.min(actions.width * 0.04);
+    let create = FrameRect {
+        x: actions.x + actions.width - create_width,
+        y: actions.y,
+        width: create_width,
+        height: actions.height,
+    };
+    let open = FrameRect {
+        x: (create.x - gap - open_width).max(actions.x),
+        y: actions.y,
+        width: open_width,
+        height: actions.height,
+    };
+    draw_welcome_button(
+        frame,
+        &open,
+        "Open",
+        false,
+        pane.welcome.form.can_open_existing,
+        clip,
+    );
+    draw_welcome_button(
+        frame,
+        &create,
+        "Create Project",
+        true,
+        pane.welcome.form.can_create,
+        clip,
+    );
+}
+
+fn draw_welcome_button(
+    frame: &mut HostRgbaFrame,
+    rect: &FrameRect,
+    label: &str,
+    primary: bool,
+    enabled: bool,
+    clip: &FrameRect,
+) {
+    let color = if !enabled {
+        PALETTE.surface_disabled
+    } else if primary {
+        PALETTE.accent
+    } else {
+        WELCOME_SURFACE_HOVERED
+    };
+    let text = if enabled {
+        WELCOME_TEXT
+    } else {
+        PALETTE.text_disabled
+    };
+    draw_rect_clipped(frame, rect.clone(), Some(clip), color);
+    draw_border_clipped(frame, rect.clone(), Some(clip), SEPARATOR);
+    draw_text_bars_clipped(frame, rect.x + 14.0, rect.y + 8.0, label, Some(clip), text);
+}
+
+fn draw_welcome_recent_projects(
+    frame: &mut HostRgbaFrame,
+    pane: &PaneData,
+    body: &FrameRect,
+    recent_panel: &FrameRect,
+    clip: &FrameRect,
+) {
+    let header =
+        welcome_node_frame(pane, body, "WelcomeRecentHeaderPanel").unwrap_or_else(|| FrameRect {
+            x: recent_panel.x,
+            y: recent_panel.y + 26.0,
+            width: recent_panel.width,
+            height: 54.0,
+        });
+    draw_text_bars_clipped(
+        frame,
+        header.x + 18.0,
+        header.y + 6.0,
+        "Recent Projects",
+        Some(clip),
+        WELCOME_TEXT,
+    );
+    draw_text_bars_clipped(
+        frame,
+        header.x + 18.0,
+        header.y + 30.0,
+        "Pinned startup workspace",
+        Some(clip),
+        WELCOME_MUTED_TEXT,
+    );
+
+    let list =
+        welcome_node_frame(pane, body, "WelcomeRecentListPanel").unwrap_or_else(|| FrameRect {
+            x: recent_panel.x + 12.0,
+            y: header.y + header.height + 14.0,
+            width: (recent_panel.width - 24.0).max(0.0),
+            height: (recent_panel.height - header.height - 40.0).max(0.0),
+        });
+    draw_rect_clipped(frame, list.clone(), Some(clip), WELCOME_SURFACE_INSET);
+    draw_border_clipped(frame, list.clone(), Some(clip), SEPARATOR);
+
+    let row_count = pane.welcome.recent_projects.row_count();
+    if row_count == 0 {
+        draw_text_bars_clipped(
+            frame,
+            list.x + 14.0,
+            list.y + 16.0,
+            "No recent projects",
+            Some(clip),
+            WELCOME_MUTED_TEXT,
+        );
+        draw_text_bars_clipped(
+            frame,
+            list.x + 14.0,
+            list.y + 40.0,
+            "Create a new project to start",
+            Some(clip),
+            WELCOME_MUTED_TEXT,
+        );
+        return;
+    }
+
+    let visible_rows = row_count.min(7);
+    for index in 0..visible_rows {
+        let Some(recent) = pane.welcome.recent_projects.row_data(index) else {
+            continue;
+        };
+        let row = FrameRect {
+            x: list.x + 8.0,
+            y: list.y + 8.0 + index as f32 * (WELCOME_ROW_HEIGHT + WELCOME_ROW_GAP),
+            width: (list.width - 16.0).max(0.0),
+            height: WELCOME_ROW_HEIGHT,
+        };
+        if intersect(&row, clip).is_none() {
+            continue;
+        }
+        draw_rect_clipped(frame, row.clone(), Some(clip), WELCOME_SURFACE);
+        draw_border_clipped(
+            frame,
+            row.clone(),
+            Some(clip),
+            if recent.invalid {
+                WELCOME_WARNING
+            } else {
+                SEPARATOR
+            },
+        );
+        draw_text_bars_clipped(
+            frame,
+            row.x + 12.0,
+            row.y + 8.0,
+            recent.display_name.as_str(),
+            Some(clip),
+            WELCOME_TEXT,
+        );
+        draw_text_bars_clipped(
+            frame,
+            row.x + 12.0,
+            row.y + 28.0,
+            recent.path.as_str(),
+            Some(clip),
+            WELCOME_MUTED_TEXT,
+        );
+        let status = first_non_empty(&[
+            recent.status_label.as_str(),
+            recent.last_opened_label.as_str(),
+        ]);
+        if !status.is_empty() {
+            draw_text_bars_clipped(
+                frame,
+                row.x + row.width - 108.0_f32.min(row.width * 0.38),
+                row.y + 8.0,
+                status,
+                Some(clip),
+                if recent.invalid {
+                    WELCOME_WARNING
+                } else {
+                    WELCOME_MUTED_TEXT
+                },
+            );
+        }
+    }
+}
+
+fn draw_welcome_panel(
+    frame: &mut HostRgbaFrame,
+    rect: &FrameRect,
+    clip: &FrameRect,
+    color: [u8; 4],
+) {
+    draw_rect_clipped(frame, rect.clone(), Some(clip), color);
+    draw_border_clipped(frame, rect.clone(), Some(clip), SEPARATOR);
+}
+
+fn welcome_node_frame(pane: &PaneData, body: &FrameRect, control_id: &str) -> Option<FrameRect> {
+    (0..pane.welcome.nodes.row_count())
+        .filter_map(|row| pane.welcome.nodes.row_data(row))
+        .find_map(|node| {
+            (node.control_id.as_str() == control_id)
+                .then(|| translated(&frame_from_template(&node.frame), body.x, body.y))
+                .filter(is_visible_frame)
+        })
+}
+
+fn inset_frame(rect: &FrameRect, x: f32, y: f32) -> FrameRect {
+    FrameRect {
+        x: rect.x + x,
+        y: rect.y + y,
+        width: (rect.width - x * 2.0).max(0.0),
+        height: (rect.height - y * 2.0).max(0.0),
+    }
+}
+
+fn constrain_welcome_content(mut rect: FrameRect, x: f32, width: f32) -> FrameRect {
+    rect.x = x;
+    rect.width = width;
+    rect
 }
 
 fn draw_hierarchy_rows(
@@ -582,23 +1434,60 @@ fn draw_pane_template_nodes(
     pane: &PaneData,
     body: &FrameRect,
     clip: &FrameRect,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) -> bool {
     match pane.kind.as_str() {
-        "Hierarchy" => draw_if_present(frame, &pane.hierarchy.nodes, body, clip),
-        "Inspector" => draw_if_present(frame, &pane.inspector.nodes, body, clip),
-        "Console" => draw_if_present(frame, &pane.console.nodes, body, clip),
-        "Assets" => draw_if_present(frame, &pane.assets_activity.nodes, body, clip),
-        "AssetBrowser" => draw_if_present(frame, &pane.asset_browser.nodes, body, clip),
-        "Project" | "UiComponentShowcase" => {
-            draw_if_present(frame, &pane.project_overview.nodes, body, clip)
+        "Hierarchy" => draw_if_present(frame, &pane.hierarchy.nodes, body, clip, text_input_focus),
+        "Inspector" => draw_if_present(frame, &pane.inspector.nodes, body, clip, text_input_focus),
+        "Console" => draw_if_present(frame, &pane.console.nodes, body, clip, text_input_focus),
+        "Assets" => draw_if_present(
+            frame,
+            &pane.assets_activity.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "AssetBrowser" => draw_if_present(
+            frame,
+            &pane.asset_browser.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "Welcome" => draw_if_present(frame, &pane.welcome.nodes, body, clip, text_input_focus),
+        "Project" | "UiComponentShowcase" => draw_if_present(
+            frame,
+            &pane.project_overview.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "RuntimeDiagnostics" => draw_if_present(
+            frame,
+            &pane.runtime_diagnostics.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "ModulePlugins" => draw_if_present(
+            frame,
+            &pane.module_plugins.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "BuildExport" => draw_if_present(
+            frame,
+            &pane.build_export.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "UiAssetEditor" => {
+            draw_if_present(frame, &pane.ui_asset.nodes, body, clip, text_input_focus)
         }
-        "ModulePlugins" | "RuntimeDiagnostics" => {
-            draw_if_present(frame, &pane.module_plugins.nodes, body, clip)
-        }
-        "BuildExport" => draw_if_present(frame, &pane.build_export.nodes, body, clip),
-        "UiAssetEditor" => draw_if_present(frame, &pane.ui_asset.nodes, body, clip),
         "AnimationSequenceEditor" | "AnimationGraphEditor" => {
-            draw_if_present(frame, &pane.animation.nodes, body, clip)
+            draw_if_present(frame, &pane.animation.nodes, body, clip, text_input_focus)
         }
         _ => false,
     }
@@ -609,8 +1498,9 @@ fn draw_if_present(
     nodes: &ModelRc<TemplatePaneNodeData>,
     origin: &FrameRect,
     clip: &FrameRect,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) -> bool {
-    has_template_nodes(nodes) && draw_template_nodes(frame, nodes, origin, clip)
+    has_template_nodes(nodes) && draw_template_nodes(frame, nodes, origin, clip, text_input_focus)
 }
 
 fn draw_viewport_toolbar(
@@ -708,13 +1598,20 @@ fn draw_floating_layer(
     presentation: &HostWindowPresentationData,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     let windows = &presentation.host_scene_data.floating_layer.floating_windows;
     for row in 0..windows.row_count() {
         let Some(window) = windows.row_data(row) else {
             continue;
         };
-        draw_floating_window(frame, &window, interaction, viewport_image);
+        draw_floating_window(
+            frame,
+            &window,
+            interaction,
+            viewport_image,
+            text_input_focus,
+        );
     }
 }
 
@@ -723,6 +1620,7 @@ fn draw_floating_window(
     window: &FloatingWindowData,
     interaction: &HostPaneInteractionStateData,
     viewport_image: Option<&HostViewportImageData>,
+    text_input_focus: Option<&HostTextInputFocusData>,
 ) {
     if !is_visible_frame(&window.frame) {
         return;
@@ -740,7 +1638,7 @@ fn draw_floating_window(
     let header = translated(&window.header_frame, window.frame.x, window.frame.y);
     if is_visible_frame(&header) {
         draw_rect(frame, header.clone(), TOP_BAR);
-        draw_template_nodes(frame, &window.header_nodes, &window.frame, &header);
+        draw_template_nodes(frame, &window.header_nodes, &window.frame, &header, None);
     }
 
     let body = FrameRect {
@@ -758,6 +1656,7 @@ fn draw_floating_window(
         &body,
         interaction,
         viewport_image,
+        text_input_focus,
     );
 }
 
@@ -787,7 +1686,14 @@ fn draw_debug_refresh_rate_marker(frame: &mut HostRgbaFrame, top_bar: &FrameRect
     };
     draw_rect_clipped(frame, marker.clone(), Some(top_bar), [18, 24, 34, 210]);
     draw_border_clipped(frame, marker.clone(), Some(top_bar), ACCENT);
-    draw_text_bars_clipped(frame, marker.x + 7.0, marker.y + 5.0, label, Some(&marker), ACCENT);
+    draw_text_bars_clipped(
+        frame,
+        marker.x + 7.0,
+        marker.y + 5.0,
+        label,
+        Some(&marker),
+        ACCENT,
+    );
 }
 
 fn resolve_root_frames(
@@ -801,12 +1707,8 @@ fn resolve_root_frames(
     } else {
         &presentation.host_layout
     };
-    let top_bar_height =
-        if layout.center_band_frame.y.is_finite() && layout.center_band_frame.y > 1.0 {
-            layout.center_band_frame.y
-        } else {
-            38.0_f32.min(height as f32 * 0.25)
-        };
+    let top_bar = presentation_top_bar_frame(width, height, presentation);
+    let top_bar_height = top_bar.height;
     let fallback_status_height = 24.0_f32.min(height as f32 * 0.2);
     let status_bar = frame_or(
         &layout.status_bar_frame,
@@ -856,12 +1758,7 @@ fn resolve_root_frames(
         },
     );
     RootFrames {
-        top_bar: FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: width as f32,
-            height: top_bar_height,
-        },
+        top_bar,
         center_band,
         status_bar,
         left_region,

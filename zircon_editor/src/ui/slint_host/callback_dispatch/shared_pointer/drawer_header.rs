@@ -6,7 +6,7 @@ use crate::ui::slint_host::{
         HostDrawerHeaderPointerBridge, HostDrawerHeaderPointerDispatch,
         HostDrawerHeaderPointerRoute,
     },
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
 };
 
 use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplateBridge};
@@ -14,7 +14,7 @@ use super::super::{dispatch_builtin_host_drawer_toggle, BuiltinHostWindowTemplat
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct SharedDrawerHeaderPointerClickDispatch {
     pub pointer: HostDrawerHeaderPointerDispatch,
-    pub effects: Option<SlintDispatchEffects>,
+    pub effects: Option<UiHostEventEffects>,
 }
 
 pub(crate) fn dispatch_shared_drawer_header_pointer_click(

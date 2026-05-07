@@ -36,4 +36,8 @@ impl BuiltinPaneSurfaceTemplateBridge {
             event_kind,
         )
     }
+
+    pub(crate) fn binding_by_id(&self, binding_id: &str) -> Option<&EditorUiBinding> {
+        self.bindings_by_id.get(binding_id)
+    }
 }

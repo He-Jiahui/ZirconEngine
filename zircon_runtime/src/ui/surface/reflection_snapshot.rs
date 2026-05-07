@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_runtime_interface::ui::template::UiActionRef;
+use zircon_runtime_interface::ui::template::{UiActionRef, UiBindingRef};
 use zircon_runtime_interface::ui::{
     component::{UiValue, UiValueKind},
     event_ui::{
@@ -20,7 +20,7 @@ pub fn reflector_snapshot(
     surface: &UiSurface,
     query: Option<UiHitTestQuery>,
 ) -> UiReflectorSnapshot {
-    let hit = query.map(|query| (query, surface.hit_test_with_query(query)));
+    let hit = query.map(|query| (query.clone(), surface.hit_test_with_query(query)));
     let mut nodes = Vec::new();
     for node in surface.tree.nodes.values() {
         let arranged = surface.arranged_tree.get(node.node_id);
@@ -209,17 +209,24 @@ fn node_actions(node: &UiTreeNode) -> BTreeMap<String, UiActionDescriptor> {
         let action = UiActionDescriptor::new(
             binding.id.clone(),
             binding.event,
-            binding_symbol(binding.action.as_ref(), &binding.id),
+            binding_symbol(binding, &binding.id),
         );
         actions.insert(binding.id.clone(), action);
     }
     actions
 }
 
-fn binding_symbol(action: Option<&UiActionRef>, fallback: &str) -> String {
-    action
-        .and_then(|action| action.action.clone().or_else(|| action.route.clone()))
+fn binding_symbol(binding: &UiBindingRef, fallback: &str) -> String {
+    binding
+        .action
+        .as_ref()
+        .and_then(action_symbol)
+        .or_else(|| binding.route.clone())
         .unwrap_or_else(|| fallback.to_string())
+}
+
+fn action_symbol(action: &UiActionRef) -> Option<String> {
+    action.action.clone().or_else(|| action.route.clone())
 }
 
 fn insert_system_property(
@@ -286,7 +293,7 @@ fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyF
             text: true,
             ..UiDirtyFlags::default()
         },
-        "width" | "height" | "min_width" | "min_height" | "padding" | "gap" => UiDirtyFlags {
+        _ if is_layout_metadata_attribute(property) => UiDirtyFlags {
             layout: true,
             hit_test: true,
             render: true,
@@ -303,4 +310,11 @@ fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyF
         }
         _ => render_dirty(),
     }
+}
+
+fn is_layout_metadata_attribute(property: &str) -> bool {
+    matches!(
+        property,
+        "layout" | "width" | "height" | "min_width" | "min_height" | "padding" | "gap"
+    ) || property.starts_with("layout_")
 }

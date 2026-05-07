@@ -428,7 +428,8 @@ mod tests {
                 json!({
                     "shape": "box",
                     "center": [0.0, 0.0, 0.0],
-                    "size": [1.5, 2.0, 2.5],
+                    // Span the full simple-quad depth so this test proves a block, not a detour.
+                    "size": [1.5, 2.0, 7.0],
                     "carve": true,
                     "avoidance_enabled": false
                 }),

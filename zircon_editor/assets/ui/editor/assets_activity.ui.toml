@@ -55,7 +55,7 @@ control_id = "AssetsActivityToolbarTitleRow"
 
 [root.children.node.children.node.layout.container]
 kind = "HorizontalBox"
-gap = 8.0
+gap = 4.0
 
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -187,9 +187,9 @@ control_id = "AssetsActivityViewModeListButton"
 label = "List"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 44.0
-preferred = 44.0
-max = 44.0
+min = 58.0
+preferred = 58.0
+max = 58.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -206,9 +206,9 @@ control_id = "AssetsActivityViewModeThumbButton"
 label = "Thumb"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 70.0
+preferred = 70.0
+max = 70.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -223,7 +223,7 @@ control_id = "AssetsActivityToolbarKindPrimaryRow"
 
 [root.children.node.children.node.layout.container]
 kind = "HorizontalBox"
-gap = 4.0
+gap = 3.0
 
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -245,9 +245,9 @@ control_id = "AssetsActivityKindAllChip"
 label = "All"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 34.0
-preferred = 34.0
-max = 34.0
+min = 42.0
+preferred = 42.0
+max = 42.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -261,12 +261,12 @@ type = "Button"
 control_id = "AssetsActivityKindTextureChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Texture"
+label = "Tex"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 40.0
+preferred = 40.0
+max = 40.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -280,12 +280,12 @@ type = "Button"
 control_id = "AssetsActivityKindMaterialChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Material"
+label = "Mat"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 40.0
+preferred = 40.0
+max = 40.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -299,12 +299,12 @@ type = "Button"
 control_id = "AssetsActivityKindSceneChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Scene"
+label = "Scn"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 46.0
-preferred = 46.0
-max = 46.0
+min = 42.0
+preferred = 42.0
+max = 42.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -318,7 +318,7 @@ type = "Button"
 control_id = "AssetsActivityKindModelChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Model"
+label = "Mesh"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 50.0
@@ -337,12 +337,12 @@ type = "Button"
 control_id = "AssetsActivityKindShaderChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Shader"
+label = "Shd"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 54.0
-preferred = 54.0
-max = 54.0
+min = 44.0
+preferred = 44.0
+max = 44.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -357,7 +357,7 @@ control_id = "AssetsActivityToolbarKindSecondaryRow"
 
 [root.children.node.children.node.layout.container]
 kind = "HorizontalBox"
-gap = 4.0
+gap = 3.0
 
 [root.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -376,12 +376,12 @@ type = "Button"
 control_id = "AssetsActivityKindPhysicsChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Physics"
+label = "Phy"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 44.0
+preferred = 44.0
+max = 44.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -395,12 +395,12 @@ type = "Button"
 control_id = "AssetsActivityKindSkeletonChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Skeleton"
+label = "Skel"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 62.0
-preferred = 62.0
-max = 62.0
+min = 52.0
+preferred = 52.0
+max = 52.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -417,9 +417,9 @@ control_id = "AssetsActivityKindClipChip"
 label = "Clip"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 38.0
-preferred = 38.0
-max = 38.0
+min = 48.0
+preferred = 48.0
+max = 48.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -433,12 +433,12 @@ type = "Button"
 control_id = "AssetsActivityKindSequenceChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Sequence"
+label = "Seq"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 64.0
-preferred = 64.0
-max = 64.0
+min = 40.0
+preferred = 40.0
+max = 40.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -452,12 +452,12 @@ type = "Button"
 control_id = "AssetsActivityKindGraphChip"
 
 [root.children.node.children.node.children.node.props]
-label = "Graph"
+label = "Gph"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 52.0
-preferred = 52.0
-max = 52.0
+min = 44.0
+preferred = 44.0
+max = 44.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -471,7 +471,7 @@ type = "Button"
 control_id = "AssetsActivityKindStateChip"
 
 [root.children.node.children.node.children.node.props]
-label = "State"
+label = "Stat"
 
 [root.children.node.children.node.children.node.layout.width]
 min = 48.0
@@ -786,7 +786,7 @@ control_id = "AssetsActivityUtilityTabsRow"
 
 [root.children.node.children.node.layout.container]
 kind = "HorizontalBox"
-gap = 8.0
+gap = 4.0
 
 [root.children.node.children.node.layout.anchor]
 x = 0.0
@@ -820,9 +820,9 @@ control_id = "AssetsActivityPreviewTabButton"
 label = "Preview"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
+min = 88.0
+preferred = 88.0
+max = 88.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -836,12 +836,12 @@ type = "Button"
 control_id = "AssetsActivityReferencesTabButton"
 
 [root.children.node.children.node.children.node.props]
-label = "References"
+label = "Refs"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 74.0
-preferred = 74.0
-max = 74.0
+min = 58.0
+preferred = 58.0
+max = 58.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]
@@ -874,9 +874,9 @@ text_align = "right"
 overflow = "elide"
 
 [root.children.node.children.node.children.node.layout.width]
-min = 168.0
-preferred = 168.0
-max = 168.0
+min = 144.0
+preferred = 144.0
+max = 144.0
 stretch = "Fixed"
 
 [root.children.node.children.node.children.node.layout.height]

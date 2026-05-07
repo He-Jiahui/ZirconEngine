@@ -1,7 +1,10 @@
 mod asset_editor_structure;
 mod editor_event_cutover;
+mod global_material_surface_assets;
 mod host_cutover;
+mod material_meta_component_contracts;
 mod root_surfaces;
+mod runtime_ui_golden;
 mod support;
 mod template_assets;
 mod view_projection_cutover;

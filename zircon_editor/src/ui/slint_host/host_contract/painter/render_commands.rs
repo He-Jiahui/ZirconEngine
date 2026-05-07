@@ -1,8 +1,9 @@
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{
-        UiRenderCommand, UiRenderCommandKind, UiResolvedStyle, UiResolvedTextLayout, UiTextAlign,
-        UiVisualAssetRef,
+        UiBrushPayload, UiPaintElement, UiPaintPayload, UiRenderCommand, UiRenderResourceKey,
+        UiRenderResourceKind, UiResolvedStyle, UiTextAlign, UiTextPaint, UiTextPaintDecorationKind,
+        UiTextRunPaintStyle, UiVisualAssetRef,
     },
 };
 
@@ -10,12 +11,15 @@ use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
 use super::geometry::{inset, is_visible_frame};
 use super::primitives::{draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped};
-use super::text::draw_text_with_size;
-use super::visual_assets::{load_visual_asset_pixels, HostPaintImagePixels};
+use super::text::draw_text_with_size_and_style;
+use super::theme::PALETTE;
+use super::visual_assets::{
+    load_visual_asset_pixels_for_size, raster_size_from_frame, HostPaintImagePixels,
+};
 
-const FALLBACK_PANEL: [u8; 4] = [32, 37, 46, 255];
-const FALLBACK_TEXT: [u8; 4] = [210, 220, 235, 255];
-const FALLBACK_IMAGE_BORDER: [u8; 4] = [92, 156, 255, 255];
+const FALLBACK_PANEL: [u8; 4] = PALETTE.surface;
+const FALLBACK_TEXT: [u8; 4] = PALETTE.text;
+const FALLBACK_IMAGE_BORDER: [u8; 4] = PALETTE.focus_ring;
 
 #[derive(Clone, Copy)]
 enum HostPaintCommandKind {
@@ -38,6 +42,7 @@ pub(super) struct HostPaintCommand {
     text: Option<String>,
     font_size: f32,
     line_height: f32,
+    text_style: UiTextRunPaintStyle,
     image_key: Option<String>,
     image_pixels: Option<HostPaintImagePixels>,
     opacity: f32,
@@ -65,6 +70,7 @@ impl HostPaintCommand {
             text: None,
             font_size: 12.0,
             line_height: 14.0,
+            text_style: UiTextRunPaintStyle::default(),
             image_key: None,
             image_pixels: None,
             opacity,
@@ -79,6 +85,7 @@ impl HostPaintCommand {
         foreground_color: [u8; 4],
         font_size: f32,
         line_height: f32,
+        text_style: UiTextRunPaintStyle,
         opacity: f32,
     ) -> Self {
         Self {
@@ -93,6 +100,7 @@ impl HostPaintCommand {
             text: Some(text),
             font_size,
             line_height,
+            text_style,
             image_key: None,
             image_pixels: None,
             opacity,
@@ -112,6 +120,7 @@ impl HostPaintCommand {
             text: None,
             font_size: 12.0,
             line_height: 14.0,
+            text_style: UiTextRunPaintStyle::default(),
             image_key: None,
             image_pixels: None,
             opacity,
@@ -137,6 +146,7 @@ impl HostPaintCommand {
             text: None,
             font_size: 12.0,
             line_height: 14.0,
+            text_style: UiTextRunPaintStyle::default(),
             image_key: Some(image_key),
             image_pixels: None,
             opacity,
@@ -164,6 +174,7 @@ impl HostPaintCommand {
             text: None,
             font_size: 12.0,
             line_height: 14.0,
+            text_style: UiTextRunPaintStyle::default(),
             image_key: None,
             image_pixels: Some(HostPaintImagePixels {
                 width: image_width,
@@ -255,7 +266,7 @@ fn draw_text_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
         command.foreground_color.unwrap_or(FALLBACK_TEXT),
         command.opacity,
     );
-    draw_text_with_size(
+    draw_text_with_size_and_style(
         frame,
         command.frame.clone(),
         text,
@@ -263,6 +274,7 @@ fn draw_text_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
         color,
         command.font_size,
         command.line_height,
+        command.text_style,
     );
     true
 }
@@ -329,84 +341,124 @@ fn push_runtime_command(
     command: &UiRenderCommand,
     parent_clip: Option<&FrameRect>,
 ) {
-    let frame = frame_from_ui(command.frame);
-    if !is_visible_frame(&frame) || command.opacity <= 0.0 {
-        return;
-    }
-
     let command_clip = command
         .clip_frame
         .map(frame_from_ui)
         .or_else(|| parent_clip.cloned());
-    match command.kind {
-        UiRenderCommandKind::Group => {
-            output.push(HostPaintCommand::group(
-                frame,
-                command_clip,
-                command.z_index,
-                command.opacity,
-            ));
-        }
-        UiRenderCommandKind::Quad => {
-            output.push(HostPaintCommand::quad(
-                frame,
-                command_clip,
-                command.z_index,
-                runtime_background_color(&command.style),
-                runtime_border_color(&command.style),
-                command.style.border_width,
-                command.opacity,
-            ));
-        }
-        UiRenderCommandKind::Text => {
-            push_runtime_text_command(output, command, frame, command_clip);
-        }
-        UiRenderCommandKind::Image => {
-            let image_key = image_key(command.image.as_ref());
-            if let Some(image) = command.image.as_ref().and_then(load_visual_asset_pixels) {
-                output.push(HostPaintCommand::image_pixels(
+
+    for element in command.to_paint_elements(0) {
+        push_runtime_paint_element(output, command, &element, command_clip.clone());
+    }
+}
+
+fn push_runtime_paint_element(
+    output: &mut Vec<HostPaintCommand>,
+    command: &UiRenderCommand,
+    element: &UiPaintElement,
+    clip_frame: Option<FrameRect>,
+) {
+    let frame = frame_from_ui(element.geometry.render_bounds);
+    if !is_visible_frame(&frame) || element.effects.opacity <= 0.0 {
+        return;
+    }
+
+    match &element.payload {
+        UiPaintPayload::Empty => output.push(HostPaintCommand::group(
+            frame,
+            clip_frame,
+            element.z_index,
+            element.effects.opacity,
+        )),
+        UiPaintPayload::Brush { brushes } => {
+            if let Some(image_brush) = brushes.fill.as_ref().and_then(image_brush_resource) {
+                push_image_resource_command(
+                    output,
+                    image_brush,
                     frame,
-                    command_clip,
-                    command.z_index,
-                    image.width,
-                    image.height,
-                    image.rgba,
-                    command.opacity,
-                ));
+                    clip_frame,
+                    element.z_index,
+                    element.effects.opacity,
+                );
             } else {
-                output.push(HostPaintCommand::image(
+                let background_color = brushes.fill.as_ref().and_then(brush_fill_color);
+                let (border_color, border_width) = brushes
+                    .border
+                    .as_ref()
+                    .and_then(brush_border)
+                    .unwrap_or((None, 0.0));
+                output.push(HostPaintCommand::quad(
                     frame,
-                    command_clip,
-                    command.z_index,
-                    image_key,
-                    command.opacity,
+                    clip_frame,
+                    element.z_index,
+                    background_color,
+                    border_color,
+                    border_width,
+                    element.effects.opacity,
                 ));
             }
+        }
+        UiPaintPayload::Text { text } => {
+            push_text_paint_commands(output, command, text, frame, clip_frame, element.z_index)
         }
     }
 }
 
-fn push_runtime_text_command(
+fn push_text_paint_commands(
     output: &mut Vec<HostPaintCommand>,
     command: &UiRenderCommand,
+    text: &UiTextPaint,
     frame: FrameRect,
     clip_frame: Option<FrameRect>,
+    z_index: i32,
 ) {
-    let color = runtime_foreground_color(&command.style);
-    if let Some(text_layout) = command.text_layout.as_ref() {
-        push_text_layout_commands(
-            output,
-            text_layout,
-            clip_frame,
-            command.z_index,
-            color,
-            command.opacity,
-        );
+    let color = parse_style_color(text.color.as_deref())
+        .unwrap_or_else(|| runtime_foreground_color(&command.style));
+    push_text_decorations(
+        output,
+        text,
+        clip_frame.clone(),
+        z_index,
+        command.opacity,
+        true,
+    );
+    if !text.runs.is_empty() {
+        for run in &text.runs {
+            let run_color = parse_style_color(run.color.as_deref()).unwrap_or(color);
+            output.push(HostPaintCommand::text(
+                frame_from_ui(run.frame),
+                clip_frame.clone(),
+                z_index,
+                run.text.clone(),
+                run_color,
+                run.font_size.max(1.0),
+                run.line_height.max(run.font_size).max(1.0),
+                run.style,
+                command.opacity,
+            ));
+        }
+        push_text_decorations(output, text, clip_frame, z_index, command.opacity, false);
         return;
     }
 
-    let text = command.text.clone().unwrap_or_default();
-    let text_x = aligned_text_x(&frame, &text, &command.style);
+    if let Some(shaped) = text.shaped.as_ref() {
+        for line in &shaped.lines {
+            output.push(HostPaintCommand::text(
+                frame_from_ui(line.frame),
+                clip_frame.clone(),
+                z_index,
+                line.text.clone(),
+                color,
+                text.font_size.max(1.0),
+                text.line_height.max(text.font_size).max(1.0),
+                UiTextRunPaintStyle::default(),
+                command.opacity,
+            ));
+        }
+        push_text_decorations(output, text, clip_frame, z_index, command.opacity, false);
+        return;
+    }
+
+    let text_x = aligned_text_x(&frame, &text.source_text, &command.style);
     output.push(HostPaintCommand::text(
         FrameRect {
             x: text_x,
@@ -414,39 +466,143 @@ fn push_runtime_text_command(
             width: frame.width,
             height: frame.height,
         },
-        clip_frame,
-        command.z_index,
-        text,
+        clip_frame.clone(),
+        z_index,
+        text.source_text.clone(),
         color,
-        command.style.font_size.max(1.0),
-        command
-            .style
-            .line_height
-            .max(command.style.font_size)
-            .max(1.0),
+        text.font_size.max(1.0),
+        text.line_height.max(text.font_size).max(1.0),
+        UiTextRunPaintStyle::default(),
         command.opacity,
+    ));
+    push_text_decorations(output, text, clip_frame, z_index, command.opacity, false);
+}
+
+fn push_text_decorations(
+    output: &mut Vec<HostPaintCommand>,
+    text: &UiTextPaint,
+    clip_frame: Option<FrameRect>,
+    z_index: i32,
+    opacity: f32,
+    before_text: bool,
+) {
+    for decoration in &text.decorations {
+        let decoration_before_text =
+            matches!(decoration.kind, UiTextPaintDecorationKind::Selection);
+        if decoration_before_text != before_text {
+            continue;
+        }
+        let color =
+            parse_style_color(Some(decoration.color.as_str())).unwrap_or(match decoration.kind {
+                UiTextPaintDecorationKind::Selection => [77, 137, 255, 102],
+                UiTextPaintDecorationKind::CompositionUnderline => [77, 137, 255, 255],
+                UiTextPaintDecorationKind::Caret => [232, 238, 247, 255],
+                UiTextPaintDecorationKind::Outline => [232, 238, 247, 255],
+            });
+        let decoration_z = if decoration_before_text {
+            z_index - 1
+        } else {
+            z_index + 1
+        };
+        output.push(HostPaintCommand::quad(
+            frame_from_ui(decoration.frame),
+            clip_frame.clone(),
+            decoration_z,
+            Some(color),
+            None,
+            0.0,
+            opacity,
+        ));
+    }
+}
+
+fn push_image_resource_command(
+    output: &mut Vec<HostPaintCommand>,
+    resource: &UiRenderResourceKey,
+    frame: FrameRect,
+    clip_frame: Option<FrameRect>,
+    z_index: i32,
+    opacity: f32,
+) {
+    if let Some(asset) = visual_asset_from_resource(resource) {
+        if let Some((target_width, target_height)) =
+            raster_size_from_frame(frame.width, frame.height)
+        {
+            if let Some(image) =
+                load_visual_asset_pixels_for_size(&asset, target_width, target_height)
+            {
+                output.push(HostPaintCommand::image_pixels(
+                    frame,
+                    clip_frame,
+                    z_index,
+                    image.width,
+                    image.height,
+                    image.rgba,
+                    opacity,
+                ));
+                return;
+            }
+        }
+    }
+
+    output.push(HostPaintCommand::image(
+        frame,
+        clip_frame,
+        z_index,
+        resource_image_key(resource),
+        opacity,
     ));
 }
 
-fn push_text_layout_commands(
-    output: &mut Vec<HostPaintCommand>,
-    text_layout: &UiResolvedTextLayout,
-    clip_frame: Option<FrameRect>,
-    z_index: i32,
-    color: [u8; 4],
-    opacity: f32,
-) {
-    for line in &text_layout.lines {
-        output.push(HostPaintCommand::text(
-            frame_from_ui(line.frame),
-            clip_frame.clone(),
-            z_index,
-            line.text.clone(),
-            color,
-            12.0,
-            line.frame.height.max(14.0),
-            opacity,
-        ));
+fn brush_fill_color(brush: &UiBrushPayload) -> Option<[u8; 4]> {
+    match brush {
+        UiBrushPayload::Solid(payload) => parse_style_color(Some(&payload.color)),
+        UiBrushPayload::Rounded(payload) => parse_style_color(Some(&payload.color)),
+        UiBrushPayload::Material(payload) => parse_style_color(payload.fallback_color.as_deref()),
+        UiBrushPayload::Gradient(payload) => payload
+            .stops
+            .first()
+            .and_then(|stop| parse_style_color(Some(&stop.color))),
+        _ => None,
+    }
+}
+
+fn brush_border(brush: &UiBrushPayload) -> Option<(Option<[u8; 4]>, f32)> {
+    match brush {
+        UiBrushPayload::Border(payload) => {
+            Some((parse_style_color(Some(&payload.color)), payload.width))
+        }
+        _ => None,
+    }
+}
+
+fn image_brush_resource(brush: &UiBrushPayload) -> Option<&UiRenderResourceKey> {
+    match brush {
+        UiBrushPayload::Image(payload) | UiBrushPayload::Box(payload) => Some(&payload.resource),
+        UiBrushPayload::Vector(payload) => Some(&payload.resource),
+        _ => None,
+    }
+}
+
+fn visual_asset_from_resource(resource: &UiRenderResourceKey) -> Option<UiVisualAssetRef> {
+    match resource.kind {
+        UiRenderResourceKind::Icon => Some(UiVisualAssetRef::Icon(resource.id.clone())),
+        UiRenderResourceKind::Image | UiRenderResourceKind::Vector => {
+            Some(UiVisualAssetRef::Image(resource.id.clone()))
+        }
+        _ => None,
+    }
+}
+
+fn resource_image_key(resource: &UiRenderResourceKey) -> String {
+    match resource.kind {
+        UiRenderResourceKind::Icon => format!("icon:{}", resource.id),
+        UiRenderResourceKind::Image | UiRenderResourceKind::Vector => {
+            format!("image:{}", resource.id)
+        }
+        UiRenderResourceKind::Material => format!("material:{}", resource.id),
+        UiRenderResourceKind::Font => format!("font:{}", resource.id),
+        UiRenderResourceKind::Texture => format!("texture:{}", resource.id),
     }
 }
 
@@ -459,14 +615,6 @@ fn frame_from_ui(frame: UiFrame) -> FrameRect {
     }
 }
 
-fn runtime_background_color(style: &UiResolvedStyle) -> Option<[u8; 4]> {
-    parse_style_color(style.background_color.as_deref()).or(Some(FALLBACK_PANEL))
-}
-
-fn runtime_border_color(style: &UiResolvedStyle) -> Option<[u8; 4]> {
-    parse_style_color(style.border_color.as_deref())
-}
-
 fn runtime_foreground_color(style: &UiResolvedStyle) -> [u8; 4] {
     parse_style_color(style.foreground_color.as_deref()).unwrap_or(FALLBACK_TEXT)
 }
@@ -477,14 +625,6 @@ fn aligned_text_x(frame: &FrameRect, text: &str, style: &UiResolvedStyle) -> f32
         UiTextAlign::Left => frame.x,
         UiTextAlign::Center => frame.x + (frame.width - estimated_width).max(0.0) * 0.5,
         UiTextAlign::Right => frame.x + (frame.width - estimated_width).max(0.0),
-    }
-}
-
-fn image_key(image: Option<&UiVisualAssetRef>) -> String {
-    match image {
-        Some(UiVisualAssetRef::Icon(icon)) => format!("icon:{icon}"),
-        Some(UiVisualAssetRef::Image(image)) => format!("image:{image}"),
-        None => "image".to_string(),
     }
 }
 

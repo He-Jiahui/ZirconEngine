@@ -4,11 +4,16 @@ use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
     layout::UiFrame,
     surface::{
-        UiHitGridDebugStats, UiMaterialBatchDebugStat, UiOverdrawDebugStats, UiRenderCommand,
-        UiRenderCommandKind, UiRenderDebugStats, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
-        UiSurfaceFrame, UiWidgetReflectorNode,
+        UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind, UiHitGridCellDebugRecord,
+        UiHitGridDebugStats, UiHitTestQuery, UiInvalidationDebugReport, UiMaterialBatchDebugStat,
+        UiOverdrawCellDebugRecord, UiOverdrawDebugStats, UiRenderCommand,
+        UiRenderCommandDebugRecord, UiRenderCommandKind, UiRenderDebugSnapshot, UiRenderDebugStats,
+        UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
+        UiSurfaceFrame, UiWidgetReflectorNode, UI_SURFACE_DEBUG_SCHEMA_VERSION,
     },
 };
+
+use super::debug_hit_test_surface_frame_with_query;
 
 pub fn debug_surface_frame(surface_frame: &UiSurfaceFrame) -> UiSurfaceDebugSnapshot {
     debug_surface_frame_with_options(surface_frame, &UiSurfaceDebugOptions::default())
@@ -16,6 +21,39 @@ pub fn debug_surface_frame(surface_frame: &UiSurfaceFrame) -> UiSurfaceDebugSnap
 
 pub fn debug_surface_frame_with_options(
     surface_frame: &UiSurfaceFrame,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    debug_surface_frame_with_context(surface_frame, None, None, None, options)
+}
+
+pub fn debug_surface_frame_for_selection(
+    surface_frame: &UiSurfaceFrame,
+    selected_node: UiNodeId,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    debug_surface_frame_with_context(surface_frame, Some(selected_node), None, None, options)
+}
+
+pub fn debug_surface_frame_for_pick(
+    surface_frame: &UiSurfaceFrame,
+    query: UiHitTestQuery,
+    options: &UiSurfaceDebugOptions,
+) -> UiSurfaceDebugSnapshot {
+    let hit_dump = debug_hit_test_surface_frame_with_query(surface_frame, query.clone());
+    debug_surface_frame_with_context(
+        surface_frame,
+        hit_dump.hit_path.target,
+        Some(query),
+        Some(hit_dump),
+        options,
+    )
+}
+
+fn debug_surface_frame_with_context(
+    surface_frame: &UiSurfaceFrame,
+    selected_node: Option<UiNodeId>,
+    pick_query: Option<UiHitTestQuery>,
+    pick_hit_test: Option<zircon_runtime_interface::ui::surface::UiHitTestDebugDump>,
     options: &UiSurfaceDebugOptions,
 ) -> UiSurfaceDebugSnapshot {
     let render_counts = render_command_counts(surface_frame);
@@ -47,20 +85,48 @@ pub fn debug_surface_frame_with_options(
         })
         .collect();
 
+    let render = render_debug_stats(surface_frame, options);
+    let hit_test = hit_grid_debug_stats(surface_frame, options);
+    let overdraw = overdraw_debug_stats(surface_frame, options);
+    let overlay_primitives = if options.include_overlay_primitives {
+        overlay_primitives(
+            surface_frame,
+            selected_node,
+            pick_hit_test.as_ref(),
+            &hit_test,
+            &overdraw,
+        )
+    } else {
+        Vec::new()
+    };
+
     UiSurfaceDebugSnapshot {
-        capture: Default::default(),
+        capture: UiSurfaceDebugCaptureContext {
+            schema_version: UI_SURFACE_DEBUG_SCHEMA_VERSION,
+            selected_node,
+            pick_query,
+            ..UiSurfaceDebugCaptureContext::default()
+        },
         tree_id: surface_frame.tree_id.clone(),
         roots: surface_frame.arranged_tree.roots.clone(),
         nodes,
         rebuild: surface_frame.last_rebuild,
-        render: render_debug_stats(surface_frame),
-        hit_test: hit_grid_debug_stats(surface_frame),
-        overdraw: overdraw_debug_stats(surface_frame, options.overdraw_sample_cell_size),
+        render,
+        render_batches: UiRenderDebugSnapshot::from_render_extract(&surface_frame.render_extract),
+        hit_test,
+        pick_hit_test,
+        overdraw,
         focus_state: surface_frame.focus_state.clone(),
-        invalidation: Default::default(),
+        invalidation: UiInvalidationDebugReport {
+            rebuild: surface_frame.last_rebuild,
+            dirty_flags: surface_frame.last_rebuild.dirty_flags,
+            dirty_node_count: surface_frame.last_rebuild.dirty_node_count,
+            recompute_reasons: Vec::new(),
+            warnings: Vec::new(),
+        },
         damage: Default::default(),
         events: Vec::new(),
-        overlay_primitives: Vec::new(),
+        overlay_primitives,
     }
 }
 
@@ -93,11 +159,20 @@ fn hit_cell_counts(surface_frame: &UiSurfaceFrame) -> BTreeMap<UiNodeId, usize> 
     counts
 }
 
-fn render_debug_stats(surface_frame: &UiSurfaceFrame) -> UiRenderDebugStats {
+fn render_debug_stats(
+    surface_frame: &UiSurfaceFrame,
+    options: &UiSurfaceDebugOptions,
+) -> UiRenderDebugStats {
     let mut stats = UiRenderDebugStats::default();
     let mut material_batches: BTreeMap<String, UiMaterialBatchDebugStat> = BTreeMap::new();
 
-    for command in &surface_frame.render_extract.list.commands {
+    for (command_index, command) in surface_frame
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .enumerate()
+    {
         stats.command_count += 1;
         match command.kind {
             UiRenderCommandKind::Group => stats.group_count += 1,
@@ -122,12 +197,33 @@ fn render_debug_stats(surface_frame: &UiSurfaceFrame) -> UiRenderDebugStats {
         }
 
         let key = material_batch_key(command);
+        let batch_break_reason = material_batch_break_reason(command);
+        let command_draw_calls = estimated_command_draw_calls(command);
+        if options.include_command_records {
+            stats.command_records.push(UiRenderCommandDebugRecord {
+                command_id: command_index as u64,
+                node_id: command.node_id,
+                kind: command.kind,
+                frame: command.frame,
+                clip_frame: command.clip_frame,
+                visible_frame: command_visible_frame(command),
+                z_index: command.z_index,
+                paint_order: command_index as u64,
+                opacity: command.opacity,
+                material_key: key.clone(),
+                batch_key: key.clone(),
+                batch_break_reason: batch_break_reason.clone(),
+                estimated_draw_calls: command_draw_calls,
+                text_summary: command.text.clone(),
+                image_summary: command.image.as_ref().map(|image| format!("{image:?}")),
+            });
+        }
         let batch =
             material_batches
                 .entry(key.clone())
                 .or_insert_with(|| UiMaterialBatchDebugStat {
                     key,
-                    break_reason: material_batch_break_reason(command),
+                    break_reason: batch_break_reason,
                     command_kind: command.kind,
                     command_count: 0,
                     clipped_command_count: 0,
@@ -145,7 +241,10 @@ fn render_debug_stats(surface_frame: &UiSurfaceFrame) -> UiRenderDebugStats {
     stats
 }
 
-fn hit_grid_debug_stats(surface_frame: &UiSurfaceFrame) -> UiHitGridDebugStats {
+fn hit_grid_debug_stats(
+    surface_frame: &UiSurfaceFrame,
+    options: &UiSurfaceDebugOptions,
+) -> UiHitGridDebugStats {
     let occupied_cell_count = surface_frame
         .hit_grid
         .cells
@@ -175,15 +274,46 @@ fn hit_grid_debug_stats(surface_frame: &UiSurfaceFrame) -> UiHitGridDebugStats {
         } else {
             total_entries_in_cells as f32 / occupied_cell_count as f32
         },
-        cell_records: Vec::new(),
+        cell_records: if options.include_hit_cells {
+            hit_grid_cell_records(surface_frame)
+        } else {
+            Vec::new()
+        },
     }
+}
+
+fn hit_grid_cell_records(surface_frame: &UiSurfaceFrame) -> Vec<UiHitGridCellDebugRecord> {
+    surface_frame
+        .hit_grid
+        .cells
+        .iter()
+        .enumerate()
+        .filter(|(_, cell)| !cell.entries.is_empty())
+        .map(|(cell_index, cell)| UiHitGridCellDebugRecord {
+            cell_id: cell_index as u64,
+            bounds: grid_cell_bounds(
+                surface_frame.hit_grid.bounds,
+                surface_frame.hit_grid.columns,
+                surface_frame.hit_grid.rows,
+                surface_frame.hit_grid.cell_size,
+                cell_index,
+            ),
+            entry_indices: cell.entries.clone(),
+            entry_node_ids: cell
+                .entries
+                .iter()
+                .filter_map(|entry_index| surface_frame.hit_grid.entries.get(*entry_index))
+                .map(|entry| entry.node_id)
+                .collect(),
+        })
+        .collect()
 }
 
 fn overdraw_debug_stats(
     surface_frame: &UiSurfaceFrame,
-    sample_cell_size: f32,
+    options: &UiSurfaceDebugOptions,
 ) -> UiOverdrawDebugStats {
-    let sample_cell_size = sample_cell_size.max(1.0);
+    let sample_cell_size = options.overdraw_sample_cell_size.max(1.0);
     let layers: Vec<_> = surface_frame
         .render_extract
         .list
@@ -192,9 +322,10 @@ fn overdraw_debug_stats(
         .filter(|command| {
             command.opacity > 0.0 && !matches!(command.kind, UiRenderCommandKind::Group)
         })
-        .filter_map(command_visible_frame)
+        .filter_map(|command| command_visible_frame(command).map(|frame| (command.node_id, frame)))
         .collect();
-    let Some(bounds) = union_frames(&layers) else {
+    let layer_frames: Vec<_> = layers.iter().map(|(_, frame)| *frame).collect();
+    let Some(bounds) = union_frames(&layer_frames) else {
         return UiOverdrawDebugStats {
             sample_cell_size,
             ..UiOverdrawDebugStats::default()
@@ -204,10 +335,14 @@ fn overdraw_debug_stats(
     let columns = (bounds.width / sample_cell_size).ceil().max(1.0) as u32;
     let rows = (bounds.height / sample_cell_size).ceil().max(1.0) as u32;
     let mut layer_counts = vec![0usize; (columns * rows) as usize];
+    let mut cell_node_ids = vec![Vec::<UiNodeId>::new(); (columns * rows) as usize];
 
-    for layer in layers {
+    for (node_id, layer) in layers {
         for cell_index in cells_for_frame(bounds, columns, rows, sample_cell_size, layer) {
             layer_counts[cell_index] += 1;
+            if !cell_node_ids[cell_index].contains(&node_id) {
+                cell_node_ids[cell_index].push(node_id);
+            }
         }
     }
 
@@ -225,7 +360,21 @@ fn overdraw_debug_stats(
         overdrawn_cells,
         max_layers,
         total_layer_samples,
-        cells: Vec::new(),
+        cells: if options.include_overdraw_cells {
+            layer_counts
+                .iter()
+                .enumerate()
+                .filter(|(_, layer_count)| **layer_count > 0)
+                .map(|(cell_index, layer_count)| UiOverdrawCellDebugRecord {
+                    cell_id: cell_index as u64,
+                    bounds: grid_cell_bounds(bounds, columns, rows, sample_cell_size, cell_index),
+                    layer_count: *layer_count,
+                    node_ids: cell_node_ids[cell_index].clone(),
+                })
+                .collect()
+        } else {
+            Vec::new()
+        },
     }
 }
 
@@ -238,6 +387,11 @@ fn draws_geometry(command: &UiRenderCommand) -> bool {
             || command.style.border_color.is_some()
             || command.style.border_width > 0.0
             || command.image.is_some())
+}
+
+fn estimated_command_draw_calls(command: &UiRenderCommand) -> usize {
+    usize::from(draws_geometry(command))
+        + usize::from(command.text.as_ref().is_some_and(|text| !text.is_empty()))
 }
 
 fn command_visible_frame(command: &UiRenderCommand) -> Option<UiFrame> {
@@ -329,4 +483,123 @@ fn cells_for_frame(
         }
     }
     indices
+}
+
+fn grid_cell_bounds(
+    bounds: UiFrame,
+    columns: u32,
+    rows: u32,
+    cell_size: f32,
+    cell_index: usize,
+) -> UiFrame {
+    if columns == 0 || rows == 0 {
+        return UiFrame::default();
+    }
+    let column = (cell_index as u32 % columns).min(columns - 1);
+    let row = (cell_index as u32 / columns).min(rows - 1);
+    let x = bounds.x + column as f32 * cell_size;
+    let y = bounds.y + row as f32 * cell_size;
+    UiFrame::new(
+        x,
+        y,
+        (bounds.right() - x).min(cell_size).max(0.0),
+        (bounds.bottom() - y).min(cell_size).max(0.0),
+    )
+}
+
+fn overlay_primitives(
+    surface_frame: &UiSurfaceFrame,
+    selected_node: Option<UiNodeId>,
+    pick_hit_test: Option<&zircon_runtime_interface::ui::surface::UiHitTestDebugDump>,
+    hit_test: &UiHitGridDebugStats,
+    overdraw: &UiOverdrawDebugStats,
+) -> Vec<UiDebugOverlayPrimitive> {
+    let mut primitives = Vec::new();
+    if let Some(selected_node) = selected_node {
+        if let Some(node) = surface_frame.arranged_tree.get(selected_node) {
+            primitives.push(UiDebugOverlayPrimitive {
+                kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
+                node_id: Some(node.node_id),
+                frame: node.frame,
+                label: Some(
+                    node.control_id
+                        .clone()
+                        .unwrap_or_else(|| node.node_path.0.clone()),
+                ),
+                severity: None,
+            });
+            primitives.push(UiDebugOverlayPrimitive {
+                kind: UiDebugOverlayPrimitiveKind::ClipFrame,
+                node_id: Some(node.node_id),
+                frame: node.clip_frame,
+                label: Some("clip".to_string()),
+                severity: None,
+            });
+        }
+    }
+
+    for cell in &hit_test.cell_records {
+        primitives.push(UiDebugOverlayPrimitive {
+            kind: UiDebugOverlayPrimitiveKind::HitCell,
+            node_id: cell.entry_node_ids.first().copied(),
+            frame: cell.bounds,
+            label: Some(format!("hit:{}", cell.entry_indices.len())),
+            severity: None,
+        });
+    }
+
+    for cell in &overdraw.cells {
+        primitives.push(UiDebugOverlayPrimitive {
+            kind: UiDebugOverlayPrimitiveKind::OverdrawCell,
+            node_id: cell.node_ids.first().copied(),
+            frame: cell.bounds,
+            label: Some(format!("layers:{}", cell.layer_count)),
+            severity: (cell.layer_count > 1).then(|| "warning".to_string()),
+        });
+    }
+
+    for record in surface_frame
+        .render_extract
+        .list
+        .commands
+        .iter()
+        .filter_map(|command| {
+            command_visible_frame(command).map(|frame| (command.node_id, command.kind, frame))
+        })
+    {
+        primitives.push(UiDebugOverlayPrimitive {
+            kind: UiDebugOverlayPrimitiveKind::MaterialBatchBounds,
+            node_id: Some(record.0),
+            frame: record.2,
+            label: Some(format!("{:?}", record.1)),
+            severity: None,
+        });
+    }
+
+    if let Some(hit_dump) = pick_hit_test {
+        for node_id in hit_dump.hit_path.root_to_leaf.iter().copied() {
+            if let Some(node) = surface_frame.arranged_tree.get(node_id) {
+                primitives.push(UiDebugOverlayPrimitive {
+                    kind: UiDebugOverlayPrimitiveKind::HitPath,
+                    node_id: Some(node.node_id),
+                    frame: node.frame,
+                    label: Some("hit path".to_string()),
+                    severity: None,
+                });
+            }
+        }
+        for reject in &hit_dump.rejected {
+            if let Some(node) = surface_frame.arranged_tree.get(reject.node_id) {
+                primitives.push(UiDebugOverlayPrimitive {
+                    kind: UiDebugOverlayPrimitiveKind::RejectedBounds,
+                    node_id: Some(node.node_id),
+                    frame: node.frame,
+                    label: Some(format!("{:?}", reject.reason)),
+                    severity: Some("muted".to_string()),
+                });
+            }
+        }
+    }
+
+    primitives
 }

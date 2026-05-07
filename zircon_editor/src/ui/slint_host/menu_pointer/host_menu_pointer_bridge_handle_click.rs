@@ -5,6 +5,7 @@ use zircon_runtime_interface::ui::{
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_dispatch::HostMenuPointerDispatch;
 use super::host_menu_pointer_target::HostMenuPointerTarget;
+use super::menu_item_tree::parent_path;
 use super::route_conversion::to_public_route;
 
 impl HostMenuPointerBridge {
@@ -22,11 +23,28 @@ impl HostMenuPointerBridge {
                 }
                 None
             }
+            Some(HostMenuPointerTarget::SubmenuBranch {
+                menu_index,
+                item_index,
+                item_path,
+            }) => {
+                self.state.open_menu_index = Some(*menu_index);
+                self.state.hovered_menu_index = Some(*menu_index);
+                self.state.hovered_item_index = Some(*item_index);
+                self.state.hovered_item_path = item_path.clone();
+                if self.state.open_submenu_path != *item_path {
+                    self.state.open_submenu_path = item_path.clone();
+                    self.rebuild_surface();
+                }
+                None
+            }
             Some(HostMenuPointerTarget::MenuItem {
                 action_id,
                 menu_index,
+                item_path,
                 ..
             }) => {
+                self.state.open_submenu_path = parent_path(item_path);
                 self.close_popup();
                 Some((action_id.clone(), *menu_index))
             }
@@ -37,6 +55,7 @@ impl HostMenuPointerBridge {
             Some(HostMenuPointerTarget::PopupSurface(menu_index)) => {
                 self.state.hovered_menu_index = Some(*menu_index);
                 self.state.hovered_item_index = None;
+                self.state.hovered_item_path.clear();
                 None
             }
             None => {

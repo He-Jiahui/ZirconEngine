@@ -13,6 +13,7 @@ use crate::core::editor_event::{
 use crate::scene::viewport::{DisplayMode, ViewOrientation};
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::slint_host::root_shell_projection::resolve_root_left_splitter_frame;
 use crate::ui::slint_host::{PaneSurfaceHostContext, UiHostContext};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{
@@ -30,6 +31,7 @@ use zircon_runtime::foundation::{
 };
 use zircon_runtime::scene::DefaultLevelManager;
 use zircon_runtime_interface::math::UVec2;
+mod close_prompt;
 mod drag_sources;
 mod floating_window_projection;
 
@@ -714,14 +716,9 @@ fn root_document_tab_pointer_click_prefers_shared_projection_surface_width_over_
                 ShellRegionId::Document,
                 ShellFrame::new(document.x, document.y, 800.0, document.height),
             );
-            let geometry = geometry.clone();
             let floating_window_projection_bundle =
                 crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle::default();
-            host.sync_document_tab_pointer_layout(
-                &model,
-                &geometry,
-                &floating_window_projection_bundle,
-            );
+            host.sync_document_tab_pointer_layout(&model, &floating_window_projection_bundle);
         }
 
         let tab_width = 140.0;
@@ -826,8 +823,7 @@ fn root_activity_rail_pointer_click_prefers_shared_projection_surface_when_left_
             geometry
                 .region_frames
                 .insert(ShellRegionId::Bottom, ShellFrame::default());
-            let geometry = geometry.clone();
-            host.sync_activity_rail_pointer_layout(&model, &geometry);
+            host.sync_activity_rail_pointer_layout(&model);
         }
 
         (shared_activity_rail.width * 0.5, 20.0)
@@ -862,11 +858,12 @@ fn root_resize_capture_prefers_shared_left_drawer_shell_extent_over_stale_region
         .control_frame("LeftDrawerShellRoot")
         .expect("left drawer shell root should map to a projected control frame")
         .width;
-    let splitter = host
-        .shell_geometry
-        .as_ref()
-        .expect("root host should have computed shell geometry")
-        .splitter_frame(ShellRegionId::Left);
+    let root_shell_frames = host.template_bridge.root_shell_frames();
+    let splitter = resolve_root_left_splitter_frame(Some(&root_shell_frames));
+    assert!(
+        splitter.width > 0.0 && splitter.height > 0.0,
+        "shared root shell frames should expose the left resize splitter"
+    );
     let geometry = host
         .shell_geometry
         .as_mut()

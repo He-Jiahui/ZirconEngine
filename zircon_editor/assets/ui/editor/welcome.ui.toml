@@ -7,14 +7,23 @@ version = 1
 display_name = "Welcome"
 
 [imports]
-styles = ["res://ui/theme/editor_base.ui.toml"]
+widgets = [
+  "res://ui/editor/material_meta_components.ui.toml#MaterialOutlinedField",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialTextButton",
+  "res://ui/editor/material_meta_components.ui.toml#MaterialListItem",
+]
+styles = [
+  "res://ui/theme/editor_base.ui.toml",
+  "res://ui/theme/editor_material.ui.toml",
+]
 
 [root]
 node_id = "welcome_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "WelcomeRoot"
-classes = ["editor-shell"]
+classes = ["editor-shell", "showcase-shell"]
 
 [root.layout.container]
 kind = "VerticalBox"
@@ -168,6 +177,9 @@ stretch = "Stretch"
 [root.children.node.children.node.children.node.children.node.layout.height]
 stretch = "Stretch"
 
+[root.children.node.children.node.children.node.children.node.layout.scroll]
+vertical = true
+
 [[root.children.node.children.node.children]]
 [root.children.node.children.node.children.node]
 node_id = "main_panel"
@@ -296,9 +308,11 @@ stretch = "Fixed"
 [[root.children.node.children.node.children.node.children]]
 [root.children.node.children.node.children.node.children.node]
 node_id = "project_name_field"
-kind = "native"
-type = "Space"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialOutlinedField"
 control_id = "WelcomeProjectNameField"
+classes = ["showcase-field"]
+params = { value = "ZirconProject", placeholder = "Project name", validation_level = "normal", height = 56.0 }
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -327,9 +341,11 @@ stretch = "Fixed"
 [[root.children.node.children.node.children.node.children]]
 [root.children.node.children.node.children.node.children.node]
 node_id = "location_field"
-kind = "native"
-type = "Space"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialOutlinedField"
 control_id = "WelcomeLocationField"
+classes = ["showcase-field"]
+params = { value = "Documents/ZirconProjects", placeholder = "Location", validation_level = "normal", height = 56.0 }
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -418,8 +434,12 @@ stretch = "Fixed"
 [root.children.node.children.node.children.node.children.node]
 node_id = "actions_row"
 kind = "native"
-type = "Space"
+type = "HorizontalBox"
 control_id = "WelcomeActionsRow"
+
+[root.children.node.children.node.children.node.children.node.layout.container]
+kind = "HorizontalBox"
+gap = 10.0
 
 [root.children.node.children.node.children.node.children.node.layout.width]
 stretch = "Stretch"
@@ -429,6 +449,48 @@ min = 32.0
 preferred = 32.0
 max = 32.0
 stretch = "Fixed"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "actions_row_fill"
+kind = "native"
+type = "Space"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.width]
+stretch = "Stretch"
+
+[root.children.node.children.node.children.node.children.node.children.node.layout.height]
+stretch = "Stretch"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+slot = { layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } } }
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "open_existing_button"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialTextButton"
+control_id = "WelcomeOpenExistingButton"
+classes = ["showcase-field"]
+params = { text = "Open", height = 32.0 }
+
+[[root.children.node.children.node.children.node.children.node.children.node.bindings]]
+id = "Welcome/OpenExisting"
+event = "Click"
+route = "Welcome.OpenExisting"
+
+[[root.children.node.children.node.children.node.children.node.children]]
+slot = { layout = { width = { min = 150.0, preferred = 150.0, max = 150.0, stretch = "Fixed" } } }
+[root.children.node.children.node.children.node.children.node.children.node]
+node_id = "create_project_button"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
+control_id = "WelcomeCreateProjectButton"
+classes = ["showcase-field"]
+params = { text = "Create Project", surface_variant = "accent", button_variant = "primary", validation_level = "normal", height = 32.0 }
+
+[[root.children.node.children.node.children.node.children.node.children.node.bindings]]
+id = "Welcome/CreateProject"
+event = "Click"
+route = "Welcome.CreateProject"
 
 [[root.children.node.children.node.children.node.children]]
 [root.children.node.children.node.children.node.children.node]

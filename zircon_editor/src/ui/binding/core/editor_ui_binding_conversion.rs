@@ -73,6 +73,22 @@ impl EditorUiBinding {
         Ok(rebound)
     }
 
+    pub(crate) fn with_editor_operation_call_arguments(
+        &self,
+        arguments: Vec<UiBindingValue>,
+    ) -> Result<Self, EditorUiBindingError> {
+        let EditorUiBindingPayload::EditorOperation { operation_id, .. } = self.payload() else {
+            return self.with_arguments(arguments);
+        };
+        Ok(Self {
+            path: self.path.clone(),
+            payload: EditorUiBindingPayload::EditorOperation {
+                operation_id: operation_id.clone(),
+                arguments,
+            },
+        })
+    }
+
     pub fn native_binding(&self) -> String {
         self.as_ui_binding().native_binding()
     }

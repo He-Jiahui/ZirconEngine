@@ -7,8 +7,12 @@ version = 1
 display_name = "inspector surface controls"
 
 [imports]
-widgets = []
-styles = []
+widgets = [
+    "res://ui/editor/material_meta_components.ui.toml#MaterialLineEdit",
+    "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox",
+    "res://ui/editor/material_meta_components.ui.toml#MaterialButton",
+]
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -52,16 +56,18 @@ bindings = []
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_0"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialLineEdit"
 control_id = "NameField"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+value = ""
+placeholder = "Name"
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "NameField"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/NameField"
@@ -78,16 +84,18 @@ route = "DraftCommand.SetInspectorField"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_1"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialLineEdit"
 control_id = "ParentField"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+value = ""
+placeholder = "Parent"
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "ParentField"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/ParentField"
@@ -104,16 +112,21 @@ route = "DraftCommand.SetInspectorField"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_2"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox"
 control_id = "PositionXField"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+value = 0.0
+min = -100000.0
+max = 100000.0
+step = 0.1
+large_step = 1.0
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "PositionXField"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/PositionXField"
@@ -130,16 +143,21 @@ route = "DraftCommand.SetInspectorField"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_3"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox"
 control_id = "PositionYField"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+value = 0.0
+min = -100000.0
+max = 100000.0
+step = 0.1
+large_step = 1.0
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "PositionYField"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/PositionYField"
@@ -156,16 +174,21 @@ route = "DraftCommand.SetInspectorField"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_4"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialSpinBox"
 control_id = "PositionZField"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+value = 0.0
+min = -100000.0
+max = 100000.0
+step = 0.1
+large_step = 1.0
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "PositionZField"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/PositionZField"
@@ -182,16 +205,18 @@ route = "DraftCommand.SetInspectorField"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_5"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "ApplyBatchButton"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+text = "Apply"
+button_variant = "primary"
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "ApplyBatchButton"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/ApplyBatchButton"
@@ -208,16 +233,19 @@ route = "InspectorFieldBatch"
 
 [components.InspectorSurfaceControls.root.children.node]
 node_id = "component_InspectorSurfaceControls_root_6"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "DeleteSelected"
 classes = []
 children = []
 
 [components.InspectorSurfaceControls.root.children.node.params]
+text = "Delete"
+button_variant = "danger"
+text_tone = "danger"
+height = 28.0
 
 [components.InspectorSurfaceControls.root.children.node.props]
-label = "DeleteSelected"
 
 [[components.InspectorSurfaceControls.root.children.node.bindings]]
 id = "InspectorView/DeleteSelected"

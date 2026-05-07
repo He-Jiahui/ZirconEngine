@@ -83,7 +83,7 @@ impl EditorEventRuntime {
         let editor_binding = if arguments.is_empty() {
             editor_binding
         } else {
-            match editor_binding.with_arguments(arguments) {
+            match editor_binding.with_editor_operation_call_arguments(arguments) {
                 Ok(binding) => binding,
                 Err(error) => {
                     return UiInvocationResult::failure(

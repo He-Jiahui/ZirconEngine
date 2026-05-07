@@ -3,7 +3,7 @@ use crate::core::editor_event::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub(crate) struct SlintDispatchEffects {
+pub(crate) struct UiHostEventEffects {
     pub presentation_dirty: bool,
     pub layout_dirty: bool,
     pub render_dirty: bool,
@@ -16,7 +16,7 @@ pub(crate) struct SlintDispatchEffects {
     pub reset_active_layout_preset: bool,
 }
 
-pub(crate) fn apply_record_effects(target: &mut SlintDispatchEffects, record: &EditorEventRecord) {
+pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &EditorEventRecord) {
     for effect in &record.effects {
         match effect {
             EditorEventEffect::PresentationChanged => {

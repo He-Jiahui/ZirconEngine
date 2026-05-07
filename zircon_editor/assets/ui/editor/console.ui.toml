@@ -72,6 +72,9 @@ stretch = "Fixed"
 [root.children.node.children.node.layout.height]
 stretch = "Stretch"
 
+[root.children.node.children.node.layout.scroll]
+vertical = true
+
 [[root.children.node.children]]
 [root.children.node.children.node]
 node_id = "text_panel"

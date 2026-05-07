@@ -227,6 +227,7 @@ fn core_activity_drawer_slot(slot: ActivityDrawerSlot) -> CoreActivityDrawerSlot
         ActivityDrawerSlot::LeftBottom => CoreActivityDrawerSlot::LeftBottom,
         ActivityDrawerSlot::RightTop => CoreActivityDrawerSlot::RightTop,
         ActivityDrawerSlot::RightBottom => CoreActivityDrawerSlot::RightBottom,
+        ActivityDrawerSlot::Bottom => CoreActivityDrawerSlot::Bottom,
         ActivityDrawerSlot::BottomLeft => CoreActivityDrawerSlot::BottomLeft,
         ActivityDrawerSlot::BottomRight => CoreActivityDrawerSlot::BottomRight,
     }
@@ -238,6 +239,7 @@ fn ui_activity_drawer_slot(slot: CoreActivityDrawerSlot) -> ActivityDrawerSlot {
         CoreActivityDrawerSlot::LeftBottom => ActivityDrawerSlot::LeftBottom,
         CoreActivityDrawerSlot::RightTop => ActivityDrawerSlot::RightTop,
         CoreActivityDrawerSlot::RightBottom => ActivityDrawerSlot::RightBottom,
+        CoreActivityDrawerSlot::Bottom => ActivityDrawerSlot::Bottom,
         CoreActivityDrawerSlot::BottomLeft => ActivityDrawerSlot::BottomLeft,
         CoreActivityDrawerSlot::BottomRight => ActivityDrawerSlot::BottomRight,
     }

@@ -1,9 +1,11 @@
 use crate::ui::template::{
     collect_document_localization_report, compiled_asset_package_manifest_from_artifact_bytes,
-    UiAssetLoader, UiDocumentCompiler,
+    localization_table_keys_from_toml_str, validate_localization_report_against_catalog,
+    UiAssetLoader, UiDocumentCompiler, UiLocalizationTableCatalog,
 };
 use zircon_runtime_interface::ui::template::{
-    UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile, UiTextDirection,
+    UiCompiledAssetPackageManifest, UiCompiledAssetPackageProfile,
+    UiLocalizationDiagnosticSeverity, UiTextDirection,
 };
 
 const LOCALIZED_LAYOUT: &str = r##"
@@ -157,4 +159,61 @@ fn package_validation_reports_localization_and_manifest_rows() {
             .key,
         "editor.localization.title"
     );
+}
+
+#[test]
+fn localization_resolver_reports_missing_tables_and_keys_for_selected_locale() {
+    let document = UiAssetLoader::load_toml_str(LOCALIZED_LAYOUT).unwrap();
+    let report = collect_document_localization_report(&document);
+
+    let missing_table =
+        validate_localization_report_against_catalog(&report, "en-US", &Default::default());
+
+    assert_eq!(missing_table.len(), 1);
+    assert_eq!(missing_table[0].code, "missing_locale_table");
+    assert_eq!(
+        missing_table[0].severity,
+        UiLocalizationDiagnosticSeverity::Error
+    );
+    assert_eq!(missing_table[0].path, "nodes.root.props.text");
+    assert!(missing_table[0].message.contains("en-US/editor"));
+
+    let mut catalog = UiLocalizationTableCatalog::default();
+    catalog.register_table_keys(
+        "en-US",
+        "editor",
+        Some("res://locales/en-US/editor.toml".to_string()),
+        ["editor.localization.subtitle"],
+    );
+
+    let missing_key = validate_localization_report_against_catalog(&report, "en-US", &catalog);
+
+    assert_eq!(missing_key.len(), 1);
+    assert_eq!(missing_key[0].code, "missing_locale_key");
+    assert_eq!(
+        missing_key[0].severity,
+        UiLocalizationDiagnosticSeverity::Warning
+    );
+    assert!(missing_key[0].message.contains("editor.localization.title"));
+    assert!(missing_key[0]
+        .message
+        .contains("res://locales/en-US/editor.toml"));
+}
+
+#[test]
+fn localization_table_toml_keys_are_flattened_for_dotted_key_lookup() {
+    let keys = localization_table_keys_from_toml_str(
+        r#"
+"editor.localization.title" = "Localization"
+
+[menu]
+play = "Play"
+stop = "Stop"
+"#,
+    )
+    .unwrap();
+
+    assert!(keys.contains("editor.localization.title"));
+    assert!(keys.contains("menu.play"));
+    assert!(keys.contains("menu.stop"));
 }

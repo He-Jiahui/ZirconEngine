@@ -7,8 +7,10 @@ version = 1
 display_name = "scene viewport toolbar"
 
 [imports]
-widgets = []
-styles = []
+widgets = [
+    "res://ui/editor/material_meta_components.ui.toml#MaterialButton",
+]
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -113,16 +115,18 @@ stretch = "Stretch"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_0"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetTool"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "Tool"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "Tool"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -183,16 +187,18 @@ stretch = "Fixed"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_2"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetTransformSpace"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "TransformSpace"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "TransformSpace"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -253,16 +259,18 @@ stretch = "Fixed"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_4"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetDisplayMode"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "DisplayMode"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "DisplayMode"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -291,16 +299,18 @@ route = "ViewportCommand.SetDisplayMode"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_5"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetGridMode"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "GridMode"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "GridMode"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -329,16 +339,18 @@ route = "ViewportCommand.SetGridMode"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_6"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetTranslateSnap"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "TranslateSnap"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "TranslateSnap"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -367,16 +379,18 @@ route = "ViewportCommand.SetTranslateSnap"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_7"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetRotateSnapDegrees"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "RotateSnapDegrees"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "RotateSnapDegrees"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -405,16 +419,18 @@ route = "ViewportCommand.SetRotateSnapDegrees"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_8"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetScaleSnap"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "ScaleSnap"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "ScaleSnap"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -475,16 +491,18 @@ stretch = "Fixed"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_10"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetPreviewLighting"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "PreviewLighting"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "PreviewLighting"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -513,16 +531,18 @@ route = "ViewportCommand.SetPreviewLighting"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_11"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetPreviewSkybox"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "PreviewSkybox"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "PreviewSkybox"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -551,16 +571,18 @@ route = "ViewportCommand.SetPreviewSkybox"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_12"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetGizmosEnabled"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "GizmosEnabled"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "GizmosEnabled"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -589,16 +611,18 @@ route = "ViewportCommand.SetGizmosEnabled"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_13"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "FrameSelection"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "FrameSelection"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "FrameSelection"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -659,16 +683,18 @@ stretch = "Fixed"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_15"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "EnterPlayMode"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "Play"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "Play"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -697,16 +723,18 @@ route = "MenuAction.EnterPlayMode"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_0_16"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "ExitPlayMode"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "Stop"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "Stop"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -783,16 +811,18 @@ stretch = "Fixed"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_1_0"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "SetProjectionMode"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "ProjectionMode"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "ProjectionMode"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0
@@ -821,16 +851,18 @@ route = "ViewportCommand.SetProjectionMode"
 
 [components.SceneViewportToolbar.root.children.node.children.node]
 node_id = "component_SceneViewportToolbar_root_1_1"
-kind = "native"
-type = "IconButton"
+kind = "reference"
+component_ref = "res://ui/editor/material_meta_components.ui.toml#MaterialButton"
 control_id = "AlignView"
 classes = []
 children = []
 
 [components.SceneViewportToolbar.root.children.node.children.node.params]
+text = "AlignView"
+height = 20.0
 
 [components.SceneViewportToolbar.root.children.node.children.node.props]
-label = "AlignView"
+
 
 [components.SceneViewportToolbar.root.children.node.children.node.layout.height]
 max = 20.0

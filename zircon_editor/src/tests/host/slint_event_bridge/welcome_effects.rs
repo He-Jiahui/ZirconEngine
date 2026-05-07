@@ -1,11 +1,11 @@
 use crate::core::editor_event::EditorEventEffect;
-use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 
 use super::support::record_with_effects;
 
 #[test]
 fn present_welcome_effect_only_marks_welcome_presentation_path() {
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(
         &mut effects,
         &record_with_effects(vec![

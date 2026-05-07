@@ -4,6 +4,8 @@ use toml::{map::Map, Value};
 
 use zircon_runtime_interface::ui::template::UiNodeDefinition;
 
+const MAX_TOKEN_RESOLUTION_DEPTH: usize = 32;
+
 pub(super) fn build_attribute_map(
     node: &UiNodeDefinition,
     tokens: &BTreeMap<String, Value>,
@@ -43,17 +45,30 @@ pub(super) fn resolve_value(
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,
 ) -> Value {
+    resolve_value_at_depth(value, tokens, params, 0)
+}
+
+fn resolve_value_at_depth(
+    value: &Value,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+    depth: usize,
+) -> Value {
+    if depth >= MAX_TOKEN_RESOLUTION_DEPTH {
+        return value.clone();
+    }
+
     match value {
         Value::String(value) => {
             if let Some(param_name) = value.strip_prefix("$param.") {
                 params
                     .get(param_name)
-                    .cloned()
+                    .map(|value| resolve_value_at_depth(value, tokens, params, depth + 1))
                     .unwrap_or_else(|| Value::String(value.clone()))
             } else if let Some(token_name) = value.strip_prefix('$') {
                 tokens
                     .get(token_name)
-                    .cloned()
+                    .map(|value| resolve_value_at_depth(value, tokens, params, depth + 1))
                     .unwrap_or_else(|| Value::String(value.clone()))
             } else {
                 Value::String(value.clone())
@@ -62,13 +77,18 @@ pub(super) fn resolve_value(
         Value::Array(values) => Value::Array(
             values
                 .iter()
-                .map(|value| resolve_value(value, tokens, params))
+                .map(|value| resolve_value_at_depth(value, tokens, params, depth + 1))
                 .collect(),
         ),
         Value::Table(values) => Value::Table(
             values
                 .iter()
-                .map(|(key, value)| (key.clone(), resolve_value(value, tokens, params)))
+                .map(|(key, value)| {
+                    (
+                        key.clone(),
+                        resolve_value_at_depth(value, tokens, params, depth + 1),
+                    )
+                })
                 .collect(),
         ),
         other => other.clone(),

@@ -44,14 +44,7 @@ fn apply_resize_to_bottom_group_updates_all_bottom_slots() {
     apply_resize_to_group(manager.as_ref(), "bottom", 228.0).unwrap();
 
     let layout = manager.current_layout();
-    assert_eq!(
-        layout.drawers[&ActivityDrawerSlot::BottomLeft].extent,
-        228.0
-    );
-    assert_eq!(
-        layout.drawers[&ActivityDrawerSlot::BottomRight].extent,
-        228.0
-    );
+    assert_eq!(layout.drawers[&ActivityDrawerSlot::Bottom].extent, 228.0);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);

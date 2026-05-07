@@ -75,6 +75,13 @@ impl UiHitTestIndex {
         arranged_tree: &UiArrangedTree,
         query: UiHitTestQuery,
     ) -> UiHitTestResult {
+        if !query.uses_surface_coordinates() || !grid.scope.accepts_query(&query.scope) {
+            return UiHitTestResult {
+                top_hit: None,
+                stacked: Vec::new(),
+                path: UiHitPath::from_query(&query),
+            };
+        }
         let mut stacked = Vec::new();
         let point = query.hit_point();
         let cursor_radius = query.sanitized_cursor_radius();
@@ -121,12 +128,7 @@ impl UiHitTestIndex {
         UiHitTestResult {
             top_hit,
             stacked,
-            path: UiHitPath {
-                target: top_hit,
-                root_to_leaf,
-                bubble_route,
-                virtual_pointer: query.virtual_pointer,
-            },
+            path: UiHitPath::from_query(&query).with_route(top_hit, root_to_leaf, bubble_route),
         }
     }
 }
@@ -165,6 +167,7 @@ fn build_hit_grid(arranged_tree: &UiArrangedTree) -> UiHitTestGrid {
             cell_size: HIT_GRID_CELL_SIZE,
             columns: 0,
             rows: 0,
+            scope: Default::default(),
             entries,
             cells: Vec::new(),
         };
@@ -186,6 +189,7 @@ fn build_hit_grid(arranged_tree: &UiArrangedTree) -> UiHitTestGrid {
         cell_size: HIT_GRID_CELL_SIZE,
         columns,
         rows,
+        scope: Default::default(),
         entries,
         cells,
     }

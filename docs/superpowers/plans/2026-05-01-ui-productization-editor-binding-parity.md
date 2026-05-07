@@ -125,16 +125,27 @@
 
 **Goal:** Make invalid source and external conflict flows recoverable through explicit session state and editor commands.
 
-- [ ] Define `UiAssetEditorShellState::{Valid, StaleExternal, InvalidSource, Emergency}`.
-- [ ] Preserve `last_valid_document`, `last_valid_compiled`, and preview projection when current source fails to compile.
-- [ ] Project emergency shell state to existing `EmergencyShellPanel` authored nodes without adding Slint source files.
-- [ ] Add commands for reload external, keep local, open diff, revert to last valid, and open asset browser.
-- [ ] Route commands through existing session/host manager paths instead of duplicating file watcher policy.
-- [ ] Add tests for invalid source -> emergency, emergency -> revert, external conflict -> reload, and external conflict -> keep local.
-- [ ] Testing stage:
+- [x] Define `UiAssetEditorShellState::{Valid, Stale, Invalid, Emergency}`. The original `StaleExternal` / `InvalidSource` plan terms are represented by the current `Stale` / `Invalid` labels.
+- [x] Preserve `last_valid_document`, `last_valid_compiled`, and preview projection when current source fails to compile.
+- [x] Project emergency shell state to existing `EmergencyShellPanel` authored nodes without adding Slint source files.
+- [x] Add commands for reload external, keep local, open diff, revert to last valid, and open asset browser.
+- [x] Route commands through existing session/host manager paths instead of duplicating file watcher policy.
+- [x] Add tests for invalid source -> emergency, emergency -> revert, external conflict -> reload, and external conflict -> keep local.
+- [x] Testing stage:
   - `cargo test -p zircon_editor --lib emergency_shell --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-editor-recovery --message-format short --color never`
   - `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-editor-recovery --message-format short --color never`
   - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-editor-recovery --message-format short --color never`
+
+### Milestone 3 Evidence: 2026-05-07
+
+- `rustfmt --edition 2021 --check` over `UiAssetEditorShellState`, emergency session state, lifecycle/session owner files, host refresh/action routing, Slint host DTO conversion, and focused M24 tests passed with no output.
+- `git diff --check -- <M24 editor/session/host/test/session slice>` passed with Git LF-to-CRLF notices only.
+- Source guard confirmed emergency action IDs route through `zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs`, while reload/keep-local/diff/revert flows route through `zircon_editor/src/ui/host/asset_editor_sessions/refresh.rs` and `EditorUiHost`.
+- `cargo test -p zircon_editor --lib emergency_shell --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1` passed, `2 passed; 0 failed; 1128 filtered out`.
+- `cargo test -p zircon_editor --lib ui_asset_workspace_watcher --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never -- --nocapture --test-threads=1` passed, `5 passed; 0 failed; 1125 filtered out`.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-emergency-m24 --message-format short --color never` passed with existing runtime/editor warnings.
+
+M5/M24 recovery is focused-closed. Broad workspace green is still not claimed.
 
 ## Milestone 4: M6 Designer Canvas Tools
 

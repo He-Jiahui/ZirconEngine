@@ -44,6 +44,21 @@ pub struct UiScrollableBoxConfig {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UiWrapBoxConfig {
+    pub horizontal_gap: f32,
+    pub vertical_gap: f32,
+    pub item_min_width: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UiGridBoxConfig {
+    pub columns: usize,
+    pub rows: usize,
+    pub column_gap: f32,
+    pub row_gap: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum UiContainerKind {
     #[default]
     Free,
@@ -53,6 +68,8 @@ pub enum UiContainerKind {
     HorizontalBox(UiLinearBoxConfig),
     VerticalBox(UiLinearBoxConfig),
     ScrollableBox(UiScrollableBoxConfig),
+    WrapBox(UiWrapBoxConfig),
+    GridBox(UiGridBoxConfig),
 }
 
 impl UiContainerKind {
@@ -62,5 +79,16 @@ impl UiContainerKind {
 
     pub const fn is_scrollable(self) -> bool {
         matches!(self, Self::ScrollableBox(_))
+    }
+
+    pub const fn is_auto_layout_container(self) -> bool {
+        matches!(
+            self,
+            Self::HorizontalBox(_)
+                | Self::VerticalBox(_)
+                | Self::ScrollableBox(_)
+                | Self::WrapBox(_)
+                | Self::GridBox(_)
+        )
     }
 }

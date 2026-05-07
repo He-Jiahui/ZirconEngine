@@ -12,7 +12,7 @@ pub(super) fn build_export_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Desktop Export",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::BottomRight)
+    .with_preferred_drawer_slot(ActivityDrawerSlot::Bottom)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::BuildExport,
     ))

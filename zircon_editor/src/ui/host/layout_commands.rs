@@ -30,10 +30,33 @@ impl EditorUiHost {
         }
 
         let mut session = self.lock_session();
+        let detached_window_title = match &cmd {
+            LayoutCommand::DetachViewToWindow {
+                instance_id,
+                new_window,
+            } => session
+                .open_view_instances
+                .get(instance_id)
+                .map(|instance| (new_window.clone(), instance.title.clone())),
+            _ => None,
+        };
         let diff = self
             .layout_manager
             .apply(&mut session.layout, cmd)
             .map_err(EditorError::Layout)?;
+        session
+            .layout
+            .sync_legacy_drawers_from_active_activity_window();
+        if let Some((window_id, title)) = detached_window_title {
+            if let Some(window) = session
+                .layout
+                .floating_windows
+                .iter_mut()
+                .find(|window| window.window_id == window_id)
+            {
+                window.title = title;
+            }
+        }
         self.recompute_session_metadata(&mut session);
         Ok(diff.changed)
     }

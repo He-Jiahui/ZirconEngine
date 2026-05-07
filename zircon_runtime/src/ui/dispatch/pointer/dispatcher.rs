@@ -36,7 +36,9 @@ impl UiPointerDispatcher {
     ) -> Result<UiPointerDispatchResult, UiTreeError> {
         let mut result = UiPointerDispatchResult::new(route.clone());
         let mut visited = BTreeSet::new();
-        let candidates = if let Some(target) = route.target {
+        let candidates = if let Some(captured) = route.captured {
+            vec![captured]
+        } else if let Some(target) = route.target {
             let mut candidates = route.stacked.clone();
             if !candidates.contains(&target) {
                 candidates.insert(0, target);
@@ -80,10 +82,37 @@ impl UiPointerDispatcher {
                         UiPointerDispatchEffect::Passthrough => {
                             result.passthrough.push(node_id);
                         }
-                        UiPointerDispatchEffect::Captured => {
+                        UiPointerDispatchEffect::CapturePointer => {
                             result.captured_by = Some(node_id);
                             result.handled_by = Some(node_id);
                             return Ok(result);
+                        }
+                        UiPointerDispatchEffect::ReleasePointerCapture => {
+                            result.released_capture = Some(node_id);
+                            result.handled_by = Some(node_id);
+                            return Ok(result);
+                        }
+                        UiPointerDispatchEffect::SetFocus { .. } => {
+                            result.focus_changed_to = Some(node_id);
+                            result.handled_by = Some(node_id);
+                            return Ok(result);
+                        }
+                        UiPointerDispatchEffect::ClearFocus => {
+                            result.focus_cleared = true;
+                            result.handled_by = Some(node_id);
+                            return Ok(result);
+                        }
+                        UiPointerDispatchEffect::RequestDirty(flags) => {
+                            result.requested_dirty.layout |= flags.layout;
+                            result.requested_dirty.hit_test |= flags.hit_test;
+                            result.requested_dirty.render |= flags.render;
+                            result.requested_dirty.style |= flags.style;
+                            result.requested_dirty.text |= flags.text;
+                            result.requested_dirty.input |= flags.input;
+                            result.requested_dirty.visible_range |= flags.visible_range;
+                        }
+                        UiPointerDispatchEffect::RequestDamage(frame) => {
+                            result.requested_damage.push(frame);
                         }
                     }
                 }

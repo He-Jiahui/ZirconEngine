@@ -6,17 +6,28 @@ pub enum ActivityDrawerSlot {
     LeftBottom,
     RightTop,
     RightBottom,
+    Bottom,
     BottomLeft,
     BottomRight,
 }
 
 impl ActivityDrawerSlot {
-    pub const ALL: [Self; 6] = [
+    pub const ALL: [Self; 5] = [
         Self::LeftTop,
         Self::LeftBottom,
         Self::RightTop,
         Self::RightBottom,
-        Self::BottomLeft,
-        Self::BottomRight,
+        Self::Bottom,
     ];
+
+    pub fn canonical(self) -> Self {
+        match self {
+            Self::BottomLeft | Self::BottomRight => Self::Bottom,
+            slot => slot,
+        }
+    }
+
+    pub fn is_bottom(self) -> bool {
+        matches!(self, Self::Bottom | Self::BottomLeft | Self::BottomRight)
+    }
 }

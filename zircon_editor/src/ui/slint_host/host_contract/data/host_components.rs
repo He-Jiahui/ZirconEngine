@@ -131,6 +131,7 @@ pub(crate) struct HostMenuChromeItemData {
     pub shortcut: SharedString,
     pub action_id: SharedString,
     pub enabled: bool,
+    pub children: ModelRc<HostMenuChromeItemData>,
 }
 
 #[derive(Clone, Default)]

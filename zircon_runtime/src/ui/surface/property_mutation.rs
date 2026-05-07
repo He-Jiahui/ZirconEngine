@@ -94,9 +94,14 @@ pub fn mutate_tree_property(
         "visibility" => match visibility_value(&request.value) {
             Some(next) if node.visibility == next => UiPropertyMutationReport::unchanged(&request),
             Some(next) => {
+                let dirty = visibility_transition_dirty(
+                    node.visibility,
+                    next,
+                    node.state_flags.visible,
+                );
                 node.visibility = next;
-                mark_dirty(node, visibility_dirty(next));
-                UiPropertyMutationReport::accepted(&request, visibility_dirty(next))
+                mark_dirty(node, dirty);
+                UiPropertyMutationReport::accepted(&request, dirty)
             }
             None => UiPropertyMutationReport::rejected(
                 &request,
@@ -241,6 +246,17 @@ fn visibility_dirty(visibility: UiVisibility) -> UiDirtyFlags {
     }
 }
 
+fn visibility_transition_dirty(
+    current: UiVisibility,
+    next: UiVisibility,
+    legacy_visible: bool,
+) -> UiDirtyFlags {
+    let mut dirty = visibility_dirty(next);
+    dirty.layout |= current.effective(legacy_visible).occupies_layout()
+        != next.effective(legacy_visible).occupies_layout();
+    dirty
+}
+
 fn input_dirty() -> UiDirtyFlags {
     UiDirtyFlags {
         hit_test: true,
@@ -259,13 +275,24 @@ fn render_dirty() -> UiDirtyFlags {
 
 fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyFlags {
     match property {
-        "text" | "label" | "font_size" | "line_height" => UiDirtyFlags {
+        "text" | "label" | "value" | "value_text" | "font_size" | "line_height" => UiDirtyFlags {
             layout: true,
             render: true,
             text: true,
             ..UiDirtyFlags::default()
         },
-        "width" | "height" | "min_width" | "min_height" | "padding" | "gap" => UiDirtyFlags {
+        "caret_offset"
+        | "selection_anchor"
+        | "selection_focus"
+        | "composition_start"
+        | "composition_end"
+        | "composition_text"
+        | "composition_restore_text" => UiDirtyFlags {
+            render: true,
+            text: true,
+            ..UiDirtyFlags::default()
+        },
+        _ if is_layout_metadata_attribute(property) => UiDirtyFlags {
             layout: true,
             hit_test: true,
             render: true,
@@ -282,4 +309,11 @@ fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyF
         }
         _ => render_dirty(),
     }
+}
+
+fn is_layout_metadata_attribute(property: &str) -> bool {
+    matches!(
+        property,
+        "layout" | "width" | "height" | "min_width" | "min_height" | "padding" | "gap"
+    ) || property.starts_with("layout_")
 }

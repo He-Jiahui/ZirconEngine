@@ -5,6 +5,7 @@ use crate::ui::workbench::layout::{
 };
 use crate::ui::workbench::project::ProjectEditorWorkspace;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance, ViewInstanceId};
+use crate::ui::workbench::window_registry::EditorWindowRegistry;
 
 use super::asset_editor_sessions::UI_ASSET_EDITOR_DESCRIPTOR_ID;
 use super::builtin_layout::{builtin_hybrid_layout_for_subsystems, ensure_builtin_shell_instances};
@@ -207,11 +208,18 @@ impl EditorUiHost {
             }
         }
 
+        let open_instances = session
+            .open_view_instances
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        *self.lock_window_registry() =
+            EditorWindowRegistry::sync_from_layout(&session.layout, &open_instances);
         session.active_drawers = session
             .layout
-            .drawers
-            .iter()
-            .filter_map(|(slot, drawer)| drawer.visible.then_some(*slot))
+            .active_activity_window_drawers()
+            .into_iter()
+            .filter_map(|(slot, drawer)| drawer.visible.then_some(slot))
             .collect();
         session.active_center_tab = session
             .layout

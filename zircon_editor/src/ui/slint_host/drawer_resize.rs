@@ -1,11 +1,13 @@
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::callback_dispatch;
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::autolayout::ShellRegionId;
 use crate::ui::workbench::layout::{ActivityDrawerSlot, LayoutCommand};
 
 #[cfg(test)]
-use crate::ui::workbench::autolayout::{ShellSizePx, WorkbenchShellGeometry};
+use crate::ui::slint_host::callback_dispatch::BuiltinHostRootShellFrames;
+#[cfg(test)]
+use crate::ui::workbench::autolayout::ShellSizePx;
 #[cfg(test)]
 use zircon_runtime_interface::ui::layout::UiPoint;
 
@@ -30,13 +32,13 @@ impl HostResizeTargetGroup {
 }
 
 #[cfg(test)]
-pub(crate) fn resolve_host_resize_target_group(
+pub(crate) fn resolve_host_resize_target_group_with_root_frames(
     root_size: ShellSizePx,
-    geometry: &WorkbenchShellGeometry,
+    shared_root_frames: Option<&BuiltinHostRootShellFrames>,
     point: UiPoint,
 ) -> Option<HostResizeTargetGroup> {
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout(root_size, geometry, true);
+    bridge.update_layout_with_root_shell_frames(root_size, true, &[], shared_root_frames, None);
     bridge.resize_target_at(point)
 }
 
@@ -69,11 +71,11 @@ pub(crate) fn dispatch_resize_to_group(
     runtime: &EditorEventRuntime,
     target_group: &str,
     extent: f32,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let slots = group_slots(target_group)
         .ok_or_else(|| format!("Unsupported drawer resize target {target_group}"))?;
 
-    let mut combined = SlintDispatchEffects::default();
+    let mut combined = UiHostEventEffects::default();
     for slot in slots {
         let effects = callback_dispatch::dispatch_layout_command(
             runtime,
@@ -101,10 +103,7 @@ fn group_slots(target_group: &str) -> Option<&'static [ActivityDrawerSlot]> {
             ActivityDrawerSlot::RightTop,
             ActivityDrawerSlot::RightBottom,
         ]),
-        "bottom" => Some(&[
-            ActivityDrawerSlot::BottomLeft,
-            ActivityDrawerSlot::BottomRight,
-        ]),
+        "bottom" => Some(&[ActivityDrawerSlot::Bottom]),
         _ => None,
     }
 }

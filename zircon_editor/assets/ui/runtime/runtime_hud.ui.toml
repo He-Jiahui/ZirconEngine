@@ -6,7 +6,7 @@ display_name = "Runtime HUD"
 
 [imports]
 widgets = []
-styles = []
+styles = ["res://ui/theme/editor_material.ui.toml"]
 
 [tokens]
 
@@ -15,7 +15,7 @@ node_id = "hud_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "RuntimeHudRoot"
-classes = ["hud-root"]
+classes = ["hud-root", "material-runtime-hud"]
 bindings = []
 
 [root.params]
@@ -72,7 +72,7 @@ node_id = "mission_label"
 kind = "native"
 type = "Label"
 control_id = "MissionStatus"
-classes = ["hud-title"]
+classes = ["hud-title", "material-title"]
 bindings = []
 children = []
 
@@ -94,7 +94,7 @@ node_id = "ammo_label"
 kind = "native"
 type = "Label"
 control_id = "AmmoStatus"
-classes = ["hud-meta"]
+classes = ["hud-meta", "material-meta"]
 bindings = []
 children = []
 
@@ -116,7 +116,7 @@ node_id = "score_panel"
 kind = "native"
 type = "Label"
 control_id = "ScoreLabel"
-classes = ["hud-score"]
+classes = ["hud-score", "material-body"]
 bindings = []
 children = []
 
@@ -166,6 +166,9 @@ kind = "native"
 type = "Button"
 control_id = "UseAction"
 classes = [
+    "material-control",
+    "material-button",
+    "material-button-primary",
     "hud-button",
     "hud-button-primary",
 ]
@@ -176,6 +179,19 @@ children = []
 
 [root.children.node.children.node.props]
 text = "Use"
+font_size = 12.0
+surface_variant = "accent"
+button_variant = "primary"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.style_overrides.self]
 
@@ -190,7 +206,7 @@ node_id = "inventory_button"
 kind = "native"
 type = "Button"
 control_id = "InventoryAction"
-classes = ["hud-button"]
+classes = ["material-control", "material-button", "hud-button"]
 bindings = []
 children = []
 
@@ -198,6 +214,18 @@ children = []
 
 [root.children.node.children.node.props]
 text = "Inventory"
+font_size = 12.0
+surface_variant = "inset"
+border_width = 1.0
+corner_radius = 5.0
+layout_padding_left = 24.0
+layout_padding_right = 24.0
+layout_padding_top = 10.0
+layout_padding_bottom = 10.0
+layout_spacing = 8.0
+layout_min_width = 40.0
+layout_min_height = 40.0
+layout_icon_size = 18.0
 
 [root.children.node.children.node.style_overrides.self]
 
@@ -212,7 +240,7 @@ id = "runtime_hud"
 selector = ".hud-root"
 
 [stylesheets.rules.set.self.background]
-color = "#111621"
+color = "$material_surface_inset"
 
 [stylesheets.rules.set.slot]
 
@@ -220,7 +248,7 @@ color = "#111621"
 selector = ".hud-title"
 
 [stylesheets.rules.set.self]
-text = "#f3f6ff"
+foreground = "$material_text"
 
 [stylesheets.rules.set.slot]
 
@@ -228,7 +256,7 @@ text = "#f3f6ff"
 selector = ".hud-meta"
 
 [stylesheets.rules.set.self]
-text = "#9fb0d0"
+foreground = "$material_text_muted"
 
 [stylesheets.rules.set.slot]
 
@@ -236,7 +264,7 @@ text = "#9fb0d0"
 selector = ".hud-score"
 
 [stylesheets.rules.set.self]
-text = "#7be2c2"
+foreground = "$material_focus_ring"
 
 [stylesheets.rules.set.slot]
 
@@ -244,10 +272,10 @@ text = "#7be2c2"
 selector = "Button.hud-button"
 
 [stylesheets.rules.set.self]
-text = "#dfe6f7"
+foreground = "$material_text"
 
 [stylesheets.rules.set.self.background]
-color = "#1b2536"
+color = "$material_surface_inset"
 
 [stylesheets.rules.set.slot]
 
@@ -255,6 +283,6 @@ color = "#1b2536"
 selector = "Button.hud-button-primary"
 
 [stylesheets.rules.set.self.background]
-color = "#2e5caa"
+color = "$material_accent"
 
 [stylesheets.rules.set.slot]

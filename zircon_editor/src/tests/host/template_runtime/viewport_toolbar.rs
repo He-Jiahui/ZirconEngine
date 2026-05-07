@@ -79,10 +79,51 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
         .node_by_control_id("SetTool")
         .expect("set tool group should exist");
     assert_eq!(set_tool.frame, UiFrame::new(8.0, 4.0, 172.0, 20.0));
+    assert_eq!(set_tool.component, "Button");
+    assert_eq!(
+        set_tool.attributes.get("text").and_then(Value::as_str),
+        Some("Tool")
+    );
+    assert_eq!(
+        set_tool
+            .attributes
+            .get("input_interactive")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        set_tool
+            .attributes
+            .get("input_clickable")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        set_tool
+            .attributes
+            .get("input_hoverable")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        set_tool
+            .attributes
+            .get("input_focusable")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        set_tool
+            .attributes
+            .get("layout_min_height")
+            .and_then(Value::as_float),
+        Some(20.0)
+    );
 
     let set_transform_space = host_model
         .node_by_control_id("SetTransformSpace")
         .expect("transform space group should exist");
+    assert_eq!(set_transform_space.component, "Button");
     assert_eq!(
         set_transform_space.frame,
         UiFrame::new(189.0, 4.0, 86.0, 20.0)
@@ -104,5 +145,6 @@ fn editor_ui_host_runtime_builds_surface_backed_viewport_toolbar_group_frames() 
     let frame_selection = host_model
         .node_by_control_id("FrameSelection")
         .expect("frame selection control should exist");
+    assert_eq!(frame_selection.component, "Button");
     assert_eq!(frame_selection.frame, UiFrame::new(649.0, 4.0, 20.0, 20.0));
 }

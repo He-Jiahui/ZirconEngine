@@ -58,6 +58,54 @@ fn component_state_applies_dropdown_multiple_selection_and_special_options() {
 }
 
 #[test]
+fn component_state_single_selection_replaces_stale_flags_value() {
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let dropdown = registry.descriptor("Dropdown").unwrap();
+    let mut state = UiComponentState::new().with_value(
+        "value",
+        UiValue::Flags(vec!["runtime".to_string(), "debug".to_string()]),
+    );
+
+    state
+        .apply_event(
+            dropdown,
+            UiComponentEvent::SelectOption {
+                property: "value".to_string(),
+                option_id: "editor".to_string(),
+                selected: true,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(
+        state.value("value"),
+        Some(&UiValue::Enum("editor".to_string())),
+        "single-select controls must replace any stale multi-value state"
+    );
+}
+
+#[test]
+fn component_state_single_selection_clears_to_none_when_unselected() {
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+    let combo = registry.descriptor("ComboBox").unwrap();
+    let mut state =
+        UiComponentState::new().with_value("value", UiValue::Enum("runtime".to_string()));
+
+    state
+        .apply_event(
+            combo,
+            UiComponentEvent::SelectOption {
+                property: "value".to_string(),
+                option_id: "runtime".to_string(),
+                selected: false,
+            },
+        )
+        .unwrap();
+
+    assert_eq!(state.value("value"), Some(&UiValue::Null));
+}
+
+#[test]
 fn component_state_rejects_disabled_option_ids_from_retained_metadata() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let dropdown = registry.descriptor("Dropdown").unwrap();

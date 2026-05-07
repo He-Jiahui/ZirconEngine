@@ -306,6 +306,7 @@ mod tests {
             line_height: 14.0,
             text_align: UiTextAlign::Left,
             wrap: UiTextWrap::None,
+            style: Default::default(),
         }
     }
 

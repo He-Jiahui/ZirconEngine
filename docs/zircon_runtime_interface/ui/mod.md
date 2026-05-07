@@ -35,6 +35,12 @@ related_code:
   - zircon_runtime_interface/src/ui/component/validation.rs
   - zircon_runtime_interface/src/ui/component/value.rs
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/metadata.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/context.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/invocation.rs
@@ -70,6 +76,12 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
@@ -179,6 +191,12 @@ implementation_files:
   - zircon_runtime_interface/src/ui/component/validation.rs
   - zircon_runtime_interface/src/ui/component/value.rs
   - zircon_runtime_interface/src/ui/dispatch/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/event.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/metadata.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/mod.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
+  - zircon_runtime_interface/src/ui/dispatch/input/result.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/context.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/navigation/invocation.rs
@@ -214,6 +232,12 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
@@ -292,8 +316,17 @@ plan_sources:
   - user: 2026-05-02 approve subagent-driven UI runtime interface big cutover
   - user: 2026-05-02 continue active UI runtime-interface cutover
   - user: 2026-05-02 continue package/cache classification and editor template-service façade
+  - docs/superpowers/plans/2026-05-06-ui-complete-input-events.md
+  - user: 2026-05-06 implement Milestone 1 shared input contract foundation only
+  - docs/superpowers/specs/2026-05-06-ui-lifecycle-reflection-reflector-design.md
+  - docs/superpowers/plans/2026-05-06-ui-lifecycle-reflection-reflector.md
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
+  - cargo test -p zircon_runtime_interface --lib ui_input --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
+  - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never
+  - cargo test -p zircon_runtime_interface --lib contracts --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - Get-PSDrive -Name E (145.35 GB free before quality-fix validation)
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (pass after offline lockfile sync)
   - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (16 passed; doc-tests 0)
@@ -351,13 +384,13 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 
 `ui::component` contains component category, value, drag/drop, event, validation state, descriptor, and data-binding DTOs. `UiComponentState` is data-only in the interface crate; event application and descriptor-backed state mutation remain runtime/editor behavior. Its direct `with_value(...)` helper preserves DTO invariants by clearing stale per-property drag/drop provenance whenever a retained value is replaced outside the runtime reducer.
 
-`ui::dispatch` contains pointer and navigation dispatch context, invocation, effect, result, and pointer event DTOs, but no dispatchers.
+`ui::dispatch` contains pointer and navigation dispatch context, invocation, effect, result, and pointer event DTOs, but no dispatchers. Its `input` subtree adds the M5 shared input contract vocabulary: common metadata, pointer/keyboard/text/IME/navigation/analog/drag-drop/popup/tooltip events, transient dispatch replies/effects, input-method requests, dispatch diagnostics, host requests, and component event reports. These are serializable contract DTOs only; runtime/editor effect application is outside the interface crate.
 
-`ui::event_ui` contains control request/response, reflection descriptors, stable scalar/string ID wrappers, and a serde JSON binding codec helper.
+`ui::event_ui` contains control request/response, reflection descriptors, stable scalar/string ID wrappers, and a serde JSON binding codec helper. Its reflection module now also owns the neutral Widget Reflector DTO family: `UiWidgetLifecycleState`, `UiReflectedProperty`, `UiPropertyInvalidationReason`, `UiReflectorNode`, `UiReflectorHitContext`, and `UiReflectorSnapshot`. These are serializable debug/editor contracts only; runtime owns property mutation, lifecycle derivation, hit-test context production, and binding action projection.
 
 `ui::layout` contains constraints, geometry, scroll/container, and virtualization contract structures without layout-pass execution or virtualization window computation.
 
-`ui::surface` contains focus/navigation/pointer DTOs and render command/list/style/text/extract declarations. `UiRenderExtract` and text layout records are data-only in the interface crate.
+`ui::surface` contains focus/navigation/pointer DTOs and render command/list/style/text/extract declarations. `UiRenderExtract` and text layout records are data-only in the interface crate. The render subtree now also contains the neutral paint/brush/batch/debug DTO layer (`UiPaintElement`, `UiBrushPayload`, `UiBatchPlan`, `UiRenderDebugSnapshot`, and `UiShapedText`) used to migrate existing `UiRenderCommand` producers toward Slate-style paint and batch contracts without adding required fields to legacy command literals.
 
 `ui::template` contains template document DTOs plus asset binding, action-policy, localization, compile-cache key, package header/cache-record/manifest/report, component-contract, invalidation, resource-ref, schema-report, selector, and asset document contract records. Selector parsing stays as a contract helper; selector matching stays outside the interface crate. Runtime owns compiler-state builders such as `compile_cache_key_from_compiler(...)`, runtime binary artifact encoding/decoding through `UiRuntimeCompiledAssetArtifact`, and package-manifest assembly from runtime artifacts. The interface `UiCompiledAssetArtifact` name is neutral DTO data only and does not carry a runtime `UiTemplateInstance` payload.
 
@@ -386,3 +419,28 @@ These checks prove the interface UI namespace is implementation-free and depende
 The focused runtime checks also confirm that the M18 binding, M21 action-policy, M14 localization, package-validation, and component-state filters execute after the interface DTO namespace is materialized. The component-state provenance regression specifically keeps interface `UiComponentState::with_value(...)` aligned with runtime reducer value replacement by clearing stale `reference_sources` metadata. Fresh final validation on `E:\cargo-targets\zircon-ui-interface-big-cutover-opencode` passed the interface crate check/test, runtime lib check, binding integration test, and all four focused runtime filters listed in the header. The package/cache follow-up removed the remaining runtime duplicate `UiCompileCacheKey`, `UiCompiledAssetCacheRecord`, and `UiCompiledAssetPackageManifest` declarations; runtime now emits those interface DTOs through behavior helpers while keeping only `UiRuntimeCompiledAssetArtifact` as the runtime-owned binary artifact payload wrapper. An earlier editor library type-check gate also passed with existing warnings after stale `UiRenderExtract::from_tree(...)` call sites were moved to runtime-owned `extract_ui_render_tree(...)` behavior and after editor tree DTO construction moved to `zircon_runtime_interface::ui::tree` while retaining runtime tree extension traits for behavior calls. The editor template service follow-up adds `EditorTemplateRuntimeService` as the editor-owned façade over high-level runtime template loading, compilation, registration, instantiation, surface construction, render extraction, and binding diagnostic collection. The 2026-05-02 20:45 isolated rerun on `E:\cargo-targets\zircon-ui-interface-followup-opencode` confirms the interface check/test, runtime lib check, and editor lib check still type-check the package/cache and editor-template-service source with existing warnings only. The same rerun could not execute the `asset_package_validation` lib-test filter in the moved worktree because broader runtime lib-test compilation now fails first in active plugin/sound/export code, not in the UI package/cache owner seam. Broad workspace-test green is still unclaimed because validation is currently blocked by unrelated active lanes.
 
 `zircon_editor` still depends on `zircon_runtime` through deliberate concrete runtime services such as UI behavior builders, event management, rendering submission, and host implementation. The tree DTO family is no longer part of that dependency debt, and the latest known-neutral stale-owner grep gates did not find DTO imports through `zircon_runtime::ui`; any remaining non-tree owner surfaces need a dedicated editor review instead of mechanical rewriting. The latest source audit found 134 `zircon_runtime::ui` hits and 431 `zircon_runtime_interface::ui` hits under `zircon_editor/src`; the current evidence does not claim every editor runtime UI dependency has been replaced by `zircon_runtime_interface::ui`.
+
+## 2026-05-06 Surface Render Re-Export Follow-Up
+
+The Material/Slate validation lane exposed a fresh-build contract drift in `ui::surface`: runtime and editor users still import resolved style/text DTOs from `zircon_runtime_interface::ui::surface`, while the concrete declarations now live under `ui::surface::render`. `surface/mod.rs` re-exports `UiResolvedStyle`, `UiResolvedTextLayout`, `UiResolvedTextLine`, `UiResolvedTextRun`, and `UiResourceUvRect` with the rest of the neutral render DTO set so existing surface consumers keep a single import boundary.
+
+The same fresh-build pass also required an explicit `Vec<UiRenderVisualizerOverdrawRegion>` type in the render visualizer overdraw collector. That keeps the debug/reflector DTO implementation buildable without changing the serialized contract shape.
+
+Validation evidence for this follow-up:
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warnings.
+- `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 11 tests.
+- `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 16 tests.
+- `cargo test -p zircon_runtime --lib material_layout --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed, 15 tests.
+
+## 2026-05-07 World-Space Hit Query Contract
+
+The world-space UI follow-up keeps the neutral DTO boundary in `zircon_runtime_interface` and leaves raycasting/rendering behavior outside this crate. `UiHitTestQuery::with_projected_world_hit(...)` records both the original `UiWorldHitRay` and the host-projected `UiVirtualPointerPosition`; `has_projected_world_hit()` is true only when the query is in `World` coordinate space, carries a virtual pointer, and the ray contains finite origin/direction values. Runtime hit testing may then use the mapped surface point, while retaining the world ray for diagnostics and higher-layer ownership.
+
+`UiHitTestRejectReason::WorldHitUnavailable` is now the explicit diagnostics state for a `World` query that does not contain a finite ray plus surface-local projection. Window and screen coordinate spaces still require a separate projection step and therefore remain unsupported by the shared hit grid until a host maps them into surface coordinates.
+
+`UiHostCapability::WorldSpaceUi` gates catalog exposure for world-space components. `UiHostCapabilitySet::runtime_basic()` does not include the capability, so ordinary runtime hosts filter out `WorldSpaceSurface`; `UiHostCapabilitySet::runtime_world_space()` opts into it for hosts that can produce the projected world-hit query contract.
+
+Validation evidence on `F:\cargo-targets\zircon-world-space-ui-interface`:
+- `cargo test -p zircon_runtime_interface --lib ui_hit_metadata_contract_carries_scope_space_and_world_ray --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 1 test.
+- `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 12 tests.
+- `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 39 tests.

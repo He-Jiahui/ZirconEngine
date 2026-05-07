@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/math.rs
+  - zircon_runtime/src/core/math/mod.rs
+  - zircon_runtime/tests/math_transform_helpers.rs
   - zircon_math/src/lib.rs
   - zircon_math/tests/precision_contract.rs
   - zircon_asset/src/assets/scene.rs
@@ -40,6 +43,8 @@ related_code:
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/scene_overlay.rs
 implementation_files:
+  - zircon_runtime_interface/src/math.rs
+  - zircon_runtime/src/core/math/mod.rs
   - zircon_math/src/lib.rs
   - zircon_asset/src/assets/scene.rs
   - zircon_scene/src/components/mod.rs
@@ -74,10 +79,15 @@ implementation_files:
   - zircon_graphics/src/scene/scene_renderer/overlay/mod.rs
   - zircon_graphics/src/scene/scene_renderer/primitives/mod.rs
 plan_sources:
+  - user: 2026-05-07 继续推进里程碑
+  - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
   - user: 2026-04-15 implement the f64-ready runtime foundation plan with math/scene/asset/graphics boundaries
   - user: 2026-04-16 全仓库模块边界拆分与根入口去逻辑化
   - .codex/plans/全系统重构方案.md
 tests:
+  - zircon_runtime/tests/math_transform_helpers.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/core/math/mod.rs zircon_runtime_interface/src/math.rs
+  - cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never
   - zircon_math/tests/precision_contract.rs
   - zircon_scene/tests/runtime_foundation.rs
   - zircon_asset/src/tests/assets/scene.rs
@@ -97,18 +107,18 @@ doc_type: module-detail
 
 ## Purpose
 
-这份文档定义 `runtime foundation` 首里程碑的最终约束：
+这份文档定义 `runtime foundation` 首里程碑的最终约束，并记录后续 runtime-interface 吸收后的当前归属：
 
-- `zircon_math` 成为唯一精度 seam
-- `zircon_scene::Scene` 以 local authoring state + derived runtime state 为权威
-- `zircon_asset` 只持久化 authoring/runtime 输入态，不持久化派生态
-- `zircon_graphics` 明确承担 `runtime precision -> render precision` 的降级边界
+- `zircon_runtime_interface::math` 是当前唯一共享精度 seam，拥有 `Real`、glam alias、finite 校验、render downcast helper 和 `Transform`
+- `zircon_runtime::core::math` 只作为运行时公开入口 re-export 接口层数学合同，不再保留重复私有 math owner
+- `zircon_runtime::scene` 以 local authoring state + derived runtime state 为权威
+- graphics scene renderer 明确承担 `runtime precision -> render precision` 的降级边界
 
 这轮实现仍然是 `f32 + glam` 后端，但边界已经按未来可切 `f64` 的方向收口。
 
 ## Precision Contract
 
-`zircon_math` 现在不再把“直接 re-export `glam`”当作最终公共契约，而是先定义自己的精度边界：
+`zircon_runtime_interface::math` 现在不再把“直接 re-export `glam`”当作最终公共契约，而是先定义自己的精度边界：
 
 - `Real`：当前是 `f32`
 - `Vec2/Vec3/Vec4/Quat/Mat4`：runtime/backend alias
@@ -120,7 +130,15 @@ doc_type: module-detail
 - runtime 构造与校验：`compose_trs`、`transform_to_mat4`、`affine_inverse`、`is_finite_*`
 - render 降级：`to_render_scalar`、`to_render_vec*`、`to_render_mat4`
 
-因此未来如果 runtime 切到 `f64`，主入口应只在 `zircon_math` backend alias 与 helper，而不是在 `zircon_scene`、`zircon_asset`、`zircon_graphics` 里散落改类型。
+因此未来如果 runtime 切到 `f64`，主入口应只在 `zircon_runtime_interface::math` backend alias 与 helper，而不是在 scene、asset serializer、graphics renderer 里散落改类型。
+
+## 2026-05-07 Runtime Math Ownership Cutover
+
+runtime-interface 收敛后，数学 DTO 与 helper 的中立定义已经在 `zircon_runtime_interface/src/math.rs` 中成为跨 runtime/editor 的事实。`zircon_runtime/src/core/math/mod.rs` 保留为运行时侧的稳定导入面，继续允许现有代码使用 `zircon_runtime::core::math::{Transform, Vec3, Mat4, ...}`，但它只 re-export 接口层合同。
+
+本轮删除了 `zircon_runtime/src/core/math/precision/*` 与 `zircon_runtime/src/core/math/transform/*` 两组运行时私有重复实现。这样做不改变公开数学 API，目的是避免同一批 alias/helper 出现两个维护源，并清掉 runtime 编译中由旧私有模块产生的 unused warning。
+
+后续数学能力扩展必须优先落到 `zircon_runtime_interface::math`。只有 runtime-only、不可序列化且不应暴露给 editor/interface DTO 的 helper，才允许在 `zircon_runtime::core::math` 下面重新建立独立子模块。
 
 ## Scene Runtime Authority
 
@@ -228,7 +246,11 @@ renderer 现在也已经从单文件实现整理成目录化子树：
 
 这轮实现新增或收紧了以下验证面：
 
-- `zircon_math/tests/precision_contract.rs`
+- `zircon_runtime/tests/math_transform_helpers.rs`
+  - runtime 公开入口继续通过 `zircon_runtime::core::math` 提供 `Transform`、glam alias 和 TRS helper
+  - helper 由 `zircon_runtime_interface::math` 拥有，runtime 不保留重复私有实现
+  - 2026-05-07 focused 验证通过：`cargo test -p zircon_runtime --test math_transform_helpers --locked --jobs 1 --target-dir F:\cargo-targets\zircon-runtime-math-warning-cleanup --message-format short --color never`，3 passed；编译输出剩余 warning 位于 graphics/ui 等既有区域，不再包含已删除的 runtime-local math owner warning 组
+- `zircon_math/tests/precision_contract.rs`（历史吸收前来源）
   - precision alias
   - TRS helper
   - affine inverse
@@ -250,9 +272,9 @@ renderer 现在也已经从单文件实现整理成目录化子树：
 
 如果后续真的切 runtime `f64`，本轮实现希望把主改动尽量压缩到下面几处：
 
-- `zircon_math` backend alias
-- `zircon_math` render conversion helper
-- `zircon_math` / `zircon_scene` / `zircon_asset` 中依赖容差的测试
+- `zircon_runtime_interface::math` backend alias
+- `zircon_runtime_interface::math` render conversion helper
+- runtime scene / asset serializer 中依赖容差的测试
 
 不应该再把精度切换扩散成：
 

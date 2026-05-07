@@ -276,13 +276,14 @@ impl HostRefreshDiagnostics {
 
     pub(crate) fn overlay_text(&self) -> String {
         format!(
-            "FPS {:.1} | present {} | full {} | region {} | pixels {} | slow {} | paint-only {}",
+            "FPS {:.1} | present {} | full {} | region {} | pixels {} | slow {} | render {} | paint-only {}",
             self.fps().unwrap_or(0.0),
             self.present_count,
             self.full_paint_count,
             self.region_paint_count,
             self.painted_pixel_count,
             self.slow_path_rebuild_count,
+            self.render_rebuild_count,
             self.paint_only_request_count,
         )
     }
@@ -293,7 +294,7 @@ impl HostRefreshDiagnostics {
 - [x] Modify `SoftbufferHostPresenter::present(...)` so it records whether the repaint was full or region and exposes `diagnostics_snapshot()` returning `HostRefreshDiagnostics` or a plain snapshot struct.
 - [x] Modify `HostInvalidationRoot` to expose the current `slow_path_rebuilds`, `render_rebuilds`, and `paint_only_requests` through a small snapshot method instead of parsing `stats_summary()`.
 - [x] Add a host-level method that merges presenter and invalidation snapshots into `HostWindowShellData.debug_refresh_rate` before repaint. If the existing lifecycle cannot access both states at one point, store the formatted string in host globals immediately after `present(...)` and use the latest string on the next frame.
-- [x] Preserve the static fallback string only for no-present-yet startup: `FPS 0.0 | present 0 | full 0 | region 0`.
+- [x] Preserve the static fallback string only for no-present-yet startup, with the same field shape as the live overlay: `FPS 0.0 | present 0 | full 0 | region 0 | pixels 0 | slow 0 | render 0 | paint-only 0`.
 - [x] Add focused tests covering:
   - Overlay text changes after two recorded presents.
   - Region presents increment `region_paint_count` and not `full_paint_count`.
@@ -306,10 +307,10 @@ impl HostRefreshDiagnostics {
 Run targeted formatting for changed files:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs" "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/app/invalidation.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/tests/host/slint_window/shell_window.rs"
+rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs" "zircon_editor/src/ui/slint_host/host_contract/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/presenter.rs" "zircon_editor/src/ui/slint_host/host_contract/window.rs" "zircon_editor/src/ui/slint_host/app/invalidation.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs" "zircon_editor/src/tests/host/slint_window/shell_window.rs"
 ```
 
-If `diagnostics.rs` is not created, omit it from the command.
+The gate intentionally includes changed host-contract wiring files plus the invalidation and native snapshot fixture files used by the diagnostics path.
 
 Run focused tests:
 
@@ -329,8 +330,8 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 
 - The overlay text is live and counter-based.
 - Focused diagnostics and top-right overlay tests pass.
-- Documentation records that the overlay is derived from presenter/invalidation counters.
-- Accepted in `tests/acceptance/global-ui-material-responsive-diagnostics.md` with formatting, snapshot, diagnostics, and editor library compile evidence. The final compile check passed with pre-existing warnings only.
+- Documentation records that the overlay is derived from presenter/invalidation counters. In `docs/ui-and-layout/slate-style-ui-surface-frame.md`, only the `Editor Native Fast Path` top-right overlay paragraphs are Milestone 1 evidence; adjacent lifecycle, reflector, property, and M7 material belongs to separate active-session work.
+- Accepted in `tests/acceptance/global-ui-material-responsive-diagnostics.md` with exact Milestone 1 editor formatting, snapshot, diagnostics, and editor library compile evidence. The diagnostics filter includes presenter planning and host-state overlay update coverage; the final compile check passed with pre-existing warnings only.
 
 ## Milestone 2: Shared Text And Material Measurement For All Controls
 
@@ -340,7 +341,7 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 
 ### Implementation Slices
 
-- [ ] Extend `supports_material_layout(...)` in `zircon_runtime/src/ui/layout/pass/material.rs` to cover all Material meta component root `type` values and common native roles used by current `.ui.toml` files. The target list must include:
+- [x] Extend `supports_material_layout(...)` in `zircon_runtime/src/ui/layout/pass/material.rs` to cover all Material meta component root `type` values and common native roles used by current `.ui.toml` files. The target list must include:
 
 ```text
 Button
@@ -360,8 +361,8 @@ TableRow
 Label
 ```
 
-- [ ] Keep `Label` Material sizing conservative: only apply Material padding/min-height when it has at least one `layout_*` attribute; plain labels without Material layout attributes should keep current text-only measurement.
-- [ ] Update `MaterialLayoutMetrics::has_layout_attribute(...)` if new keys are required for menu/tab/table rows. Reuse existing keys first:
+- [x] Keep `Label` Material sizing conservative: only apply Material padding/min-height when it has at least one `layout_*` attribute; plain labels without Material layout attributes should keep current text-only measurement.
+- [x] Update `MaterialLayoutMetrics::has_layout_attribute(...)` if new keys are required for menu/tab/table rows. Reuse existing keys first:
 
 ```text
 layout_padding_left
@@ -376,21 +377,24 @@ layout_leading_slot_width
 layout_trailing_slot_width
 ```
 
-- [ ] Update `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` so Material menu items, tabs, table rows, progress/spinner labels, and text edit roots include layout metrics when they present visible text or interactive rows.
-- [ ] Add runtime tests in `zircon_runtime/src/ui/tests/material_layout.rs` for:
+- [x] Update `zircon_editor/assets/ui/editor/material_meta_components.ui.toml` so Material menu items, tabs, table rows, progress/spinner labels, and text edit roots include layout metrics when they present visible text or interactive rows.
+- [x] Extend shared visible-text resolution so Material leaf measurement derives intrinsic text from `text`, `label`, visible string/numeric `value`, `placeholder`, or authored scalar `options` labels before Material padding/min-height is applied; `value`/`placeholder`/`options` fallback is restricted to text-bearing/control roles so Image/Icon asset values still render as images/icons.
+- [x] Add `MaterialTableRow` coverage to the Material meta asset, Component Showcase imports, and boundary markers so table rows have a real TOML meta component instead of only a synthetic runtime unit test.
+- [x] Add Material layout metrics to the visible Button controls in `runtime_hud`, `pause_dialog`, `settings_dialog`, `inventory_dialog`, and `quest_log_dialog` so runtime dialog/HUD controls participate in shared Material measurement without a painter-side workaround.
+- [x] Add runtime tests in `zircon_runtime/src/ui/tests/material_layout.rs` for:
   - Long button text expands desired width and is not clipped by default frame.
   - Icon-only button keeps square Material size.
   - Menu item text uses list-row min height and horizontal padding.
   - Tab label uses control height and text width plus padding.
   - Plain non-Material label remains text-only.
-- [ ] Add or update editor host projection tests to prove Component Showcase Material controls carry frames at least as wide as their labels after shared layout.
+- [x] Add or update editor host projection tests to prove Component Showcase Material controls carry frames at least as wide as their labels after shared layout.
 
 ### Testing Stage: Text/Material Gate
 
 Run targeted formatting:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_runtime/src/ui/layout/pass/material.rs" "zircon_runtime/src/ui/layout/pass/measure.rs" "zircon_runtime/src/ui/tests/material_layout.rs" "zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs"
+rustfmt --edition 2021 --check "zircon_runtime/src/ui/layout/pass/material.rs" "zircon_runtime/src/ui/layout/pass/measure.rs" "zircon_runtime/src/ui/surface/render/resolve.rs" "zircon_runtime/src/ui/tests/material_layout.rs" "zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs" "zircon_editor/src/tests/ui/boundary/template_assets.rs"
 ```
 
 Run focused runtime/editor tests:
@@ -398,6 +402,7 @@ Run focused runtime/editor tests:
 ```powershell
 cargo test -p zircon_runtime --lib material_layout --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
 cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
+cargo test -p zircon_editor --lib runtime_dialog_and_hud_buttons_participate_in_material_measurement --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
 cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never
 cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never
 ```
@@ -413,6 +418,7 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 - Shared runtime tests prove text intrinsic size plus Material padding across all in-scope controls.
 - Component Showcase projection proves controls receive non-collapsed arranged frames.
 - No painter-side text fitting workaround is added for this milestone.
+- Accepted in `tests/acceptance/global-ui-material-responsive-diagnostics.md` with exact formatting, runtime `material_layout`, editor `component_showcase`, focused runtime dialog/HUD Material measurement, runtime library check, and editor library check evidence on `E:\zircon-build\targets\global-ui`. Validation found and fixed Material measurement gaps without painter fitting workarounds: field text now comes from shared visible-text resolution, Component Showcase projection asserts shared desired width before wide arranged frames, `MaterialTableRow` is imported as a real meta component, and runtime dialog/HUD buttons carry authored Material metrics. A separate Component Showcase projection regression also fixed `MaterialMenuFrame` `popup_anchor_x/y` forwarding, but popup anchors are not Material measurement acceptance evidence.
 
 ## Milestone 3: Responsive Layout Primitives And Global Surface Rules
 
@@ -422,15 +428,15 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 
 ### Implementation Slices
 
-- [ ] Add a global UI asset conformance test file `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` and register it in `zircon_editor/src/tests/ui/boundary/mod.rs`.
-- [ ] In that test, enumerate all `.ui.toml` files under `zircon_editor/assets/ui/editor`, `zircon_editor/assets/ui/editor/host`, `zircon_editor/assets/ui/editor/windows`, and `zircon_editor/assets/ui/runtime`.
-- [ ] The conformance test must check:
+- [x] Add a global UI asset conformance test file `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` and register it in `zircon_editor/src/tests/ui/boundary/mod.rs`.
+- [x] In that test, enumerate all `.ui.toml` files under `zircon_editor/assets/ui/editor`, `zircon_editor/assets/ui/editor/host`, `zircon_editor/assets/ui/editor/windows`, and `zircon_editor/assets/ui/runtime`.
+- [x] The conformance test must check:
   - Every non-theme UI asset imports `res://ui/theme/editor_material.ui.toml` or imports another asset that imports it.
   - Main roots use stretch width and height unless the file is a popup/menu/dialog intentionally bounded by min/preferred/max.
   - Plain interactive native controls are either Material meta component roots or have `material-*` classes and `layout_*` metrics.
   - Fixed width/height values are allowed only for chrome rails, icon buttons, status bars, known splitter/header rows, or bounded dialogs.
   - Every scrollable/list/table-heavy surface has a `ScrollableBox` or explicit bounded viewport region.
-- [ ] If existing runtime layout lacks wrapping, add a `WrapBox` container to `zircon_runtime_interface/src/ui/layout/scroll.rs`:
+- [x] If existing runtime layout lacks wrapping, add a `WrapBox` container to `zircon_runtime_interface/src/ui/layout/scroll.rs`:
 
 ```rust
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -452,7 +458,7 @@ pub enum UiContainerKind {
 }
 ```
 
-- [ ] If `WrapBox` is added, update `zircon_runtime/src/ui/template/build/parsers.rs` to parse:
+- [x] If `WrapBox` is added, update `zircon_runtime/src/ui/template/build/parsers.rs` to parse:
 
 ```toml
 [node.layout.container]
@@ -462,14 +468,14 @@ vertical_gap = 8.0
 item_min_width = 180.0
 ```
 
-- [ ] If `WrapBox` is added, update `measure.rs` and `arrange.rs` so children wrap into multiple rows based on available width. Keep the implementation pure runtime; do not add Asset Browser-specific layout code.
-- [ ] Update all global `.ui.toml` surfaces to use the shared responsive primitives. For large files, edit by section and keep the intent mechanical:
+- [x] If `WrapBox` is added, update `measure.rs` and `arrange.rs` so children wrap into multiple rows based on available width. Keep the implementation pure runtime; do not add Asset Browser-specific layout code.
+- [x] Update all global `.ui.toml` surfaces to use the shared responsive primitives. For large files, edit by section and keep the intent mechanical:
   - Toolbars: stretch main text/search fields, fixed only icon/action buttons.
   - Sidebars/nav: bounded min/preferred/max or scrollable list.
   - Content grids/cards: WrapBox or stretch+scroll.
   - Dialogs: bounded panel with stretch root overlay and scrollable body.
   - Runtime HUD/dialogs: stretch root, bounded panels, Material classes.
-- [ ] Remove or replace legacy `editor_base.ui.toml` imports where the surface should be Material. If `editor_base.ui.toml` remains, make it import/delegate Material tokens instead of defining a separate visual language for normal controls.
+- [x] Remove or replace legacy `editor_base.ui.toml` imports where the surface should be Material. If `editor_base.ui.toml` remains, make it import/delegate Material tokens instead of defining a separate visual language for normal controls.
 
 ### Testing Stage: Responsive Gate
 
@@ -501,6 +507,7 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 - Global conformance test covers all `.ui.toml` surfaces in the inventory.
 - Responsive layout tests pass at shared runtime level.
 - Asset Browser is covered as one member of the global inventory, not as a special Rust path.
+- Accepted in `tests/acceptance/global-ui-material-responsive-diagnostics.md` with final post-portability-fix `global_material_surface_assets`, runtime `material_layout`, runtime `shared_core`, runtime-interface check, runtime check, editor check, and targeted rustfmt evidence on `E:\zircon-build\targets\global-ui` after the low-disk target cleanup.
 
 ## Milestone 4: Global Material Theme And Native Painter Consistency
 
@@ -510,7 +517,7 @@ cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-bui
 
 ### Implementation Slices
 
-- [ ] Normalize `zircon_editor/assets/ui/theme/editor_material.ui.toml` token names so all Material classes use one palette:
+- [x] Normalize `zircon_editor/assets/ui/theme/editor_material.ui.toml` token names so all Material classes use one palette:
 
 ```text
 material_surface
@@ -532,8 +539,8 @@ material_track
 material_focus_ring
 ```
 
-- [ ] Add or update stylesheet rules for all Material classes emitted by `material_meta_components.ui.toml`.
-- [ ] Update `material_meta_components.ui.toml` roots so every component emits a stable Material class, and stateful controls emit `hovered`, `pressed`, `focused`, `selected`, `checked`, or `disabled` metadata matching their existing parameter set:
+- [x] Add or update stylesheet rules for all Material classes emitted by `material_meta_components.ui.toml`.
+- [x] Update `material_meta_components.ui.toml` roots so every component emits a stable Material class, and stateful controls emit `hovered`, `pressed`, `focused`, `selected`, `checked`, or `disabled` metadata matching their existing parameter set:
 
 ```text
 material-control
@@ -549,22 +556,22 @@ material-text-edit
 material-runtime-dialog
 ```
 
-- [ ] Update runtime dialog `.ui.toml` files to import Material theme and use Material classes/components:
+- [x] Update runtime dialog `.ui.toml` files to import Material theme and use Material classes/components:
   - `zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml`
   - `zircon_editor/assets/ui/runtime/pause_dialog.ui.toml`
   - `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
   - `zircon_editor/assets/ui/runtime/settings_dialog.ui.toml`
   - `zircon_editor/assets/ui/runtime/runtime_hud.ui.toml`
-- [ ] Update editor host surfaces and windows to use Material style imports/classes where they currently use legacy `editor_base` only.
-- [ ] If native painter fallback colors in `workbench.rs` visibly conflict with Material surfaces, extract host chrome colors into a small `painter/theme.rs` module. Keep this limited to shell chrome fallback; template-rendered controls should still use projected visual fields.
-- [ ] Add tests that render representative surfaces and assert Material pixels appear in Component Showcase, Asset Browser, one host pane body, and one runtime dialog.
+- [x] Update editor host surfaces and windows to use Material style imports/classes where they currently use legacy `editor_base` only.
+- [x] If native painter fallback colors in `workbench.rs` visibly conflict with Material surfaces, extract host chrome colors into a small `painter/theme.rs` module. Keep this limited to shell chrome fallback; template-rendered controls should still use projected visual fields.
+- [x] Add asset-boundary and focused native-painter tests that assert M4 Material tokens/classes and state-palette pixels across editor and runtime UI paths.
 
 ### Testing Stage: Theme Gate
 
 Run targeted formatting if Rust painter/test files change:
 
 ```powershell
-rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs" "zircon_editor/src/tests/host/slint_window/shell_window.rs" "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
+rustfmt --edition 2021 --check "zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs" "zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs" "zircon_editor/src/tests/host/slint_window/native_material_painter.rs" "zircon_editor/src/tests/host/slint_window/mod.rs" "zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs"
 ```
 
 Run focused tests:
@@ -572,11 +579,12 @@ Run focused tests:
 ```powershell
 cargo test -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
 cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
-cargo test -p zircon_editor --lib runtime_dialog --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
+cargo test -p zircon_editor --lib native_template_painter_uses_material_state_palette_for_controls --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
+cargo test -p zircon_editor --lib runtime_dialog_and_hud_buttons_participate_in_material_measurement --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never -- --nocapture
 cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir "E:\zircon-build\targets\global-ui" --message-format short --color never
 ```
 
-If no existing `runtime_dialog` filter exists after implementation, replace it with the exact test filter created for runtime dialog Material rendering.
+The runtime-dialog gate uses the exact existing runtime dialog/HUD Material measurement filter plus the M4 native painter state-palette pixel filter instead of a broad `runtime_dialog` placeholder.
 
 ### Debug / Correction Loop
 
@@ -587,8 +595,9 @@ If no existing `runtime_dialog` filter exists after implementation, replace it w
 ### Exit Evidence
 
 - Global conformance test proves all assets import Material theme or a documented equivalent.
-- Representative render tests show Material pixels for editor and runtime surfaces.
+- Global asset and focused native painter tests prove Material token/class coverage plus deterministic state-palette pixels for editor/runtime template paths.
 - No plain legacy visual language remains on normal controls.
+- Accepted in `tests/acceptance/global-ui-material-responsive-diagnostics.md` with exact M4 global conformance, native painter palette, editor compile, Component Showcase, runtime dialog/HUD Material measurement, disk, and rustfmt evidence on `E:\zircon-build\targets\global-ui`. This is scoped M4 evidence only; it does not claim full workspace validation or M5 damage/invalidation performance.
 
 ## Milestone 5: Damage, Invalidation, And Performance Acceptance
 
@@ -686,15 +695,15 @@ cargo test --workspace --locked --jobs 1 --target-dir "E:\zircon-build\targets\g
 
 ## Global Acceptance Checklist
 
-- [ ] Top-right overlay shows live FPS/present/full/region/pixel/invalidation counters.
-- [ ] All `.ui.toml` surfaces in editor, host, windows, runtime, and theme folders are inventoried.
-- [ ] Global conformance test enforces Material imports/classes/layout metrics for all UI assets.
-- [ ] Asset Browser is responsive because it follows shared global rules, not because of Rust special casing.
-- [ ] Component Showcase demonstrates Material controls with correct intrinsic text sizing and style.
-- [ ] Runtime dialogs use the same Material token vocabulary as editor surfaces.
-- [ ] Shared runtime tests prove text measurement plus Material padding for every supported control family.
-- [ ] Responsive layout behavior is in shared runtime layout primitives.
-- [ ] Native painter consumes arranged frames and projected visual fields; it does not compute screen-specific Material layout.
+- [x] Top-right overlay shows live FPS/present/full/region/pixel/invalidation counters.
+- [x] All `.ui.toml` surfaces in editor, host, windows, runtime, and theme folders are inventoried.
+- [x] Global conformance test enforces Material imports/classes/layout metrics for all UI assets.
+- [x] Asset Browser is responsive because it follows shared global rules, not because of Rust special casing.
+- [x] Component Showcase demonstrates Material controls with correct intrinsic text sizing and style.
+- [x] Runtime dialogs use the same Material token vocabulary as editor surfaces.
+- [x] Shared runtime tests prove text measurement plus Material padding for every supported control family.
+- [x] Responsive layout behavior is in shared runtime layout primitives.
+- [x] Native painter consumes arranged frames and projected visual fields; it does not compute screen-specific Material layout.
 - [ ] Region damage remains the fast path for pointer/viewport/diagnostic visual changes.
 - [ ] Documentation and acceptance records are updated before closeout.
 

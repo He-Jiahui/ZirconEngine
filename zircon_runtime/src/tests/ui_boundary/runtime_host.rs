@@ -84,6 +84,7 @@ fn runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces() {
         crate::ui::RuntimeUiFixture::PauseMenu,
         crate::ui::RuntimeUiFixture::SettingsDialog,
         crate::ui::RuntimeUiFixture::InventoryList,
+        crate::ui::RuntimeUiFixture::QuestLogDialog,
     ] {
         manager.load_builtin_fixture(fixture).unwrap();
 
@@ -125,7 +126,7 @@ fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface()
     let root_node = manager.surface().tree.roots[0];
     let mut pointer_dispatcher = UiPointerDispatcher::default();
     pointer_dispatcher.register(root_node, UiPointerEventKind::Down, |_| {
-        UiPointerDispatchEffect::Captured
+        UiPointerDispatchEffect::capture()
     });
 
     let pointer_result = manager

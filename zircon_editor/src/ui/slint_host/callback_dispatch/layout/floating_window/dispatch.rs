@@ -1,5 +1,5 @@
 use crate::core::editor_event::EditorEventRuntime;
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 use crate::ui::workbench::layout::{LayoutCommand, MainPageId};
 use crate::ui::workbench::model::WorkbenchViewModel;
 
@@ -9,7 +9,7 @@ use super::resolution::resolve_floating_window_focus_instance;
 pub(crate) fn dispatch_builtin_floating_window_focus(
     runtime: &EditorEventRuntime,
     window_id: &MainPageId,
-) -> Option<Result<SlintDispatchEffects, String>> {
+) -> Option<Result<UiHostEventEffects, String>> {
     let chrome = runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
     let window = model
@@ -27,7 +27,7 @@ pub(crate) fn dispatch_builtin_floating_window_focus_for_source(
     runtime: &EditorEventRuntime,
     source_window_id: Option<&MainPageId>,
     last_focused_window_id: Option<&MainPageId>,
-) -> Option<Result<SlintDispatchEffects, String>> {
+) -> Option<Result<UiHostEventEffects, String>> {
     let window_id = source_window_id?;
     if Some(window_id) == last_focused_window_id {
         return None;

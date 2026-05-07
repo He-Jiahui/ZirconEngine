@@ -37,6 +37,7 @@ fn builtin_view_menu_items() -> Vec<MenuItemModel> {
             action: Some(action),
             shortcut: None,
             enabled: true,
+            children: Vec::new(),
         }
     })
     .collect()

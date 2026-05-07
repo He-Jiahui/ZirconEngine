@@ -28,6 +28,7 @@ impl EditorChromeSnapshot {
         let drawers = build_drawers(layout, &instances_by_id, &descriptors_by_id);
         let main_pages = build_main_pages(layout, &instances_by_id, &descriptors_by_id);
         let floating_windows = build_floating_windows(layout, &instances_by_id, &descriptors_by_id);
+        let menu_overflow_mode = active_menu_overflow_mode(layout);
 
         Self {
             workbench: WorkbenchSnapshot {
@@ -52,8 +53,22 @@ impl EditorChromeSnapshot {
             project_open: data.project_open,
             can_undo: data.can_undo,
             can_redo: data.can_redo,
+            menu_overflow_mode,
         }
     }
+}
+
+fn active_menu_overflow_mode(
+    layout: &WorkbenchLayout,
+) -> crate::ui::workbench::window_registry::MenuOverflowMode {
+    let Some(active_window_id) = layout.active_activity_window_id() else {
+        return Default::default();
+    };
+    layout
+        .activity_windows()
+        .get(&active_window_id)
+        .map(|window| window.menu_overflow_mode)
+        .unwrap_or_default()
 }
 
 fn build_drawers(

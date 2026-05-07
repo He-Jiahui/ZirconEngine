@@ -87,6 +87,7 @@ fn merged_layout_table(
             }
             match parent_container {
                 Some(UiContainerKind::HorizontalBox(_))
+                | Some(UiContainerKind::WrapBox(_))
                 | Some(UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
                     axis: UiAxis::Horizontal,
                     ..

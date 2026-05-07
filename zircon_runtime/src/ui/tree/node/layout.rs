@@ -17,12 +17,12 @@ impl UiRuntimeTreeLayoutExt for UiTree {
             .parent
         {
             mark_layout_dirty_local(self, parent_id)?;
-            if !self
+            let parent = self
                 .nodes
                 .get(&parent_id)
-                .ok_or(UiTreeError::MissingNode(parent_id))?
-                .layout_boundary
-                .propagates_child_layout_invalidation()
+                .ok_or(UiTreeError::MissingNode(parent_id))?;
+            if !(parent.layout_boundary.propagates_child_layout_invalidation()
+                || parent.container.is_auto_layout_container())
             {
                 break;
             }

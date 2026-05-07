@@ -24,7 +24,7 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
     let root_frames = bridge.root_shell_frames();
     let left_geometry = UiFrame::new(180.0, 140.0, 180.0, 519.0);
     let bottom_geometry = UiFrame::new(52.0, 704.0, 777.0, 120.0);
-    let geometry = WorkbenchShellGeometry {
+    let _stale_geometry = WorkbenchShellGeometry {
         region_frames: [
             (
                 ShellRegionId::Left,
@@ -58,8 +58,7 @@ fn shared_drawer_header_pointer_layout_prefers_shared_root_projection_for_visibl
         ..WorkbenchShellGeometry::default()
     };
 
-    let layout =
-        build_host_drawer_header_pointer_layout(&model, &geometry, &metrics, Some(&root_frames));
+    let layout = build_host_drawer_header_pointer_layout(&model, &metrics, Some(&root_frames));
 
     let left_surface = layout
         .surfaces

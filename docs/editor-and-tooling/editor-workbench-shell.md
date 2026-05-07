@@ -14,7 +14,10 @@ related_code:
   - zircon_editor/src/ui/slint_host/hierarchy_pointer/mod.rs
   - zircon_editor/src/ui/slint_host/host_contract/data/host_interaction.rs
   - zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
   - zircon_editor/src/ui/slint_host/host_contract/data/viewport_image.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/welcome.rs
+  - zircon_editor/src/ui/slint_host/host_contract/data/world_space_submission.rs
   - zircon_editor/src/ui/slint_host/host_contract/globals.rs
   - zircon_editor/src/ui/slint_host/host_contract/mod.rs
   - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
@@ -25,12 +28,14 @@ related_code:
   - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs
   - zircon_editor/src/ui/slint_host/host_contract/window.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
   - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
@@ -83,6 +88,11 @@ related_code:
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/dispatcher.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/projection_support.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/floating_window_source/mod.rs
@@ -116,6 +126,8 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/layouts/views/welcome.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/build_export.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/slint_host/ui/tests.rs
@@ -151,6 +163,7 @@ related_code:
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/startup/mod.rs
+  - zircon_editor/src/ui/workbench/startup/display_project_path.rs
   - zircon_editor/src/ui/workbench/startup/editor_session_mode.rs
   - zircon_editor/src/ui/workbench/state/editor_state.rs
   - zircon_editor/src/ui/workbench/state/editor_state_play_mode.rs
@@ -175,17 +188,30 @@ related_code:
   - zircon_editor/ui/workbench/ui_asset_editor_inspector_panel.slint
   - zircon_editor/ui/workbench/ui_asset_editor_stylesheet_panel.slint
   - zircon_editor/ui/workbench/assets.slint
+  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_menu_chrome.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/build_export_desktop_body.ui.toml
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
   - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
   - zircon_editor/ui/workbench/chrome.slint
   - zircon_editor/ui/workbench/panes.slint
   - zircon_editor/ui/workbench/welcome.slint
   - zircon_editor/src/tests/host/slint_detail_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_list_pointer/
   - zircon_editor/assets/icons/ionicons/folder-open-outline.svg
+  - zircon_editor/assets/icons/ionicons/git-branch-outline.svg
+  - zircon_editor/assets/icons/ionicons/git-network-outline.svg
+  - zircon_editor/assets/icons/ionicons/refresh-outline.svg
+  - zircon_editor/assets/icons/ionicons/save-outline.svg
+  - zircon_editor/assets/icons/ionicons/share-outline.svg
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/fixtures/workbench/default-layout.json
   - zircon_editor/fixtures/workbench/view-descriptors.json
@@ -202,10 +228,17 @@ related_code:
   - zircon_editor/src/tests/editing/ui_asset/
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/slint_window/
+  - zircon_editor/src/tests/host/slint_window/shell_window.rs
   - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/slint_window/native_material_painter.rs
   - zircon_editor/src/tests/host/slint_window/native_template_text.rs
   - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
+  - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
   - zircon_editor/src/tests/host/slint_inspector_template_body.rs
+  - zircon_editor/src/tests/host/template_runtime/inspector_surface.rs
+  - zircon_editor/src/tests/host/template_runtime/viewport_toolbar.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_surface_controls.rs
   - zircon_runtime/src/ui/layout/pass/axis.rs
   - zircon_runtime/src/ui/layout/pass/measure.rs
   - zircon_runtime/src/ui/surface/render/text_measure.rs
@@ -227,6 +260,7 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/module_plugins.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/project_sync/sync_from_project.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/geometry.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
@@ -264,6 +298,7 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
   - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
@@ -297,6 +332,11 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/mod.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/ui/workbench/model/menu/extension_menu.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/dispatcher.rs
   - zircon_editor/src/ui/slint_host/app/viewport.rs
   - zircon_editor/src/ui/slint_host/event_bridge.rs
   - zircon_editor/src/ui/template_runtime/runtime.rs
@@ -373,6 +413,11 @@ implementation_files:
   - zircon_editor/ui/workbench/panes.slint
   - zircon_editor/ui/workbench/welcome.slint
   - zircon_editor/assets/icons/ionicons/folder-open-outline.svg
+  - zircon_editor/assets/icons/ionicons/git-branch-outline.svg
+  - zircon_editor/assets/icons/ionicons/git-network-outline.svg
+  - zircon_editor/assets/icons/ionicons/refresh-outline.svg
+  - zircon_editor/assets/icons/ionicons/save-outline.svg
+  - zircon_editor/assets/icons/ionicons/share-outline.svg
   - zircon_editor/src/tests/host/slint_list_pointer/
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/host/manager/layout_hosts/mod.rs
@@ -473,8 +518,12 @@ plan_sources:
   - user: 2026-05-05 P2 hit-test the full viewport toolbar
   - user: 2026-05-05 P2 Gate viewport toolbar clicks to primary press
   - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
+  - user: 2026-05-07 editor visual density B selection for smaller icons, rail, menu, and inspector controls
   - .codex/plans/Editor 绘制与鼠标事件优化计划.md
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
+  - .codex/plans/Material UI 元组件与 .ui.toml 编辑器布局 Slate 化计划.md
+  - user: 2026-05-06 native editor GUI regression: text input, chrome hit targets, tab drag, drawer/page clicks, and rebuild log pressure
+  - docs/superpowers/plans/2026-05-06-ui-debug-reflector-full-closure.md
 tests:
   - zircon_ui/src/tests/shared_core.rs
   - zircon_editor/src/tests/editing/state.rs
@@ -495,6 +544,7 @@ tests:
   - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/mod.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/layout.rs
   - zircon_editor/src/tests/host/slint_menu_pointer/surface_contract.rs
+  - zircon_editor/src/tests/host/slint_menu_pointer/dispatcher.rs
   - zircon_editor/src/tests/host/slint_tab_drag/
   - zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs
   - zircon_editor/src/tests/host/slint_callback_dispatch/layout/mod.rs
@@ -505,12 +555,41 @@ tests:
   - zircon_editor/src/tests/host/slint_window/
   - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/
   - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - cargo test -p zircon_editor --lib native_host_generic_template_text_field_routes_commit_binding_on_enter --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo test -p zircon_editor --lib shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension_menu_items --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
   - cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo test -p zircon_editor --lib rust_owned_host_window_snapshot_draws_top_right_debug_refresh_rate --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - 2026-05-06 editor chrome SVG continuation: cargo check -q -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons (passed with existing warnings)
+  - 2026-05-06 editor chrome SVG continuation: cargo test -q -p zircon_editor --lib page_and_dock_tabs_project_svg_icons_and_close_button_icon --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor chrome SVG continuation: cargo test -q -p zircon_editor --lib rust_owned_host_window_snapshot_renders_template_icon_states --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor chrome SVG continuation: cargo test -q -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor chrome SVG continuation: cargo test -q -p zircon_editor --lib activity_rail_nodes_project_tab_svg_icons_and_selected_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor menu SVG continuation: cargo test -q -p zircon_editor --lib menu_popup_nodes_project_action_svg_icons --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor menu SVG continuation: cargo test -q -p zircon_editor --lib menu_popup_nodes_project_absolute_rows_beyond_authored_slots --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons -- --nocapture (passed)
+  - 2026-05-06 editor menu SVG continuation: cargo fmt -p zircon_editor -- --check (passed)
+  - 2026-05-06 editor menu SVG continuation: cargo check -q -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-svg-icons (passed with existing warnings)
+  - 2026-05-06 GUI regression slice: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never (passed with existing warnings)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib native_host_welcome_material_text_field_accepts_keyboard_input --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib native_host_welcome_material_button_routes_welcome_callback --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib native_host_document_tab_drag_releases_capture_and_forwards_drop --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib fallback_page_chrome_preserves_clickable_tab_and_project_path_frames --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib fallback_dock_header_preserves_tab_drag_and_close_hit_frames --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 GUI regression slice: cargo test -p zircon_editor --lib tab_chrome_fallback_detects_zero_height_or_zero_width_hits --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 viewport fast path slice: cargo test -p zircon_editor --lib native_host_viewport_button_and_scroll_wait_for_viewport_image_repaint --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 viewport fast path slice: cargo test -p zircon_editor --lib native_host_viewport --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 viewport fast path slice: cargo test -p zircon_editor --lib viewport_without_native_repaint --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture (passed)
+  - 2026-05-06 Debug Reflector host projection closeout: rustfmt --edition 2021 --check zircon_editor/src/ui/slint_host/ui/apply_presentation.rs (passed)
+  - 2026-05-06 Debug Reflector host projection closeout: cargo test -p zircon_editor --lib host_scene_projection_converts_host_owned_panes_to_host_contract_panes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-shared --message-format short --color never (passed)
+  - 2026-05-06 Debug Reflector host projection closeout: cargo test -p zircon_editor --lib ui_debug_reflector --locked --jobs 1 --target-dir D:\cargo-targets\zircon-shared --message-format short --color never (11 passed)
+  - 2026-05-06 Debug Reflector host projection closeout: cargo test -p zircon_editor --lib native_host_contract --locked --jobs 1 --target-dir D:\cargo-targets\zircon-shared --message-format short --color never (17 passed)
+  - 2026-05-06 Debug Reflector host projection closeout: cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-shared --message-format short --color never (passed with existing warning noise)
   - cargo test -p zircon_editor --lib diagnostics --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never
+  - cargo test -q -p zircon_editor --lib native_template_painter_uses_material_state_palette_for_controls --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 native Material palette: passed)
+  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 global Material asset boundary: passed)
   - cargo test -p zircon_runtime --lib layout_pass_measures_label_leaf_from_text_intrinsic_size --locked --jobs 1
   - cargo test -p zircon_runtime --lib layout_pass_measures_button_leaf_as_text_plus_padding --locked --jobs 1
   - cargo test -p zircon_editor --lib native_host_painter_composites_latest_viewport_image_into_scene_body --locked --jobs 1
@@ -538,7 +617,10 @@ tests:
   - cargo test -p zircon_editor --lib slint_tab_drag --locked -- --nocapture
   - cargo test -p zircon_editor --lib workbench_view_model_exposes_floating_windows_as_workspace_tabs --locked -- --nocapture
   - cargo test -p zircon_editor --lib scene_document_pane_projects_viewport_toolbar_state -- --nocapture
+  - cargo test -p zircon_editor --lib inspector_surface --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-editor-layout-continuation --message-format short --color never
   - cargo test -p zircon_editor --lib viewport_toolbar -- --nocapture
+  - cargo test -p zircon_editor --lib viewport_toolbar --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-editor-layout-continuation --message-format short --color never
+  - cargo test -p zircon_editor --lib pane_surface_controls --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-editor-layout-continuation --message-format short --color never
   - cargo test -p zircon_editor --lib slint_viewport_toolbar_pointer --offline -- --nocapture
   - cargo test -p zircon_editor --lib viewport_ --offline -- --nocapture
   - cargo test -p zircon_editor --lib template_runtime -- --nocapture
@@ -781,6 +863,31 @@ Focused M2 regressions cover the backend contract directly: `rust_owned_host_win
 
 The 2026-05-06 visual-asset follow-up makes the placeholder path a fallback instead of the primary image renderer. `TemplatePaneNodeData.preview_image` is converted to RGBA and drawn by `template_nodes.rs`; runtime `UiVisualAssetRef::Image` and `UiVisualAssetRef::Icon` are resolved by `visual_assets.rs`, cached, optionally icon-tinted, and emitted as image-pixel host commands. This is still the Rust-owned host-contract painter: `.ui.toml` remains the business source, Slint is only used as an image/SVG decoder, and the generated Slint UI path is not restored.
 
+The same follow-up now treats icons as first-class editor chrome, not two-letter label placeholders. `workbench_activity_rail.ui.toml` authors `Icon` nodes for the rail stencil, and `chrome_template_projection.rs` maps tab `icon_key` values such as `project`, `hierarchy`, `asset-browser`, `scene`, and `console` to stable Ionicons SVG names before loading preview pixels through the shared `preview_images.rs` resolver. The active rail button returns `ActivityRailButton*` as the selected chrome control, while the icon node carries active/default or muted tone state. This keeps the JetBrains-style left rail visually dense and tool-like while preserving the Slate-like `.ui.toml -> shared template -> host DTO -> native painter` route.
+
+The continuation extends the same icon contract to page tabs and dock tabs. `chrome_template_projection.rs` applies the tab icon mapping to `PageTab*` and `DockTab*`, marks the active tab as selected/focused for Material state tinting, and turns `DockTabClose*` into SVG `IconButton` nodes backed by `close-outline` instead of text placeholders. `workbench_dock_header.ui.toml` authors those close slots as icon buttons, so fallback and authored projections expose the same chrome control role.
+
+The next menu-chrome continuation keeps menu actions on the same path. `menu_popup_nodes(...)` now maps stable action ids and labels to Ionicons SVG names before applying the icon to each `MenuPopupItemLabel*` template node. File actions use folder/save/sync glyphs, Edit actions use back/forward glyphs, Play actions use play/remove glyphs, Scene creation uses cube/camera/light glyphs, and View entries reuse the same descriptor-to-icon vocabulary as page and activity tabs. Because the icon is projected onto the existing label node, the native painter's icon-plus-text layout reserves leading icon space without changing popup hit testing or adding a second menu item schema.
+
+Template projection also carries interactive appearance flags end to end. `ViewTemplateNodeData` now preserves `selected`, `focused`, `hovered`, `pressed`, and `disabled`; `template_node_conversion.rs` forwards them into `TemplatePaneNodeData`; and `template_nodes.rs` paints distinct hover, pressed, selected, and disabled Material state layers while suppressing structural text over icon-only controls. Image rects preserve aspect ratio, icon rects stay centered inside fixed-format controls, and icon-plus-text controls reserve leading icon space before painting text so labels do not overlap the SVG glyph. This keeps hover/selection from shifting or corrupting chrome layout.
+
+## 2026-05-06 Welcome Main UI Visual Repair
+
+The Welcome pane now travels through the same host-scene DTO path as the other document panes instead of relying only on `PaneSurfaceHostContext.set_welcome_pane(...)`. `apply_presentation.rs` projects the current `WelcomePresentation` into every `PaneData` whose kind is `Welcome`; `PaneData` carries `WelcomePaneData`; `world_space_submission.rs` and `surface_hit_test/template_node.rs` include `pane.welcome.nodes`; and `painter/workbench.rs` selects those nodes before painting native Welcome-specific content. This prevents the native presenter from falling back to the single `Welcome` label even when the `.ui.toml` projection and global welcome context were valid.
+
+The authored Welcome layout now imports the Material component asset and `editor_material` style so the startup surface is still grounded in the Slint/Material `.ui.toml` component catalog. The Rust-owned host painter keeps the current deterministic CPU primitive boundary, but uses those projected control frames as anchors for a JetBrains-like dark workbench surface: recent-project panel, main form column, status strip, outlined fields, path preview, validation text, and disabled/enabled action states all paint from the same `HostWindowPresentationData.host_scene_data.document_dock.pane` data. Empty form data no longer reports a valid project state; the preview and validation copy now match the disabled actions.
+
+Two adjacent chrome polish fixes belong to this same visual boundary. `chrome_template_projection.rs` filters `DockTabClose*` nodes by the live tab count and each tab's `closeable` flag, so non-closeable Welcome tabs do not render empty black close-button surfaces. Startup/project display text also strips Windows verbatim path prefixes for UI copy and uses the project title in the narrow top page chrome while leaving the full readable path in status text.
+
+Focused evidence for this cut:
+- `cargo test -p zircon_editor welcome_projection_maps_bootstrap_asset_into_mount_nodes --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`
+- `cargo test -p zircon_editor rust_owned_host_window_snapshot_draws_welcome_main_content --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`
+- `cargo test -p zircon_editor dock_header_nodes_hide_close_controls_for_non_closeable_tabs --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`
+- `cargo test -p zircon_editor display_project_path --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`
+- `cargo fmt --all --check`
+- `cargo build -p zircon_app --bin zircon_editor --features target-editor-host --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui`
+- Visual QA screenshot: `target/visual-layout/main-ui-after-polish-20260506-150348.png`
+
 Export smoke after the M2 build used `E:\zircon-build\ZirconEngine\zircon_editor.exe` from the packaged folder. The process was still alive after 8 seconds and was stopped intentionally; `E:\zircon-build\ZirconEngine\logs\2026-05-04-20-30-04\editor.log` recorded `editor_host_presenter` frames `1` through `5` at `1280x720` with project path, center/document/viewport frames, `page_tabs=1`, `document_tabs=2`, and `document_pane_kind=Scene`. The same log had no `error`, `warn`, `missing`, `failed`, `exists=false`, or `path_exists=false` matches, so the remaining display boundary is no longer asset/template availability or native presenter lifetime.
 
 ## 2026-05-04 Native Host Interaction And Glyph Cut
@@ -893,13 +1000,19 @@ The scene-viewport missing-rendering symptom was a separate support-layer issue 
 
 The SVG/Image regression is fixed at the Rust-owned host painter layer rather than by restoring generated Slint UI. `TemplatePaneNodeData.preview_image` is now a real painter input: `template_nodes.rs` converts the retained `slint::Image` to RGBA pixels, tints icon-like roles such as `Icon` and `SvgIcon`, and emits a clipped image-pixel command before text. Runtime-style `UiRenderCommandKind::Image` uses the same host command backend; `visual_assets.rs` resolves `UiVisualAssetRef::Image` from editor/runtime asset roots and `UiVisualAssetRef::Icon` from the editor icon folders, decodes SVG/bitmap content through Slint's image loader, caches the result, and leaves the deterministic placeholder only for missing assets.
 
-The same cut adds a top-right native debug marker. `HostWindowShellData.debug_refresh_rate` is projected from the workbench host presentation, copied through `apply_presentation.rs`, and consumed by `painter/workbench.rs` while drawing the top bar. The startup value is the static fallback `FPS 0.0 | present 0 | full 0 | region 0`, which exists only before the first native present has a real presenter snapshot.
+The same cut adds a top-right native debug marker. `HostWindowShellData.debug_refresh_rate` is projected from the workbench host presentation, copied through `apply_presentation.rs`, and consumed by `painter/workbench.rs` while drawing the top bar. The startup value is the static fallback `FPS 0.0 | present 0 | full 0 | region 0 | pixels 0 | slow 0 | render 0 | paint-only 0`, which exists only before the first native present has a real presenter snapshot.
 
 Milestone 1 replaces the static marker with `HostRefreshDiagnostics` in `host_contract/diagnostics.rs`. `SoftbufferHostPresenter::present(...)` now records present count, full/region paint split, painted pixel totals, and FPS timing with saturating counters, then merges the latest `HostInvalidationRoot` snapshot before painting the top bar. The rendered overlay string includes `FPS`, `present`, `full`, `region`, `pixels`, `slow`, `render`, and `paint-only`, so the visible native shell reports both presenter damage behavior and invalidation-root rebuild pressure without parsing diagnostic log text.
 
+The top-right marker geometry is owned by `painter/diagnostics_overlay.rs`, not by ad hoc math in the large workbench painter. `workbench.rs` uses the helper when painting the marker, and `SoftbufferHostPresenter` uses the same helper when a region-presented frame changes overlay text. The helper derives the top bar from `HostWindowPresentationData`: scene layout wins when it has visible root frames, otherwise the legacy host layout is used, and only empty layout data falls back to the startup top-bar height. If the text changed and a region repaint is already scheduled, the presenter unions the marker frame into the existing damage before repainting and presenting; if the text is unchanged, the original region damage is left untouched; if the frame is already a full repaint, no synthetic region damage is created. The presenter plans the overlay string after the final expanded damage is known, so `pixels` in the same-frame visible text matches the `HostRefreshDiagnostics` total recorded for that present instead of reporting the pre-overlay damage estimate. This keeps the live diagnostics overlay current during retained-region presents without scheduling a second redraw loop just to update the overlay.
+
+Focused Milestone 1 coverage now includes the live native host contract path, not only DTO formatting. `presenter_diagnostics_plan_same_frame_overlay_pixels_match_expanded_region_damage` verifies that region damage expanded by the top-right marker produces matching overlay text, recorded diagnostics, and cloned presentation data for the same present. `host_window_refresh_diagnostics_update_state_overlay_text` verifies the `WindowEvent::RedrawRequested` success-path seam by exercising the host-state overlay update method used after `SoftbufferHostPresenter::present(...)` returns diagnostics.
+
 The host lifecycle publishes invalidation diagnostics through the Rust-owned host contract whenever slow-path, render-path, or paint-only counters change. The presenter uses that snapshot on the same frame it paints, then writes the formatted overlay back into `HostWindowShellData.debug_refresh_rate` as the next-frame host state. This keeps the `.ui.toml -> runtime layout -> host projection -> native painter` chain intact: no generated Slint UI is restored, and `workbench.rs` still only consumes the final string through the existing overlay call.
 
-The validation focus for this cut is intentionally painter-local: template SVG/image preview pixels, runtime SVG image commands, and top-bar debug overlay visibility. Broader Material/Asset Browser layout and text measurement work are separate lanes because active sibling sessions currently own nearby layout/text-input changes.
+The validation focus for this cut is intentionally painter-local: template SVG/image preview pixels, runtime SVG image commands, and top-bar debug overlay visibility. The later B-slice added focused evidence for SVG path aliases, activity-rail icon projection, page/dock tab icon projection, SVG close-button projection, and icon interaction-state pixels: `activity_rail_nodes_project_tab_svg_icons_and_selected_state`, `page_and_dock_tabs_project_svg_icons_and_close_button_icon`, `host_side_activity_rails_use_projected_toml_template_nodes`, `rust_owned_host_painter_resolves_runtime_svg_image_assets`, `rust_owned_host_window_snapshot_renders_template_icon_states`, and `native_host_painter_draws_template_svg_image_pixels` all pass on `D:\cargo-targets\zircon-svg-icons`. Broader Material/Asset Browser layout and text measurement work are separate lanes because active sibling sessions currently own nearby layout/text-input changes.
+
+The Debug Reflector closeout also tightened the host-scene conversion seam that this shell doc owns. `apply_presentation.rs::to_host_contract_pane(...)` no longer treats pane kind strings as the only proof that a native-body payload should survive conversion. If the host-scene pane carries non-empty host-owned native data, such as UI Asset Editor nodes, animation nodes, hierarchy rows, inspector rows, console rows, assets data, asset-browser data, or project overview rows, that payload is preserved before `PaneData.body_surface_frame` is rebuilt. This matters for synthetic or bridged host-scene pane kinds: the native host can carry the real payload while the visible pane kind is not one of the canonical editor kind labels. The fix keeps conversion payload-driven and does not add compatibility aliases for old pane-kind names.
 
 ## 2026-05-05 Native Asset Tree Hover State Projection
 
@@ -1970,6 +2083,8 @@ Milestone 4 validation evidence for this shell slice:
 - [`dispatch.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs) 会把 `EditorUiBindingPayload::EditorOperation` 和可映射的 `MenuAction` 转成 `runtime.invoke_operation(...)`，只有没有 operation path 的 legacy payload 才回退到普通 binding dispatch。
 - [`menu_action.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs) 对 workbench menu action 做同样处理，`CreateCube`、view open、play-mode enter/exit 等路径先进入 `EditorOperationRegistry`，再由 runtime/editor event 层处理副作用。
 - [`menu_item_model.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/workbench/model/menu_item_model.rs) 现在把 Build Export 的 View 菜单路径固定为 `View.BuildExport.Open`，与内置 operation descriptor 和 activity view id 对齐。
+- [`scene_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs) 将 branch/leaf 菜单树投影为 native popup 当前仍能消费的扁平 rows：branch row 以 disabled breadcrumb label 表示层级，leaf row 保留 `MenuAction` 或 `EditorOperation` 的 action id。
+- [`dispatcher.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_menu_pointer/dispatcher.rs) 的 extension-menu 回归用 `View.Weather.Open` 证明 shared menu pointer 点击不再把 operation id 误解析成 legacy `MenuAction`，而是进入 `EditorOperationRuntime` 并触发布局/presentation dirty。
 
 这条链路让 Scene toolbar 的 Play/Stop 按钮通过 `Runtime.PlayMode.Enter` / `Runtime.PlayMode.Exit` 进入 native runtime play-mode backend，而不是停留在 UI-local 字符串分派。菜单贡献者也因此能把可撤销/不可撤销语义交给 editor operation contract，而不是让每个 pane 自己决定。
 
@@ -1985,3 +2100,90 @@ Milestone 4 validation evidence for this shell slice:
 - `cargo test -p zircon_editor --lib sync_from_project_keeps_error_assets_without_artifacts_in_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ci-shaped-runtime-interface-gap -- --format terse`
 - `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ci-shaped-runtime-interface-gap -- --format terse`
 - `cargo test --workspace --locked --verbose --jobs 1` with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-ci-shaped-runtime-interface-gap`
+
+## Latest Inspector Material Surface Controls
+
+Inspector surface controls now consume the shared Material meta component asset instead of keeping placeholder native button rows in the host template. [`inspector_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml) imports [`material_meta_components.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/material_meta_components.ui.toml) and projects Name/Parent as `MaterialLineEdit`, transform axes as `MaterialSpinBox`, and Apply/Delete as `MaterialButton`. The same authored binding ids remain on the `.ui.toml` nodes and are transferred to the expanded Material roots by the shared template runtime, so the editor host continues to receive `DraftCommand.SetInspectorField`, `InspectorFieldBatch`, and `MenuAction.DeleteSelected` through the generic binding route.
+
+This keeps the Inspector on the Slate-style path: `.ui.toml` defines the component, the shared runtime expands and measures it, the arranged tree/hit grid sees a real interactive root, and the native host projection only consumes the resulting control facts.
+
+## Latest Viewport And Pane Material Controls
+
+The M3 editor-layout cutover now applies the same Material meta-component route to the scene viewport toolbar and pane surface action. [`scene_viewport_toolbar.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml) imports `MaterialButton` for the viewport command strip, keeps the existing `ViewportToolbar/...` bindings on each `.ui.toml` control, and relies on shared template expansion to attach the original fixed toolbar layout to the expanded `Button` roots. [`pane_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml) now keeps `PaneSurfaceControls` as the host container while projecting `TriggerAction` as a `MaterialButton` child.
+
+The important contract is that editor chrome no longer needs a Rust coordinate table to make these controls interactive: the authored `.ui.toml` reference carries control id, binding id, Material input metadata, and fixed layout into the shared surface; the native host sees the resulting `Button` frame from the arranged tree.
+
+## 2026-05-06 Native GUI Regression Closure
+
+The current native regression came from several adjacent boundaries failing at once rather than from one pane-local bug. Welcome Material nodes were visible but reached the host without native dispatch metadata, the Rust-owned host event loop did not translate keyboard/IME input into the focused template control, chrome metrics could collapse to zero when a `.ui.toml` chrome template failed to project a usable frame, and tab drag state had no native release path after the pointer moved outside the initial click rectangle.
+
+The fix keeps those responsibilities on the Slate-style chain:
+
+- [`apply_presentation.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/ui/apply_presentation.rs) now annotates welcome Material controls with `dispatch_kind`, edit/action ids, role metadata, and current text values before building the pane `body_surface_frame`. `WelcomeProjectNameField` and `WelcomeLocationField` therefore become focusable/editable native hit targets without hard-coded screen coordinates.
+- [`window.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/window.rs) routes `KeyboardInput` and `Ime::Commit` through a stored text-focus contract. Inserts, backspace, enter commit, and escape blur update the same host callback route used by pointer-dispatched template controls; the host also toggles platform IME allowance only while a text field is focused. `HostTextInputFocusData` now keeps edit and commit target ids separate, so ordinary text changes use `edit_action_id` while Enter can dispatch `commit_action_id` for apply/batch bindings.
+- [`native_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs) focuses text fields on primary press, arms document/drawer/floating tab drags from the actual chrome hit route, forwards drag move/release events to the existing host drag callbacks, and clears stale drag state on release so the painter is not left with a ghost drag payload.
+- [`chrome_template_projection.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs) now treats zero-height menu/page/dock metrics and zero-width tab slots as projection failures. It supplies conservative fallback chrome nodes for top menu slots, page tabs, dock tabs, close buttons, subtitles, and project path text so page bars and drawer headers remain visible and hit-testable while the authored `.ui.toml` asset is being repaired.
+- Host presentation rebuild logging is sampled instead of emitted on every rebuild. The first few rebuilds and power-of-two counts remain visible for diagnosis, but pointer-only churn no longer floods the log path.
+
+Focused validation for this slice is recorded in the document header. The targeted regressions cover native welcome text input, generic template edit/commit routing, welcome button dispatch, tab drag release/capture cleanup, repeated hover without presentation rebuild, page/dock chrome fallback hit frames, and shared menu operation dispatch. On 2026-05-07, `native_host_generic_template_text_field_routes_commit_binding_on_enter`, `shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension_menu_items`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never` passed with existing warnings. The full `native_host` filter was not used as acceptance for this slice after an earlier broad run exited with truncated output and then encountered unrelated viewport-image painter noise; the accepted evidence is the focused set plus the editor library check.
+
+## 2026-05-06 Viewport Fast Path Closure
+
+The scene/game viewport body now stays on the runtime image path for pointer-heavy interactions. [`native_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs) still forwards viewport press, release, move, and scroll facts into `PaneSurfaceHostContext::viewport_pointer_event`, but body press/release/scroll return an idle native redraw result just like move already did. The host repaints when [`viewport_image_redraw.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/viewport_image_redraw.rs) receives a fresh viewport image and queues a regional redraw for `viewport_content_frame`.
+
+Toolbar controls keep the opposite contract: projected `.ui.toml` toolbar buttons still request visible host feedback on primary press, while release/secondary/middle input remain idle. This separates scene camera/object manipulation from Material toolbar UI and avoids repainting stale viewport pixels before the renderer has produced the next image, which is the path that caused drag ghosting and unnecessary rebuild pressure.
+
+The focused regression `native_host_viewport_button_and_scroll_wait_for_viewport_image_repaint` locks this behavior by asserting that viewport body press, release, and scroll dispatch the correct shared pointer facts without requesting native redraw or increasing the presentation rebuild count.
+
+## 2026-05-06 Live GUI Screenshot Follow-Up
+
+Live validation launched `D:\cargo-targets\zircon-gui-regression-debug\debug\zircon_editor.exe` and captured the welcome/workbench path under `E:\Git\ZirconEngine\.codex\screenshots\20260506-live-gui`. The first direct launch exposed a runtime loader packaging gap: Cargo debug builds place `zircon_runtime.dll` under `debug\deps`, while the app loader only checked the executable sibling path unless `ZIRCON_RUNTIME_LIBRARY` was set. [`library_path.rs`](/E:/Git/ZirconEngine/zircon_app/src/entry/runtime_library/library_path.rs) now keeps the environment override and packaged sibling lookup first, then falls back to executable-sibling `deps/<platform runtime library>` for direct Cargo debug runs. The focused `zircon_app` runtime-library tests cover sibling preference and `debug\deps` fallback.
+
+The live screenshots also reproduced the collapsed drawer bug. Clicking a left rail icon routed through the overlapping drawer-header hit path and set the status line to `Unknown drawer header surface left` instead of expanding the drawer. [`native_pointer.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs) now gives left/right activity rail buttons priority before drawer header tabs, matching the visible rail ownership. The regression lives in [`native_chrome_routing.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/slint_window/native_chrome_routing.rs) so the oversized native host contract test file does not keep accumulating unrelated chrome-routing cases.
+
+Screenshot evidence captured before the code rebuild:
+
+- `E:\Git\ZirconEngine\.codex\screenshots\20260506-live-gui\baseline-window.png` showed the welcome page and visible Material fields.
+- `E:\Git\ZirconEngine\.codex\screenshots\20260506-live-gui\welcome-input-after-ime-commit.png` showed real keyboard input committed into `Project name`, with location/path auto-filled and `Create Project` enabled.
+- `E:\Git\ZirconEngine\.codex\screenshots\20260506-live-gui\editor-after-recent-project-printwindow.png` showed the workbench opening into the Scene/Inspector layout.
+- `E:\Git\ZirconEngine\.codex\screenshots\20260506-live-gui\after-left-drawer-click.png` captured the rail misroute status line before the priority fix.
+
+Validation completed in this pass:
+
+- `cargo fmt --all`
+- `cargo test -p zircon_app --lib runtime_library --features target-editor-host --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never` passed with 4 runtime-loader tests.
+
+Editor-side focused validation was blocked by local build conditions rather than by the new chrome-routing source: the running editor initially held `zircon_runtime.dll` and produced `LNK1104`, then the interrupted target dir reported a missing incremental dep-info path, and a fresh target spent 15 minutes cold-compiling while another active session was linking `zircon_editor` SVG icon tests. The next validation step is to rerun `cargo test -p zircon_editor --lib native_host_activity_rail_click_wins_over_overlapping_drawer_header ...` and rebuild the GUI once those competing editor test links finish.
+
+## 2026-05-06 Adaptive SVG Icon Rasterization
+
+SVG icons in the Rust-owned host painter now follow the actual draw rectangle instead of being decoded once at the source image size and later stretched as a bitmap. [`visual_assets.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs) resolves the same editor asset candidates as before, but `.svg` paths are rendered through `resvg` with a cache key that includes the requested pixel width/height and tint. Ordinary bitmap images keep the existing Slint decode path.
+
+[`template_nodes.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs) now computes the final icon/image frame first, then requests SVG pixels at that size. This keeps menu icons, tab icons, rail icons, leading button icons, disabled/active Material icon tinting, and non-icon preview images on the same authored `.ui.toml` projection path. [`render_commands.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs) applies the same target-size request for runtime image/vector brush resources, so shared UI render commands also keep vector sharpness when the frame changes.
+
+Validation for this slice:
+
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\svg-adaptive-check --message-format short --color never` passed with existing warnings.
+- `cargo test -p zircon_editor --lib svg_icon_pixels_follow_requested_target_size --locked --jobs 1 --target-dir E:\zircon-build\targets\svg-adaptive-check --message-format short --color never` passed 2 targeted tests.
+
+## 2026-05-07 Native Material Theme Palette
+
+The Rust-owned host painter now has a small Material palette module instead of spreading shell chrome fallback colors across the large workbench painter. [`painter/theme.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs) mirrors the token values from [`editor_material.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/theme/editor_material.ui.toml) for shell background, surface, inset, hover, pressed, selected, disabled, accent, accent-soft, border, text, muted text, disabled text, warning, popup, track, and focus-ring colors. The palette stays private to the painter subtree; it is not a public host-contract API.
+
+[`template_nodes.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs) consumes that palette only after shared template projection has already supplied arranged frames and visual state. The order is explicit: disabled wins, then pressed, selected/focused, primary/accent, hover/drop target, and only then authored `surface_variant` such as `inset` or `popup`. The generic Button hover fallback is restricted to buttons with no authored `surface_variant`, so a Material control that explicitly asks for an inset surface is not recolored by the fallback path.
+
+[`workbench.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs), [`render_commands.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs), and [`visual_assets.rs`](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs) use the same palette for shell chrome, command fallback colors, and icon tint. This keeps native fallback pixels aligned with the `.ui.toml` theme without adding screen-specific Material branches or Asset Browser-specific color tables.
+
+Validation for this slice:
+
+- `cargo test -q -p zircon_editor --lib native_template_painter_uses_material_state_palette_for_controls --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture` passed with existing warnings.
+- `cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture` passed with existing warnings.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never` passed with existing warnings.
+
+## 2026-05-07 Editor Visual Density B
+
+The selected visual direction B keeps the editor in a dense tool-surface mode instead of inheriting large general-purpose Material defaults. [`material_meta_components.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/material_meta_components.ui.toml) now anchors compact/default/prominent heights at 28/32/40, uses 16px button icons and 18px standard icons, and reduces button/list/field padding so Material roots remain readable without swelling panel chrome.
+
+Workbench chrome follows the same scale. [`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) uses a 44px activity rail with 32px icon buttons and a 24px menu action strip, while [`workbench_activity_rail.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml) centers 18px Ionicons inside 32px rail buttons for the authored stencil. The menu chrome templates keep a 24px top bar, and [`inspector_surface_controls.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml) lowers its Material line edits, spin boxes, and Apply/Delete actions to 28px.
+
+The focused guard lives in [`material_meta_component_contracts.rs`](/E:/Git/ZirconEngine/zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs). It prevents future regressions where standard icons return to 30px, rail buttons return to 40px, or menu actions exceed the menu bar height.

@@ -88,7 +88,7 @@ doc_type: category-index
 - [Runtime Diagnostics Contract](./runtime-diagnostics-contract.md): `core::diagnostics` 的只读 runtime inspection snapshot、render/physics/animation manager 聚合，以及 editor diagnostics pane 的 `.ui.toml` 接线边界。
 - [Runtime/Editor Pluginized Export](./runtime-editor-pluginized-export.md): Runtime/Editor 最小本体、项目插件清单、导出 profile、editor capability gating、独立 `zircon_plugins` workspace 与插件包 runtime/editor crate 分离规则。
 - [Plugin Optional Feature Bundles](./plugin-optional-feature-bundles.md): 多插件组合功能的 owner-plugin 子功能模型、all-of capability dependency 规则、feature registration 顺序和导出链接规则。
-- [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_math` 精度 seam、`zircon_scene` 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene asset 的默认化新字段，以及 `zircon_graphics` 的 runtime-to-render downcast 边界。
+- [Runtime Foundation Precision And Scene Authority](./runtime-foundation-precision-and-scene-authority.md): `zircon_runtime_interface::math` 精度 seam、`zircon_runtime::core::math` re-export 入口、runtime scene 的 `LocalTransform + WorldMatrix + ActiveSelf/ActiveInHierarchy + RenderLayerMask + Mobility` authority、scene serializer 默认化字段，以及 graphics renderer 的 runtime-to-render downcast 边界。
 - [Workspace Ownership Cutover Map](./workspace-ownership-cutover-map.md): workspace hard-cutover 的旧 owner -> 新 owner 权威映射，以及删旧、收根、去兼容层时必须遵守的 owner 依据。
 - [Workspace Root Rules And Hard Cutover](./workspace-root-rules-and-hard-cutover.md): 固定三包形态、root file 红线、hard-cutover 删除规则，以及 crate root/public surface 的长期标准。
 
@@ -101,7 +101,7 @@ doc_type: category-index
 - `M2` optional extensions 里的 `net` / `sound` 最小可用闭环，其中 `net` 负责 socket/message-loop MVP，`sound` 负责 `.wav` asset import + clip playback + software mix MVP
 - `EngineEntry`、`EngineModule`、`EngineService` 与 `RuntimeObject/RuntimeSystem/EntityIdentity/ComponentData` 这组接口家族和语义合同
 - `CoreRuntime` service registry 的文件级边界和 `runtime/mod.rs` 只做导出层的结构纪律
-- `zircon_math -> zircon_scene -> zircon_asset -> zircon_graphics` 这条 runtime foundation 的精度与派生态边界
+- `zircon_runtime_interface::math -> zircon_runtime::scene -> runtime scene serializer -> graphics renderer` 这条 runtime foundation 的精度与派生态边界
 - workspace hard-cutover 之后 `zircon_app` / `zircon_runtime` / `zircon_editor` 的固定 owner 形态与 root file 纪律
 - “先抽象框架，后写功能实现”的工程规则
 - “先检查是否和主流引擎模式对齐，过于简单时优先深化架构设计”的设计规则

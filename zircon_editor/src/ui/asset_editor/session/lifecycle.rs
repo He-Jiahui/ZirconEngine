@@ -5,7 +5,9 @@ use crate::ui::template::EditorTemplateRuntimeService;
 use zircon_runtime::ui::template::component_contract_diagnostic;
 use zircon_runtime_interface::ui::{
     layout::UiSize,
-    template::{UiAssetDocument, UiAssetError, UiAssetKind},
+    template::{
+        UiAssetDocument, UiAssetError, UiAssetKind, UiResourceDependency, UiResourceDiagnostic,
+    },
 };
 
 use super::{
@@ -14,7 +16,9 @@ use super::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorInverseTreeEdit, UiAssetEditorTreeEdit,
         UiAssetEditorTreeEditKind,
     },
-    diagnostics::{map_binding_diagnostic, map_component_contract_diagnostic},
+    diagnostics::{
+        map_binding_diagnostic, map_component_contract_diagnostic, map_localization_diagnostic,
+    },
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group, reconcile_selected_semantic_path,
     },
@@ -22,6 +26,7 @@ use super::{
     preview_host::UiAssetPreviewHost,
     preview_mock::{apply_preview_mock_overrides, reconcile_preview_mock_state},
     promotion_state::reference_asset_id,
+    runtime_report_state::DEFAULT_LOCALE_PREVIEW,
     session_state::{
         default_selection, ensure_asset_kind, reconcile_selection, UiAssetCompilerImports,
     },
@@ -89,21 +94,49 @@ impl UiAssetEditorSession {
                         &document.asset.display_name,
                     )
                 });
-        let (last_valid_compiled, preview_host, diagnostics, structured_diagnostics) =
-            match compile_preview(&document, preview_size, &compiler_imports) {
-                Ok((compiled, preview_host)) => (compiled, preview_host, Vec::new(), Vec::new()),
-                Err(error) => {
-                    let structured_diagnostics =
-                        structured_compile_diagnostics(&document, &compiler_imports);
-                    (None, None, vec![error.to_string()], structured_diagnostics)
-                }
-            };
+        let (
+            last_valid_compiled,
+            preview_host,
+            resource_dependencies,
+            resource_diagnostics,
+            diagnostics,
+            structured_diagnostics,
+        ) = match compile_preview(&document, preview_size, &compiler_imports) {
+            Ok((compiled, preview_host)) => {
+                let (resource_dependencies, resource_diagnostics) =
+                    compiled_resource_report(compiled.as_ref());
+                (
+                    compiled,
+                    preview_host,
+                    resource_dependencies,
+                    resource_diagnostics,
+                    Vec::new(),
+                    Vec::new(),
+                )
+            }
+            Err(error) => {
+                let structured_diagnostics =
+                    structured_compile_diagnostics(&document, &compiler_imports);
+                (
+                    None,
+                    None,
+                    Vec::new(),
+                    Vec::new(),
+                    vec![error.to_string()],
+                    structured_diagnostics,
+                )
+            }
+        };
         Ok(Self {
             route,
             source_buffer: UiAssetSourceBuffer::new(source.clone()),
             last_valid_source_text: source,
             last_valid_document: document,
             last_valid_compiled,
+            resource_dependencies,
+            resource_diagnostics,
+            resource_resolver: Default::default(),
+            localization_catalog: Default::default(),
             preview_host,
             undo_stack: super::undo_stack::UiAssetEditorUndoStack::default(),
             diagnostics,
@@ -111,6 +144,8 @@ impl UiAssetEditorSession {
             source_cursor_byte_offset,
             source_cursor_anchor,
             selection,
+            designer_tool_mode: Default::default(),
+            last_preview_interact_dispatch: None,
             style_inspector,
             selected_style_rule_index: None,
             selected_style_rule_id: None,
@@ -122,6 +157,7 @@ impl UiAssetEditorSession {
             selected_binding_payload_key,
             selected_slot_semantic_path: None,
             selected_layout_semantic_path: None,
+            selected_locale_preview: DEFAULT_LOCALE_PREVIEW.to_string(),
             selected_palette_index: None,
             palette_target_chooser: None,
             selected_promote_source_component_name: promote_draft
@@ -178,6 +214,14 @@ impl UiAssetEditorSession {
 
     pub fn structured_diagnostics(&self) -> &[crate::ui::asset_editor::UiAssetEditorDiagnostic] {
         &self.structured_diagnostics
+    }
+
+    pub fn resource_dependencies(&self) -> &[UiResourceDependency] {
+        &self.resource_dependencies
+    }
+
+    pub fn resource_diagnostics(&self) -> &[UiResourceDiagnostic] {
+        &self.resource_diagnostics
     }
 
     pub fn can_undo(&self) -> bool {
@@ -274,6 +318,7 @@ impl UiAssetEditorSession {
         )?;
         self.last_valid_compiled = compiled;
         self.preview_host = preview_host;
+        self.refresh_resource_path_resolver();
         Ok(())
     }
 
@@ -384,6 +429,8 @@ impl UiAssetEditorSession {
             Err(error) => {
                 self.diagnostics = vec![error.to_string()];
                 self.structured_diagnostics.clear();
+                self.resource_dependencies.clear();
+                self.resource_diagnostics.clear();
                 Ok(())
             }
         }
@@ -479,14 +526,14 @@ impl UiAssetEditorSession {
                 self.last_valid_compiled = compiled;
                 self.preview_host = preview_host;
                 self.diagnostics.clear();
-                self.structured_diagnostics.clear();
+                self.refresh_resource_path_resolver();
+                self.refresh_structured_diagnostics_for_current_document();
             }
             Err(error) => {
                 self.diagnostics = vec![error.to_string()];
-                self.structured_diagnostics = structured_compile_diagnostics(
-                    &self.last_valid_document,
-                    &self.compiler_imports,
-                );
+                self.resource_dependencies.clear();
+                self.resource_diagnostics.clear();
+                self.refresh_structured_diagnostics_for_current_document();
             }
         }
         Ok(())
@@ -524,6 +571,19 @@ pub(super) fn parse_ui_asset_source(source: &str) -> Result<UiAssetDocument, UiA
     EditorTemplateRuntimeService.parse_document_source(source)
 }
 
+pub(super) fn compiled_resource_report(
+    compiled: Option<&zircon_runtime::ui::template::UiCompiledDocument>,
+) -> (Vec<UiResourceDependency>, Vec<UiResourceDiagnostic>) {
+    compiled
+        .map(|compiled| {
+            (
+                compiled.resource_dependencies().to_vec(),
+                compiled.resource_diagnostics().to_vec(),
+            )
+        })
+        .unwrap_or_default()
+}
+
 fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> Option<usize> {
     match (current, items.len()) {
         (_, 0) => None,
@@ -532,7 +592,7 @@ fn reconcile_selected_palette_index<T>(items: &[T], current: Option<usize>) -> O
     }
 }
 
-fn structured_compile_diagnostics(
+pub(super) fn structured_compile_diagnostics(
     document: &UiAssetDocument,
     imports: &UiAssetCompilerImports,
 ) -> Vec<crate::ui::asset_editor::UiAssetEditorDiagnostic> {
@@ -543,6 +603,13 @@ fn structured_compile_diagnostics(
             .diagnostics
             .into_iter()
             .map(map_binding_diagnostic),
+    );
+    diagnostics.extend(
+        EditorTemplateRuntimeService
+            .collect_localization_report(document)
+            .diagnostics
+            .into_iter()
+            .map(map_localization_diagnostic),
     );
     diagnostics
 }

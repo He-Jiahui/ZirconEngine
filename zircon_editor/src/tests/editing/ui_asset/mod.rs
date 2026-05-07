@@ -1,6 +1,9 @@
+mod designer_tools;
+mod emergency_shell;
 mod inspector;
 mod preview;
 mod reference_and_promotion;
+mod runtime_report_productization;
 mod source_projection;
 mod structure_split;
 mod styling;

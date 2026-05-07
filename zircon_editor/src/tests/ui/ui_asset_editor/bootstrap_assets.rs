@@ -49,8 +49,8 @@ fn ui_asset_editor_bootstrap_assets_open_in_session_after_import_hydration() {
     .expect("bootstrap session");
 
     assert!(
-        !session.diagnostics().is_empty(),
-        "bootstrap session should report missing imports before hydration"
+        session.diagnostics().is_empty(),
+        "bootstrap session should auto-resolve bundled imports before explicit hydration"
     );
 
     hydrate_bootstrap_imports(&mut session);

@@ -6,8 +6,9 @@ use slint::{CloseRequestResponse, Image, ModelRc, PhysicalPosition, PhysicalSize
 
 use super::data::{
     AssetFolderData, AssetItemData, AssetReferenceData, AssetSelectionData, HostDragStateData,
-    HostMenuStateData, HostPaneInteractionStateData, HostViewportImageData,
-    HostWindowPresentationData, ProjectOverviewData, RecentProjectData, WelcomePaneData,
+    HostMenuStateData, HostPaneInteractionStateData, HostResizeStateData, HostTextInputFocusData,
+    HostViewportImageData, HostWindowPresentationData, ProjectOverviewData, RecentProjectData,
+    WelcomePaneData,
 };
 use super::diagnostics::HostInvalidationDiagnostics;
 use super::redraw::HostRedrawRequest;
@@ -29,6 +30,7 @@ pub(crate) struct HostContractState {
     pub(crate) window_position: PhysicalPosition,
     pub(crate) window_size: PhysicalSize,
     pub(crate) window_visible: bool,
+    pub(crate) exit_requested: bool,
     pub(crate) window_maximized: bool,
     pub(crate) close_requested: Option<Rc<dyn Fn() -> CloseRequestResponse>>,
     pub(crate) host_presentation: HostWindowPresentationData,
@@ -42,6 +44,8 @@ pub(crate) struct HostContractState {
     pub(crate) menu_state: HostMenuStateData,
     pub(crate) pane_interaction_state: HostPaneInteractionStateData,
     pub(crate) drag_state: HostDragStateData,
+    pub(crate) resize_state: HostResizeStateData,
+    pub(crate) text_input_focus: HostTextInputFocusData,
     pub(crate) welcome_pane: WelcomePaneData,
     ui_callbacks: UiHostCallbacks,
     pane_callbacks: PaneSurfaceCallbacks,
@@ -53,6 +57,7 @@ impl HostContractState {
             window_position: PhysicalPosition::new(0, 0),
             window_size,
             window_visible: false,
+            exit_requested: false,
             window_maximized: false,
             close_requested: None,
             host_presentation: HostWindowPresentationData::default(),
@@ -66,6 +71,8 @@ impl HostContractState {
             menu_state: HostMenuStateData::default(),
             pane_interaction_state: HostPaneInteractionStateData::default(),
             drag_state: HostDragStateData::default(),
+            resize_state: HostResizeStateData::default(),
+            text_input_focus: HostTextInputFocusData::default(),
             welcome_pane: WelcomePaneData::default(),
             ui_callbacks: UiHostCallbacks::default(),
             pane_callbacks: PaneSurfaceCallbacks::default(),
@@ -76,6 +83,7 @@ impl HostContractState {
 #[derive(Default)]
 struct UiHostCallbacks {
     frame_requested: Option<Callback0>,
+    close_prompt_action_clicked: Option<Callback1<SharedString>>,
     menu_pointer_clicked: Option<Callback2<f32, f32>>,
     menu_pointer_moved: Option<Callback2<f32, f32>>,
     menu_pointer_scrolled: Option<Callback3<f32, f32, f32>>,
@@ -104,6 +112,7 @@ struct PaneSurfaceCallbacks {
     inspector_control_changed: Option<Callback2<SharedString, SharedString>>,
     inspector_control_clicked: Option<Callback1<SharedString>>,
     surface_control_clicked: Option<Callback2<SharedString, SharedString>>,
+    surface_control_edited: Option<Callback3<SharedString, SharedString, SharedString>>,
     component_showcase_control_activated: Option<Callback2<SharedString, SharedString>>,
     component_showcase_control_drag_delta: Option<Callback3<SharedString, SharedString, f32>>,
     component_showcase_control_edited: Option<Callback3<SharedString, SharedString, SharedString>>,
@@ -185,6 +194,30 @@ impl UiHostContext<'_> {
         self.state.borrow_mut().drag_state = value;
     }
 
+    pub(crate) fn get_resize_state(&self) -> HostResizeStateData {
+        self.state.borrow().resize_state.clone()
+    }
+
+    pub(crate) fn set_resize_state(&self, value: HostResizeStateData) {
+        self.state.borrow_mut().resize_state = value;
+    }
+
+    pub(crate) fn clear_resize_state(&self) {
+        self.state.borrow_mut().resize_state = HostResizeStateData::default();
+    }
+
+    pub(crate) fn get_text_input_focus(&self) -> HostTextInputFocusData {
+        self.state.borrow().text_input_focus.clone()
+    }
+
+    pub(crate) fn set_text_input_focus(&self, value: HostTextInputFocusData) {
+        self.state.borrow_mut().text_input_focus = value;
+    }
+
+    pub(crate) fn clear_text_input_focus(&self) {
+        self.state.borrow_mut().text_input_focus = HostTextInputFocusData::default();
+    }
+
     callback_methods!(
         ui_callbacks,
         on_frame_requested,
@@ -192,6 +225,7 @@ impl UiHostContext<'_> {
         frame_requested,
         ()
     );
+    callback_methods!(ui_callbacks, on_close_prompt_action_clicked, invoke_close_prompt_action_clicked, close_prompt_action_clicked, (action_id: SharedString));
     callback_methods!(ui_callbacks, on_menu_pointer_clicked, invoke_menu_pointer_clicked, menu_pointer_clicked, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_moved, invoke_menu_pointer_moved, menu_pointer_moved, (x: f32, y: f32));
     callback_methods!(ui_callbacks, on_menu_pointer_scrolled, invoke_menu_pointer_scrolled, menu_pointer_scrolled, (x: f32, y: f32, delta: f32));
@@ -324,6 +358,7 @@ impl PaneSurfaceHostContext<'_> {
     callback_methods!(pane_callbacks, on_inspector_control_changed, invoke_inspector_control_changed, inspector_control_changed, (control_id: SharedString, value: SharedString));
     callback_methods!(pane_callbacks, on_inspector_control_clicked, invoke_inspector_control_clicked, inspector_control_clicked, (control_id: SharedString));
     callback_methods!(pane_callbacks, on_surface_control_clicked, invoke_surface_control_clicked, surface_control_clicked, (control_id: SharedString, action_id: SharedString));
+    callback_methods!(pane_callbacks, on_surface_control_edited, invoke_surface_control_edited, surface_control_edited, (control_id: SharedString, binding_id: SharedString, native_value: SharedString));
     callback_methods!(pane_callbacks, on_component_showcase_control_activated, invoke_component_showcase_control_activated, component_showcase_control_activated, (control_id: SharedString, action_id: SharedString));
     callback_methods!(pane_callbacks, on_component_showcase_control_drag_delta, invoke_component_showcase_control_drag_delta, component_showcase_control_drag_delta, (control_id: SharedString, action_id: SharedString, delta: f32));
     callback_methods!(pane_callbacks, on_component_showcase_control_edited, invoke_component_showcase_control_edited, component_showcase_control_edited, (control_id: SharedString, action_id: SharedString, value: SharedString));

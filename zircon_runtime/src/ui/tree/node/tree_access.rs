@@ -15,6 +15,7 @@ impl UiRuntimeTreeAccessExt for UiTree {
             tree_id,
             roots: Vec::new(),
             nodes: Default::default(),
+            slots: Vec::new(),
         }
     }
 

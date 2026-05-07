@@ -4,7 +4,7 @@ use crate::core::editor_operation::{
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 
 use crate::core::editor_event::{EditorEventEnvelope, EditorEventRuntime, EditorEventSource};
-use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use crate::ui::workbench::model::operation_path_for_menu_action;
 use serde_json::{Number, Value};
@@ -13,9 +13,9 @@ use zircon_runtime_interface::ui::binding::UiBindingValue;
 pub(crate) fn dispatch_envelope(
     runtime: &EditorEventRuntime,
     envelope: EditorEventEnvelope,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let record = runtime.dispatch_envelope(envelope)?;
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
 }
@@ -23,16 +23,16 @@ pub(crate) fn dispatch_envelope(
 pub(crate) fn dispatch_editor_binding(
     runtime: &EditorEventRuntime,
     binding: EditorUiBinding,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     if let Some(invocation) = operation_invocation_for_binding(&binding)? {
         let record = runtime.invoke_operation(EditorOperationSource::UiBinding, invocation)?;
-        let mut effects = SlintDispatchEffects::default();
+        let mut effects = UiHostEventEffects::default();
         apply_record_effects(&mut effects, &record);
         return Ok(effects);
     }
 
     let record = runtime.dispatch_binding(binding, EditorEventSource::Slint)?;
-    let mut effects = SlintDispatchEffects::default();
+    let mut effects = UiHostEventEffects::default();
     apply_record_effects(&mut effects, &record);
     Ok(effects)
 }

@@ -297,44 +297,32 @@ fn apply_selection(
     let is_multiple = bool_setting(state, descriptor, "multiple", false);
 
     clear_reference_source(state, &property);
-    match state.values.get_mut(&property) {
-        Some(UiValue::Flags(values)) => {
-            if selected {
-                if !values.iter().any(|value| value == &option_id) {
-                    values.push(option_id);
-                }
-            } else {
-                values.retain(|value| value != &option_id);
+    if is_flags {
+        let mut values = selection_flags_value(state, &property);
+        if selected {
+            if !values.iter().any(|value| value == &option_id) {
+                values.push(option_id);
             }
+        } else {
+            values.retain(|value| value != &option_id);
         }
-        _ if is_flags => {
-            if selected {
-                state
-                    .values
-                    .insert(property, UiValue::Flags(vec![option_id]));
-            } else {
-                state.values.insert(property, UiValue::Flags(Vec::new()));
+        state.values.insert(property, UiValue::Flags(values));
+    } else if is_multiple {
+        let values = selection_array_value_mut(state, &property);
+        if selected {
+            if !values
+                .iter()
+                .any(|value| value == &UiValue::Enum(option_id.clone()))
+            {
+                values.push(UiValue::Enum(option_id));
             }
+        } else {
+            values.retain(|value| value != &UiValue::Enum(option_id.clone()));
         }
-        _ if is_multiple => {
-            let values = selection_array_value_mut(state, &property);
-            if selected {
-                if !values
-                    .iter()
-                    .any(|value| value == &UiValue::Enum(option_id.clone()))
-                {
-                    values.push(UiValue::Enum(option_id));
-                }
-            } else {
-                values.retain(|value| value != &UiValue::Enum(option_id.clone()));
-            }
-        }
-        _ if selected => {
-            state.values.insert(property, UiValue::Enum(option_id));
-        }
-        _ => {
-            state.values.insert(property, UiValue::Null);
-        }
+    } else if selected {
+        state.values.insert(property, UiValue::Enum(option_id));
+    } else {
+        state.values.insert(property, UiValue::Null);
     }
     state.flags.selected = selected;
     Ok(())
@@ -683,6 +671,23 @@ fn selection_array_value_mut<'a>(
     match state.values.get_mut(property) {
         Some(UiValue::Array(values)) => values,
         _ => unreachable!("selection array value was inserted before mutable access"),
+    }
+}
+
+fn selection_flags_value(state: &mut UiComponentState, property: &str) -> Vec<String> {
+    match state.values.remove(property) {
+        Some(UiValue::Flags(values)) => values,
+        Some(UiValue::Array(values)) => values
+            .into_iter()
+            .filter_map(|value| match value {
+                UiValue::Enum(value) | UiValue::String(value) if !value.is_empty() => Some(value),
+                _ => None,
+            })
+            .collect(),
+        Some(UiValue::Enum(value)) | Some(UiValue::String(value)) if !value.is_empty() => {
+            vec![value]
+        }
+        _ => Vec::new(),
     }
 }
 

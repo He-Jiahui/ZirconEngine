@@ -339,12 +339,13 @@ pub(crate) struct HostWindowSurfaceOrchestrationData {
     pub bottom_panel_y_px: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub(crate) struct HostMenuChromeItemData {
     pub label: SharedString,
     pub shortcut: SharedString,
     pub action_id: SharedString,
     pub enabled: bool,
+    pub children: ModelRc<HostMenuChromeItemData>,
 }
 
 #[derive(Clone)]

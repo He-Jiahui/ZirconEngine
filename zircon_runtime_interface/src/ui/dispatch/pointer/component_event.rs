@@ -11,10 +11,15 @@ pub enum UiPointerComponentEventReason {
     #[default]
     DirectBinding,
     DefaultClick,
+    DefaultDoubleClick,
+    DefaultClickRejected,
     HoverEnter,
     HoverLeave,
     PressBegin,
     PressEnd,
+    FocusGained,
+    FocusLost,
+    ScrollFallback,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

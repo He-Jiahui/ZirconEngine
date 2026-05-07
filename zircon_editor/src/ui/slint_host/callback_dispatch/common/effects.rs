@@ -1,6 +1,6 @@
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
-pub(crate) fn merge_effects(target: &mut SlintDispatchEffects, source: SlintDispatchEffects) {
+pub(crate) fn merge_effects(target: &mut UiHostEventEffects, source: UiHostEventEffects) {
     target.layout_dirty |= source.layout_dirty;
     target.render_dirty |= source.render_dirty;
     target.presentation_dirty |= source.presentation_dirty;

@@ -6855,6 +6855,7 @@ dependencies = [
  "i-slint-backend-testing",
  "image",
  "notify",
+ "resvg",
  "serde",
  "serde_json",
  "slint",
@@ -6893,6 +6894,7 @@ dependencies = [
  "tobj",
  "toml 1.1.2+spec-1.1.0",
  "tracing",
+ "unicode-segmentation",
  "uuid",
  "wgpu",
  "winit 0.31.0-beta.2",
@@ -6909,6 +6911,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "toml 1.1.2+spec-1.1.0",
+ "unicode-segmentation",
  "uuid",
 ]
 

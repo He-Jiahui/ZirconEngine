@@ -32,15 +32,6 @@ fn host_shell_pointer_route_group_key_normalizes_document_and_floating_routes() 
 #[test]
 fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface() {
     let window_id = MainPageId::new("window:preview");
-    let mut geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-    geometry.floating_window_frames.insert(
-        window_id.clone(),
-        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
-    );
     let floating_windows = vec![floating_window(
         window_id.clone(),
         "Preview Popout",
@@ -50,10 +41,8 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &floating_windows,
-        &[],
     );
 
     assert_eq!(
@@ -70,15 +59,6 @@ fn shared_shell_pointer_route_reports_floating_window_attach_from_shared_surface
 fn shared_shell_pointer_route_does_not_fall_back_to_legacy_geometry_when_projection_bundle_is_explicitly_provided_but_missing_window(
 ) {
     let window_id = MainPageId::new("window:preview");
-    let mut geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-    geometry.floating_window_frames.insert(
-        window_id.clone(),
-        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
-    );
     let floating_windows = vec![floating_window(
         window_id.clone(),
         "Preview Popout",
@@ -89,7 +69,6 @@ fn shared_shell_pointer_route_does_not_fall_back_to_legacy_geometry_when_project
     let empty_bundle = FloatingWindowProjectionBundle::default();
     bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &floating_windows,
         None,
@@ -106,15 +85,6 @@ fn shared_shell_pointer_route_does_not_fall_back_to_legacy_geometry_when_project
 #[test]
 fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_attach_surface() {
     let window_id = MainPageId::new("window:preview");
-    let mut geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-    geometry.floating_window_frames.insert(
-        window_id.clone(),
-        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
-    );
     let floating_windows = vec![floating_window(
         window_id.clone(),
         "Preview Popout",
@@ -124,7 +94,6 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_native_window_hosts(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &floating_windows,
         None,
@@ -145,15 +114,6 @@ fn shared_shell_pointer_route_prefers_native_window_host_bounds_for_floating_att
 #[test]
 fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface() {
     let window_id = MainPageId::new("window:preview");
-    let mut geometry = shell_geometry(
-        ShellFrame::new(1120.0, 50.0, 320.0, 738.0),
-        ShellFrame::new(34.0, 50.0, 1086.0, 738.0),
-        ShellFrame::new(0.0, 788.0, 1440.0, 92.0),
-    );
-    geometry.floating_window_frames.insert(
-        window_id.clone(),
-        ShellFrame::new(420.0, 180.0, 360.0, 240.0),
-    );
     let floating_windows = vec![floating_window(
         window_id.clone(),
         "Preview Popout",
@@ -163,10 +123,8 @@ fn shared_shell_pointer_route_reports_floating_window_edge_from_shared_surface()
     let mut bridge = HostShellPointerBridge::new();
     bridge.update_layout_with_floating_windows(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &floating_windows,
-        &[],
     );
 
     assert_eq!(

@@ -6,7 +6,9 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::UNIX_EPOCH;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
-use zircon_runtime::diagnostic_log::write_diagnostic_log;
+use zircon_runtime::diagnostic_log::{
+    diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
+};
 use zircon_runtime::ui::template::UiCompiledDocument;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiComponentDefinition,
@@ -41,15 +43,17 @@ fn register_builtin_template_documents(
     runtime: &mut EditorUiHostRuntime,
 ) -> Result<(), EditorUiHostRuntimeError> {
     for (document_id, path) in builtin_template_documents() {
-        write_diagnostic_log(
-            "editor_builtin_templates",
-            format!(
-                "register_document id={} path={} exists={}",
-                document_id,
-                path.display(),
-                path.exists()
-            ),
-        );
+        if editor_template_verbose_enabled() {
+            write_diagnostic_log(
+                "editor_builtin_templates",
+                format!(
+                    "register_document id={} path={} exists={}",
+                    document_id,
+                    path.display(),
+                    path.exists()
+                ),
+            );
+        }
         runtime.register_document_file(document_id, path)?;
     }
 
@@ -67,27 +71,60 @@ pub(super) fn compile_template_document_file(
         .get(&cache_key)
         .cloned()
     {
-        write_diagnostic_log(
-            "editor_template_compile_cache",
-            format!(
-                "hit path={} modified_unix_ns={}",
-                cache_key.path.display(),
-                cache_key.modified_unix_ns.unwrap_or(0)
-            ),
-        );
+        if editor_template_verbose_enabled() {
+            write_diagnostic_log(
+                "editor_template_compile_cache",
+                format!(
+                    "hit path={} modified_unix_ns={}",
+                    cache_key.path.display(),
+                    cache_key.modified_unix_ns.unwrap_or(0)
+                ),
+            );
+        }
         return Ok(compiled);
     }
 
-    write_diagnostic_log(
-        "editor_template_compile",
-        format!(
-            "load_document path={} exists={}",
-            path.display(),
-            path.exists()
-        ),
-    );
+    if editor_template_verbose_enabled() {
+        write_diagnostic_log(
+            "editor_template_compile",
+            format!(
+                "load_document path={} exists={}",
+                path.display(),
+                path.exists()
+            ),
+        );
+    }
     let document = load_builtin_template_document_file(template_service, path)
         .map_err(EditorUiHostRuntimeError::from)?;
+    let compiled = compile_template_document_with_builtin_imports(template_service, &document)?;
+    builtin_template_compile_cache()
+        .lock()
+        .expect("builtin template compile cache mutex should not be poisoned")
+        .insert(cache_key, compiled.clone());
+    Ok(compiled)
+}
+
+pub(crate) fn compile_template_document_with_builtin_imports(
+    template_service: &EditorTemplateRuntimeService,
+    document: &UiAssetDocument,
+) -> Result<UiCompiledDocument, EditorUiHostRuntimeError> {
+    let (widget_imports, style_imports) =
+        collect_builtin_template_imports(template_service, document)?;
+    template_service
+        .compile_document_with_import_maps(document, &widget_imports, &style_imports)
+        .map_err(EditorUiHostRuntimeError::from)
+}
+
+pub(crate) fn collect_builtin_template_imports(
+    template_service: &EditorTemplateRuntimeService,
+    document: &UiAssetDocument,
+) -> Result<
+    (
+        BTreeMap<String, UiAssetDocument>,
+        BTreeMap<String, UiAssetDocument>,
+    ),
+    UiAssetError,
+> {
     let mut widget_imports = BTreeMap::new();
     let mut style_imports = BTreeMap::new();
     let mut seen_imports = BTreeSet::new();
@@ -95,19 +132,10 @@ pub(super) fn compile_template_document_file(
         template_service,
         &mut widget_imports,
         &mut style_imports,
-        &document,
+        document,
         &mut seen_imports,
     )?;
-    let compiled = template_service.compile_document_with_import_maps(
-        &document,
-        &widget_imports,
-        &style_imports,
-    )?;
-    builtin_template_compile_cache()
-        .lock()
-        .expect("builtin template compile cache mutex should not be poisoned")
-        .insert(cache_key, compiled.clone());
-    Ok(compiled)
+    Ok((widget_imports, style_imports))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -153,14 +181,16 @@ fn load_builtin_template_document_file(
         .get(&cache_key)
         .cloned()
     {
-        write_diagnostic_log(
-            "editor_template_document_cache",
-            format!(
-                "hit path={} modified_unix_ns={}",
-                cache_key.path.display(),
-                cache_key.modified_unix_ns.unwrap_or(0)
-            ),
-        );
+        if editor_template_verbose_enabled() {
+            write_diagnostic_log(
+                "editor_template_document_cache",
+                format!(
+                    "hit path={} modified_unix_ns={}",
+                    cache_key.path.display(),
+                    cache_key.modified_unix_ns.unwrap_or(0)
+                ),
+            );
+        }
         return Ok(document);
     }
 
@@ -170,6 +200,10 @@ fn load_builtin_template_document_file(
         .expect("builtin template document cache mutex should not be poisoned")
         .insert(cache_key, document.clone());
     Ok(document)
+}
+
+fn editor_template_verbose_enabled() -> bool {
+    diagnostic_log_allows(DiagnosticLogLevel::Verbose)
 }
 
 fn builtin_template_document_cache(
@@ -267,15 +301,20 @@ fn resolve_builtin_import(
         return Ok(None);
     };
     let source_path = editor_runtime_asset_path(path);
-    write_diagnostic_log(
-        "editor_template_import",
-        format!(
-            "reference={} resolved_path={} exists={}",
-            reference,
-            source_path.display(),
-            source_path.exists()
-        ),
-    );
+    if editor_template_verbose_enabled() {
+        write_diagnostic_log(
+            "editor_template_import",
+            format!(
+                "reference={} resolved_path={} exists={}",
+                reference,
+                source_path.display(),
+                source_path.exists()
+            ),
+        );
+    }
+    if !source_path.exists() {
+        return Ok(None);
+    }
     Ok(Some(load_builtin_template_document_file(
         template_service,
         &source_path,

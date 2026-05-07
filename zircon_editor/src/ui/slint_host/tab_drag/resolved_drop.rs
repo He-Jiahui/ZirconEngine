@@ -1,3 +1,4 @@
+use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::layout::SplitAxis;
 use crate::ui::workbench::layout::SplitPlacement;
 use crate::ui::workbench::layout::TabInsertionAnchor;
@@ -22,6 +23,9 @@ pub(crate) struct ResolvedHostTabDropRoute {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum ResolvedHostTabDropTarget {
     Attach(ResolvedTabDrop),
+    DetachToWindow {
+        new_window: MainPageId,
+    },
     Split {
         workspace: WorkspaceTarget,
         path: Vec<usize>,

@@ -2,8 +2,8 @@ use crate::ui::tree::{UiHitTestIndex, UiHitTestResult};
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
-        UiHitTestDebugDump, UiHitTestQuery, UiHitTestReject, UiHitTestRejectReason,
-        UiSurfaceFrame,
+        UiHitCoordinateSpace, UiHitTestDebugDump, UiHitTestQuery, UiHitTestReject,
+        UiHitTestRejectReason, UiSurfaceFrame,
     },
     tree::UiInputPolicy,
 };
@@ -37,8 +37,30 @@ pub fn debug_hit_test_surface_frame_with_query(
     query: UiHitTestQuery,
 ) -> UiHitTestDebugDump {
     let point = query.hit_point();
-    let hit = hit_test_surface_frame_with_query(surface_frame, query);
+    let hit = hit_test_surface_frame_with_query(surface_frame, query.clone());
     let mut rejected = Vec::new();
+    if query.coordinate_space == UiHitCoordinateSpace::World && !query.has_projected_world_hit() {
+        rejected.push(UiHitTestReject {
+            node_id: Default::default(),
+            control_id: None,
+            reason: UiHitTestRejectReason::WorldHitUnavailable,
+            message: "world hit query has no finite ray plus surface-local projection".to_string(),
+        });
+    } else if !query.uses_surface_coordinates() {
+        rejected.push(UiHitTestReject {
+            node_id: Default::default(),
+            control_id: None,
+            reason: UiHitTestRejectReason::UnsupportedCoordinateSpace,
+            message: "hit query was not projected into surface coordinates".to_string(),
+        });
+    } else if !surface_frame.hit_grid.scope.accepts_query(&query.scope) {
+        rejected.push(UiHitTestReject {
+            node_id: Default::default(),
+            control_id: None,
+            reason: UiHitTestRejectReason::ScopeMismatch,
+            message: "hit query scope does not match the surface hit grid scope".to_string(),
+        });
+    }
     for node in &surface_frame.arranged_tree.nodes {
         if !node.frame.contains_point(point) {
             rejected.push(UiHitTestReject {

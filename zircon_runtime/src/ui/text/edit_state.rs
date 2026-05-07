@@ -1,5 +1,6 @@
 use zircon_runtime_interface::ui::surface::{
-    UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextEditAction, UiTextSelection,
+    UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextEditAction, UiTextRange,
+    UiTextSelection,
 };
 
 pub(crate) fn apply_text_edit_action(
@@ -25,19 +26,47 @@ pub(crate) fn apply_text_edit_action(
             state.selection = Some(UiTextSelection { anchor, focus });
         }
         UiTextEditAction::SetComposition { range, text } => {
+            if let Some(composition) = state.composition.take() {
+                if let Some(restore_text) = composition.restore_text {
+                    replace_range_preserving_composition(
+                        &mut state,
+                        composition.range.start,
+                        composition.range.end,
+                        &restore_text,
+                    );
+                }
+            }
+            let range = composition_source_range(&state.text, range, &text);
+            let restore_text = state.text[range.start..range.end].to_string();
+            replace_range_preserving_composition(&mut state, range.start, range.end, &text);
             state.composition = Some(zircon_runtime_interface::ui::surface::UiTextComposition {
-                range,
+                range: UiTextRange {
+                    start: range.start,
+                    end: range.start + text.len(),
+                },
                 text,
+                restore_text: Some(restore_text),
             });
         }
         UiTextEditAction::CommitComposition => {
             if let Some(composition) = state.composition.take() {
-                let start = clamp_boundary(&state.text, composition.range.start);
-                let end = clamp_boundary(&state.text, composition.range.end);
-                replace_range(&mut state, start, end, &composition.text);
+                state.caret.offset = clamp_boundary(&state.text, composition.range.end);
+                state.caret.affinity = UiTextCaretAffinity::Downstream;
+                state.selection = None;
             }
         }
-        UiTextEditAction::CancelComposition => state.composition = None,
+        UiTextEditAction::CancelComposition => {
+            if let Some(composition) = state.composition.take() {
+                if let Some(restore_text) = composition.restore_text {
+                    replace_range_preserving_composition(
+                        &mut state,
+                        composition.range.start,
+                        composition.range.end,
+                        &restore_text,
+                    );
+                }
+            }
+        }
     }
 
     state
@@ -54,7 +83,11 @@ fn replace_selection_or_range(state: &mut UiEditableTextState, text: &str) {
 }
 
 fn backspace(state: &mut UiEditableTextState) {
-    if state.selection.as_ref().is_some_and(|selection| selection.anchor != selection.focus) {
+    if state
+        .selection
+        .as_ref()
+        .is_some_and(|selection| selection.anchor != selection.focus)
+    {
         replace_selection_or_range(state, "");
         return;
     }
@@ -66,7 +99,11 @@ fn backspace(state: &mut UiEditableTextState) {
 }
 
 fn delete(state: &mut UiEditableTextState) {
-    if state.selection.as_ref().is_some_and(|selection| selection.anchor != selection.focus) {
+    if state
+        .selection
+        .as_ref()
+        .is_some_and(|selection| selection.anchor != selection.focus)
+    {
         replace_selection_or_range(state, "");
         return;
     }
@@ -99,12 +136,33 @@ fn move_caret(state: &mut UiEditableTextState, offset: usize, extend_selection: 
 }
 
 fn replace_range(state: &mut UiEditableTextState, start: usize, end: usize, replacement: &str) {
+    replace_range_preserving_composition(state, start, end, replacement);
+    state.composition = None;
+}
+
+fn replace_range_preserving_composition(
+    state: &mut UiEditableTextState,
+    start: usize,
+    end: usize,
+    replacement: &str,
+) {
     let start = clamp_boundary(&state.text, start);
     let end = clamp_boundary(&state.text, end).max(start);
     state.text.replace_range(start..end, replacement);
     state.caret.offset = start + replacement.len();
     state.caret.affinity = UiTextCaretAffinity::Downstream;
     state.selection = None;
+}
+
+fn composition_source_range(text: &str, range: UiTextRange, replacement: &str) -> UiTextRange {
+    let start = clamp_boundary(text, range.start);
+    let explicit_end = clamp_boundary(text, range.end).max(start);
+    let end = if explicit_end == start {
+        start
+    } else {
+        clamp_boundary(text, start + replacement.len()).max(explicit_end)
+    };
+    UiTextRange { start, end }
 }
 
 fn clamp_boundary(text: &str, offset: usize) -> usize {

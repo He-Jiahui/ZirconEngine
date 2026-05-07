@@ -237,13 +237,22 @@ pub(crate) struct UiAssetPaneHeaderData {
     pub mode: SharedString,
     pub status: SharedString,
     pub selection: SharedString,
+    pub shell_state: SharedString,
+    pub emergency_summary: SharedString,
 }
 
 #[derive(Clone, Default)]
 pub(crate) struct UiAssetActionStateData {
+    pub can_reload_from_disk: bool,
+    pub can_keep_local_and_save: bool,
+    pub can_save_local_copy: bool,
+    pub can_open_diff_snapshot: bool,
     pub can_save: bool,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub can_emergency_reload: bool,
+    pub can_emergency_revert: bool,
+    pub can_emergency_open_asset_browser: bool,
     pub can_insert_child: bool,
     pub can_insert_after: bool,
     pub can_move_up: bool,
@@ -259,6 +268,14 @@ pub(crate) struct UiAssetActionStateData {
     pub can_unwrap: bool,
     pub can_create_rule: bool,
     pub can_extract_rule: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct UiAssetDesignerToolStateData {
+    pub mode: SharedString,
+    pub can_select: bool,
+    pub can_resize_slot: bool,
+    pub can_preview_interact: bool,
 }
 
 #[derive(Clone, Default)]
@@ -288,6 +305,21 @@ pub(crate) struct UiAssetPreviewPanelData {
     pub available: bool,
     pub canvas: UiAssetPreviewCanvasData,
     pub mock: UiAssetPreviewMockData,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct UiAssetRuntimeReportData {
+    pub action_policy_items: ModelRc<SharedString>,
+    pub capability_explanation_items: ModelRc<SharedString>,
+    pub host_enforcement_items: ModelRc<SharedString>,
+    pub unsafe_action_guidance_items: ModelRc<SharedString>,
+    pub locale_preview: UiAssetStringSelectionData,
+    pub locale_preview_selected_locale: SharedString,
+    pub locale_dependency_items: ModelRc<SharedString>,
+    pub locale_extraction_items: ModelRc<SharedString>,
+    pub locale_diagnostic_items: ModelRc<SharedString>,
+    pub resource_dependency_items: ModelRc<SharedString>,
+    pub resource_diagnostic_items: ModelRc<SharedString>,
 }
 
 #[derive(Clone, Default)]
@@ -334,6 +366,8 @@ pub(crate) struct UiAssetEditorPaneData {
     pub collections: UiAssetCollectionPanelData,
     pub source: UiAssetSourcePanelData,
     pub preview: UiAssetPreviewPanelData,
+    pub runtime_report: UiAssetRuntimeReportData,
+    pub designer_tools: UiAssetDesignerToolStateData,
     pub palette_drag: UiAssetPaletteDragData,
     pub style: UiAssetStylePanelData,
     pub inspector: UiAssetInspectorPanelData,

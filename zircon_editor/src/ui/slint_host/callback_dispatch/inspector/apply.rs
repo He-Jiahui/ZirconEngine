@@ -1,7 +1,7 @@
 use crate::core::editor_event::{
     EditorEventEnvelope, EditorEventRuntime, EditorEventSource, EditorInspectorEvent,
 };
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_envelope;
 
@@ -9,7 +9,7 @@ use super::super::common::dispatch_envelope;
 pub(crate) fn dispatch_inspector_apply(
     runtime: &EditorEventRuntime,
     event: EditorInspectorEvent,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     dispatch_envelope(
         runtime,
         EditorEventEnvelope::new(

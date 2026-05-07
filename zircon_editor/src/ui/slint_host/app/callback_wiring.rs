@@ -24,6 +24,14 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
     });
 
     let weak = Rc::downgrade(host);
+    host_shell.on_close_prompt_action_clicked(move |action_id| {
+        if let Some(host) = weak.upgrade() {
+            host.borrow_mut()
+                .close_prompt_action_clicked(action_id.as_str());
+        }
+    });
+
+    let weak = Rc::downgrade(host);
     host_shell.on_menu_pointer_clicked(move |x, y| {
         if let Some(host) = weak.upgrade() {
             host.borrow_mut().menu_pointer_clicked(x, y);
@@ -240,6 +248,20 @@ pub(super) fn wire_callbacks(ui: &UiHostWindow, host: &Rc<RefCell<SlintEditorHos
         move |control_id: SharedString, action_id: SharedString| {
             dispatch_with_callback_source(&weak, &source_ui, |host| {
                 host.dispatch_pane_surface_control_clicked(control_id.as_str(), action_id.as_str());
+            });
+        },
+    );
+
+    let weak = Rc::downgrade(host);
+    let source_ui = ui.clone_strong();
+    pane_surface_host.on_surface_control_edited(
+        move |control_id: SharedString, binding_id: SharedString, value: SharedString| {
+            dispatch_with_callback_source(&weak, &source_ui, |host| {
+                host.dispatch_pane_surface_control_edited(
+                    control_id.as_str(),
+                    binding_id.as_str(),
+                    value.as_str(),
+                );
             });
         },
     );

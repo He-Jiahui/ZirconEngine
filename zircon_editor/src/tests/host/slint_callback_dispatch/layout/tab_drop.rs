@@ -185,3 +185,41 @@ fn tab_drop_dispatch_creates_split_for_document_edge_route() {
     assert!(effects.layout_dirty);
     assert!(effects.presentation_dirty);
 }
+
+#[test]
+fn tab_drop_dispatch_detaches_drawer_tab_to_independent_drawer_window() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_slint_tab_drop_detach_drawer_window");
+    let new_window = MainPageId::new("drawer-window:editor.project:1");
+
+    let effects = dispatch_tab_drop(
+        &harness.runtime,
+        "editor.project#1",
+        &ResolvedHostTabDropRoute {
+            target_group: HostDragTargetGroup::Document,
+            target_label: "detached drawer window",
+            target: ResolvedHostTabDropTarget::DetachToWindow {
+                new_window: new_window.clone(),
+            },
+        },
+    )
+    .unwrap();
+
+    let journal = harness.runtime.journal();
+    assert_eq!(
+        journal.records().last().unwrap().event,
+        EditorEvent::Layout(EventLayoutCommand::DetachViewToWindow {
+            instance_id: EventViewInstanceId::new("editor.project#1"),
+            new_window: EventMainPageId::new("drawer-window:editor.project:1"),
+        })
+    );
+    assert!(harness
+        .runtime
+        .current_layout()
+        .floating_windows
+        .iter()
+        .any(|window| window.window_id == new_window));
+    assert!(effects.layout_dirty);
+    assert!(effects.presentation_dirty);
+}

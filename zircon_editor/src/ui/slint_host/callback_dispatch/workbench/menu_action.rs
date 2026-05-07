@@ -1,9 +1,11 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventEnvelope, EditorEventRuntime, EditorEventSource, LayoutCommand,
 };
-use crate::core::editor_operation::{EditorOperationInvocation, EditorOperationSource};
+use crate::core::editor_operation::{
+    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+};
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
-use crate::ui::slint_host::event_bridge::{apply_record_effects, SlintDispatchEffects};
+use crate::ui::slint_host::event_bridge::{apply_record_effects, UiHostEventEffects};
 use crate::ui::workbench::event::{dispatch_editor_host_binding, EditorHostEvent};
 use crate::ui::workbench::model::operation_path_for_menu_action;
 
@@ -13,7 +15,7 @@ use super::control::dispatch_builtin_host_menu_action;
 pub(crate) fn dispatch_menu_action(
     runtime: &EditorEventRuntime,
     action: &str,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let envelope = slint_menu_action(action)?;
     if let EditorEvent::WorkbenchMenu(action) = &envelope.event {
         if let Some(operation_path) = operation_path_for_menu_action(action) {
@@ -21,7 +23,7 @@ pub(crate) fn dispatch_menu_action(
                 EditorOperationSource::Menu,
                 EditorOperationInvocation::new(operation_path),
             )?;
-            let mut effects = SlintDispatchEffects::default();
+            let mut effects = UiHostEventEffects::default();
             apply_record_effects(&mut effects, &record);
             return Ok(effects);
         }
@@ -33,9 +35,18 @@ pub(crate) fn dispatch_host_menu_action_with_template_fallback(
     runtime: &EditorEventRuntime,
     bridge: &super::super::BuiltinHostWindowTemplateBridge,
     action: &str,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     if let Some(result) = dispatch_builtin_host_menu_action(runtime, bridge, action) {
         return result;
+    }
+    if let Ok(operation_path) = EditorOperationPath::parse(action) {
+        let record = runtime.invoke_operation(
+            EditorOperationSource::Menu,
+            EditorOperationInvocation::new(operation_path),
+        )?;
+        let mut effects = UiHostEventEffects::default();
+        apply_record_effects(&mut effects, &record);
+        return Ok(effects);
     }
     dispatch_menu_action(runtime, action)
 }

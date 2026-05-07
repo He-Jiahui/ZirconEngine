@@ -1,0 +1,101 @@
+[asset]
+kind = "layout"
+id = "runtime.ui.quest_log_dialog"
+version = 1
+display_name = "Runtime Quest Log Dialog"
+
+[imports]
+widgets = []
+styles = []
+
+[tokens]
+
+[root]
+node = "quest_root"
+
+[nodes.quest_root]
+kind = "native"
+type = "Overlay"
+control_id = "QuestLogRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [{ child = "scrim" }, { child = "dialog" }]
+
+[nodes.scrim]
+kind = "native"
+type = "Container"
+control_id = "QuestLogScrim"
+props = { background = { color = "#111722cc" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dialog]
+kind = "native"
+type = "VerticalBox"
+control_id = "QuestLogDialog"
+props = { background = { color = "#1f2634" }, border = { color = "#7aa3d0", width = 2.0, radius = 16.0 } }
+layout = { width = { min = 520.0, preferred = 560.0, max = 620.0, stretch = "Fixed" }, height = { min = 300.0, preferred = 360.0, max = 420.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, container = { kind = "VerticalBox", gap = 12.0 } }
+children = [
+  { child = "title" },
+  { child = "active_quest" },
+  { child = "quest_detail" },
+  { child = "objective" },
+  { child = "actions" },
+]
+
+[nodes.title]
+kind = "native"
+type = "Label"
+control_id = "QuestLogTitle"
+props = { text = "Quest Log", text_color = "#f4f7ff", font_size = 24.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, margin = { left = 24.0, right = 24.0, top = 22.0, bottom = 0.0 } }
+
+[nodes.active_quest]
+kind = "native"
+type = "Label"
+control_id = "QuestLogActiveQuest"
+props = { text = "The First Light", text_color = "#f0c36a", font_size = 18.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, margin = { left = 24.0, right = 24.0, top = 0.0, bottom = 0.0 } }
+
+[nodes.quest_detail]
+kind = "native"
+type = "Label"
+control_id = "QuestLogDetail"
+props = { text = "Find the signal tower above the old quarry and restore power to the relay.", text_color = "#d7dfef", font_size = 14.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 74.0, max = 96.0, stretch = "Fixed" }, margin = { left = 24.0, right = 24.0, top = 4.0, bottom = 0.0 } }
+
+[nodes.objective]
+kind = "native"
+type = "Container"
+control_id = "QuestLogObjectiveCard"
+props = { background = { color = "#2a3344" }, border = { color = "#455672", width = 1.0, radius = 10.0 } }
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 82.0, max = 96.0, stretch = "Fixed" }, margin = { left = 24.0, right = 24.0, top = 0.0, bottom = 0.0 } }
+children = [{ child = "objective_text" }]
+
+[nodes.objective_text]
+kind = "native"
+type = "Label"
+control_id = "QuestLogObjectiveText"
+props = { text = "Objective: calibrate 3 relay nodes", text_color = "#b9c8df", font_size = 14.0 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, margin = { left = 16.0, right = 16.0, top = 18.0, bottom = 12.0 } }
+
+[nodes.actions]
+kind = "native"
+type = "HorizontalBox"
+control_id = "QuestLogActions"
+layout = { width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, margin = { left = 24.0, right = 24.0, top = 8.0, bottom = 20.0 }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [{ child = "track_button" }, { child = "close_button" }]
+
+[nodes.track_button]
+kind = "native"
+type = "Button"
+control_id = "TrackQuestButton"
+props = { text = "Track" }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+bindings = [{ id = "QuestLog/Track", event = "Click", route = "RuntimeAction.TrackQuest" }]
+
+[nodes.close_button]
+kind = "native"
+type = "Button"
+control_id = "CloseQuestLogButton"
+props = { text = "Close" }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+bindings = [{ id = "QuestLog/Close", event = "Click", route = "RuntimeAction.CloseQuestLog" }]

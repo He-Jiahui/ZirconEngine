@@ -1,8 +1,10 @@
 mod binding;
 mod contract;
+mod localization;
 
 pub use binding::map_binding_diagnostic;
 pub use contract::map_component_contract_diagnostic;
+pub use localization::map_localization_diagnostic;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum UiAssetEditorDiagnosticSeverity {

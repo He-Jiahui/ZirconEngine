@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/ui/component/catalog/registry.rs
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime_interface/src/ui/component/state.rs
@@ -26,6 +27,7 @@ related_code:
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -120,6 +122,15 @@ related_code:
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
+  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
+  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
+  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 implementation_files:
   - zircon_runtime/src/ui/component/mod.rs
@@ -128,6 +139,7 @@ implementation_files:
   - zircon_runtime/src/ui/component/catalog/registry.rs
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
+  - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
   - zircon_runtime_interface/src/ui/component/drag.rs
   - zircon_runtime_interface/src/ui/component/event.rs
   - zircon_runtime_interface/src/ui/component/state.rs
@@ -148,6 +160,7 @@ implementation_files:
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
@@ -240,11 +253,25 @@ implementation_files:
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
+  - zircon_editor/assets/ui/editor/console.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.ui.toml
+  - zircon_editor/assets/ui/editor/host/console_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
+  - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
+  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
+  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
+  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 plan_sources:
   - user: 2026-04-27 Runtime UI 组件库与 Slint Material Showcase Cutover
   - user: 2026-04-28 继续修复 Component Showcase Slint host retained row state 验证阻断
   - user: 2026-05-05 SVG/Image components and SVG icons must render from .ui.toml without restoring generated Slint UI
+  - docs/superpowers/plans/2026-05-06-global-ui-material-responsive-diagnostics.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - docs/superpowers/plans/2026-04-28-runtime-ui-drag-source-metadata.md
@@ -257,6 +284,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
+  - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime/src/ui/tests/component_catalog.rs
   - zircon_runtime/src/ui/tests/component_catalog/component_state/selection.rs
   - zircon_runtime/src/ui/tests/binding.rs
@@ -347,6 +375,16 @@ tests:
   - cargo test -p zircon_editor --lib showcase_demo_state_applies_projected_bindings_to_retained_values_and_log --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never
   - cargo test -p zircon_editor --lib showcase_edit_input_maps_collection_row_payloads_to_typed_events --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never
+  - cargo test -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation --message-format short --color never -- --nocapture (M3 global surface conformance before import-path portability fix: passed with 1 passed, 0 failed)
+  - cargo test -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir D:\cargo-targets\global-ui-m3-validation-2 --message-format short --color never -- --nocapture (M3 post-portability-fix rerun attempt: interrupted before test summary with explicit exit marker -1; superseded by final E:\zircon-build\targets\global-ui evidence)
+  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M3 final post-portability global surface conformance: passed with 2 passed, 0 failed, 1071 filtered out)
+  - cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 Material token/class/runtime surface conformance: passed with existing warning noise)
+  - cargo test -q -p zircon_editor --lib native_template_painter_uses_material_state_palette_for_controls --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 native painter Material palette pixels: passed with existing warning noise)
+  - cargo test -q -p zircon_editor --lib runtime_dialog_and_hud_buttons_participate_in_material_measurement --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture (M4 runtime dialog/HUD Material path: passed with existing warning noise)
+  - cargo test -p zircon_editor --lib quest_log_editor_and_runtime_assets_share_runtime_semantic_golden --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (M4 editor/runtime QuestLog semantic golden: passed)
+  - cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (native preview image authority: passed)
+  - cargo test -p zircon_editor --lib template_plain_image_can_use_projected_preview_pixels_as_authority --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (plain Image projection preview authority: passed)
+  - cargo test -p zircon_editor --lib template_svg_icon_pixels_follow_requested_target_size --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (SVG icon target-size rasterization: passed)
   - cargo test -p zircon_runtime --lib runtime_component_catalog_contains_showcase_v1_controls --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/event.rs zircon_runtime/src/ui/component/state.rs zircon_runtime/src/ui/component/catalog/editor_showcase.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/ui/tests/component_catalog/complex_components.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
@@ -417,6 +455,19 @@ The right state panel is retained projection, not handwritten host business UI. 
 
 `UiEventKind::Drop` maps to `onDrop` so `AssetField`, `InstanceField`, and `ObjectField` can expose reference-drop semantics directly rather than tunneling through a click or change event.
 
+## Global Material Surface Conformance
+
+Global UI Material Milestone 3 moves Material conformance from a Component Showcase-only concern to a repository-wide `.ui.toml` asset rule. `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs` enumerates editor, host, window, and runtime surfaces and checks that normal UI assets import the Material theme directly or through another imported asset, interactive native controls either expand through Material meta components or carry Material classes/layout metrics, fixed dimensions have a chrome/dialog/intrinsic reason, and collection-heavy surfaces declare a scrollable or bounded viewport region.
+
+The current asset changes are deliberately small and contract-oriented:
+
+- `console.ui.toml` and the host `console_body.ui.toml` expose vertical scroll metadata for log/body overflow
+- `module_plugins_body.ui.toml` marks the plugin-list slot as stretched and vertically scrollable
+- `runtime_diagnostics_body.ui.toml` adds explicit UI Debug Reflector diagnostic rows plus a stretched/scrollable node list viewport
+- `welcome.ui.toml` imports Material meta components and theme tokens for its project-name/location fields and action buttons, then marks the main content stack scrollable
+
+This conformance harness is an editor asset boundary test, not a painter fallback. It makes the same Material/viewport intent visible to template compilation, shared layout, host projection, and native drawing. A pre-portability-fix run of `global_material_surface_assets` passed with 1 test; after adding an import-graph normalization regression for slash-separated `res://ui/...` paths, one Cargo rerun exited before producing a test summary. The final scoped Milestone 3 rerun on `E:\zircon-build\targets\global-ui` passed with 2 tests, including the import-graph normalization case, after the low-disk target cleanup recorded in the acceptance file.
+
 ## Host Contract Boundary
 
 As of the 2026-04-30 follow-up, active `.slint` sources are no longer editor build, runtime, test, or documentation authority. New business UI work must continue through `.ui.toml`, Runtime UI projection, and Rust-owned host contracts rather than editing, restoring, or reading deleted Slint files.
@@ -477,13 +528,15 @@ Runtime/editor tests cover:
 - retained category navigation filtering that keeps the default all-components projection for broad coverage, then narrows host projection after Visual, Feedback, Input, Numeric, Selection, Reference, or Collections navigation events;
 - retained state-panel projection that shows selected category, last control/action, current value, validation, and retained drag/drop source summaries through `.ui.toml` `PropertyRow` nodes;
 - Runtime UI manager pointer and navigation dispatch forwarding through the owned shared `UiSurface`, including focus capture and handled navigation results;
-- feature-gated all-fixture Runtime UI submission into `WgpuRenderFramework`, plus text-render contract coverage for the formal UI pipeline;
+- feature-gated all-fixture Runtime UI submission into `WgpuRenderFramework`, now including the runtime-owned `QuestLogDialog` fixture beside HUD, pause, settings, and inventory, plus text-render contract coverage for the formal UI pipeline;
 - real Asset Browser content-row pointer events arming a metadata-backed `UiDragPayload`, accepted `AssetField` drops retaining `UiDragSourceMetadata`, generic host projection of `drop_source_summary` without asset-browser-specific template logic, and an end-to-end pointer-drop safeguard proving a real asset payload reaches the showcase AssetField;
 - real Hierarchy pane pointer events arming metadata-backed `SceneInstance` payloads, pointer-up clearing stale scene payloads, `InstanceField` consumption of the scene reference, and `ObjectField` accepting the same active scene-instance payload through the shared retained drop reducer;
 - docked `UiComponentShowcase` pane conversion to Rust-owned host-contract `TemplatePaneNodeData` so the showcase uses the Runtime UI template instead of a fallback pane;
 - no-Slint source/build guard coverage for the Rust-owned host-contract seam.
 
 ## Recent Validation
+
+On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, Slint-free fixture under `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml`. Focused validation passed with `cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, `cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, and `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`.
 
 On 2026-04-30, Task 7 Runtime UI graphics fixture acceptance was added and validated under the existing `runtime-ui-integration-tests` feature. `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test / 0 failed / 1195 filtered out after waiting for an artifact lock, and `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 7 tests / 0 failed.
 
@@ -1162,6 +1215,10 @@ The Material meta component asset now covers the exported widget set under `dev/
 
 `component_showcase.ui.toml` imports the full Material meta component asset and now routes the matching showcase rows through reference nodes instead of handwritten native nodes for progress, spinner, switch, checkbox, line edit, text edit, spin box, slider, combo box, group box, list item, virtual table, and menu frame. Instance bindings remain authored at the showcase call site, while the compiler moves them onto the expanded root control. Focused coverage was added for static asset coverage and host projection semantics; final evidence is recorded with the validation commands for this slice.
 
+The Milestone 2 global Material measurement pass extends the shared runtime sizing contract to the Material-capable native roots used by the meta component asset: `Button`, `IconButton`, `ToggleButton`, `Checkbox`, `InputField`, `TextField`, `ListRow`, `ComboBox`, `RangeField`, `NumberField`, `ProgressBar`, `Spinner`, `Switch`, `ContextActionMenu`, `MenuItem`, `Tab`, `TableRow`, `VirtualList`, and conservative `Label` sizing. Meta component roots that present visible text or interactive rows now carry the same `layout_*` metrics used by runtime measurement: menu frames/items, tabs, table rows, virtual table rows, progress/spinner roots, and text-edit roots derive arranged frames from shared text measurement plus Material padding/min-height. Field-style controls use shared visible-text resolution for `value`, `placeholder`, numeric values, and combo options, so their desired frame width follows the projected visible value text rather than just `text`/`label`; that fallback is restricted to text-bearing/control roles, so showcase `ImageDemo` and `IconDemo` keep asset `value` metadata without becoming text render commands. `SvgIconDemo` now follows the same shared image resolver through its authored `source` path, producing an image command instead of falling through to `Group`. Object option labels scan visible scalar keys in `text`/`label`/`value`/`name`/`title` order, so empty `text` falls through to label and numeric/bool option values still measure. Component Showcase projection coverage asserts the shared surface desired width for Material controls before checking final arranged frames, so the evidence cannot pass only because the showcase content is stretched across a wide parent. The same coverage verifies that `MaterialTableRow` is a real imported meta component. Runtime HUD/dialog controls keep plain native Button roots for now, but their `.ui.toml` metadata carries equivalent Material metrics so shared runtime layout sizes them like other Material controls; these copied raw metrics are intentional Milestone 2 mechanical participation, with broader token/theme normalization deferred outside this milestone.
+
+The same Component Showcase validation also found a separate projection regression in popup metadata: popup-capable Material wrappers now forward `popup_anchor_x` and `popup_anchor_y` params onto their expanded `ContextActionMenu` roots, so authored default anchors and retained `OpenPopupAt` state both reach host projection without a screen-specific coordinate table. That forwarding is intentionally documented as host projection coverage, not as evidence for the shared Material measurement contract.
+
 The native host fast-paint guard now exposes a test-only presentation rebuild counter and verifies the Slate-style pointer-only path directly. The hierarchy hover test asserts that the first hover only requests local paint damage without a frame update, then repeats the same target 100 times and confirms no repaint request and no presentation rebuild. The menu callback test was tightened to mutate hover state before expecting redraw, so the menu path also distinguishes real state damage from callback-only pointer traffic. That keeps Material/status hover feedback on the local damage path instead of forcing a full host projection rebuild.
 
 The native host route acceptance now also builds a real Component Showcase pane through `EditorUiHostRuntime`, projects the `.ui.toml` Material `ButtonDemo` node into `TemplatePaneNodeData`, constructs the shared `UiSurfaceFrame` hit grid, and dispatches a native document-pane click through `PaneSurfaceHostContext::component_showcase_control_activated`. This proves the Material meta component is a real routed control in the Rust-owned editor host, not a visual wrapper or a hand-authored native coordinate entry.
@@ -1190,3 +1247,85 @@ Follow-up validation on 2026-05-06 for the projected Material native-hit route:
 - Package `cargo fmt --package zircon_editor -- --check` is currently blocked by active sibling rustfmt drift outside this slice.
 - `component_showcase_projection_carries_runtime_component_semantics` is currently blocked in the active Material layout foundation slice because the edited test reads arranged frame sizes from an uncomputed shared surface, while the normal Component Showcase host conversion computes layout before building host nodes.
 - The shared runtime event-routing compile blocker was cleared by importing the existing `UiRuntimeTreeAccessExt` test helper in `zircon_runtime/src/ui/tests/event_routing.rs`; `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never` first passed 4 tests, then the E3 multi-binding regression expanded it to 5 passing tests. The new `click_component_events_preserve_every_matching_binding_on_target` case proved a Material-like button with two `Click` bindings now emits two `UiPointerComponentEvent` envelopes instead of silently keeping only the first binding. `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never` remains 5 passing tests.
+
+## 2026-05-06 Inspector Material surface controls
+
+Related code:
+- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
+- `zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml`
+- `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
+
+This slice moves the Inspector surface control body from placeholder native `IconButton` rows to imported Material meta components. `NameField` and `ParentField` now expand through `MaterialLineEdit`, the transform X/Y/Z fields expand through `MaterialSpinBox`, and `ApplyBatchButton` / `DeleteSelected` expand through `MaterialButton`. The existing `.ui.toml` binding ids and routes stay on the authored reference nodes, then flow onto each expanded root control through the shared component-instance binding contract.
+
+The Material meta roots now carry explicit `input_interactive`, `input_clickable`, `input_hoverable`, and `input_focusable` attributes for interactive controls, so host projection and shared dispatch do not have to infer Material behavior from component names. Compact editor controls also pass `height = 32.0` into the Material layout metrics through `layout_min_height = "$param.height"`, while the showcase defaults keep the larger Material presentation. Focused projection coverage asserts that Component Showcase Material roots preserve input metadata and that Inspector controls project as `InputField`, `NumberField`, and `Button` with their original change/click routes intact.
+
+Validation evidence:
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warnings.
+- `cargo test -p zircon_editor --lib host_projection_carries_runtime_component_properties_and_routes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never -- --nocapture`: passed.
+- `cargo test -p zircon_editor --lib component_showcase_projection_carries_runtime_component_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never -- --nocapture`: passed after the test fixture now computes shared layout before checking arranged frame sizes.
+- `cargo test -p zircon_editor --lib material_meta_components_cover_slint_material_exports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib component_showcase_uses_material_meta_component_assets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed.
+- Runtime focused checks passed on `D:\cargo-targets\zircon-material-slate-followup`: `hit_grid` 11 tests, `event_routing` 16 tests, and `material_layout` 15 tests.
+- The first runtime `hit_grid` attempt on `E:\zircon-build\targets` failed before tests with `no space on device`; the editor check was rerun and passed on that planned E target after space became available.
+
+## 2026-05-07 Global Material theme and runtime surfaces
+
+Related code:
+- `zircon_editor/assets/ui/theme/editor_material.ui.toml`
+- `zircon_editor/assets/ui/theme/editor_base.ui.toml`
+- `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
+- `zircon_editor/assets/ui/runtime/runtime_hud.ui.toml`
+- `zircon_editor/assets/ui/runtime/pause_dialog.ui.toml`
+- `zircon_editor/assets/ui/runtime/settings_dialog.ui.toml`
+- `zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml`
+- `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
+- `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs`
+- `zircon_editor/src/tests/host/slint_window/native_material_painter.rs`
+
+Global UI Material M4 moves the showcase Material vocabulary from a set of local component examples into a single editor/runtime theme contract. `editor_material.ui.toml` declares the shared state palette for surfaces, hover, pressed, selected, disabled, accent-soft, disabled text, warning, error, popup, track, and focus-ring roles. `editor_base.ui.toml` imports that Material theme, so legacy base-theme surfaces are no longer a separate source of normal control colors.
+
+`material_meta_components.ui.toml` now treats state metadata as part of each component root contract. Material Button, IconButton, ToggleButton, CheckboxRow, OutlinedField, ListItem, MenuItem, TabImpl, and TextEdit roots emit stable `material-*` classes plus the state props that host projection and native painting consume. Runtime HUD/dialog TOML assets use the same `material-control`, `material-button`, primary-button, surface variant, border, radius, and runtime surface classes as editor surfaces. Plain runtime Button roots therefore remain acceptable only because they carry equivalent Material metadata and still size through the shared Material measurement path.
+
+The M4 conformance harness adds four focused asset-boundary checks: required Material palette tokens exist, every `material-*` class emitted by the meta component asset has a stylesheet rule, stateful Material components project the required state props, and all runtime HUD/dialog surfaces carry the shared runtime Material classes. The native pixel guard `native_template_painter_uses_material_state_palette_for_controls` then samples default inset, hover, pressed, selected/focus, disabled, and primary pixels through the Rust-owned template painter so the `.ui.toml` state vocabulary is proven to reach visible host output.
+
+Validation evidence on `E:\zircon-build\targets\global-ui`:
+- `cargo test -q -p zircon_editor --lib global_material_surface_assets --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`: passed with existing warning noise.
+- `cargo test -q -p zircon_editor --lib native_template_painter_uses_material_state_palette_for_controls --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`: passed with existing warning noise.
+- `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui --message-format short --color never`: passed with existing warning noise.
+- `cargo test -q -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`: passed with existing warning noise.
+- `cargo test -q -p zircon_editor --lib runtime_dialog_and_hud_buttons_participate_in_material_measurement --locked --jobs 1 --target-dir E:\zircon-build\targets\global-ui -- --nocapture`: passed with existing warning noise.
+
+## 2026-05-07 Runtime UI semantic golden and native image authority
+
+Related code:
+- `zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs`
+- `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml`
+- `zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs`
+- `zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs`
+- `zircon_editor/src/tests/host/slint_window/native_viewport_image.rs`
+
+The M4.3 semantic golden compiles the editor and runtime Quest Log `.ui.toml` assets through the same `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, layout pass, and render extract path. It snapshots semantic control ids, visible text, button counts, and Click binding routes, proving the editor runtime asset and the Slint-free runtime fixture agree on the shared surface contract. The Quest Log buttons now carry the same runtime routes in both assets: `RuntimeAction.TrackQuest` and `RuntimeAction.CloseQuestLog`.
+
+The same validation pass closed a native painter regression in projected image authority. `TemplatePaneNodeData.preview_image` is the host-projected frame fact for plain `Image` nodes, so the native painter now uses those preview pixels before trying to reload `media_source`. Icon-like nodes still prefer source-based SVG rasterization so they can follow the target frame and Material tint state. This split keeps ordinary template images stable under editor/runtime projection while preserving crisp SVG icon scaling.
+
+Validation evidence on `E:\zircon-build\targets-ui-m4`:
+- `cargo test -p zircon_editor --lib quest_log_editor_and_runtime_assets_share_runtime_semantic_golden --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never`: passed with 1 test.
+- `cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never`: passed with 1 test.
+- `cargo test -p zircon_editor --lib template_plain_image_can_use_projected_preview_pixels_as_authority --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never`: passed with 1 test.
+- `cargo test -p zircon_editor --lib template_svg_icon_pixels_follow_requested_target_size --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never`: passed with 1 test.
+- `cargo test -p zircon_editor --lib native_ --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never`: passed with 66 tests.
+
+## 2026-05-07 World-space component host capability
+
+Related code:
+- `zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs`
+- `zircon_runtime/src/ui/component/catalog/editor_showcase.rs`
+- `zircon_runtime/src/ui/tests/component_catalog.rs`
+
+`WorldSpaceSurface` now declares the explicit `UiHostCapability::WorldSpaceUi` requirement. The default runtime-basic capability set continues to expose normal runtime controls but filters this component out, while `UiHostCapabilitySet::runtime_world_space()` opts into pointer, keyboard, image, canvas, and world-space UI support together. That makes the catalog boundary match the hit-query boundary: world-space UI can be advertised only by hosts that can supply projected world hits, not by every 2D runtime surface host.
+
+This is an interface and catalog gate, not proof of a complete RHI/depth-aware renderer. The accepted runtime path remains: a viewport or renderer maps a world hit into a finite `UiWorldHitRay` plus surface-local `UiVirtualPointerPosition`, then the shared hit grid resolves the normal component route.
+
+Validation evidence on `F:\cargo-targets\zircon-world-space-ui-interface`:
+- `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 39 tests.

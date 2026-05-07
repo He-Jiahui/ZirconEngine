@@ -1,7 +1,7 @@
 use zircon_runtime_interface::ui::binding::{UiBindingValue, UiEventKind};
 
 use crate::core::editor_event::EditorEventRuntime;
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
 use super::super::{common::dispatch_editor_binding, BuiltinViewportToolbarTemplateBridge};
 
@@ -11,7 +11,7 @@ pub(crate) fn dispatch_builtin_viewport_toolbar_control(
     control_id: &str,
     event_kind: UiEventKind,
     arguments: Vec<UiBindingValue>,
-) -> Option<Result<SlintDispatchEffects, String>> {
+) -> Option<Result<UiHostEventEffects, String>> {
     let binding = match bridge.binding_for_control(control_id, event_kind) {
         Some(binding) if arguments.is_empty() => Ok(binding.clone()),
         Some(binding) => binding

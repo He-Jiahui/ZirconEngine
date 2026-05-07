@@ -6,8 +6,11 @@ use zircon_runtime_interface::ui::{
     tree::{UiTree, UiTreeError},
 };
 
+use super::slot::{slot_for_container_child, slot_padding};
+
 pub(crate) fn resolve_linear_child_main_extents(
     tree: &UiTree,
+    parent_id: UiNodeId,
     children: &[UiNodeId],
     axis: UiAxis,
     available_extent: f32,
@@ -32,6 +35,12 @@ pub(crate) fn resolve_linear_child_main_extents(
             constraints.push(collapsed_axis_constraint());
             continue;
         }
+        let slot = slot_for_container_child(tree, parent_id, *child_id, linear_container(axis));
+        let padding = slot_padding(slot);
+        let padding_extent = match axis {
+            UiAxis::Horizontal => padding.horizontal(),
+            UiAxis::Vertical => padding.vertical(),
+        };
         let desired_extent = size_axis_extent(
             UiSize::new(
                 node.layout_cache.desired_size.width,
@@ -49,6 +58,7 @@ pub(crate) fn resolve_linear_child_main_extents(
                 UiAxis::Vertical => node.constraints.height,
             },
             desired_extent,
+            padding_extent,
             preserve_stretch,
         ));
     }
@@ -102,16 +112,42 @@ pub(crate) fn arranged_axis_extent(
 fn linear_main_axis_constraint(
     mut constraint: AxisConstraint,
     desired_extent: f32,
+    padding_extent: f32,
     preserve_stretch: bool,
 ) -> AxisConstraint {
-    if desired_extent <= 0.0 {
-        return constraint;
-    }
-    if constraint == AxisConstraint::default() && !preserve_stretch {
+    let was_default = constraint == AxisConstraint::default();
+    let padding_extent = padding_extent.max(0.0);
+    constraint = inflate_axis_constraint(constraint, padding_extent);
+
+    let desired_extent = desired_extent.max(0.0) + padding_extent;
+    if desired_extent > 0.0 && was_default && !preserve_stretch {
         constraint.preferred = desired_extent;
         constraint.stretch_mode = StretchMode::Fixed;
     }
     constraint
+}
+
+fn inflate_axis_constraint(mut constraint: AxisConstraint, padding_extent: f32) -> AxisConstraint {
+    if padding_extent <= 0.0 {
+        return constraint;
+    }
+    constraint.min += padding_extent;
+    if constraint.max >= 0.0 {
+        constraint.max += padding_extent;
+    }
+    constraint.preferred += padding_extent;
+    constraint
+}
+
+fn linear_container(axis: UiAxis) -> zircon_runtime_interface::ui::layout::UiContainerKind {
+    match axis {
+        UiAxis::Horizontal => {
+            zircon_runtime_interface::ui::layout::UiContainerKind::HorizontalBox(Default::default())
+        }
+        UiAxis::Vertical => {
+            zircon_runtime_interface::ui::layout::UiContainerKind::VerticalBox(Default::default())
+        }
+    }
 }
 
 fn collapsed_axis_constraint() -> AxisConstraint {

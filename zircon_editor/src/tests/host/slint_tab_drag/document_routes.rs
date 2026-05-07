@@ -72,10 +72,9 @@ fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_grou
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_host_tab_drop_route(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
             Some(HostShellPointerRoute::DragTarget(
@@ -84,6 +83,10 @@ fn resolve_host_tab_drop_route_prefers_shared_pointer_route_over_stale_host_grou
             "document",
             pointer_x,
             pointer_y,
+            Some(&root_frames_from_geometry_with_drawers(
+                &geometry,
+                &[ShellRegionId::Right],
+            )),
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Right,
@@ -132,16 +135,16 @@ fn resolve_host_tab_drop_route_falls_back_to_host_group_when_pointer_route_is_mi
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_host_tab_drop_route(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.asset-browser#1",
             None,
             "document",
             pointer_x,
             pointer_y,
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Document,
@@ -184,16 +187,16 @@ fn resolve_host_tab_drop_route_maps_document_edge_to_create_split_on_active_work
     );
 
     assert_eq!(
-        resolve_host_tab_drop_route(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.assets#1",
             Some(HostShellPointerRoute::DocumentEdge(DockEdge::Left)),
             "document",
             48.0,
             240.0,
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Document,
@@ -253,37 +256,38 @@ fn resolved_host_tab_drop_route_snapshot_matches_shared_pointer_and_group_key_fo
         viewport_content_frame: ShellFrame::new(0.0, 0.0, 0.0, 0.0),
     };
     let mut bridge = HostShellPointerBridge::new();
-    bridge.update_layout_with_floating_windows(
+    let root_frames = root_frames_from_geometry(&geometry);
+    bridge.update_layout_with_root_shell_frames(
         UiSize::new(1440.0, 900.0),
-        &geometry,
         false,
         &[],
-        &[],
+        Some(&root_frames),
+        None,
     );
 
     let pointer_route = bridge.drag_route_at(UiPoint::new(12.0, 240.0));
-    let from_pointer = resolve_host_tab_drop_route(
+    let from_pointer = resolve_host_tab_drop_route_with_root_frames(
         &layout,
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         "editor.assets#1",
         pointer_route,
         "document",
         12.0,
         240.0,
+        Some(&root_frames),
     )
     .expect("document edge route should resolve from shared pointer route");
-    let from_group_key = resolve_host_tab_drop_route(
+    let from_group_key = resolve_host_tab_drop_route_with_root_frames(
         &layout,
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         "editor.assets#1",
         None,
         document_edge_group_key(DockEdge::Left),
         12.0,
         240.0,
+        Some(&root_frames),
     )
     .expect("document edge route should resolve from fallback group key");
 
@@ -324,16 +328,16 @@ fn resolve_host_tab_drop_route_accepts_document_edge_group_fallback_keys() {
     );
 
     assert_eq!(
-        resolve_host_tab_drop_route(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.assets#1",
             None,
             "document-right",
             1088.0,
             240.0,
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Document,
@@ -374,10 +378,9 @@ fn resolve_host_tab_drop_route_prefers_document_edge_fallback_over_coarse_docume
     );
 
     assert_eq!(
-        resolve_host_tab_drop_route(
+        resolve_host_tab_drop_route_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.assets#1",
             Some(HostShellPointerRoute::DragTarget(
@@ -386,6 +389,7 @@ fn resolve_host_tab_drop_route_prefers_document_edge_fallback_over_coarse_docume
             "document-top",
             640.0,
             60.0,
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(ResolvedHostTabDropRoute {
             target_group: HostDragTargetGroup::Document,

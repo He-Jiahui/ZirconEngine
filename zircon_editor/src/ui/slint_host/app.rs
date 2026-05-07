@@ -75,7 +75,7 @@ use super::drawer_header_pointer::{
     build_host_drawer_header_pointer_layout, HostDrawerHeaderPointerBridge,
 };
 use super::drawer_resize::dispatch_resize_to_group;
-use super::event_bridge::SlintDispatchEffects;
+use super::event_bridge::UiHostEventEffects;
 use super::floating_window_projection::FloatingWindowProjectionBundle;
 use super::hierarchy_pointer::{
     HierarchyPointerBridge, HierarchyPointerLayout, HierarchyPointerState,
@@ -105,6 +105,7 @@ mod assets;
 pub(crate) mod backend_refresh;
 mod build_export_actions;
 mod callback_wiring;
+mod close_prompt;
 mod detail_scroll_pointer;
 mod helpers;
 mod hierarchy_pointer;
@@ -160,6 +161,14 @@ pub fn run_editor(
         ui.clone_strong(),
     )?));
     wire_callbacks(&ui, &host);
+    let host_weak = Rc::downgrade(&host);
+    ui.window().on_close_requested(move || {
+        if let Some(host) = host_weak.upgrade() {
+            host.borrow_mut().native_main_window_close_requested()
+        } else {
+            slint::CloseRequestResponse::KeepWindowShown
+        }
+    });
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
 
     host.borrow_mut().refresh_ui();
@@ -238,6 +247,7 @@ struct SlintEditorHost {
     shell_geometry: Option<WorkbenchShellGeometry>,
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
+    pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
     invalidation: HostInvalidationRoot,
     presentation_dirty: bool,
     layout_dirty: bool,

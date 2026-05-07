@@ -12,7 +12,7 @@ pub(super) fn console_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityView,
         "Console",
     )
-    .with_preferred_drawer_slot(ActivityDrawerSlot::BottomLeft)
+    .with_preferred_drawer_slot(ActivityDrawerSlot::Bottom)
     .with_default_constraints(default_constraints_for_content(ViewContentKind::Console))
     .with_pane_template(PaneTemplateSpec::new(PaneBodySpec::new(
         "pane.console.body",

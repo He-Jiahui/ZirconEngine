@@ -369,6 +369,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         .state(state_bool_prop("depth_test", true))
         .state(state_int_prop("render_order", 0))
         .state(state_string_prop("camera_target"))
+        .requires_host_capability(UiHostCapability::WorldSpaceUi)
         .event(UiComponentEventKind::SetWorldTransform)
         .event(UiComponentEventKind::SetWorldSurface),
         collection("ArrayField", "Array Field", "array-field")

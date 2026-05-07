@@ -24,10 +24,7 @@ impl ActivityDrawerLayout {
             tab_stack: TabStackLayout::default(),
             active_view: None,
             mode: ActivityDrawerMode::Pinned,
-            extent: if matches!(
-                slot,
-                ActivityDrawerSlot::BottomLeft | ActivityDrawerSlot::BottomRight
-            ) {
+            extent: if slot.is_bottom() {
                 DEFAULT_BOTTOM_DRAWER_EXTENT
             } else {
                 DEFAULT_SIDE_DRAWER_EXTENT

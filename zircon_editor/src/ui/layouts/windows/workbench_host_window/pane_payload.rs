@@ -1,3 +1,5 @@
+use zircon_runtime_interface::ui::surface::UiDebugOverlayPrimitive;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum PanePayload {
     ConsoleV1(ConsolePanePayload),
@@ -96,6 +98,12 @@ pub struct RuntimeDiagnosticsPanePayload {
     pub physics_status: String,
     pub animation_status: String,
     pub detail_items: Vec<String>,
+    pub ui_debug_reflector_summary: String,
+    pub ui_debug_reflector_nodes: Vec<String>,
+    pub ui_debug_reflector_details: Vec<String>,
+    pub ui_debug_reflector_export_status: String,
+    pub ui_debug_reflector_overlay_primitives: Vec<UiDebugOverlayPrimitive>,
+    pub ui_debug_reflector_has_active_snapshot: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

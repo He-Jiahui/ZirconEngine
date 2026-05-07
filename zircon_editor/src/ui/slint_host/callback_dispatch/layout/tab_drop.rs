@@ -1,6 +1,6 @@
 use crate::core::editor_event::EditorEventRuntime;
 use crate::ui::slint_host::{
-    event_bridge::SlintDispatchEffects,
+    event_bridge::UiHostEventEffects,
     tab_drag::{ResolvedHostTabDropRoute, ResolvedHostTabDropTarget},
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, LayoutCommand};
@@ -13,19 +13,17 @@ pub(crate) fn dispatch_tab_drop(
     runtime: &EditorEventRuntime,
     instance_id: &str,
     route: &ResolvedHostTabDropRoute,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     match &route.target {
         ResolvedHostTabDropTarget::Attach(drop) => {
             let reopen_drawer_slot = match &drop.host {
-                ViewHost::Drawer(slot) => {
-                    runtime
-                        .current_layout()
-                        .drawers
-                        .get(slot)
-                        .and_then(|drawer| {
-                            (drawer.mode == ActivityDrawerMode::Collapsed).then_some(*slot)
-                        })
-                }
+                ViewHost::Drawer(slot) => runtime
+                    .current_layout()
+                    .active_activity_window_drawers()
+                    .get(slot)
+                    .and_then(|drawer| {
+                        (drawer.mode == ActivityDrawerMode::Collapsed).then_some(*slot)
+                    }),
                 _ => None,
             };
 
@@ -51,6 +49,13 @@ pub(crate) fn dispatch_tab_drop(
 
             Ok(effects)
         }
+        ResolvedHostTabDropTarget::DetachToWindow { new_window } => dispatch_layout_command(
+            runtime,
+            LayoutCommand::DetachViewToWindow {
+                instance_id: ViewInstanceId::new(instance_id),
+                new_window: new_window.clone(),
+            },
+        ),
         ResolvedHostTabDropTarget::Split {
             workspace,
             path,

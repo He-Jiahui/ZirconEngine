@@ -12,12 +12,19 @@ pub enum UiFlowDirection {
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiLayoutMetrics {
+    #[serde(default)]
     pub logical_size: UiSize,
+    #[serde(default)]
     pub physical_size: UiSize,
+    #[serde(default = "default_scale")]
     pub dpi_scale: f32,
+    #[serde(default = "default_scale")]
     pub font_scale: f32,
+    #[serde(default = "default_scale")]
     pub layout_scale: f32,
+    #[serde(default)]
     pub flow_direction: UiFlowDirection,
+    #[serde(default)]
     pub pixel_snapping: UiPixelSnapping,
 }
 
@@ -33,4 +40,8 @@ impl Default for UiLayoutMetrics {
             pixel_snapping: UiPixelSnapping::Enabled,
         }
     }
+}
+
+const fn default_scale() -> f32 {
+    1.0
 }

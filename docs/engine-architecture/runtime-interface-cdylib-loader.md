@@ -137,7 +137,7 @@ The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, po
 
 ## Milestone 1 App Loader
 
-`zircon_app` runtime profile now loads runtime with `libloading` instead of bootstrapping runtime preview internals directly. The loader resolves the library path from `ZIRCON_RUNTIME_LIBRARY` first, then falls back to an executable-sibling platform name: `zircon_runtime.dll`, `libzircon_runtime.dylib`, or `libzircon_runtime.so`.
+`zircon_app` runtime profile now loads runtime with `libloading` instead of bootstrapping runtime preview internals directly. The loader resolves the library path from `ZIRCON_RUNTIME_LIBRARY` first, then falls back to an executable-sibling platform name: `zircon_runtime.dll`, `libzircon_runtime.dylib`, or `libzircon_runtime.so`. Development builds launched directly from Cargo target directories also check executable-sibling `deps/<platform runtime library>` when the packaged sibling library has not been staged yet.
 
 `RuntimeEntryApp` now owns only the window, softbuffer presenter, dynamic runtime session wrapper, viewport handle, and current viewport size. Winit events are converted to interface events and sent to runtime. Redraw requests call the runtime function table `capture_frame` and blit the returned RGBA bytes through softbuffer.
 

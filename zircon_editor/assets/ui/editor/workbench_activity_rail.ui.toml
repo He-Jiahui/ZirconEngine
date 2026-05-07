@@ -62,50 +62,47 @@ radius = 3.0
 border_width = 0.0
 
 [root.children.node.layout.position]
-x = 3.0
+x = 6.0
 y = 6.0
 
 [root.children.node.layout.width]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 32.0
+preferred = 32.0
+max = 32.0
 stretch = "Fixed"
 
 [root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 32.0
+preferred = 32.0
+max = 32.0
 stretch = "Fixed"
 
 [[root.children]]
 [root.children.node]
-node_id = "activity_rail_button_label_0"
+node_id = "activity_rail_button_icon_0"
 kind = "native"
-type = "Label"
-control_id = "ActivityRailButtonLabel0"
+type = "Icon"
+control_id = "ActivityRailButtonIcon0"
 
 [root.children.node.props]
-text = "PR"
+icon = "albums-outline"
+value = "ionicons/albums-outline.svg"
 text_tone = "muted"
-font_size = 10.0
-font_weight = 600
-text_align = "center"
-overflow = "elide"
 
 [root.children.node.layout.position]
-x = 3.0
-y = 6.0
+x = 13.0
+y = 13.0
 
 [root.children.node.layout.width]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 18.0
+preferred = 18.0
+max = 18.0
 stretch = "Fixed"
 
 [root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 18.0
+preferred = 18.0
+max = 18.0
 stretch = "Fixed"
 
 [[root.children]]
@@ -120,48 +117,45 @@ radius = 3.0
 border_width = 0.0
 
 [root.children.node.layout.position]
-x = 3.0
-y = 38.0
+x = 6.0
+y = 42.0
 
 [root.children.node.layout.width]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 32.0
+preferred = 32.0
+max = 32.0
 stretch = "Fixed"
 
 [root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 32.0
+preferred = 32.0
+max = 32.0
 stretch = "Fixed"
 
 [[root.children]]
 [root.children.node]
-node_id = "activity_rail_button_label_1"
+node_id = "activity_rail_button_icon_1"
 kind = "native"
-type = "Label"
-control_id = "ActivityRailButtonLabel1"
+type = "Icon"
+control_id = "ActivityRailButtonIcon1"
 
 [root.children.node.props]
-text = "HI"
+icon = "layers-outline"
+value = "ionicons/layers-outline.svg"
 text_tone = "muted"
-font_size = 10.0
-font_weight = 600
-text_align = "center"
-overflow = "elide"
 
 [root.children.node.layout.position]
-x = 3.0
-y = 38.0
+x = 13.0
+y = 49.0
 
 [root.children.node.layout.width]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 18.0
+preferred = 18.0
+max = 18.0
 stretch = "Fixed"
 
 [root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
+min = 18.0
+preferred = 18.0
+max = 18.0
 stretch = "Fixed"

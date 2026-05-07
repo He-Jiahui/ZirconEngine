@@ -3,14 +3,14 @@ use crate::ui::binding::ViewportCommand;
 use crate::core::editor_event::{
     EditorEvent, EditorEventEnvelope, EditorEventRuntime, EditorEventSource, EditorViewportEvent,
 };
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
 use super::super::common::dispatch_envelope;
 
 pub(crate) fn dispatch_viewport_event(
     runtime: &EditorEventRuntime,
     event: EditorViewportEvent,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     dispatch_envelope(
         runtime,
         EditorEventEnvelope::new(EditorEventSource::Slint, EditorEvent::Viewport(event)),
@@ -22,7 +22,7 @@ pub(crate) fn dispatch_viewport_event(
 pub(crate) fn dispatch_viewport_command(
     runtime: &EditorEventRuntime,
     command: ViewportCommand,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     dispatch_viewport_event(runtime, viewport_event_from_command(command))
 }
 

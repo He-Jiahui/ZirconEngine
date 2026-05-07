@@ -3,13 +3,14 @@ use crate::ui::template::{
     UiTemplateInstance, UiTemplateSurfaceBuilder, UiTemplateTreeBuilder, UiTemplateValidator,
 };
 use crate::ui::tree::UiRuntimeTreeAccessExt;
+use toml::Value;
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
     event_ui::UiTreeId,
     layout::{
-        AxisConstraint, StretchMode, UiAxis, UiContainerKind, UiFrame, UiLinearBoxConfig,
-        UiScrollState, UiScrollableBoxConfig, UiScrollbarVisibility, UiSize, UiVirtualListConfig,
-        UiVirtualListWindow,
+        AxisConstraint, StretchMode, UiAlignment, UiAxis, UiContainerKind, UiFrame,
+        UiLinearBoxConfig, UiLinearSlotSizeRule, UiScrollState, UiScrollableBoxConfig,
+        UiScrollbarVisibility, UiSize, UiSlotKind, UiVirtualListConfig, UiVirtualListWindow,
     },
     template::UiTemplateError,
     tree::UiInputPolicy,
@@ -67,6 +68,63 @@ children = [
         { component = "AssetRow", control_id = "AssetRow3", attributes = { layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } } } },
         { component = "AssetRow", control_id = "AssetRow4", attributes = { layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } } } }
     ] }
+]
+"#;
+
+const SLOT_CONTRACT_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "HorizontalBox"
+control_id = "SlotParent"
+children = [
+    { component = "IconButton", control_id = "PrimaryAction", slot_attributes = { layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, linear_size = { rule = "StretchContent", value = 2.0, shrink_value = 0.5, min = 48.0, max = 160.0 }, padding = { left = 4.0, top = 6.0, right = 8.0, bottom = 10.0 }, alignment = { horizontal = "Fill", vertical = "Center" }, order = 3, z_order = 21 } }, attributes = { layout = { height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } } } }
+]
+"#;
+
+const OVERLAY_SLOT_CONTRACT_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "ViewportHost"
+control_id = "OverlayParent"
+attributes = { layout = { container = { kind = "Overlay" } } }
+children = [
+    { component = "OverlayPanel", control_id = "BackgroundLayer", slot_attributes = { layout = { z_order = -4, order = 2, alignment = { horizontal = "Fill", vertical = "Fill" } } } },
+    { component = "OverlayBadge", control_id = "ForegroundLayer", slot_attributes = { layout = { z_order = 16, order = 1, padding = { left = 4.0, top = 6.0 } } }, attributes = { layout = { z_index = 99 } } }
+]
+"#;
+
+const CANVAS_FREE_SLOT_CONTRACT_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "Canvas"
+control_id = "CanvasParent"
+children = [
+    { component = "CanvasBadge", control_id = "FreePlaced", slot_attributes = { layout = { anchor = { x = 1.0, y = 0.25 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -24.0, y = 16.0 }, offset = { left = 2.0, top = 4.0, right = 120.0, bottom = 40.0 }, auto_size = true, order = 4 } }, attributes = { layout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } } } }
+]
+"#;
+
+const NON_CANVAS_FREE_SLOT_PLACEMENT_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "HorizontalBox"
+control_id = "LinearParent"
+children = [
+    { component = "ToolbarAction", control_id = "LinearChild", slot_attributes = { layout = { anchor = { x = 1.0, y = 0.25 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -24.0, y = 16.0 }, offset = { left = 2.0, top = 4.0, right = 120.0, bottom = 40.0 }, auto_size = true, order = 4 } } }
+]
+"#;
+
+const SPACE_SLOT_PLACEMENT_TEMPLATE_TOML: &str = r#"
+version = 1
+
+[root]
+component = "Space"
+control_id = "SpaceParent"
+children = [
+    { component = "Decorative", control_id = "SpaceChild", slot_attributes = { layout = { anchor = { x = 0.5, y = 0.5 }, position = { x = 8.0, y = 12.0 }, offset = { left = 1.0, top = 2.0, right = 3.0, bottom = 4.0 }, auto_size = true } } }
 ]
 "#;
 
@@ -213,6 +271,118 @@ fn template_tree_builder_projects_template_instance_into_shared_ui_tree_with_met
     assert!(open_project.state_flags.hoverable);
     assert!(open_project.state_flags.focusable);
     assert_eq!(open_project.input_policy, UiInputPolicy::Receive);
+}
+
+#[test]
+fn template_tree_builder_marks_custom_bound_component_interactive() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "ScriptActionChip", control_id = "ActionChip", bindings = [{ id = "Demo/Action", event = "Click", route = "Demo.Action" }] }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(node.state_flags.clickable);
+    assert!(node.state_flags.hoverable);
+    assert!(node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_infers_scroll_binding_as_receive_input_only() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "ScrollPanel", control_id = "Scrollable", bindings = [{ id = "Demo/Scroll", event = "Scroll", route = "Demo.Scroll" }] }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(!node.state_flags.clickable);
+    assert!(!node.state_flags.hoverable);
+    assert!(!node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_infers_focus_binding_as_focusable_only() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "FocusProbe", control_id = "FocusProbe", bindings = [{ id = "Demo/Focus", event = "Focus", route = "Demo.Focus" }] }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(!node.state_flags.clickable);
+    assert!(!node.state_flags.hoverable);
+    assert!(node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_infers_hover_binding_as_hoverable_only() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "HoverProbe", control_id = "HoverProbe", bindings = [{ id = "Demo/Hover", event = "Hover", route = "Demo.Hover" }] }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(!node.state_flags.clickable);
+    assert!(node.state_flags.hoverable);
+    assert!(!node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_keeps_click_binding_button_like_by_default() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "ActionChip", control_id = "ActionChip", bindings = [{ id = "Demo/Click", event = "Click", route = "Demo.Click" }] }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(node.state_flags.clickable);
+    assert!(node.state_flags.hoverable);
+    assert!(node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_allows_explicit_focusable_input_metadata() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "FocusRingTarget", control_id = "Focusable", attributes = { input_focusable = true } }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Receive);
+    assert!(!node.state_flags.clickable);
+    assert!(!node.state_flags.hoverable);
+    assert!(node.state_flags.focusable);
+    assert_eq!(
+        node.template_metadata
+            .as_ref()
+            .unwrap()
+            .attributes
+            .get("input_focusable"),
+        Some(&Value::Boolean(true))
+    );
+}
+
+#[test]
+fn template_tree_builder_keeps_unbound_visual_component_non_interactive() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "DecorativeBadge", control_id = "VisualOnly", attributes = { label = "Info" } }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Inherit);
+    assert!(!node.state_flags.clickable);
+    assert!(!node.state_flags.hoverable);
+    assert!(!node.state_flags.focusable);
+}
+
+#[test]
+fn template_tree_builder_honors_explicit_legacy_button_input_opt_out() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "Button", control_id = "ExplicitOptOut", attributes = { input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false } }"#,
+    ));
+    let node = only_root_node(&tree);
+
+    assert_eq!(node.input_policy, UiInputPolicy::Inherit);
+    assert!(!node.state_flags.clickable);
+    assert!(!node.state_flags.hoverable);
+    assert!(!node.state_flags.focusable);
 }
 
 #[test]
@@ -379,6 +549,187 @@ fn template_tree_builder_maps_layout_contract_attributes_into_shared_runtime_nod
 }
 
 #[test]
+fn template_tree_builder_preserves_parent_owned_slot_contracts() {
+    let document = UiTemplateLoader::load_toml_str(SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let tree =
+        UiTemplateTreeBuilder::build_tree(UiTreeId::new("slot.contract"), &instance).unwrap();
+
+    assert_eq!(tree.slots.len(), 1);
+    let slot = &tree.slots[0];
+    let parent = tree.node(slot.parent_id).unwrap();
+    let child = tree.node(slot.child_id).unwrap();
+    assert_eq!(
+        parent
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref()),
+        Some("SlotParent")
+    );
+    assert_eq!(
+        child
+            .template_metadata
+            .as_ref()
+            .and_then(|metadata| metadata.control_id.as_deref()),
+        Some("PrimaryAction")
+    );
+    assert_eq!(slot.kind, UiSlotKind::Linear);
+    assert_eq!(slot.padding.left, 4.0);
+    assert_eq!(slot.padding.top, 6.0);
+    assert_eq!(slot.padding.right, 8.0);
+    assert_eq!(slot.padding.bottom, 10.0);
+    assert_eq!(slot.alignment.horizontal, UiAlignment::Fill);
+    assert_eq!(slot.alignment.vertical, UiAlignment::Center);
+    let linear_sizing = slot.linear_sizing.expect("linear slot sizing");
+    assert_eq!(linear_sizing.rule, UiLinearSlotSizeRule::StretchContent);
+    assert_eq!(linear_sizing.value, 2.0);
+    assert_eq!(linear_sizing.shrink_value, 0.5);
+    assert_eq!(linear_sizing.min, 48.0);
+    assert_eq!(linear_sizing.max, 160.0);
+    assert_eq!(slot.order, 3);
+    assert_eq!(slot.z_order, 0);
+    assert_eq!(slot.dirty_revision, 0);
+    assert_eq!(
+        child.constraints.width,
+        AxisConstraint {
+            min: 96.0,
+            max: 96.0,
+            preferred: 96.0,
+            priority: 0,
+            weight: 1.0,
+            stretch_mode: StretchMode::Fixed,
+        }
+    );
+}
+
+#[test]
+fn template_tree_builder_preserves_overlay_slot_z_order_contracts() {
+    let document = UiTemplateLoader::load_toml_str(OVERLAY_SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let tree = UiTemplateTreeBuilder::build_tree(UiTreeId::new("overlay.slot.contract"), &instance)
+        .unwrap();
+
+    let background_slot = tree
+        .slots
+        .iter()
+        .find(|slot| {
+            tree.node(slot.child_id)
+                .and_then(|node| node.template_metadata.as_ref())
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some("BackgroundLayer")
+        })
+        .expect("background overlay slot");
+    let foreground_slot = tree
+        .slots
+        .iter()
+        .find(|slot| {
+            tree.node(slot.child_id)
+                .and_then(|node| node.template_metadata.as_ref())
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some("ForegroundLayer")
+        })
+        .expect("foreground overlay slot");
+    let foreground_node = tree.node(foreground_slot.child_id).unwrap();
+
+    assert_eq!(background_slot.kind, UiSlotKind::Overlay);
+    assert_eq!(background_slot.z_order, -4);
+    assert_eq!(background_slot.order, 2);
+    assert_eq!(background_slot.alignment.horizontal, UiAlignment::Fill);
+    assert_eq!(background_slot.alignment.vertical, UiAlignment::Fill);
+    assert_eq!(foreground_slot.kind, UiSlotKind::Overlay);
+    assert_eq!(foreground_slot.z_order, 16);
+    assert_eq!(foreground_slot.order, 1);
+    assert_eq!(foreground_slot.padding.left, 4.0);
+    assert_eq!(foreground_slot.padding.top, 6.0);
+    assert_eq!(foreground_node.z_index, 99);
+    assert_eq!(foreground_slot.linear_sizing, None);
+}
+
+#[test]
+fn template_tree_builder_preserves_canvas_free_slot_placement_contracts() {
+    let document =
+        UiTemplateLoader::load_toml_str(CANVAS_FREE_SLOT_CONTRACT_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let tree =
+        UiTemplateTreeBuilder::build_tree(UiTreeId::new("canvas.free.slot.contract"), &instance)
+            .unwrap();
+
+    assert_eq!(tree.slots.len(), 1);
+    let slot = &tree.slots[0];
+    let parent = tree.node(slot.parent_id).unwrap();
+    let child = tree.node(slot.child_id).unwrap();
+    let placement = slot.canvas_placement.expect("canvas/free slot placement");
+
+    assert_eq!(
+        parent
+            .template_metadata
+            .as_ref()
+            .map(|metadata| metadata.component.as_str()),
+        Some("Canvas")
+    );
+    assert_eq!(slot.kind, UiSlotKind::Free);
+    assert_eq!(slot.order, 4);
+    assert_eq!(placement.anchor.x, 1.0);
+    assert_eq!(placement.anchor.y, 0.25);
+    assert_eq!(placement.pivot.x, 1.0);
+    assert_eq!(placement.pivot.y, 0.5);
+    assert_eq!(placement.position.x, -24.0);
+    assert_eq!(placement.position.y, 16.0);
+    assert_eq!(placement.offset.left, 2.0);
+    assert_eq!(placement.offset.top, 4.0);
+    assert_eq!(placement.offset.right, 120.0);
+    assert_eq!(placement.offset.bottom, 40.0);
+    assert!(placement.auto_size);
+    assert_eq!(child.anchor.x, 1.0);
+    assert_eq!(child.pivot.x, 1.0);
+    assert_eq!(child.position.x, -24.0);
+}
+
+#[test]
+fn template_tree_builder_ignores_canvas_free_placement_on_non_free_slots() {
+    let document =
+        UiTemplateLoader::load_toml_str(NON_CANVAS_FREE_SLOT_PLACEMENT_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let tree = UiTemplateTreeBuilder::build_tree(UiTreeId::new("linear.slot.contract"), &instance)
+        .unwrap();
+
+    assert_eq!(tree.slots.len(), 1);
+    let slot = &tree.slots[0];
+    let child = tree.node(slot.child_id).unwrap();
+
+    assert_eq!(slot.kind, UiSlotKind::Linear);
+    assert_eq!(slot.order, 4);
+    assert_eq!(slot.canvas_placement, None);
+    assert_eq!(child.anchor.x, 1.0);
+    assert_eq!(child.pivot.x, 1.0);
+    assert_eq!(child.position.x, -24.0);
+}
+
+#[test]
+fn template_tree_builder_ignores_canvas_free_placement_on_space_slots() {
+    let document = UiTemplateLoader::load_toml_str(SPACE_SLOT_PLACEMENT_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let tree =
+        UiTemplateTreeBuilder::build_tree(UiTreeId::new("space.slot.contract"), &instance).unwrap();
+
+    assert_eq!(tree.slots.len(), 1);
+    let slot = &tree.slots[0];
+    let parent = tree.node(slot.parent_id).unwrap();
+    let child = tree.node(slot.child_id).unwrap();
+
+    assert_eq!(parent.container, UiContainerKind::Space);
+    assert_eq!(slot.kind, UiSlotKind::Free);
+    assert_eq!(slot.canvas_placement, None);
+    assert_eq!(child.anchor.x, 0.5);
+    assert_eq!(child.position.x, 8.0);
+}
+
+#[test]
 fn template_surface_builder_computes_layout_from_template_contract_attributes() {
     let document = UiTemplateLoader::load_toml_str(LAYOUT_CONTRACT_TEMPLATE_TOML).unwrap();
     let instance = UiTemplateInstance::from_document(&document).unwrap();
@@ -472,4 +823,22 @@ fn template_surface_builder_computes_layout_from_template_contract_attributes() 
             last_visible_exclusive: 5,
         })
     );
+}
+
+fn tree_from_root_toml(root: String) -> zircon_runtime_interface::ui::tree::UiTree {
+    let document =
+        UiTemplateLoader::load_toml_str(&format!("version = 1\n\n[root]\n{root}")).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+    UiTemplateTreeBuilder::build_tree(UiTreeId::new("interaction.metadata"), &instance).unwrap()
+}
+
+fn root_with_inline_node(node: &str) -> String {
+    format!("template = \"Root\"\n\n[components.Root]\nroot = {node}")
+}
+
+fn only_root_node(
+    tree: &zircon_runtime_interface::ui::tree::UiTree,
+) -> &zircon_runtime_interface::ui::tree::UiTreeNode {
+    assert_eq!(tree.roots.len(), 1);
+    tree.node(tree.roots[0]).unwrap()
 }

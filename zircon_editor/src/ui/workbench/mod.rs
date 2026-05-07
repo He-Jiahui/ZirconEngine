@@ -1,6 +1,7 @@
 //! Workbench model, snapshot projection, and view registry.
 
 pub mod autolayout;
+pub mod debug_reflector;
 pub mod event;
 pub mod fixture;
 pub mod layout;
@@ -11,3 +12,4 @@ pub mod snapshot;
 pub mod startup;
 pub mod state;
 pub mod view;
+pub mod window_registry;

@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use zircon_runtime_interface::ui::template::UiAssetKind;
+use zircon_runtime_interface::ui::{
+    binding::UiEventKind,
+    template::{UiActionSideEffectClass, UiAssetKind},
+};
 
 use crate::ui::activity::ActivityWindowDescriptor;
 
@@ -47,6 +50,57 @@ impl UiAssetPreviewPreset {
             Self::EditorFloating => "Editor Floating",
             Self::GameHud => "Game HUD",
             Self::Dialog => "Dialog",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiDesignerToolMode {
+    #[default]
+    Select,
+    ResizeSlot,
+    PreviewInteract,
+}
+
+impl UiDesignerToolMode {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Select => "Select",
+            Self::ResizeSlot => "Resize Slot",
+            Self::PreviewInteract => "Preview Interact",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "select" => Some(Self::Select),
+            "resize_slot" | "resize-slot" | "resize slot" => Some(Self::ResizeSlot),
+            "preview_interact" | "preview-interact" | "preview interact" => {
+                Some(Self::PreviewInteract)
+            }
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiAssetEditorShellState {
+    #[default]
+    Valid,
+    Stale,
+    Invalid,
+    Emergency,
+}
+
+impl UiAssetEditorShellState {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Valid => "Valid",
+            Self::Stale => "Stale",
+            Self::Invalid => "Invalid",
+            Self::Emergency => "Emergency",
         }
     }
 }
@@ -138,6 +192,21 @@ impl UiDesignerSelectionModel {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UiDesignerPreviewInteractDispatch {
+    pub node_id: String,
+    pub control_id: String,
+    pub event: UiEventKind,
+    pub binding_id: String,
+    pub route: String,
+    pub action: String,
+    pub side_effect_class: UiActionSideEffectClass,
+    #[serde(default)]
+    pub payload_items: Vec<String>,
+    #[serde(default)]
+    pub target_items: Vec<String>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiMatchedStyleRuleReflection {
     pub origin_id: String,
@@ -227,13 +296,37 @@ pub struct UiAssetEditorReflectionModel {
     pub stale_import_items: Vec<String>,
     pub can_reload_from_disk: bool,
     pub can_keep_local_and_save: bool,
+    #[serde(default)]
+    pub can_save_local_copy: bool,
     pub can_open_diff_snapshot: bool,
     pub can_undo: bool,
     pub can_redo: bool,
     pub preview_available: bool,
+    #[serde(default)]
+    pub shell_state: UiAssetEditorShellState,
+    #[serde(default)]
+    pub emergency_summary: String,
+    #[serde(default)]
+    pub can_emergency_reload: bool,
+    #[serde(default)]
+    pub can_emergency_revert: bool,
+    #[serde(default)]
+    pub can_emergency_open_asset_browser: bool,
+    #[serde(default)]
+    pub designer_tool_mode: UiDesignerToolMode,
+    #[serde(default = "default_true")]
+    pub can_designer_select: bool,
+    #[serde(default)]
+    pub can_designer_resize_slot: bool,
+    #[serde(default)]
+    pub can_designer_preview_interact: bool,
     pub last_error: Option<String>,
     pub selection: UiDesignerSelectionModel,
     pub style_inspector: UiStyleInspectorReflectionModel,
+}
+
+const fn default_true() -> bool {
+    true
 }
 
 impl UiAssetEditorReflectionModel {
@@ -247,10 +340,20 @@ impl UiAssetEditorReflectionModel {
             stale_import_items: Vec::new(),
             can_reload_from_disk: false,
             can_keep_local_and_save: false,
+            can_save_local_copy: false,
             can_open_diff_snapshot: false,
             can_undo: false,
             can_redo: false,
             preview_available: false,
+            shell_state: UiAssetEditorShellState::Valid,
+            emergency_summary: String::new(),
+            can_emergency_reload: false,
+            can_emergency_revert: false,
+            can_emergency_open_asset_browser: false,
+            designer_tool_mode: UiDesignerToolMode::default(),
+            can_designer_select: true,
+            can_designer_resize_slot: false,
+            can_designer_preview_interact: false,
             last_error: None,
             selection: UiDesignerSelectionModel::default(),
             style_inspector: UiStyleInspectorReflectionModel::default(),
@@ -273,7 +376,11 @@ impl UiAssetEditorReflectionModel {
         self.stale_import_items = stale_import_items;
         self.can_reload_from_disk = has_external_conflict;
         self.can_keep_local_and_save = has_external_conflict;
+        self.can_save_local_copy = has_external_conflict;
         self.can_open_diff_snapshot = has_external_conflict;
+        if has_external_conflict && self.last_error.is_none() {
+            self.shell_state = UiAssetEditorShellState::Stale;
+        }
         self
     }
 
@@ -285,6 +392,35 @@ impl UiAssetEditorReflectionModel {
 
     pub fn with_preview_available(mut self, available: bool) -> Self {
         self.preview_available = available;
+        self
+    }
+
+    pub fn with_shell_state(
+        mut self,
+        state: UiAssetEditorShellState,
+        emergency_summary: impl Into<String>,
+        can_reload: bool,
+        can_revert: bool,
+        can_open_asset_browser: bool,
+    ) -> Self {
+        self.shell_state = state;
+        self.emergency_summary = emergency_summary.into();
+        self.can_emergency_reload = can_reload;
+        self.can_emergency_revert = can_revert;
+        self.can_emergency_open_asset_browser = can_open_asset_browser;
+        self
+    }
+
+    pub fn with_designer_tool_state(
+        mut self,
+        mode: UiDesignerToolMode,
+        can_resize_slot: bool,
+        can_preview_interact: bool,
+    ) -> Self {
+        self.designer_tool_mode = mode;
+        self.can_designer_select = true;
+        self.can_designer_resize_slot = can_resize_slot;
+        self.can_designer_preview_interact = can_preview_interact;
         self
     }
 

@@ -3,13 +3,14 @@ use std::time::Instant;
 use serde::{Deserialize, Serialize};
 
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
-use crate::ui::layout::compute_layout_tree;
+use crate::ui::layout::{compute_incremental_layout_tree, compute_layout_tree};
 use crate::ui::tree::{
     UiHitTestIndex, UiHitTestResult, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt,
     UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
 };
 use zircon_runtime_interface::ui::dispatch::{
-    UiPointerComponentEvent, UiPointerComponentEventReason,
+    UiDispatchReply, UiDispatchReplyStep, UiInputDispatchResult, UiInputEvent,
+    UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchEffect,
 };
 use zircon_runtime_interface::ui::tree::{UiDirtyFlags, UiTree, UiTreeError};
 use zircon_runtime_interface::ui::{
@@ -28,11 +29,17 @@ use zircon_runtime_interface::ui::{
 
 use super::{
     build_arranged_tree, debug_hit_test_surface_frame, debug_surface_frame,
+    debug_surface_frame_for_pick, debug_surface_frame_for_selection,
     debug_surface_frame_with_options, extract_ui_render_tree_from_arranged,
+    input::{
+        apply_dispatch_reply, apply_dispatch_reply_steps, dispatch_input_event,
+        is_valid_input_owner, UiSurfaceInputState,
+    },
     property_mutation::{
         mutate_tree_property, UiPropertyMutationReport, UiPropertyMutationRequest,
     },
     reflector_snapshot,
+    render::{UiSurfaceRenderCache, UiSurfaceRenderCacheStats},
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,6 +54,18 @@ pub struct UiSurfaceRebuildReport {
     pub render_command_count: usize,
     pub hit_grid_entry_count: usize,
     pub hit_grid_cell_count: usize,
+    #[serde(default)]
+    pub layout_visited_node_count: usize,
+    #[serde(default)]
+    pub layout_geometry_changed_node_count: usize,
+    #[serde(default)]
+    pub layout_skipped_node_count: usize,
+    #[serde(default)]
+    pub render_command_reused_count: usize,
+    #[serde(default)]
+    pub render_command_rebuilt_count: usize,
+    #[serde(default)]
+    pub render_damage_rect_count: usize,
     pub layout_elapsed_micros: u64,
     pub arranged_elapsed_micros: u64,
     pub hit_grid_elapsed_micros: u64,
@@ -66,6 +85,12 @@ impl UiSurfaceRebuildReport {
             render_command_count: self.render_command_count,
             hit_grid_entry_count: self.hit_grid_entry_count,
             hit_grid_cell_count: self.hit_grid_cell_count,
+            layout_visited_node_count: self.layout_visited_node_count,
+            layout_geometry_changed_node_count: self.layout_geometry_changed_node_count,
+            layout_skipped_node_count: self.layout_skipped_node_count,
+            render_command_reused_count: self.render_command_reused_count,
+            render_command_rebuilt_count: self.render_command_rebuilt_count,
+            render_damage_rect_count: self.render_damage_rect_count,
             layout_elapsed_micros: self.layout_elapsed_micros,
             arranged_elapsed_micros: self.arranged_elapsed_micros,
             hit_grid_elapsed_micros: self.hit_grid_elapsed_micros,
@@ -88,8 +113,12 @@ pub struct UiSurface {
     pub arranged_tree: UiArrangedTree,
     pub hit_test: UiHitTestIndex,
     pub focus: UiFocusState,
+    #[serde(default)]
+    pub input: UiSurfaceInputState,
     pub navigation: UiNavigationState,
     pub render_extract: UiRenderExtract,
+    #[serde(default)]
+    pub render_cache: UiSurfaceRenderCache,
     pub last_rebuild_report: UiSurfaceRebuildReport,
 }
 
@@ -103,11 +132,13 @@ impl UiSurface {
             },
             hit_test: UiHitTestIndex::default(),
             focus: UiFocusState::default(),
+            input: UiSurfaceInputState::default(),
             navigation: UiNavigationState::default(),
             render_extract: UiRenderExtract {
                 tree_id,
                 list: UiRenderList::default(),
             },
+            render_cache: UiSurfaceRenderCache::default(),
             last_rebuild_report: UiSurfaceRebuildReport::default(),
         }
     }
@@ -122,6 +153,16 @@ impl UiSurface {
         }
     }
 
+    fn rebuild_render_extract(&mut self, force_rebuild: bool) -> UiSurfaceRenderCacheStats {
+        if force_rebuild {
+            self.render_cache = UiSurfaceRenderCache::default();
+        }
+        let extract = extract_ui_render_tree_from_arranged(&self.tree, &self.arranged_tree);
+        let update = self.render_cache.update(extract, force_rebuild);
+        self.render_extract = update.extract;
+        update.stats
+    }
+
     pub fn rebuild(&mut self) {
         let dirty_flags = self.dirty_flags();
         let dirty_node_count = dirty_node_count(&self.tree);
@@ -132,7 +173,7 @@ impl UiSurface {
         self.hit_test.rebuild_arranged(&self.arranged_tree);
         let hit_grid_elapsed_micros = elapsed_micros(hit_start);
         let render_start = Instant::now();
-        self.render_extract = extract_ui_render_tree_from_arranged(&self.tree, &self.arranged_tree);
+        let render_stats = self.rebuild_render_extract(true);
         let render_elapsed_micros = elapsed_micros(render_start);
         self.last_rebuild_report = UiSurfaceRebuildReport {
             dirty_flags,
@@ -140,6 +181,11 @@ impl UiSurface {
             arranged_rebuilt: true,
             hit_grid_rebuilt: true,
             render_rebuilt: true,
+            layout_visited_node_count: self.tree.nodes.len(),
+            layout_geometry_changed_node_count: self.tree.nodes.len(),
+            render_command_reused_count: render_stats.reused_command_count,
+            render_command_rebuilt_count: render_stats.rebuilt_command_count,
+            render_damage_rect_count: render_stats.damage_rect_count,
             arranged_elapsed_micros,
             hit_grid_elapsed_micros,
             render_elapsed_micros,
@@ -168,13 +214,14 @@ impl UiSurface {
         let dirty = self.dirty_flags();
         let dirty_node_count = dirty_node_count(&self.tree);
         if !dirty.any() {
-            self.last_rebuild_report = UiSurfaceRebuildReport::default().with_counts(self.rebuild_counts());
+            self.last_rebuild_report =
+                UiSurfaceRebuildReport::default().with_counts(self.rebuild_counts());
             return Ok(self.last_rebuild_report);
         }
 
         if dirty.layout || dirty.style || dirty.text || dirty.visible_range {
             let layout_start = Instant::now();
-            compute_layout_tree(&mut self.tree, root_size)?;
+            let layout_stats = compute_incremental_layout_tree(&mut self.tree, root_size)?;
             let layout_elapsed_micros = elapsed_micros(layout_start);
             let arranged_start = Instant::now();
             self.arranged_tree = build_arranged_tree(&self.tree);
@@ -183,8 +230,7 @@ impl UiSurface {
             self.hit_test.rebuild_arranged(&self.arranged_tree);
             let hit_grid_elapsed_micros = elapsed_micros(hit_start);
             let render_start = Instant::now();
-            self.render_extract =
-                extract_ui_render_tree_from_arranged(&self.tree, &self.arranged_tree);
+            let render_stats = self.rebuild_render_extract(false);
             let render_elapsed_micros = elapsed_micros(render_start);
             let report = UiSurfaceRebuildReport {
                 dirty_flags: dirty,
@@ -193,6 +239,12 @@ impl UiSurface {
                 arranged_rebuilt: true,
                 hit_grid_rebuilt: true,
                 render_rebuilt: true,
+                layout_visited_node_count: layout_stats.visited_node_count,
+                layout_geometry_changed_node_count: layout_stats.geometry_changed_node_count,
+                layout_skipped_node_count: layout_stats.skipped_node_count,
+                render_command_reused_count: render_stats.reused_command_count,
+                render_command_rebuilt_count: render_stats.rebuilt_command_count,
+                render_damage_rect_count: render_stats.damage_rect_count,
                 layout_elapsed_micros,
                 arranged_elapsed_micros,
                 hit_grid_elapsed_micros,
@@ -221,10 +273,12 @@ impl UiSurface {
         }
         if dirty.render {
             let render_start = Instant::now();
-            self.render_extract =
-                extract_ui_render_tree_from_arranged(&self.tree, &self.arranged_tree);
+            let render_stats = self.rebuild_render_extract(false);
             report.render_elapsed_micros = elapsed_micros(render_start);
             report.render_rebuilt = true;
+            report.render_command_reused_count = render_stats.reused_command_count;
+            report.render_command_rebuilt_count = render_stats.rebuilt_command_count;
+            report.render_damage_rect_count = render_stats.damage_rect_count;
         }
         report = UiSurfaceRebuildReport {
             ..report.with_counts(self.rebuild_counts())
@@ -235,8 +289,16 @@ impl UiSurface {
     }
 
     pub fn compute_layout(&mut self, root_size: UiSize) -> Result<(), UiTreeError> {
+        let dirty_flags = self.dirty_flags();
+        let dirty_node_count = dirty_node_count(&self.tree);
+        let layout_start = Instant::now();
         compute_layout_tree(&mut self.tree, root_size)?;
+        let layout_elapsed_micros = elapsed_micros(layout_start);
         self.rebuild();
+        self.last_rebuild_report.layout_recomputed = true;
+        self.last_rebuild_report.layout_elapsed_micros = layout_elapsed_micros;
+        self.last_rebuild_report.dirty_flags = dirty_flags;
+        self.last_rebuild_report.dirty_node_count = dirty_node_count;
         self.clear_dirty_flags();
         Ok(())
     }
@@ -276,6 +338,29 @@ impl UiSurface {
         debug_surface_frame_with_options(&self.surface_frame(), options)
     }
 
+    pub fn debug_snapshot_for_pick(
+        &self,
+        query: UiHitTestQuery,
+        options: &UiSurfaceDebugOptions,
+    ) -> UiSurfaceDebugSnapshot {
+        debug_surface_frame_for_pick(&self.surface_frame(), query, options)
+    }
+
+    pub fn debug_snapshot_for_selection(
+        &self,
+        selected_node: UiNodeId,
+        options: &UiSurfaceDebugOptions,
+    ) -> UiSurfaceDebugSnapshot {
+        debug_surface_frame_for_selection(&self.surface_frame(), selected_node, options)
+    }
+
+    pub fn debug_snapshot_json(
+        &self,
+        options: &UiSurfaceDebugOptions,
+    ) -> Result<String, serde_json::Error> {
+        serde_json::to_string_pretty(&self.debug_snapshot_with_options(options))
+    }
+
     pub fn mutate_property(
         &mut self,
         request: UiPropertyMutationRequest,
@@ -303,8 +388,15 @@ impl UiSurface {
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.is_focus_candidate() {
+        if !node.is_focus_candidate() || !is_valid_input_owner(self, node_id) {
             return Err(UiTreeError::MissingNode(node_id));
+        }
+        if self
+            .input
+            .input_method_owner
+            .is_some_and(|owner| owner != node_id)
+        {
+            self.input.clear_input_method();
         }
         self.focus.focused = Some(node_id);
         self.navigation.navigation_root = Some(node_id);
@@ -313,21 +405,59 @@ impl UiSurface {
     }
 
     pub fn clear_focus(&mut self) {
+        if self.input.input_method_owner == self.focus.focused {
+            self.input.clear_input_method();
+        }
         self.focus.focused = None;
         self.navigation.navigation_root = None;
         self.navigation.focus_visible = false;
     }
 
     pub fn capture_pointer(&mut self, node_id: UiNodeId) -> Result<(), UiTreeError> {
-        self.tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
+        if !is_valid_input_owner(self, node_id) {
+            return Err(UiTreeError::MissingNode(node_id));
+        }
+        if let Some(previous) = self.focus.captured.filter(|owner| owner != &node_id) {
+            self.input.clear_high_precision_for(previous);
+        }
+        self.input.clear_pointer_capture_for(node_id);
         self.focus.captured = Some(node_id);
         Ok(())
     }
 
     pub fn release_pointer_capture(&mut self) -> Option<UiNodeId> {
-        self.focus.captured.take()
+        let released = self.focus.captured.take();
+        if let Some(owner) = released {
+            self.input.clear_pointer_capture_for(owner);
+        } else {
+            self.input.clear_pointer_capture();
+        }
+        released
+    }
+
+    pub fn apply_dispatch_reply(
+        &mut self,
+        event: UiInputEvent,
+        reply: UiDispatchReply,
+    ) -> UiInputDispatchResult {
+        apply_dispatch_reply(self, event, reply)
+    }
+
+    pub fn apply_dispatch_reply_steps(
+        &mut self,
+        event: UiInputEvent,
+        steps: impl IntoIterator<Item = UiDispatchReplyStep>,
+    ) -> UiInputDispatchResult {
+        apply_dispatch_reply_steps(self, event, steps)
+    }
+
+    pub fn dispatch_input_event(
+        &mut self,
+        pointer_dispatcher: &UiPointerDispatcher,
+        navigation_dispatcher: &UiNavigationDispatcher,
+        event: UiInputEvent,
+    ) -> Result<UiInputDispatchResult, UiTreeError> {
+        dispatch_input_event(self, pointer_dispatcher, navigation_dispatcher, event)
     }
 
     pub fn route_pointer_event(
@@ -379,18 +509,54 @@ impl UiSurface {
         event: UiPointerEvent,
         query: UiHitTestQuery,
     ) -> Result<UiPointerDispatchResult, UiTreeError> {
+        let focus_before_dispatch = self.focus.focused;
+        let capture_before_dispatch = self.focus.captured;
+        let _hover_before_dispatch = self.focus.hovered.clone();
         let route = self.route_pointer_event_with_details(
             event.kind,
             query,
             event.button,
             event.scroll_delta,
         )?;
-        let focus_before_dispatch = self.focus.focused;
-        let capture_before_dispatch = route.captured;
         let mut result = dispatcher.dispatch(&self.tree, route.clone())?;
         if let Some(node_id) = result.captured_by {
+            if capture_before_dispatch != Some(node_id) {
+                result.diagnostics.capture_started = true;
+            }
+            if let Some(previous) = capture_before_dispatch.filter(|owner| owner != &node_id) {
+                self.input.clear_high_precision_for(previous);
+            }
             self.focus.captured = Some(node_id);
-        } else if matches!(event.kind, UiPointerEventKind::Scroll)
+            self.input.captured_pointer_id = None;
+        }
+        if let Some(node_id) = result.released_capture {
+            if self.focus.captured == Some(node_id) || route.captured == Some(node_id) {
+                self.focus.captured = None;
+                self.input.clear_pointer_capture_for(node_id);
+                result.diagnostics.capture_released = true;
+            }
+        }
+        if let Some(node_id) = result.focus_changed_to {
+            self.focus_node(node_id)?;
+            let focus_visible = result
+                .invocations
+                .iter()
+                .rev()
+                .find_map(|invocation| match invocation.effect {
+                    UiPointerDispatchEffect::SetFocus { focus_visible }
+                        if invocation.node_id == node_id =>
+                    {
+                        Some(focus_visible)
+                    }
+                    _ => None,
+                })
+                .unwrap_or(false);
+            self.navigation.focus_visible = focus_visible;
+        }
+        if result.focus_cleared {
+            self.clear_focus();
+        }
+        if matches!(event.kind, UiPointerEventKind::Scroll)
             && result.handled_by.is_none()
             && result.blocked_by.is_none()
         {
@@ -399,22 +565,48 @@ impl UiSurface {
             } else {
                 route.root_targets.as_slice()
             };
-            if let Some(node_id) = self.tree.first_scrollable_in_candidates(candidates)? {
-                let _ = self.tree.scroll_by(node_id, event.scroll_delta)?;
-                result.handled_by = Some(node_id);
+            for node_id in self.tree.scrollable_candidates(candidates)? {
+                if self.tree.scroll_by(node_id, event.scroll_delta)? {
+                    result.handled_by = Some(node_id);
+                    result.diagnostics.scroll_defaulted = true;
+                    break;
+                }
             }
         }
         result.diagnostics.focus_changed = focus_before_dispatch != self.focus.focused;
-        result.diagnostics.capture_released = matches!(event.kind, UiPointerEventKind::Up)
-            && capture_before_dispatch.is_some()
-            && self.focus.captured.is_none();
-        result.component_events = self.pointer_component_events(&route)?;
+        result.diagnostics.capture_released = result.diagnostics.capture_released
+            || (matches!(event.kind, UiPointerEventKind::Up)
+                && capture_before_dispatch.is_some()
+                && self.focus.captured.is_none());
+        if result.diagnostics.capture_released {
+            if let Some(owner) = capture_before_dispatch
+                .or(result.released_capture)
+                .or(route.captured)
+            {
+                self.input.clear_pointer_capture_for(owner);
+            } else {
+                self.input.clear_pointer_capture();
+            }
+        }
+        result.diagnostics.default_click_rejected = route.activation_phase
+            == UiPointerActivationPhase::PrimaryRelease
+            && route.pressed.is_some()
+            && route.click_target.is_none();
+        result.component_events = self.pointer_component_events(&route, &event)?;
+        self.push_focus_component_events(
+            &mut result.component_events,
+            focus_before_dispatch,
+            self.focus.focused,
+        )?;
+        self.push_state_damage_frames(&mut result, &route, focus_before_dispatch);
+        result.diagnostics.component_event_count = result.component_events.len();
         Ok(result)
     }
 
     fn pointer_component_events(
         &self,
         route: &UiPointerRoute,
+        event: &UiPointerEvent,
     ) -> Result<Vec<UiPointerComponentEvent>, UiTreeError> {
         let mut events = Vec::new();
         for node_id in &route.entered {
@@ -468,10 +660,93 @@ impl UiSurface {
                     },
                     UiPointerComponentEventReason::DefaultClick,
                 )?;
+                if event.click_count >= 2 {
+                    self.push_pointer_component_events(
+                        &mut events,
+                        node_id,
+                        UiEventKind::DoubleClick,
+                        UiComponentEvent::Commit {
+                            property: "double_activated".to_string(),
+                            value: zircon_runtime_interface::ui::component::UiValue::Bool(true),
+                        },
+                        UiPointerComponentEventReason::DefaultDoubleClick,
+                    )?;
+                }
             }
         }
 
         Ok(events)
+    }
+
+    fn push_focus_component_events(
+        &self,
+        events: &mut Vec<UiPointerComponentEvent>,
+        old_focus: Option<UiNodeId>,
+        new_focus: Option<UiNodeId>,
+    ) -> Result<(), UiTreeError> {
+        if old_focus == new_focus {
+            return Ok(());
+        }
+        if let Some(node_id) = old_focus {
+            self.push_pointer_component_events(
+                events,
+                node_id,
+                UiEventKind::Blur,
+                UiComponentEvent::Focus { focused: false },
+                UiPointerComponentEventReason::FocusLost,
+            )?;
+        }
+        if let Some(node_id) = new_focus {
+            self.push_pointer_component_events(
+                events,
+                node_id,
+                UiEventKind::Focus,
+                UiComponentEvent::Focus { focused: true },
+                UiPointerComponentEventReason::FocusGained,
+            )?;
+        }
+        Ok(())
+    }
+
+    fn push_state_damage_frames(
+        &self,
+        result: &mut UiPointerDispatchResult,
+        route: &UiPointerRoute,
+        focus_before_dispatch: Option<UiNodeId>,
+    ) {
+        for node_id in route.entered.iter().chain(route.left.iter()) {
+            self.push_damage_frame(result, *node_id);
+        }
+        if route.activation_phase == UiPointerActivationPhase::PrimaryPress {
+            if let Some(node_id) = route.target {
+                self.push_damage_frame(result, node_id);
+            }
+        }
+        if route.activation_phase == UiPointerActivationPhase::PrimaryRelease {
+            if let Some(node_id) = route.pressed {
+                self.push_damage_frame(result, node_id);
+            }
+            if let Some(node_id) = route.click_target {
+                self.push_damage_frame(result, node_id);
+            }
+        }
+        if focus_before_dispatch != self.focus.focused {
+            if let Some(node_id) = focus_before_dispatch {
+                self.push_damage_frame(result, node_id);
+            }
+            if let Some(node_id) = self.focus.focused {
+                self.push_damage_frame(result, node_id);
+            }
+        }
+    }
+
+    fn push_damage_frame(&self, result: &mut UiPointerDispatchResult, node_id: UiNodeId) {
+        let Some(frame) = self.arranged_tree.get(node_id).map(|node| node.frame) else {
+            return;
+        };
+        if !result.requested_damage.contains(&frame) {
+            result.requested_damage.push(frame);
+        }
     }
 
     fn push_pointer_component_events(
@@ -547,6 +822,11 @@ impl UiSurface {
         if matches!(kind, UiPointerEventKind::Up) {
             self.focus.pressed = None;
             self.focus.captured = None;
+            if let Some(owner) = captured {
+                self.input.clear_pointer_capture_for(owner);
+            } else {
+                self.input.clear_pointer_capture();
+            }
         }
         let pressed = if matches!(kind, UiPointerEventKind::Down) {
             self.focus.pressed

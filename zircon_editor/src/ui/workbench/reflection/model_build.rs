@@ -4,7 +4,7 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
 
-use crate::ui::workbench::model::WorkbenchViewModel;
+use crate::ui::workbench::model::{MenuItemModel, MenuModel, WorkbenchViewModel};
 use crate::ui::workbench::snapshot::{EditorChromeSnapshot, MainPageSnapshot};
 
 use super::activity_collection::{
@@ -18,29 +18,7 @@ pub fn build_workbench_reflection_model(
 ) -> EditorWorkbenchReflectionModel {
     let mut model = EditorWorkbenchReflectionModel::new(UiTreeId::new("editor.workbench"));
     model.status_line = chrome.status_line.clone();
-    model.menu_items = view_model
-        .menu_bar
-        .menus
-        .iter()
-        .flat_map(|menu| {
-            let menu_id = menu_id(&menu.label);
-            menu.items
-                .iter()
-                .map(move |item| EditorMenuItemReflectionModel {
-                    menu_id: menu_id.clone(),
-                    control_id: item.binding.path().control_id.clone(),
-                    label: item.label.clone(),
-                    enabled: item.enabled,
-                    operation_path: item
-                        .operation_path
-                        .as_ref()
-                        .map(|path| path.as_str().to_string()),
-                    shortcut: item.shortcut.clone(),
-                    binding: item.binding.clone(),
-                    route_id: None,
-                })
-        })
-        .collect();
+    model.menu_items = menu_reflection_items(&view_model.menu_bar.menus);
 
     model.pages = chrome
         .workbench
@@ -104,4 +82,42 @@ pub fn build_workbench_reflection_model(
         .collect();
 
     model
+}
+
+fn menu_reflection_items(menus: &[MenuModel]) -> Vec<EditorMenuItemReflectionModel> {
+    let mut reflected = Vec::new();
+    for menu in menus {
+        let menu_id = menu_id(&menu.label);
+        for item in &menu.items {
+            append_menu_reflection_item(&mut reflected, &menu_id, item);
+        }
+    }
+    reflected
+}
+
+fn append_menu_reflection_item(
+    reflected: &mut Vec<EditorMenuItemReflectionModel>,
+    menu_id: &str,
+    item: &MenuItemModel,
+) {
+    if item.has_children() {
+        for child in &item.children {
+            append_menu_reflection_item(reflected, menu_id, child);
+        }
+        return;
+    }
+
+    reflected.push(EditorMenuItemReflectionModel {
+        menu_id: menu_id.to_string(),
+        control_id: item.binding.path().control_id.clone(),
+        label: item.label.clone(),
+        enabled: item.enabled,
+        operation_path: item
+            .operation_path
+            .as_ref()
+            .map(|path| path.as_str().to_string()),
+        shortcut: item.shortcut.clone(),
+        binding: item.binding.clone(),
+        route_id: None,
+    });
 }

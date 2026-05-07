@@ -1,5 +1,7 @@
+use std::collections::{BTreeMap, HashSet};
+
 use crate::core::resource::{AssetReference, ResourceLocator};
-use crate::ui::template::UiAssetLoader;
+use crate::ui::template::{collect_document_resource_dependencies, UiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
@@ -65,21 +67,45 @@ impl UiStyleAsset {
 
 pub fn ui_asset_references(document: &UiAssetDocument) -> Vec<AssetReference> {
     let mut references = Vec::new();
+    let mut seen = HashSet::new();
     for reference in document
         .imports
         .widgets
         .iter()
         .chain(document.imports.styles.iter())
     {
-        if let Ok(locator) = ResourceLocator::parse(reference) {
-            if let Ok(asset_locator) =
-                ResourceLocator::new(locator.scheme(), locator.path().to_string(), None)
-            {
-                references.push(AssetReference::from_locator(asset_locator));
+        push_reference(reference, &mut references, &mut seen);
+    }
+
+    if let Ok(report) =
+        collect_document_resource_dependencies(document, &BTreeMap::new(), &BTreeMap::new())
+    {
+        for dependency in report.dependencies {
+            push_reference(&dependency.reference.uri, &mut references, &mut seen);
+            if let Some(fallback_uri) = dependency.reference.fallback.uri.as_deref() {
+                push_reference(fallback_uri, &mut references, &mut seen);
             }
         }
     }
     references
+}
+
+fn push_reference(
+    uri: &str,
+    references: &mut Vec<AssetReference>,
+    seen: &mut HashSet<ResourceLocator>,
+) {
+    let Ok(locator) = ResourceLocator::parse(uri) else {
+        return;
+    };
+    let Ok(asset_locator) =
+        ResourceLocator::new(locator.scheme(), locator.path().to_string(), None)
+    else {
+        return;
+    };
+    if seen.insert(asset_locator.clone()) {
+        references.push(AssetReference::from_locator(asset_locator));
+    }
 }
 
 fn parse_typed(

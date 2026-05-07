@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::core::editor_event::{EditorEventRuntime, EditorViewportEvent};
-use crate::ui::slint_host::event_bridge::SlintDispatchEffects;
+use crate::ui::slint_host::event_bridge::UiHostEventEffects;
 
 use super::super::constants::VIEWPORT_SURFACE_NODE_ID;
 use super::{dispatch_viewport_event, SharedViewportPointerBridge};
@@ -14,7 +14,7 @@ pub(crate) fn dispatch_viewport_pointer_event(
     runtime: &EditorEventRuntime,
     bridge: &mut SharedViewportPointerBridge,
     event: UiPointerEvent,
-) -> Result<SlintDispatchEffects, String> {
+) -> Result<UiHostEventEffects, String> {
     let dispatcher = viewport_pointer_dispatcher();
     let dispatch = bridge
         .surface
@@ -24,11 +24,11 @@ pub(crate) fn dispatch_viewport_pointer_event(
     if dispatch.handled_by != Some(bridge.viewport_node_id)
         && dispatch.captured_by != Some(bridge.viewport_node_id)
     {
-        return Ok(SlintDispatchEffects::default());
+        return Ok(UiHostEventEffects::default());
     }
 
     let Some(viewport_event) = map_pointer_route_to_viewport_event(&dispatch.route) else {
-        return Ok(SlintDispatchEffects::default());
+        return Ok(UiHostEventEffects::default());
     };
 
     dispatch_viewport_event(runtime, viewport_event)

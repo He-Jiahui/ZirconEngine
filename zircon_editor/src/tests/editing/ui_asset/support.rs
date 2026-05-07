@@ -4,10 +4,14 @@ pub(super) use crate::ui::asset_editor::{
     UiAssetEditorRoute, UiAssetEditorSession, UiAssetEditorSessionError, UiAssetEditorTreeEdit,
     UiAssetEditorTreeEditKind, UiAssetEditorUndoExternalEffects, UiAssetEditorUndoStack,
     UiAssetEditorUndoTransition, UiAssetPreviewPreset, UiDesignerSelectionModel,
+    UiDesignerToolMode,
 };
 pub(super) use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+pub(super) use zircon_runtime_interface::ui::binding::UiEventKind;
 pub(super) use zircon_runtime_interface::ui::layout::UiSize;
-pub(super) use zircon_runtime_interface::ui::template::{UiAssetKind, UiStyleRule};
+pub(super) use zircon_runtime_interface::ui::template::{
+    UiActionSideEffectClass, UiAssetKind, UiStyleRule,
+};
 pub(super) const SIMPLE_LAYOUT_ASSET_TOML: &str = r#"
 [asset]
 kind = "layout"

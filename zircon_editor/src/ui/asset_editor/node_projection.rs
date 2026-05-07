@@ -183,6 +183,12 @@ fn build_ui_asset_editor_node_projection(
                         .map(|info| info.border_width)
                         .unwrap_or_default()
                 }),
+                selected: bool_attribute(metadata, "selected").unwrap_or(false),
+                focused: bool_attribute(metadata, "focused").unwrap_or(false),
+                hovered: bool_attribute(metadata, "hovered").unwrap_or(false),
+                pressed: bool_attribute(metadata, "pressed").unwrap_or(false),
+                disabled: bool_attribute(metadata, "disabled").unwrap_or(false)
+                    || bool_attribute(metadata, "enabled") == Some(false),
                 media_source: SharedString::from(visual_assets.media_source),
                 icon_name: SharedString::from(visual_assets.icon_name),
                 has_preview_image: visual_assets.has_preview_image,
@@ -232,6 +238,9 @@ fn resolve_role(
     match component {
         "Button" => "Button",
         "Label" => "Label",
+        "Icon" => "Icon",
+        "IconButton" => "IconButton",
+        "SvgIcon" => "SvgIcon",
         _ if string_attribute(metadata, "surface_variant").is_some()
             || render_info.is_some_and(|info| info.is_quad) =>
         {
@@ -264,6 +273,10 @@ fn integer_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<i32
         .get(key)
         .and_then(Value::as_integer)
         .map(|value| value as i32)
+}
+
+fn bool_attribute(metadata: &UiTemplateNodeMetadata, key: &str) -> Option<bool> {
+    metadata.attributes.get(key).and_then(Value::as_bool)
 }
 
 fn text_align_name(align: UiTextAlign) -> &'static str {

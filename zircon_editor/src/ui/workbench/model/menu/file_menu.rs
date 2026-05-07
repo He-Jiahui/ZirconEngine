@@ -17,6 +17,7 @@ pub(super) fn build_file_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::OpenProject),
                 shortcut: Some("Ctrl+O".to_string()),
                 enabled: true,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Save Project".to_string(),
@@ -25,6 +26,7 @@ pub(super) fn build_file_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::SaveProject),
                 shortcut: Some("Ctrl+S".to_string()),
                 enabled: chrome.project_open,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Save Layout".to_string(),
@@ -33,6 +35,7 @@ pub(super) fn build_file_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::SaveLayout),
                 shortcut: None,
                 enabled: true,
+                children: Vec::new(),
             },
             MenuItemModel {
                 label: "Reset Layout".to_string(),
@@ -41,6 +44,7 @@ pub(super) fn build_file_menu(chrome: &EditorChromeSnapshot) -> MenuModel {
                 operation_path: operation_path_for_menu_action(&MenuAction::ResetLayout),
                 shortcut: None,
                 enabled: true,
+                children: Vec::new(),
             },
         ],
     }

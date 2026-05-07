@@ -13,6 +13,13 @@ related_code:
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
+  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
+  - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/mod.rs
@@ -20,9 +27,19 @@ related_code:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/tests/render_contracts.rs
+  - zircon_runtime_interface/Cargo.toml
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
@@ -46,7 +63,10 @@ related_code:
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -70,9 +90,19 @@ implementation_files:
   - zircon_runtime/src/ui/text/rich_text.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
+  - zircon_runtime_interface/src/ui/surface/render/brush.rs
+  - zircon_runtime_interface/src/ui/surface/render/batch.rs
+  - zircon_runtime_interface/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/debug.rs
+  - zircon_runtime_interface/src/ui/surface/render/visualizer.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
+  - zircon_runtime_interface/src/tests/render_contracts.rs
+  - zircon_runtime_interface/Cargo.toml
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/new.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
@@ -96,7 +126,10 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/viewport/submit_extract.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
+  - zircon_editor/Cargo.toml
   - zircon_runtime/src/ui/template/asset/document.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout.rs
@@ -105,6 +138,13 @@ implementation_files:
   - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
+  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
+  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
+  - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_runtime/tests/font_asset_manifest_contract.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 plan_sources:
@@ -118,6 +158,7 @@ plan_sources:
   - user: 2026-04-28 继续文本的 SDF 渲染和排版能力任务
   - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
+  - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
@@ -147,6 +188,12 @@ tests:
   - cargo test -p zircon_runtime --test font_asset_manifest_contract project_font_manifest_resolves_through_project_asset_manager --locked
   - cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked
   - cargo test -p zircon_runtime runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked
+  - cargo test -p zircon_editor --lib runtime_ui_golden --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib runtime_ui_manager --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib ui_boundary::assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib asset_compile_cache --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib asset_resource_refs --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib render_framework_ --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first
   - cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics
   - cargo test -p zircon_runtime production_ui_entry_assets_live_under_crate_assets_not_src --locked
@@ -156,6 +203,13 @@ tests:
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo check -p zircon_editor --lib --locked
   - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\svg-adaptive-check --message-format short --color never
+  - cargo test -p zircon_editor --lib svg_icon_pixels_follow_requested_target_size --locked --jobs 1 --target-dir E:\zircon-build\targets\svg-adaptive-check --message-format short --color never
+  - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --color never
+  - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --color never
+  - cargo test -p zircon_runtime --lib screen_space_ui_plan --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib text_attrs --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_editor --lib native_runtime_text_painter --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
   doc_type: module-detail
 ---
 
@@ -186,6 +240,7 @@ tests:
 - `pause_menu.ui.toml`
 - `settings_dialog.ui.toml`
 - `inventory_list.ui.toml`
+- `quest_log_dialog.ui.toml`
 
 editor 侧原有 `zircon_editor/assets/ui/...` 已经符合这个规则，因此本轮主要是把 runtime fixture 补齐到相同目录标准。
 
@@ -205,6 +260,22 @@ editor 侧原有 `zircon_editor/assets/ui/...` 已经符合这个规则，因此
 - 把逻辑枚举值映射到 crate `assets/` 下的相对路径
 
 真正的内容读取、解析和编译都回到 shared UI 资产链路。
+
+## Editor/Runtime Semantic Golden
+
+M4.3 的同源验收不要求 editor runtime preview 资产与 runtime fixture 字节级相同。两侧目前有不同的表现层职责：editor 资产导入 `editor_material.ui.toml` 以保持工具内预览风格，runtime fixture 保持 Slint-free 的 screen-space game UI 形态。验收的共同真源是 `.ui.toml` 资产协议、shared loader/compiler、`UiTemplateSurfaceBuilder`、`UiSurface.compute_layout` 和 `UiRenderExtract`。
+
+[`runtime_ui_golden.rs`](../../zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs) 覆盖五组配对：
+
+- `runtime_hud.ui.toml` ↔ `hud_overlay.ui.toml`
+- `pause_dialog.ui.toml` ↔ `pause_menu.ui.toml`
+- `settings_dialog.ui.toml` ↔ `settings_dialog.ui.toml`
+- `inventory_dialog.ui.toml` ↔ `inventory_list.ui.toml`
+- `quest_log_dialog.ui.toml` ↔ `quest_log_dialog.ui.toml`
+
+每组 golden 都检查 semantic control ids、可见文字 payload、按钮数量、runtime quad/text render payload。Quest Log 还检查 editor/runtime 两侧共享 `QuestLog/Track`、`QuestLog/Close` click binding id 与 `RuntimeAction.*` route。这样可以防止 editor preview 只显示 Material 外壳而丢失 runtime 行为语义，也防止 runtime fixture 只编译出空树。
+
+本 gate 暴露过一个真实资源缺陷：`runtime_hud.ui.toml`、`pause_dialog.ui.toml`、`inventory_dialog.ui.toml` 的本地 stylesheet 使用 `text = "$material_text"` 表示文字颜色，会覆盖 authored `props.text`。这些样式现在改为 `foreground = "$material_*"`，把颜色样式和内容文字分开。
 
 ## Shared Load Path
 
@@ -244,17 +315,23 @@ flat asset 迁移逻辑只存在于 shared UI 的 test support 和 editor test s
 - `build_frame()` 把 `surface.render_extract` 塞进 `PublicRuntimeFrame.ui`
 - render framework / scene renderer 继续消费这份 shared draw extract
 
+R1-R7 render contract work adds a derived paint/batch/cache/text-shape/debug-visualizer layer on top of this same extract instead of adding a second frame boundary. `UiRenderCommand` can now derive `UiPaintElement` records with typed brush, text, resource, clip, and effect payloads, `UiBatchPlan` can explain stable merge/split decisions from those paint elements, `UiRenderCachePlan` can report paint/batch cache reuse or rebuild reasons, `UiShapedText` can carry glyph ids, advances, font/atlas resources, atlas UVs, ellipsis ranges, and edit decorations, and `UiRenderVisualizerSnapshot` can export paint rows, batch rows, overlays, overdraw regions, resource bindings, and text/backend stats for Widget Reflector style panels. Resource-bearing brush payloads now preserve revision, atlas page, UV rect, pixel size, fallback resource, and material variant state in `UiRenderResourceKey` / `UiRenderResourceState`, so future runtime atlas/cache/debug work can split, invalidate, and visualize by shared DTO fields instead of renderer-local guesses. R7 only adds the shared visualizer packet; runtime diagnostics/editor panels can consume it later while the runtime frame still submits `UiRenderExtract` as the authoritative UI payload.
+
 `runtime-ui-integration-tests` feature 下的 all-fixture 验收现在会遍历 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList`，逐个通过 `RuntimeUiManager::load_builtin_fixture(...) -> build_frame() -> WgpuRenderFramework::submit_runtime_frame(...)` 提交，并检查 `RenderStats` 中的 UI command 与 quad/text payload 计数。这条测试只证明所有 builtin fixture 都进入同一 screen-space UI pass，不为某个 fixture 增加专用 renderer 分支。
 
 所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 tree `.ui.toml` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
 
 ## Editor Native Visual Asset Rasterization
 
-The shared runtime render contract already carries visual references through `UiRenderCommand.image: Option<UiVisualAssetRef>`. The Rust-owned editor host now consumes that contract instead of treating every runtime image command as a deterministic placeholder. `host_contract/painter/visual_assets.rs` resolves `UiVisualAssetRef::Image` through the same runtime asset path helper with the editor `assets/` root as a development fallback, resolves `UiVisualAssetRef::Icon` through the editor icon and ionicons folders, decodes the result with `slint::Image::load_from_path(...)`, and converts the loaded bitmap or SVG into RGBA pixels with `Image::to_rgba8()`.
+The shared runtime render contract already carries visual references through `UiVisualAssetRef`. The Rust-owned editor host now consumes that contract instead of treating every runtime image command as a deterministic placeholder. `host_contract/painter/visual_assets.rs` resolves `UiVisualAssetRef::Image` through the same runtime asset path helper with the editor `assets/` root as a development fallback and resolves `UiVisualAssetRef::Icon` through the editor icon and ionicons folders. Bitmap sources still decode through `slint::Image::load_from_path(...)` / `Image::to_rgba8()`, while SVG sources render through `resvg` against the final host paint rectangle.
 
-`render_commands.rs` keeps the placeholder path only as the missing-asset fallback. When decode succeeds, `UiRenderCommandKind::Image` emits a host image-pixel command and `primitives.rs::draw_rgba_image_clipped(...)` scales, clips, and alpha-blends those pixels into the retained native host frame. Icon references are tinted in the painter-local decoded-pixel cache, while ordinary image references preserve source colors. This keeps the `.ui.toml -> UiSurface.render_extract -> UiRenderCommand` path as the renderer authority; the native host does not add a generated Slint UI or a second image schema.
+The 2026-05-06 icon pass hardens both editor preview projection and runtime visual command resolution against the path variants authored by templates and host DTOs. `preview_images.rs` and `visual_assets.rs` now normalize `res://`, `asset://`, `assets/`, rooted paths, short icon names, `ionicons/name.svg`, and extensionless SVG icon names before probing the editor asset tree. This makes `source = "ionicons/options-outline.svg"`, `icon = "options-outline"`, `UiVisualAssetRef::Image("res://icons/ionicons/options-outline.svg")`, and `UiVisualAssetRef::Icon("ionicons/options-outline.svg")` converge on the same loaded SVG pixels instead of falling back to placeholders.
 
-The cache stores both successful decodes and misses for the editor process, so repeated host repaints do not reload the same SVG/icon during pointer damage or viewport-image region redraws. There is no hot-reload invalidation for this cache yet; file edits are picked up on process restart or a future explicit cache-busting path.
+The painter now enters that path through `UiPaintElement` / `UiPaintPayload` derived from each shared render command. This keeps image, brush, border, and text handling aligned with the new shared DTOs while preserving the previous fallback behavior for missing assets and host-only RGBA painting.
+
+`render_commands.rs` keeps the placeholder path only as the missing-asset fallback. When decode succeeds, runtime `UiPaintPayload` image/vector brushes and template-node preview images emit host image-pixel commands and `primitives.rs::draw_rgba_image_clipped(...)` clips and alpha-blends those pixels into the retained native host frame. SVG commands now ask `visual_assets.rs` for pixels at the target frame size before issuing the command, so resizing a toolbar, tab, menu, or runtime vector brush causes a fresh vector rasterization instead of stretching a cached intrinsic bitmap. Icon references are tinted in the painter-local decoded-pixel cache, while ordinary image references preserve source colors. Template-node icons use the same decoded pixel path, but their tint can now reflect Material interaction state: default, active/selected/pressed, and disabled icon colors are resolved before alpha blending. This keeps the `.ui.toml -> UiSurface.render_extract -> UiRenderCommand` path as the renderer authority; the native host does not add a generated Slint UI or a second image schema.
+
+The cache stores successful image pixels for the editor process. SVG cache keys include asset path, tint, and requested raster size, while bitmap cache keys remain intrinsic-size oriented. That preserves SVG's scale-without-quality-loss contract during pointer damage, pane resizing, and viewport-image region redraws. There is no hot-reload invalidation for this cache yet; file edits are picked up on process restart or a future explicit cache-busting path.
 
 ## Typography Contract
 
@@ -295,19 +372,31 @@ The cache stores both successful decodes and misses for the editor process, so r
 - `direction` / `overflow`
 - `source_range`、每行 `visual_range`、`measured_width`、`baseline`
 - 已分行的 `UiResolvedTextLine { text, frame, runs }`
+- mixed direction 行的低保真 visual order string 与 source/visual byte range 映射
 - rich text run kind：plain、strong、emphasis、code、link
 - editable text state DTO：caret、selection、composition 和 text edit action 合同
 - `overflow_clipped`
 
-这条 extract 层布局是 runtime/editor 共享的中性数据，不依赖 Slint，也不把 editor authoring 状态写进 runtime。它现在按 Unreal Slate 的职责拆分靠拢：`zircon_runtime::ui::text` 承担类似 `FTextLayout` 的 range、run、wrap、overflow 和 editable 状态合同，`zircon_runtime_interface::ui::surface::render` 承担跨层 DTO，glyphon/SDF backend 继续承担最终 shaping、font fallback、atlas/cache 和提交。当前 rich text parser 是最小 marker 解析，BiDi 是范围检测和方向标记，不等同于 HarfBuzz 级 glyph reordering；这部分仍由 renderer/font backend 后续深化。
+这条 extract 层布局是 runtime/editor 共享的中性数据，不依赖 Slint，也不把 editor authoring 状态写进 runtime。它现在按 Unreal Slate 的职责拆分靠拢：`zircon_runtime::ui::text` 承担类似 `FTextLayout` 的 range、run、wrap、overflow 和 editable 状态合同，`zircon_runtime_interface::ui::surface::render` 承担跨层 DTO，glyphon/SDF backend 继续承担最终 shaping、font fallback、atlas/cache 和提交。word wrap 在断行边界会移除分隔空格，ellipsis 会保留被截断前已有的 rich run kind 并追加 plain ellipsis run，editable composition update 会把 preedit 文本写入可见 text range 并覆盖 replacement footprint，commit 只完成该 composition 状态而不二次插入。2026-05-06 的 M6 visual-order slice 在 wrapping/ellipsis 后加入 shared helper：它按 strong LTR/RTL 字符把 run 切成视觉片段，Mixed/LTR 行保持 LTR 段顺序并反转 RTL 段字符，显式 RTL 行反转段顺序，同时保留每个 visual run 的原始 source byte range 和 visual byte range。后续 neutral-separator slice 又让没有强方向的标点/空白继承周围同向 strong run；因此 `שלום-עולם` 这类 RTL 短语内部的连字符会随 RTL span 一起进入视觉顺序，而 LTR/RTL 边界空格仍保持在 LTR 侧以维持已有 mixed-line spacing。这对应 Unreal `FSlateTextShaper::ShapeBidirectionalText` 先分 direction run 再 shaping、`FShapedGlyphSequence::EnumerateVisualGlyphsInSourceRange` 保留 source-to-visual 枚举，以及 Slint/parley 按 byte offset 计算 selection/caret geometry 的职责边界。当前 helper 仍是低保真 visual-order scaffold，不做 HarfBuzz cluster shaping、glyph mirroring、combining mark 重排或真实 font fallback；这些继续留给 glyphon/cosmic-text、SDF backend 和后续 HarfBuzz/ICU 接入。
 
 screen-space UI batch planner 会优先消费 `text_layout.lines`：每个 resolved line 会变成独立 `ScreenSpaceUiTextBatch`，并保留该行自己的 frame。只有手写 overlay 或测试命令显式给出 `text_layout: None` 时，planner 才回退到旧的整段 `text + command.frame` 批次。这让 extract 层的分行、对齐和裁剪结果真正进入 glyphon/native/SDF backend，而不是在 renderer 内重新退回节点级整块排版。
+
+M6 文本收敛切片进一步把 `UiTextPaint` 的 editable decoration 事实接入 runtime screen-space planner。planner 会从 `UiRenderCommand::to_paint_elements(...)` 读取 shared text payload：selection decoration 进入普通 UI quad draw，作为文本下方的局部高亮；caret 和 composition underline 进入 `post_text_draws`，在 glyphon/SDF text pass 之后重新绑定 UI quad pipeline 画在文本上方。这样 editor native painter 和 runtime WGPU path 都消费同一组 selection/caret/composition underline frame，不再各自用字符数或节点 frame 重新估算。
+
+同一 M6 链路现在也让 rich runs 成为 shared paint fact。`UiTextPaint.runs` 会把 `UiShapedTextCluster` 转成 `UiTextPaintRun`，保留 run text、source/visual range、frame、font/color 继承和 `UiTextRunPaintStyle`。runtime screen-space planner 优先按这些 runs 生成 text batches；glyphon native backend 把 Strong/Emphasis/Code 映射为 bold、italic、monospace attrs；editor native painter 也按同一 run DTO 进行软件 fallback 样式绘制。没有 `text_layout` 的手写 overlay 才继续使用旧整段 text fallback。
 
 新增回归 [`text_layout.rs`](../../zircon_runtime/src/ui/tests/text_layout.rs) 锁住两类行为：
 
 - `render_extract_outputs_aligned_wrapped_text_layout` 证明 word wrap 和 center align 会在 `UiRenderExtract` 中产出稳定行 frame
 - `render_extract_clips_text_layout_to_clip_frame` 证明 `clip_frame` 会裁掉不可见文本行并设置 `overflow_clipped`
+- `render_extract_outputs_rich_directional_ellipsis_layout` 证明 rich run、direction marker 和 ellipsis policy 同时进入 resolved layout
+- `render_extract_outputs_visual_order_ranges_for_mixed_direction_text` 证明 mixed LTR/RTL 文本会输出 visual-order line string，同时保留每段 source/visual range
+- `render_extract_keeps_neutral_separator_inside_rtl_visual_span` 证明 RTL 短语内部的 neutral separator 会随 RTL visual span 移动，同时保留原始 source byte range
+- `editable_text_state_applies_selection_and_composition_actions` 证明 selection replacement、composition visible update 和 composition commit 走同一 editable text state helper
 - `screen_space_ui_plan_uses_resolved_text_layout_lines_as_batches` 证明 graphics planner 会按 resolved line 生成 text batches，而不是吞掉 extract 阶段的排版结果
+- `screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws` 证明 runtime WGPU planner 使用 shared text decoration frames，并把 selection 与 caret/composition 分到正确的 text 前/后绘制阶段
+- `screen_space_ui_plan_splits_rich_text_runs_from_shared_paint` 证明 graphics planner 按 shared rich paint runs 拆分 batch，并保留 Strong/Code 样式标记
+- `text_attrs_maps_shared_rich_run_style_to_glyphon_attrs` 证明 glyphon native path 从 shared run style 得到 bold、italic、monospace attrs
 
 ## Glyphon Runtime Text Path
 

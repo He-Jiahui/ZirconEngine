@@ -250,15 +250,18 @@ fn resolve_tab_drop_targets_specific_right_tab_slot_and_inserts_before_it() {
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_tab_drop(
+        resolve_tab_drop_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.hierarchy#1",
             "right",
             pointer_x,
             pointer_y,
+            Some(&root_frames_from_geometry_with_drawers(
+                &geometry,
+                &[ShellRegionId::Right],
+            )),
         ),
         Some(ResolvedTabDrop {
             host: ViewHost::Drawer(ActivityDrawerSlot::RightBottom),
@@ -303,15 +306,15 @@ fn resolve_tab_drop_targets_specific_document_stack_and_inserts_after_it() {
     let pointer_y = 54.0;
 
     assert_eq!(
-        resolve_tab_drop(
+        resolve_tab_drop_with_root_frames(
             &layout,
             &model,
-            &geometry,
             &WorkbenchChromeMetrics::default(),
             "editor.asset-browser#1",
             "document",
             pointer_x,
             pointer_y,
+            Some(&root_frames_from_geometry(&geometry)),
         ),
         Some(ResolvedTabDrop {
             host: ViewHost::Document(MainPageId::workbench(), vec![1]),

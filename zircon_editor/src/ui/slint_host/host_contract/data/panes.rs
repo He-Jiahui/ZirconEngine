@@ -1,7 +1,28 @@
 use slint::{ModelRc, SharedString};
-use zircon_runtime_interface::ui::surface::UiSurfaceFrame;
+use zircon_runtime_interface::ui::surface::{UiDebugOverlayPrimitiveKind, UiSurfaceFrame};
 
-use super::{TemplatePaneNodeData, UiAssetEditorPaneData};
+use super::{FrameRect, TemplatePaneNodeData, UiAssetEditorPaneData, WelcomePaneData};
+
+#[derive(Clone)]
+pub(crate) struct UiDebugOverlayPrimitiveData {
+    pub kind: UiDebugOverlayPrimitiveKind,
+    pub node_id: SharedString,
+    pub frame: FrameRect,
+    pub label: SharedString,
+    pub severity: SharedString,
+}
+
+impl Default for UiDebugOverlayPrimitiveData {
+    fn default() -> Self {
+        Self {
+            kind: UiDebugOverlayPrimitiveKind::SelectedFrame,
+            node_id: SharedString::default(),
+            frame: FrameRect::default(),
+            label: SharedString::default(),
+            severity: SharedString::default(),
+        }
+    }
+}
 
 #[derive(Clone, Default)]
 pub(crate) struct ProjectOverviewData {
@@ -138,6 +159,13 @@ pub(crate) struct ModulePluginsPaneData {
 }
 
 #[derive(Clone, Default)]
+pub(crate) struct RuntimeDiagnosticsPaneData {
+    pub nodes: ModelRc<TemplatePaneNodeData>,
+    pub overlay_primitives: ModelRc<UiDebugOverlayPrimitiveData>,
+    pub preserve_payload_debug_reflector: bool,
+}
+
+#[derive(Clone, Default)]
 pub(crate) struct BuildExportTargetData {
     pub profile_name: SharedString,
     pub platform: SharedString,
@@ -178,6 +206,7 @@ pub(crate) struct PaneData {
     pub secondary_hint: SharedString,
     pub show_toolbar: bool,
     pub body_surface_frame: Option<UiSurfaceFrame>,
+    pub welcome: WelcomePaneData,
     pub viewport: SceneViewportChromeData,
     pub hierarchy: HierarchyPaneData,
     pub inspector: InspectorPaneData,
@@ -185,6 +214,7 @@ pub(crate) struct PaneData {
     pub assets_activity: AssetsActivityPaneData,
     pub asset_browser: AssetBrowserPaneData,
     pub project_overview: ProjectOverviewPaneData,
+    pub runtime_diagnostics: RuntimeDiagnosticsPaneData,
     pub module_plugins: ModulePluginsPaneData,
     pub build_export: BuildExportPaneData,
     pub ui_asset: UiAssetEditorPaneData,

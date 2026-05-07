@@ -54,7 +54,7 @@ pub(super) fn builtin_shell_view_instances(
             title: "Console".to_string(),
             serializable_payload: serde_json::Value::Null,
             dirty: false,
-            host: ViewHost::Drawer(ActivityDrawerSlot::BottomLeft),
+            host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
         },
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.runtime_diagnostics#1"),
@@ -62,7 +62,7 @@ pub(super) fn builtin_shell_view_instances(
             title: "Runtime Diagnostics".to_string(),
             serializable_payload: serde_json::Value::Null,
             dirty: false,
-            host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
+            host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
         },
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.build_export_desktop#1"),
@@ -70,7 +70,7 @@ pub(super) fn builtin_shell_view_instances(
             title: "Desktop Export".to_string(),
             serializable_payload: serde_json::Value::Null,
             dirty: false,
-            host: ViewHost::Drawer(ActivityDrawerSlot::BottomRight),
+            host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
         },
         ViewInstance {
             instance_id: ViewInstanceId::new("editor.game#1"),

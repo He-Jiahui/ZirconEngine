@@ -11,6 +11,49 @@ pub struct MenuItemModel {
     pub operation_path: Option<EditorOperationPath>,
     pub shortcut: Option<String>,
     pub enabled: bool,
+    pub children: Vec<MenuItemModel>,
+}
+
+impl MenuItemModel {
+    pub fn leaf(
+        label: impl Into<String>,
+        action: Option<MenuAction>,
+        binding: EditorUiBinding,
+        operation_path: Option<EditorOperationPath>,
+        shortcut: Option<String>,
+        enabled: bool,
+    ) -> Self {
+        Self {
+            label: label.into(),
+            action,
+            binding,
+            operation_path,
+            shortcut,
+            enabled,
+            children: Vec::new(),
+        }
+    }
+
+    pub fn branch(label: impl Into<String>, children: Vec<MenuItemModel>) -> Self {
+        Self {
+            label: label.into(),
+            action: None,
+            binding: EditorUiBinding::new(
+                "WorkbenchMenuBar",
+                "",
+                crate::ui::binding::EditorUiEventKind::Click,
+                crate::ui::binding::EditorUiBindingPayload::menu_action(""),
+            ),
+            operation_path: None,
+            shortcut: None,
+            enabled: children.iter().any(|child| child.enabled),
+            children,
+        }
+    }
+
+    pub fn has_children(&self) -> bool {
+        !self.children.is_empty()
+    }
 }
 
 pub(crate) fn operation_path_for_menu_action(action: &MenuAction) -> Option<EditorOperationPath> {

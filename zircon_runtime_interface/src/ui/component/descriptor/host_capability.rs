@@ -13,6 +13,7 @@ pub enum UiHostCapability {
     GamepadNavigation,
     ImageRender,
     CanvasRender,
+    WorldSpaceUi,
     VirtualizedLayout,
 }
 
@@ -39,6 +40,7 @@ impl UiHostCapabilitySet {
             UiHostCapability::KeyboardNavigation,
             UiHostCapability::ImageRender,
             UiHostCapability::CanvasRender,
+            UiHostCapability::WorldSpaceUi,
             UiHostCapability::VirtualizedLayout,
         ])
     }
@@ -50,6 +52,17 @@ impl UiHostCapabilitySet {
             UiHostCapability::KeyboardNavigation,
             UiHostCapability::ImageRender,
             UiHostCapability::CanvasRender,
+        ])
+    }
+
+    pub fn runtime_world_space() -> Self {
+        Self::new([
+            UiHostCapability::Runtime,
+            UiHostCapability::PointerInput,
+            UiHostCapability::KeyboardNavigation,
+            UiHostCapability::ImageRender,
+            UiHostCapability::CanvasRender,
+            UiHostCapability::WorldSpaceUi,
         ])
     }
 

@@ -211,3 +211,61 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         );
     }
 }
+
+#[test]
+fn ui_asset_editor_host_routes_emergency_shell_actions_through_manager_commands() {
+    let ui_asset_editor = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/app/ui_asset_editor.rs"
+    ));
+    let manager_workspace = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/host/editor_manager_asset_workspace.rs"
+    ));
+    let host_contract = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/host_contract/data/ui_asset.rs"
+    ));
+    let pane_conversion = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs"
+    ));
+
+    for action_id in [
+        "\"emergency.reload_from_disk\"",
+        "\"emergency.revert_last_valid\"",
+        "\"emergency.open_asset_browser\"",
+    ] {
+        assert!(
+            ui_asset_editor.contains(action_id),
+            "UI asset editor host dispatch should expose emergency action `{action_id}`"
+        );
+    }
+
+    for manager_route in [
+        ".reload_ui_asset_editor_from_disk(&instance_id)",
+        ".revert_ui_asset_editor_to_last_valid(&instance_id)",
+        ".open_view(ViewDescriptorId::new(\"editor.asset_browser\"), None)",
+    ] {
+        assert!(
+            ui_asset_editor.contains(manager_route),
+            "emergency shell action should route through `{manager_route}`"
+        );
+    }
+
+    assert!(
+        manager_workspace.contains("pub fn revert_ui_asset_editor_to_last_valid("),
+        "EditorManager should keep the emergency revert facade callable from native host actions"
+    );
+
+    for projected_flag in [
+        "can_emergency_reload",
+        "can_emergency_revert",
+        "can_emergency_open_asset_browser",
+    ] {
+        assert!(
+            host_contract.contains(projected_flag) && pane_conversion.contains(projected_flag),
+            "emergency action state `{projected_flag}` should stay in the native DTO and pane conversion"
+        );
+    }
+}

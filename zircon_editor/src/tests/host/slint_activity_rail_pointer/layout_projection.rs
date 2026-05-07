@@ -41,7 +41,6 @@ fn shared_activity_rail_pointer_layout_prefers_shared_root_projection_when_left_
     let root_frames = template_bridge.root_shell_frames();
     let layout = build_host_activity_rail_pointer_layout(
         &model,
-        &geometry,
         &WorkbenchChromeMetrics::default(),
         Some(&root_frames),
     );
@@ -60,18 +59,22 @@ fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_whe
     let chrome = fixture.build_chrome();
     let model = WorkbenchViewModel::build(&chrome);
     let metrics = WorkbenchChromeMetrics::default();
-    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
+    let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
+    template_bridge
+        .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
+        .expect("builtin workbench template bridge should recompute visible drawer frames");
     let root_frames = template_bridge.root_shell_frames();
-    let body_frame = root_frames
-        .host_body_frame
-        .expect("workbench body projection frame should exist");
     let left_geometry = ShellFrame::new(180.0, 140.0, 312.0, 519.0);
     let right_geometry = ShellFrame::new(1024.0, 168.0, 256.0, 401.0);
     let bottom_geometry = ShellFrame::new(48.0, 704.0, 777.0, 180.0);
-    let expected_strip_height =
-        body_frame.height - bottom_geometry.height - metrics.separator_thickness;
-    let geometry = WorkbenchShellGeometry {
+    let left_shared_frame = root_frames
+        .left_drawer_shell_frame
+        .expect("shared left drawer shell frame should exist");
+    let right_shared_frame = root_frames
+        .right_drawer_shell_frame
+        .expect("shared right drawer shell frame should exist");
+    let _stale_geometry = WorkbenchShellGeometry {
         region_frames: [
             (ShellRegionId::Left, left_geometry),
             (
@@ -86,20 +89,25 @@ fn shared_activity_rail_pointer_layout_prefers_shared_visible_drawer_regions_whe
         ..WorkbenchShellGeometry::default()
     };
 
-    let layout =
-        build_host_activity_rail_pointer_layout(&model, &geometry, &metrics, Some(&root_frames));
+    let layout = build_host_activity_rail_pointer_layout(&model, &metrics, Some(&root_frames));
 
     assert_eq!(
         layout.left_strip_frame,
-        UiFrame::new(0.0, body_frame.y, metrics.rail_width, expected_strip_height)
+        UiFrame::new(
+            left_shared_frame.x,
+            left_shared_frame.y,
+            metrics.rail_width.min(left_shared_frame.width.max(0.0)),
+            left_shared_frame.height.max(0.0),
+        )
     );
     assert_eq!(
         layout.right_strip_frame,
         UiFrame::new(
-            body_frame.x + body_frame.width - metrics.rail_width,
-            body_frame.y,
-            metrics.rail_width,
-            expected_strip_height,
+            (right_shared_frame.x + right_shared_frame.width - metrics.rail_width)
+                .max(right_shared_frame.x),
+            right_shared_frame.y,
+            metrics.rail_width.min(right_shared_frame.width.max(0.0)),
+            right_shared_frame.height.max(0.0),
         )
     );
 }

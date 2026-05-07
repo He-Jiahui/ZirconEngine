@@ -76,11 +76,20 @@ pub(in super::super) fn to_host_contract_ui_asset_pane(
             mode: data.mode.into(),
             status: data.last_error.into(),
             selection: data.selection_summary.into(),
+            shell_state: data.shell_state.clone().into(),
+            emergency_summary: data.emergency_summary.clone().into(),
         },
         actions: host_contract::UiAssetActionStateData {
+            can_reload_from_disk: data.can_reload_from_disk,
+            can_keep_local_and_save: data.can_keep_local_and_save,
+            can_save_local_copy: data.can_save_local_copy,
+            can_open_diff_snapshot: data.can_open_diff_snapshot,
             can_save: data.can_save,
             can_undo: data.can_undo,
             can_redo: data.can_redo,
+            can_emergency_reload: data.can_emergency_reload,
+            can_emergency_revert: data.can_emergency_revert,
+            can_emergency_open_asset_browser: data.can_emergency_open_asset_browser,
             can_insert_child: data.can_insert_child,
             can_insert_after: data.can_insert_after,
             can_move_up: data.can_move_up,
@@ -169,6 +178,44 @@ pub(in super::super) fn to_host_contract_ui_asset_pane(
                 nested_can_add: data.preview_mock_nested_can_add,
                 nested_can_delete: data.preview_mock_nested_can_delete,
             },
+        },
+        runtime_report: host_contract::UiAssetRuntimeReportData {
+            action_policy_items: to_host_contract_shared_string_list(data.action_policy_items),
+            capability_explanation_items: to_host_contract_shared_string_list(
+                data.capability_explanation_items,
+            ),
+            host_enforcement_items: to_host_contract_shared_string_list(
+                data.host_enforcement_items,
+            ),
+            unsafe_action_guidance_items: to_host_contract_shared_string_list(
+                data.unsafe_action_guidance_items,
+            ),
+            locale_preview: to_host_contract_ui_asset_string_selection(
+                data.locale_preview_items,
+                data.locale_preview_selected_index,
+            ),
+            locale_preview_selected_locale: data.locale_preview_selected_locale.into(),
+            locale_dependency_items: to_host_contract_shared_string_list(
+                data.locale_dependency_items,
+            ),
+            locale_extraction_items: to_host_contract_shared_string_list(
+                data.locale_extraction_items,
+            ),
+            locale_diagnostic_items: to_host_contract_shared_string_list(
+                data.locale_diagnostic_items,
+            ),
+            resource_dependency_items: to_host_contract_shared_string_list(
+                data.resource_dependency_items,
+            ),
+            resource_diagnostic_items: to_host_contract_shared_string_list(
+                data.resource_diagnostic_items,
+            ),
+        },
+        designer_tools: host_contract::UiAssetDesignerToolStateData {
+            mode: data.designer_tool_mode.into(),
+            can_select: data.can_designer_select,
+            can_resize_slot: data.can_designer_resize_slot,
+            can_preview_interact: data.can_designer_preview_interact,
         },
         palette_drag: host_contract::UiAssetPaletteDragData {
             target_preview_index: data.palette_drag_target_preview_index,

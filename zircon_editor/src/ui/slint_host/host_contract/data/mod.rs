@@ -1,4 +1,5 @@
 mod assets;
+mod close_prompt;
 mod host_components;
 mod host_interaction;
 mod host_root;
@@ -11,6 +12,7 @@ mod welcome;
 mod world_space_submission;
 
 pub(crate) use assets::*;
+pub(crate) use close_prompt::*;
 pub(crate) use host_components::*;
 pub(crate) use host_interaction::*;
 pub(crate) use host_root::*;

@@ -1,5 +1,5 @@
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::RuntimeLibraryError;
 
@@ -12,7 +12,20 @@ pub(crate) fn default_runtime_library_path() -> Result<PathBuf, RuntimeLibraryEr
     let executable = env::current_exe().map_err(|error| {
         RuntimeLibraryError::new(format!("failed to resolve current executable: {error}"))
     })?;
-    Ok(executable.with_file_name(platform_runtime_library_name()))
+    Ok(runtime_library_path_for_executable(&executable))
+}
+
+pub(super) fn runtime_library_path_for_executable(executable: &Path) -> PathBuf {
+    let sibling = executable.with_file_name(platform_runtime_library_name());
+    if sibling.exists() {
+        return sibling;
+    }
+
+    executable
+        .parent()
+        .map(|parent| parent.join("deps").join(platform_runtime_library_name()))
+        .filter(|candidate| candidate.exists())
+        .unwrap_or(sibling)
 }
 
 fn env_runtime_library_path() -> Option<PathBuf> {
