@@ -52,6 +52,7 @@ pub(in crate::ui::slint_host::menu_pointer) fn menu_items_for_layout(
                     .iter()
                     .map(|preset| menu_action(format!("LoadPreset.{preset}"), true)),
             );
+            items.push(menu_action("OpenView.editor.debug_observatory", true));
             items
         }
         6 => vec![menu_action("OpenView.editor.asset_browser", true)],

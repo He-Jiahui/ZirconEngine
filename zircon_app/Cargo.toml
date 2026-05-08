@@ -20,15 +20,56 @@ required-features = ["target-client"]
 default = ["target-client"]
 core-min = ["zircon_runtime/core-min"]
 plugin-ui = ["zircon_runtime/plugin-ui"]
-target-client = ["zircon_runtime/target-client"]
-target-server = ["zircon_runtime/target-server"]
-target-editor-host = ["zircon_runtime/target-editor-host", "dep:zircon_editor"]
+first-party-runtime-plugins = [
+    "dep:zircon_plugin_animation_runtime",
+    "dep:zircon_plugin_net_runtime",
+    "dep:zircon_plugin_particles_runtime",
+    "dep:zircon_plugin_rendering_runtime",
+    "dep:zircon_plugin_sound_runtime",
+    "dep:zircon_plugin_texture_runtime",
+]
+first-party-navigation-runtime-plugin = ["dep:zircon_plugin_navigation_runtime"]
+default-platform = [
+    "zircon_runtime/default-platform",
+    "platform-window",
+    "platform-winit",
+    "input-mouse",
+    "input-keyboard",
+    "input-touch",
+    "input-gamepad",
+    "gamepad-gilrs",
+]
+platform-window = ["zircon_runtime/platform-window", "dep:softbuffer"]
+platform-winit = ["platform-window", "zircon_runtime/platform-winit", "dep:winit"]
+platform-headless = ["zircon_runtime/platform-headless"]
+platform-x11 = ["platform-winit", "zircon_runtime/platform-x11", "winit/x11"]
+platform-wayland = ["platform-winit", "zircon_runtime/platform-wayland", "winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita"]
+platform-android-game-activity = ["platform-winit", "zircon_runtime/platform-android-game-activity", "winit/android-game-activity"]
+platform-android-native-activity = ["platform-winit", "zircon_runtime/platform-android-native-activity", "winit/android-native-activity"]
+platform-web = ["platform-winit", "zircon_runtime/platform-web"]
+input-mouse = ["zircon_runtime/input-mouse"]
+input-keyboard = ["zircon_runtime/input-keyboard"]
+input-touch = ["zircon_runtime/input-touch"]
+input-gestures = ["zircon_runtime/input-gestures"]
+input-gamepad = ["zircon_runtime/input-gamepad"]
+gamepad-gilrs = ["zircon_runtime/gamepad-gilrs", "dep:gilrs"]
+target-client = ["zircon_runtime/target-client", "default-platform", "plugin-ui"]
+target-server = ["zircon_runtime/target-server", "platform-headless"]
+target-editor-host = ["zircon_runtime/target-editor-host", "dep:zircon_editor", "default-platform"]
 
 [dependencies]
 libloading = "0.9.0"
 serde_json = "1.0.149"
-softbuffer = "0.4.6"
-winit.workspace = true
+gilrs = { version = "0.11.0", optional = true }
+softbuffer = { version = "0.4.6", optional = true }
+winit = { workspace = true, default-features = false, optional = true }
 zircon_editor = { path = "../zircon_editor", optional = true }
+zircon_plugin_animation_runtime = { path = "../zircon_plugins/animation/runtime", optional = true }
+zircon_plugin_navigation_runtime = { path = "../zircon_plugins/navigation/runtime", optional = true }
+zircon_plugin_net_runtime = { path = "../zircon_plugins/net/runtime", optional = true }
+zircon_plugin_particles_runtime = { path = "../zircon_plugins/particles/runtime", optional = true }
+zircon_plugin_rendering_runtime = { path = "../zircon_plugins/rendering/runtime", optional = true }
+zircon_plugin_sound_runtime = { path = "../zircon_plugins/sound/runtime", optional = true }
+zircon_plugin_texture_runtime = { path = "../zircon_plugins/texture/runtime", optional = true }
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }

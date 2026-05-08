@@ -11,5 +11,8 @@ pub(crate) fn import_sound(
                 context.source_path.display()
             ))
         })?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Sound(asset)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Sound(asset),
+    ))
 }

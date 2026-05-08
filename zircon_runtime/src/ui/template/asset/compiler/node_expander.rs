@@ -137,6 +137,12 @@ impl UiDocumentCompiler {
                 params,
             ),
             style_tokens: BTreeMap::new(),
+            focus: node.focus.clone().unwrap_or_default(),
+            navigation: node.navigation.clone().unwrap_or_default(),
+            picking: node.picking.unwrap_or_default(),
+            a11y: node.a11y.clone().unwrap_or_default(),
+            widget: node.widget.clone().unwrap_or_default(),
+            ..UiTemplateNode::default()
         }])
     }
 }

@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime_interface/src/ui/layout/metrics.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
@@ -19,6 +20,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -29,6 +31,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/layout/metrics.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
@@ -41,6 +44,8 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_shape.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
+  - zircon_runtime_interface/src/tests/render_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -51,6 +56,7 @@ plan_sources:
   - user: 2026-05-06 restore preedit text when composition is canceled
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
 tests:
   - cargo check -p zircon_runtime_interface
   - cargo check -p zircon_runtime_interface --tests --locked --jobs 1 --message-format short --color never
@@ -78,6 +84,7 @@ tests:
   - cargo test -p zircon_runtime --lib screen_space_ui_plan --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture (M6 rich paint run planner: 6 passed, 0 failed)
   - cargo test -p zircon_runtime --lib text_attrs --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture (M6 glyphon rich attrs: 1 passed, 0 failed)
   - cargo test -p zircon_editor --lib native_runtime_text_painter --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture (M6 editor text painter: 1 passed, 0 failed)
+  - target: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked
 doc_type: module-detail
 ---
 
@@ -88,6 +95,8 @@ doc_type: module-detail
 `zircon_runtime_interface::ui::surface::render` is the neutral DTO layer for retained UI paint data. Runtime, editor, plugins, and future replay/debug tools must meet through this module instead of inventing renderer-specific visual schemas.
 
 The current public `UiRenderCommand` remains the migration source for existing `Group` / `Quad` / `Text` / `Image` command producers. New code can derive `UiPaintElement` records from those commands without adding required fields to the old struct literals. This gives the renderer stack a Slate-like paint element, batch, resource, cache, shaped text draw, and debug visualizer contract while keeping the current shared command boundary stable during R1-R7.
+
+M1 of the Bevy UI/Text/Widgets/Focus/A11y plan adds `UiRenderExtractKind` and `UiRenderStats` as separate DTOs beside `UiRenderExtract`. They classify whether an extract is still a legacy command list or a future paint/batch/text/debug path, and summarize command family counts for diagnostics. They intentionally do not add required fields to `UiRenderExtract`, so legacy serialized extracts shaped as `{ tree_id, list }` remain valid.
 
 ## Paint Element Layer
 

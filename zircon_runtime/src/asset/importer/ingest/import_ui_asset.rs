@@ -20,16 +20,22 @@ pub(crate) fn import_ui_asset(
     };
 
     if let Ok(asset) = UiLayoutAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiLayout(asset))
-            .with_migration_report(migration_report));
+        return Ok(
+            AssetImportOutcome::new(context.uri.clone(), ImportedAsset::UiLayout(asset))
+                .with_migration_report(migration_report),
+        );
     }
     if let Ok(asset) = UiWidgetAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiWidget(asset))
-            .with_migration_report(migration_report));
+        return Ok(
+            AssetImportOutcome::new(context.uri.clone(), ImportedAsset::UiWidget(asset))
+                .with_migration_report(migration_report),
+        );
     }
     if let Ok(asset) = UiStyleAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(ImportedAsset::UiStyle(asset))
-            .with_migration_report(migration_report));
+        return Ok(
+            AssetImportOutcome::new(context.uri.clone(), ImportedAsset::UiStyle(asset))
+                .with_migration_report(migration_report),
+        );
     }
     Err(AssetImportError::Parse(format!(
         "parse ui asset toml {}: unsupported or mismatched [asset.kind]",

@@ -6,6 +6,7 @@ mod framework_error;
 mod overlay;
 mod plugin_renderer_outputs;
 mod prepared_runtime_sidebands;
+mod profile;
 mod scene_extract;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -46,6 +47,10 @@ pub use plugin_renderer_outputs::{
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
 pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
+pub use profile::{
+    RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
+    RENDER_PROFILE_CONFIG_KEY,
+};
 pub use scene_extract::{
     PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,

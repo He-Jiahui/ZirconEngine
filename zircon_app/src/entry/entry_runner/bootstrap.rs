@@ -126,6 +126,13 @@ impl EntryRunner {
         BuiltinEngineEntry::for_config(&config)?.bootstrap()
     }
 
+    pub fn bootstrap_with_first_party_runtime_plugin_registrations(
+        config: EntryConfig,
+    ) -> Result<CoreHandle, CoreError> {
+        BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)?
+            .bootstrap()
+    }
+
     pub fn bootstrap_with_runtime_plugin_registrations(
         config: EntryConfig,
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,

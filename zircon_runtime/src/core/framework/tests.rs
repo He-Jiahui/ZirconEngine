@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::core::math::{UVec2, Vec3, Vec4};
 
 use super::{
@@ -7,14 +9,22 @@ use super::{
     physics::{PhysicsCombineRule, PhysicsMaterialMetadata, PhysicsSettings},
     render::{
         CapturedFrame, FallbackSkyboxKind, FrameHistoryHandle, PreviewEnvironmentExtract,
-        RenderDirectionalLightSnapshot, RenderFeatureQualitySettings, RenderFrameExtract,
-        RenderFrameworkError, RenderHybridGiDebugView, RenderHybridGiExtract,
-        RenderHybridGiQuality, RenderOverlayExtract, RenderPipelineHandle,
-        RenderPointLightSnapshot, RenderQualityProfile, RenderSceneGeometryExtract,
-        RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor,
-        RenderViewportHandle, RenderingBackendInfo, ViewportCameraSnapshot,
+        RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
+        RenderFeatureQualitySettings, RenderFrameExtract, RenderFrameworkError,
+        RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
+        RenderOverlayExtract, RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature,
+        RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
+        RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
+        RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+        RenderingBackendInfo, ViewportCameraSnapshot,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
+    tasks::{
+        AsyncTaskDescriptor, AsyncTaskHandle, AsyncTaskState, AsyncTaskStatus,
+        TaskCancellationPolicy, TaskPollBudget, TaskPoolDescriptor, TaskPoolKind,
+        DEFAULT_MAIN_THREAD_POLLS_PER_FRAME,
+    },
+    time::{Fixed, Real, Time, Virtual},
 };
 
 #[test]
@@ -91,6 +101,9 @@ fn framework_contract_types_are_constructible() {
     assert_eq!(physics.fixed_hz, 60);
     assert_eq!(level.handle.get(), 42);
     assert_eq!(Mobility::default(), Mobility::Dynamic);
+    assert_eq!(Time::<Real>::default().elapsed(), Duration::ZERO);
+    assert_eq!(Time::<Virtual>::default().delta(), Duration::ZERO);
+    assert_eq!(Time::<Fixed>::default().frame_index(), 0);
     assert_eq!(
         RenderFrameworkError::UnknownPipeline { pipeline: 9 },
         RenderFrameworkError::UnknownPipeline { pipeline: 9 }
@@ -98,6 +111,182 @@ fn framework_contract_types_are_constructible() {
 
     let history = FrameHistoryHandle::new(19);
     assert_eq!(history.raw(), 19);
+}
+
+#[test]
+fn time_framework_tracks_real_virtual_and_fixed_clocks() {
+    let mut real = Time::<Real>::default();
+    real.advance_by(Duration::from_millis(16));
+
+    assert_eq!(real.delta(), Duration::from_millis(16));
+    assert_eq!(real.elapsed(), Duration::from_millis(16));
+    assert_eq!(real.frame_index(), 1);
+
+    let mut virtual_time = Time::<Virtual>::default();
+    virtual_time.advance_from_real_delta(Duration::from_millis(500));
+    assert_eq!(virtual_time.delta(), Duration::from_millis(250));
+    assert_eq!(virtual_time.elapsed(), Duration::from_millis(250));
+
+    virtual_time.set_relative_speed_f64(0.5);
+    virtual_time.advance_from_real_delta(Duration::from_millis(100));
+    assert_eq!(virtual_time.delta(), Duration::from_millis(50));
+    assert_eq!(virtual_time.elapsed(), Duration::from_millis(300));
+    assert_eq!(virtual_time.effective_speed_f64(), 0.5);
+
+    virtual_time.pause();
+    virtual_time.advance_from_real_delta(Duration::from_millis(100));
+    assert_eq!(virtual_time.delta(), Duration::ZERO);
+    assert_eq!(virtual_time.elapsed(), Duration::from_millis(300));
+    assert!(virtual_time.is_paused());
+    assert_eq!(virtual_time.effective_speed_f64(), 0.0);
+
+    let mut fixed = Time::<Fixed>::from_duration(Duration::from_millis(10));
+    fixed.accumulate_overstep(Duration::from_millis(35));
+    let plan = fixed.drain_steps(3);
+
+    assert_eq!(plan.step_count, 3);
+    assert_eq!(plan.consumed, Duration::from_millis(30));
+    assert_eq!(plan.remaining_overstep, Duration::from_millis(5));
+    assert_eq!(fixed.delta(), Duration::from_millis(10));
+    assert_eq!(fixed.elapsed(), Duration::from_millis(30));
+    assert_eq!(fixed.frame_index(), 3);
+    assert_eq!(fixed.overstep(), Duration::from_millis(5));
+
+    fixed.accumulate_overstep(Duration::from_millis(30));
+    let capped = fixed.drain_steps(2);
+    assert_eq!(capped.step_count, 2);
+    assert_eq!(capped.remaining_overstep, Duration::from_millis(15));
+    assert_eq!(fixed.elapsed(), Duration::from_millis(50));
+    assert_eq!(fixed.frame_index(), 5);
+}
+
+#[test]
+fn task_framework_contracts_describe_pools_status_and_poll_budget() {
+    let compute = TaskPoolDescriptor::compute().with_worker_threads(0);
+    let async_compute = TaskPoolDescriptor::async_compute().with_thread_name("async-streaming");
+    let io = TaskPoolDescriptor::io();
+    let handle = AsyncTaskHandle::new(42);
+    let descriptor = AsyncTaskDescriptor::new(handle, TaskPoolKind::AsyncCompute, "mesh-import")
+        .with_cancellation_policy(TaskCancellationPolicy::DetachOnDrop);
+
+    assert_eq!(compute.kind, TaskPoolKind::Compute);
+    assert_eq!(compute.worker_threads, Some(1));
+    assert_eq!(async_compute.kind, TaskPoolKind::AsyncCompute);
+    assert_eq!(async_compute.thread_name, "async-streaming");
+    assert_eq!(io.thread_name, TaskPoolKind::Io.default_thread_name());
+    assert_eq!(descriptor.handle.raw(), 42);
+    assert_eq!(descriptor.pool, TaskPoolKind::AsyncCompute);
+    assert_eq!(
+        descriptor.cancellation_policy,
+        TaskCancellationPolicy::DetachOnDrop
+    );
+
+    let mut status = AsyncTaskStatus::pending(handle);
+    assert_eq!(status.state, AsyncTaskState::Pending);
+    assert!(!status.is_terminal());
+
+    status.mark_running();
+    status.record_poll();
+    status.record_poll();
+    assert_eq!(status.state, AsyncTaskState::Running);
+    assert_eq!(status.poll_count, 2);
+
+    status.mark_failed("importer returned no artifact");
+    assert_eq!(status.state, AsyncTaskState::Failed);
+    assert!(status.is_terminal());
+    assert_eq!(
+        status.failure_message.as_deref(),
+        Some("importer returned no artifact")
+    );
+
+    let budget = TaskPollBudget::default();
+    assert_eq!(
+        budget.remaining_after(40),
+        Some(DEFAULT_MAIN_THREAD_POLLS_PER_FRAME - 40)
+    );
+    assert!(budget.is_exhausted_after(DEFAULT_MAIN_THREAD_POLLS_PER_FRAME));
+    assert!(!TaskPollBudget::unlimited().is_exhausted_after(u32::MAX));
+}
+
+#[test]
+fn task_framework_root_stays_structural_after_folder_split() {
+    let tasks_mod = include_str!("tasks/mod.rs");
+
+    for required in [
+        "mod async_task_descriptor;",
+        "mod async_task_handle;",
+        "mod async_task_state;",
+        "mod async_task_status;",
+        "mod task_cancellation_policy;",
+        "mod task_poll_budget;",
+        "mod task_pool_descriptor;",
+        "mod task_pool_kind;",
+        "AsyncTaskDescriptor",
+        "AsyncTaskHandle",
+        "AsyncTaskState",
+        "AsyncTaskStatus",
+        "TaskCancellationPolicy",
+        "TaskPollBudget",
+        "TaskPoolDescriptor",
+        "TaskPoolKind",
+    ] {
+        assert!(
+            tasks_mod.contains(required),
+            "tasks framework root should keep structural export `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub struct AsyncTaskDescriptor",
+        "pub struct AsyncTaskStatus",
+        "pub struct TaskPoolDescriptor",
+        "pub enum AsyncTaskState",
+        "pub enum TaskPoolKind",
+        "impl AsyncTaskStatus",
+        "impl TaskPoolDescriptor",
+    ] {
+        assert!(
+            !tasks_mod.contains(forbidden),
+            "tasks framework root should not keep implementation detail `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn time_framework_root_stays_structural_after_folder_split() {
+    let time_mod = include_str!("time/mod.rs");
+
+    for required in [
+        "mod clock;",
+        "mod fixed;",
+        "mod fixed_step_plan;",
+        "mod real;",
+        "mod virtual_clock;",
+        "FixedStepPlan",
+        "Fixed",
+        "Real",
+        "Time",
+        "Virtual",
+    ] {
+        assert!(
+            time_mod.contains(required),
+            "time framework root should keep structural export `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "pub struct Time",
+        "pub struct FixedStepPlan",
+        "pub struct Fixed",
+        "pub struct Virtual",
+        "impl Time<Virtual>",
+        "impl Time<Fixed>",
+    ] {
+        assert!(
+            !time_mod.contains(forbidden),
+            "time framework root should not keep implementation detail `{forbidden}`"
+        );
+    }
 }
 
 #[test]
@@ -171,6 +360,7 @@ fn animation_framework_root_stays_structural_after_folder_split() {
 
     for required in [
         "mod graph_clip_instance;",
+        "mod graph_blend_mode;",
         "mod graph_evaluation;",
         "mod manager;",
         "mod parameter_map;",
@@ -183,6 +373,7 @@ fn animation_framework_root_stays_structural_after_folder_split() {
         "mod track_path;",
         "mod track_path_error;",
         "AnimationGraphClipInstance",
+        "AnimationGraphBlendMode",
         "AnimationGraphEvaluation",
         "AnimationManager",
         "AnimationParameterMap",
@@ -326,4 +517,79 @@ fn hybrid_gi_extract_defaults_to_public_settings_and_empty_internal_fixture() {
     assert!(extract.probes.is_empty());
     assert!(extract.trace_regions.is_empty());
     assert!(!RenderFeatureQualitySettings::default().hybrid_global_illumination);
+}
+
+#[test]
+fn render_profile_default_bundle_enables_basic_products_without_advanced_paths() {
+    let bundle = RenderProfileBundle::default_render();
+
+    assert_eq!(bundle.profile(), RenderProductProfile::DefaultRender);
+    assert!(bundle.enables(RenderProductProfile::Render2d));
+    assert!(bundle.enables(RenderProductProfile::Render3d));
+    assert!(bundle.enables(RenderProductProfile::Ui));
+    assert!(!bundle.enables(RenderProductProfile::AdvancedRender));
+    assert!(!bundle.enables(RenderProductProfile::SolariExperimental));
+    assert!(!bundle.has_feature(RenderProductFeature::VirtualGeometry));
+    assert!(!bundle.has_feature(RenderProductFeature::HybridGlobalIllumination));
+    assert!(!bundle.has_feature(RenderProductFeature::Solari));
+    assert!(bundle.validate().is_ok());
+}
+
+#[test]
+fn render_profile_validation_rejects_missing_2d_dependencies() {
+    let bundle = RenderProfileBundle::new(RenderProductProfile::Render2d).with_features(
+        RenderProfileBundle::render_2d().features_without(RenderProductFeature::Sprite),
+    );
+
+    assert_eq!(
+        bundle.validate(),
+        Err(RenderProfileValidationError::MissingRequiredFeature {
+            profile: RenderProductProfile::Render2d,
+            feature: RenderProductFeature::Sprite,
+        })
+    );
+}
+
+#[test]
+fn render_profile_validation_rejects_missing_3d_dependencies() {
+    let bundle = RenderProfileBundle::new(RenderProductProfile::Render3d).with_features(
+        RenderProfileBundle::render_3d().features_without(RenderProductFeature::Pbr),
+    );
+
+    assert_eq!(
+        bundle.validate(),
+        Err(RenderProfileValidationError::MissingRequiredFeature {
+            profile: RenderProductProfile::Render3d,
+            feature: RenderProductFeature::Pbr,
+        })
+    );
+}
+
+#[test]
+fn render_profile_validation_rejects_missing_ui_dependencies() {
+    let bundle = RenderProfileBundle::new(RenderProductProfile::Ui).with_features(
+        RenderProfileBundle::ui().features_without(RenderProductFeature::RenderTarget),
+    );
+
+    assert_eq!(
+        bundle.validate(),
+        Err(RenderProfileValidationError::MissingRequiredFeature {
+            profile: RenderProductProfile::Ui,
+            feature: RenderProductFeature::RenderTarget,
+        })
+    );
+}
+
+#[test]
+fn render_profile_validation_rejects_unsatisfied_advanced_capabilities() {
+    let bundle = RenderProfileBundle::advanced_render();
+    let capabilities = RenderStats::default().capabilities;
+
+    assert_eq!(
+        bundle.validate_capabilities(&capabilities),
+        Err(RenderProfileValidationError::MissingBackendCapability {
+            profile: RenderProductProfile::AdvancedRender,
+            detail: RenderCapabilityMismatchDetail::new(RenderCapabilityKind::VirtualGeometry),
+        })
+    );
 }

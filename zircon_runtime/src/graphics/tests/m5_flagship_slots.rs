@@ -19,6 +19,18 @@ fn legacy_snapshot_adapter_initializes_m5_flagship_extract_slots_as_opt_in_empty
 }
 
 #[test]
+fn scene_render_frame_extract_populates_m5_flagship_slots_as_empty_sidebands() {
+    let extract = World::new().to_render_frame_extract();
+
+    assert!(extract.geometry.virtual_geometry.is_some());
+    assert!(extract
+        .lighting
+        .hybrid_global_illumination
+        .as_ref()
+        .is_some_and(|hybrid_gi| !hybrid_gi.enabled));
+}
+
+#[test]
 fn default_forward_plus_pipeline_keeps_m5_flagship_features_opted_out() {
     let compiled = RenderPipelineAsset::default_forward_plus()
         .compile(&test_extract())

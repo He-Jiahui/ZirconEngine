@@ -67,9 +67,5 @@ impl SceneViewportController {
 }
 
 pub(in crate::scene::viewport::controller) fn route_owner(route: &ViewportPointerRoute) -> u64 {
-    match route {
-        ViewportPointerRoute::HandleAxis { owner, .. }
-        | ViewportPointerRoute::SceneGizmo { owner }
-        | ViewportPointerRoute::Renderable { owner } => *owner,
-    }
+    route.target().owner()
 }

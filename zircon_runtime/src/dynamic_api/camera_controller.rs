@@ -75,7 +75,7 @@ impl RuntimeCameraController {
 
     fn apply_orbit(&self, scene: &mut Scene, previous: Vec2, current: Vec2) {
         let delta = (current - previous) * 0.01;
-        let Some(camera) = scene.find_node(scene.active_camera()).cloned() else {
+        let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
         let offset = camera.transform.translation - self.orbit_target;
@@ -101,7 +101,7 @@ impl RuntimeCameraController {
 
     fn apply_pan(&mut self, scene: &mut Scene, previous: Vec2, current: Vec2) {
         let delta = current - previous;
-        let Some(camera) = scene.find_node(scene.active_camera()).cloned() else {
+        let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
         let distance = (camera.transform.translation - self.orbit_target)
@@ -119,7 +119,7 @@ impl RuntimeCameraController {
     }
 
     fn apply_zoom(&self, scene: &mut Scene, delta: f32) {
-        let Some(camera) = scene.find_node(scene.active_camera()).cloned() else {
+        let Some(camera) = scene.find_node(scene.active_camera()) else {
             return;
         };
         let direction = camera.transform.forward();

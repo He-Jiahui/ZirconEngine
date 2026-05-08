@@ -1,5 +1,6 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, RuntimePluginId,
+    plugin::CapabilityStatusManifest, plugin::ExportPackagingStrategy,
+    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity, RuntimePluginId,
     RuntimeTargetMode,
 };
 
@@ -14,6 +15,8 @@ pub struct RuntimePluginDescriptor {
     pub required_by_default: bool,
     pub target_modes: Vec<RuntimeTargetMode>,
     pub capabilities: Vec<String>,
+    pub capability_statuses: Vec<CapabilityStatusManifest>,
+    pub maturity: PluginMaturity,
     pub optional_features: Vec<PluginFeatureBundleManifest>,
     pub default_packaging: Vec<ExportPackagingStrategy>,
 }

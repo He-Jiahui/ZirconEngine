@@ -22,6 +22,7 @@ impl ResourceStreamer {
         self.materials.get(id).map(|prepared| &prepared.runtime)
     }
 
+    #[allow(dead_code)]
     pub(crate) fn material_capture_seed(&self, id: &ResourceId) -> Option<MaterialCaptureSeed> {
         self.material(id)
             .map(|material| material.capture_seed())
@@ -53,6 +54,7 @@ impl ResourceStreamer {
             })
     }
 
+    #[allow(dead_code)]
     pub(crate) fn sample_texture_rgba(&self, id: Option<ResourceId>, uv: [f32; 2]) -> Option<Vec4> {
         id.and_then(|texture_id| {
             self.asset_manager
@@ -78,6 +80,7 @@ impl ResourceStreamer {
     }
 }
 
+#[allow(dead_code)]
 fn sample_texture_asset_rgba(texture: &TextureAsset, uv: [f32; 2]) -> Option<Vec4> {
     if texture.width == 0 || texture.height == 0 {
         return None;
@@ -97,6 +100,7 @@ fn sample_texture_asset_rgba(texture: &TextureAsset, uv: [f32; 2]) -> Option<Vec
     ))
 }
 
+#[allow(dead_code)]
 fn wrap01(value: f32) -> f32 {
     let wrapped = value.fract();
     if wrapped < 0.0 {

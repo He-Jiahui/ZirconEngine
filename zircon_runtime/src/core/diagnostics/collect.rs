@@ -4,15 +4,21 @@ use crate::core::manager::{
 use crate::core::CoreHandle;
 
 use super::{
-    RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics,
-    RuntimeRenderDiagnostics,
+    DiagnosticStore, RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot,
+    RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
 };
 
 pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnapshot {
+    let render = collect_render_diagnostics(core);
+    let physics = collect_physics_diagnostics(core);
+    let animation = collect_animation_diagnostics(core);
+    let store = collect_diagnostic_store_snapshot(&render, &physics, &animation);
+
     RuntimeDiagnosticsSnapshot {
-        render: collect_render_diagnostics(core),
-        physics: collect_physics_diagnostics(core),
-        animation: collect_animation_diagnostics(core),
+        render,
+        physics,
+        animation,
+        store,
     }
 }
 
@@ -67,4 +73,61 @@ fn collect_animation_diagnostics(core: &CoreHandle) -> RuntimeAnimationDiagnosti
         playback_settings: Some(animation.playback_settings()),
         error: None,
     }
+}
+
+fn collect_diagnostic_store_snapshot(
+    render: &RuntimeRenderDiagnostics,
+    physics: &RuntimePhysicsDiagnostics,
+    animation: &RuntimeAnimationDiagnostics,
+) -> super::DiagnosticStoreSnapshot {
+    let mut store = DiagnosticStore::default();
+    if let Some(stats) = &render.stats {
+        store.record(
+            "render.submitted_frames",
+            stats.submitted_frames,
+            stats.submitted_frames as f64,
+            Some("frame"),
+            ["render"],
+        );
+        store.record(
+            "render.active_viewports",
+            stats.submitted_frames,
+            stats.active_viewports as f64,
+            Some("count"),
+            ["render"],
+        );
+        store.record(
+            "render.last_graph_executed_pass_count",
+            stats.submitted_frames,
+            stats.last_graph_executed_pass_count as f64,
+            Some("count"),
+            ["render", "graph"],
+        );
+    }
+    if let Some(fixed_hz) = physics.fixed_hz {
+        store.record(
+            "physics.fixed_hz",
+            0,
+            fixed_hz as f64,
+            Some("hz"),
+            ["physics"],
+        );
+    }
+    if let Some(playback_settings) = &animation.playback_settings {
+        store.record(
+            "animation.enabled",
+            0,
+            u8::from(playback_settings.enabled) as f64,
+            Some("bool"),
+            ["animation"],
+        );
+        store.record(
+            "animation.graphs_enabled",
+            0,
+            u8::from(playback_settings.graphs) as f64,
+            Some("bool"),
+            ["animation", "graph"],
+        );
+    }
+    store.snapshot()
 }

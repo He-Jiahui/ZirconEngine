@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/framework_error.rs
   - zircon_runtime/src/rhi/descriptors.rs
@@ -20,6 +21,9 @@ related_code:
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/mod.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/create/create_render_framework.rs
   - zircon_runtime/src/graphics/runtime_builtin_graphics/host/module_host/module_registration/module_descriptor.rs
@@ -454,6 +458,8 @@ related_code:
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/m4_behavior_layers.rs
   - zircon_graphics/src/tests/m5_flagship_slots.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
   - zircon_graphics/src/tests/hybrid_gi_visibility.rs
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
@@ -517,6 +523,15 @@ related_code:
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/renderer/shaders/update_completion.wgsl
   - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
 implementation_files:
+  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/zircon_runtime/core/framework/render/profile.md
+  - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
@@ -838,6 +853,8 @@ implementation_files:
   - zircon_graphics/src/tests/project_render.rs
   - zircon_graphics/src/tests/m4_behavior_layers.rs
   - zircon_graphics/src/tests/m5_flagship_slots.rs
+  - zircon_runtime/src/scene/tests/ecs_schedule.rs
+  - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/graphics/tests/m5_flagship_slots.rs
   - zircon_graphics/src/tests/virtual_geometry_frontier_runtime.rs
   - zircon_graphics/src/tests/virtual_geometry_runtime.rs
@@ -896,6 +913,9 @@ implementation_files:
   - zircon_runtime/src/graphics/tests/virtual_geometry_unified_indirect.rs
   - zircon_runtime/src/graphics/tests/virtual_geometry_submission_authority.rs
 plan_sources:
+  - user: 2026-05-08 implement ZirconEngine Bevy-Level Rendering Completion Plan M0
+  - user: 2026-05-08 continue ZirconEngine Bevy-Level Rendering Completion Plan M1
+  - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - user: 2026-04-16 implement Zircon SRP/RHI Rendering Architecture Roadmap
   - user: 2026-04-28 continue SRP/RHI implementation with code-first/minimal-docs constraint
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
@@ -951,6 +971,9 @@ plan_sources:
   - docs/superpowers/specs/2026-05-03-particles-full-render-graph-refactor-design.md
   - docs/superpowers/plans/2026-05-03-particles-full-render-graph-refactor.md
 tests:
+  - "M0 docs acceptance only: no runtime tests required by plan"
+  - cargo test -p zircon_runtime render_profile --locked
+  - cargo check -p zircon_app --locked --all-targets
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 render_graph::tests -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 graph_execution -- --nocapture
   - cargo test -p zircon_runtime --locked --offline --lib --target-dir target/codex-srp-rhi --jobs 1 pipeline_compile -- --nocapture
@@ -1123,6 +1146,20 @@ doc_type: module-detail
 
 # Render Framework Architecture
 
+## 2026-05-08 Bevy-Level Rendering M0 Absorption Update
+
+`ZirconEngine Bevy-Level Rendering Completion Plan` M0 fixes the owner map for the post-absorption runtime shape. Bevy's `common_api`, `2d_api`, `3d_api`, `ui_api`, `2d_bevy_render`, `3d_bevy_render`, `ui_bevy_render`, and Solari references now map to runtime product profiles documented in [Bevy Rendering Capability Matrix](./bevy-rendering-capability-matrix.md).
+
+Current ownership is absorbed into the fixed Zircon packages: neutral render contracts live in `zircon_runtime::core::framework::render`, scene render data lives in `zircon_runtime::scene`, assets live in `zircon_runtime::asset`, concrete rendering lives in `zircon_runtime::graphics`, low-level RHI and graph support live in `zircon_runtime::{rhi,rhi_wgpu,render_graph}`, and app profile selection belongs to `zircon_app`. Standalone pre-absorption paths such as `zircon_rhi`, `zircon_rhi_wgpu`, `zircon_render_graph`, `zircon_framework`, `zircon_scene`, and `zircon_graphics` are historical references only and are not valid landing modules for new rendering work.
+
+## 2026-05-08 Bevy-Level Rendering M1 Product Profiles
+
+M1 turns the M0 owner map into a first-class neutral profile surface. `zircon_runtime::core::framework::render::profile` now owns `RenderProductProfile`, `RenderProductFeature`, `RenderProfileBundle`, `RenderProfileValidationError`, and `RENDER_PROFILE_CONFIG_KEY`. The profile bundle constructors mirror Bevy's checked-in profile/collection split from `dev/bevy/Cargo.toml` and `dev/bevy/docs/cargo_features.md`, but they remain runtime product data instead of Cargo features.
+
+`DefaultRender` validates as `CommonRenderApi + Render2d + Render3d + Ui`. `Render2d` requires camera/image/mesh/material/shader/sprite/core pipeline, `Render3d` requires camera/image/mesh/material/shader/light/PBR/core pipeline/post-process/AA, and `Ui` requires UI render/core pipeline/render target. `AdvancedRender`, Virtual Geometry, Hybrid GI, and `SolariExperimental` remain explicit opt-ins and are not part of the default render product bundle.
+
+`zircon_app::EntryConfig` now carries the selected `RenderProfileBundle`. Runtime and editor entries default to `DefaultRender`; headless defaults to `Headless`. `BuiltinEngineEntry` stores that bundle in the core config before module activation, so later runtime modules and plugin-group work can query the active render product surface without moving concrete rendering policy into the app host. The module-detail contract is documented in [Runtime Render Profile Contracts](../zircon_runtime/core/framework/render/profile.md).
+
 ## 2026-05-01 GI/VG Plugin Hard Cutover
 
 Hybrid GI 与 Virtual Geometry 的高级 renderer/runtime/type owner 已经从 `zircon_runtime` 硬切到插件包。`zircon_runtime/src/graphics/types` 现在只保留通用 `GraphicsError`、`GpuResourceHandle`、`ViewportFrame*`、`ViewportRenderFrame` 和 core framework 的公共 render/debug DTO；GI/VG 的 prepare、resolve、cluster selection、node/cluster cull、raster draw、readback/completion DTO 改由 `zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/types/` 与 `zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/types/` 拥有。调用点不再通过旧 `graphics::types::{HybridGi..., VirtualGeometry...}` 路径导入。
@@ -1250,12 +1287,12 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 当前交付集中在两个目标：
 
-- 把渲染基础边界从单一 `zircon_graphics` 里切开，形成 `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework`
+- 把渲染基础边界从旧单一 graphics crate 叙述收束为 `zircon_runtime::{rhi,rhi_wgpu,render_graph,graphics}` 与 `zircon_runtime::core::framework::render`
 - 把场景渲染输入从旧 `RenderSceneSnapshot` 提升到新的 `RenderFrameExtract`，同时保留一个明确的兼容桥给现有 viewport 路径
 
-## Landed Crate Roles
+## Landed Runtime Roles
 
-### `zircon_rhi`
+### `zircon_runtime::rhi`
 
 当前承载无场景语义的底层图形接口类型：
 
@@ -1268,16 +1305,16 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 这里故意不出现 mesh、material、light、particle、scene 这些上层概念。
 
-### `zircon_rhi_wgpu`
+### `zircon_runtime::rhi_wgpu`
 
 当前不是完整设备后端，而是 `wgpu` 基线能力映射层：
 
-- `wgpu_backend_caps(...)` 负责把当前 `wgpu` 基线映射到 `zircon_rhi::RenderBackendCaps`
+- `wgpu_backend_caps(...)` 负责把当前 `wgpu` 基线映射到 `zircon_runtime::rhi::RenderBackendCaps`
 - `WgpuRenderDevice` / `WgpuCommandList` 作为后续真正设备接入前的稳定包装
 
 本轮明确保持 RT/AS 相关能力关闭，确保高级特性只能走 capability gate，而不是偷偷从 `wgpu` 类型向上泄漏。
 
-### `zircon_render_graph`
+### `zircon_runtime::render_graph`
 
 当前落地的是可编译的 RenderGraph 骨架：
 
@@ -1290,7 +1327,7 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 它现在负责 pass 拓扑、依赖排序和 cycle rejection，还没有承担真正的命令录制与资源别名优化执行器。
 
-### `zircon_framework`
+### `zircon_runtime::core::framework::render`
 
 这是新的稳定渲染 façade crate，当前提供：
 
@@ -1317,7 +1354,7 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 - `virtual_geometry_supported`
 - `hybrid_global_illumination_supported`
 
-这份摘要由 `zircon_graphics::runtime::WgpuRenderFramework` 从 `zircon_rhi_wgpu::WgpuRenderDevice` 基线能力映射出来，用来给后续 RT/GI/Virtual Geometry feature 做 façade 侧 capability gate，但不会把 `zircon_rhi` 或 `wgpu` 原生类型直接推给 editor/runtime/script。
+这份摘要由 `zircon_runtime::graphics::runtime::WgpuRenderFramework` 从 `zircon_runtime::rhi_wgpu::WgpuRenderDevice` 基线能力映射出来，用来给后续 RT/GI/Virtual Geometry feature 做 façade 侧 capability gate，但不会把 `zircon_runtime::rhi` 或 `wgpu` 原生类型直接推给 editor/runtime/script。
 
 `RenderQualityProfile` 当前也不再只是名字字符串。它已经支持：
 
@@ -1336,7 +1373,7 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 这意味着 viewport 在没有显式 `set_pipeline_asset(...)` 时，既可以通过 quality profile 选择默认 built-in pipeline，也可以直接控制当前 M4 行为层里 `clustered lighting / SSAO / history / bloom / color grading / reflection probes / baked lighting / particle rendering` 的启闭与 async-compute 偏好；同时还可以对 `virtual geometry / hybrid global illumination` 发出 opt-in 请求，但这些旗舰路径只会在 backend capability 满足时进入有效编译结果。
 
-`RenderStats` 当前还会带上 `last_frame_history`。`FrameHistoryHandle` 定义在 `zircon_framework` 的稳定 handle 层，并由 `zircon_graphics` 在 extract 子域重导出给 renderer/SRP 侧继续使用。这样 viewport history 生命周期既能被 façade 侧观测，又不会把 backend 私有资源类型推给上层。
+`RenderStats` 当前还会带上 `last_frame_history`。`FrameHistoryHandle` 定义在 `zircon_runtime::core::framework::render` 的稳定 handle 层，并由 `zircon_runtime::graphics` 在 extract 子域重导出给 renderer/SRP 侧继续使用。这样 viewport history 生命周期既能被 façade 侧观测，又不会把 backend 私有资源类型推给上层。
 
 为了让 behavior-layer 编译结果对 façade 可见，`RenderStats` 当前还会暴露：
 
@@ -1366,7 +1403,7 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 ## Scene Extract Transition
 
-`zircon_scene` 新增了 `render_extract.rs`，把新的提取面固定为：
+`zircon_runtime::core::framework::render` 新增了 `frame_extract.rs` / `scene_extract.rs`，并由 `zircon_runtime::scene` 生成新的提取面：
 
 - `RenderWorldSnapshotHandle`
 - `RenderExtractContext`
@@ -1380,12 +1417,16 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 - `VisibilityInput`
 - `RenderFrameExtract`
 
-当前 `RenderFrameExtract` 仍然通过 `RenderFrameExtract::from_snapshot(...)` 和 `to_legacy_snapshot()` 与旧 `RenderSceneSnapshot` 双向适配。也就是说：
+`RenderFrameExtract` 仍然保留 `RenderFrameExtract::from_snapshot(...)` 和 `to_scene_snapshot()`，但它们现在是 snapshot preview、roundtrip、test fixture 和 legacy-owner adapter，而不是 `zircon_runtime::scene` 的 frame-extract production path。也就是说：
 
-- 新边界已经存在，新的 render server 和后续 SRP 功能可以围绕它继续扩展
+- 新边界已经存在，新的 render framework 和后续 SRP 功能可以围绕它继续扩展
 - 旧 `SceneRenderer`、`RenderService`、`RuntimePreviewRenderer` 还没有被删除，它们仍然通过 `ViewportRenderFrame` 中的兼容 `scene` 字段工作
+  - `World::build_prepared_render_frame_extract_for_request(...)` 现在直接填充 view、geometry、lighting、postprocess、debug、particles 和 visibility section；`SceneViewportRenderPacket` 保留给 `to_render_snapshot()` / `to_render_extract()` 这类 preview/roundtrip 调用
+  - scene-produced `GeometryExtract` 会携带空 VG sideband 和 request debug override，scene-produced `LightingExtract` 会携带 disabled Hybrid GI sideband；`build_frame_submission_context(...)` 会把完全空的 VG sideband 视为没有 authored VG payload，避免阻断 advanced profile 的 automatic `VirtualGeometryRuntimeProvider` 生成路径
 
-这条双写桥是刻意保留的过渡层，不应被视为长期设计。
+2026-05-08 的 M3 验证使用 `E:\cargo-targets\zircon-ecs-render-m3` 避开 repo-local default `target` dep-info 写入竞争：direct `RenderFrameExtract` population、snapshot-adapter structural guard 和 scene-produced M5 flagship sideband 三个 focused tests 均通过；随后 `cargo test -p zircon_runtime --lib scene::tests --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ecs-render-m3"` 通过 `47 passed; 0 failed; 1024 filtered out`，`cargo test -p zircon_runtime --lib graphics::tests --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ecs-render-m3"` 通过 `108 passed; 0 failed; 963 filtered out`。
+
+这条双写桥是刻意保留的过渡层，不应被视为长期设计；新增 scene render production must target `RenderFrameExtract` directly.
 
 在 `M4` 的后半段，这个 extract 面已经继续长出真实行为层数据，而不是只保留空壳 section：
 
@@ -1394,15 +1435,14 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 - `ParticleExtract` 现在额外携带 billboard 级 `sprites`
 - `GeometryExtract` 现在额外预埋 `virtual_geometry: Option<RenderVirtualGeometryExtract>`
 - `LightingExtract` 现在额外预埋 `hybrid_global_illumination: Option<RenderHybridGiExtract>`
-- `zircon_scene::components` 公开了 `RenderReflectionProbeSnapshot`、`RenderBakedLightingExtract`、`RenderParticleSpriteSnapshot` 这组新的跨 crate snapshot 契约
+- `zircon_runtime::core::framework::render` 公开了 `RenderReflectionProbeSnapshot`、`RenderBakedLightingExtract`、`RenderParticleSpriteSnapshot` 这组新的 runtime-internal snapshot 契约
 
 这意味着后续 behavior layer 已经不需要偷偷回读旧 `RenderSceneSnapshot` 才能工作；新增后处理、烘焙和粒子路径都已经可以只消费 `RenderFrameExtract`。
 
-## `zircon_graphics` Current Shape
+## `zircon_runtime::graphics` Current Shape
 
-`zircon_graphics` 现在开始向高层 SRP/Renderer crate 收束，新增了固定子域：
+`zircon_runtime::graphics` 现在是吸收后的高层 SRP/renderer 执行域，固定子域包括：
 
-- `compat/`
 - `extract/`
 - `feature/`
 - `material/`
@@ -1423,7 +1463,7 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 - `SharedTextureRenderService`
 - `RuntimePreviewRenderer`
 
-这三者现在主要是 `zircon_graphics` 内部兼容能力，不再是 editor/runtime 的主消费路径。
+这三者现在主要是 `zircon_runtime::graphics` 内部兼容能力，不再是 editor/runtime 的主消费路径。
 
 ## Consumer State
 
@@ -1440,13 +1480,13 @@ executor registry validation 覆盖 compiled graph 的全部 pass，包括被 cu
 
 当前仍未完成的迁移包括：
 
-- `zircon_manager::RenderingManager` 退化成纯兼容桥
-- `zircon_graphics` 收束层对旧 `RenderService` / `RuntimePreviewRenderer` 的最终收束与删除
+- `zircon_runtime::core::manager` 里的 rendering manager access 面继续收束成纯兼容桥
+- `zircon_runtime::graphics` 收束层对旧 `RenderService` / `RuntimePreviewRenderer` 的最终收束与删除
 - shader/material hot reload、真正的 feature 实例注册和 GPU-driven visibility 前处理
 
 ## Default SRP Compile Skeleton
 
-`zircon_graphics::pipeline` 现在已经不再只靠 `stage -> pass name` 的硬编码表编译默认 Forward+。
+`zircon_runtime::graphics::pipeline` 现在已经不再只靠 `stage -> pass name` 的硬编码表编译默认 Forward+。
 
 当前固定的 M2 编译骨架是：
 

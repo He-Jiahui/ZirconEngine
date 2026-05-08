@@ -7,9 +7,19 @@ description = "Optional runtime animation scheduling, clip playback, and editor 
 supported_targets = ["client_runtime", "server_runtime", "editor_host"]
 supported_platforms = ["windows", "linux", "macos"]
 capabilities = ["runtime.plugin.animation", "runtime.feature.animation.timeline_event_track"]
+maturity = "beta"
 asset_roots = []
 content_roots = []
 default_packaging = ["source_template", "library_embed"]
+
+[[capability_statuses]]
+capability = "runtime.plugin.animation"
+status = "partial"
+bevy_references = ["dev/bevy/crates/bevy_animation/src/lib.rs"]
+
+[[capability_statuses]]
+capability = "runtime.feature.animation.timeline_event_track"
+status = "partial"
 
 [[modules]]
 name = "animation.runtime"

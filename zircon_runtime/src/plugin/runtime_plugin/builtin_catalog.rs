@@ -1,5 +1,6 @@
 use crate::{
-    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency,
+    plugin::CapabilityStatus, plugin::CapabilityStatusManifest,
+    plugin::PluginFeatureBundleManifest, plugin::PluginFeatureDependency, plugin::PluginMaturity,
     plugin::PluginModuleManifest, RuntimePluginId, RuntimeTargetMode,
 };
 
@@ -304,8 +305,123 @@ impl RuntimePluginDescriptor {
                 )),
             _ => descriptor,
         })
+        .map(classify_descriptor)
         .collect()
     }
+}
+
+fn classify_descriptor(descriptor: RuntimePluginDescriptor) -> RuntimePluginDescriptor {
+    let package_id = descriptor.package_id.clone();
+    match package_id.as_str() {
+        "sound" => descriptor
+            .with_maturity(PluginMaturity::Beta)
+            .with_capability_status(
+                capability_status("runtime.plugin.sound", CapabilityStatus::Partial)
+                    .with_bevy_reference("dev/bevy/crates/bevy_audio/src/lib.rs"),
+            ),
+        "animation" => descriptor
+            .with_maturity(PluginMaturity::Beta)
+            .with_capability_status(
+                capability_status("runtime.plugin.animation", CapabilityStatus::Partial)
+                    .with_bevy_reference("dev/bevy/crates/bevy_animation/src/lib.rs"),
+            )
+            .with_capability_status(capability_status(
+                "runtime.feature.animation.timeline_event_track",
+                CapabilityStatus::Partial,
+            )),
+        "navigation" => descriptor
+            .with_maturity(PluginMaturity::Beta)
+            .with_capability_status(
+                capability_status("runtime.plugin.navigation", CapabilityStatus::Partial)
+                    .with_note(
+                    "Gameplay navmesh/pathfinding is optional; UI navigation parity is separate.",
+                ),
+            ),
+        "net" => descriptor
+            .with_maturity(PluginMaturity::Beta)
+            .with_capability_status(
+                capability_status("runtime.plugin.net", CapabilityStatus::Partial)
+                    .with_bevy_reference("dev/bevy/crates/bevy_remote/src/lib.rs"),
+            ),
+        "particles" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability_status(
+                capability_status("runtime.plugin.particles", CapabilityStatus::Partial).with_note(
+                    "Advanced optional VFX capability; not a Bevy default parity blocker.",
+                ),
+            ),
+        "rendering" | "texture" => descriptor
+            .with_maturity(PluginMaturity::Stable)
+            .with_capability_status(capability_status(
+                format!("runtime.plugin.{package_id}"),
+                CapabilityStatus::Complete,
+            )),
+        "gltf_importer"
+        | "obj_importer"
+        | "audio_importer"
+        | "shader_wgsl_importer"
+        | "ui_document_importer" => descriptor
+            .with_maturity(PluginMaturity::Stable)
+            .with_capability_status(capability_status(
+                primary_importer_capability(&package_id),
+                CapabilityStatus::Partial,
+            )),
+        "texture_importer" => descriptor
+            .with_maturity(PluginMaturity::Stable)
+            .with_capability_status(capability_status(
+                "runtime.asset.importer.texture.image",
+                CapabilityStatus::Partial,
+            )),
+        "terrain" | "tilemap_2d" | "prefab_tools" => descriptor
+            .with_maturity(PluginMaturity::Beta)
+            .with_capability_status(capability_status(
+                format!("runtime.plugin.{package_id}"),
+                CapabilityStatus::Partial,
+            )),
+        "physics" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability_status(capability_status(
+                "runtime.plugin.physics",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.capability.physics.raycast",
+                CapabilityStatus::Partial,
+            )),
+        "virtual_geometry" | "hybrid_gi" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability_status(capability_status(
+                format!("runtime.plugin.{package_id}"),
+                CapabilityStatus::Partial,
+            )),
+        _ => descriptor.with_capability_status(capability_status(
+            format!("runtime.plugin.{package_id}"),
+            CapabilityStatus::Partial,
+        )),
+    }
+}
+
+fn primary_importer_capability(package_id: &str) -> String {
+    match package_id {
+        "gltf_importer" => return "runtime.asset.importer.model.gltf".to_string(),
+        "obj_importer" => return "runtime.asset.importer.model.obj".to_string(),
+        "audio_importer" => return "runtime.asset.importer.audio.wav".to_string(),
+        "shader_wgsl_importer" => return "runtime.asset.importer.shader.wgsl".to_string(),
+        "ui_document_importer" => return "runtime.asset.importer.ui_document".to_string(),
+        _ => {}
+    }
+    let slug = package_id
+        .strip_suffix("_importer")
+        .unwrap_or(package_id)
+        .replace('_', ".");
+    format!("runtime.asset.importer.{slug}")
+}
+
+fn capability_status(
+    capability: impl Into<String>,
+    status: CapabilityStatus,
+) -> CapabilityStatusManifest {
+    CapabilityStatusManifest::new(capability, status)
 }
 
 fn rendering_feature(

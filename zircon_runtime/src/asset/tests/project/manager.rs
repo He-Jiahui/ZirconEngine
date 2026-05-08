@@ -15,7 +15,7 @@ use crate::asset::tests::support::{
 use crate::asset::{
     AssetId, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor,
     AssetKind, AssetUri, AssetUuid, DataAsset, DataAssetFormat, FunctionAssetImporter,
-    ImportedAsset,
+    ImportedAsset, ImportedAssetEntry,
 };
 use crate::core::resource::ResourceState;
 use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -497,6 +497,260 @@ fn project_manager_clears_stale_migration_meta_for_non_migrating_importer() {
     let _ = fs::remove_dir_all(root);
 }
 
+#[test]
+fn project_manager_records_import_dependency_ids_and_missing_dependency_diagnostics() {
+    let root = unique_temp_project_root("project_manager_dependencies");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "DependencySandbox",
+        AssetUri::parse("res://materials/grid.dep").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let material_path = paths.assets_root().join("materials").join("grid.dep");
+    let texture_path = paths.assets_root().join("textures").join("checker.deptex");
+    fs::create_dir_all(material_path.parent().unwrap()).unwrap();
+    fs::create_dir_all(texture_path.parent().unwrap()).unwrap();
+    fs::write(&material_path, "material").unwrap();
+    fs::write(&texture_path, "texture").unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.dep.material", "test.dep", AssetKind::Material, 1)
+                .with_source_extensions(["dep"]),
+            import_material_with_dependencies,
+        ))
+        .unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.dep.texture", "test.dep", AssetKind::Texture, 1)
+                .with_source_extensions(["deptex"]),
+            import_texture_dependency,
+        ))
+        .unwrap();
+
+    manager.scan_and_import().unwrap();
+
+    let texture = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://textures/checker.deptex").unwrap())
+        .expect("texture record");
+    let material = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://materials/grid.dep").unwrap())
+        .expect("material record");
+
+    assert_eq!(material.dependency_ids, vec![texture.id()]);
+    assert!(material.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("unresolved asset dependency res://textures/missing.deptex")
+    }));
+
+    let mut restarted = ProjectManager::open(&root).unwrap();
+    restarted.scan_and_import().unwrap();
+    let restarted_material = restarted
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://materials/grid.dep").unwrap())
+        .expect("restarted material record");
+    assert_eq!(restarted_material.dependency_ids, vec![texture.id()]);
+    assert!(restarted_material.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("unresolved asset dependency res://textures/missing.deptex")
+    }));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
+    let root = unique_temp_project_root("project_manager_multi_asset_labels");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "MultiAssetSandbox",
+        AssetUri::parse("res://bundles/atlas.multi").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let source_path = paths.assets_root().join("bundles").join("atlas.multi");
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    fs::write(&source_path, "atlas").unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.multi.bundle", "test.multi", AssetKind::Data, 1)
+                .with_source_extensions(["multi"])
+                .with_additional_output_kinds([AssetKind::Texture]),
+            import_multi_asset_bundle,
+        ))
+        .unwrap();
+
+    let imported = manager.scan_and_import().unwrap();
+
+    let root_uri = AssetUri::parse("res://bundles/atlas.multi").unwrap();
+    let texture_uri = AssetUri::parse("res://bundles/atlas.multi#Texture0").unwrap();
+    let root_record = manager
+        .registry()
+        .get_by_locator(&root_uri)
+        .expect("root record");
+    let texture_record = manager
+        .registry()
+        .get_by_locator(&texture_uri)
+        .expect("labeled texture record");
+    let meta = AssetMetaDocument::load(
+        paths
+            .assets_root()
+            .join("bundles")
+            .join("atlas.multi.meta.toml"),
+    )
+    .unwrap();
+
+    assert_eq!(imported.len(), 2);
+    assert_eq!(meta.entries.len(), 2);
+    assert_eq!(
+        root_record.id(),
+        AssetId::from_asset_uuid_label(meta.asset_uuid, None)
+    );
+    assert_eq!(
+        texture_record.id(),
+        AssetId::from_asset_uuid_label(meta.asset_uuid, Some("Texture0"))
+    );
+    assert_ne!(
+        root_record.artifact_locator(),
+        texture_record.artifact_locator()
+    );
+    assert!(meta
+        .entries
+        .iter()
+        .any(|entry| entry.locator == texture_uri && entry.kind == AssetKind::Texture));
+
+    match manager.load_artifact(&root_uri).unwrap() {
+        ImportedAsset::Data(asset) => assert_eq!(asset.text, "atlas"),
+        other => panic!("unexpected root artifact: {other:?}"),
+    }
+    match manager.load_artifact(&texture_uri).unwrap() {
+        ImportedAsset::Texture(asset) => assert_eq!(asset.rgba, vec![255, 0, 255, 255]),
+        other => panic!("unexpected subasset artifact: {other:?}"),
+    }
+
+    let mut restarted = ProjectManager::open(&root).unwrap();
+    restarted.scan_and_import().unwrap();
+    let restored_texture = restarted
+        .registry()
+        .get_by_locator(&texture_uri)
+        .expect("restored labeled texture record");
+    assert_eq!(restored_texture.id(), texture_record.id());
+    assert_eq!(
+        restarted.load_artifact(&texture_uri).unwrap(),
+        manager.load_artifact(&texture_uri).unwrap()
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_records_duplicate_imported_asset_label_as_failed_import() {
+    let root = unique_temp_project_root("project_manager_duplicate_labels");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "DuplicateLabelSandbox",
+        AssetUri::parse("res://bundles/duplicate.multi").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let source_path = paths.assets_root().join("bundles").join("duplicate.multi");
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    fs::write(&source_path, "duplicate").unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.multi.duplicate", "test.multi", AssetKind::Data, 1)
+                .with_source_extensions(["multi"])
+                .with_additional_output_kinds([AssetKind::Texture]),
+            import_duplicate_label_bundle,
+        ))
+        .unwrap();
+
+    manager.scan_and_import().unwrap();
+
+    let root_record = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://bundles/duplicate.multi").unwrap())
+        .expect("failed root record");
+    assert_eq!(root_record.state, ResourceState::Error);
+    assert!(root_record.artifact_locator().is_none());
+    assert!(root_record.diagnostics.iter().any(|diagnostic| {
+        diagnostic
+            .message
+            .contains("duplicate asset label Texture0")
+    }));
+    assert!(manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://bundles/duplicate.multi#Texture0").unwrap())
+        .is_none());
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_returns_structured_error_for_unknown_label_load() {
+    let root = unique_temp_project_root("project_manager_unknown_label");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "UnknownLabelSandbox",
+        AssetUri::parse("res://bundles/atlas.multi").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let source_path = paths.assets_root().join("bundles").join("atlas.multi");
+    fs::create_dir_all(source_path.parent().unwrap()).unwrap();
+    fs::write(&source_path, "atlas").unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager
+        .register_asset_importer(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new("test.multi.bundle", "test.multi", AssetKind::Data, 1)
+                .with_source_extensions(["multi"])
+                .with_additional_output_kinds([AssetKind::Texture]),
+            import_multi_asset_bundle,
+        ))
+        .unwrap();
+    manager.scan_and_import().unwrap();
+
+    let error = manager
+        .load_artifact(&AssetUri::parse("res://bundles/atlas.multi#Missing").unwrap())
+        .expect_err("missing label should be structured");
+
+    match error {
+        AssetImportError::MissingAssetLabel { source_uri, label } => {
+            assert_eq!(
+                source_uri,
+                AssetUri::parse("res://bundles/atlas.multi").unwrap()
+            );
+            assert_eq!(label, "Missing");
+        }
+        other => panic!("unexpected missing-label error: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
 fn version_one_ui_layout_toml() -> &'static str {
     r#"
 [asset]
@@ -534,10 +788,117 @@ fn import_counted_data(
 ) -> Result<AssetImportOutcome, AssetImportError> {
     COUNTED_IMPORT_CALLS.fetch_add(1, Ordering::SeqCst);
     let text = context.source_text()?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Data(DataAsset {
-        uri: context.uri.clone(),
-        format: DataAssetFormat::Json,
-        text,
-        canonical_json: serde_json::json!({ "counted": true }),
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format: DataAssetFormat::Json,
+            text,
+            canonical_json: serde_json::json!({ "counted": true }),
+        }),
+    ))
+}
+
+fn import_material_with_dependencies(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Material(crate::asset::MaterialAsset {
+            name: Some("Grid".to_string()),
+            shader: crate::asset::AssetReference::from_locator(
+                AssetUri::parse("builtin://shader/pbr.wgsl").unwrap(),
+            ),
+            base_color: [0.8, 0.8, 0.8, 1.0],
+            base_color_texture: None,
+            normal_texture: None,
+            metallic: 0.0,
+            roughness: 1.0,
+            metallic_roughness_texture: None,
+            occlusion_texture: None,
+            emissive: [0.0, 0.0, 0.0],
+            emissive_texture: None,
+            alpha_mode: crate::asset::AlphaMode::Opaque,
+            double_sided: false,
+        }),
+    )
+    .with_dependency(AssetUri::parse("res://textures/checker.deptex").unwrap())
+    .with_dependency(AssetUri::parse("res://textures/missing.deptex").unwrap()))
+}
+
+fn import_texture_dependency(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Texture(crate::asset::TextureAsset {
+            uri: context.uri.clone(),
+            width: 1,
+            height: 1,
+            rgba: vec![255, 255, 255, 255],
+            payload: crate::asset::TexturePayload::Rgba8,
+        }),
+    ))
+}
+
+fn import_multi_asset_bundle(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let text = context.source_text()?;
+    let texture_uri = AssetUri::parse(&format!("{}#Texture0", context.uri)).unwrap();
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format: DataAssetFormat::Json,
+            text,
+            canonical_json: serde_json::json!({ "bundle": true }),
+        }),
+    )
+    .with_entry(ImportedAssetEntry::new(
+        texture_uri.clone(),
+        ImportedAsset::Texture(crate::asset::TextureAsset {
+            uri: texture_uri,
+            width: 1,
+            height: 1,
+            rgba: vec![255, 0, 255, 255],
+            payload: crate::asset::TexturePayload::Rgba8,
+        }),
+    )))
+}
+
+fn import_duplicate_label_bundle(
+    context: &AssetImportContext,
+) -> Result<AssetImportOutcome, AssetImportError> {
+    let texture_uri = AssetUri::parse(&format!("{}#Texture0", context.uri)).unwrap();
+    let duplicate_uri = texture_uri.clone();
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format: DataAssetFormat::Json,
+            text: "duplicate".to_string(),
+            canonical_json: serde_json::json!({ "duplicate": true }),
+        }),
+    )
+    .with_entry(ImportedAssetEntry::new(
+        texture_uri.clone(),
+        ImportedAsset::Texture(crate::asset::TextureAsset {
+            uri: texture_uri,
+            width: 1,
+            height: 1,
+            rgba: vec![255, 0, 0, 255],
+            payload: crate::asset::TexturePayload::Rgba8,
+        }),
+    ))
+    .with_entry(ImportedAssetEntry::new(
+        duplicate_uri.clone(),
+        ImportedAsset::Texture(crate::asset::TextureAsset {
+            uri: duplicate_uri,
+            width: 1,
+            height: 1,
+            rgba: vec![0, 255, 0, 255],
+            payload: crate::asset::TexturePayload::Rgba8,
+        }),
+    )))
 }

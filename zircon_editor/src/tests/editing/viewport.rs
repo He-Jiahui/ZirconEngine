@@ -4,9 +4,11 @@ use crate::scene::viewport::pointer::{
 };
 use crate::scene::viewport::{
     GizmoAxis, GridMode, HandleElementExtract, HandleOverlayExtract, OverlayAxis, OverlayPickShape,
-    ProjectionMode, SceneGizmoKind, SceneGizmoOverlayExtract, SceneViewportController,
-    ViewportCameraSnapshot,
+    ProjectionMode, SceneGizmoKind, SceneGizmoOverlayExtract, SceneInspectorFieldValue,
+    SceneViewportController, SceneViewportTool, TransformSpace, ViewportCameraSnapshot,
 };
+use zircon_runtime::core::framework::picking::{HitTarget, PickingAxis};
+use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::{
     perspective, view_matrix, Transform, UVec2, Vec2, Vec3, Vec4,
@@ -125,6 +127,32 @@ fn viewport_overlay_pointer_router_resolves_renderable_when_no_overlay_hits() {
 }
 
 #[test]
+fn viewport_pointer_route_maps_to_runtime_hit_target_contract() {
+    let route = ViewportPointerRoute::HandleAxis {
+        owner: 7,
+        axis: GizmoAxis::Y,
+    };
+
+    assert_eq!(
+        route.target(),
+        HitTarget::handle_axis(7, PickingAxis::Y),
+        "editor routes should adapt to the runtime picking target contract"
+    );
+    assert_eq!(
+        ViewportPointerRoute::from_target(HitTarget::scene_gizmo(41)),
+        ViewportPointerRoute::SceneGizmo { owner: 41 }
+    );
+}
+
+#[test]
+fn viewport_pointer_route_priority_matches_runtime_hit_target_order() {
+    assert!(
+        HitTarget::handle_axis(1, PickingAxis::X).priority() < HitTarget::scene_gizmo(2).priority()
+    );
+    assert!(HitTarget::scene_gizmo(2).priority() < HitTarget::renderable(3).priority());
+}
+
+#[test]
 fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_only() {
     let scene = Scene::new();
     let selected = scene
@@ -163,6 +191,104 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
     assert!(runtime_packet.overlays.handles.is_empty());
     assert!(runtime_packet.overlays.scene_gizmos.is_empty());
     assert!(runtime_packet.overlays.grid.is_none());
+}
+
+#[test]
+fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
+    let mut scene = Scene::new();
+    let cube = scene
+        .nodes()
+        .iter()
+        .find(|node| node.kind == NodeKind::Cube)
+        .expect("default cube")
+        .id;
+    let child = scene.spawn_node(NodeKind::PointLight);
+    scene.rename_node(cube, "Root Cube").unwrap();
+    scene.set_parent_checked(child, Some(cube)).unwrap();
+    scene.set_active_self(child, false).unwrap();
+
+    let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+    controller.set_selected_node(Some(cube));
+    controller.settings_mut().tool = SceneViewportTool::Scale;
+    controller.settings_mut().transform_space = TransformSpace::Global;
+    controller.settings_mut().projection_mode = ProjectionMode::Orthographic;
+    controller.settings_mut().grid_mode = GridMode::VisibleAndSnap;
+
+    let projection = controller.build_edit_mode_projection(&scene);
+
+    assert_eq!(projection.selected_entity, Some(cube));
+    let root_row = projection
+        .hierarchy_rows
+        .iter()
+        .find(|row| row.entity == cube)
+        .expect("selected cube row");
+    assert_eq!(root_row.parent, None);
+    assert_eq!(root_row.depth, 0);
+    assert_eq!(root_row.display_name, "Root Cube");
+    assert!(root_row.selected);
+    assert!(root_row.active_in_hierarchy);
+    assert!(root_row.has_children);
+
+    let child_row = projection
+        .hierarchy_rows
+        .iter()
+        .find(|row| row.entity == child)
+        .expect("child light row");
+    assert_eq!(child_row.parent, Some(cube));
+    assert_eq!(child_row.depth, 1);
+    assert!(!child_row.selected);
+    assert!(!child_row.active_in_hierarchy);
+
+    assert_eq!(projection.toolbar.tool, SceneViewportTool::Scale);
+    assert_eq!(projection.toolbar.transform_space, TransformSpace::Global);
+    assert_eq!(
+        projection.toolbar.projection_mode,
+        ProjectionMode::Orthographic
+    );
+    assert_eq!(projection.toolbar.grid_mode, GridMode::VisibleAndSnap);
+    assert!(projection.toolbar.has_selection);
+    assert!(projection.toolbar.can_frame_selection);
+
+    assert_eq!(projection.stats.node_count, scene.nodes().len());
+    assert_eq!(projection.stats.camera_count, 1);
+    assert_eq!(projection.stats.mesh_count, 1);
+    assert_eq!(projection.stats.light_count, 2);
+    assert_eq!(projection.stats.visible_node_count, 3);
+
+    assert!(projection.inspector_fields.iter().any(|field| {
+        field.property_path.as_deref() == Some("Name.value")
+            && field.value == SceneInspectorFieldValue::Text("Root Cube".to_string())
+            && field.editable
+    }));
+    assert!(projection.inspector_fields.iter().any(|field| {
+        field.property_path.as_deref() == Some("Transform.translation")
+            && matches!(field.value, SceneInspectorFieldValue::Vec3(_))
+            && field.editable
+    }));
+    assert!(projection.inspector_fields.iter().any(|field| {
+        field.property_path.as_deref() == Some("MeshRenderer.model")
+            && matches!(field.value, SceneInspectorFieldValue::Resource(_))
+            && !field.editable
+    }));
+
+    let runtime_packet = scene.to_render_extract();
+    assert!(runtime_packet.overlays.selection.is_empty());
+    assert!(runtime_packet.overlays.scene_gizmos.is_empty());
+}
+
+#[test]
+fn viewport_edit_mode_projection_ignores_stale_editor_selection() {
+    let scene = Scene::new();
+    let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+    controller.set_selected_node(Some(999_999));
+
+    let projection = controller.build_edit_mode_projection(&scene);
+
+    assert_eq!(projection.selected_entity, None);
+    assert!(projection.inspector_fields.is_empty());
+    assert!(!projection.toolbar.has_selection);
+    assert!(!projection.toolbar.can_frame_selection);
+    assert!(projection.hierarchy_rows.iter().all(|row| !row.selected));
 }
 
 fn test_camera() -> ViewportCameraSnapshot {

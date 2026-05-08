@@ -132,10 +132,13 @@ pub fn import_obj(context: &AssetImportContext) -> Result<AssetImportOutcome, As
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    Ok(AssetImportOutcome::new(ImportedAsset::Model(ModelAsset {
-        uri: context.uri.clone(),
-        primitives,
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Model(ModelAsset {
+            uri: context.uri.clone(),
+            primitives,
+        }),
+    ))
 }
 
 fn primitive_from_indexed_mesh(
@@ -297,7 +300,8 @@ f 1/1/1 2/2/1 3/3/1
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome.root_entry().expect("root obj asset entry").asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Model(model) => {

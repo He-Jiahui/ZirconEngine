@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::OnceLock;
 
 use toml::Value;
 
@@ -14,21 +15,46 @@ use zircon_runtime_interface::ui::component::{
     UiWidgetRuntimeFallback,
 };
 
+static EDITOR_SHOWCASE_REGISTRY: OnceLock<UiComponentDescriptorRegistry> = OnceLock::new();
+
 impl UiComponentDescriptorRegistry {
     /// Builds the Runtime UI component catalog used by the editor showcase.
     pub fn editor_showcase() -> Self {
-        let mut registry = Self::new();
-        for descriptor in editor_showcase_descriptors() {
-            registry
-                .register(descriptor)
-                .expect("built-in UI component descriptors must validate");
-        }
-        registry
+        EDITOR_SHOWCASE_REGISTRY
+            .get_or_init(build_editor_showcase_registry)
+            .clone()
     }
 }
 
+fn build_editor_showcase_registry() -> UiComponentDescriptorRegistry {
+    let mut registry = UiComponentDescriptorRegistry::new();
+    for descriptor in editor_showcase_descriptors() {
+        registry
+            .register(descriptor)
+            .expect("built-in UI component descriptors must validate");
+    }
+    registry
+}
+
+#[inline(never)]
+fn build_editor_showcase_descriptor(
+    factory: impl FnOnce() -> UiComponentDescriptor,
+) -> UiComponentDescriptor {
+    with_palette_metadata(factory())
+}
+
 fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
-    vec![
+    macro_rules! push_descriptors {
+        ($target:expr, $($descriptor:expr),+ $(,)?) => {
+            $(
+                $target.push(build_editor_showcase_descriptor(|| $descriptor));
+            )+
+        };
+    }
+
+    let mut descriptors = Vec::with_capacity(50);
+    push_descriptors!(
+        descriptors,
         layout_primitive("Container", "Container", "container"),
         layout_primitive("Overlay", "Overlay", "overlay"),
         layout_primitive("HorizontalBox", "Horizontal Box", "horizontal-box"),
@@ -518,10 +544,8 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::ClosePopup,
             UiComponentEventKind::SelectOption,
         ]),
-    ]
-    .into_iter()
-    .map(with_palette_metadata)
-    .collect()
+    );
+    descriptors
 }
 
 fn base_descriptor(
@@ -854,4 +878,22 @@ fn state_map_prop(name: &str) -> UiPropSchema {
 
 fn expanded_prop() -> UiPropSchema {
     UiPropSchema::new("expanded", UiValueKind::Bool).default_value(UiValue::Bool(true))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn editor_showcase_catalog_builds_on_small_stack() {
+        std::thread::Builder::new()
+            .stack_size(256 * 1024)
+            .spawn(|| {
+                let registry = super::build_editor_showcase_registry();
+                assert!(registry.len() >= 40);
+                assert!(registry.contains("Container"));
+                assert!(registry.contains("ContextActionMenu"));
+            })
+            .expect("spawn small-stack showcase catalog test")
+            .join()
+            .expect("showcase catalog should not overflow the stack");
+    }
 }

@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/binding/mod.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_call.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_value.rs
@@ -56,11 +57,21 @@ related_code:
   - zircon_runtime_interface/src/ui/event_ui/codec.rs
   - zircon_runtime_interface/src/ui/event_ui/control.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
+  - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
   - zircon_runtime_interface/src/ui/layout/virtualization.rs
+  - zircon_runtime_interface/src/ui/navigation.rs
+  - zircon_runtime_interface/src/ui/picking.rs
+  - zircon_runtime_interface/src/ui/pipeline/mod.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage.rs
+  - zircon_runtime_interface/src/ui/pipeline/dirty_reason.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_counters.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_report.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
@@ -86,6 +97,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
+  - zircon_runtime_interface/src/ui/text.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
   - zircon_runtime_interface/src/ui/template/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/diagnostic.rs
@@ -155,8 +167,17 @@ related_code:
   - zircon_runtime_interface/src/ui/tree/node/tree_error.rs
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
+  - zircon_runtime_interface/src/ui/widget.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/mod.rs
+  - zircon_runtime_interface/src/ui/accessibility.rs
   - zircon_runtime_interface/src/ui/binding/mod.rs
   - zircon_runtime_interface/src/ui/binding/model/mod.rs
   - zircon_runtime_interface/src/ui/binding/model/binding_call.rs
@@ -212,11 +233,21 @@ implementation_files:
   - zircon_runtime_interface/src/ui/event_ui/codec.rs
   - zircon_runtime_interface/src/ui/event_ui/control.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
+  - zircon_runtime_interface/src/ui/focus.rs
   - zircon_runtime_interface/src/ui/layout/mod.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/constraints.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
   - zircon_runtime_interface/src/ui/layout/virtualization.rs
+  - zircon_runtime_interface/src/ui/navigation.rs
+  - zircon_runtime_interface/src/ui/picking.rs
+  - zircon_runtime_interface/src/ui/pipeline/mod.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage.rs
+  - zircon_runtime_interface/src/ui/pipeline/dirty_reason.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_counters.rs
+  - zircon_runtime_interface/src/ui/pipeline/stage_report.rs
+  - zircon_runtime_interface/src/ui/pipeline/frame_report.rs
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime_interface/src/ui/surface/focus_state.rs
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
@@ -242,6 +273,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/text_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime_interface/src/ui/surface/render/visual_asset_ref.rs
+  - zircon_runtime_interface/src/ui/text.rs
   - zircon_runtime_interface/src/ui/template/mod.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/diagnostic.rs
   - zircon_runtime_interface/src/ui/template/asset/action_policy/host_policy.rs
@@ -310,6 +342,13 @@ implementation_files:
   - zircon_runtime_interface/src/ui/tree/node/tree_error.rs
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/tree/node/ui_tree.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
+  - zircon_runtime_interface/src/ui/widget.rs
 plan_sources:
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
@@ -320,8 +359,22 @@ plan_sources:
   - user: 2026-05-06 implement Milestone 1 shared input contract foundation only
   - docs/superpowers/specs/2026-05-06-ui-lifecycle-reflection-reflector-design.md
   - docs/superpowers/plans/2026-05-06-ui-lifecycle-reflection-reflector.md
+  - .codex/plans/Bevy-Informed Zircon UI 架构优化里程碑计划.md
+  - docs/ui-and-layout/bevy-informed-ui-m0-gap-audit.md
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/layout_engine_contracts.rs
+  - zircon_runtime_interface/src/tests/pipeline_contracts.rs
+  - zircon_runtime_interface/src/tests/window_input_contracts.rs
+  - zircon_runtime_interface/src/tests/ui_contract_spine.rs
+  - cargo test -p zircon_runtime_interface --lib layout_engine_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (3 passed; 0 failed; 73 filtered out)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-layout-engine-m3 --message-format short --color never (passed)
+  - cargo test -p zircon_runtime_interface --lib pipeline_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (3 passed; 0 failed; 70 filtered out)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-pipeline-m2 --message-format short --color never (passed)
+  - cargo test -p zircon_runtime_interface --lib window_input_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (2 passed; 0 failed; 68 filtered out; existing sibling `ui_contract_spine` unused-import warning)
+  - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (passed)
   - cargo test -p zircon_runtime_interface --lib ui_input --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime_interface --lib contracts --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never -- --nocapture
   - cargo check -p zircon_runtime_interface --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-complete-input-events --message-format short --color never
@@ -382,15 +435,21 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 
 `ui::binding` contains event binding DTOs plus parsing helpers needed on the contract type itself.
 
+`ui::focus`, `ui::navigation`, `ui::picking`, `ui::accessibility`, `ui::widget`, and `ui::text` contain the Bevy-aligned M1 contract spine. These modules define neutral DTOs for input focus, focus visible state, focus change events, focused input bubbling, tab and directional navigation, unified pick policy, pointer capture, accessibility nodes/snapshots/actions/diagnostics, headless widget events, text edit changes, and cursor style. Runtime/editor behavior for these contracts remains outside the interface crate. See `docs/zircon_runtime_interface/ui/contract-spine.md` for the M1 module detail.
+
+`ui::pipeline` contains the Bevy-informed M2 pipeline-report DTOs. `UiPipelineStage` fixes the neutral stage order from input collection through diagnostics; `UiPipelineStageReport` and `UiPipelineFrameReport` record elapsed timing, dirty reasons, and counters for layout, hit-grid, render extract, batch prepare, paint submit, diagnostics, template reloads, and repeated pointer-move fast paths. Runtime/editor scheduling and surface mutation stay outside this interface module. See `docs/zircon_runtime_interface/ui/pipeline.md` for the M2 module detail.
+
 `ui::component` contains component category, value, drag/drop, event, validation state, descriptor, and data-binding DTOs. `UiComponentState` is data-only in the interface crate; event application and descriptor-backed state mutation remain runtime/editor behavior. Its direct `with_value(...)` helper preserves DTO invariants by clearing stale per-property drag/drop provenance whenever a retained value is replaced outside the runtime reducer.
 
 `ui::dispatch` contains pointer and navigation dispatch context, invocation, effect, result, and pointer event DTOs, but no dispatchers. Its `input` subtree adds the M5 shared input contract vocabulary: common metadata, pointer/keyboard/text/IME/navigation/analog/drag-drop/popup/tooltip events, transient dispatch replies/effects, input-method requests, dispatch diagnostics, host requests, and component event reports. These are serializable contract DTOs only; runtime/editor effect application is outside the interface crate.
 
 `ui::event_ui` contains control request/response, reflection descriptors, stable scalar/string ID wrappers, and a serde JSON binding codec helper. Its reflection module now also owns the neutral Widget Reflector DTO family: `UiWidgetLifecycleState`, `UiReflectedProperty`, `UiPropertyInvalidationReason`, `UiReflectorNode`, `UiReflectorHitContext`, and `UiReflectorSnapshot`. These are serializable debug/editor contracts only; runtime owns property mutation, lifecycle derivation, hit-test context production, and binding action projection.
 
-`ui::layout` contains constraints, geometry, scroll/container, and virtualization contract structures without layout-pass execution or virtualization window computation.
+`ui::layout` contains constraints, geometry, scroll/container, virtualization, and M3 layout-engine selection contract structures without layout-pass execution, Taffy conversion, or virtualization window computation. `UiLayoutEngineCapability`, `UiLayoutEngineRequest`, and `UiLayoutEngineSelectionReport` let future runtime M3 work report whether a layout family used the current Legacy Zircon path or a Taffy-compatible path while preserving Zircon-owned Free, Overlay, Scrollable, and virtualized-list semantics. See `docs/zircon_runtime_interface/ui/layout.md` for the module detail.
 
 `ui::surface` contains focus/navigation/pointer DTOs and render command/list/style/text/extract declarations. `UiRenderExtract` and text layout records are data-only in the interface crate. The render subtree now also contains the neutral paint/brush/batch/debug DTO layer (`UiPaintElement`, `UiBrushPayload`, `UiBatchPlan`, `UiRenderDebugSnapshot`, and `UiShapedText`) used to migrate existing `UiRenderCommand` producers toward Slate-style paint and batch contracts without adding required fields to legacy command literals.
+
+`UiRenderExtractKind` and `UiRenderStats` are additive M1 render-boundary DTOs. They classify the extract path and report command-family counts without adding required fields to the legacy `{ tree_id, list }` extract shape.
 
 `ui::template` contains template document DTOs plus asset binding, action-policy, localization, compile-cache key, package header/cache-record/manifest/report, component-contract, invalidation, resource-ref, schema-report, selector, and asset document contract records. Selector parsing stays as a contract helper; selector matching stays outside the interface crate. Runtime owns compiler-state builders such as `compile_cache_key_from_compiler(...)`, runtime binary artifact encoding/decoding through `UiRuntimeCompiledAssetArtifact`, and package-manifest assembly from runtime artifacts. The interface `UiCompiledAssetArtifact` name is neutral DTO data only and does not carry a runtime `UiTemplateInstance` payload.
 
@@ -399,6 +458,8 @@ Runtime behavior remains outside this crate. Event managers, component registrie
 `UiAssetDocument` exposes only declaration fields and minimal root-id accessors in this crate. Tree authority checks, style/node mutation, node traversal, template loading, and document validation are runtime/editor behavior and are intentionally absent from the interface source tree.
 
 `ui::tree` contains data-only tree node declarations. Runtime tree mutation/query behavior remains in `zircon_runtime` and is exposed through `UiRuntimeTree*Ext` traits over the interface-owned `UiTree` and `UiTreeNode` DTOs.
+
+`ui::window` contains the Bevy-informed M1 neutral window/input pump DTOs. `UiWindowEvent` models cursor move/enter/leave, focus, resize, scale-factor, redraw, close, and cleanup events. `UiWindowInputPumpEvent` combines those window events with existing shared `UiInputEvent` values so runtime winit and editor host converters can converge on one stream in later slices without duplicating input DTO families in the interface crate.
 
 `zircon_runtime::ui::surface::UiSurface` is still a runtime service type, but its `tree` field now stores `zircon_runtime_interface::ui::tree::UiTree` directly. Editor surface builders therefore import tree DTOs from the interface crate and import runtime tree extension traits only when they call behavior such as insertion, query, mutation, routing, focus, scroll, or render-order traversal.
 

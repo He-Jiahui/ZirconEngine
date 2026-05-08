@@ -4,7 +4,9 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
-    layout::{AxisConstraint, BoxConstraints, LayoutBoundary, StretchMode, UiContainerKind, UiSize},
+    layout::{
+        AxisConstraint, BoxConstraints, LayoutBoundary, StretchMode, UiContainerKind, UiSize,
+    },
     tree::{UiDirtyFlags, UiInputPolicy, UiTreeNode},
 };
 

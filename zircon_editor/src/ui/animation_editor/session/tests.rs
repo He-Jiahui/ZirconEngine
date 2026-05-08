@@ -151,6 +151,7 @@ fn write_sequence_asset_with_track_timing(
         frames_per_second,
         bindings: vec![AnimationSequenceBindingAsset {
             entity_path: EntityPath::parse("Root/Hero").unwrap(),
+            target_id: None,
             tracks: vec![AnimationSequenceTrackAsset {
                 property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
                 channel: scalar_channel(1.0),

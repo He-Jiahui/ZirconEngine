@@ -140,7 +140,7 @@ pub fn import_ui_toml_document(
         ),
     };
 
-    ui_document_outcome(migration.document, migration_report)
+    ui_document_outcome(context.uri.clone(), migration.document, migration_report)
 }
 
 pub fn import_ui_json_document(
@@ -153,14 +153,14 @@ pub fn import_ui_json_document(
                 context.source_path.display()
             ))
         })?;
-    import_serialized_ui_document(document, "json tree")
+    import_serialized_ui_document(context, document, "json tree")
 }
 
 pub fn import_ui_binary_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = decode_ui_binary_document(&context.source_bytes, context)?;
-    import_serialized_ui_document(document, "binary document")
+    import_serialized_ui_document(context, document, "binary document")
 }
 
 pub fn encode_ui_binary_document(document: &UiAssetDocument) -> Result<Vec<u8>, AssetImportError> {
@@ -215,6 +215,7 @@ fn decode_ui_binary_document(
 }
 
 fn import_serialized_ui_document(
+    context: &AssetImportContext,
     mut document: UiAssetDocument,
     source_label: &str,
 ) -> Result<AssetImportOutcome, AssetImportError> {
@@ -244,22 +245,23 @@ fn import_serialized_ui_document(
         summary,
     };
 
-    ui_document_outcome(document, migration_report)
+    ui_document_outcome(context.uri.clone(), document, migration_report)
 }
 
 fn ui_document_outcome(
+    locator: zircon_runtime::asset::AssetUri,
     document: UiAssetDocument,
     migration_report: AssetSchemaMigrationReport,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let outcome = match document.asset.kind {
         UiAssetKind::Layout => {
-            AssetImportOutcome::new(ImportedAsset::UiLayout(UiLayoutAsset { document }))
+            AssetImportOutcome::new(locator, ImportedAsset::UiLayout(UiLayoutAsset { document }))
         }
         UiAssetKind::Widget => {
-            AssetImportOutcome::new(ImportedAsset::UiWidget(UiWidgetAsset { document }))
+            AssetImportOutcome::new(locator, ImportedAsset::UiWidget(UiWidgetAsset { document }))
         }
         UiAssetKind::Style => {
-            AssetImportOutcome::new(ImportedAsset::UiStyle(UiStyleAsset { document }))
+            AssetImportOutcome::new(locator, ImportedAsset::UiStyle(UiStyleAsset { document }))
         }
     };
     Ok(outcome.with_migration_report(migration_report))
@@ -327,7 +329,8 @@ id = "main"
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome.root_entry().expect("root UI asset entry").asset;
 
         assert!(matches!(
             imported,
@@ -366,12 +369,17 @@ id = "main"
 
         let outcome = importer.import(&context).unwrap();
 
-        match outcome.imported_asset {
+        let entry = outcome.root_entry().expect("root UI asset entry");
+        match &entry.asset {
             zircon_runtime::asset::ImportedAsset::UiLayout(asset) => {
                 assert_eq!(asset.document.asset.id, "json.layout");
                 assert_eq!(asset.document.root_node_id(), Some("root"));
                 assert_eq!(
-                    outcome.migration_report.unwrap().target_schema_version,
+                    entry
+                        .migration_report
+                        .as_ref()
+                        .unwrap()
+                        .target_schema_version,
                     UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
                 );
             }
@@ -413,12 +421,17 @@ id = "main"
 
         let outcome = importer.import(&context).unwrap();
 
-        match outcome.imported_asset {
+        let entry = outcome.root_entry().expect("root UI asset entry");
+        match &entry.asset {
             zircon_runtime::asset::ImportedAsset::UiLayout(asset) => {
                 assert_eq!(asset.document.asset.id, "binary.layout");
                 assert_eq!(asset.document.root_node_id(), Some("root"));
                 assert_eq!(
-                    outcome.migration_report.unwrap().target_schema_version,
+                    entry
+                        .migration_report
+                        .as_ref()
+                        .unwrap()
+                        .target_schema_version,
                     UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
                 );
             }

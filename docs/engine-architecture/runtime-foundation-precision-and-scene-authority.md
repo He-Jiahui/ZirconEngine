@@ -9,7 +9,8 @@ related_code:
   - zircon_asset/src/tests/assets/scene.rs
   - zircon_scene/src/components/mod.rs
   - zircon_scene/src/components/scene.rs
-  - zircon_scene/src/components/schedule.rs
+  - zircon_runtime/src/scene/ecs/schedule.rs
+  - zircon_runtime/src/scene/ecs/system_stage.rs
   - zircon_framework/src/render/camera.rs
   - zircon_framework/src/render/scene_extract.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -49,7 +50,8 @@ implementation_files:
   - zircon_asset/src/assets/scene.rs
   - zircon_scene/src/components/mod.rs
   - zircon_scene/src/components/scene.rs
-  - zircon_scene/src/components/schedule.rs
+  - zircon_runtime/src/scene/ecs/schedule.rs
+  - zircon_runtime/src/scene/ecs/system_stage.rs
   - zircon_framework/src/render/camera.rs
   - zircon_framework/src/render/scene_extract.rs
   - zircon_editor/src/scene/viewport/render_packet.rs

@@ -1,7 +1,8 @@
 use crate::core::math::{Mat4, Transform};
 
 use super::World;
-use crate::scene::components::{Mobility, SceneNode, Schedule};
+use crate::scene::components::{ActiveSelf, Mobility, RenderLayerMask, SceneNode};
+use crate::scene::ecs::Schedule;
 use crate::scene::EntityId;
 
 impl World {
@@ -37,8 +38,19 @@ impl World {
         &self.node_cache
     }
 
-    pub fn find_node(&self, entity: EntityId) -> Option<&SceneNode> {
-        self.node_cache.iter().find(|node| node.id == entity)
+    pub fn node_records(&self) -> Vec<SceneNode> {
+        let mut nodes = self
+            .entities
+            .iter()
+            .copied()
+            .filter_map(|entity| self.project_node_for_read(entity))
+            .collect::<Vec<_>>();
+        nodes.sort_by_key(|node| node.id);
+        nodes
+    }
+
+    pub fn find_node(&self, entity: EntityId) -> Option<SceneNode> {
+        self.project_node_for_read(entity)
     }
 
     pub fn world_matrix(&self, entity: EntityId) -> Option<Mat4> {
@@ -60,7 +72,7 @@ impl World {
     }
 
     pub fn set_active_self(&mut self, entity: EntityId, active: bool) -> Result<bool, String> {
-        let Some(current) = self.active_self.get_mut(&entity) else {
+        let Some(current) = self.active_self.get(&entity) else {
             return Err(format!(
                 "cannot update active state for missing node {entity}"
             ));
@@ -68,16 +80,12 @@ impl World {
         if current.0 == active {
             return Ok(false);
         }
-        current.0 = active;
-        self.rebuild_derived_state();
+        self.insert(entity, ActiveSelf(active))?;
         Ok(true)
     }
 
     pub fn active_in_hierarchy(&self, entity: EntityId) -> Option<bool> {
-        self.active_in_hierarchy
-            .get(&entity)
-            .copied()
-            .map(|active| active.0)
+        self.project_active_in_hierarchy_for_read(entity)
     }
 
     pub fn render_layer_mask(&self, entity: EntityId) -> Option<u32> {
@@ -88,7 +96,7 @@ impl World {
     }
 
     pub fn set_render_layer_mask(&mut self, entity: EntityId, mask: u32) -> Result<bool, String> {
-        let Some(current) = self.render_layer_masks.get_mut(&entity) else {
+        let Some(current) = self.render_layer_masks.get(&entity) else {
             return Err(format!(
                 "cannot update render layer mask for missing node {entity}"
             ));
@@ -96,7 +104,7 @@ impl World {
         if current.0 == mask {
             return Ok(false);
         }
-        current.0 = mask;
+        self.insert(entity, RenderLayerMask(mask))?;
         Ok(true)
     }
 
@@ -112,7 +120,7 @@ impl World {
             return Ok(false);
         }
         self.validate_mobility_change(entity, mobility)?;
-        self.mobility.insert(entity, mobility);
+        self.insert(entity, mobility)?;
         Ok(true)
     }
 }

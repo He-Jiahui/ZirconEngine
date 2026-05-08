@@ -1,6 +1,7 @@
 use zircon_runtime_interface::ui::{
     component::{UiValue, UiValueKind},
     event_ui::{UiNodeId, UiPropertyInvalidationReason, UiReflectedPropertySource},
+    focus::UiFocusChangeEvent,
     tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiVisibility},
 };
 
@@ -45,6 +46,7 @@ pub struct UiPropertyMutationReport {
     pub source: UiReflectedPropertySource,
     pub invalidation: UiPropertyInvalidationReason,
     pub message: Option<String>,
+    pub focus_change: Option<UiFocusChangeEvent>,
 }
 
 impl UiPropertyMutationReport {
@@ -56,6 +58,7 @@ impl UiPropertyMutationReport {
             source: request.source,
             invalidation: UiPropertyInvalidationReason::with_dirty(dirty),
             message: None,
+            focus_change: None,
         }
     }
 
@@ -67,6 +70,7 @@ impl UiPropertyMutationReport {
             source: request.source,
             invalidation: UiPropertyInvalidationReason::none(),
             message: None,
+            focus_change: None,
         }
     }
 
@@ -78,6 +82,7 @@ impl UiPropertyMutationReport {
             source: request.source,
             invalidation: UiPropertyInvalidationReason::reflection_only(),
             message: Some(message.into()),
+            focus_change: None,
         }
     }
 }

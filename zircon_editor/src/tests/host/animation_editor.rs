@@ -89,6 +89,7 @@ fn write_sequence_asset(path: &Path) {
         frames_per_second: 30.0,
         bindings: vec![AnimationSequenceBindingAsset {
             entity_path: EntityPath::parse("Root/Hero").unwrap(),
+            target_id: None,
             tracks: vec![AnimationSequenceTrackAsset {
                 property_path: ComponentPropertyPath::parse("AnimationPlayer.weight").unwrap(),
                 channel: scalar_channel(1.0),

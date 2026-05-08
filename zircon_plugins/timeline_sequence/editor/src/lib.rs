@@ -495,6 +495,7 @@ mod tests {
     fn binding(entity: &str, property: &str) -> AnimationSequenceBindingAsset {
         AnimationSequenceBindingAsset {
             entity_path: EntityPath::parse(entity).unwrap(),
+            target_id: None,
             tracks: vec![AnimationSequenceTrackAsset {
                 property_path: ComponentPropertyPath::parse(property).unwrap(),
                 channel: AnimationChannelAsset {

@@ -1,7 +1,11 @@
 mod extensions;
+mod gizmos;
 mod graphics_surface;
+mod picking;
 mod plugin_extensions;
+mod prelude;
 mod runtime_absorption;
 mod runtime_diagnostics;
 mod scene_boundary;
+mod state;
 mod ui_boundary;

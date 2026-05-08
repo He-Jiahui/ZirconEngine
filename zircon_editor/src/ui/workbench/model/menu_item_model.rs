@@ -84,6 +84,7 @@ fn builtin_view_operation_path(descriptor_id: &str) -> Option<&'static str> {
         "editor.assets" => Some("View.Assets.Open"),
         "editor.console" => Some("View.Console.Open"),
         "editor.runtime_diagnostics" => Some("View.RuntimeDiagnostics.Open"),
+        "editor.debug_observatory" => Some("Window.DebugObservatory.Open"),
         "editor.module_plugins" => Some("View.PluginManager.Open"),
         "editor.build_export_desktop" => Some("View.BuildExport.Open"),
         "editor.prefab" => Some("View.Prefab.Open"),

@@ -46,6 +46,7 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
         ("Window.Layout.Save", "Window/Save Layout"),
         ("Runtime.PlayMode.Enter", "Play/Enter Play Mode"),
         ("Runtime.PlayMode.Exit", "Play/Exit Play Mode"),
+        ("Window.DebugObservatory.Open", "Window/Debug Observatory"),
         ("View.PluginManager.Open", "View/Plugin Manager"),
         ("View.BuildExport.Open", "View/Desktop Export"),
         ("Inspector.Field.ApplyBatch", "Inspector/Apply Changes"),

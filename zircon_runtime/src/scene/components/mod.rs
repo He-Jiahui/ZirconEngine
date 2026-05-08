@@ -1,7 +1,6 @@
 //! ECS-style scene components plus schedule and scene-domain mobility glue.
 
 mod scene;
-mod schedule;
 
 pub use crate::core::framework::scene::Mobility;
 pub use scene::{
@@ -12,4 +11,3 @@ pub use scene::{
     LocalTransform, MeshRenderer, Name, NodeKind, NodeRecord, PointLight, RenderLayerMask,
     RigidBodyComponent, RigidBodyType, SceneNode, SpotLight, WorldMatrix, WorldTransform,
 };
-pub use schedule::{Schedule, SystemStage};

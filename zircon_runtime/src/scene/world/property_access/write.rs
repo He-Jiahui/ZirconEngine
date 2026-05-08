@@ -108,7 +108,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "meshrenderer" | "mesh" => {
@@ -139,7 +139,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "directionallight" | "light" => {
@@ -170,7 +170,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "pointlight" => {
@@ -201,7 +201,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "spotlight" => {
@@ -253,7 +253,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "rigidbody" => self.set_rigid_body_property(entity, &segments, value, property_path),
@@ -273,7 +273,7 @@ impl World {
                     }
                     _ => return unknown_property_error(property_path),
                 }
-                self.refresh_node_cache();
+                self.mark_node_cache_dirty();
                 Ok(true)
             }
             "animationplayer" => {
@@ -292,7 +292,7 @@ impl World {
                     &mut player.playing,
                 )?;
                 if changed {
-                    self.refresh_node_cache();
+                    self.mark_node_cache_dirty();
                 }
                 Ok(changed)
             }
@@ -312,7 +312,7 @@ impl World {
                     &mut player.playing,
                 )?;
                 if changed {
-                    self.refresh_node_cache();
+                    self.mark_node_cache_dirty();
                 }
                 Ok(changed)
             }
@@ -351,7 +351,7 @@ impl World {
                     _ => return unknown_property_error(property_path),
                 };
                 if changed {
-                    self.refresh_node_cache();
+                    self.mark_node_cache_dirty();
                 }
                 Ok(changed)
             }
@@ -400,7 +400,7 @@ impl World {
                     _ => return unknown_property_error(property_path),
                 };
                 if changed {
-                    self.refresh_node_cache();
+                    self.mark_node_cache_dirty();
                 }
                 Ok(changed)
             }
@@ -549,7 +549,7 @@ impl World {
             }
             _ => return self.set_dynamic_component_property(entity, property_path, value),
         }
-        self.refresh_node_cache();
+        self.mark_node_cache_dirty();
         Ok(true)
     }
 
@@ -712,7 +712,7 @@ impl World {
             }
             _ => return unknown_property_error(property_path),
         }
-        self.refresh_node_cache();
+        self.mark_node_cache_dirty();
         Ok(true)
     }
 
@@ -779,7 +779,7 @@ impl World {
             }
             _ => return unknown_property_error(property_path),
         }
-        self.refresh_node_cache();
+        self.mark_node_cache_dirty();
         Ok(true)
     }
 }

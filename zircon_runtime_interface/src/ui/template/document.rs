@@ -3,7 +3,12 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::ui::accessibility::UiAccessibilityContract;
 use crate::ui::binding::UiEventKind;
+use crate::ui::focus::UiFocusContract;
+use crate::ui::navigation::UiNavigationContract;
+use crate::ui::picking::UiPickPolicy;
+use crate::ui::widget::UiWidgetContract;
 
 use super::{UiActionRef, UiBindingTargetAssignment};
 
@@ -69,6 +74,16 @@ pub struct UiTemplateNode {
     pub style_overrides: BTreeMap<String, toml::Value>,
     #[serde(default)]
     pub style_tokens: BTreeMap<String, String>,
+    #[serde(default)]
+    pub focus: UiFocusContract,
+    #[serde(default)]
+    pub navigation: UiNavigationContract,
+    #[serde(default)]
+    pub picking: UiPickPolicy,
+    #[serde(default)]
+    pub a11y: UiAccessibilityContract,
+    #[serde(default)]
+    pub widget: UiWidgetContract,
 }
 
 impl UiTemplateNode {

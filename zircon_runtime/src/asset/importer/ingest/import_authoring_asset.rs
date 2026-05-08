@@ -7,7 +7,7 @@ pub(super) fn import_prefab(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     parse_typed_toml(context, "prefab toml")
-        .map(|asset| AssetImportOutcome::new(ImportedAsset::Prefab(asset)))
+        .map(|asset| AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Prefab(asset)))
 }
 
 pub(super) fn import_material_graph(
@@ -17,7 +17,10 @@ pub(super) fn import_material_graph(
     graph
         .validate_output_node()
         .map_err(AssetImportError::Parse)?;
-    Ok(AssetImportOutcome::new(ImportedAsset::MaterialGraph(graph)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::MaterialGraph(graph),
+    ))
 }
 
 pub(super) fn import_terrain(
@@ -27,21 +30,25 @@ pub(super) fn import_terrain(
     terrain
         .validate_dimensions()
         .map_err(AssetImportError::Parse)?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Terrain(terrain)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Terrain(terrain),
+    ))
 }
 
 pub(super) fn import_terrain_layer_stack(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    parse_typed_toml(context, "terrain layer stack toml")
-        .map(|asset| AssetImportOutcome::new(ImportedAsset::TerrainLayerStack(asset)))
+    parse_typed_toml(context, "terrain layer stack toml").map(|asset| {
+        AssetImportOutcome::new(context.uri.clone(), ImportedAsset::TerrainLayerStack(asset))
+    })
 }
 
 pub(super) fn import_tileset(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     parse_typed_toml(context, "tileset toml")
-        .map(|asset| AssetImportOutcome::new(ImportedAsset::TileSet(asset)))
+        .map(|asset| AssetImportOutcome::new(context.uri.clone(), ImportedAsset::TileSet(asset)))
 }
 
 pub(super) fn import_tilemap(
@@ -49,21 +56,28 @@ pub(super) fn import_tilemap(
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let tilemap: TileMapAsset = parse_typed_toml(context, "tilemap toml")?;
     tilemap.validate_layers().map_err(AssetImportError::Parse)?;
-    Ok(AssetImportOutcome::new(ImportedAsset::TileMap(tilemap)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::TileMap(tilemap),
+    ))
 }
 
 pub(super) fn import_navmesh(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     parse_typed_toml(context, "navmesh toml")
-        .map(|asset| AssetImportOutcome::new(ImportedAsset::NavMesh(asset)))
+        .map(|asset| AssetImportOutcome::new(context.uri.clone(), ImportedAsset::NavMesh(asset)))
 }
 
 pub(super) fn import_navigation_settings(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    parse_typed_toml(context, "navigation settings toml")
-        .map(|asset| AssetImportOutcome::new(ImportedAsset::NavigationSettings(asset)))
+    parse_typed_toml(context, "navigation settings toml").map(|asset| {
+        AssetImportOutcome::new(
+            context.uri.clone(),
+            ImportedAsset::NavigationSettings(asset),
+        )
+    })
 }
 
 fn parse_typed_toml<T: serde::de::DeserializeOwned>(

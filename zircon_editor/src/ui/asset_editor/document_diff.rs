@@ -105,8 +105,10 @@ mod tests {
                         bindings: Vec::new(),
                         style_overrides: Default::default(),
                         children: Vec::new(),
+                        ..UiNodeDefinition::default()
                     },
                 }],
+                ..UiNodeDefinition::default()
             }),
             components: BTreeMap::new(),
             stylesheets: Vec::new(),

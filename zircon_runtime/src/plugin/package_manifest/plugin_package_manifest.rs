@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor,
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::UiComponentDescriptor,
-    RuntimeTargetMode,
+    asset::AssetImporterDescriptor, plugin::CapabilityStatusManifest,
+    plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginMaturity, plugin::UiComponentDescriptor, RuntimeTargetMode,
 };
 
 use super::{
@@ -30,6 +30,10 @@ pub struct PluginPackageManifest {
     pub supported_platforms: Vec<ExportTargetPlatform>,
     #[serde(default)]
     pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub capability_statuses: Vec<CapabilityStatusManifest>,
+    #[serde(default)]
+    pub maturity: PluginMaturity,
     #[serde(default)]
     pub asset_roots: Vec<String>,
     #[serde(default)]

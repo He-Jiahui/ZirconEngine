@@ -7,6 +7,7 @@ mod navigation;
 mod navigation_state;
 mod pointer;
 mod render;
+mod timeline;
 
 pub use arranged::{UiArrangedNode, UiArrangedTree};
 pub use diagnostics::{
@@ -35,17 +36,22 @@ pub use render::{
     UiPaintPayload, UiRenderBatchDebugEntry, UiRenderCacheBatchEntry,
     UiRenderCacheInvalidationReason, UiRenderCachePaintEntry, UiRenderCachePlan,
     UiRenderCacheStats, UiRenderCacheStatus, UiRenderCommand, UiRenderCommandKind,
-    UiRenderDebugSnapshot, UiRenderDebugStatsV2, UiRenderExtract, UiRenderList,
-    UiRenderResourceKey, UiRenderResourceKind, UiRenderResourceState, UiRenderVisualizerBatchGroup,
-    UiRenderVisualizerOverdrawRegion, UiRenderVisualizerOverlay, UiRenderVisualizerOverlayKind,
-    UiRenderVisualizerPaintElement, UiRenderVisualizerPaintPayloadKind,
-    UiRenderVisualizerResourceBinding, UiRenderVisualizerSnapshot, UiRenderVisualizerStats,
-    UiRenderVisualizerTextStats, UiRendererParityBatchRow, UiRendererParityPaintRow,
-    UiRendererParityPayloadKind, UiRendererParitySnapshot, UiRendererParityStats, UiResolvedStyle,
-    UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiResourceUvRect,
-    UiRoundedBrushPayload, UiShapedGlyph, UiShapedText, UiShapedTextCluster, UiShapedTextLine,
-    UiSolidBrushPayload, UiTextAlign, UiTextCaret, UiTextCaretAffinity, UiTextComposition,
-    UiTextDirection, UiTextEditAction, UiTextOverflow, UiTextPaint, UiTextPaintDecoration,
-    UiTextPaintDecorationKind, UiTextPaintRun, UiTextRange, UiTextRenderMode, UiTextRunKind,
-    UiTextRunPaintStyle, UiTextSelection, UiTextWrap, UiVectorBrushPayload, UiVisualAssetRef,
+    UiRenderDebugSnapshot, UiRenderDebugStatsV2, UiRenderExtract, UiRenderExtractKind,
+    UiRenderList, UiRenderResourceKey, UiRenderResourceKind, UiRenderResourceState, UiRenderStats,
+    UiRenderVisualizerBatchGroup, UiRenderVisualizerOverdrawRegion, UiRenderVisualizerOverlay,
+    UiRenderVisualizerOverlayKind, UiRenderVisualizerPaintElement,
+    UiRenderVisualizerPaintPayloadKind, UiRenderVisualizerResourceBinding,
+    UiRenderVisualizerSnapshot, UiRenderVisualizerStats, UiRenderVisualizerTextStats,
+    UiRendererParityBatchRow, UiRendererParityPaintRow, UiRendererParityPayloadKind,
+    UiRendererParitySnapshot, UiRendererParityStats, UiResolvedStyle, UiResolvedTextLayout,
+    UiResolvedTextLine, UiResolvedTextRun, UiResourceUvRect, UiRoundedBrushPayload, UiShapedGlyph,
+    UiShapedText, UiShapedTextCluster, UiShapedTextLine, UiSolidBrushPayload, UiTextAlign,
+    UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextDirection, UiTextEditAction,
+    UiTextOverflow, UiTextPaint, UiTextPaintDecoration, UiTextPaintDecorationKind, UiTextPaintRun,
+    UiTextRange, UiTextRenderMode, UiTextRunKind, UiTextRunPaintStyle, UiTextSelection, UiTextWrap,
+    UiVectorBrushPayload, UiVisualAssetRef,
+};
+pub use timeline::{
+    UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,
+    UiDebugTimelineSnapshot,
 };

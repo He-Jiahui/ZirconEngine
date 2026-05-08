@@ -4,7 +4,22 @@ related_code:
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/asset_reference.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/asset/facade/mod.rs
+  - zircon_runtime/src/asset/facade/asset.rs
+  - zircon_runtime/src/asset/facade/handle.rs
+  - zircon_runtime/src/asset/facade/assets.rs
+  - zircon_runtime/src/asset/facade/event.rs
+  - zircon_runtime/src/asset/facade/load_state.rs
+  - zircon_runtime/src/asset/facade/manager.rs
+  - zircon_runtime/src/asset/importer/contract.rs
+  - zircon_runtime/src/asset/importer/native.rs
+  - zircon_runtime/src/asset/importer/error.rs
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/core/resource/lease.rs
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -146,7 +161,22 @@ implementation_files:
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/asset_reference.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/asset/facade/mod.rs
+  - zircon_runtime/src/asset/facade/asset.rs
+  - zircon_runtime/src/asset/facade/handle.rs
+  - zircon_runtime/src/asset/facade/assets.rs
+  - zircon_runtime/src/asset/facade/event.rs
+  - zircon_runtime/src/asset/facade/load_state.rs
+  - zircon_runtime/src/asset/facade/manager.rs
+  - zircon_runtime/src/asset/importer/contract.rs
+  - zircon_runtime/src/asset/importer/native.rs
+  - zircon_runtime/src/asset/importer/error.rs
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/core/resource/lease.rs
   - zircon_runtime/src/core/resource/runtime.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
@@ -282,11 +312,16 @@ plan_sources:
   - user: 2026-04-14 编辑器 Builtin 资产归位与 Revision 稳定化计划
   - user: 2026-04-16 全仓库模块边界拆分与根入口去逻辑化
   - user: 2026-04-17 继续扫描明显错包模块并按方案2把 editor asset API 从 zircon_manager 迁回 zircon_asset
+  - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
+  - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M3
   - docs/superpowers/plans/2026-04-17-asset-editor-api-boundary-migration.md
   - .codex/plans/全系统重构方案.md
   - .codex/plans/编辑器资源管理器双模式 UI 接线计划.md
+  - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
 tests:
   - zircon_runtime/src/core/resource/tests.rs
+  - zircon_runtime/src/asset/tests/facade.rs
+  - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_asset/src/tests/project/manifest.rs
   - zircon_asset/src/tests/project/manager.rs
   - zircon_asset/src/tests/editor/boundary.rs
@@ -354,6 +389,8 @@ doc_type: module-detail
   - 旧 locator-only TOML 会在读取时按 locator 稳定派生 UUID
 - `ResourceHandle<TMarker>` / `UntypedResourceHandle`
   - `ModelMarker`、`MaterialMarker`、`TextureMarker`、`ShaderMarker`、`SceneMarker` 把运行时引用类型化
+- `zircon_runtime::asset::{Asset, Handle<TAsset>, Assets<TAsset>, AssetEvent<TAsset>, AssetEventReceiver<TAsset>, AssetLoadState}`
+  - Bevy-style typed asset facade，建立在 `ResourceHandle<TMarker>`、`ResourceManager`、`ResourceRecord`、`ResourceEvent` 和 `ResourceLease` 之上，不新建资产存储
 - `ResourceLease<T>`
   - 运行时获取资源时返回 typed lease
   - lease drop 后递减 refcount，最后一个 lease 释放时 resident payload 转 `Unloaded`
@@ -362,6 +399,12 @@ doc_type: module-detail
 - `ResourceManager`
   - 管 ready payload、runtime refcount、resident unload/reload 和 reload failure
   - 重载失败时保留 last-good payload，只把 record 状态与诊断改成错误态
+
+M1 Bevy-style facade keeps this foundation authoritative. `Handle<TAsset>` is a cheap typed identity value, while residency still comes from `ResourceLease<T>` acquired through `Assets<TAsset>`. `ProjectAssetManager::load<TAsset>(locator)` verifies the resource kind, reuses existing typed load/rehydration paths, and returns a typed facade handle. `AssetLoadState` maps missing records to `NotLoaded`, pending/runtime loading to `Loading`, resident ready payloads to `Loaded`, errors to `Failed`, and Zircon hot reload to an explicit loading-class `Reloading` state.
+
+M2 dependency graph data follows the same authority model. Each `ImportedAssetEntry.dependencies` list records dependency locators from importers, `AssetMetaDocument.entries[*].dependencies` persists those locators for artifact restore, and `ProjectManager::scan_and_import()` resolves the final project registry into `ResourceRecord.dependency_ids`. The runtime graph is therefore a field on the canonical resource record instead of a parallel asset-side graph store. Unresolved locators are retained as `ResourceDiagnostic` rows, while `ProjectAssetManager::recursive_dependency_load_state()` walks the resource records to produce Bevy-style dependency state.
+
+M3 extends this to multi-asset imports. `AssetImportOutcome` now owns an entry list, with one unlabeled root entry and zero or more labeled subasset entries. Each entry writes its own artifact under `Project/library`, records its artifact locator in `AssetMetaDocument.entries`, and registers a distinct `ResourceRecord`. The stable ID formula is `AssetId::from_asset_uuid_label(meta.asset_uuid, locator.label())`, so `res://bundle.multi` and `res://bundle.multi#Texture0` share the source UUID while staying separate handles, artifacts, dependency rows, diagnostics, and load targets.
 
 `ResourceLocator`、`AssetUuid`、`ResourceId`、`ResourceHandle`、`ResourceRecord`、`ResourceEvent` 与 marker/status DTO 的源码只落在 `zircon_runtime_interface/src/resource/**`。`zircon_runtime::core::resource` 只保留 `ResourceData`、`ResourceIo`、`ResourceLease`、`ResourceManager`、`ResourceRegistry`、`ResourceRuntimeInfo` 等执行层文件，不再保留 resource DTO 的第二套 owner 路径。
 
@@ -396,6 +439,10 @@ sidecar meta 文件当前固定为 `foo.ext.meta.toml`，至少记录：
 - `source_mtime_unix_ms`
 - `source_hash`
 - `preview_state`
+- `dependencies`
+- `entries`
+
+`entries` is the current authority for imported root/subasset rows. Older single-artifact meta files are migrated on restore by synthesizing one root entry from `artifact_locator` and `dependencies`, but new successful imports always write the entry list. Duplicate labeled entries fail the import and keep only an error-state root record. Loading an unknown label from a known source returns `AssetImportError::MissingAssetLabel`, which gives editor and tooling code a structured “label missing” diagnostic instead of a generic missing metadata string.
 
 `AssetManager` 现在是 runtime 资产管理器，而不是 project/editor 混合 service contract。它内部组合：
 
@@ -544,7 +591,7 @@ asset workspace 现在明确拆成两条链：
   - Slint host 只做局部 `asset_details()` 查询或 `request_preview_refresh()`，不再顺手调用 `sync_asset_workspace()`
 - 后端真实数据变化
   - `EditorAssetChangeRecord::{CatalogChanged, PreviewChanged, ReferenceChanged}`
-  - `ResourceEvent { kind: ResourceEventKind::{Added, Updated, Removed, Renamed, ReloadFailed}, .. }`
+  - `ResourceEvent { kind: ResourceEventKind::{Added, Updated, Removed, Renamed, ReloadFailed}, resource_kind, .. }`
   - 这些后台事件才允许触发 catalog/resource snapshot 重同步，必要时重载默认 scene
 
 这样 editor UI 不再把“我改了一个搜索词”误当成“runtime/resource 发生了真实变化”。

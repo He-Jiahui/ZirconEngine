@@ -28,7 +28,7 @@ use crate::plugin::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration, UiComponentDescriptor,
 };
-use crate::scene::{components::NodeKind, components::SystemStage, World};
+use crate::scene::{components::NodeKind, SystemStage, World};
 use crate::ui::component::UiComponentDescriptorRegistry;
 use crate::RenderFeaturePassDescriptor;
 use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
@@ -1150,14 +1150,15 @@ fn weather_runtime_prepare_collector(
 fn weather_data_importer(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, crate::asset::AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Data(
-        crate::asset::DataAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(crate::asset::DataAsset {
             uri: context.uri.clone(),
             format: crate::asset::DataAssetFormat::Json,
             text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
             canonical_json: serde_json::json!({ "kind": "weather" }),
-        },
-    )))
+        }),
+    ))
 }
 
 fn weather_render_feature_descriptor() -> RenderFeatureDescriptor {

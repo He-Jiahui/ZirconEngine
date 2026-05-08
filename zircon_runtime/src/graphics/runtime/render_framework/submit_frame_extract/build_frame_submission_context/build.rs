@@ -100,10 +100,24 @@ fn apply_virtual_geometry_debug_override(
     debug_override: Option<crate::core::framework::render::RenderVirtualGeometryDebugState>,
 ) -> Option<RenderVirtualGeometryExtract> {
     let mut extract = extract?;
+    if is_empty_virtual_geometry_extract(&extract) {
+        return None;
+    }
     if let Some(debug_override) = debug_override {
         extract.debug = debug_override;
     }
     Some(extract)
+}
+
+fn is_empty_virtual_geometry_extract(extract: &RenderVirtualGeometryExtract) -> bool {
+    extract.cluster_budget == 0
+        && extract.page_budget == 0
+        && extract.clusters.is_empty()
+        && extract.hierarchy_nodes.is_empty()
+        && extract.hierarchy_child_ids.is_empty()
+        && extract.pages.is_empty()
+        && extract.page_dependencies.is_empty()
+        && extract.instances.is_empty()
 }
 
 fn build_automatic_virtual_geometry_extract(

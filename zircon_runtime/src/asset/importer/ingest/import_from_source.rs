@@ -21,7 +21,12 @@ impl AssetImporter {
         uri: &AssetUri,
     ) -> Result<ImportedAsset, AssetImportError> {
         self.import_with_settings(source_path, uri, toml::Table::new())
-            .map(|outcome| outcome.imported_asset)
+            .and_then(|outcome| {
+                outcome
+                    .root_entry()
+                    .map(|entry| entry.asset.clone())
+                    .ok_or_else(|| AssetImportError::Parse(format!("missing root asset for {uri}")))
+            })
     }
 
     pub fn import_with_settings(
@@ -50,12 +55,20 @@ impl AssetImporter {
             import_settings,
         );
         let outcome = importer.import(&context)?;
-        let actual_kind = asset_kind_for_imported_asset(&outcome.imported_asset);
-        if !descriptor.allows_output_kind(actual_kind) {
+        if outcome.entries.is_empty() {
             return Err(AssetImportError::Parse(format!(
-                "asset importer {} returned {actual_kind:?}, expected {:?}",
-                descriptor.id, descriptor.output_kind
+                "asset importer {} returned no imported asset entries",
+                descriptor.id
             )));
+        }
+        for entry in &outcome.entries {
+            let actual_kind = asset_kind_for_imported_asset(&entry.asset);
+            if !descriptor.allows_output_kind(actual_kind) {
+                return Err(AssetImportError::Parse(format!(
+                    "asset importer {} returned {actual_kind:?}, expected {:?}",
+                    descriptor.id, descriptor.output_kind
+                )));
+            }
         }
         Ok(outcome)
     }

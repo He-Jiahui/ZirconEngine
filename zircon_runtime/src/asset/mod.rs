@@ -9,6 +9,7 @@ pub use module::{
 
 pub mod artifact;
 pub mod assets;
+pub mod facade;
 mod formats;
 pub mod importer;
 mod load;
@@ -23,13 +24,13 @@ pub(crate) use artifact::{ArtifactStore, LibraryCacheKey};
 pub use assets::{
     asset_kind_for_imported_asset, AlphaMode, AnimationChannelAsset, AnimationChannelKeyAsset,
     AnimationChannelValueAsset, AnimationClipAsset, AnimationClipBoneTrackAsset,
-    AnimationConditionOperatorAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
-    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, DataAsset, DataAssetFormat,
-    FontAsset, FontAssetError, ImportedAsset, MaterialAsset, MaterialGraphAsset,
-    MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
+    AnimationConditionOperatorAsset, AnimationEventTrackAsset, AnimationGraphAsset,
+    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
+    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
+    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+    DataAsset, DataAssetFormat, FontAsset, FontAssetError, ImportedAsset, MaterialAsset,
+    MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,
     MaterialGraphParameterAsset, ModelAsset, ModelPrimitiveAsset, NavMeshAreaCostAsset,
     NavMeshAsset, NavMeshGizmoTriangleAsset, NavMeshLinkAsset, NavMeshPolygonAsset,
     NavMeshTileAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
@@ -47,11 +48,16 @@ pub use assets::{
     VirtualGeometryDebugMetadataAsset, VirtualGeometryHierarchyNodeAsset,
     VirtualGeometryPageDependencyAsset, VirtualGeometryRootClusterRangeAsset,
 };
+pub use facade::{
+    Asset, AssetEvent, AssetEventReceiver, AssetLoadState, Assets, Handle,
+    RecursiveDependencyLoadState,
+};
 pub use importer::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
     AssetImporterDescriptor, AssetImporterHandler, AssetImporterRegistry,
     AssetImporterRegistryError, AssetSchemaMigrationReport, AssetSchemaMigrator,
-    DiagnosticOnlyAssetImporter, FunctionAssetImporter, NativeAssetImportRequestMetadata,
+    DiagnosticOnlyAssetImporter, FunctionAssetImporter, ImportedAssetEntry,
+    NativeAssetImportEntryMetadata, NativeAssetImportRequestMetadata,
     NativeAssetImportResponseMetadata, NativeAssetImporterHandler, StaticAssetSchemaMigrator,
 };
 pub use pipeline::manager::{
@@ -66,7 +72,7 @@ pub(crate) use pipeline::types::{
 pub(crate) use pipeline::{types, worker_pool};
 #[allow(unused_imports)]
 pub(crate) use project::{
-    AssetMetaDocument, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
+    AssetMetaDocument, AssetMetaEntry, PreviewState, ProjectManager, ProjectManifest, ProjectPaths,
 };
 pub use runtime_asset_path::{
     runtime_asset_path, runtime_asset_path_with_dev_asset_root, runtime_asset_root,

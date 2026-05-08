@@ -10,6 +10,9 @@ use crate::core::config_store::ConfigStore;
 use crate::core::error::CoreError;
 use crate::core::event_bus::{EngineEvent, EventBus};
 use crate::core::job_scheduler::JobScheduler;
+use crate::core::state::{
+    NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent,
+};
 use crate::core::types::ChannelReceiver;
 use crate::plugin::{RuntimeExtensionRegistry, RuntimeExtensionRegistryError};
 
@@ -32,6 +35,7 @@ impl CoreRuntime {
                 event_bus: EventBus::default(),
                 config_store: ConfigStore::default(),
                 scheduler: JobScheduler::default(),
+                states: Default::default(),
                 scene_hooks: Default::default(),
             }),
         }
@@ -96,6 +100,69 @@ impl CoreRuntime {
         extensions: &RuntimeExtensionRegistry,
     ) -> Result<(), RuntimeExtensionRegistryError> {
         self.handle().install_scene_runtime_hooks(extensions)
+    }
+
+    pub fn init_state<T>(&self) -> StateTransitionEvent<T>
+    where
+        T: StateSpec + Default,
+    {
+        self.handle().init_state::<T>()
+    }
+
+    pub fn insert_state<T: StateSpec>(&self, state: T) -> StateTransitionEvent<T> {
+        self.handle().insert_state(state)
+    }
+
+    pub fn state<T: StateSpec>(&self) -> Option<State<T>> {
+        self.handle().state::<T>()
+    }
+
+    pub fn next_state<T: StateSpec>(&self) -> NextState<T> {
+        self.handle().next_state::<T>()
+    }
+
+    pub fn set_next_state<T: StateSpec>(&self, state: T) {
+        self.handle().set_next_state(state);
+    }
+
+    pub fn set_next_state_if_neq<T: StateSpec>(&self, state: T) {
+        self.handle().set_next_state_if_neq(state);
+    }
+
+    pub fn reset_next_state<T: StateSpec>(&self) {
+        self.handle().reset_next_state::<T>();
+    }
+
+    pub fn apply_state_transition<T: StateSpec>(&self) -> Option<StateTransitionEvent<T>> {
+        self.handle().apply_state_transition::<T>()
+    }
+
+    pub fn state_transition_events<T: StateSpec>(&self) -> Vec<StateTransitionEvent<T>> {
+        self.handle().state_transition_events::<T>()
+    }
+
+    pub fn register_on_enter<T, F>(&self, label: OnEnter<T>, hook: F)
+    where
+        T: StateSpec,
+        F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
+    {
+        self.handle().register_on_enter(label, hook);
+    }
+
+    pub fn register_on_exit<T, F>(&self, label: OnExit<T>, hook: F)
+    where
+        T: StateSpec,
+        F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
+    {
+        self.handle().register_on_exit(label, hook);
+    }
+
+    pub fn register_on_transition<T, F>(&self, label: OnTransition<T>, hook: F)
+    where
+        T: StateSpec,
+        F: Fn(&StateTransitionEvent<T>) + Send + Sync + 'static,
+    {
+        self.handle().register_on_transition(label, hook);
     }
 }
 

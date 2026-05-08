@@ -174,12 +174,15 @@ fn data_outcome(
     text: String,
     canonical_json: Value,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Data(DataAsset {
-        uri: context.uri.clone(),
-        format,
-        text,
-        canonical_json,
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format,
+            text,
+            canonical_json,
+        }),
+    ))
 }
 
 // XML is not intrinsically JSON-shaped, so the importer emits a stable neutral tree DTO.
@@ -348,7 +351,9 @@ mod tests {
         importer
             .import(&context_for(path, source))
             .unwrap()
-            .imported_asset
+            .root_entry()
+            .map(|entry| entry.asset.clone())
+            .expect("data importer root asset")
     }
 
     fn context_for(path: &str, source: &str) -> AssetImportContext {

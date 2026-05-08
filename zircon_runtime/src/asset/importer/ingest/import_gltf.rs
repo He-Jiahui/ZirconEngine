@@ -65,8 +65,11 @@ pub(crate) fn import_gltf(
         }
     }
 
-    Ok(AssetImportOutcome::new(ImportedAsset::Model(ModelAsset {
-        uri: context.uri.clone(),
-        primitives,
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Model(ModelAsset {
+            uri: context.uri.clone(),
+            primitives,
+        }),
+    ))
 }

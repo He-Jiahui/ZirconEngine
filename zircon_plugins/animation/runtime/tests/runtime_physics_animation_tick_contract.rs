@@ -9,7 +9,9 @@ use zircon_runtime::asset::{
     AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetReference, AssetUri,
     ProjectAssetManager,
 };
-use zircon_runtime::core::framework::animation::AnimationParameterValue;
+use zircon_runtime::core::framework::animation::{
+    AnimationGraphBlendMode, AnimationParameterValue,
+};
 use zircon_runtime::core::framework::physics::{PhysicsSettings, PhysicsSimulationMode};
 use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use zircon_runtime::core::manager::{resolve_animation_manager, resolve_physics_manager};
@@ -296,6 +298,196 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
 }
 
 #[test]
+fn animation_graph_evaluation_reports_additive_mask_and_clip_targets() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let animation = resolve_animation_manager(&runtime.handle()).unwrap();
+    let base_uri = AssetUri::parse("res://animation/additive-base.clip.zranim").unwrap();
+    let add_uri = AssetUri::parse("res://animation/additive-layer.clip.zranim").unwrap();
+    let graph = AnimationGraphAsset {
+        name: Some("AdditiveMask".to_string()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "upper".to_string(),
+            default_value: AnimationParameterValue::Scalar(0.5),
+        }],
+        nodes: vec![
+            AnimationGraphNodeAsset::Clip {
+                id: "base".to_string(),
+                clip: AssetReference::from_locator(base_uri.clone()),
+                playback_speed: 1.0,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Clip {
+                id: "add".to_string(),
+                clip: AssetReference::from_locator(add_uri.clone()),
+                playback_speed: 1.0,
+                looping: true,
+            },
+            AnimationGraphNodeAsset::Additive {
+                id: "additive".to_string(),
+                base: "base".to_string(),
+                additive: "add".to_string(),
+                weight_parameter: Some("upper".to_string()),
+            },
+            AnimationGraphNodeAsset::Mask {
+                id: "masked".to_string(),
+                input: "additive".to_string(),
+                target_ids: vec!["Root/Hand".to_string()],
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "masked".to_string(),
+            },
+        ],
+    };
+
+    let evaluation = animation.evaluate_graph(&graph, &BTreeMap::new());
+
+    assert_eq!(evaluation.output_node.as_deref(), Some("masked"));
+    assert_eq!(evaluation.mask_target_ids, vec!["Root/Hand".to_string()]);
+    assert_eq!(evaluation.clips.len(), 2);
+    let base = evaluation
+        .clips
+        .iter()
+        .find(|clip| clip.clip.locator == base_uri)
+        .unwrap();
+    assert_eq!(base.blend_mode, AnimationGraphBlendMode::Base);
+    assert_eq!(base.target_ids, vec!["Root/Hand".to_string()]);
+    let additive = evaluation
+        .clips
+        .iter()
+        .find(|clip| clip.clip.locator == add_uri)
+        .unwrap();
+    assert_eq!(additive.blend_mode, AnimationGraphBlendMode::Additive);
+    assert_eq!(additive.weight, 0.5);
+    assert_eq!(additive.target_ids, vec!["Root/Hand".to_string()]);
+}
+
+#[test]
+fn level_tick_applies_additive_graph_layer_only_to_mask_targets() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/additive-mask.skeleton.zranim").unwrap();
+    let base_uri = AssetUri::parse("res://animation/additive-mask-base.clip.zranim").unwrap();
+    let add_uri = AssetUri::parse("res://animation/additive-mask-add.clip.zranim").unwrap();
+    let graph_uri = AssetUri::parse("res://animation/additive-mask.graph.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let graph_id = ResourceId::from_locator(&graph_uri);
+
+    register_animation_blend_assets(&asset_manager, &skeleton_uri, &base_uri, &add_uri);
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            ResourceId::from_locator(&graph_uri),
+            ResourceKind::AnimationGraph,
+            graph_uri,
+        ),
+        additive_mask_graph(&base_uri, &add_uri),
+    );
+
+    let level = scene::create_default_level(&core).unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_graph_player(
+                entity,
+                Some(AnimationGraphPlayerComponent {
+                    graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
+                    parameters: BTreeMap::new(),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    level.tick(&core, 0.0).unwrap();
+
+    let pose = level
+        .animation_pose(entity)
+        .expect("additive masked graph should cache a pose");
+    let root = pose.bones.iter().find(|bone| bone.name == "Root").unwrap();
+    let hand = pose.bones.iter().find(|bone| bone.name == "Hand").unwrap();
+    assert!(root
+        .local_transform
+        .translation
+        .abs_diff_eq(Vec3::ZERO, 1.0e-4));
+    assert!(hand
+        .local_transform
+        .translation
+        .abs_diff_eq(Vec3::new(10.0, 0.0, 0.0), 1.0e-4));
+}
+
+#[test]
+fn clip_sampling_resolves_track_target_id_before_bone_name_fallback() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let animation = resolve_animation_manager(&runtime.handle()).unwrap();
+    let skeleton = two_bone_skeleton();
+    let mut clip = single_hand_translation_clip(
+        &AssetUri::parse("res://animation/target-id.clip.zranim").unwrap(),
+        5.0,
+    );
+    clip.tracks[0].bone_name = "MissingByName".to_string();
+    clip.tracks[0].target_id = Some("Root/Hand".to_string());
+
+    let pose = animation
+        .sample_clip_pose(&skeleton, &clip, 0.0, false)
+        .unwrap();
+
+    let hand = pose.bones.iter().find(|bone| bone.name == "Hand").unwrap();
+    assert!(hand
+        .local_transform
+        .translation
+        .abs_diff_eq(Vec3::new(5.0, 0.0, 0.0), 1.0e-4));
+}
+
+#[test]
+fn sequence_runtime_resolves_target_id_before_entity_path_fallback() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let target_entity_name = "Runtime Sequence Target";
+    let sequence_uri = AssetUri::parse("res://animation/target-id.sequence.zranim").unwrap();
+    let sequence_id = ResourceId::from_locator(&sequence_uri);
+    let asset_manager = runtime_asset_manager(&core);
+    let mut sequence = sequence_asset_for_entity("Wrong/Path");
+    sequence.bindings[0].target_id = Some(target_entity_name.to_string());
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(sequence_id, ResourceKind::AnimationSequence, sequence_uri),
+        sequence,
+    );
+    let level = scene::create_default_level(&core).unwrap();
+    let cube = level.with_world_mut(|world| {
+        let cube = world.spawn_node(NodeKind::Cube);
+        world.rename_node(cube, target_entity_name).unwrap();
+        world
+            .set_animation_sequence_player(
+                cube,
+                Some(AnimationSequencePlayerComponent {
+                    sequence: ResourceHandle::<AnimationSequenceMarker>::new(sequence_id),
+                    playback_speed: 1.0,
+                    time_seconds: 0.0,
+                    looping: false,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        cube
+    });
+
+    level.tick(&core, 0.5).unwrap();
+
+    let translation =
+        level.with_world(|world| world.find_node(cube).unwrap().transform.translation);
+    assert_eq!(translation, Vec3::new(2.0, 0.0, 0.0));
+}
+
+#[test]
 fn level_tick_blends_state_machine_transition_until_duration_completes() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let core = runtime.handle();
@@ -482,6 +674,7 @@ fn sequence_asset_for_entity(entity_path: &str) -> AnimationSequenceAsset {
         frames_per_second: 30.0,
         bindings: vec![AnimationSequenceBindingAsset {
             entity_path: EntityPath::parse(entity_path).unwrap(),
+            target_id: Some(entity_path.to_string()),
             tracks: vec![AnimationSequenceTrackAsset {
                 property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),
                 channel: AnimationChannelAsset {
@@ -577,10 +770,12 @@ fn single_hand_translation_clip(skeleton_uri: &AssetUri, translation_x: f32) -> 
         duration_seconds: 1.0,
         tracks: vec![AnimationClipBoneTrackAsset {
             bone_name: "Hand".to_string(),
+            target_id: Some("Root/Hand".to_string()),
             translation: constant_vec3_channel([translation_x, 0.0, 0.0]),
             rotation: constant_quaternion_channel([0.0, 0.0, 0.0, 1.0]),
             scale: constant_vec3_channel([1.0, 1.0, 1.0]),
         }],
+        event_tracks: Vec::new(),
     }
 }
 
@@ -615,6 +810,44 @@ fn two_clip_blend_graph(
             },
             AnimationGraphNodeAsset::Output {
                 source: "blend".to_string(),
+            },
+        ],
+    }
+}
+
+fn additive_mask_graph(base_uri: &AssetUri, additive_uri: &AssetUri) -> AnimationGraphAsset {
+    AnimationGraphAsset {
+        name: Some("AdditiveMaskGraph".to_string()),
+        parameters: vec![AnimationGraphParameterAsset {
+            name: "additive_weight".to_string(),
+            default_value: AnimationParameterValue::Scalar(1.0),
+        }],
+        nodes: vec![
+            AnimationGraphNodeAsset::Clip {
+                id: "base".to_string(),
+                clip: AssetReference::from_locator(base_uri.clone()),
+                playback_speed: 1.0,
+                looping: false,
+            },
+            AnimationGraphNodeAsset::Clip {
+                id: "add".to_string(),
+                clip: AssetReference::from_locator(additive_uri.clone()),
+                playback_speed: 1.0,
+                looping: false,
+            },
+            AnimationGraphNodeAsset::Additive {
+                id: "additive".to_string(),
+                base: "base".to_string(),
+                additive: "add".to_string(),
+                weight_parameter: Some("additive_weight".to_string()),
+            },
+            AnimationGraphNodeAsset::Mask {
+                id: "masked".to_string(),
+                input: "additive".to_string(),
+                target_ids: vec!["Root/Hand".to_string()],
+            },
+            AnimationGraphNodeAsset::Output {
+                source: "masked".to_string(),
             },
         ],
     }

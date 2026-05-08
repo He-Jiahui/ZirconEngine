@@ -104,10 +104,10 @@ fn build_scene_camera_snapshot(
 ) -> ViewportCameraSnapshot {
     let camera_entity = scene.active_camera();
     let node = scene.find_node(camera_entity);
-    let component = node.and_then(|node| node.camera.as_ref());
+    let component = node.as_ref().and_then(|node| node.camera.as_ref());
     let transform = scene
         .world_transform(camera_entity)
-        .or_else(|| node.map(|node| node.transform))
+        .or_else(|| node.as_ref().map(|node| node.transform))
         .unwrap_or_else(default_camera_transform);
     let mut snapshot = ViewportCameraSnapshot {
         transform,

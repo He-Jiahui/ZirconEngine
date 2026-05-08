@@ -5,7 +5,7 @@ use zircon_runtime::foundation::{
 
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::workbench::view::{ViewDescriptorId, ViewKind};
+use crate::ui::workbench::view::{PanePayloadKind, PaneRouteNamespace, ViewDescriptorId, ViewKind};
 
 fn editor_runtime() -> CoreRuntime {
     let runtime = CoreRuntime::new();
@@ -60,4 +60,44 @@ fn builtin_activity_windows_expose_window_template_documents() {
             "descriptor `{descriptor_id}` should use `{template_document_id}`"
         );
     }
+}
+
+#[test]
+fn debug_observatory_activity_window_reuses_runtime_diagnostics_payload() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let runtime = editor_runtime();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let descriptors = manager.descriptors();
+
+    let descriptor = descriptors
+        .iter()
+        .find(|descriptor| {
+            descriptor.descriptor_id == ViewDescriptorId::new("editor.debug_observatory")
+        })
+        .expect("missing Debug Observatory descriptor");
+
+    assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
+    assert_eq!(descriptor.default_title, "Debug Observatory");
+    assert_eq!(descriptor.icon_key, "debug-observatory");
+    assert!(descriptor
+        .required_capabilities
+        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
+    let pane_template = descriptor
+        .pane_template
+        .as_ref()
+        .expect("Debug Observatory should reuse the Runtime Diagnostics pane template");
+    assert_eq!(
+        pane_template.body.document_id,
+        "pane.runtime.diagnostics.body"
+    );
+    assert_eq!(
+        pane_template.body.payload_kind,
+        PanePayloadKind::RuntimeDiagnosticsV1
+    );
+    assert_eq!(
+        pane_template.body.route_namespace,
+        PaneRouteNamespace::Diagnostics
+    );
 }

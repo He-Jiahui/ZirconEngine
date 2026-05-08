@@ -1,5 +1,6 @@
 mod artifact;
 mod assets;
+mod facade;
 mod formats;
 mod load;
 mod pipeline;

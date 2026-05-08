@@ -25,8 +25,9 @@ use crate::scene::components::{
     AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
     AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, ColliderComponent,
     ColliderShape, JointComponent, JointKind, Mobility, NodeKind, PointLight, RigidBodyComponent,
-    RigidBodyType, Schedule, SpotLight,
+    RigidBodyType, SpotLight,
 };
+use crate::scene::ecs::Schedule;
 
 const PROJECT_FORMAT_VERSION: u32 = 2;
 const BUILTIN_CUBE: &str = "builtin://cube";
@@ -532,7 +533,10 @@ impl World {
             self.render_layer_masks.entry(entity).or_default();
             self.mobility.entry(entity).or_default();
         }
-        self.rebuild_derived_state();
+        self.rebuild_entity_registry();
+        self.rebuild_typed_component_presence();
+        self.mark_derived_state_dirty();
+        self.flush_scene_systems_now();
     }
 }
 
@@ -546,8 +550,7 @@ fn model_handle_for_reference(
     }
 
     project
-        .asset_id_for_uuid(reference.uuid)
-        .or_else(|| project.asset_id_for_uri(locator))
+        .asset_id_for_reference(reference.uuid, locator)
         .map(ResourceHandle::new)
         .unwrap_or_else(|| {
             ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MODEL))
@@ -564,8 +567,7 @@ fn material_handle_for_reference(
     }
 
     project
-        .asset_id_for_uuid(reference.uuid)
-        .or_else(|| project.asset_id_for_uri(locator))
+        .asset_id_for_reference(reference.uuid, locator)
         .map(ResourceHandle::new)
         .unwrap_or_else(|| {
             ResourceHandle::new(ResourceId::from_stable_label(BUILTIN_MISSING_MATERIAL))
@@ -582,8 +584,7 @@ fn handle_for_reference<T: ResourceMarker>(
     }
 
     project
-        .asset_id_for_uuid(reference.uuid)
-        .or_else(|| project.asset_id_for_uri(locator))
+        .asset_id_for_reference(reference.uuid, locator)
         .map(ResourceHandle::new)
         .unwrap_or_else(|| ResourceHandle::new(ResourceId::from_locator(locator)))
 }

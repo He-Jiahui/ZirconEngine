@@ -139,6 +139,11 @@ fn convert_template_node(
             slot: node.slot_attributes.clone(),
         },
         children,
+        focus: (node.focus != Default::default()).then(|| node.focus.clone()),
+        navigation: (node.navigation != Default::default()).then(|| node.navigation.clone()),
+        picking: (node.picking != Default::default()).then_some(node.picking),
+        a11y: (node.a11y != Default::default()).then(|| node.a11y.clone()),
+        widget: (node.widget != Default::default()).then(|| node.widget.clone()),
     })
 }
 

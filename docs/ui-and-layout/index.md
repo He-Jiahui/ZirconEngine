@@ -72,6 +72,19 @@ related_code:
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
+  - dev/bevy/crates/bevy_ui/src/lib.rs
+  - dev/bevy/crates/bevy_input_focus/src/lib.rs
+  - dev/bevy/crates/bevy_text/src/lib.rs
+  - dev/bevy/crates/bevy_ui_widgets/src/lib.rs
+  - dev/bevy/crates/bevy_feathers/src/lib.rs
+  - dev/bevy/crates/bevy_a11y/src/lib.rs
+  - zircon_runtime_interface/src/ui/surface/focus_state.rs
+  - zircon_runtime_interface/src/ui/surface/hit.rs
+  - zircon_runtime_interface/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/text/layout_engine.rs
+  - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
 implementation_files:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/module.rs
@@ -145,6 +158,7 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/tab_drag.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
 plan_sources:
   - user: 2026-04-14 实现运行时/编辑器共享 UI 布局与事件系统架构计划
   - user: 2026-04-15 继续实现 ScrollableBox、scroll state、visible range invalidation 和 pointer dispatcher
@@ -153,6 +167,7 @@ plan_sources:
   - .codex/plans/布局系统.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
   - .codex/plans/全系统重构方案.md
+  - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
 tests:
   - zircon_runtime/src/ui/tests/shared_core.rs
   - zircon_runtime/src/ui/tests/asset.rs
@@ -189,6 +204,7 @@ tests:
   - cargo test -p zircon_runtime --lib hit_grid_respects_slate_visibility_and_clip_semantics --locked --target-dir E:\zircon-build\targets\slate-ui-framework
   - cargo test -p zircon_runtime --lib diagnostics --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo check --workspace --locked
+  - docs-only validation: git diff --check docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md docs/ui-and-layout/index.md
 doc_type: category-index
 ---
 
@@ -207,6 +223,7 @@ doc_type: category-index
 - [Shared UI Core Foundation](./shared-ui-core-foundation.md): `zircon_runtime::ui` 新增的共享约束类型、measure/arrange pass、`HorizontalBox`/`VerticalBox`/`ScrollableBox`/`WrapBox` 容器、retained tree、dirty/invalidation、scroll state、命中索引、pointer/focus/navigation route、统一 pointer dispatcher、虚拟化窗口工具，以及 `zircon_editor` workbench autolayout 的复用边界。
   这一轮还补上了显式 `Container` / `Overlay` / `Space` 共享容器名、pointer button payload、capture 后移出命中范围仍保持派发的底层语义、host viewport pointer/scroll -> shared `UiSurface + UiPointerDispatcher` 的宿主接线，以及 editor shell drag target hit-test / dock target route 的 host-owned shared bridge。
 - [Shared UI Input Events](./shared-ui-input-events.md): `zircon_runtime_interface::ui::dispatch::input` 的 M5 shared input DTO 契约，覆盖 common metadata、pointer/keyboard/text/IME/navigation/analog/drag-drop/popup/tooltip event families、transient reply/effect commands、input-method requests、dispatch diagnostics、host requests 和 component event reporting。Milestone 2 进一步把 runtime `UiSurface` 接到 shared reply/effect application 与 `dispatch_input_event(...)`，但 editor native translation、M6 caret/selection/shaping 和 M7 debug tooling 仍是后续边界。
+- [Bevy UI/Text/Widgets/Focus/A11y M0 Gap Audit](./bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md): 参照本地 `dev/bevy` UI、input focus、text、ui_render、standard widgets、Feathers 和 a11y 源码，建立 Zircon 当前 focus/picking/text/widgets/render/a11y 能力矩阵、缺口表、目标测试表和后续 docs 更新清单；该文档是 Bevy 对齐计划进入 M1 合同 spine 前的证据门禁，不修改 runtime/editor 行为。
 - [Slate Style UI Surface Frame](./slate-style-ui-surface-frame.md): `UiVisibility`、`UiArrangedTree`、`UiHitTestGrid`、`UiHitPath` 和 `UiSurfaceFrame` 的 Slate-style 空间模型，记录 render extract 与 hit grid 共享 arranged geometry、SurfaceFrame 诊断快照、Widget Reflector 基线数据、drawcall/overdraw/material batch/hittest 统计、snapshot-derived Debug Reflector overlay，以及 editor native toolbar/template-node 命中收束到共享 hit-grid adapter 的迁移状态。
 - [Zircon UI 与 Unreal Slate 布局差异审计](./zircon-ui-unreal-slate-layout-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 布局源码，细化 prepass、`FGeometry`、arranged children、parent-owned slot policy、Overlay/Canvas/Linear/Grid/Flow/Scroll/Splitter/Scale panel、DPI、pixel snapping 和 clipping 与当前 Zircon layout pass 的差距及后续布局里程碑。
   该文档现在也记录了 `zircon_runtime_interface::ui::layout` 的 L1 起步契约、template build 将 parent-owned slot record 保留到 `UiTree.slots` 的当前落点、Linear slot size-rule、Overlay slot z-order、Canvas/Free slot placement contract 的 preservation 状态，以及 runtime layout pass 对 Linear/Overlay/Free slot padding/alignment/order 的最小消费边界。

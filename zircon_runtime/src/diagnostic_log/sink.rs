@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
-use super::level::{DiagnosticLogFilter, DiagnosticLogLevel};
+use super::level::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
 pub use super::platform::DiagnosticLogLocation;
 use super::platform::{log_directory_candidates, LogDirectoryCandidate};
 use super::timestamp::current_log_timestamp;
@@ -17,6 +17,13 @@ pub fn initialize_process_log(channel: impl Into<String>) -> Option<PathBuf> {
 pub fn initialize_process_log_with_filter(
     channel: impl Into<String>,
     filter: DiagnosticLogFilter,
+) -> Option<PathBuf> {
+    initialize_process_log_with_config(channel, filter.into())
+}
+
+pub fn initialize_process_log_with_config(
+    channel: impl Into<String>,
+    filter: DiagnosticLogFilterConfig,
 ) -> Option<PathBuf> {
     initialize_process_log_with_location_and_filter(
         channel,
@@ -33,6 +40,13 @@ pub fn initialize_unity_process_log_with_filter(
     channel: impl Into<String>,
     filter: DiagnosticLogFilter,
 ) -> Option<PathBuf> {
+    initialize_unity_process_log_with_config(channel, filter.into())
+}
+
+pub fn initialize_unity_process_log_with_config(
+    channel: impl Into<String>,
+    filter: DiagnosticLogFilterConfig,
+) -> Option<PathBuf> {
     initialize_process_log_with_location_and_filter(
         channel,
         DiagnosticLogLocation::UnityCompatibleFirst,
@@ -47,18 +61,20 @@ pub fn initialize_process_log_with_location(
     initialize_process_log_with_location_and_filter(
         channel,
         location,
-        DiagnosticLogFilter::from_env_or_default(),
+        DiagnosticLogFilterConfig::from_env_or_default(),
     )
 }
 
 pub fn initialize_process_log_with_location_and_filter(
     channel: impl Into<String>,
     location: DiagnosticLogLocation,
-    filter: DiagnosticLogFilter,
+    filter: impl Into<DiagnosticLogFilterConfig>,
 ) -> Option<PathBuf> {
+    let filter = filter.into();
     let requested_channel = sanitize_channel_name(channel.into());
-    let state = LOG_STATE
-        .get_or_init(|| DiagnosticLogState::new(requested_channel.clone(), location, filter));
+    let state = LOG_STATE.get_or_init(|| {
+        DiagnosticLogState::new(requested_channel.clone(), location, filter.clone())
+    });
     write_log(
         "diagnostic_log",
         format!(
@@ -82,9 +98,13 @@ pub fn write_diagnostic_log(scope: &str, message: impl AsRef<str>) {
 }
 
 pub fn diagnostic_log_allows(level: DiagnosticLogLevel) -> bool {
+    diagnostic_log_allows_for_scope(level, "")
+}
+
+pub fn diagnostic_log_allows_for_scope(level: DiagnosticLogLevel, scope: &str) -> bool {
     LOG_STATE
         .get()
-        .is_some_and(|state| state.filter.allows(level))
+        .is_some_and(|state| state.filter.allows(level, scope))
 }
 
 pub fn write_debug_log(scope: &str, message: impl AsRef<str>) {
@@ -112,20 +132,24 @@ pub fn write_diagnostic_log_at(level: DiagnosticLogLevel, scope: &str, message: 
 
 struct DiagnosticLogState {
     channel: String,
-    filter: DiagnosticLogFilter,
+    filter: DiagnosticLogFilterConfig,
     file_path: Option<PathBuf>,
     file: Mutex<Option<File>>,
 }
 
 impl DiagnosticLogState {
-    fn new(channel: String, location: DiagnosticLogLocation, filter: DiagnosticLogFilter) -> Self {
+    fn new(
+        channel: String,
+        location: DiagnosticLogLocation,
+        filter: DiagnosticLogFilterConfig,
+    ) -> Self {
         let timestamp = current_log_timestamp();
         let candidates = log_directory_candidates(&timestamp, location);
         let mut notes = Vec::new();
         let (file_path, mut file) = open_first_available_log_file(&channel, candidates, &mut notes);
 
         for note in &notes {
-            write_initial_note(&mut file, filter, note.level, &note.message);
+            write_initial_note(&mut file, &filter, note.level, &note.message);
         }
 
         Self {
@@ -137,7 +161,7 @@ impl DiagnosticLogState {
     }
 
     fn write(&self, level: DiagnosticLogLevel, scope: &str, message: &str) {
-        if !self.filter.allows(level) {
+        if !self.filter.allows(level, scope) {
             return;
         }
         let line = diagnostic_log_line(&current_log_timestamp(), level, scope, message);
@@ -169,11 +193,11 @@ impl DiagnosticLogNote {
 
 fn write_initial_note(
     file: &mut Option<File>,
-    filter: DiagnosticLogFilter,
+    filter: &DiagnosticLogFilterConfig,
     level: DiagnosticLogLevel,
     message: &str,
 ) {
-    if !filter.allows(level) {
+    if !filter.allows(level, "diagnostic_log") {
         return;
     }
 

@@ -5,7 +5,12 @@ use thiserror::Error;
 use toml::Value;
 
 use super::{UiComponentApiVersion, UiComponentPublicContract, UiResourceRef};
+use crate::ui::accessibility::UiAccessibilityContract;
+use crate::ui::focus::UiFocusContract;
+use crate::ui::navigation::UiNavigationContract;
+use crate::ui::picking::UiPickPolicy;
 use crate::ui::template::UiBindingRef;
+use crate::ui::widget::UiWidgetContract;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -102,6 +107,16 @@ pub struct UiNodeDefinition {
     pub bindings: Vec<UiBindingRef>,
     #[serde(default)]
     pub style_overrides: UiStyleDeclarationBlock,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub focus: Option<UiFocusContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub navigation: Option<UiNavigationContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub picking: Option<UiPickPolicy>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub a11y: Option<UiAccessibilityContract>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub widget: Option<UiWidgetContract>,
     #[serde(default)]
     pub children: Vec<UiChildMount>,
 }

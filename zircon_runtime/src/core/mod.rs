@@ -14,7 +14,9 @@ pub mod diagnostics;
 pub mod framework;
 pub mod manager;
 pub mod math;
+pub mod modules;
 pub mod resource;
+pub mod state;
 
 pub use channel_util::{recv_latest, spawn_named_thread, wait_for};
 pub use config_store::ConfigStore;
@@ -28,4 +30,5 @@ pub use runtime::{
     ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
     ServiceFactory,
 };
+pub use state::{NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent};
 pub use types::{ChannelReceiver, ChannelSender, ServiceObject};

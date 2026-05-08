@@ -28,7 +28,6 @@ impl EditorState {
                     .try_with_world(|scene| {
                         scene
                             .find_node(node_id)
-                            .cloned()
                             .map(|node| (node_id, node))
                     })
                     .flatten()

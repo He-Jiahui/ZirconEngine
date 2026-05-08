@@ -6,11 +6,16 @@ use std::collections::BTreeMap;
 
 use toml::Value;
 use zircon_runtime::ui::template::UiAssetLoader;
+use zircon_runtime_interface::ui::accessibility::UiAccessibilityContract;
+use zircon_runtime_interface::ui::focus::UiFocusContract;
+use zircon_runtime_interface::ui::navigation::UiNavigationContract;
+use zircon_runtime_interface::ui::picking::UiPickPolicy;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiBindingRef, UiChildMount,
     UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
     UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
 };
+use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
 pub(crate) fn env_lock() -> &'static Mutex<()> {
     static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -142,6 +147,11 @@ fn build_tree_node(
         bindings: node.bindings.clone(),
         style_overrides: node.style_overrides.clone(),
         children,
+        focus: node.focus.clone(),
+        navigation: node.navigation.clone(),
+        picking: node.picking,
+        a11y: node.a11y.clone(),
+        widget: node.widget.clone(),
     })
 }
 
@@ -193,6 +203,16 @@ struct FlatUiNodeDefinition {
     bindings: Vec<UiBindingRef>,
     #[serde(default)]
     style_overrides: UiStyleDeclarationBlock,
+    #[serde(default)]
+    focus: Option<UiFocusContract>,
+    #[serde(default)]
+    navigation: Option<UiNavigationContract>,
+    #[serde(default)]
+    picking: Option<UiPickPolicy>,
+    #[serde(default)]
+    a11y: Option<UiAccessibilityContract>,
+    #[serde(default)]
+    widget: Option<UiWidgetContract>,
     #[serde(default)]
     children: Vec<FlatUiChildMount>,
 }

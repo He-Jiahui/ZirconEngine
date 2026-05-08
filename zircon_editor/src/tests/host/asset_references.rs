@@ -252,6 +252,7 @@ fn clip_asset() -> AnimationClipAsset {
         skeleton: asset_reference("res://animation/hero.skeleton.zranim"),
         duration_seconds: 1.0,
         tracks: Vec::new(),
+        event_tracks: Vec::new(),
     }
 }
 

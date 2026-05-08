@@ -9,6 +9,6 @@ pub(crate) fn import_physics_material(
     let document = context.source_text()?;
     PhysicsMaterialAsset::from_toml_str(&document)
         .map(ImportedAsset::PhysicsMaterial)
-        .map(AssetImportOutcome::new)
+        .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
         .map_err(|error| AssetImportError::Parse(error.to_string()))
 }

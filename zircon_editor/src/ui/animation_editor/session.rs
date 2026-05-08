@@ -298,6 +298,7 @@ impl AnimationEditorSession {
         } else {
             document.asset.bindings.push(AnimationSequenceBindingAsset {
                 entity_path,
+                target_id: None,
                 tracks: Vec::new(),
             });
             document
@@ -397,6 +398,7 @@ impl AnimationEditorSession {
         } else {
             document.asset.bindings.push(AnimationSequenceBindingAsset {
                 entity_path: to_entity,
+                target_id: None,
                 tracks: Vec::new(),
             });
             document
@@ -542,6 +544,17 @@ impl AnimationEditorSession {
                 AnimationGraphNodeAsset::Blend { inputs, .. } => {
                     inputs.retain(|input| input != node_id);
                 }
+                AnimationGraphNodeAsset::Additive { base, additive, .. } => {
+                    if base == node_id {
+                        base.clear();
+                    }
+                    if additive == node_id {
+                        additive.clear();
+                    }
+                }
+                AnimationGraphNodeAsset::Mask { input, .. } if input == node_id => {
+                    input.clear();
+                }
                 AnimationGraphNodeAsset::Output { source } if source == node_id => {
                     source.clear();
                 }
@@ -574,6 +587,18 @@ impl AnimationEditorSession {
                         changed = true;
                     }
                 }
+                AnimationGraphNodeAsset::Additive { id, base, .. } if id == to_node_id => {
+                    if base != from_node_id {
+                        *base = from_node_id.to_string();
+                        changed = true;
+                    }
+                }
+                AnimationGraphNodeAsset::Mask { id, input, .. } if id == to_node_id => {
+                    if input != from_node_id {
+                        *input = from_node_id.to_string();
+                        changed = true;
+                    }
+                }
                 AnimationGraphNodeAsset::Output { source } if to_node_id == "output" => {
                     if source != from_node_id {
                         *source = from_node_id.to_string();
@@ -600,6 +625,24 @@ impl AnimationEditorSession {
                     let before = inputs.len();
                     inputs.retain(|input| input != from_node_id);
                     changed |= before != inputs.len();
+                }
+                AnimationGraphNodeAsset::Additive {
+                    id, base, additive, ..
+                } if id == to_node_id => {
+                    if base == from_node_id {
+                        base.clear();
+                        changed = true;
+                    }
+                    if additive == from_node_id {
+                        additive.clear();
+                        changed = true;
+                    }
+                }
+                AnimationGraphNodeAsset::Mask { id, input, .. } if id == to_node_id => {
+                    if input == from_node_id {
+                        input.clear();
+                        changed = true;
+                    }
                 }
                 AnimationGraphNodeAsset::Output { source } if to_node_id == "output" => {
                     if source == from_node_id {
@@ -918,6 +961,8 @@ fn graph_node_id(node: &AnimationGraphNodeAsset) -> Option<&str> {
     match node {
         AnimationGraphNodeAsset::Clip { id, .. } => Some(id),
         AnimationGraphNodeAsset::Blend { id, .. } => Some(id),
+        AnimationGraphNodeAsset::Additive { id, .. } => Some(id),
+        AnimationGraphNodeAsset::Mask { id, .. } => Some(id),
         AnimationGraphNodeAsset::Output { .. } => None,
     }
 }
@@ -947,6 +992,18 @@ fn graph_node_label(node: &AnimationGraphNodeAsset) -> String {
             } else {
                 format!("Blend {id} • {}", inputs.join(", "))
             }
+        }
+        AnimationGraphNodeAsset::Additive {
+            id, base, additive, ..
+        } => {
+            format!("Additive {id} • {base} + {additive}")
+        }
+        AnimationGraphNodeAsset::Mask {
+            id,
+            input,
+            target_ids,
+        } => {
+            format!("Mask {id} • {input} [{}]", target_ids.join(", "))
         }
         AnimationGraphNodeAsset::Output { source } => format!("Output <- {source}"),
     }

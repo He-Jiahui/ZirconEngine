@@ -12,18 +12,14 @@ pub(crate) fn require_valid_input_owner(
 }
 
 pub(crate) fn is_valid_input_owner(surface: &UiSurface, node_id: UiNodeId) -> bool {
-    let Some(owner) = surface.tree.nodes.get(&node_id) else {
-        return false;
-    };
-    if !owner.state_flags.enabled {
-        return false;
-    }
-
     let mut current = Some(node_id);
     while let Some(id) = current {
         let Some(node) = surface.tree.nodes.get(&id) else {
             return false;
         };
+        if !node.state_flags.enabled {
+            return false;
+        }
         if !node.is_render_visible() {
             return false;
         }

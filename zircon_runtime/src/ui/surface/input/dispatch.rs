@@ -10,6 +10,7 @@ use zircon_runtime_interface::ui::{
         UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
     },
     event_ui::{UiNodeId, UiReflectedPropertySource},
+    focus::UiFocusedInputKind,
     surface::{
         UiEditableTextState, UiPointerEventKind, UiTextCaret, UiTextCaretAffinity,
         UiTextComposition, UiTextEditAction, UiTextRange, UiTextSelection,
@@ -94,10 +95,18 @@ pub(crate) fn dispatch_input_event(
             result.diagnostics.routed = target.is_some();
             result.diagnostics.route_target = target;
             if let Some(target) = target {
+                let route = surface.tree.bubble_route(target)?;
                 result
                     .diagnostics
                     .notes
-                    .push(format_route(surface, target)?);
+                    .push(format!("focused_route_len={}", route.len()));
+                surface.record_focused_input(
+                    UiFocusedInputKind::Keyboard,
+                    target,
+                    route,
+                    Some(target),
+                    true,
+                );
             }
             Ok(result)
         }
@@ -151,6 +160,16 @@ fn dispatch_navigation_input(
     result.diagnostics.routed = legacy.route.target.is_some() || legacy.route.fallback_to_root;
     result.diagnostics.route_target = legacy.route.target.or(legacy.focus_changed_to);
     result.diagnostics.handled_phase = legacy.handled_by.map(|_| "navigation".to_string());
+    if let Some(focused) = legacy.focus_changed_to.or(legacy.route.target) {
+        record_owner_focused_input(
+            surface,
+            UiFocusedInputKind::Navigation,
+            focused,
+            legacy.handled_by.or(legacy.focus_changed_to),
+            result.reply.disposition
+                != zircon_runtime_interface::ui::dispatch::UiDispatchDisposition::Unhandled,
+        );
+    }
     for (effect_index, effect) in reply.effects.into_iter().enumerate() {
         result.applied_effects.push(UiDispatchAppliedEffect {
             effect_index,
@@ -508,10 +527,14 @@ fn apply_editable_text_state(
     phase: &str,
     component_event_kind: TextComponentEventKind,
 ) -> UiInputDispatchResult {
+    let kind = focused_input_kind_for_event(&event);
     let mut result = UiInputDispatchResult::new(event, UiDispatchReply::handled());
     result.diagnostics.routed = true;
     result.diagnostics.route_target = Some(target);
     result.diagnostics.handled_phase = Some(phase.to_string());
+    if let Some(kind) = kind {
+        record_owner_focused_input(surface, kind, target, Some(target), true);
+    }
 
     let Some(value_property) = editable_value_property(surface, target) else {
         result
@@ -755,11 +778,12 @@ fn clamp_text_boundary(text: &str, offset: usize) -> usize {
 }
 
 fn owner_routed_result(
-    surface: &UiSurface,
+    surface: &mut UiSurface,
     event: UiInputEvent,
     target: Option<zircon_runtime_interface::ui::event_ui::UiNodeId>,
     phase: &str,
 ) -> UiInputDispatchResult {
+    let kind = focused_input_kind_for_event(&event);
     let valid_target = target.filter(|node_id| is_valid_input_owner(surface, *node_id));
     let reply = if valid_target.is_some() {
         UiDispatchReply::handled()
@@ -776,13 +800,40 @@ fn owner_routed_result(
             .notes
             .push("owner route rejected".to_string());
     }
+    if let (Some(kind), Some(target)) = (kind, valid_target) {
+        record_owner_focused_input(
+            surface,
+            kind,
+            target,
+            Some(target),
+            result.reply.disposition
+                != zircon_runtime_interface::ui::dispatch::UiDispatchDisposition::Unhandled,
+        );
+    }
     result
 }
 
-fn format_route(
-    surface: &UiSurface,
-    target: zircon_runtime_interface::ui::event_ui::UiNodeId,
-) -> Result<String, UiTreeError> {
-    let route = surface.tree.bubble_route(target)?;
-    Ok(format!("focused_route_len={}", route.len()))
+fn focused_input_kind_for_event(event: &UiInputEvent) -> Option<UiFocusedInputKind> {
+    match event {
+        UiInputEvent::Keyboard(_) => Some(UiFocusedInputKind::Keyboard),
+        UiInputEvent::Text(_) => Some(UiFocusedInputKind::Text),
+        UiInputEvent::Ime(_) => Some(UiFocusedInputKind::Ime),
+        UiInputEvent::Navigation(_) => Some(UiFocusedInputKind::Navigation),
+        UiInputEvent::Pointer(_) => Some(UiFocusedInputKind::Pointer),
+        UiInputEvent::Analog(_)
+        | UiInputEvent::DragDrop(_)
+        | UiInputEvent::Popup(_)
+        | UiInputEvent::TooltipTimer(_) => None,
+    }
+}
+
+fn record_owner_focused_input(
+    surface: &mut UiSurface,
+    kind: UiFocusedInputKind,
+    target: UiNodeId,
+    handled_by: Option<UiNodeId>,
+    accepted: bool,
+) {
+    let route = surface.tree.bubble_route(target).unwrap_or_default();
+    surface.record_focused_input(kind, target, route, handled_by, accepted);
 }

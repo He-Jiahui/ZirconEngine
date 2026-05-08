@@ -1782,6 +1782,7 @@ fn navigation_routes_from_focus_and_falls_back_to_roots() {
         captured: None,
         pressed: None,
         hovered: Vec::new(),
+        ..UiFocusState::default()
     };
 
     let focused = surface
@@ -1856,6 +1857,7 @@ fn navigation_dispatcher_bubbles_from_focus_and_can_move_focus() {
         captured: None,
         pressed: None,
         hovered: Vec::new(),
+        ..UiFocusState::default()
     };
 
     let mut dispatcher = UiNavigationDispatcher::default();

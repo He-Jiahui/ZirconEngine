@@ -607,11 +607,13 @@ fn derive_clip_asset(
             .into_iter()
             .map(|(bone_name, track)| AnimationClipBoneTrackAsset {
                 bone_name,
+                target_id: None,
                 translation: track.translation,
                 rotation: track.rotation,
                 scale: track.scale,
             })
             .collect(),
+        event_tracks: Vec::new(),
     })
 }
 

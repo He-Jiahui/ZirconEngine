@@ -13,6 +13,7 @@ pub(super) fn binding_view_id(activity: &EditorActivityReflection) -> String {
         "editor.assets" => "AssetsView".to_string(),
         "editor.console" => "ConsoleView".to_string(),
         "editor.runtime_diagnostics" => "RuntimeDiagnosticsView".to_string(),
+        "editor.debug_observatory" => "DebugObservatoryWindow".to_string(),
         "editor.build_export_desktop" => "BuildExportView".to_string(),
         "editor.prefab" => "PrefabEditorWindow".to_string(),
         "editor.asset_browser" => "AssetBrowserWindow".to_string(),

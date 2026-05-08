@@ -30,6 +30,8 @@ related_code:
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/asset_editor/contract.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
+  - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
@@ -48,6 +50,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
@@ -173,6 +176,9 @@ implementation_files:
   - zircon_editor/src/ui/host/ui_asset_promotion.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/asset_editor/contract.rs
+  - zircon_editor/src/ui/asset_editor/node_projection.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
+  - zircon_editor/src/ui/asset_editor/session/preview_compile.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/mod.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
@@ -191,6 +197,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/mod.rs
   - zircon_runtime/src/ui/tree/mod.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/shell_layout.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
@@ -282,6 +289,7 @@ plan_sources:
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
   - user: 2026-05-02 continue package/cache classification and editor template-service façade
+  - .codex/plans/Zircon UI 增量布局、增量重绘与控件池优化计划.md
 tests:
   - zircon_editor/src/tests/editing/ui_asset/structure_split.rs
   - zircon_editor/src/tests/editing/ui_asset/source_projection.rs
@@ -290,6 +298,9 @@ tests:
   - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/editing/ui_asset/emergency_shell.rs
+  - zircon_editor/src/tests/editing/ui_asset/preview.rs
+  - cargo test -p zircon_editor --lib ui_asset_preview_host_resizes_retained_surface_without_rebuilding_tree_state --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-incremental-layout-render --message-format short --color never (2026-05-08 attempted; blocked before test execution by unrelated editor host/runtime compile drift)
+  - cargo test -p zircon_editor --lib ui_asset_editor_session_switches_preview_presets_and_rebuilds_preview_surface --locked --jobs 1 --target-dir <milestone-target> --message-format short --color never (planned milestone validation; test name predates retained resize behavior)
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_editor/src/tests/host/manager/ui_asset_session_preview.rs
   - zircon_editor/src/tests/host/manager/ui_asset_workspace_watcher.rs
@@ -535,7 +546,11 @@ The session keeps two diagnostic surfaces intentionally:
 
 Binding inspector schema projection is also runtime-report driven. `binding/schema_projection.rs` imports `UiBindingDiagnostic`, `UiBindingTarget`, and `UiBindingTargetKind` from `zircon_runtime_interface::ui::template`, lists authored target assignments as `target[index] [kind.name] = expression`, then appends matching runtime diagnostic rows for that target index. The projection intentionally uses `collect_asset_binding_report(...)` rather than reimplementing value-kind or descriptor-prop rules in editor code.
 
-Template-node projection keeps render extraction as runtime behavior. `asset_editor/node_projection.rs` and `layouts/views/view_projection.rs` now call `zircon_runtime::ui::surface::extract_ui_render_tree(&surface.tree)` when they need command/style/text rows for host projection; they do not call an interface-owned `UiRenderExtract::from_tree(...)` constructor. This preserves `zircon_runtime_interface::ui::surface::UiRenderExtract` as a data-only DTO while letting editor host projection reuse the canonical runtime extraction path.
+Template-node projection keeps render extraction as runtime behavior. `asset_editor/node_projection.rs` and `layouts/views/view_projection.rs` now call runtime extraction when they need command/style/text rows for host projection; they do not call an interface-owned `UiRenderExtract::from_tree(...)` constructor. This preserves `zircon_runtime_interface::ui::surface::UiRenderExtract` as a data-only DTO while letting editor host projection reuse the canonical runtime extraction path. The UI Asset Editor shell projection now also keeps a process-local retained `UiSurface` session for `ui_asset_editor_node_projection(size)`: the first call loads and compiles the editor `.ui.toml` documents, while later size-only calls mark the retained surface roots layout dirty and use `UiSurface::rebuild_dirty(size)` instead of reloading the asset files.
+
+Preview preset resize follows the same retained-surface rule. `UiAssetPreviewHost::rebuild(...)` is still the source/import/hot-reload path and rebuilds from the compiled document, but `rebuild_with_size(...)` updates `preview_size`, marks retained roots layout/hit/render dirty, and runs runtime dirty rebuild on the existing surface. This preserves focus/input/session state across preview-preset size changes while still allowing source edits, mock preview changes, import refresh, and last-valid recovery to replace the preview host through `compile_preview(...)` when the compiled document actually changes.
+
+The first retained-preview validation attempt on 2026-05-08 used `cargo test -p zircon_editor --lib ui_asset_preview_host_resizes_retained_surface_without_rebuilding_tree_state --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ui-incremental-layout-render" --message-format short --color never`. The command did not reach the filtered editor regression because the shared checkout failed earlier in unrelated code: first `zircon_editor/src/ui/slint_host/ui/apply_presentation.rs` was missing the new `text_input_focus` field in a `HostWindowPresentationData` initializer, then later scoped editor checks were blocked by unrelated runtime asset-facade generic-bound errors and native plugin ABI callback drift. The runtime half of this retained slice was validated separately through `surface_dirty_domains` and `zircon_runtime_interface` checks documented in `docs/ui-and-layout/slate-style-ui-surface-frame.md`.
 
 ### Component Root-Class Authoring
 

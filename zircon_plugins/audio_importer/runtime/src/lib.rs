@@ -146,7 +146,10 @@ pub fn import_wav(context: &AssetImportContext) -> Result<AssetImportOutcome, As
                 context.source_path.display()
             ))
         })?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Sound(asset)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Sound(asset),
+    ))
 }
 
 pub fn import_symphonia_audio(
@@ -163,7 +166,10 @@ pub fn import_symphonia_audio(
             context.source_path.display()
         ))
     })?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Sound(asset)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Sound(asset),
+    ))
 }
 
 fn decode_symphonia_audio(
@@ -331,7 +337,8 @@ mod tests {
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome.root_entry().expect("root sound asset entry").asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Sound(sound) => {
@@ -358,7 +365,8 @@ mod tests {
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome.root_entry().expect("root sound asset entry").asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Sound(sound) => {

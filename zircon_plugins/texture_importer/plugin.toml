@@ -12,9 +12,14 @@ capabilities = [
     "runtime.asset.importer.texture.container",
     "runtime.asset.importer.texture.psd",
 ]
+maturity = "stable"
 asset_roots = []
 content_roots = []
 default_packaging = ["source_template", "library_embed"]
+
+[[capability_statuses]]
+capability = "runtime.asset.importer.texture.image"
+status = "partial"
 
 [[asset_importers]]
 id = "texture_importer.image"

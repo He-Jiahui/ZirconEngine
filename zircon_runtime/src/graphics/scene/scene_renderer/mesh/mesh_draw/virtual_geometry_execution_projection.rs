@@ -8,6 +8,7 @@ use super::{MeshDraw, VirtualGeometrySubmissionDetail};
 const INDIRECT_ARGS_STRIDE_BYTES: u64 = (std::mem::size_of::<u32>() as u64) * 5;
 
 impl MeshDraw {
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_execution_draw(
         &self,
         original_index: u32,
@@ -27,6 +28,7 @@ impl MeshDraw {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_execution_draw_ref_index(&self) -> u32 {
         execution_draw_ref_index(
             self.virtual_geometry_submission_detail,
@@ -34,11 +36,13 @@ impl MeshDraw {
         )
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_execution_selection_key(&self) -> Option<(u64, u32)> {
         let detail = self.virtual_geometry_submission_detail?;
         Some((detail.entity(), detail.submission_index()))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_execution_segment(
         &self,
         original_index: u32,
@@ -81,6 +85,7 @@ impl MeshDraw {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_submission_order_record(
         &self,
     ) -> Option<(Option<u32>, u64, u32)> {
@@ -93,6 +98,7 @@ impl MeshDraw {
         ))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_draw_submission_record(
         &self,
         draw_index: usize,
@@ -106,6 +112,7 @@ impl MeshDraw {
         ))
     }
 
+    #[allow(dead_code)]
     pub(crate) fn virtual_geometry_draw_submission_token_record(
         &self,
         draw_index: usize,

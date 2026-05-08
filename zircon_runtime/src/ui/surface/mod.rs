@@ -1,11 +1,14 @@
 mod arranged;
 mod diagnostics;
+mod focus;
 mod frame_hit_test;
 mod input;
+mod node_pool;
 mod property_mutation;
 mod reflection_snapshot;
 mod render;
 mod surface;
+mod timeline;
 
 pub use crate::ui::text::layout_text;
 pub(crate) use arranged::{
@@ -21,6 +24,7 @@ pub use frame_hit_test::{
     hit_test_surface_frame_with_query,
 };
 pub use input::UiSurfaceInputState;
+pub use node_pool::{UiSurfaceNodePool, UiSurfaceNodePoolReport};
 pub use property_mutation::{
     UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
 };
@@ -28,3 +32,4 @@ pub use reflection_snapshot::reflector_snapshot;
 pub(crate) use render::measure_text;
 pub use render::{extract_ui_render_tree, extract_ui_render_tree_from_arranged};
 pub use surface::{UiSurface, UiSurfaceRebuildReport};
+pub use timeline::UiDebugTimelineStore;

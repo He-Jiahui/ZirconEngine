@@ -6,18 +6,24 @@ use crate::scene::world::World;
 
 impl World {
     pub fn to_render_frame_extract(&self) -> RenderFrameExtract {
-        RenderFrameExtract::from_snapshot(
+        let mut world = self.clone();
+        world.build_prepared_render_frame_extract(&RenderExtractContext::new(
             RenderWorldSnapshotHandle::new(0),
-            self.to_render_snapshot(),
-        )
+            Default::default(),
+        ))
+    }
+
+    pub(crate) fn build_prepared_render_frame_extract(
+        &mut self,
+        context: &RenderExtractContext,
+    ) -> RenderFrameExtract {
+        self.build_prepared_render_frame_extract_for_request(context.world, &context.request)
     }
 }
 
 impl RenderExtractProducer for World {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
-        RenderFrameExtract::from_snapshot(
-            context.world,
-            self.build_viewport_render_packet(&context.request),
-        )
+        let mut world = self.clone();
+        world.build_prepared_render_frame_extract(context)
     }
 }

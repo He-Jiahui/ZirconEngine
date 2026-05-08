@@ -430,6 +430,9 @@ fn editor_manager_honors_subsystem_toggles_without_disabling_minimal_shell() {
         .any(|descriptor| descriptor.descriptor_id.0 == "editor.runtime_diagnostics"));
     assert!(descriptors
         .iter()
+        .any(|descriptor| descriptor.descriptor_id.0 == "editor.debug_observatory"));
+    assert!(descriptors
+        .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "editor.animation_sequence"));
     assert!(descriptors
         .iter()
@@ -479,6 +482,15 @@ fn editor_manager_exposes_capability_snapshot_for_view_filtering() {
         diagnostics.required_capabilities,
         vec!["editor.extension.runtime_diagnostics".to_string()]
     );
+    let debug_observatory = manager
+        .descriptors()
+        .into_iter()
+        .find(|descriptor| descriptor.descriptor_id.0 == "editor.debug_observatory")
+        .expect("debug observatory descriptor");
+    assert_eq!(
+        debug_observatory.required_capabilities,
+        vec!["editor.extension.runtime_diagnostics".to_string()]
+    );
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = std::fs::remove_file(path);
@@ -502,6 +514,10 @@ fn editor_plugin_toggle_refreshes_snapshot_and_view_gate() {
         .descriptors()
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "editor.runtime_diagnostics"));
+    assert!(manager
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "editor.debug_observatory"));
 
     let enabled = manager
         .set_editor_plugin_enabled("runtime_diagnostics", true)
@@ -511,6 +527,10 @@ fn editor_plugin_toggle_refreshes_snapshot_and_view_gate() {
         .descriptors()
         .iter()
         .any(|descriptor| descriptor.descriptor_id.0 == "editor.runtime_diagnostics"));
+    assert!(manager
+        .descriptors()
+        .iter()
+        .any(|descriptor| descriptor.descriptor_id.0 == "editor.debug_observatory"));
 
     manager
         .set_editor_plugin_enabled("runtime_diagnostics", false)
@@ -523,7 +543,14 @@ fn editor_plugin_toggle_refreshes_snapshot_and_view_gate() {
         .iter()
         .all(|descriptor| descriptor.descriptor_id.0 != "editor.runtime_diagnostics"));
     assert!(manager
+        .descriptors()
+        .iter()
+        .all(|descriptor| descriptor.descriptor_id.0 != "editor.debug_observatory"));
+    assert!(manager
         .open_view(ViewDescriptorId::new("editor.runtime_diagnostics"), None,)
+        .is_err());
+    assert!(manager
+        .open_view(ViewDescriptorId::new("editor.debug_observatory"), None,)
         .is_err());
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");

@@ -37,7 +37,7 @@ pub use editable_text::{
     UiEditableTextState, UiTextCaret, UiTextCaretAffinity, UiTextComposition, UiTextEditAction,
     UiTextSelection,
 };
-pub use extract::UiRenderExtract;
+pub use extract::{UiRenderExtract, UiRenderExtractKind, UiRenderStats};
 pub use list::UiRenderList;
 pub use paint::{
     UiClipMode, UiClipState, UiDrawEffect, UiPaintEffects, UiPaintElement, UiPaintPayload,

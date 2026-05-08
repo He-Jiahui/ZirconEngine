@@ -577,6 +577,12 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "editor.runtime_diagnostics",
         ),
         (
+            "Window.DebugObservatory.Open",
+            "Open Debug Observatory",
+            "Window/Debug Observatory",
+            "editor.debug_observatory",
+        ),
+        (
             "View.PluginManager.Open",
             "Open Plugin Manager",
             "View/Plugin Manager",

@@ -43,11 +43,22 @@ pub use presentation::{
 };
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};
-pub use session::{UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError};
+pub use session::{
+    UiAssetEditorBugReportReplayArtifact, UiAssetEditorCommandJournal,
+    UiAssetEditorCommandJournalEntry, UiAssetEditorCommandJournalReplayError,
+    UiAssetEditorCommandJournalReplayReport, UiAssetEditorJournalCommand,
+    UiAssetEditorReplayArtifactRecord, UiAssetEditorReplayArtifactRoute,
+    UiAssetEditorReplayCommandSummary, UiAssetEditorReplayExternalEffectSummary,
+    UiAssetEditorReplayResult, UiAssetEditorReplaySelectionSummary,
+    UiAssetEditorReplaySourceSummary, UiAssetEditorSession, UiAssetEditorSessionError,
+    UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION,
+    UI_ASSET_EDITOR_COMMAND_JOURNAL_SCHEMA_VERSION,
+};
 pub use source::UiAssetSourceBuffer;
 pub use tree::UiAssetDragDropPolicy;
 pub use undo_stack::{
     apply_external_effects_to_asset_sources, UiAssetEditorExternalEffect,
     UiAssetEditorSourceCursorSnapshot, UiAssetEditorUndoExternalEffects,
-    UiAssetEditorUndoReplayRecord, UiAssetEditorUndoStack, UiAssetEditorUndoTransition,
+    UiAssetEditorUndoReplayRecord, UiAssetEditorUndoStack, UiAssetEditorUndoStackReplayRecord,
+    UiAssetEditorUndoTransition,
 };

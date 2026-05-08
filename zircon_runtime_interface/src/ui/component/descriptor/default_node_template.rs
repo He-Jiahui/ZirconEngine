@@ -84,6 +84,7 @@ impl UiDefaultNodeTemplate {
             bindings: Vec::new(),
             style_overrides: UiStyleDeclarationBlock::default(),
             children: Vec::new(),
+            ..UiNodeDefinition::default()
         }
     }
 }

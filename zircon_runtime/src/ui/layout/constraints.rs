@@ -158,8 +158,3 @@ fn distribute_shrink(resolved: &mut [ResolvedAxisConstraint], priority: i32, def
         deficit -= consumed;
     }
 }
-
-fn clamp_axis_value(value: f32, min: f32, max: Option<f32>) -> f32 {
-    max.map(|max| value.clamp(min, max))
-        .unwrap_or_else(|| value.max(min))
-}

@@ -217,6 +217,7 @@ fn native_node(node_id: &str, widget_type: &str) -> UiNodeDefinition {
         bindings: Vec::new(),
         style_overrides: UiStyleDeclarationBlock::default(),
         children: Vec::<UiChildMount>::new(),
+        ..UiNodeDefinition::default()
     }
 }
 

@@ -19,6 +19,21 @@ fn menu_action_binding_roundtrips_through_headless_dispatch() {
 }
 
 #[test]
+fn debug_observatory_window_menu_binding_roundtrips_through_headless_dispatch() {
+    let action = MenuAction::OpenView(ViewDescriptorId::new("editor.debug_observatory"));
+    let binding = menu_action_binding(&action);
+
+    assert_eq!(
+        binding.native_binding(),
+        r#"WorkbenchMenuBar/OpenView.editor.debug_observatory:onClick(MenuAction("OpenView.editor.debug_observatory"))"#
+    );
+    assert_eq!(
+        dispatch_editor_host_binding(&binding).unwrap(),
+        EditorHostEvent::Menu(action)
+    );
+}
+
+#[test]
 fn play_mode_menu_action_bindings_roundtrip_through_headless_dispatch() {
     for (action, expected_binding) in [
         (

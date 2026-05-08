@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use crate::ui::event_ui::{UiNodeId, UiNodePath, UiStateFlags};
+use crate::ui::focus::UiFocusContract;
 use crate::ui::layout::{
     Anchor, BoxConstraints, LayoutBoundary, Pivot, Position, UiContainerKind, UiFrame,
     UiScrollState,
 };
+use crate::ui::navigation::UiNavigationContract;
 
 use super::{UiDirtyFlags, UiInputPolicy, UiLayoutCache, UiTemplateNodeMetadata, UiVisibility};
 
@@ -35,6 +37,10 @@ pub struct UiTreeNode {
     pub layout_stretch_height: bool,
     #[serde(default)]
     pub scroll_state: Option<UiScrollState>,
+    #[serde(default)]
+    pub focus: UiFocusContract,
+    #[serde(default)]
+    pub navigation: UiNavigationContract,
     pub input_policy: UiInputPolicy,
     pub clip_to_bounds: bool,
     pub layout_boundary: LayoutBoundary,
@@ -72,6 +78,8 @@ impl UiTreeNode {
             layout_stretch_width: false,
             layout_stretch_height: false,
             scroll_state: None,
+            focus: UiFocusContract::default(),
+            navigation: UiNavigationContract::default(),
             input_policy: UiInputPolicy::Inherit,
             clip_to_bounds: false,
             layout_boundary: LayoutBoundary::ContentDriven,
@@ -115,7 +123,9 @@ impl UiTreeNode {
     }
 
     pub fn is_focus_candidate(&self) -> bool {
-        self.state_flags.enabled && self.state_flags.focusable && self.is_render_visible()
+        self.state_flags.enabled
+            && (self.state_flags.focusable || self.focus.focusable)
+            && self.is_render_visible()
     }
 
     pub fn supports_pointer(&self) -> bool {
@@ -123,7 +133,8 @@ impl UiTreeNode {
             && self.is_self_hit_test_visible()
             && (self.state_flags.clickable
                 || self.state_flags.hoverable
-                || self.state_flags.focusable)
+                || self.state_flags.focusable
+                || self.focus.focusable)
     }
 
     pub fn with_constraints(mut self, constraints: BoxConstraints) -> Self {
@@ -159,6 +170,16 @@ impl UiTreeNode {
 
     pub fn with_scroll_state(mut self, scroll_state: UiScrollState) -> Self {
         self.scroll_state = Some(scroll_state);
+        self
+    }
+
+    pub fn with_focus_contract(mut self, focus: UiFocusContract) -> Self {
+        self.focus = focus;
+        self
+    }
+
+    pub fn with_navigation_contract(mut self, navigation: UiNavigationContract) -> Self {
+        self.navigation = navigation;
         self
     }
 

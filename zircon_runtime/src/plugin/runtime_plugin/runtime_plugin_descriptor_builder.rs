@@ -1,5 +1,6 @@
 use crate::{
-    plugin::ExportPackagingStrategy, plugin::PluginFeatureBundleManifest, RuntimePluginId,
+    plugin::CapabilityStatusManifest, plugin::ExportPackagingStrategy,
+    plugin::PluginFeatureBundleManifest, plugin::PluginMaturity, RuntimePluginId,
     RuntimeTargetMode,
 };
 
@@ -22,6 +23,8 @@ impl RuntimePluginDescriptor {
             required_by_default: false,
             target_modes: Vec::new(),
             capabilities: Vec::new(),
+            capability_statuses: Vec::new(),
+            maturity: PluginMaturity::default(),
             optional_features: Vec::new(),
             default_packaging: vec![
                 ExportPackagingStrategy::SourceTemplate,
@@ -55,6 +58,16 @@ impl RuntimePluginDescriptor {
 
     pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
         self.capabilities.push(capability.into());
+        self
+    }
+
+    pub fn with_maturity(mut self, maturity: PluginMaturity) -> Self {
+        self.maturity = maturity;
+        self
+    }
+
+    pub fn with_capability_status(mut self, status: CapabilityStatusManifest) -> Self {
+        self.capability_statuses.push(status);
         self
     }
 

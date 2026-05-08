@@ -41,15 +41,31 @@ impl UiAssetPreviewHost {
     pub fn rebuild_with_size(
         &mut self,
         preview_size: UiSize,
-        asset_id: &str,
-        compiled: &UiCompiledDocument,
+        _asset_id: &str,
+        _compiled: &UiCompiledDocument,
     ) -> Result<(), UiAssetEditorSessionError> {
-        *self = Self::new(preview_size, asset_id, compiled)?;
+        if self.preview_size == preview_size {
+            return Ok(());
+        }
+
+        self.preview_size = preview_size;
+        for root_id in self.surface.tree.roots.clone() {
+            if let Some(root) = self.surface.tree.nodes.get_mut(&root_id) {
+                root.dirty.layout = true;
+                root.dirty.hit_test = true;
+                root.dirty.render = true;
+            }
+        }
+        self.surface.rebuild_dirty(preview_size)?;
         Ok(())
     }
 
     pub fn surface(&self) -> &UiSurface {
         &self.surface
+    }
+
+    pub(crate) fn surface_mut(&mut self) -> &mut UiSurface {
+        &mut self.surface
     }
 
     pub fn preview_size(&self) -> UiSize {

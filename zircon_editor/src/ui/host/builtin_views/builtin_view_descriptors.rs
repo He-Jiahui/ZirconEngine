@@ -30,7 +30,9 @@ pub(crate) fn with_builtin_required_capabilities(descriptor: ViewDescriptor) -> 
         "editor.ui_asset" | "editor.ui_component_showcase" => {
             Some(EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING)
         }
-        "editor.runtime_diagnostics" => Some(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS),
+        "editor.runtime_diagnostics" | "editor.debug_observatory" => {
+            Some(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
+        }
         "editor.workbench_window" | "editor.prefab" => Some(EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING),
         _ => None,
     };

@@ -1,7 +1,7 @@
 use crate::plugin::{
     RuntimeExtensionRegistry, RuntimeExtensionRegistryError, SceneRuntimeHookRegistration,
 };
-use crate::scene::components::SystemStage;
+use crate::scene::SystemStage;
 
 use super::CoreHandle;
 

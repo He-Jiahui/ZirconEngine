@@ -22,10 +22,12 @@ fn world_bootstraps_with_renderable_defaults() {
     assert_eq!(
         world.schedule().stages,
         vec![
+            SystemStage::First,
             SystemStage::PreUpdate,
             SystemStage::FixedUpdate,
             SystemStage::Update,
-            SystemStage::LateUpdate,
+            SystemStage::PostUpdate,
+            SystemStage::Last,
             SystemStage::RenderExtract,
         ]
     );

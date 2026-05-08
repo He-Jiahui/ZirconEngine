@@ -7,12 +7,13 @@ use super::World;
 use crate::scene::components::{
     default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
     Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RenderLayerMask,
-    Schedule, SpotLight,
+    SpotLight,
 };
+use crate::scene::ecs::Schedule;
 use crate::scene::EntityId;
 
 impl World {
-    pub(crate) fn empty() -> Self {
+    pub fn empty() -> Self {
         Self {
             entities: Vec::new(),
             kinds: HashMap::new(),
@@ -42,7 +43,16 @@ impl World {
             next_id: 1,
             active_camera: 0,
             schedule: Schedule::default(),
+            entity_registry: Default::default(),
+            component_registry: Default::default(),
+            component_storage: Default::default(),
+            resource_registry: Default::default(),
+            resources: Default::default(),
+            command_queue: Default::default(),
+            change_tick: crate::scene::ecs::ChangeTick::INITIAL,
+            active_change_tick: None,
             node_cache: Vec::new(),
+            derived_state_dirty: Default::default(),
         }
     }
 
@@ -53,12 +63,15 @@ impl World {
         world.active_camera = camera;
         world.spawn_node(NodeKind::DirectionalLight);
         world.spawn_node(NodeKind::Cube);
+        world.flush_scene_systems_now();
         world
     }
 
     pub fn spawn_node(&mut self, kind: NodeKind) -> EntityId {
         let id = self.next_id;
         self.next_id += 1;
+        self.register_stable_entity(id)
+            .expect("spawned scene entity must have a unique stable id");
         self.entities.push(id);
         self.kinds.insert(id, kind.clone());
         self.names.insert(
@@ -123,7 +136,8 @@ impl World {
             }
         }
 
-        self.rebuild_derived_state();
+        self.rebuild_fixed_component_presence_for_entity(id);
+        self.mark_derived_state_dirty();
         id
     }
 
@@ -133,11 +147,10 @@ impl World {
         material: ResourceHandle<MaterialMarker>,
     ) -> EntityId {
         let id = self.spawn_node(NodeKind::Mesh);
-        self.names
-            .insert(id, Name(mesh_display_name(model, self.entities.len())));
-        self.mesh_renderers
-            .insert(id, MeshRenderer::from_handles(model, material));
-        self.rebuild_derived_state();
+        self.insert(id, Name(mesh_display_name(model, self.entities.len())))
+            .expect("spawned mesh entity must accept a name component");
+        self.insert(id, MeshRenderer::from_handles(model, material))
+            .expect("spawned mesh entity must accept a mesh renderer component");
         id
     }
 }

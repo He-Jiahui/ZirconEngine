@@ -4,7 +4,7 @@ use std::path::Path;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
-const ASSET_META_FORMAT_VERSION: u32 = 3;
+const ASSET_META_FORMAT_VERSION: u32 = 5;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -43,6 +43,20 @@ pub struct AssetMetaDocument {
     pub target_schema_version: Option<u32>,
     #[serde(default)]
     pub migration_summary: String,
+    #[serde(default)]
+    pub dependencies: Vec<AssetUri>,
+    #[serde(default)]
+    pub entries: Vec<AssetMetaEntry>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AssetMetaEntry {
+    pub locator: AssetUri,
+    pub kind: AssetKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub artifact_locator: Option<AssetUri>,
+    #[serde(default)]
+    pub dependencies: Vec<AssetUri>,
 }
 
 impl AssetMetaDocument {
@@ -63,6 +77,8 @@ impl AssetMetaDocument {
             source_schema_version: None,
             target_schema_version: None,
             migration_summary: String::new(),
+            dependencies: Vec::new(),
+            entries: Vec::new(),
         }
     }
 
@@ -99,7 +115,7 @@ impl AssetMetaDocument {
             self.format_version = ASSET_META_FORMAT_VERSION;
             if self.migration_summary.is_empty() {
                 self.migration_summary =
-                    "meta document migrated to artifact metadata v3".to_string();
+                    "meta document migrated to multi-asset entry metadata v5".to_string();
             }
         }
         Ok(())

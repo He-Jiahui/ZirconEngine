@@ -9,5 +9,8 @@ pub(crate) fn import_model(
     let mut model = ModelAsset::from_toml_str(&document)
         .map_err(|error| AssetImportError::Parse(format!("parse model toml: {error}")))?;
     backfill_virtual_geometry_for_model(&mut model);
-    Ok(AssetImportOutcome::new(ImportedAsset::Model(model)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Model(model),
+    ))
 }

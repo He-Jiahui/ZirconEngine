@@ -149,6 +149,14 @@ pub struct UiSurfaceRebuildDebugStats {
     pub render_command_rebuilt_count: usize,
     #[serde(default)]
     pub render_damage_rect_count: usize,
+    #[serde(default)]
+    pub control_pool_created_count: usize,
+    #[serde(default)]
+    pub control_pool_reused_count: usize,
+    #[serde(default)]
+    pub control_pool_recycled_count: usize,
+    #[serde(default)]
+    pub control_pool_discarded_count: usize,
     pub layout_elapsed_micros: u64,
     pub arranged_elapsed_micros: u64,
     pub hit_grid_elapsed_micros: u64,

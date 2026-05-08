@@ -23,7 +23,9 @@ pub(super) struct PendingMeshDraw {
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct VirtualGeometryIndirectDrawRef {
+    #[allow(dead_code)]
     pub(super) mesh_index_count: u32,
+    #[allow(dead_code)]
     pub(super) mesh_signature: u64,
     pub(super) segment_key: VirtualGeometryIndirectSegmentKey,
 }
@@ -71,6 +73,7 @@ pub(super) struct VirtualGeometryIndirectDrawRefInput {
     pub(super) submission_token: u32,
 }
 
+#[allow(dead_code)]
 pub(super) fn segment_input(
     segment_key: VirtualGeometryIndirectSegmentKey,
 ) -> VirtualGeometryIndirectSegmentInput {
@@ -91,6 +94,7 @@ pub(super) fn segment_input(
     }
 }
 
+#[allow(dead_code)]
 pub(super) fn draw_ref_input(
     mesh_index_count: u32,
     segment_index: u32,

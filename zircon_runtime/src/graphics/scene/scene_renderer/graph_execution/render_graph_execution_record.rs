@@ -41,6 +41,7 @@ impl RenderGraphExecutionRecord {
         );
     }
 
+    #[allow(dead_code)]
     pub fn push_executed_pass_with_declared_queue_and_resources(
         &mut self,
         pass_name: impl Into<String>,
@@ -60,6 +61,7 @@ impl RenderGraphExecutionRecord {
         );
     }
 
+    #[allow(dead_code)]
     pub fn push_executed_pass_with_declared_queue_dependencies_and_resources(
         &mut self,
         pass_name: impl Into<String>,

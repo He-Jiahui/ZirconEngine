@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 
 use slint::SharedString;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
-use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::{
+    surface::UiSurface,
+    template::{UiCompiledDocument, UiTemplateBuildError},
+};
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     layout::UiSize,
@@ -66,13 +70,65 @@ struct TemplateRenderInfo {
 }
 
 pub(crate) fn ui_asset_editor_node_projection(size: UiSize) -> UiAssetEditorNodeProjection {
-    build_ui_asset_editor_node_projection(size).unwrap_or_default()
+    let session =
+        NODE_PROJECTION_SESSION.get_or_init(|| Mutex::new(NodeProjectionSession::default()));
+    session
+        .lock()
+        .map(|mut session| session.project(size).unwrap_or_default())
+        .unwrap_or_default()
 }
 
-fn build_ui_asset_editor_node_projection(
-    size: UiSize,
-) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
-    let template_service = EditorTemplateRuntimeService;
+static NODE_PROJECTION_SESSION: OnceLock<Mutex<NodeProjectionSession>> = OnceLock::new();
+
+#[derive(Default)]
+struct NodeProjectionSession {
+    compiled: Option<UiCompiledDocument>,
+    surface: Option<UiSurface>,
+    size: Option<UiSize>,
+}
+
+impl NodeProjectionSession {
+    fn project(
+        &mut self,
+        size: UiSize,
+    ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
+        let template_service = EditorTemplateRuntimeService;
+        if self.compiled.is_none() {
+            self.compiled = Some(load_compiled_node_projection_document(&template_service)?);
+        }
+
+        if self.surface.is_none() {
+            let compiled = self
+                .compiled
+                .as_ref()
+                .expect("compiled projection document should be initialized");
+            let mut surface = template_service.build_surface_from_compiled_document(
+                UiTreeId::new("ui_asset_editor.node_projection".to_string()),
+                compiled,
+            )?;
+            surface.compute_layout(size)?;
+            self.surface = Some(surface);
+            self.size = Some(size);
+        } else if self.size != Some(size) {
+            if let Some(surface) = self.surface.as_mut() {
+                mark_surface_roots_layout_dirty(surface);
+                surface.rebuild_dirty(size)?;
+            }
+            self.size = Some(size);
+        }
+
+        project_ui_asset_editor_nodes(
+            &template_service,
+            self.surface
+                .as_ref()
+                .expect("projection surface should be initialized"),
+        )
+    }
+}
+
+fn load_compiled_node_projection_document(
+    template_service: &EditorTemplateRuntimeService,
+) -> Result<UiCompiledDocument, UiAssetEditorNodeProjectionError> {
     let layout =
         template_service.load_document_file(asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH))?;
     let widget =
@@ -90,19 +146,29 @@ fn build_ui_asset_editor_node_projection(
     }
     style_imports.insert(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID.to_string(), style);
 
-    let compiled = template_service.compile_document_with_import_maps(
+    Ok(template_service.compile_document_with_import_maps(
         &layout,
         &widget_imports,
         &style_imports,
-    )?;
-    let mut surface = template_service.build_surface_from_compiled_document(
-        UiTreeId::new("ui_asset_editor.node_projection".to_string()),
-        &compiled,
-    )?;
-    surface.compute_layout(size)?;
+    )?)
+}
 
+fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
+    for root_id in surface.tree.roots.clone() {
+        if let Some(root) = surface.tree.nodes.get_mut(&root_id) {
+            root.dirty.layout = true;
+            root.dirty.hit_test = true;
+            root.dirty.render = true;
+        }
+    }
+}
+
+fn project_ui_asset_editor_nodes(
+    template_service: &EditorTemplateRuntimeService,
+    surface: &UiSurface,
+) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
     let mut render_info_by_node = BTreeMap::new();
-    for command in template_service.extract_render(&surface).list.commands {
+    for command in template_service.extract_render(surface).list.commands {
         let entry = render_info_by_node
             .entry(command.node_id)
             .or_insert(TemplateRenderInfo {

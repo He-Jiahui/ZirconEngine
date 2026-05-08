@@ -5,6 +5,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/metrics.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
@@ -18,6 +19,7 @@ related_code:
   - zircon_runtime/src/ui/layout/pass/axis.rs
   - zircon_runtime/src/ui/layout/pass/arrange.rs
   - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/layout/pass/slot.rs
   - zircon_runtime/src/ui/layout/pass/child_frame.rs
   - zircon_runtime/src/ui/surface/arranged.rs
@@ -26,11 +28,16 @@ related_code:
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/node_pool.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/tree/node/focus.rs
   - zircon_runtime/src/ui/tree/node/interaction.rs
   - zircon_runtime/src/ui/tree/node/render_order.rs
+  - zircon_runtime/src/ui/tree/node/layout.rs
   - zircon_runtime/src/ui/surface/render/extract.rs
+  - zircon_runtime/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
   - zircon_runtime/src/ui/tests/layout_slots.rs
   - zircon_runtime/src/ui/tests/template_grid_flow.rs
   - zircon_runtime/src/ui/tests/hit_grid.rs
@@ -89,6 +96,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
   - zircon_runtime_interface/src/ui/layout/geometry.rs
+  - zircon_runtime_interface/src/ui/layout/engine.rs
   - zircon_runtime_interface/src/ui/layout/metrics.rs
   - zircon_runtime_interface/src/ui/layout/slot.rs
   - zircon_runtime_interface/src/ui/layout/scroll.rs
@@ -102,6 +110,7 @@ implementation_files:
   - zircon_runtime/src/ui/layout/pass/axis.rs
   - zircon_runtime/src/ui/layout/pass/arrange.rs
   - zircon_runtime/src/ui/layout/pass/measure.rs
+  - zircon_runtime/src/ui/layout/pass/incremental.rs
   - zircon_runtime/src/ui/layout/pass/slot.rs
   - zircon_runtime/src/ui/layout/pass/child_frame.rs
   - zircon_runtime/src/ui/surface/arranged.rs
@@ -111,9 +120,14 @@ implementation_files:
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/tree/hit_test.rs
   - zircon_runtime/src/ui/surface/surface.rs
+  - zircon_runtime/src/ui/surface/node_pool.rs
   - zircon_runtime/src/ui/tree/node/focus.rs
   - zircon_runtime/src/ui/tree/node/interaction.rs
   - zircon_runtime/src/ui/tree/node/render_order.rs
+  - zircon_runtime/src/ui/tree/node/layout.rs
+  - zircon_runtime/src/ui/surface/render/cache.rs
+  - zircon_runtime_interface/src/ui/surface/render/command.rs
+  - zircon_runtime_interface/src/ui/surface/render/paint.rs
   - zircon_runtime/src/ui/tests/layout_slots.rs
   - zircon_runtime/src/ui/tests/template_grid_flow.rs
   - zircon_runtime/src/ui/tests/hit_grid.rs
@@ -182,6 +196,7 @@ plan_sources:
   - dev/UnrealEngine/Engine/Source/Runtime/Slate/Private/Framework/Application/SlateApplication.cpp
   - .codex/plans/Editor 绘制与鼠标事件优化计划.md
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
+  - .codex/plans/Zircon UI 增量布局、增量重绘与控件池优化计划.md
   - user: 2026-05-06 Zircon UI 与 Unreal Slate 差异审计及后续里程碑
   - user: 2026-05-06 完善命中测试，参照 dev 下虚幻源码
   - user: 2026-05-07 输入框无法输入文本、界面响应性能很差，需要 profile 并优化热点
@@ -216,12 +231,17 @@ tests:
   - cargo test -p zircon_runtime --lib captured_pointer_dispatch_keeps_move_and_up_targeting_the_captured_node_outside_hit_bounds --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m1-slot-panel --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib surface_frame_hit_test_uses_borrowed_grid_with_index_parity --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-m7 --message-format short --color never
   - cargo test -p zircon_runtime --lib surface_dirty_rebuild_records_cached_counts_when_no_dirty_flags_exist --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-m7 --message-format short --color never
+  - cargo test -p zircon_runtime --lib surface_dirty_layout_skips_siblings_under_non_auto_parent --locked --jobs 1 --target-dir <milestone-target> --message-format short --color never (planned milestone validation)
+  - cargo test -p zircon_runtime --lib surface_dirty_layout_revisits_auto_parent_when_child_size_changes --locked --jobs 1 --target-dir <milestone-target> --message-format short --color never (planned milestone validation)
+  - cargo test -p zircon_runtime --lib surface_dirty_render_reuses_unchanged_commands_without_damage --locked --jobs 1 --target-dir <milestone-target> --message-format short --color never (planned milestone validation)
+  - cargo test -p zircon_runtime --lib surface_node_pool --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-incremental-layout-render --message-format short --color never
   - cargo test -p zircon_runtime --lib surface_frame_render_hit_and_pointer_dispatch_share_arranged_authority --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m1-shared-core --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime_interface --lib ui_geometry_metrics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m1-interface-geometry --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib layout_slots --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m1-slot-panel --message-format short --color never -- --nocapture
   - zircon_runtime/src/ui/tests/hit_grid.rs
   - zircon_runtime/src/ui/tests/layout_slots.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
+  - zircon_runtime/src/ui/tests/surface_node_pool.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority.rs
   - zircon_runtime/src/ui/tests/template_grid_flow.rs
   - zircon_runtime_interface/src/tests/ui_geometry_metrics.rs
@@ -290,8 +310,8 @@ Legacy `state_flags.visible == false` is treated as effective `Hidden` before a 
 The shared helpers define the only allowed predicates for node participation:
 
 - `UiTreeNode::is_render_visible()` and `UiArrangedNode::is_render_visible()` decide render extract inclusion.
-- `UiTreeNode::is_focus_candidate()` keeps focus/navigation on enabled render-visible nodes, so `HitTestInvisible` controls can still take keyboard focus when authored as focusable.
-- `UiTreeNode::supports_pointer()` and `UiTreeNode::allows_child_hit_test()` split self hit-test from descendant hit-test instead of overloading `state_flags.visible`.
+- `UiTreeNode::is_focus_candidate()` keeps focus/navigation on enabled render-visible nodes, so `HitTestInvisible` controls can still take keyboard focus when either the legacy state flag or the authored `UiFocusContract::focusable` says they are focusable.
+- `UiTreeNode::supports_pointer()` and `UiTreeNode::allows_child_hit_test()` split self hit-test from descendant hit-test instead of overloading `state_flags.visible`; authored focus contracts also make otherwise non-clickable controls pointer-reachable for focus acquisition.
 - `UiStateFlags::visible_enabled()` remains only a legacy convenience for places that need the historical bool pair, not a policy source for layout/render/hit.
 
 ## Runtime Flow
@@ -307,6 +327,8 @@ Linear layout treats `Collapsed` as non-participating, matching Slate's collapse
 M1.3 closes the shared slot/panel geometry layer rather than leaving panel behavior in editor host code. `UiSlotSchema` remains the component authoring contract for named component content slots, while runtime layout uses parent-owned `UiSlot` records for child placement. The covered runtime slot fields are `padding`, `alignment`, `linear_sizing`, `canvas_placement`, `grid_placement`, `order`, `z_order`, and `dirty_revision`. The container-to-slot mapping is now: `Free -> Free`, `Container -> Container`, `Overlay -> Overlay`, `HorizontalBox`/`VerticalBox -> Linear`, `WrapBox`/`FlowBox -> Flow`, `GridBox -> Grid`, and `ScrollableBox -> Scrollable`.
 
 The shared panel inventory is: Free/Container preserve node anchor, pivot, and position unless an explicit slot padding/alignment policy is present; Overlay consumes slot padding/alignment and preserves z/paint order through arranged, render, and hit outputs; Linear panels consume slot order, padding, alignment, and linear sizing; Flow/Wrap panels consume flow slot order, padding, alignment, gaps, and item minimum width; GridBox consumes fixed row/column counts, gaps, and per-child row/column/span placement; ScrollableBox preserves visible-range virtualization so only arranged visible children enter render and hit grids. The focused tests in `layout_slots.rs` and `template_grid_flow.rs` prove each accepted panel path feeds `UiSurfaceFrame.arranged_tree`, `render_extract`, and `hit_grid` from the same frames.
+
+The M3 layout-engine interface preflight records this split in `UiLayoutEngineFamily` and `UiLayoutEngineSelectionReport`: flex/grid/block-compatible families may route to a future Taffy-backed engine, but Free, Container, Overlay, Scrollable, and virtualized-list behavior remains Zircon-owned unless a later runtime slice proves equivalent `UiSurfaceFrame` output. This keeps Bevy-style layout-engine adoption from bypassing the Slate-style arranged-frame, render, and hit-test authority documented here.
 
 The hit grid stores spatial cells and entries sorted by paint priority. Querying a point through `hit_test_surface_frame(...)` returns `UiHitTestResult` with the top node, front-to-back stack, and `UiHitPath`. Editor adapters should use this runtime helper for submitted frames instead of rebuilding a local hit index around each host control family.
 
@@ -327,7 +349,15 @@ The 2026-05-07 world-space interface follow-up makes that boundary executable. `
 
 Editor host invalidation reasons sit above this runtime surface contract. Layout and window-metrics reasons may still enter the host slow path, while paint-only, viewport-image, pointer-hover, hit-test, and render reasons should preserve enough domain information to avoid accidental presentation/layout rebuilds. M7 reflector and overlay consumers should read `UiSurfaceRebuildReport` / `UiSurfaceFrame.last_rebuild` for dirty-domain and phase evidence instead of reclassifying nodes from local host state.
 
-Every rebuild now records a `UiSurfaceRebuildReport` and publishes it through `UiSurfaceFrame.last_rebuild`. The report captures the dirty flag summary, dirty node count, rebuilt phase booleans, arranged node count, render command count, hit-grid entry/cell counts, and elapsed microseconds for layout, arranged-tree, hit-grid, and render extraction phases. A clean `rebuild_dirty(...)` call still refreshes cached counts in the report without marking any rebuild phase, so debug consumers can display current cache size even when no invalidation was needed.
+Every rebuild now records a `UiSurfaceRebuildReport` and publishes it through `UiSurfaceFrame.last_rebuild`. The report captures the dirty flag summary, dirty node count, rebuilt phase booleans, arranged node count, render command count, hit-grid entry/cell counts, incremental layout counters, render cache counters, damage rect count, and elapsed microseconds for layout, arranged-tree, hit-grid, and render extraction phases. A clean `rebuild_dirty(...)` call still refreshes cached counts in the report without marking any rebuild phase, so debug consumers can display current cache size even when no invalidation was needed.
+
+The first retained incremental layout slice lives below `zircon_runtime/src/ui/layout/pass/incremental.rs`. It keeps `compute_layout_tree(...)` as the full initial/force path used by `UiSurface::compute_layout(...)`, then lets dirty rebuilds choose minimal invalidation roots from structured layout/style/text/visible-range dirty flags. A child dirty node propagates upward only through `LayoutBoundary::ContentDriven` or a parent whose `UiContainerKind::is_auto_layout_container()` is true. Free, container, overlay, fixed, and parent-directed parents therefore keep unrelated siblings out of the measure/arrange walk; linear, scrollable, wrap, and grid parents still revisit their subtree because child desired size affects sibling placement. The pass snapshots old frame/clip geometry before arrange, reports visited/skipped/geometry-changed nodes, and then the normal arranged-tree and hit-grid rebuilds continue from the retained `UiTree` layout cache.
+
+The first retained render-cache slice lives below `zircon_runtime/src/ui/surface/render/cache.rs`. `UiSurface` now owns `UiSurfaceRenderCache` beside the latest `UiRenderExtract`. Render extraction still produces canonical `UiRenderCommand` records from the runtime tree and arranged tree, but dirty rebuilds compare each command with the previous per-node command. Unchanged commands are reused, changed commands are replaced, removed commands are discarded, and the report records reused commands, rebuilt commands, and damage rect count. Geometry changes damage the union of old and new command frames; visual-only changes damage the current frame; unchanged render-only dirty flags reuse the existing commands and report no damage. Paint conversion now fills `UiPaintElement.cache_generation` with a stable hash of the command payload so render-debug/cache DTOs can identify reused paint output instead of always receiving `None`.
+
+The first retained control-pool slice lives below `zircon_runtime/src/ui/surface/node_pool.rs`. `UiSurface` owns a `UiSurfaceNodePool` keyed by template component, optional control id, and node path. Detaching a subtree removes it from the retained `UiTree`, clears parent/child links, clears dirty and transient pressed state, and recycles template-backed nodes into the matching bucket. Reinserting a compatible child first pulls from that bucket, keeps safe retained layout-cache capacity from the pooled node, applies the desired node identity/metadata, marks the parent and reinserted node structurally dirty, and records created/reused/recycled/discarded counters in `UiSurfaceRebuildReport` and `UiSurfaceFrame.last_rebuild`. Surface-level detachment also clears focus, capture, pressed, hover, pointer capture, high-precision, and input-method ownership that pointed at the detached subtree, so pooled controls cannot carry stale interaction state into a later insertion. Ordinary resize or property mutation keeps using dirty-domain rebuilds and does not touch the pool or reload `.ui.toml` descriptions. The pool, pool key, and pending pool report serialize with `UiSurface`, so retained surface snapshots keep enough state to roundtrip pooled template controls without making the pool an editor-only cache. The 2026-05-08 pool validation reached a clean `rustfmt --edition 2021 --check` for touched UI files, but focused `cargo test -p zircon_runtime --lib surface_node_pool` and a fresh `cargo check -p zircon_runtime --lib` were blocked before this slice by unrelated asset-importer API drift in `zircon_runtime/src/asset/importer/**` and `zircon_runtime/src/asset/project/manager/scan_and_import.rs`.
+
+2026-05-08 validation for this retained slice used `E:\cargo-targets\zircon-ui-incremental-layout-render`. `rustfmt --edition 2021 --check` over the touched runtime layout/render modules passed. `cargo test -p zircon_runtime --lib surface_dirty_domains --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ui-incremental-layout-render" --message-format short --color never` passed with 5 tests and 0 failures, covering legacy dirty normalization, structural layout recompute, sibling skipping under non-auto parents, auto-parent revisit when child desired size changes, and render-command reuse without damage. `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ui-incremental-layout-render" --message-format short --color never` also passed. Broader editor/runtime checks were not accepted green in this shared checkout because unrelated active-lane compile blockers appeared in editor host text-input-focus presentation wiring, runtime asset facade generic bounds, and native plugin ABI callbacks before the UI retained-preview test could execute.
 
 Pointer routing carries the same hit result forward as `UiPointerRoute.hit_path`. `bubbled` remains the direct leaf-to-root dispatch route, while `hit_path.root_to_leaf` is available for Slate-style enter/leave, focus-path, and capture diagnostics without reconstructing ancestry from the tree after the hit query.
 

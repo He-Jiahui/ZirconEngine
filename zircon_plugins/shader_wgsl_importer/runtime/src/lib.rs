@@ -127,16 +127,17 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
             stage: format!("{:?}", entry.stage).to_ascii_lowercase(),
         })
         .collect();
-    Ok(AssetImportOutcome::new(ImportedAsset::Shader(
-        ShaderAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
             source_language: ShaderSourceLanguage::Wgsl,
             source: source.clone(),
             wgsl_source: source,
             entry_points,
             validation_diagnostics: Vec::new(),
-        },
-    )))
+        }),
+    ))
 }
 
 #[cfg(test)]
@@ -190,7 +191,8 @@ mod tests {
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome.root_entry().expect("root shader asset entry").asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Shader(shader) => {

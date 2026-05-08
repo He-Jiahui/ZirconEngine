@@ -109,15 +109,20 @@ related_code:
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/journal.rs
+  - zircon_editor/src/ui/asset_editor/session/replay_artifact.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
+  - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/ui/boundary/mod.rs
@@ -234,17 +239,22 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/diagnostics/contract.rs
   - zircon_editor/src/ui/asset_editor/diagnostics/binding.rs
   - zircon_editor/src/ui/asset_editor/binding/schema_projection.rs
+  - zircon_editor/src/ui/asset_editor/command.rs
   - zircon_editor/src/ui/asset_editor/style/theme_authoring.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_mock.rs
   - zircon_editor/src/ui/asset_editor/session/mod.rs
+  - zircon_editor/src/ui/asset_editor/session/journal.rs
+  - zircon_editor/src/ui/asset_editor/session/replay_artifact.rs
   - zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/presentation_state.rs
   - zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs
+  - zircon_editor/src/ui/asset_editor/undo_stack.rs
   - zircon_editor/src/ui/asset_editor/presentation.rs
   - zircon_editor/src/ui/asset_editor/palette/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/src/tests/editing/ui_asset_preview_binding_authoring.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/bootstrap_assets.rs
@@ -279,6 +289,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-02-ui-binding-expression-semantics-m18.md
   - docs/superpowers/specs/2026-05-02-ui-runtime-interface-big-cutover-design.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
+  - user: 2026-05-08 continue all UI milestones until complete
   - user: 2026-05-02 execute M21 then M14 runtime foundation
   - user: 2026-05-02 continue package/cache classification and editor template-service façade
   - user: 2026-05-04 stage editor/runtime assets into exported ZirconEngine folder
@@ -308,6 +319,7 @@ tests:
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
+  - zircon_editor/src/tests/editing/ui_asset_replay.rs
   - zircon_editor/tests/workbench_slint_shell.rs
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo test -p zircon_runtime --lib ui::tests::asset_schema_migration --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture
@@ -361,6 +373,10 @@ tests:
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-binding-m18 --message-format short --color never (M18 accepted with unrelated graphics/plugin warnings)
   - cargo test -p zircon_runtime --lib asset_binding --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-binding-m18 --message-format short --color never (M18 blocked before filtered tests by unrelated lib-test UI DTO type-identity errors)
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-binding-m18 --message-format short --color never -- --nocapture (M18 blocked before filtered tests by the same unrelated lib-test UI DTO type-identity errors)
+  - rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/command.rs zircon_editor/src/ui/asset_editor/undo_stack.rs zircon_editor/src/ui/asset_editor/session/mod.rs zircon_editor/src/ui/asset_editor/session/journal.rs zircon_editor/src/ui/asset_editor/session/replay_artifact.rs zircon_editor/src/ui/asset_editor/mod.rs zircon_editor/src/tests/editing/ui_asset_replay.rs (M9 replay artifact/journal slice: passed)
+  - git diff --check -- zircon_editor/src/ui/asset_editor/command.rs zircon_editor/src/ui/asset_editor/undo_stack.rs zircon_editor/src/ui/asset_editor/session/mod.rs zircon_editor/src/ui/asset_editor/mod.rs zircon_editor/src/tests/editing/ui_asset_replay.rs (M9 replay artifact/journal slice: passed with LF-to-CRLF notices only)
+  - cargo test -p zircon_editor --lib ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m9-replay-artifact --message-format short --color never -- --nocapture --test-threads=1 (M9 blocked before editor tests by active incremental layout unresolved import in zircon_runtime/src/ui/surface/surface.rs)
+  - cargo test -p zircon_editor --lib ui_asset_editor_command_journal --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m9-replay-artifact --message-format short --color never -- --nocapture --test-threads=1 (M9 blocked before editor tests by active scene/ECS unresolved imports in zircon_runtime)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (2026-05-02 M2 runtime DTO hard-cutover: passed with unrelated graphics/plugin warnings)
   - cargo test -p zircon_runtime --test ui_asset_binding_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never (2026-05-02 M2 runtime DTO hard-cutover: 16 passed)
 doc_type: module-detail
@@ -725,9 +741,24 @@ M15 asset-browser reference graph slice uses these focused commands:
 - `git diff --check -- zircon_runtime/src/asset/assets/ui.rs zircon_runtime/src/asset/tests/assets/ui.rs`
   - 2026-05-08：通过；Git 仅提示这两个文件未来会按仓库设置从 LF 转 CRLF。
 - `cargo test -p zircon_runtime --lib ui_asset_direct_references --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-browser --message-format short --color never -- --nocapture --test-threads=1`
-  - 2026-05-08：被 active incremental layout lane 阻塞，新增 tests 未执行。当前 blocker 是 `zircon_runtime/src/ui/surface/surface.rs` 的 `UiSurfaceRebuildDebugStats` initializer 与 `zircon_runtime/src/ui/tests/surface_dirty_domains.rs` 的 `UiSurfaceRebuildReport` field access 不匹配。
+  - 2026-05-08：被 active incremental layout lane 阻塞，新增 tests 未执行。首次 blocker 是 `UiSurfaceRebuildDebugStats` / `UiSurfaceRebuildReport` field drift；后续 active lane 改动后最新 blocker 是 `zircon_runtime/src/ui/surface/surface.rs` unresolved `compute_incremental_layout_tree` import。
 
 The 2026-05-08 reference-graph slice keeps resource ownership in the existing M15 collector. `zircon_runtime::asset::assets::ui_asset_references(...)` now calls `collect_document_resource_dependencies(...)` for document-local resource dependencies, adds primary and fallback resource URIs to the returned `AssetReference` list, strips component/style import labels back to the owning asset file, and dedupes by normalized locator before the editor asset manager builds its direct-reference graph. This covers the asset-browser dependency graph surface; broader resource browser UX, watcher/hot reload, runtime loader backend, and graphics/RHI consumption remain outside this slice.
+
+M9 bug-report replay artifact and command journal slices use these focused commands:
+
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/command.rs zircon_editor/src/ui/asset_editor/undo_stack.rs zircon_editor/src/ui/asset_editor/session/mod.rs zircon_editor/src/ui/asset_editor/session/journal.rs zircon_editor/src/ui/asset_editor/session/replay_artifact.rs zircon_editor/src/ui/asset_editor/mod.rs zircon_editor/src/tests/editing/ui_asset_replay.rs`
+  - 2026-05-08: passed.
+- `git diff --check -- zircon_editor/src/ui/asset_editor/command.rs zircon_editor/src/ui/asset_editor/undo_stack.rs zircon_editor/src/ui/asset_editor/session/mod.rs zircon_editor/src/ui/asset_editor/mod.rs zircon_editor/src/tests/editing/ui_asset_replay.rs`
+  - 2026-05-08: passed; Git only reported LF-to-CRLF normalization notices.
+- `cargo test -p zircon_editor --lib ui_asset_editor_session_exports_sanitized_bug_report_replay_artifact --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m9-replay-artifact --message-format short --color never -- --nocapture --test-threads=1`
+  - 2026-05-08: blocked before the new editor test ran by the active incremental layout lane. The current blocker is the unresolved `compute_incremental_layout_tree` import in `zircon_runtime/src/ui/surface/surface.rs`.
+- `cargo test -p zircon_editor --lib ui_asset_editor_command_journal --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m9-replay-artifact --message-format short --color never -- --nocapture --test-threads=1`
+  - 2026-05-08: blocked before the new editor tests ran by active scene/ECS owner drift in `zircon_runtime`: missing `scene::ecs`, plus unresolved `SystemStage` and `Schedule` imports.
+
+The 2026-05-08 replay artifact slice adds `UiAssetEditorSession::export_bug_report_replay_artifact()` and `UiAssetEditorUndoStack::replay_records()`. The exported artifact records route, selection, diagnostic counts, sanitized diagnostics, redacted initial/current source summaries, redacted cross-file external effect summaries, and safe document-command metadata for the applied undo history. It deliberately does not serialize raw UI TOML, generated external asset source, prop/style values, or full diagnostic path tokens.
+
+The 2026-05-08 command journal slice adds `UiAssetEditorCommandJournal`, `UiAssetEditorCommandJournalEntry`, `UiAssetEditorJournalCommand`, and `UiAssetEditorSession::apply_command_journal(...)`. It validates schema version and monotonic sequence before replaying, then applies source/tree edit journal entries through the existing `UiAssetEditorCommand` plus undo external-effect path. This closes the internal event-to-command adapter surface; durable journal persistence, host event capture, bug-report attachment routing, and unblocked focused Cargo validation remain future M9 work.
 
 M21/M14 runtime foundation uses these focused commands:
 

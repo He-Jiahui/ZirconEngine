@@ -262,3 +262,29 @@ fn register_ready_is_idempotent_for_unchanged_records() {
         "cube-ready"
     );
 }
+
+#[test]
+fn register_ready_bumps_revision_when_dependency_ids_change() {
+    let manager = ResourceManager::new();
+    let events = manager.subscribe();
+    let locator = locator("res://materials/grid.material.toml");
+    let id = ResourceId::from_locator(&locator);
+    let dependency = ResourceId::from_stable_label("res://textures/checker.png");
+    let record = ResourceRecord::new(id, ResourceKind::Material, locator);
+
+    manager.register_ready(record.clone(), TestPayload { name: "material" });
+    let added = events.recv().expect("added event");
+    assert_eq!(added.kind, ResourceEventKind::Added);
+
+    let mut changed = record;
+    changed.dependency_ids = vec![dependency];
+    manager.register_ready(changed, TestPayload { name: "material" });
+
+    let updated = events.recv().expect("dependency update event");
+    assert_eq!(updated.kind, ResourceEventKind::Updated);
+    assert_eq!(updated.revision, 2);
+    let registry = manager.registry();
+    let stored = registry.get(id).expect("record exists");
+    assert_eq!(stored.revision, 2);
+    assert_eq!(stored.dependency_ids, vec![dependency]);
+}

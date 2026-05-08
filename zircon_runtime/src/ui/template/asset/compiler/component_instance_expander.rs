@@ -134,6 +134,25 @@ fn decorate_component_root(
         tokens,
         params,
     );
+    apply_instance_contract_overrides(root, instance_node);
+}
+
+fn apply_instance_contract_overrides(root: &mut UiTemplateNode, instance_node: &UiNodeDefinition) {
+    if let Some(focus) = &instance_node.focus {
+        root.focus = focus.clone();
+    }
+    if let Some(navigation) = &instance_node.navigation {
+        root.navigation = navigation.clone();
+    }
+    if let Some(picking) = instance_node.picking {
+        root.picking = picking;
+    }
+    if let Some(a11y) = &instance_node.a11y {
+        root.a11y = a11y.clone();
+    }
+    if let Some(widget) = &instance_node.widget {
+        root.widget = widget.clone();
+    }
 }
 
 fn merge_instance_layout_override(

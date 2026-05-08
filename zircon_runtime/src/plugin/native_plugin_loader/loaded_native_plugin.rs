@@ -50,6 +50,27 @@ impl LoadedNativePlugin {
             .and_then(|behavior| behavior.event_manifest.as_deref())
     }
 
+    pub fn runtime_state_schema_version(&self) -> Option<u32> {
+        self.runtime_entry_report
+            .as_ref()
+            .and_then(|report| report.behavior.as_ref())
+            .map(|behavior| behavior.state_schema_version)
+    }
+
+    pub fn runtime_command_manifest_schema(&self) -> Option<&str> {
+        self.runtime_entry_report
+            .as_ref()
+            .and_then(|report| report.behavior.as_ref())
+            .and_then(|behavior| behavior.command_manifest_schema.as_deref())
+    }
+
+    pub fn runtime_event_manifest_schema(&self) -> Option<&str> {
+        self.runtime_entry_report
+            .as_ref()
+            .and_then(|report| report.behavior.as_ref())
+            .and_then(|behavior| behavior.event_manifest_schema.as_deref())
+    }
+
     pub fn invoke_runtime_command(
         &self,
         name: &str,

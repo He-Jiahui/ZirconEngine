@@ -132,20 +132,22 @@ pub struct AssetSchemaMigrationReport {
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct AssetImportOutcome {
-    pub imported_asset: ImportedAsset,
+pub struct ImportedAssetEntry {
+    pub locator: AssetUri,
+    pub asset: ImportedAsset,
     #[serde(default)]
     pub dependencies: Vec<AssetUri>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub migration_report: Option<AssetSchemaMigrationReport>,
     #[serde(default)]
     pub diagnostics: Vec<ResourceDiagnostic>,
 }
 
-impl AssetImportOutcome {
-    pub fn new(imported_asset: ImportedAsset) -> Self {
+impl ImportedAssetEntry {
+    pub fn new(locator: AssetUri, asset: ImportedAsset) -> Self {
         Self {
-            imported_asset,
+            locator,
+            asset,
             dependencies: Vec::new(),
             migration_report: None,
             diagnostics: Vec::new(),
@@ -159,6 +161,57 @@ impl AssetImportOutcome {
 
     pub fn with_diagnostic(mut self, diagnostic: ResourceDiagnostic) -> Self {
         self.diagnostics.push(diagnostic);
+        self
+    }
+
+    pub fn with_dependency(mut self, dependency: AssetUri) -> Self {
+        self.dependencies.push(dependency);
+        self
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AssetImportOutcome {
+    #[serde(default)]
+    pub entries: Vec<ImportedAssetEntry>,
+}
+
+impl AssetImportOutcome {
+    pub fn new(locator: AssetUri, imported_asset: ImportedAsset) -> Self {
+        Self {
+            entries: vec![ImportedAssetEntry::new(locator, imported_asset)],
+        }
+    }
+
+    pub fn with_entry(mut self, entry: ImportedAssetEntry) -> Self {
+        self.entries.push(entry);
+        self
+    }
+
+    pub fn root_entry(&self) -> Option<&ImportedAssetEntry> {
+        self.entries
+            .iter()
+            .find(|entry| entry.locator.label().is_none())
+    }
+
+    pub fn with_migration_report(mut self, migration_report: AssetSchemaMigrationReport) -> Self {
+        if let Some(entry) = self.entries.first_mut() {
+            entry.migration_report = Some(migration_report);
+        }
+        self
+    }
+
+    pub fn with_diagnostic(mut self, diagnostic: ResourceDiagnostic) -> Self {
+        if let Some(entry) = self.entries.first_mut() {
+            entry.diagnostics.push(diagnostic);
+        }
+        self
+    }
+
+    pub fn with_dependency(mut self, dependency: AssetUri) -> Self {
+        if let Some(entry) = self.entries.first_mut() {
+            entry.dependencies.push(dependency);
+        }
         self
     }
 }

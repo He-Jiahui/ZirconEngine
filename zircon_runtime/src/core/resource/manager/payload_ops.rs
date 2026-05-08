@@ -50,6 +50,7 @@ impl ResourceManager {
         if let Some(event_kind) = event_kind {
             self.broadcast(ResourceEvent {
                 kind: event_kind,
+                resource_kind: record.kind,
                 id: record.id,
                 locator: Some(record.primary_locator.clone()),
                 previous_locator: None,

@@ -25,7 +25,7 @@ impl EntryRunner {
             )
             .into());
         }
-        zircon_runtime::diagnostic_log::initialize_unity_process_log_with_filter(
+        zircon_runtime::diagnostic_log::initialize_unity_process_log_with_config(
             "runtime",
             diagnostic_args.filter,
         );

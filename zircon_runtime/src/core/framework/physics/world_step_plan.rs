@@ -7,4 +7,6 @@ pub struct PhysicsWorldStepPlan {
     pub steps: u32,
     pub step_seconds: Real,
     pub remaining_seconds: Real,
+    #[serde(default)]
+    pub interpolation_alpha: Real,
 }

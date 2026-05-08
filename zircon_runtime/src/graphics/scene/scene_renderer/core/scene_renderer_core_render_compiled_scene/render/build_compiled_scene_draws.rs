@@ -6,12 +6,19 @@ use super::super::super::scene_renderer_core::SceneRendererAdvancedPluginResourc
 
 pub(super) struct CompiledSceneDraws {
     draws: Vec<MeshDraw>,
+    #[allow(dead_code)]
     indirect_segment_count: u32,
+    #[allow(dead_code)]
     indirect_args_count: u32,
+    #[allow(dead_code)]
     indirect_args_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    #[allow(dead_code)]
     indirect_submission_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    #[allow(dead_code)]
     indirect_authority_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    #[allow(dead_code)]
     indirect_draw_ref_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
+    #[allow(dead_code)]
     indirect_segment_buffer: Option<std::sync::Arc<wgpu::Buffer>>,
 }
 
@@ -44,30 +51,37 @@ impl CompiledSceneDraws {
         &mut self.draws
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_segment_count(&self) -> u32 {
         self.indirect_segment_count
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_args_count(&self) -> u32 {
         self.indirect_args_count
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_args_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_args_buffer.clone()
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_submission_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_submission_buffer.clone()
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_authority_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_authority_buffer.clone()
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_draw_ref_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_draw_ref_buffer.clone()
     }
 
+    #[allow(dead_code)]
     pub(super) fn indirect_segment_buffer(&self) -> Option<std::sync::Arc<wgpu::Buffer>> {
         self.indirect_segment_buffer.clone()
     }

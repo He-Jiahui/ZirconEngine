@@ -32,4 +32,4 @@ toml = "1.1.2"
 tracing = "0.1.44"
 uuid = { version = "1.23.1", features = ["v4", "serde"] }
 wgpu = "29.0.1"
-winit = "0.31.0-beta.2"
+winit = { version = "0.31.0-beta.2", default-features = false }

@@ -1,7 +1,7 @@
 use crate::{
-    asset::AssetImporterDescriptor, plugin::ComponentTypeDescriptor,
-    plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::UiComponentDescriptor,
-    RuntimeTargetMode,
+    asset::AssetImporterDescriptor, plugin::CapabilityStatusManifest,
+    plugin::ComponentTypeDescriptor, plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform,
+    plugin::PluginMaturity, plugin::UiComponentDescriptor, RuntimeTargetMode,
 };
 
 use super::{
@@ -82,6 +82,8 @@ impl PluginPackageManifest {
             supported_targets: Vec::new(),
             supported_platforms: Vec::new(),
             capabilities: Vec::new(),
+            capability_statuses: Vec::new(),
+            maturity: PluginMaturity::default(),
             asset_roots: Vec::new(),
             content_roots: Vec::new(),
             modules: Vec::new(),
@@ -148,6 +150,16 @@ impl PluginPackageManifest {
 
     pub fn with_capability(mut self, capability: impl Into<String>) -> Self {
         self.capabilities.push(capability.into());
+        self
+    }
+
+    pub fn with_maturity(mut self, maturity: PluginMaturity) -> Self {
+        self.maturity = maturity;
+        self
+    }
+
+    pub fn with_capability_status(mut self, status: CapabilityStatusManifest) -> Self {
+        self.capability_statuses.push(status);
         self
     }
 

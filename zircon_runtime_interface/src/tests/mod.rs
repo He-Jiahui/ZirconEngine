@@ -1,5 +1,10 @@
 mod boundary;
 mod contracts;
+mod layout_engine_contracts;
+mod pipeline_contracts;
 mod render_contracts;
+mod resource_contracts;
+mod ui_contract_spine;
 mod ui_geometry_metrics;
 mod ui_layout;
+mod window_input_contracts;

@@ -17,31 +17,31 @@ pub(crate) fn import_animation_asset(
     if lower_name.ends_with(".skeleton.zranim") {
         return AnimationSkeletonAsset::from_bytes(&context.source_bytes)
             .map(ImportedAsset::AnimationSkeleton)
-            .map(AssetImportOutcome::new)
+            .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
             .map_err(AssetImportError::Parse);
     }
     if lower_name.ends_with(".clip.zranim") {
         return AnimationClipAsset::from_bytes(&context.source_bytes)
             .map(ImportedAsset::AnimationClip)
-            .map(AssetImportOutcome::new)
+            .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
             .map_err(AssetImportError::Parse);
     }
     if lower_name.ends_with(".sequence.zranim") {
         return AnimationSequenceAsset::from_bytes(&context.source_bytes)
             .map(ImportedAsset::AnimationSequence)
-            .map(AssetImportOutcome::new)
+            .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
             .map_err(AssetImportError::Parse);
     }
     if lower_name.ends_with(".graph.zranim") {
         return AnimationGraphAsset::from_bytes(&context.source_bytes)
             .map(ImportedAsset::AnimationGraph)
-            .map(AssetImportOutcome::new)
+            .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
             .map_err(AssetImportError::Parse);
     }
     if lower_name.ends_with(".state_machine.zranim") {
         return AnimationStateMachineAsset::from_bytes(&context.source_bytes)
             .map(ImportedAsset::AnimationStateMachine)
-            .map(AssetImportOutcome::new)
+            .map(|asset| AssetImportOutcome::new(context.uri.clone(), asset))
             .map_err(AssetImportError::Parse);
     }
 

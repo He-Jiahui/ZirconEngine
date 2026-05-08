@@ -10,7 +10,9 @@ pub(crate) struct MeshDraw {
     pub(super) draw_index_count: u32,
     pub(super) indirect_args_buffer: Option<Arc<wgpu::Buffer>>,
     pub(super) indirect_args_offset: u64,
+    #[allow(dead_code)]
     pub(super) virtual_geometry_submission_key: Option<(u64, u32)>,
+    #[allow(dead_code)]
     pub(super) virtual_geometry_submission_detail: Option<VirtualGeometrySubmissionDetail>,
     pub(super) texture: Arc<GpuTextureResource>,
     pub(super) pipeline_key: PipelineKey,

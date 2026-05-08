@@ -1,11 +1,16 @@
 use std::fmt;
 use std::sync::Arc;
 
+use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::plugin::RuntimeProfileId;
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
+
+use crate::plugins::{DefaultPlugins, HeadlessPlugins, PluginGroup};
+use crate::plugins::{PluginGroupBuilder, PluginGroupError, ResolvedPluginGroup};
 
 use super::{
     builtin_modules::{
@@ -15,6 +20,8 @@ use super::{
     },
     EntryConfig, EntryProfile,
 };
+
+use super::first_party_runtime_plugin_registrations_for_config;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EntryRunMode {
@@ -64,7 +71,7 @@ pub trait EngineEntry: Send + Sync + fmt::Debug {
 pub struct BuiltinEngineEntry {
     config: EntryConfig,
     profile: EntryProfile,
-    modules: Vec<Arc<dyn EngineModule>>,
+    plugin_group: ResolvedPluginGroup,
 }
 
 impl BuiltinEngineEntry {
@@ -73,11 +80,27 @@ impl BuiltinEngineEntry {
     }
 
     pub fn for_config(config: &EntryConfig) -> Result<Self, CoreError> {
+        let modules = builtin_modules_for_config(config)?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            modules: builtin_modules_for_config(config)?,
+            plugin_group: plugin_group_for_config(config, modules)?,
         })
+    }
+
+    pub fn for_runtime_profile(profile_id: RuntimeProfileId) -> Result<Self, CoreError> {
+        Self::for_config_with_first_party_runtime_plugin_registrations(
+            &EntryConfig::for_runtime_profile(profile_id),
+        )
+    }
+
+    pub fn for_config_with_first_party_runtime_plugin_registrations(
+        config: &EntryConfig,
+    ) -> Result<Self, CoreError> {
+        Self::for_config_with_runtime_plugin_registrations(
+            config,
+            first_party_runtime_plugin_registrations_for_config(config),
+        )
     }
 
     pub fn for_config_with_runtime_plugin_registrations(
@@ -85,13 +108,12 @@ impl BuiltinEngineEntry {
         registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
     ) -> Result<Self, CoreError> {
         let registrations = registrations.into_iter().collect::<Vec<_>>();
+        let modules =
+            builtin_modules_for_config_with_runtime_plugin_registrations(config, &registrations)?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            modules: builtin_modules_for_config_with_runtime_plugin_registrations(
-                config,
-                &registrations,
-            )?,
+            plugin_group: plugin_group_for_config(config, modules)?,
         })
     }
 
@@ -102,14 +124,15 @@ impl BuiltinEngineEntry {
     ) -> Result<Self, CoreError> {
         let registrations = registrations.into_iter().collect::<Vec<_>>();
         let feature_registrations = feature_registrations.into_iter().collect::<Vec<_>>();
+        let modules = builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
+            config,
+            &registrations,
+            &feature_registrations,
+        )?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            modules: builtin_modules_for_config_with_runtime_plugin_and_feature_registrations(
-                config,
-                &registrations,
-                &feature_registrations,
-            )?,
+            plugin_group: plugin_group_for_config(config, modules)?,
         })
     }
 
@@ -118,18 +141,26 @@ impl BuiltinEngineEntry {
         available_plugin_ids: impl IntoIterator<Item = String>,
     ) -> Result<Self, CoreError> {
         let available_plugin_ids = available_plugin_ids.into_iter().collect::<Vec<_>>();
+        let modules = builtin_modules_for_config_with_available_runtime_plugins(
+            config,
+            &available_plugin_ids,
+        )?;
         Ok(Self {
             config: config.clone(),
             profile: config.profile,
-            modules: builtin_modules_for_config_with_available_runtime_plugins(
-                config,
-                &available_plugin_ids,
-            )?,
+            plugin_group: plugin_group_for_config(config, modules)?,
         })
     }
 
+    pub fn plugin_group(&self) -> &ResolvedPluginGroup {
+        &self.plugin_group
+    }
+
     fn store_entry_config(&self, runtime: &CoreRuntime) {
-        let _ = &self.config;
+        let runtime_handle = runtime.handle();
+        runtime_handle
+            .store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)
+            .ok();
         #[cfg(not(feature = "target-editor-host"))]
         let _ = runtime;
         #[cfg(feature = "target-editor-host")]
@@ -158,7 +189,7 @@ impl EngineEntry for BuiltinEngineEntry {
     }
 
     fn modules(&self) -> &[Arc<dyn EngineModule>] {
-        &self.modules
+        self.plugin_group.modules()
     }
 
     fn bootstrap(&self) -> Result<CoreHandle, CoreError> {
@@ -175,4 +206,32 @@ impl EngineEntry for BuiltinEngineEntry {
 
         Ok(runtime.handle())
     }
+}
+
+fn plugin_group_for_config(
+    config: &EntryConfig,
+    modules: Vec<Arc<dyn EngineModule>>,
+) -> Result<ResolvedPluginGroup, CoreError> {
+    let mut builder = plugin_group_builder_for_config(config).map_err(plugin_group_core_error)?;
+    for module in modules {
+        if builder.contains(module.module_name()) {
+            builder = builder.set(module).map_err(plugin_group_core_error)?;
+        } else {
+            builder = builder.add(module).map_err(plugin_group_core_error)?;
+        }
+    }
+    Ok(builder.finish())
+}
+
+fn plugin_group_builder_for_config(
+    config: &EntryConfig,
+) -> Result<PluginGroupBuilder, PluginGroupError> {
+    match config.profile {
+        EntryProfile::Editor | EntryProfile::Runtime => DefaultPlugins::default().build(),
+        EntryProfile::Headless => HeadlessPlugins::default().build(),
+    }
+}
+
+fn plugin_group_core_error(error: PluginGroupError) -> CoreError {
+    CoreError::Initialization("zircon_app plugin group".to_string(), error.to_string())
 }

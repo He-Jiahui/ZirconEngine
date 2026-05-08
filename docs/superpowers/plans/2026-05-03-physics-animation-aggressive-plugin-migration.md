@@ -83,7 +83,7 @@
 
 ### Implementation Slices
 
-- [x] Move animation tick behavior out of `WorldDriver` into `zircon_plugins/animation/runtime` as an `AnimationSceneHook` running after physics in `SystemStage::LateUpdate`.
+- [x] Move animation tick behavior out of `WorldDriver` into `zircon_plugins/animation/runtime` as an `AnimationSceneHook` running after physics in `SystemStage::PostUpdate` after the scene schedule hard cutover.
 - [x] Keep `zircon_runtime::scene` authoritative for component storage and property-path mutation; the hook uses `LevelSystem::with_world_mut(...)` and runtime asset manager facades.
 - [x] Move concrete animation evaluator, graph blend, state-machine transition runtime, and sequence writeback helpers into the animation plugin crate when they are no longer shared runtime contracts.
 - [x] Stop exporting concrete animation manager/module behavior from `zircon_runtime::animation` once all direct consumers move.

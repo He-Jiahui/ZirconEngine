@@ -1,15 +1,18 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
@@ -19,17 +22,24 @@ related_code:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/surface/diagnostics.rs
+  - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
+  - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/frame_hit_test.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
@@ -39,8 +49,14 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
 plan_sources:
   - user: 2026-05-07 continue improving all Debug Reflector tooling areas
+  - user: 2026-05-08 register the debug window tool in the Window/window surface
+  - docs/superpowers/plans/2026-05-08-debug-observatory-m2.md
   - docs/superpowers/plans/2026-05-07-debug-observatory-m0-m1.md
   - docs/superpowers/specs/2026-05-06-ui-debug-reflector-full-closure-design.md
   - docs/superpowers/plans/2026-05-06-ui-debug-reflector-full-closure.md
@@ -75,9 +91,14 @@ plan_sources:
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/ui/tests/diagnostics.rs
+  - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_runtime/src/ui/tests/hit_grid.rs
   - zircon_runtime/src/ui/tests/surface_frame_authority.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
+  - zircon_editor/src/tests/host/builtin_window_descriptors.rs
+  - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
+  - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
   - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
   - zircon_editor/src/tests/host/slint_window/ui_debug_reflector.rs
@@ -200,7 +221,7 @@ Completion gate:
 
 ### M2 Snapshot Timeline
 
-Goal: add bounded history so the reflector can inspect recent frames without affecting runtime state.
+Goal: add bounded history so the reflector can inspect recent frames without affecting runtime state, and expose the debugging tool through the Window/window surface as a first-class ActivityWindow tool.
 
 Scope:
 
@@ -208,6 +229,8 @@ Scope:
 - Store snapshot summaries and snapshot payloads by stable frame handle.
 - Track frame index, capture time, source target, schema version, capture options, current selection, and dropped-frame count.
 - Expose editor read-model functions for latest frame, selected historical frame, next/previous, and retention summary.
+- Register a `Debug Observatory` ActivityWindow descriptor that reuses the Runtime Diagnostics pane payload/template boundary instead of inventing a second debug payload path.
+- Add a Window menu entry and host-menu fallback action for opening the debug ActivityWindow, while keeping the existing `View/Runtime Diagnostics` bottom-drawer ActivityView intact.
 
 Completion gate:
 
@@ -215,6 +238,7 @@ Completion gate:
 - Selecting a historical frame does not mutate runtime UI state.
 - Retention behavior is explicit when more than N frames are captured.
 - Timeline summaries are deterministic except for normalized timestamp fields.
+- Built-in descriptors expose the debug ActivityWindow with the runtime diagnostics capability requirement, and the Window menu opens it through a stable `OpenView.editor.debug_observatory` action.
 
 ### M3 Hit-Test Explanation
 
@@ -328,6 +352,13 @@ Completion gate:
 
 Timeline summaries should be cheap to render without deserializing full snapshots when possible.
 
+M2 uses four shared DTOs so later diff/export/replay milestones can consume the same handles without depending on editor-only state:
+
+- `UiDebugTimelineFrameHandle` wraps the retained frame id.
+- `UiDebugTimelineFrameSummary` stores deterministic counters and source identity for list rendering.
+- `UiDebugTimelineRetention` reports capacity, current length, first/latest/selected handles, and dropped-frame count.
+- `UiDebugTimelineSnapshot` packages the selected handle, ordered summaries, retained snapshot payloads, and retention report.
+
 Required fields:
 
 - frame handle
@@ -345,6 +376,8 @@ Required fields:
 - capture options
 
 Retention must be explicit. A bounded ring buffer should expose capacity, current length, first frame, latest frame, selected frame, and dropped-frame count.
+
+The runtime timeline store owns payload retention. The editor timeline read model may select handles and derive strings, but it cannot mutate `UiSurface`, rebuild layout, or alter retained runtime snapshots.
 
 ### Hit Explanation Records
 
@@ -415,7 +448,7 @@ Testing follows milestone stages, not per-edit cargo churn. Unit test code can b
 |---|---|
 | M0 | Existing `ui_debug_reflector`, `native_host_contract`, and runtime diagnostics focused checks. |
 | M1 | Runtime Diagnostics real snapshot projection, fallback no-active projection, overlay primitive preservation. |
-| M2 | Timeline capacity, retention, selected frame, deterministic summaries, no runtime mutation on historical selection. |
+| M2 | Timeline capacity, retention, selected frame, deterministic summaries, no runtime mutation on historical selection, ActivityWindow descriptor registration, Window menu binding. |
 | M3 | Hit explanation accepted path, clipped rejection, disabled/input-policy rejection, empty miss. |
 | M4 | Dirty reason projection, missing invalidation source warning, dirty/damage overlay filtering. |
 | M5 | Snapshot diff added/removed/changed/unchanged nodes and section deltas. |

@@ -54,6 +54,7 @@ impl VirtualGeometrySubmissionDetail {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn instance_index(self) -> Option<u32> {
         self.instance_index
     }
@@ -66,10 +67,12 @@ impl VirtualGeometrySubmissionDetail {
         self.page_id
     }
 
+    #[allow(dead_code)]
     pub(crate) fn submission_index(self) -> u32 {
         self.submission_index
     }
 
+    #[allow(dead_code)]
     pub(crate) fn draw_ref_rank(self) -> u32 {
         self.draw_ref_rank
     }
@@ -78,34 +81,42 @@ impl VirtualGeometrySubmissionDetail {
         self.draw_ref_index
     }
 
+    #[allow(dead_code)]
     pub(crate) fn cluster_start_ordinal(self) -> u32 {
         self.cluster_start_ordinal
     }
 
+    #[allow(dead_code)]
     pub(crate) fn cluster_span_count(self) -> u32 {
         self.cluster_span_count
     }
 
+    #[allow(dead_code)]
     pub(crate) fn cluster_total_count(self) -> u32 {
         self.cluster_total_count
     }
 
+    #[allow(dead_code)]
     pub(crate) fn submission_slot(self) -> Option<u32> {
         self.submission_slot
     }
 
+    #[allow(dead_code)]
     pub(crate) fn state(self) -> RenderVirtualGeometryExecutionState {
         self.state
     }
 
+    #[allow(dead_code)]
     pub(crate) fn lineage_depth(self) -> u32 {
         self.lineage_depth
     }
 
+    #[allow(dead_code)]
     pub(crate) fn lod_level(self) -> u8 {
         self.lod_level
     }
 
+    #[allow(dead_code)]
     pub(crate) fn frontier_rank(self) -> u32 {
         self.frontier_rank
     }

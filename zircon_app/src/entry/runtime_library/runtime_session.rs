@@ -46,10 +46,6 @@ impl RuntimeSession {
         Ok(Self { runtime, handle })
     }
 
-    pub(crate) fn handle(&self) -> ZrRuntimeSessionHandle {
-        self.handle
-    }
-
     pub(crate) fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), RuntimeLibraryError> {
         let handle_event = self
             .runtime
@@ -86,7 +82,7 @@ impl RuntimeSession {
 #[cfg(feature = "target-editor-host")]
 impl zircon_editor::EditorRuntimeClient for RuntimeSession {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
-        self.handle()
+        self.handle
     }
 
     fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), String> {

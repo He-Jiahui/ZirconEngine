@@ -7,6 +7,7 @@ impl RuntimePluginDescriptor {
         let mut manifest =
             PluginPackageManifest::new(self.package_id.clone(), self.display_name.clone())
                 .with_category(self.category.clone())
+                .with_maturity(self.maturity)
                 .with_supported_targets(self.target_modes.iter().copied())
                 .with_runtime_module(
                     PluginModuleManifest::runtime(
@@ -18,6 +19,9 @@ impl RuntimePluginDescriptor {
                 );
         for capability in &self.capabilities {
             manifest = manifest.with_capability(capability.clone());
+        }
+        for status in &self.capability_statuses {
+            manifest = manifest.with_capability_status(status.clone());
         }
         for feature in &self.optional_features {
             manifest = manifest.with_optional_feature(feature.clone());

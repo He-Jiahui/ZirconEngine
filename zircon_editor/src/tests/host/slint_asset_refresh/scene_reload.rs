@@ -18,6 +18,7 @@ fn default_scene_resource_change_requests_reload_and_runtime_sync() {
         &[],
         &[ResourceEvent {
             kind: ResourceEventKind::Updated,
+            resource_kind: zircon_runtime_interface::resource::ResourceKind::Scene,
             id: ResourceId::from_locator(
                 &ResourceLocator::parse("res://scenes/main.scene.toml").unwrap(),
             ),

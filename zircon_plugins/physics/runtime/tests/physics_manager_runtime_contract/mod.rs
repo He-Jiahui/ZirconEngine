@@ -3,8 +3,8 @@ use zircon_plugin_physics_runtime::{
     DefaultPhysicsManager, DEFAULT_PHYSICS_MANAGER_NAME, PHYSICS_MODULE_NAME,
 };
 use zircon_runtime::core::framework::physics::{
-    PhysicsBackendState, PhysicsRayCastQuery, PhysicsSettings, PhysicsSimulationMode,
-    PhysicsWorldStepPlan,
+    PhysicsBackendState, PhysicsManager, PhysicsRayCastQuery, PhysicsSettings,
+    PhysicsSimulationMode, PhysicsWorldStepPlan,
 };
 use zircon_runtime::core::manager::resolve_physics_manager;
 use zircon_runtime::core::math::{Transform, Vec3};

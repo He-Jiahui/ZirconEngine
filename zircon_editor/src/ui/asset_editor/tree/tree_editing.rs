@@ -72,6 +72,7 @@ pub(crate) fn extract_selected_node_to_component(
                 bindings: Vec::new(),
                 style_overrides: original.style_overrides.clone(),
                 children: Vec::new(),
+                ..UiNodeDefinition::default()
             },
         )
         .then_some(node_id)

@@ -11,9 +11,14 @@ capabilities = [
     "runtime.asset.importer.audio.wav",
     "runtime.asset.importer.audio.codec",
 ]
+maturity = "stable"
 asset_roots = []
 content_roots = []
 default_packaging = ["source_template", "library_embed"]
+
+[[capability_statuses]]
+capability = "runtime.asset.importer.audio.wav"
+status = "partial"
 
 [[asset_importers]]
 id = "audio_importer.wav"

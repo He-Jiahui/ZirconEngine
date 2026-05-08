@@ -23,6 +23,7 @@ use crate::entry::{EntryConfig, EntryProfile};
 #[cfg(feature = "target-editor-host")]
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 
+#[cfg(feature = "target-editor-host")]
 use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
 use super::EntryRunner;
 
@@ -44,7 +45,7 @@ impl EntryRunner {
         #[cfg(feature = "target-editor-host")]
         {
             let diagnostic_args = parse_diagnostic_log_startup_args(args)?;
-            zircon_runtime::diagnostic_log::initialize_process_log_with_filter(
+            zircon_runtime::diagnostic_log::initialize_process_log_with_config(
                 "editor",
                 diagnostic_args.filter,
             );

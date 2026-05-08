@@ -7,8 +7,8 @@ use crate::scene::LevelSystem;
 impl RenderExtractProducer for LevelSystem {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
         let cached_poses = self.animation_poses();
-        self.with_world(|world| {
-            let mut extract = world.build_render_frame_extract(context);
+        self.with_world_mut(|world| {
+            let mut extract = world.build_prepared_render_frame_extract(context);
             if cached_poses.is_empty() {
                 return extract;
             }

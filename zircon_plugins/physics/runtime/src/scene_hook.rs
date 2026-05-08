@@ -5,7 +5,7 @@ use zircon_runtime::plugin::{
     SceneRuntimeHook, SceneRuntimeHookContext, SceneRuntimeHookDescriptor,
     SceneRuntimeHookRegistration,
 };
-use zircon_runtime::scene::components::SystemStage;
+use zircon_runtime::scene::SystemStage;
 
 #[derive(Clone, Debug, Default)]
 pub struct PhysicsSceneRuntimeHook;

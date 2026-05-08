@@ -156,15 +156,16 @@ pub fn import_image(context: &AssetImportContext) -> Result<AssetImportOutcome, 
     })?;
     let rgba = image.to_rgba8();
     let (width, height) = image.dimensions();
-    Ok(AssetImportOutcome::new(ImportedAsset::Texture(
-        TextureAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Texture(TextureAsset {
             uri: context.uri.clone(),
             width,
             height,
             rgba: rgba.into_raw(),
             payload: TexturePayload::Rgba8,
-        },
-    )))
+        }),
+    ))
 }
 
 pub fn import_psd(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -187,23 +188,25 @@ pub fn import_psd(context: &AssetImportContext) -> Result<AssetImportOutcome, As
         )));
     }
 
-    Ok(AssetImportOutcome::new(ImportedAsset::Texture(
-        TextureAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Texture(TextureAsset {
             uri: context.uri.clone(),
             width,
             height,
             rgba,
             payload: TexturePayload::Rgba8,
-        },
-    )))
+        }),
+    ))
 }
 
 pub fn import_texture_container(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let info = TextureContainerInfo::parse(context)?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Texture(
-        TextureAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Texture(TextureAsset {
             uri: context.uri.clone(),
             width: info.width,
             height: info.height,
@@ -214,8 +217,8 @@ pub fn import_texture_container(
                 mip_count: info.mip_count,
                 array_layers: info.array_layers,
             },
-        },
-    )))
+        }),
+    ))
 }
 
 struct TextureContainerInfo {
@@ -502,7 +505,11 @@ mod tests {
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome
+            .root_entry()
+            .expect("root texture asset entry")
+            .asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Texture(texture) => {
@@ -529,7 +536,11 @@ mod tests {
             Default::default(),
         );
 
-        let imported = importer.import(&context).unwrap().imported_asset;
+        let outcome = importer.import(&context).unwrap();
+        let imported = &outcome
+            .root_entry()
+            .expect("root texture asset entry")
+            .asset;
 
         match imported {
             zircon_runtime::asset::ImportedAsset::Texture(texture) => {
@@ -636,7 +647,13 @@ mod tests {
             bytes,
             Default::default(),
         );
-        importer.import(&context).unwrap().imported_asset
+        importer
+            .import(&context)
+            .unwrap()
+            .root_entry()
+            .expect("root texture asset entry")
+            .asset
+            .clone()
     }
 
     fn tiny_png_bytes() -> Vec<u8> {

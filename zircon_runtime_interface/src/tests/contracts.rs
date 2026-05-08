@@ -1,6 +1,5 @@
 use crate::{
     math::{is_finite_vec3, perspective, transform_to_mat4, Transform, UVec2, Vec3},
-    resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord},
     ui::{
         binding::{UiEventBinding, UiEventKind, UiEventPath},
         component::{
@@ -425,22 +424,6 @@ fn ui_visibility_contract_separates_layout_render_and_hit_policy() {
         UiVisibility::Collapsed.effective(false),
         UiVisibility::Collapsed
     );
-}
-
-#[test]
-fn resource_contract_exposes_stable_identity_and_status_records() {
-    let locator = ResourceLocator::parse("res://materials/hero.mat#surface").unwrap();
-    let id = ResourceId::from_locator(&locator);
-    let record = ResourceRecord::new(id, ResourceKind::Material, locator.clone())
-        .with_source_hash("source-hash")
-        .with_importer_version(2);
-
-    assert_eq!(locator.to_string(), "res://materials/hero.mat#surface");
-    assert_eq!(record.id(), id);
-    assert_eq!(record.kind, ResourceKind::Material);
-    assert_eq!(record.primary_locator(), &locator);
-    assert_eq!(record.source_hash, "source-hash");
-    assert_eq!(record.importer_version, 2);
 }
 
 #[test]

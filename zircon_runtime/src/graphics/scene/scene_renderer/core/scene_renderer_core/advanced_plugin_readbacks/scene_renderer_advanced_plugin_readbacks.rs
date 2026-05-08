@@ -23,6 +23,7 @@ impl SceneRendererAdvancedPluginReadbacks {
         self.outputs
     }
 
+    #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn is_empty(&self) -> bool {
         self.outputs.is_empty()
     }

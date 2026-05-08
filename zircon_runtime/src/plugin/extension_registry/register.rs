@@ -11,7 +11,7 @@ use crate::plugin::{
     ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
     RuntimeExtensionRegistryError, SceneRuntimeHookRegistration, UiComponentDescriptor,
 };
-use crate::scene::components::SystemStage;
+use crate::scene::SystemStage;
 use std::sync::Arc;
 
 use super::RuntimeExtensionRegistry;
@@ -337,11 +337,5 @@ fn sort_scene_hooks(hooks: &mut [SceneRuntimeHookRegistration]) {
 }
 
 fn scene_stage_rank(stage: SystemStage) -> usize {
-    match stage {
-        SystemStage::PreUpdate => 0,
-        SystemStage::FixedUpdate => 1,
-        SystemStage::Update => 2,
-        SystemStage::LateUpdate => 3,
-        SystemStage::RenderExtract => 4,
-    }
+    stage.rank()
 }

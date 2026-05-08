@@ -1,4 +1,5 @@
 mod constraints;
+mod engine;
 mod geometry;
 mod linear_sizing;
 mod metrics;
@@ -9,6 +10,11 @@ mod virtualization;
 pub use constraints::{
     AxisConstraint, BoxConstraints, DesiredSize, LayoutBoundary, ResolvedAxisConstraint,
     StretchMode,
+};
+pub use engine::{
+    UiLayoutEngineBackend, UiLayoutEngineCapability, UiLayoutEngineFallbackReason,
+    UiLayoutEngineFamily, UiLayoutEngineRequest, UiLayoutEngineSelection,
+    UiLayoutEngineSelectionReport, UiLayoutEngineSupport,
 };
 pub use geometry::{
     Anchor, Pivot, Position, UiFrame, UiGeometry, UiLayoutTransform, UiPixelSnapping, UiPoint,

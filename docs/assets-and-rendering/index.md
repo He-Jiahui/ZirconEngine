@@ -3,8 +3,29 @@ related_code:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
+  - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/asset/facade/mod.rs
+  - zircon_runtime/src/asset/facade/asset.rs
+  - zircon_runtime/src/asset/facade/handle.rs
+  - zircon_runtime/src/asset/facade/assets.rs
+  - zircon_runtime/src/asset/facade/event.rs
+  - zircon_runtime/src/asset/facade/load_state.rs
+  - zircon_runtime/src/asset/facade/manager.rs
+  - zircon_runtime/src/asset/importer/contract.rs
+  - zircon_runtime/src/asset/importer/native.rs
+  - zircon_runtime/src/asset/importer/error.rs
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager/mod.rs
@@ -178,11 +199,35 @@ related_code:
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
 implementation_files:
+  - docs/assets-and-rendering/bevy-rendering-capability-matrix.md
+  - docs/assets-and-rendering/render-framework-architecture.md
+  - docs/zircon_runtime/core/framework/render/profile.md
+  - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
+  - zircon_runtime_interface/src/resource/resource_event.rs
   - zircon_runtime_interface/src/resource/resource_record.rs
   - zircon_runtime/src/core/resource/manager/resource_manager.rs
+  - zircon_runtime/src/asset/facade/mod.rs
+  - zircon_runtime/src/asset/facade/asset.rs
+  - zircon_runtime/src/asset/facade/handle.rs
+  - zircon_runtime/src/asset/facade/assets.rs
+  - zircon_runtime/src/asset/facade/event.rs
+  - zircon_runtime/src/asset/facade/load_state.rs
+  - zircon_runtime/src/asset/facade/manager.rs
+  - zircon_runtime/src/asset/importer/contract.rs
+  - zircon_runtime/src/asset/importer/native.rs
+  - zircon_runtime/src/asset/importer/error.rs
+  - zircon_runtime/src/asset/project/meta.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
   - zircon_asset/src/project/manifest.rs
   - zircon_asset/src/project/paths.rs
   - zircon_asset/src/project/manager/mod.rs
@@ -352,10 +397,16 @@ implementation_files:
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
 plan_sources:
+  - user: 2026-05-08 continue ZirconEngine Bevy-Level Rendering Completion Plan M1
+  - user: 2026-05-08 implement ZirconEngine Bevy-Level Rendering Completion Plan M0
+  - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
   - user: 2026-04-13 实现目录式 Project 资源抽象优先全链路替换计划
   - user: 2026-04-16 implement Zircon SRP/RHI Rendering Architecture Roadmap
   - user: 2026-04-17 Viewport 交互边界重构计划
   - .codex/plans/全系统重构方案.md
+  - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
+  - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
+  - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M3
   - .codex/plans/Zircon SRP_RHI Rendering Architecture Roadmap.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-runtime-host.md
   - docs/superpowers/plans/2026-04-16-m5-virtual-geometry-prepare-consumption.md
@@ -384,9 +435,14 @@ plan_sources:
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-scheduled-trace-region-dedup-closure.md
   - docs/superpowers/plans/2026-04-19-m5-hybrid-gi-first-unique-gpu-cache-truth.md
 tests:
+  - "M0 docs acceptance only: no runtime tests required by plan"
+  - cargo test -p zircon_runtime render_profile --locked
+  - cargo check -p zircon_app --locked --all-targets
   - zircon_runtime_interface/src/tests/boundary.rs
-  - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/resource_contracts.rs
   - zircon_runtime/src/core/resource/tests.rs
+  - zircon_runtime/src/asset/tests/facade.rs
+  - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_asset/src/tests/pipeline/manager.rs
   - zircon_scene/src/lib.rs
   - zircon_graphics/src/tests/project_render.rs
@@ -446,9 +502,12 @@ doc_type: category-index
 
 ## Documents
 
-- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_runtime_interface::resource` locator/handle/state/record 合同与 `zircon_runtime::core::resource` 执行层分工，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_runtime_interface::resource` locator/handle/state/record 合同与 `zircon_runtime::core::resource` 执行层分工，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，importer dependency locator -> `AssetMetaDocument.entries[*].dependencies` -> `ResourceRecord.dependency_ids` 的 M2 graph path，root/subasset `AssetMetaDocument.entries` -> one artifact/record per label 的 M3 path，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [Zircon Runtime Asset Facade](../zircon_runtime/asset/facade.md): Bevy-style `Asset`、`Handle<TAsset>`、`Assets<TAsset>`、`AssetEvent<TAsset>`、`AssetEventReceiver<TAsset>`、`AssetLoadState` 与 `RecursiveDependencyLoadState` 如何复用 `ResourceManager`、`ResourceRecord`、`ResourceEvent` 和 `ResourceLease`，以及 Zircon 对 handle residency、missing dependency diagnostics 与 `Reloading` 状态的 deliberate divergence。
 - [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial`、五类 `.zranim` 动画资产，以及 `SceneAsset <-> World` 的 physics/animation 组件 roundtrip 如何一起收进 `zircon_runtime::{asset,scene}`。
-- [Render Framework Architecture](./render-framework-architecture.md): `zircon_rhi`、`zircon_rhi_wgpu`、`zircon_render_graph`、`zircon_framework` 的基础边界，`RenderFrameExtract` 的新公共面，以及 `zircon_graphics` 当前已经迁移到 `runtime/render_framework/` 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline，以及 M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界。
+- [Bevy Rendering Capability Matrix](./bevy-rendering-capability-matrix.md): M0 source-backed matrix that maps local `dev/bevy` render feature collections and modules to Zircon runtime product profiles, neutral contract owners, concrete graphics owners, and later milestone gaps.
+- [Runtime Render Profile Contracts](../zircon_runtime/core/framework/render/profile.md): M1 neutral `RenderProductProfile` / `RenderProfileBundle` contract, validation rules for 2D/3D/UI dependencies, advanced VG/HGI/Solari opt-in gates, `zircon_app::EntryConfig` profile storage, and fresh 2026-05-08 M1 validation evidence for `cargo test -p zircon_runtime render_profile --locked` plus `cargo check -p zircon_app --locked --all-targets`.
+- [Render Framework Architecture](./render-framework-architecture.md): `zircon_runtime::{rhi,rhi_wgpu,render_graph,graphics}` 与 `zircon_runtime::core::framework::render` 的吸收后基础边界，`RenderFrameExtract` 的公共面，以及 runtime render framework 的 façade/runtime 实现现实；同时记录 M4 已经真正落地的 deferred、clustered lighting、SSAO、history、bloom、color grading、reflection probe、baked lighting、particle 与 offline bake baseline、M5 的 `Virtual Geometry / Hybrid GI` capability-slot 边界，以及 M0 Bevy-level rendering owner-map 收束。
 - [Hybrid GI Lumen-Style Scene Representation](./hybrid-gi-lumen-scene-representation.md): 记录 `RenderSceneGeometryExtract` 的 split-light cutover、`RenderHybridGiExtract` 从 authored probes/trace-regions 收口为 settings/budget/debug payload，以及 `HybridGiSceneRepresentation / SurfaceCache / VoxelScene / InputSet` 的 milestone-1 内部状态骨架、`RenderStats` readback 面、`HybridGiScenePrepareFrame` 的 renderer seam、统一 `scene_prepare_descriptor_buffer` 和 shader 对 card-capture/voxel descriptors 的首轮真实消费，以及最新一层 runtime-owned `voxel_cells` occupancy/count contract 如何接管 scene-prepare 里的 coarse voxel residency authority。
 - [Zircon UI 与 Unreal Slate 渲染差异审计](./runtime-ui-slate-rendering-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 渲染源码，细化 draw element、brush payload、batch key、cached element、RHI renderer/debug visualizer 和 text render 与当前 `UiRenderCommand`、runtime WGPU UI pass、editor painter 的差距及后续渲染里程碑。
 - [Runtime Surface And Assets Rules](./runtime-surface-and-assets-rules.md): `zircon_runtime` crate root、`graphics` root、runtime UI fixture 资源位置，以及 hard-cutover 后删除 `compat/service` 迁移味目录的长期规则。

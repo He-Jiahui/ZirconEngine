@@ -8,14 +8,12 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::{
-    arrange::arrange_node,
-    child_frame::free_child_frame,
-    measure::measure_node,
+    arrange::arrange_node, child_frame::free_child_frame, measure::measure_node,
     slot::slot_for_container_child,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub struct UiIncrementalLayoutStats {
+pub(crate) struct UiIncrementalLayoutStats {
     pub visited_node_count: usize,
     pub geometry_changed_node_count: usize,
     pub skipped_node_count: usize,
@@ -27,7 +25,7 @@ struct LayoutGeometry {
     clip_frame: Option<UiFrame>,
 }
 
-pub fn compute_incremental_layout_tree(
+pub(crate) fn compute_incremental_layout_tree(
     tree: &mut UiTree,
     root_size: UiSize,
 ) -> Result<UiIncrementalLayoutStats, UiTreeError> {
@@ -90,7 +88,9 @@ fn propagated_layout_root(tree: &UiTree, node_id: UiNodeId) -> Result<UiNodeId, 
         let parent = tree
             .node(parent_id)
             .ok_or(UiTreeError::MissingParent(parent_id))?;
-        if !(parent.layout_boundary.propagates_child_layout_invalidation()
+        if !(parent
+            .layout_boundary
+            .propagates_child_layout_invalidation()
             || parent.container.is_auto_layout_container())
         {
             break;
@@ -154,7 +154,9 @@ fn collect_subtree_nodes(
     node_id: UiNodeId,
     visited: &mut BTreeSet<UiNodeId>,
 ) -> Result<(), UiTreeError> {
-    let node = tree.node(node_id).ok_or(UiTreeError::MissingNode(node_id))?;
+    let node = tree
+        .node(node_id)
+        .ok_or(UiTreeError::MissingNode(node_id))?;
     visited.insert(node_id);
     for child_id in &node.children {
         collect_subtree_nodes(tree, *child_id, visited)?;
@@ -178,5 +180,10 @@ fn snapshot_geometry(tree: &UiTree) -> BTreeMap<UiNodeId, LayoutGeometry> {
 }
 
 fn root_frame(root_size: UiSize) -> UiFrame {
-    UiFrame::new(0.0, 0.0, root_size.width.max(0.0), root_size.height.max(0.0))
+    UiFrame::new(
+        0.0,
+        0.0,
+        root_size.width.max(0.0),
+        root_size.height.max(0.0),
+    )
 }

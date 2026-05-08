@@ -167,10 +167,13 @@ pub fn import_gltf(context: &AssetImportContext) -> Result<AssetImportOutcome, A
         }
     }
 
-    Ok(AssetImportOutcome::new(ImportedAsset::Model(ModelAsset {
-        uri: context.uri.clone(),
-        primitives,
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Model(ModelAsset {
+            uri: context.uri.clone(),
+            primitives,
+        }),
+    ))
 }
 
 fn primitive_from_indexed_mesh(
@@ -333,7 +336,8 @@ mod tests {
         ))
         .unwrap();
 
-        match outcome.imported_asset {
+        let entry = outcome.root_entry().expect("root gltf asset entry");
+        match &entry.asset {
             ImportedAsset::Model(model) => {
                 assert_eq!(model.primitives.len(), 1);
                 assert_eq!(model.primitives[0].vertices.len(), 3);

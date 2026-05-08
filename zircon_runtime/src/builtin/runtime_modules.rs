@@ -11,6 +11,7 @@ use crate::graphics::{
 };
 use crate::plugin::{
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
+    RuntimeProfileDescriptor, RuntimeProfileId,
 };
 #[cfg(feature = "plugin-ui")]
 use crate::ui;
@@ -320,17 +321,131 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
             .iter()
             .map(|registration| &registration.extensions),
     );
-    let mut report = runtime_modules_for_target_with_linked_plugins_and_render_features(
-        target,
-        manifest_override,
-        linked_plugin_ids,
-        &asset_importers,
-        &render_features,
-        &render_pass_executors,
-        &runtime_prepare_collectors,
-        &hybrid_gi_runtime_providers,
-        &virtual_geometry_runtime_providers,
+    let manifest = manifest_with_mode_baseline(target, manifest_override);
+    let mut report =
+        runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
+            target,
+            &manifest,
+            linked_plugin_ids,
+            &asset_importers,
+            &render_features,
+            &render_pass_executors,
+            &runtime_prepare_collectors,
+            &hybrid_gi_runtime_providers,
+            &virtual_geometry_runtime_providers,
+        );
+    report.errors.extend(asset_importer_errors);
+    report
+}
+
+pub fn runtime_modules_for_runtime_profile(
+    profile_id: RuntimeProfileId,
+) -> RuntimeModuleLoadReport {
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
+    let manifest = profile.project_manifest();
+    runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
+        profile.target_mode,
+        &manifest,
+        std::iter::empty::<String>(),
+        &AssetImporterRegistry::default(),
+        &[],
+        &[],
+        &[],
+        &[],
+        &[],
+    )
+}
+
+pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
+    profile_id: RuntimeProfileId,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let profile = RuntimeProfileDescriptor::for_id(profile_id);
+    let manifest = profile.project_manifest();
+    runtime_modules_for_profile_manifest_with_plugin_registration_reports(
+        profile.target_mode,
+        &manifest,
+        registrations,
+    )
+}
+
+fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
+    target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+    registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
+) -> RuntimeModuleLoadReport {
+    let registrations = registrations
+        .into_iter()
+        .filter(|registration| {
+            registration.project_selection.enabled
+                && registration.project_selection.supports_target(target)
+        })
+        .collect::<Vec<_>>();
+    let linked_plugin_ids = registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+    let render_features = registrations
+        .iter()
+        .flat_map(|registration| registration.extensions.render_features().iter().cloned())
+        .collect::<Vec<_>>();
+    let render_pass_executors = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .render_pass_executors()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    let runtime_prepare_collectors = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .runtime_prepare_collectors()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    let hybrid_gi_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .hybrid_gi_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    let virtual_geometry_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .virtual_geometry_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
+    let (asset_importers, asset_importer_errors) = asset_importers_from_extension_registries(
+        registrations
+            .iter()
+            .map(|registration| &registration.extensions),
     );
+    let mut report =
+        runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
+            target,
+            manifest,
+            linked_plugin_ids,
+            &asset_importers,
+            &render_features,
+            &render_pass_executors,
+            &runtime_prepare_collectors,
+            &hybrid_gi_runtime_providers,
+            &virtual_geometry_runtime_providers,
+        );
     report.errors.extend(asset_importer_errors);
     report
 }
@@ -509,6 +624,31 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
+    let manifest = manifest_with_mode_baseline(target, manifest_override);
+    runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
+        target,
+        &manifest,
+        linked_plugin_ids,
+        asset_importers,
+        render_features,
+        render_pass_executors,
+        runtime_prepare_collectors,
+        hybrid_gi_runtime_providers,
+        virtual_geometry_runtime_providers,
+    )
+}
+
+fn runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
+    target: RuntimeTargetMode,
+    manifest: &ProjectPluginManifest,
+    linked_plugin_ids: impl IntoIterator<Item = impl AsRef<str>>,
+    asset_importers: &AssetImporterRegistry,
+    render_features: &[RenderFeatureDescriptor],
+    render_pass_executors: &[RenderPassExecutorRegistration],
+    runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
+    hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
+    virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
+) -> RuntimeModuleLoadReport {
     let linked_plugin_ids = linked_plugin_ids
         .into_iter()
         .map(|id| id.as_ref().to_string())
@@ -523,7 +663,6 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
             hybrid_gi_runtime_providers,
             virtual_geometry_runtime_providers,
         ));
-    let manifest = manifest_with_mode_baseline(target, manifest_override);
 
     for selection in manifest.enabled_for_target(target) {
         let Some(runtime_id) = selection.runtime_id() else {
@@ -598,6 +737,10 @@ pub fn manifest_with_mode_baseline(
         }
     }
     manifest
+}
+
+pub fn manifest_for_runtime_profile(profile_id: RuntimeProfileId) -> ProjectPluginManifest {
+    RuntimeProfileDescriptor::for_id(profile_id).project_manifest()
 }
 
 fn linked_plugin_is_available(

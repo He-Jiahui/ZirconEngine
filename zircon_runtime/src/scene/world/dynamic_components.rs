@@ -46,7 +46,8 @@ impl World {
         if components.get(&component_id) == Some(&value) {
             return Ok(false);
         }
-        components.insert(component_id, value);
+        components.insert(component_id.clone(), value);
+        self.insert_dynamic_component_presence(entity, &component_id)?;
         Ok(true)
     }
 
@@ -88,6 +89,9 @@ impl World {
         let removed = components.remove(component_id).is_some();
         if components.is_empty() {
             self.dynamic_components.remove(&entity);
+        }
+        if removed {
+            self.remove_dynamic_component_presence(entity, component_id)?;
         }
         Ok(removed)
     }
@@ -151,6 +155,7 @@ impl World {
             return Ok(false);
         }
         object.insert(property, json_value);
+        self.insert_dynamic_component_presence(entity, &component_id)?;
         Ok(true)
     }
 

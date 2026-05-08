@@ -14,13 +14,14 @@ pub(crate) fn import_texture(
     })?;
     let rgba = image.to_rgba8();
     let (width, height) = image.dimensions();
-    Ok(AssetImportOutcome::new(ImportedAsset::Texture(
-        TextureAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Texture(TextureAsset {
             uri: context.uri.clone(),
             width,
             height,
             rgba: rgba.into_raw(),
             payload: TexturePayload::Rgba8,
-        },
-    )))
+        }),
+    ))
 }

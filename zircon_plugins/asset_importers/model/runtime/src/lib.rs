@@ -306,10 +306,13 @@ pub(crate) fn model_outcome(
     context: &AssetImportContext,
     primitives: Vec<ModelPrimitiveAsset>,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Model(ModelAsset {
-        uri: context.uri.clone(),
-        primitives,
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Model(ModelAsset {
+            uri: context.uri.clone(),
+            primitives,
+        }),
+    ))
 }
 
 pub(crate) fn primitive_from_indexed_mesh(
@@ -606,7 +609,13 @@ mod tests {
             source.as_bytes().to_vec(),
             Default::default(),
         );
-        importer.import(&context).unwrap().imported_asset
+        importer
+            .import(&context)
+            .unwrap()
+            .root_entry()
+            .expect("root model asset entry")
+            .asset
+            .clone()
     }
 
     fn ascii_stl_fixture() -> &'static str {

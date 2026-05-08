@@ -249,6 +249,28 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                     ));
                 }
             }
+            AnimationGraphNodeAsset::Additive {
+                id, base, additive, ..
+            } => {
+                validate_node_id(id, "additive", &mut node_ids, &mut diagnostics);
+                if base.trim().is_empty() || additive.trim().is_empty() {
+                    diagnostics.push(format!(
+                        "animation graph additive `{id}` must have base and additive inputs"
+                    ));
+                }
+            }
+            AnimationGraphNodeAsset::Mask {
+                id,
+                input,
+                target_ids,
+            } => {
+                validate_node_id(id, "mask", &mut node_ids, &mut diagnostics);
+                if input.trim().is_empty() || target_ids.is_empty() {
+                    diagnostics.push(format!(
+                        "animation graph mask `{id}` must have an input and at least one target"
+                    ));
+                }
+            }
             AnimationGraphNodeAsset::Output { .. } => {
                 output_count += 1;
             }
@@ -270,6 +292,24 @@ pub fn validate_animation_graph_asset(graph: &AnimationGraphAsset) -> Vec<String
                             "animation graph blend `{id}` references missing input `{input}`"
                         ));
                     }
+                }
+            }
+            AnimationGraphNodeAsset::Additive {
+                id, base, additive, ..
+            } => {
+                for input in [base, additive] {
+                    if !node_ids.contains(input.as_str()) {
+                        diagnostics.push(format!(
+                            "animation graph additive `{id}` references missing input `{input}`"
+                        ));
+                    }
+                }
+            }
+            AnimationGraphNodeAsset::Mask { id, input, .. } => {
+                if !node_ids.contains(input.as_str()) {
+                    diagnostics.push(format!(
+                        "animation graph mask `{id}` references missing input `{input}`"
+                    ));
                 }
             }
             AnimationGraphNodeAsset::Output { source } => {

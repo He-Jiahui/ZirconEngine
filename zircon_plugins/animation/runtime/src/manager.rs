@@ -7,9 +7,10 @@ use zircon_runtime::asset::{
     AnimationStateMachineAsset,
 };
 use zircon_runtime::core::framework::animation::{
-    AnimationGraphClipInstance, AnimationGraphEvaluation, AnimationManager, AnimationParameterMap,
-    AnimationParameterValue, AnimationPlaybackSettings, AnimationPoseBone, AnimationPoseOutput,
-    AnimationPoseSource, AnimationStateMachineEvaluation, AnimationTrackPath,
+    AnimationGraphBlendMode, AnimationGraphClipInstance, AnimationGraphEvaluation,
+    AnimationManager, AnimationParameterMap, AnimationParameterValue, AnimationPlaybackSettings,
+    AnimationPoseBone, AnimationPoseOutput, AnimationPoseSource, AnimationStateMachineEvaluation,
+    AnimationTrackPath,
 };
 use zircon_runtime::core::math::{Quat, Real, Transform, Vec3};
 use zircon_runtime::core::{CoreError, CoreHandle};
@@ -115,13 +116,15 @@ impl AnimationManager for DefaultAnimationManager {
         });
         let clips = output_node
             .as_deref()
-            .map(|source| collect_graph_clips(graph, source, &parameters, &mut HashSet::new()))
+            .map(|source| collect_graph_clips(graph, source, &parameters, &[], &mut HashSet::new()))
             .unwrap_or_default();
+        let mask_target_ids = collect_unique_graph_target_ids(&clips);
 
         AnimationGraphEvaluation {
             parameters,
             output_node,
             clips,
+            mask_target_ids,
         }
     }
 
@@ -202,7 +205,10 @@ impl AnimationManager for DefaultAnimationManager {
             .collect::<Result<Vec<_>, _>>()?;
 
         for track in &clip.tracks {
-            let Some(bone) = bones.iter_mut().find(|bone| bone.name == track.bone_name) else {
+            let Some(bone_index) = resolve_clip_track_bone_index(skeleton, track) else {
+                continue;
+            };
+            let Some(bone) = bones.get_mut(bone_index) else {
                 continue;
             };
             if let Some(sample) = track.translation.sample(sample_time) {
@@ -273,10 +279,54 @@ fn animation_pose_bone_from_skeleton(
     })
 }
 
+fn resolve_clip_track_bone_index(
+    skeleton: &AnimationSkeletonAsset,
+    track: &zircon_runtime::asset::AnimationClipBoneTrackAsset,
+) -> Option<usize> {
+    if let Some(target_id) = track
+        .target_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+    {
+        if let Some(index) = skeleton
+            .bones
+            .iter()
+            .position(|bone| bone.name == target_id)
+        {
+            return Some(index);
+        }
+        if let Some(index) = skeleton.bones.iter().enumerate().find_map(|(index, _)| {
+            (skeleton_bone_path(skeleton, index)? == target_id).then_some(index)
+        }) {
+            return Some(index);
+        }
+    }
+
+    skeleton
+        .bones
+        .iter()
+        .position(|bone| bone.name == track.bone_name)
+}
+
+fn skeleton_bone_path(skeleton: &AnimationSkeletonAsset, index: usize) -> Option<String> {
+    let bone = skeleton.bones.get(index)?;
+    let mut segments = vec![bone.name.clone()];
+    let mut parent = bone.parent_index;
+    while let Some(parent_index) = parent {
+        let parent_bone = skeleton.bones.get(parent_index as usize)?;
+        segments.push(parent_bone.name.clone());
+        parent = parent_bone.parent_index;
+    }
+    segments.reverse();
+    Some(segments.join("/"))
+}
+
 fn collect_graph_clips(
     graph: &AnimationGraphAsset,
     node_id: &str,
     parameters: &AnimationParameterMap,
+    inherited_target_ids: &[String],
     visited: &mut HashSet<String>,
 ) -> Vec<AnimationGraphClipInstance> {
     if !visited.insert(node_id.to_string()) {
@@ -297,6 +347,8 @@ fn collect_graph_clips(
                 playback_speed: finite_graph_clip_playback_speed(*playback_speed),
                 looping: *looping,
                 weight: 1.0,
+                blend_mode: AnimationGraphBlendMode::Base,
+                target_ids: inherited_target_ids.to_vec(),
             }]),
             AnimationGraphNodeAsset::Blend {
                 id,
@@ -325,22 +377,71 @@ fn collect_graph_clips(
                 for (index, input) in inputs.iter().enumerate() {
                     let weight = input_weights.get(index).copied().unwrap_or(1.0);
                     clips.extend(
-                        collect_graph_clips(graph, input, parameters, visited)
-                            .into_iter()
-                            .map(|mut clip| {
-                                clip.weight *= weight;
-                                clip
-                            }),
+                        collect_graph_clips(
+                            graph,
+                            input,
+                            parameters,
+                            inherited_target_ids,
+                            visited,
+                        )
+                        .into_iter()
+                        .map(|mut clip| {
+                            clip.weight *= weight;
+                            clip
+                        }),
                     );
                 }
                 Some(clips)
             }
+            AnimationGraphNodeAsset::Additive {
+                id,
+                base,
+                additive,
+                weight_parameter,
+            } if id == node_id => {
+                let additive_weight = weight_parameter
+                    .as_deref()
+                    .and_then(|name| parameter_scalar(parameters, name))
+                    .unwrap_or(1.0)
+                    .clamp(0.0, 1.0);
+                let mut clips =
+                    collect_graph_clips(graph, base, parameters, inherited_target_ids, visited);
+                clips.extend(
+                    collect_graph_clips(graph, additive, parameters, inherited_target_ids, visited)
+                        .into_iter()
+                        .map(|mut clip| {
+                            clip.blend_mode = AnimationGraphBlendMode::Additive;
+                            clip.weight *= additive_weight;
+                            clip
+                        }),
+                );
+                Some(clips)
+            }
+            AnimationGraphNodeAsset::Mask {
+                id,
+                input,
+                target_ids,
+            } if id == node_id => Some(collect_graph_clips(
+                graph, input, parameters, target_ids, visited,
+            )),
             _ => None,
         })
         .unwrap_or_default();
 
     visited.remove(node_id);
     result
+}
+
+fn collect_unique_graph_target_ids(clips: &[AnimationGraphClipInstance]) -> Vec<String> {
+    let mut target_ids = Vec::new();
+    for clip in clips {
+        for target_id in &clip.target_ids {
+            if !target_ids.iter().any(|existing| existing == target_id) {
+                target_ids.push(target_id.clone());
+            }
+        }
+    }
+    target_ids
 }
 
 fn condition_matches(

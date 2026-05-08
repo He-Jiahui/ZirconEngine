@@ -40,7 +40,7 @@ fn inspector_batch_commit_is_atomic_on_invalid_parent() {
     let cube = cube_id(&state);
     let original = state
         .world
-        .with_world(|scene| scene.find_node(cube).unwrap().clone());
+        .with_world(|scene| scene.find_node(cube).unwrap());
 
     state.apply_intent(EditorIntent::SelectNode(cube)).unwrap();
     state.update_name_field("Should Not Apply".to_string());

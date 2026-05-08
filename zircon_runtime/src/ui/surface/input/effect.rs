@@ -6,6 +6,7 @@ use zircon_runtime_interface::ui::{
         UiInputDispatchResult, UiInputEvent, UiInputMethodRequest, UiInputMethodRequestKind,
     },
     event_ui::UiNodeId,
+    focus::{UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason},
     tree::UiDirtyFlags,
 };
 
@@ -109,17 +110,18 @@ fn apply_effect(
     effect: &UiDispatchEffect,
 ) -> Result<Option<UiNodeId>, String> {
     match effect {
-        UiDispatchEffect::SetFocus { target, .. } => {
+        UiDispatchEffect::SetFocus { target, reason } => {
+            let (change_reason, visible) = focus_effect_reasons(*reason);
             surface
-                .focus_node(*target)
+                .focus_node_with_reason(*target, change_reason, visible)
                 .map_err(|error| format!("focus rejected: {error}"))?;
             Ok(Some(*target))
         }
-        UiDispatchEffect::ClearFocus { target, .. } => {
+        UiDispatchEffect::ClearFocus { target, reason } => {
             if surface.focus.focused != Some(*target) {
                 return Err("focus owner mismatch".to_string());
             }
-            surface.clear_focus();
+            surface.clear_focus_with_reason(clear_focus_effect_reason(*reason));
             if surface.input.input_method_owner == Some(*target) {
                 surface.input.clear_input_method();
             }
@@ -243,11 +245,15 @@ fn apply_effect(
                 .map_err(|error| format!("navigation route rejected: {error}"))?;
             let target = surface
                 .tree
-                .next_focusable_target(route.target, *kind)
+                .next_navigation_target(route.target, *kind)
                 .map_err(|error| format!("navigation target rejected: {error}"))?;
             if let Some(target) = target {
                 surface
-                    .focus_node(target)
+                    .focus_node_with_reason(
+                        target,
+                        UiFocusChangeReason::Navigation,
+                        UiFocusVisible::visible(UiFocusVisibleReason::KeyboardNavigation),
+                    )
                     .map_err(|error| format!("navigation focus rejected: {error}"))?;
                 Ok(Some(target))
             } else {
@@ -423,4 +429,41 @@ fn merge_dirty(target: &mut UiDirtyFlags, dirty: UiDirtyFlags) {
     target.text |= dirty.text;
     target.input |= dirty.input;
     target.visible_range |= dirty.visible_range;
+}
+
+fn focus_effect_reasons(
+    reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason,
+) -> (UiFocusChangeReason, UiFocusVisible) {
+    match reason {
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input => (
+            UiFocusChangeReason::Input,
+            UiFocusVisible::hidden(UiFocusVisibleReason::PointerInteraction),
+        ),
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Navigation => (
+            UiFocusChangeReason::Navigation,
+            UiFocusVisible::visible(UiFocusVisibleReason::KeyboardNavigation),
+        ),
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Programmatic
+        | zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Dismissal => (
+            UiFocusChangeReason::Programmatic,
+            UiFocusVisible::visible(UiFocusVisibleReason::Programmatic),
+        ),
+    }
+}
+
+fn clear_focus_effect_reason(
+    reason: zircon_runtime_interface::ui::dispatch::UiFocusEffectReason,
+) -> UiFocusChangeReason {
+    match reason {
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Input => {
+            UiFocusChangeReason::Input
+        }
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Navigation => {
+            UiFocusChangeReason::Navigation
+        }
+        zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Programmatic
+        | zircon_runtime_interface::ui::dispatch::UiFocusEffectReason::Dismissal => {
+            UiFocusChangeReason::Clear
+        }
+    }
 }

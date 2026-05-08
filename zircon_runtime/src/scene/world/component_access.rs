@@ -71,15 +71,12 @@ impl World {
                 if self.rigid_bodies.get(&entity) == Some(&rigid_body) {
                     false
                 } else {
-                    self.rigid_bodies.insert(entity, rigid_body);
+                    self.insert(entity, rigid_body)?;
                     true
                 }
             }
-            None => self.rigid_bodies.remove(&entity).is_some(),
+            None => self.remove::<RigidBodyComponent>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -96,15 +93,12 @@ impl World {
                 if self.colliders.get(&entity) == Some(&collider) {
                     false
                 } else {
-                    self.colliders.insert(entity, collider);
+                    self.insert(entity, collider)?;
                     true
                 }
             }
-            None => self.colliders.remove(&entity).is_some(),
+            None => self.remove::<ColliderComponent>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -124,15 +118,12 @@ impl World {
                 if self.joints.get(&entity) == Some(&joint) {
                     false
                 } else {
-                    self.joints.insert(entity, joint);
+                    self.insert(entity, joint)?;
                     true
                 }
             }
-            None => self.joints.remove(&entity).is_some(),
+            None => self.remove::<JointComponent>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -151,15 +142,12 @@ impl World {
                 if self.point_lights.get(&entity) == Some(&point_light) {
                     false
                 } else {
-                    self.point_lights.insert(entity, point_light);
+                    self.insert(entity, point_light)?;
                     true
                 }
             }
-            None => self.point_lights.remove(&entity).is_some(),
+            None => self.remove::<PointLight>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -178,15 +166,12 @@ impl World {
                 if self.spot_lights.get(&entity) == Some(&spot_light) {
                     false
                 } else {
-                    self.spot_lights.insert(entity, spot_light);
+                    self.insert(entity, spot_light)?;
                     true
                 }
             }
-            None => self.spot_lights.remove(&entity).is_some(),
+            None => self.remove::<SpotLight>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -205,15 +190,12 @@ impl World {
                 if self.animation_skeletons.get(&entity) == Some(&animation_skeleton) {
                     false
                 } else {
-                    self.animation_skeletons.insert(entity, animation_skeleton);
+                    self.insert(entity, animation_skeleton)?;
                     true
                 }
             }
-            None => self.animation_skeletons.remove(&entity).is_some(),
+            None => self.remove::<AnimationSkeletonComponent>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -232,15 +214,12 @@ impl World {
                 if self.animation_players.get(&entity) == Some(&animation_player) {
                     false
                 } else {
-                    self.animation_players.insert(entity, animation_player);
+                    self.insert(entity, animation_player)?;
                     true
                 }
             }
-            None => self.animation_players.remove(&entity).is_some(),
+            None => self.remove::<AnimationPlayerComponent>(entity)?.is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -260,16 +239,14 @@ impl World {
                 {
                     false
                 } else {
-                    self.animation_sequence_players
-                        .insert(entity, animation_sequence_player);
+                    self.insert(entity, animation_sequence_player)?;
                     true
                 }
             }
-            None => self.animation_sequence_players.remove(&entity).is_some(),
+            None => self
+                .remove::<AnimationSequencePlayerComponent>(entity)?
+                .is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -288,16 +265,14 @@ impl World {
                 if self.animation_graph_players.get(&entity) == Some(&animation_graph_player) {
                     false
                 } else {
-                    self.animation_graph_players
-                        .insert(entity, animation_graph_player);
+                    self.insert(entity, animation_graph_player)?;
                     true
                 }
             }
-            None => self.animation_graph_players.remove(&entity).is_some(),
+            None => self
+                .remove::<AnimationGraphPlayerComponent>(entity)?
+                .is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 
@@ -318,19 +293,14 @@ impl World {
                 {
                     false
                 } else {
-                    self.animation_state_machine_players
-                        .insert(entity, animation_state_machine_player);
+                    self.insert(entity, animation_state_machine_player)?;
                     true
                 }
             }
             None => self
-                .animation_state_machine_players
-                .remove(&entity)
+                .remove::<AnimationStateMachinePlayerComponent>(entity)?
                 .is_some(),
         };
-        if changed {
-            self.refresh_node_cache();
-        }
         Ok(changed)
     }
 }

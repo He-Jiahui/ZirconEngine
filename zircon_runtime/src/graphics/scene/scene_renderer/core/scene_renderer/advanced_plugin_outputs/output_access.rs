@@ -9,6 +9,7 @@ impl SceneRendererAdvancedPluginOutputs {
         *self = Self::default();
     }
 
+    #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn has_virtual_geometry_gpu_readback(
         &self,
     ) -> bool {
@@ -18,6 +19,7 @@ impl SceneRendererAdvancedPluginOutputs {
             .is_empty()
     }
 
+    #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn plugin_renderer_outputs(
         &self,
     ) -> &RenderPluginRendererOutputs {

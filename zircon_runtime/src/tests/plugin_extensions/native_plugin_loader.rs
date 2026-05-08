@@ -306,7 +306,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert_eq!(report.loaded.len(), 1);
     let plugin = &report.loaded[0];
     assert_eq!(plugin.plugin_id, "native_dynamic_fixture");
-    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 2);
+    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 3);
     assert!(plugin
         .descriptor
         .as_ref()
@@ -321,7 +321,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
             .unwrap()
             .runtime_entry_name
             .as_deref(),
-        Some("zircon_native_dynamic_fixture_runtime_entry_v2")
+        Some("zircon_native_dynamic_fixture_runtime_entry_v3")
     );
     assert_eq!(
         plugin
@@ -330,7 +330,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
             .unwrap()
             .editor_entry_name
             .as_deref(),
-        Some("zircon_native_dynamic_fixture_editor_entry_v2")
+        Some("zircon_native_dynamic_fixture_editor_entry_v3")
     );
     assert_eq!(
         plugin.runtime_entry_report.as_ref().unwrap().plugin_id,
@@ -344,6 +344,15 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .iter()
         .any(|capability| capability == "runtime.plugin.native_dynamic_fixture"));
     assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
+    assert_eq!(plugin.runtime_state_schema_version(), Some(3));
+    assert_eq!(
+        plugin.runtime_command_manifest_schema(),
+        Some("zircon.native.command-manifest/3")
+    );
+    assert_eq!(
+        plugin.runtime_event_manifest_schema(),
+        Some("zircon.native.event-manifest/3")
+    );
     assert!(plugin
         .runtime_command_manifest()
         .is_some_and(|manifest| manifest.contains("command=echo;payload=bytes")));
@@ -450,7 +459,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(registrations[0]
         .diagnostics
         .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
     assert!(registrations[0]
         .diagnostics
         .iter()
@@ -459,6 +468,13 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .diagnostics
         .iter()
         .any(|message| message.contains("denied capability runtime.plugin.denied_fixture")));
+    assert!(registrations[0]
+        .diagnostics
+        .iter()
+        .any(|message| message.contains("host log level=2 target=native_dynamic_fixture.runtime")));
+    assert!(registrations[0].diagnostics.iter().any(|message| message.contains(
+        "host diagnostic plugin.native_dynamic_fixture.runtime.entry=1 count tags=plugin,native,runtime"
+    )));
     assert!(!registrations[0]
         .diagnostics
         .iter()
@@ -470,7 +486,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(report
         .diagnostics_for_plugin("native_dynamic_fixture")
         .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
     assert!(report
         .diagnostics_for_plugin("native_dynamic_fixture")
         .iter()
@@ -478,7 +494,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(report
         .diagnostics_for_runtime_plugin("native_dynamic_fixture")
         .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
     assert!(!report
         .diagnostics_for_runtime_plugin("native_dynamic_fixture")
         .iter()
@@ -490,7 +506,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(!report
         .diagnostics_for_editor_plugin("native_dynamic_fixture")
         .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
 
     let runtime_report = NativePluginLoader.load_discovered_runtime(&package_root);
     assert!(
@@ -507,7 +523,7 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
     assert!(runtime_registrations[0]
         .diagnostics
         .iter()
-        .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
     assert!(!runtime_registrations[0]
         .diagnostics
         .iter()
@@ -530,6 +546,56 @@ fn native_loader_calls_real_fixture_descriptor_and_entries() {
         .any(|message| message.contains("editor entry reached")));
     assert!(!editor_report
         .entry_diagnostics()
+        .iter()
+        .any(|message| message.contains("runtime v3 entry reached with host ABI table")));
+
+    let _ = fs::remove_dir_all(fixture_target);
+    let _ = fs::remove_dir_all(package_root);
+}
+
+#[test]
+fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
+    let fixture_target = temp_export_root("native-dynamic-fixture-v2-target");
+    let package_root = temp_export_root("native-dynamic-fixture-v2-package");
+    let plugin_root = package_root.join("native_dynamic_fixture");
+    let native_root = plugin_root.join("native");
+    fs::create_dir_all(&native_root).unwrap();
+
+    let library_path =
+        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
+    fs::copy(
+        &library_path,
+        native_root.join(platform_library_file_name(
+            "zircon_plugin_native_dynamic_fixture_native",
+        )),
+    )
+    .unwrap();
+    fs::copy(
+        repo_root().join("zircon_plugins/native_dynamic_fixture/plugin.toml"),
+        plugin_root.join("plugin.toml"),
+    )
+    .unwrap();
+
+    let report = NativePluginLoader.load_discovered_runtime(&package_root);
+
+    assert!(report.diagnostics.is_empty(), "{:?}", report.diagnostics);
+    assert_eq!(report.loaded.len(), 1);
+    let plugin = &report.loaded[0];
+    assert_eq!(plugin.descriptor.as_ref().unwrap().abi_version, 2);
+    assert_eq!(
+        plugin
+            .descriptor
+            .as_ref()
+            .unwrap()
+            .runtime_entry_name
+            .as_deref(),
+        Some("zircon_native_dynamic_fixture_runtime_entry_v2")
+    );
+    assert_eq!(plugin.runtime_behavior_is_stateless(), Some(false));
+    assert_eq!(plugin.runtime_state_schema_version(), Some(0));
+    assert!(plugin.runtime_command_manifest_schema().is_none());
+    assert!(report
+        .diagnostics_for_runtime_plugin("native_dynamic_fixture")
         .iter()
         .any(|message| message.contains("runtime v2 entry reached with host ABI table")));
 
@@ -578,10 +644,9 @@ fn native_loader_fixture_can_import_data_asset_through_native_importer_handler()
     );
 
     let outcome = importer.import(&context).expect("native data import");
-    let imported_asset = outcome.imported_asset;
-    let diagnostics = outcome.diagnostics;
+    let entry = outcome.root_entry().expect("native root asset entry");
 
-    match imported_asset {
+    match &entry.asset {
         ImportedAsset::Data(data) => {
             assert_eq!(data.format, DataAssetFormat::Json);
             assert_eq!(data.text, r#"{"temperature":21,"condition":"clear"}"#);
@@ -590,7 +655,8 @@ fn native_loader_fixture_can_import_data_asset_through_native_importer_handler()
         }
         other => panic!("unexpected imported asset: {other:?}"),
     }
-    assert!(diagnostics
+    assert!(entry
+        .diagnostics
         .iter()
         .any(|diagnostic| diagnostic.message.contains("weather.nativejson")));
 
@@ -678,8 +744,16 @@ fn temp_export_root(label: &str) -> PathBuf {
 }
 
 fn build_native_dynamic_fixture(target_root: &std::path::Path) -> PathBuf {
+    build_native_dynamic_fixture_with_features(target_root, &[])
+}
+
+fn build_native_dynamic_fixture_with_features(
+    target_root: &std::path::Path,
+    features: &[&str],
+) -> PathBuf {
     let manifest_path = repo_root().join("zircon_plugins/Cargo.toml");
-    let status = Command::new("cargo")
+    let mut command = Command::new("cargo");
+    command
         .arg("build")
         .arg("--manifest-path")
         .arg(&manifest_path)
@@ -688,9 +762,11 @@ fn build_native_dynamic_fixture(target_root: &std::path::Path) -> PathBuf {
         .arg("--locked")
         .arg("--target-dir")
         .arg(target_root)
-        .arg("--quiet")
-        .status()
-        .unwrap();
+        .arg("--quiet");
+    if !features.is_empty() {
+        command.arg("--features").arg(features.join(","));
+    }
+    let status = command.status().unwrap();
     assert!(
         status.success(),
         "native dynamic fixture build failed: {status}"

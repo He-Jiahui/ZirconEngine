@@ -5,6 +5,11 @@ use super::ProjectManager;
 impl ProjectManager {
     pub fn load_artifact(&self, uri: &AssetUri) -> Result<ImportedAsset, AssetImportError> {
         let metadata = self.registry.get_by_locator(uri).ok_or_else(|| {
+            if let Some((source_uri, label)) = split_labeled_uri(uri) {
+                if self.registry.get_by_locator(&source_uri).is_some() {
+                    return AssetImportError::MissingAssetLabel { source_uri, label };
+                }
+            }
             AssetImportError::Parse(format!("missing asset metadata for source uri {uri}"))
         })?;
         let artifact_uri = metadata.artifact_locator().ok_or_else(|| {
@@ -22,4 +27,12 @@ impl ProjectManager {
         })?;
         self.artifact_store.read(&self.paths, artifact_uri)
     }
+}
+
+fn split_labeled_uri(uri: &AssetUri) -> Option<(AssetUri, String)> {
+    let label = uri.label()?.to_string();
+    let source_text = uri.to_string().split_once('#')?.0.to_string();
+    AssetUri::parse(&source_text)
+        .ok()
+        .map(|source_uri| (source_uri, label))
 }

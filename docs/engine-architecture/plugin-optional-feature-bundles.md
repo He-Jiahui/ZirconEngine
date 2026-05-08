@@ -4,6 +4,9 @@ related_code:
   - zircon_runtime/src/plugin/package_manifest/plugin_feature_dependency.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_kind.rs
   - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+  - zircon_runtime/src/plugin/capability_status.rs
+  - zircon_runtime/src/plugin/plugin_maturity.rs
+  - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_feature_selection.rs
   - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
@@ -18,6 +21,8 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/main_template.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_app/src/entry/builtin_modules.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/first_party_runtime_plugins.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_status.rs
@@ -37,6 +42,7 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
+  - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
 ---
 
@@ -84,6 +90,18 @@ Feature actions are explicit. Enabling a feature first asks the runtime catalog 
 Native-aware status reports use the same projection helpers as built-in plugin status. A native plugin discovered only through `plugin.toml` still shows its optional feature rows, dependency checklist, default feature crates, packaging, and target compatibility, while load-state diagnostics such as a missing dynamic library remain attached to the native plugin row.
 
 Native-aware project completion now preserves those optional feature selections in the project manifest projection, including feature crate names, target modes, and native-default packaging. Feature enablement actions use the same built-in plus native catalog as native-aware status, so a feature declared only in `zircon_plugins/<plugin>/plugin.toml` can prepare dependencies and then enable without falling back to the built-in-only catalog.
+
+## Profile and Maturity Flow
+
+M1 adds explicit maturity and capability-status metadata beside the existing optional-feature model. `RuntimePluginDescriptor` and `PluginPackageManifest` now carry `PluginMaturity`, while `PluginPackageManifest.capability_statuses` records the status of each public capability or feature capability. These fields are metadata gates only; they do not replace `DependencySpec` or `RuntimeExtensionRegistry` contributions.
+
+`RuntimeProfileDescriptor` groups default and optional runtime plugin selections for `minimal`, `client_2d`, `client_3d`, `editor`, `dev`, and `server`. It can project a deterministic `ProjectPluginManifest` and produce a `RuntimePluginAvailabilityReport` with structured buckets for available, linked, externalized, stub, target-blocked, maturity-blocked, and missing-required plugin states.
+
+Stable/default-style profiles reject required `Externalized`, `Stub`, and below-minimum maturity plugins. Optional advanced plugins such as particles, virtual geometry, hybrid GI, and physics use the same report gates but populate warning buckets without blocking `missing_required`.
+
+The M2 provider-aware path distinguishes descriptor maturity from actual provider availability. Linked first-party registration reports satisfy `linked`; native dynamic registration reports satisfy `native_dynamic`; required profile plugins with no linked/native provider now remain `externalized_missing` even when their catalog descriptor is mature enough for the profile. Provider reports do not bypass target, stub, or minimum-maturity gates; a linked provider only satisfies availability after descriptor metadata proves the plugin is acceptable for the selected profile.
+
+The default app-side linked provider is feature-gated in `zircon_app`. `EntryConfig::for_runtime_profile()` chooses the app entry mode and projected profile manifest, then `first_party_runtime_plugin_registrations_for_config()` converts enabled selections into linked `RuntimePluginRegistrationReport` values from compiled first-party plugin crates. This gives profile bootstrap the same provider shape as generated export hosts while preserving the runtime boundary: optional-feature dependency checks and module registration still consume reports, not concrete plugin crate types.
 
 ## Export Flow
 

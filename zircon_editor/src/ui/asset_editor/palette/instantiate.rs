@@ -161,6 +161,7 @@ fn create_node_from_palette_entry(
                     bindings: Vec::new(),
                     style_overrides: UiStyleDeclarationBlock::default(),
                     children: Vec::new(),
+                    ..UiNodeDefinition::default()
                 },
             ))
         }
@@ -188,6 +189,7 @@ fn create_node_from_palette_entry(
                     bindings: Vec::new(),
                     style_overrides: UiStyleDeclarationBlock::default(),
                     children: Vec::new(),
+                    ..UiNodeDefinition::default()
                 },
             ))
         }

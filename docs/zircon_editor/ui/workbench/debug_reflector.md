@@ -1,10 +1,21 @@
 ---
 related_code:
+  - zircon_runtime_interface/src/ui/surface/timeline.rs
+  - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
@@ -17,11 +28,22 @@ related_code:
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
   - zircon_editor/src/ui/slint_host/ui/tests.rs
 implementation_files:
+  - zircon_runtime_interface/src/ui/surface/timeline.rs
+  - zircon_runtime/src/ui/surface/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/mod.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
+  - zircon_editor/src/ui/workbench/debug_reflector/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/selection.rs
   - zircon_editor/src/ui/workbench/debug_reflector/export.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/debug_observatory_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
@@ -35,12 +57,21 @@ implementation_files:
   - zircon_editor/src/ui/slint_host/ui/tests.rs
 plan_sources:
   - docs/superpowers/specs/2026-05-07-debug-observatory-design.md
+  - docs/superpowers/plans/2026-05-08-debug-observatory-m2.md
   - docs/superpowers/plans/2026-05-07-debug-observatory-m0-m1.md
   - docs/superpowers/specs/2026-05-06-ui-debug-reflector-full-closure-design.md
   - docs/superpowers/plans/2026-05-06-ui-debug-reflector-full-closure.md
+  - user: 2026-05-08 register the debug window tool in the Window/window surface
   - user: 2026-05-06 continue UI Debug Reflector full closure milestone
 tests:
+  - zircon_runtime/src/ui/tests/timeline.rs
   - zircon_editor/src/ui/workbench/debug_reflector/tests.rs
+  - zircon_editor/src/tests/host/builtin_window_descriptors.rs
+  - zircon_editor/src/tests/host/pane_template_descriptor.rs
+  - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
+  - zircon_editor/src/tests/editor_event/runtime.rs
+  - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
+  - zircon_editor/src/tests/workbench/host_events/menu_binding.rs
   - zircon_editor/src/tests/host/pane_presentation.rs
   - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
@@ -77,11 +108,23 @@ Milestone 3 embeds the first reflector view in Runtime Diagnostics. The pane pay
 
 Debug Observatory M1 adds a direct payload-build seam for an explicitly supplied active `UiSurfaceDebugSnapshot`. When `PanePayloadBuildContext::with_active_ui_debug_snapshot(...)` is used, Runtime Diagnostics projects the supplied snapshot into summary rows, details, export status, and shared overlay primitives before host conversion. When no active snapshot is supplied, the pane keeps the stable no-active placeholder and the later host-body refresh path can still derive a diagnostics-only snapshot from the pane's own `body_surface_frame`.
 
+## Snapshot Timeline
+
+Debug Observatory M2 adds a runtime-owned bounded snapshot timeline. `zircon_runtime_interface::ui::surface::timeline` defines serializable frame handles, summaries, retention metadata, and timeline snapshots. `zircon_runtime::ui::surface::UiDebugTimelineStore` owns the retained `UiSurfaceDebugSnapshot` values in a fixed-capacity `VecDeque`, assigns stable `UiDebugTimelineFrameHandle` ids, reports dropped-frame count, and updates only the selected timeline handle when a historical frame is selected.
+
+The editor timeline model is deliberately read-only. `EditorUiDebugTimelineModel::from_timeline(...)` derives retention text, latest/selected labels, previous/next frame handles, frame rows, and a selected-frame `EditorUiDebugReflectorModel` from the shared timeline snapshot. If the selected handle is missing, the model falls back to the latest retained frame; if the timeline is empty, it reuses `EditorUiDebugReflectorModel::no_active_surface()`. Historical selection never calls runtime layout, hit-test, mutation, or rebuild APIs.
+
 The Slint host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
 
 The host-scene conversion seam is part of the reflector acceptance boundary because Runtime Diagnostics eventually travels through `apply_presentation.rs::to_host_contract_pane(...)` like every other workbench pane. That conversion must be payload-driven, not string-only. A host-scene pane may use a synthetic pane kind while carrying a real host-owned native-body payload; non-empty native-body buckets are therefore preserved even when `kind` is not the canonical editor pane label. The regression `host_scene_projection_converts_host_owned_panes_to_host_contract_panes` locks this boundary so Debug Reflector and other native panes do not lose their template nodes before the host contract rebuilds `body_surface_frame`.
 
 The live M7 projection refresh is deliberately narrow. It only rebuilds the Runtime Diagnostics pane a second time when the first `body_surface_frame` produced a fresh reflector model. All other panes keep the existing single-pass presentation conversion. The generated model includes visibility, enabled state, input policy, clickable/hoverable/focusable flags, render/hit counts, focus/capture/pressed/hovered state, hit path, bubble route, reject reason, material batch breaks, and dirty flags so the pane mirrors the shared snapshot instead of local host guesses.
+
+## Debug Observatory Window Tool
+
+M2 registers `editor.debug_observatory` as a built-in `ActivityWindow` tool titled `Debug Observatory`. The descriptor lives under `ui::host::builtin_views::activity_windows`, requires the same runtime diagnostics capability as `editor.runtime_diagnostics`, and reuses `PanePayloadKind::RuntimeDiagnosticsV1` with the diagnostics route namespace. This keeps the Window-surface tool on the same payload/template boundary as Runtime Diagnostics instead of creating a second debug transport path.
+
+The workbench Window menu opens the tool through `MenuAction::OpenView(ViewDescriptorId::new("editor.debug_observatory"))`, operation path `Window.DebugObservatory.Open`, and fallback host action `OpenView.editor.debug_observatory`. The existing `editor.runtime_diagnostics` ActivityView remains the bottom drawer Runtime Diagnostics view; the Debug Observatory registration only adds the first-class Window entry point.
 
 ## Snapshot-Derived Overlay
 

@@ -27,7 +27,7 @@ pub fn build_arranged_tree(tree: &UiTree) -> UiArrangedTree {
                 enabled: node.state_flags.enabled,
                 clickable: node.state_flags.clickable,
                 hoverable: node.state_flags.hoverable,
-                focusable: node.state_flags.focusable,
+                focusable: node.is_focus_candidate(),
                 clip_to_bounds: node.clip_to_bounds || node.container.clips_to_bounds(),
                 control_id: node
                     .template_metadata

@@ -82,4 +82,9 @@ impl ResourceRecord {
         self.diagnostics = diagnostics;
         self
     }
+
+    pub fn with_dependency_ids(mut self, dependency_ids: Vec<ResourceId>) -> Self {
+        self.dependency_ids = dependency_ids;
+        self
+    }
 }

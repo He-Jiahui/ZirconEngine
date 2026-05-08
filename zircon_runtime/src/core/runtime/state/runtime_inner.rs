@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use crate::core::config_store::ConfigStore;
 use crate::core::event_bus::EventBus;
 use crate::core::job_scheduler::JobScheduler;
+use crate::core::state::StateRegistry;
 use crate::plugin::SceneRuntimeHookRegistration;
 
 use super::{ModuleEntry, ServiceEntry};
@@ -14,5 +15,6 @@ pub(crate) struct CoreRuntimeInner {
     pub(crate) event_bus: EventBus,
     pub(crate) config_store: ConfigStore,
     pub(crate) scheduler: JobScheduler,
+    pub(crate) states: Mutex<StateRegistry>,
     pub(crate) scene_hooks: Mutex<Vec<SceneRuntimeHookRegistration>>,
 }

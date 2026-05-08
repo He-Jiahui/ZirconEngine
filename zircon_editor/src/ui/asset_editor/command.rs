@@ -1,13 +1,15 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
+use serde::{Deserialize, Serialize};
 use toml::Value;
 use zircon_runtime_interface::ui::template::{
     UiBindingRef, UiComponentDefinition, UiNodeDefinition, UiNodeDefinitionKind, UiStyleRule,
     UiStyleSheet,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum UiAssetEditorTreeEditKind {
     DocumentEdit,
     InsertPaletteItem,
@@ -20,7 +22,7 @@ pub enum UiAssetEditorTreeEditKind {
     PromoteToExternalWidget,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorTreeEdit {
     Generic {
         kind: UiAssetEditorTreeEditKind,
@@ -66,7 +68,7 @@ pub enum UiAssetEditorTreeEdit {
     },
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorInverseTreeEdit {
     RemoveNode {
         node_id: String,
@@ -110,7 +112,7 @@ pub enum UiAssetEditorInverseTreeEdit {
     },
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiAssetEditorDocumentReplayCommand {
     SetWidgetImports {
         references: Vec<String>,
@@ -215,7 +217,7 @@ pub enum UiAssetEditorDocumentReplayCommand {
     },
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiAssetEditorDocumentReplayBundle {
     pub undo: Vec<UiAssetEditorDocumentReplayCommand>,
     pub redo: Vec<UiAssetEditorDocumentReplayCommand>,
@@ -243,7 +245,7 @@ impl UiAssetEditorTreeEdit {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum UiAssetEditorCommand {
     EditSource {
         next_source: String,

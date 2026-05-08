@@ -3,8 +3,8 @@ use std::sync::Arc;
 
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
-use crate::scene::components::SystemStage;
 use crate::scene::LevelSystem;
+use crate::scene::SystemStage;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SceneRuntimeHookDescriptor {

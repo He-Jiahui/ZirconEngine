@@ -1,4 +1,5 @@
 use super::super::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode};
+use crate::plugins::{DefaultPlugins, HeadlessPlugins, PluginGroup};
 use zircon_runtime::{RuntimePluginId, RuntimeTargetMode};
 
 const EDITOR_MODULE_NAME: &str = "EditorModule";
@@ -10,6 +11,15 @@ fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
 
     assert_eq!(entry.profile(), EntryProfile::Runtime);
     assert_eq!(entry.run_mode(), EntryRunMode::Runtime);
+    assert_eq!(entry.plugin_group().name(), "DefaultPlugins");
+    assert_eq!(
+        entry.plugin_group().module_keys(),
+        DefaultPlugins::default()
+            .build()
+            .unwrap()
+            .finish()
+            .module_keys()
+    );
     assert_eq!(entry.modules().len(), descriptors.len());
     assert!(entry
         .modules()
@@ -52,6 +62,14 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
     let descriptors = entry.module_descriptors();
 
     assert_eq!(entry.run_mode(), EntryRunMode::Headless);
+    assert_eq!(
+        entry.plugin_group().module_keys(),
+        HeadlessPlugins::default()
+            .build()
+            .unwrap()
+            .finish()
+            .module_keys()
+    );
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != zircon_runtime::graphics::GRAPHICS_MODULE_NAME));

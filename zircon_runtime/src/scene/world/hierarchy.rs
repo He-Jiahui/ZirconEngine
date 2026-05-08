@@ -1,7 +1,7 @@
 use crate::core::math::Transform;
 
 use super::World;
-use crate::scene::components::{Mobility, NodeRecord};
+use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
 use crate::scene::EntityId;
 
 impl World {
@@ -9,6 +9,10 @@ impl World {
         let Some(index) = self.entities.iter().position(|current| *current == entity) else {
             return false;
         };
+        if let Some(internal) = self.internal_entity(entity) {
+            self.component_storage.remove_entity(internal);
+        }
+        self.unregister_stable_entity(entity);
         self.entities.remove(index);
         self.names.remove(&entity);
         self.kinds.remove(&entity);
@@ -32,11 +36,13 @@ impl World {
         self.active_in_hierarchy.remove(&entity);
         self.render_layer_masks.remove(&entity);
         self.mobility.remove(&entity);
+        self.dynamic_components.remove(&entity);
         for child in self.hierarchy.values_mut() {
             if child.parent == Some(entity) {
                 child.parent = None;
             }
         }
+        self.refresh_stable_entity_locations();
         if self.active_camera == entity {
             self.active_camera = self
                 .cameras
@@ -45,7 +51,7 @@ impl World {
                 .find(|camera| *camera != entity)
                 .unwrap_or(0);
         }
-        self.rebuild_derived_state();
+        self.mark_derived_state_dirty();
         true
     }
 
@@ -86,10 +92,7 @@ impl World {
         if self.parent_of(child) == parent {
             return Ok(false);
         }
-        if let Some(hierarchy) = self.hierarchy.get_mut(&child) {
-            hierarchy.parent = parent;
-        }
-        self.rebuild_derived_state();
+        self.insert(child, Hierarchy { parent })?;
         Ok(true)
     }
 
@@ -99,14 +102,13 @@ impl World {
         transform: Transform,
     ) -> Result<bool, String> {
         self.ensure_transform_mutable(entity)?;
-        let Some(local) = self.local_transforms.get_mut(&entity) else {
+        let Some(local) = self.local_transforms.get(&entity) else {
             return Err(format!("cannot update transform for missing node {entity}"));
         };
         if local.transform == transform {
             return Ok(false);
         }
-        local.transform = transform;
-        self.rebuild_derived_state();
+        self.insert(entity, LocalTransform { transform })?;
         Ok(true)
     }
 

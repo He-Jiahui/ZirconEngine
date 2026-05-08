@@ -21,6 +21,7 @@ impl ResourceManager {
 
         self.broadcast(ResourceEvent {
             kind: event_kind,
+            resource_kind: record.kind,
             id: record.id,
             locator: Some(record.primary_locator.clone()),
             previous_locator: None,
@@ -50,6 +51,7 @@ impl ResourceManager {
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Updated,
+            resource_kind: updated.kind,
             id,
             locator: Some(updated.primary_locator.clone()),
             previous_locator: None,
@@ -79,6 +81,7 @@ impl ResourceManager {
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::ReloadFailed,
+            resource_kind: updated.kind,
             id,
             locator: Some(updated.primary_locator.clone()),
             previous_locator: None,
@@ -108,6 +111,7 @@ impl ResourceManager {
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Removed,
+            resource_kind: removed.kind,
             id: removed.id,
             locator: Some(removed.primary_locator.clone()),
             previous_locator: None,
@@ -132,6 +136,7 @@ impl ResourceManager {
 
         self.broadcast(ResourceEvent {
             kind: ResourceEventKind::Renamed,
+            resource_kind: renamed.kind,
             id: renamed.id,
             locator: Some(renamed.primary_locator.clone()),
             previous_locator: Some(from.clone()),

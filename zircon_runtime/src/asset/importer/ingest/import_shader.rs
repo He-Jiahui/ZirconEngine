@@ -28,16 +28,17 @@ fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
     let source = context.source_text()?;
     let (module, _info) = validate_wgsl(&context.uri, &source)?;
     let entry_points = shader_entry_points(&module);
-    Ok(AssetImportOutcome::new(ImportedAsset::Shader(
-        ShaderAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
             source_language: ShaderSourceLanguage::Wgsl,
             source: source.clone(),
             wgsl_source: source,
             entry_points,
             validation_diagnostics: Vec::new(),
-        },
-    )))
+        }),
+    ))
 }
 
 fn import_glsl(context: &AssetImportContext) -> Result<AssetImportOutcome, AssetImportError> {
@@ -88,16 +89,17 @@ fn module_to_shader_asset(
                 ))
             })?;
     let entry_points = shader_entry_points(&module);
-    Ok(AssetImportOutcome::new(ImportedAsset::Shader(
-        ShaderAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
             source_language,
             source,
             wgsl_source,
             entry_points,
             validation_diagnostics: Vec::new(),
-        },
-    )))
+        }),
+    ))
 }
 
 fn infer_shader_stage(context: &AssetImportContext) -> Result<naga::ShaderStage, AssetImportError> {

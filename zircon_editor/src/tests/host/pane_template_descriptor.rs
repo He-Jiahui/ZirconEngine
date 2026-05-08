@@ -76,6 +76,12 @@ fn builtin_pane_views_expose_template_metadata() {
             PaneInteractionMode::TemplateOnly,
         ),
         (
+            "editor.debug_observatory",
+            PanePayloadKind::RuntimeDiagnosticsV1,
+            PaneRouteNamespace::Diagnostics,
+            PaneInteractionMode::TemplateOnly,
+        ),
+        (
             "editor.module_plugins",
             PanePayloadKind::ModulePluginsV1,
             PaneRouteNamespace::Dock,

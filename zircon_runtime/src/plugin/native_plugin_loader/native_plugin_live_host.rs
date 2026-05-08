@@ -42,8 +42,74 @@ pub struct NativePluginLiveHostLoadReport {
 pub struct NativePluginRuntimeBehaviorDescriptor {
     pub plugin_id: String,
     pub is_stateless: Option<bool>,
+    pub state_schema_version: Option<u32>,
+    pub command_manifest_schema: Option<String>,
+    pub event_manifest_schema: Option<String>,
     pub command_manifest: Option<String>,
     pub event_manifest: Option<String>,
+}
+
+#[derive(Debug)]
+struct NativePluginHotReloadState {
+    module_kind: PluginModuleKind,
+    key: String,
+    existing: Option<LoadedNativePlugin>,
+    previous_unloaded: bool,
+    diagnostics: Vec<String>,
+}
+
+impl NativePluginHotReloadState {
+    fn new(
+        module_kind: PluginModuleKind,
+        key: String,
+        existing: Option<LoadedNativePlugin>,
+    ) -> Self {
+        Self {
+            module_kind,
+            key,
+            existing,
+            previous_unloaded: false,
+            diagnostics: Vec::new(),
+        }
+    }
+
+    fn take_existing_for_unload(&mut self) -> Option<LoadedNativePlugin> {
+        self.existing.take()
+    }
+
+    fn mark_existing_unloaded(&mut self, diagnostics: Vec<String>) {
+        self.previous_unloaded = true;
+        self.diagnostics.extend(diagnostics);
+    }
+
+    fn rollback_error(&mut self, error: String) -> String {
+        let rollback = if self.existing.is_some() {
+            format!(
+                "rolled back to the previously loaded {} native package",
+                module_kind_label(self.module_kind)
+            )
+        } else if self.previous_unloaded {
+            format!(
+                "rollback unavailable because previous {} native package was already unloaded",
+                module_kind_label(self.module_kind)
+            )
+        } else {
+            format!(
+                "rollback not needed because no {} native package was previously loaded",
+                module_kind_label(self.module_kind)
+            )
+        };
+        let diagnostics = if self.diagnostics.is_empty() {
+            rollback
+        } else {
+            format!("{rollback}; {}", self.diagnostics.join("; "))
+        };
+        format!("{error}; {diagnostics}")
+    }
+
+    fn into_rollback_plugin(self) -> Option<LoadedNativePlugin> {
+        self.existing
+    }
 }
 
 /// One ABI v2 runtime behavior callback result tied to its native package id.
@@ -469,21 +535,8 @@ impl NativePluginLiveHost {
         let mut loaded = lock_loaded_native_plugins(&self.loaded)?;
         let key = live_key(module_kind, plugin_id);
         let mut diagnostics = Vec::new();
-        if let Some(existing) = loaded.remove(&key) {
-            match diagnostics_from_behavior_report(
-                &format!(
-                    "{} unload before hot reload",
-                    module_kind_label(module_kind)
-                ),
-                unload_behavior(&existing, module_kind),
-            ) {
-                Ok(unload_diagnostics) => diagnostics.extend(unload_diagnostics),
-                Err(error) => {
-                    loaded.insert(key, existing);
-                    return Err(error);
-                }
-            }
-        }
+        let existing = loaded.remove(&key);
+        let mut reload_state = NativePluginHotReloadState::new(module_kind, key, existing);
 
         let mut report = load_for_module_kind(&self.loader, root, module_kind)?;
         diagnostics.extend(load_report_diagnostics(&report));
@@ -513,13 +566,36 @@ impl NativePluginLiveHost {
             } else {
                 format!("{discovery_hint}; {}", diagnostics.join("; "))
             };
-            return Err(format!(
+            let error = format!(
                 "plugin {plugin_id} hot reload did not load {} native package from {}: {diagnostic_hint}",
                 module_kind_article_label(module_kind),
                 root.display()
-            ));
+            );
+            let error = reload_state.rollback_error(error);
+            if let Some(existing) = reload_state.into_rollback_plugin() {
+                loaded.insert(live_key(module_kind, plugin_id), existing);
+            }
+            return Err(error);
         };
-        loaded.insert(key, plugin);
+        if let Some(existing) = reload_state.take_existing_for_unload() {
+            match diagnostics_from_behavior_report(
+                &format!(
+                    "{} unload before hot reload",
+                    module_kind_label(module_kind)
+                ),
+                unload_behavior(&existing, module_kind),
+            ) {
+                Ok(unload_diagnostics) => {
+                    diagnostics.extend(unload_diagnostics.clone());
+                    reload_state.mark_existing_unloaded(unload_diagnostics);
+                }
+                Err(error) => {
+                    loaded.insert(reload_state.key.clone(), existing);
+                    return Err(error);
+                }
+            }
+        }
+        loaded.insert(reload_state.key, plugin);
         Ok(NativePluginLiveHostOutcome {
             plugin_id: plugin_id.to_string(),
             module_kind,
@@ -647,6 +723,9 @@ fn runtime_behavior_descriptor(
     NativePluginRuntimeBehaviorDescriptor {
         plugin_id: plugin_id.to_string(),
         is_stateless: plugin.runtime_behavior_is_stateless(),
+        state_schema_version: plugin.runtime_state_schema_version(),
+        command_manifest_schema: plugin.runtime_command_manifest_schema().map(str::to_string),
+        event_manifest_schema: plugin.runtime_event_manifest_schema().map(str::to_string),
         command_manifest: plugin.runtime_command_manifest().map(str::to_string),
         event_manifest: plugin.runtime_event_manifest().map(str::to_string),
     }
@@ -771,216 +850,5 @@ fn module_kind_article_label(module_kind: PluginModuleKind) -> &'static str {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn native_live_host_reports_missing_editor_package_on_hot_reload() {
-        let project_root = std::env::temp_dir().join(format!(
-            "zircon-runtime-missing-native-live-host-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock should be after unix epoch")
-                .as_nanos()
-        ));
-        let error = NativePluginLiveHost::default()
-            .hot_reload_editor_plugin(&project_root, "physics")
-            .unwrap_err();
-        assert!(error.contains("plugin physics hot reload did not load an editor native package"));
-        assert!(error.contains("native plugin root does not exist"));
-    }
-
-    #[test]
-    fn native_live_host_reports_unloaded_plugin_by_module_kind() {
-        let error = NativePluginLiveHost::default()
-            .unload_runtime_plugin("physics")
-            .unwrap_err();
-        assert_eq!(
-            error,
-            "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
-        );
-    }
-
-    #[test]
-    fn native_live_host_runtime_behavior_calls_report_unloaded_plugin() {
-        let host = NativePluginLiveHost::default();
-        let expected =
-            "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package";
-        assert_eq!(
-            host.runtime_behavior_descriptor("physics").unwrap_err(),
-            expected
-        );
-        assert!(host
-            .runtime_behavior_descriptors()
-            .expect("empty runtime live host should list no descriptors")
-            .is_empty());
-        assert_eq!(
-            host.invoke_runtime_plugin_command("physics", "simulate", b"")
-                .unwrap_err(),
-            expected
-        );
-        assert_eq!(
-            host.save_runtime_plugin_state("physics").unwrap_err(),
-            expected
-        );
-        assert_eq!(
-            host.restore_runtime_plugin_state("physics", b"")
-                .unwrap_err(),
-            expected
-        );
-    }
-
-    #[test]
-    fn native_live_host_runtime_broadcasts_and_snapshots_empty_when_no_plugins_loaded() {
-        let host = NativePluginLiveHost::default();
-
-        let dispatch = host
-            .dispatch_runtime_plugin_command("play-mode.enter", b"{}")
-            .expect("empty runtime live host should still dispatch as an empty report");
-        assert_eq!(dispatch.command_name, "play-mode.enter");
-        assert!(dispatch.calls.is_empty());
-        assert!(dispatch.diagnostics.is_empty());
-        assert!(dispatch.is_clean());
-        assert_eq!(dispatch.failed_call_count(), 0);
-        assert!(dispatch.combined_diagnostics().is_empty());
-
-        let snapshot = host
-            .save_runtime_plugin_states()
-            .expect("empty runtime live host should still save an empty snapshot");
-        assert!(snapshot.plugin_states.is_empty());
-        assert!(snapshot.diagnostics.is_empty());
-        assert!(snapshot.is_clean());
-        assert!(snapshot.combined_diagnostics().is_empty());
-
-        let restore = host
-            .restore_runtime_plugin_states(&snapshot)
-            .expect("empty runtime live host should still restore an empty snapshot");
-        assert!(restore.calls.is_empty());
-        assert!(restore.skipped_plugin_ids.is_empty());
-        assert!(restore.diagnostics.is_empty());
-        assert!(restore.is_clean());
-        assert_eq!(restore.failed_call_count(), 0);
-        assert!(restore.combined_diagnostics().is_empty());
-
-        let play_snapshot = host
-            .enter_runtime_play_mode()
-            .expect("empty runtime live host should still enter play mode");
-        assert_eq!(
-            play_snapshot.enter_report.command_name,
-            NATIVE_RUNTIME_PLAY_MODE_ENTER_COMMAND
-        );
-        assert!(play_snapshot.state_snapshot.plugin_states.is_empty());
-        assert!(play_snapshot.is_clean());
-        assert!(play_snapshot.combined_diagnostics().is_empty());
-        let play_exit = host
-            .exit_runtime_play_mode(&play_snapshot)
-            .expect("empty runtime live host should still exit play mode");
-        assert_eq!(
-            play_exit.exit_report.command_name,
-            NATIVE_RUNTIME_PLAY_MODE_EXIT_COMMAND
-        );
-        assert!(play_exit.restore_report.calls.is_empty());
-        assert!(play_exit.is_clean());
-        assert!(play_exit.combined_diagnostics().is_empty());
-    }
-
-    #[test]
-    fn native_live_host_runtime_snapshot_restore_reports_unloaded_plugins() {
-        let host = NativePluginLiveHost::default();
-        let snapshot = NativePluginRuntimeStateSnapshot {
-            plugin_states: vec![NativePluginRuntimePluginState {
-                plugin_id: "physics".to_string(),
-                state: b"state".to_vec(),
-            }],
-            diagnostics: Vec::new(),
-        };
-
-        let restore = host
-            .restore_runtime_plugin_states(&snapshot)
-            .expect("unloaded plugins should be restore diagnostics, not host failures");
-        assert!(restore.calls.is_empty());
-        assert_eq!(restore.skipped_plugin_ids, vec!["physics".to_string()]);
-        assert!(!restore.is_clean());
-        assert_eq!(restore.failed_call_count(), 0);
-        assert_eq!(
-            restore.diagnostics,
-            vec![
-                "plugin physics is not loaded in the runtime live host; run Hot Reload after building its native dynamic package"
-                    .to_string()
-            ]
-        );
-        assert_eq!(restore.combined_diagnostics(), restore.diagnostics);
-    }
-
-    #[test]
-    fn native_runtime_reports_synthesize_callback_status_diagnostics() {
-        let failed_call = NativePluginRuntimeBehaviorCall {
-            plugin_id: "physics".to_string(),
-            report: NativePluginBehaviorCallReport {
-                status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-                diagnostics: Vec::new(),
-                payload: None,
-            },
-        };
-        let dispatch = NativePluginRuntimeCommandDispatchReport {
-            command_name: "simulate".to_string(),
-            calls: vec![failed_call.clone()],
-            diagnostics: Vec::new(),
-        };
-        assert!(!dispatch.is_clean());
-        assert_eq!(dispatch.failed_call_count(), 1);
-        assert_eq!(
-            dispatch.combined_diagnostics(),
-            vec!["runtime plugin physics simulate returned status 1".to_string()]
-        );
-
-        let restore = NativePluginRuntimeStateRestoreReport {
-            calls: vec![failed_call],
-            skipped_plugin_ids: Vec::new(),
-            diagnostics: Vec::new(),
-        };
-        assert!(!restore.is_clean());
-        assert_eq!(restore.failed_call_count(), 1);
-        assert_eq!(
-            restore.combined_diagnostics(),
-            vec!["runtime plugin physics restore-state returned status 1".to_string()]
-        );
-    }
-
-    #[test]
-    fn native_live_host_loads_runtime_export_diagnostics_without_handles() {
-        let export_root = std::env::temp_dir().join(format!(
-            "zircon-runtime-missing-native-live-host-export-{}-{}",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .expect("system clock should be after unix epoch")
-                .as_nanos()
-        ));
-        let report = NativePluginLiveHost::default()
-            .load_runtime_plugins_from_export_root(&export_root)
-            .expect("missing manifest should be reported as diagnostics, not a host failure");
-        assert_eq!(report.module_kind, PluginModuleKind::Runtime);
-        assert!(report.loaded_plugin_ids.is_empty());
-        assert!(report.runtime_plugin_registration_reports.is_empty());
-        assert!(report
-            .diagnostics
-            .iter()
-            .any(|diagnostic| diagnostic.contains("failed to read native plugin load manifest")));
-    }
-
-    #[test]
-    fn native_live_host_treats_missing_unload_hook_as_noop_unload() {
-        let report = allow_missing_unload_callback_to_drop_handle(NativePluginBehaviorCallReport {
-            status_code: ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
-            diagnostics: vec!["native plugin behavior callback unload is missing".to_string()],
-            payload: None,
-        });
-        assert_eq!(report.status_code, ZIRCON_NATIVE_PLUGIN_STATUS_OK);
-        assert_eq!(
-            report.diagnostics,
-            vec!["native plugin behavior callback unload is missing".to_string()]
-        );
-    }
-}
+#[path = "native_plugin_live_host/tests.rs"]
+mod tests;

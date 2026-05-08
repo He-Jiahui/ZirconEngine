@@ -7,5 +7,8 @@ pub(crate) fn import_material(
     let document = context.source_text()?;
     let material = MaterialAsset::from_toml_str(&document)
         .map_err(|error| AssetImportError::Parse(format!("parse material toml: {error}")))?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Material(material)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Material(material),
+    ))
 }

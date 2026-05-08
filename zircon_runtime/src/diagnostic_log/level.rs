@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 pub const DIAGNOSTIC_LOG_LEVEL_ENV: &str = "ZIRCON_LOG_LEVEL";
+pub const DIAGNOSTIC_LOG_FILTER_ENV: &str = "ZIRCON_LOG_FILTER";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticLogLevel {
@@ -34,6 +35,18 @@ impl fmt::Display for DiagnosticLogLevel {
 pub enum DiagnosticLogFilter {
     Off,
     Minimum(DiagnosticLogLevel),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticLogFilterConfig {
+    pub minimum: DiagnosticLogFilter,
+    pub module_filters: Vec<DiagnosticLogModuleFilter>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DiagnosticLogModuleFilter {
+    pub scope_prefix: String,
+    pub filter: DiagnosticLogFilter,
 }
 
 impl DiagnosticLogFilter {
@@ -86,6 +99,91 @@ impl DiagnosticLogFilter {
     }
 }
 
+impl DiagnosticLogFilterConfig {
+    pub fn new(minimum: DiagnosticLogFilter) -> Self {
+        Self {
+            minimum,
+            module_filters: Vec::new(),
+        }
+    }
+
+    pub fn from_env_or_default() -> Self {
+        let mut config = Self::new(DiagnosticLogFilter::from_env_or_default());
+        if let Some(raw_value) =
+            std::env::var_os(DIAGNOSTIC_LOG_FILTER_ENV).filter(|value| !value.is_empty())
+        {
+            let value = raw_value.to_string_lossy();
+            match Self::parse(value.as_ref(), config.minimum) {
+                Ok(parsed) => config = parsed,
+                Err(error) => eprintln!(
+                    "invalid {DIAGNOSTIC_LOG_FILTER_ENV} override: {error}; using {}",
+                    config.minimum
+                ),
+            }
+        }
+        config
+    }
+
+    pub fn parse(
+        value: impl AsRef<str>,
+        fallback_minimum: DiagnosticLogFilter,
+    ) -> Result<Self, DiagnosticLogLevelParseError> {
+        let mut config = Self::new(fallback_minimum);
+        for raw_rule in value
+            .as_ref()
+            .split(',')
+            .map(str::trim)
+            .filter(|rule| !rule.is_empty())
+        {
+            let Some((scope, level)) = raw_rule.split_once('=') else {
+                config.minimum = DiagnosticLogFilter::parse(raw_rule)?;
+                continue;
+            };
+            let scope = scope.trim();
+            if scope.is_empty() {
+                return Err(DiagnosticLogLevelParseError::new(raw_rule));
+            }
+            config.module_filters.push(DiagnosticLogModuleFilter {
+                scope_prefix: scope.to_string(),
+                filter: DiagnosticLogFilter::parse(level)?,
+            });
+        }
+        Ok(config)
+    }
+
+    pub fn allows(&self, level: DiagnosticLogLevel, scope: &str) -> bool {
+        self.filter_for_scope(scope).allows(level)
+    }
+
+    pub fn filter_for_scope(&self, scope: &str) -> DiagnosticLogFilter {
+        self.module_filters
+            .iter()
+            .filter(|rule| scope.starts_with(&rule.scope_prefix))
+            .max_by_key(|rule| rule.scope_prefix.len())
+            .map(|rule| rule.filter)
+            .unwrap_or(self.minimum)
+    }
+}
+
+impl From<DiagnosticLogFilter> for DiagnosticLogFilterConfig {
+    fn from(value: DiagnosticLogFilter) -> Self {
+        Self::new(value)
+    }
+}
+
+impl fmt::Display for DiagnosticLogFilterConfig {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.module_filters.is_empty() {
+            return self.minimum.fmt(formatter);
+        }
+        write!(formatter, "{}", self.minimum)?;
+        for rule in &self.module_filters {
+            write!(formatter, ",{}={}", rule.scope_prefix, rule.filter)?;
+        }
+        Ok(())
+    }
+}
+
 impl fmt::Display for DiagnosticLogFilter {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -116,7 +214,7 @@ impl fmt::Display for DiagnosticLogLevelParseError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
-            "unknown diagnostic log level `{}`; expected verbose, debug, log, warn, error, or off",
+            "unknown diagnostic log level `{}`; expected verbose, debug, log, warn, error, off, or scope=level rules",
             self.value
         )
     }
@@ -126,7 +224,7 @@ impl Error for DiagnosticLogLevelParseError {}
 
 #[cfg(test)]
 mod tests {
-    use super::{DiagnosticLogFilter, DiagnosticLogLevel};
+    use super::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
 
     #[test]
     fn default_filter_matches_build_profile_policy() {
@@ -190,5 +288,22 @@ mod tests {
 
         assert_eq!(error.value(), "chatty");
         assert!(error.to_string().contains("unknown diagnostic log level"));
+    }
+
+    #[test]
+    fn filter_config_parse_supports_global_and_scoped_rules() {
+        let config = DiagnosticLogFilterConfig::parse(
+            "warn,zircon_runtime::asset=debug,zircon_runtime::asset::import=verbose",
+            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Log),
+        )
+        .unwrap();
+
+        assert!(config.allows(
+            DiagnosticLogLevel::Verbose,
+            "zircon_runtime::asset::import::native"
+        ));
+        assert!(config.allows(DiagnosticLogLevel::Debug, "zircon_runtime::asset::path"));
+        assert!(!config.allows(DiagnosticLogLevel::Log, "zircon_runtime::ui"));
+        assert!(config.allows(DiagnosticLogLevel::Warn, "zircon_runtime::ui"));
     }
 }

@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetImporterHandler,
+    ImportedAssetEntry,
 };
-use crate::asset::{asset_kind_for_imported_asset, AssetImportError};
+use crate::asset::{asset_kind_for_imported_asset, AssetImportError, AssetUri};
 use crate::plugin::{
     LoadedNativePlugin, ZIRCON_NATIVE_PLUGIN_STATUS_DENIED, ZIRCON_NATIVE_PLUGIN_STATUS_ERROR,
     ZIRCON_NATIVE_PLUGIN_STATUS_OK, ZIRCON_NATIVE_PLUGIN_STATUS_PANIC,
@@ -27,7 +28,16 @@ pub struct NativeAssetImportRequestMetadata {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct NativeAssetImportResponseMetadata {
     pub importer_id: String,
+    #[serde(default)]
+    pub entries: Vec<NativeAssetImportEntryMetadata>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct NativeAssetImportEntryMetadata {
+    pub locator: AssetUri,
     pub imported_asset: crate::asset::ImportedAsset,
+    #[serde(default)]
+    pub dependencies: Vec<crate::asset::AssetUri>,
     #[serde(default)]
     pub diagnostics: Vec<String>,
 }
@@ -162,21 +172,38 @@ fn native_response_to_outcome(
             response.importer_id, descriptor.id
         )));
     }
-    let actual_kind = asset_kind_for_imported_asset(&response.imported_asset);
-    if !descriptor.allows_output_kind(actual_kind) {
+    if response.entries.is_empty() {
         return Err(AssetImportError::Native(format!(
-            "native importer {} returned {actual_kind:?}, expected {:?}",
-            descriptor.id, descriptor.output_kind
+            "native importer {} returned no imported asset entries",
+            descriptor.id
         )));
     }
-    let mut outcome = AssetImportOutcome::new(response.imported_asset);
-    outcome.diagnostics.extend(
-        response
-            .diagnostics
+    for entry in &response.entries {
+        let actual_kind = asset_kind_for_imported_asset(&entry.imported_asset);
+        if !descriptor.allows_output_kind(actual_kind) {
+            return Err(AssetImportError::Native(format!(
+                "native importer {} returned {actual_kind:?}, expected {:?}",
+                descriptor.id, descriptor.output_kind
+            )));
+        }
+    }
+    Ok(AssetImportOutcome {
+        entries: response
+            .entries
             .into_iter()
-            .map(|message| crate::core::resource::ResourceDiagnostic::error(message)),
-    );
-    Ok(outcome)
+            .map(|entry| {
+                let mut imported = ImportedAssetEntry::new(entry.locator, entry.imported_asset);
+                imported.dependencies = entry.dependencies;
+                imported.diagnostics.extend(
+                    entry
+                        .diagnostics
+                        .into_iter()
+                        .map(|message| crate::core::resource::ResourceDiagnostic::error(message)),
+                );
+                imported
+            })
+            .collect(),
+    })
 }
 
 #[cfg(test)]
@@ -215,13 +242,17 @@ mod tests {
     fn native_import_response_envelope_decodes_neutral_asset_dto() {
         let metadata = NativeAssetImportResponseMetadata {
             importer_id: "fixture.data".to_string(),
-            imported_asset: ImportedAsset::Data(DataAsset {
-                uri: AssetUri::parse("res://assets/weather.fixture").unwrap(),
-                format: DataAssetFormat::Json,
-                text: "{\"temperature\":21}".to_string(),
-                canonical_json: json!({ "temperature": 21 }),
-            }),
-            diagnostics: vec!["fixture diagnostic".to_string()],
+            entries: vec![NativeAssetImportEntryMetadata {
+                locator: AssetUri::parse("res://assets/weather.fixture").unwrap(),
+                imported_asset: ImportedAsset::Data(DataAsset {
+                    uri: AssetUri::parse("res://assets/weather.fixture").unwrap(),
+                    format: DataAssetFormat::Json,
+                    text: "{\"temperature\":21}".to_string(),
+                    canonical_json: json!({ "temperature": 21 }),
+                }),
+                dependencies: vec![AssetUri::parse("res://assets/dependency.fixture").unwrap()],
+                diagnostics: vec!["fixture diagnostic".to_string()],
+            }],
         };
         let encoded = encode_envelope(RESPONSE_MAGIC, &metadata, &[]).expect("encoded response");
 
@@ -232,7 +263,11 @@ mod tests {
 
     #[test]
     fn native_import_response_envelope_rejects_reserved_artifact_bytes() {
-        let metadata = fixture_native_response("fixture.data", ImportedAsset::Data(fixture_data()));
+        let metadata = fixture_native_response(
+            "fixture.data",
+            fixture_data().uri.clone(),
+            ImportedAsset::Data(fixture_data()),
+        );
         let encoded =
             encode_envelope(RESPONSE_MAGIC, &metadata, b"artifact").expect("encoded response");
 
@@ -246,7 +281,11 @@ mod tests {
         let descriptor =
             AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
                 .with_source_extensions(["fixture"]);
-        let response = fixture_native_response("other.data", ImportedAsset::Data(fixture_data()));
+        let response = fixture_native_response(
+            "other.data",
+            fixture_data().uri.clone(),
+            ImportedAsset::Data(fixture_data()),
+        );
 
         let error = native_response_to_outcome(&descriptor, response).expect_err("id mismatch");
 
@@ -258,8 +297,11 @@ mod tests {
         let descriptor =
             AssetImporterDescriptor::new("fixture.model", "fixture", AssetKind::Model, 1)
                 .with_source_extensions(["fixture"]);
-        let response =
-            fixture_native_response("fixture.model", ImportedAsset::Data(fixture_data()));
+        let response = fixture_native_response(
+            "fixture.model",
+            AssetUri::parse("res://assets/weather.fixture").unwrap(),
+            ImportedAsset::Data(fixture_data()),
+        );
 
         let error = native_response_to_outcome(&descriptor, response).expect_err("wrong kind");
 
@@ -272,26 +314,54 @@ mod tests {
         let descriptor =
             AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
                 .with_source_extensions(["fixture"]);
-        let mut response =
-            fixture_native_response("fixture.data", ImportedAsset::Data(fixture_data()));
-        response.diagnostics.push("native warning".to_string());
+        let mut response = fixture_native_response(
+            "fixture.data",
+            fixture_data().uri.clone(),
+            ImportedAsset::Data(fixture_data()),
+        );
+        response.entries[0]
+            .diagnostics
+            .push("native warning".to_string());
 
         let outcome = native_response_to_outcome(&descriptor, response).expect("valid response");
 
-        assert!(outcome
+        assert!(outcome.entries[0]
             .diagnostics
             .iter()
             .any(|diagnostic| diagnostic.message == "native warning"));
     }
 
+    #[test]
+    fn native_import_response_preserves_declared_dependencies() {
+        let descriptor =
+            AssetImporterDescriptor::new("fixture.data", "fixture", AssetKind::Data, 1)
+                .with_source_extensions(["fixture"]);
+        let dependency = AssetUri::parse("res://assets/dependency.fixture").unwrap();
+        let mut response = fixture_native_response(
+            "fixture.data",
+            fixture_data().uri.clone(),
+            ImportedAsset::Data(fixture_data()),
+        );
+        response.entries[0].dependencies.push(dependency.clone());
+
+        let outcome = native_response_to_outcome(&descriptor, response).expect("valid response");
+
+        assert_eq!(outcome.entries[0].dependencies, vec![dependency]);
+    }
+
     fn fixture_native_response(
         importer_id: &str,
+        locator: AssetUri,
         imported_asset: ImportedAsset,
     ) -> NativeAssetImportResponseMetadata {
         NativeAssetImportResponseMetadata {
             importer_id: importer_id.to_string(),
-            imported_asset,
-            diagnostics: Vec::new(),
+            entries: vec![NativeAssetImportEntryMetadata {
+                locator,
+                imported_asset,
+                dependencies: Vec::new(),
+                diagnostics: Vec::new(),
+            }],
         }
     }
 

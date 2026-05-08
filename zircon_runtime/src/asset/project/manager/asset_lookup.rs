@@ -13,6 +13,14 @@ impl ProjectManager {
         self.asset_ids_by_uuid.get(&uuid).copied()
     }
 
+    pub fn asset_id_for_reference(&self, uuid: AssetUuid, locator: &AssetUri) -> Option<AssetId> {
+        self.asset_id_for_uri(locator).or_else(|| {
+            self.asset_ids_by_uuid
+                .contains_key(&uuid)
+                .then(|| AssetId::from_asset_uuid_label(uuid, locator.label()))
+        })
+    }
+
     pub fn asset_uri_for_id(&self, id: AssetId) -> Option<&AssetUri> {
         self.registry
             .get(id)

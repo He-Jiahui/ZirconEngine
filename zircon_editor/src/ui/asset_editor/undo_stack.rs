@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::ui::asset_editor::UiDesignerSelectionModel;
+use serde::{Deserialize, Serialize};
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleSheet};
 
@@ -10,7 +11,7 @@ use super::command::{
 };
 use super::document_diff::UiAssetDocumentDiff;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorExternalEffect {
     UpsertAssetSource { asset_id: String, source: String },
     RestoreAssetSource { asset_id: String, source: String },
@@ -55,13 +56,13 @@ pub fn apply_external_effects_to_asset_sources(
     changed
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiAssetEditorUndoExternalEffects {
     pub undo: Vec<UiAssetEditorExternalEffect>,
     pub redo: Vec<UiAssetEditorExternalEffect>,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct UiAssetEditorSourceCursorSnapshot {
     pub byte_offset: usize,
     pub anchor_node_id: Option<String>,
@@ -179,6 +180,18 @@ pub struct UiAssetEditorUndoStack {
 pub struct UiAssetEditorUndoReplayRecord {
     pub label: String,
     pub transition: UiAssetEditorUndoTransition,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct UiAssetEditorUndoStackReplayRecord {
+    pub sequence: usize,
+    pub label: String,
+    pub tree_edit: Option<UiAssetEditorTreeEdit>,
+    pub inverse_tree_edit: Option<UiAssetEditorInverseTreeEdit>,
+    pub undo_document_commands: Vec<UiAssetEditorDocumentReplayCommand>,
+    pub redo_document_commands: Vec<UiAssetEditorDocumentReplayCommand>,
+    pub undo_external_effects: Vec<UiAssetEditorExternalEffect>,
+    pub redo_external_effects: Vec<UiAssetEditorExternalEffect>,
 }
 
 impl UiAssetEditorUndoStack {
@@ -405,6 +418,23 @@ impl UiAssetEditorUndoStack {
         self.preview_redo_entry()
             .map(|entry| entry.redo.external_effects.clone())
             .unwrap_or_default()
+    }
+
+    pub fn replay_records(&self) -> Vec<UiAssetEditorUndoStackReplayRecord> {
+        self.undo_stack
+            .iter()
+            .enumerate()
+            .map(|(index, entry)| UiAssetEditorUndoStackReplayRecord {
+                sequence: index + 1,
+                label: entry.label.clone(),
+                tree_edit: entry.tree_edit.clone(),
+                inverse_tree_edit: entry.inverse_tree_edit.clone(),
+                undo_document_commands: entry.undo.document_commands.clone(),
+                redo_document_commands: entry.redo.document_commands.clone(),
+                undo_external_effects: entry.undo.external_effects.clone(),
+                redo_external_effects: entry.redo.external_effects.clone(),
+            })
+            .collect()
     }
 }
 

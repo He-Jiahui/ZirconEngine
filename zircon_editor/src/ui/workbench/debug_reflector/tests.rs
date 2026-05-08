@@ -3,13 +3,14 @@ use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
     surface::{
         UiDamageDebugReport, UiDebugOverlayPrimitive, UiDebugOverlayPrimitiveKind,
-        UiHitGridDebugStats, UiHitTestDebugDump, UiHitTestQuery, UiHitTestReject,
-        UiHitTestRejectReason, UiMaterialBatchDebugStat, UiOverdrawDebugStats,
+        UiDebugTimelineFrameHandle, UiDebugTimelineFrameSummary, UiDebugTimelineRetention,
+        UiDebugTimelineSnapshot, UiHitGridDebugStats, UiHitTestDebugDump, UiHitTestQuery,
+        UiHitTestReject, UiHitTestRejectReason, UiMaterialBatchDebugStat, UiOverdrawDebugStats,
         UiRenderDebugSnapshot, UiRenderDebugStats, UiRenderDebugStatsV2, UiRenderVisualizerOverlay,
         UiRenderVisualizerOverlayKind, UiRenderVisualizerSnapshot, UiRenderVisualizerStats,
         UiRenderVisualizerTextStats, UiRendererParitySnapshot, UiRendererParityStats,
-        UiSurfaceDebugCaptureContext, UiSurfaceDebugSnapshot, UiSurfaceRebuildDebugStats,
-        UiWidgetReflectorNode,
+        UiSurfaceDebugCaptureContext, UiSurfaceDebugOptions, UiSurfaceDebugSnapshot,
+        UiSurfaceRebuildDebugStats, UiWidgetReflectorNode,
     },
     tree::{UiInputPolicy, UiVisibility},
 };
@@ -18,6 +19,7 @@ use super::export::{load_snapshot_json, snapshot_to_json};
 use super::model::EditorUiDebugReflectorModel;
 use super::overlay::EditorUiDebugReflectorOverlayState;
 use super::selection::EditorUiDebugReflectorSelection;
+use super::EditorUiDebugTimelineModel;
 
 #[test]
 fn ui_debug_reflector_model_reports_no_active_surface_state() {
@@ -261,6 +263,75 @@ fn ui_debug_reflector_overlay_derives_render_visualizer_primitives() {
         .any(|primitive| primitive.kind == UiDebugOverlayPrimitiveKind::TextGlyphBounds));
 }
 
+#[test]
+fn ui_debug_timeline_model_projects_selected_historical_frame() {
+    let timeline = timeline_fixture(Some(UiDebugTimelineFrameHandle(2)));
+
+    let model = EditorUiDebugTimelineModel::from_timeline(&timeline);
+
+    assert_eq!(
+        model.retention,
+        "Timeline: 3/4 frames retained, dropped 5, first=1, latest=3, selected=2"
+    );
+    assert_eq!(
+        model.selected,
+        "Selected frame: handle=2 frame=102 source=Frame 102 nodes=2 commands=5"
+    );
+    assert_eq!(
+        model.latest,
+        "Latest frame: handle=3 frame=103 source=Frame 103"
+    );
+    assert_eq!(model.previous_frame, Some(UiDebugTimelineFrameHandle(1)));
+    assert_eq!(model.next_frame, Some(UiDebugTimelineFrameHandle(3)));
+    assert_eq!(model.frame_rows.len(), 3);
+    assert!(model.frame_rows[1].contains("handle=2"));
+    assert!(model.frame_rows[1].contains("selected_node=Some(2)"));
+    assert_eq!(
+        model.selected_reflector.summary.title,
+        "UI Debug Reflector: 2 nodes, 5 commands, schema v1"
+    );
+    assert!(model
+        .selected_reflector
+        .details
+        .iter()
+        .any(|detail| detail.contains("Selected: root/button")));
+}
+
+#[test]
+fn ui_debug_timeline_model_falls_back_to_latest_when_selected_handle_is_missing() {
+    let timeline = timeline_fixture(Some(UiDebugTimelineFrameHandle(99)));
+
+    let model = EditorUiDebugTimelineModel::from_timeline(&timeline);
+
+    assert_eq!(
+        model.selected,
+        "Selected frame: handle=3 frame=103 source=Frame 103 nodes=2 commands=7"
+    );
+    assert_eq!(model.previous_frame, Some(UiDebugTimelineFrameHandle(2)));
+    assert_eq!(model.next_frame, None);
+    assert_eq!(
+        model.selected_reflector.summary.title,
+        "UI Debug Reflector: 2 nodes, 7 commands, schema v1"
+    );
+}
+
+#[test]
+fn ui_debug_timeline_model_reports_empty_timeline_as_no_active_surface() {
+    let model = EditorUiDebugTimelineModel::from_timeline(&UiDebugTimelineSnapshot::default());
+
+    assert_eq!(
+        model.retention,
+        "Timeline: 0/0 frames retained, dropped 0, first=none, latest=none, selected=none"
+    );
+    assert_eq!(model.selected, "Selected frame: none");
+    assert_eq!(model.latest, "Latest frame: none");
+    assert!(model.frame_rows.is_empty());
+    assert_eq!(
+        model.selected_reflector.summary.title,
+        "UI Debug Reflector: no active surface snapshot"
+    );
+}
+
 fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
     UiSurfaceDebugSnapshot {
         capture: UiSurfaceDebugCaptureContext {
@@ -334,6 +405,76 @@ fn snapshot_fixture(selected_node: Option<UiNodeId>) -> UiSurfaceDebugSnapshot {
         },
         render_batches: render_debug_snapshot_fixture(),
         ..UiSurfaceDebugSnapshot::default()
+    }
+}
+
+fn timeline_fixture(selected_frame: Option<UiDebugTimelineFrameHandle>) -> UiDebugTimelineSnapshot {
+    let frames = vec![
+        timeline_snapshot(1, 101, "Frame 101", 3),
+        timeline_snapshot(2, 102, "Frame 102", 5),
+        timeline_snapshot(3, 103, "Frame 103", 7),
+    ];
+    let summaries = frames
+        .iter()
+        .enumerate()
+        .map(|(index, snapshot)| timeline_summary(index as u64 + 1, snapshot))
+        .collect::<Vec<_>>();
+
+    UiDebugTimelineSnapshot {
+        selected_frame,
+        summaries,
+        frames,
+        retention: UiDebugTimelineRetention {
+            capacity: 4,
+            len: 3,
+            first_frame: Some(UiDebugTimelineFrameHandle(1)),
+            latest_frame: Some(UiDebugTimelineFrameHandle(3)),
+            selected_frame,
+            dropped_frame_count: 5,
+        },
+    }
+}
+
+fn timeline_snapshot(
+    handle: u64,
+    frame_index: u64,
+    label: &str,
+    command_count: usize,
+) -> UiSurfaceDebugSnapshot {
+    let mut snapshot = snapshot_fixture(Some(UiNodeId::new(2)));
+    snapshot.capture.frame_index = Some(frame_index);
+    snapshot.capture.captured_at_millis = Some(frame_index * 10);
+    snapshot.capture.surface_name = Some(label.to_string());
+    snapshot.render.command_count = command_count;
+    snapshot
+        .render
+        .command_records
+        .truncate(command_count.min(snapshot.render.command_records.len()));
+    snapshot.events = Vec::new();
+    assert_eq!(handle, frame_index - 100);
+    snapshot
+}
+
+fn timeline_summary(handle: u64, snapshot: &UiSurfaceDebugSnapshot) -> UiDebugTimelineFrameSummary {
+    UiDebugTimelineFrameSummary {
+        handle: UiDebugTimelineFrameHandle(handle),
+        frame_index: snapshot.capture.frame_index.expect("frame index"),
+        captured_at_millis: snapshot.capture.captured_at_millis,
+        source_target_id: snapshot.tree_id.0.clone(),
+        source_label: snapshot
+            .capture
+            .surface_name
+            .clone()
+            .expect("surface label"),
+        schema_version: snapshot.capture.schema_version,
+        node_count: snapshot.nodes.len(),
+        render_command_count: snapshot.render.command_count,
+        hit_grid_cell_count: snapshot.hit_test.cell_count,
+        invalidation_dirty_count: snapshot.invalidation.dirty_node_count,
+        has_damage_region: snapshot.damage.damage_region.is_some(),
+        warning_count: snapshot.invalidation.warnings.len() + snapshot.damage.warnings.len(),
+        selected_node: snapshot.capture.selected_node,
+        capture_options: UiSurfaceDebugOptions::default(),
     }
 }
 

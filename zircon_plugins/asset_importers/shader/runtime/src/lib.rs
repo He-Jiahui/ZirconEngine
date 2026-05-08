@@ -233,16 +233,17 @@ fn shader_outcome(
     wgsl_source: String,
     entry_points: Vec<ShaderEntryPointAsset>,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Shader(
-        ShaderAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Shader(ShaderAsset {
             uri: context.uri.clone(),
             source_language,
             source,
             wgsl_source,
             entry_points,
             validation_diagnostics: Vec::new(),
-        },
-    )))
+        }),
+    ))
 }
 
 fn validate_naga_module(
@@ -456,7 +457,9 @@ mod tests {
         importer
             .import(&context_for(path, source, settings))
             .unwrap()
-            .imported_asset
+            .root_entry()
+            .map(|entry| entry.asset.clone())
+            .expect("shader importer root asset")
     }
 
     fn context_for(path: &str, source: &str, settings: toml::Table) -> AssetImportContext {

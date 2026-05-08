@@ -3,12 +3,17 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 use toml::Value;
 
+use zircon_runtime_interface::ui::accessibility::UiAccessibilityContract;
+use zircon_runtime_interface::ui::focus::UiFocusContract;
+use zircon_runtime_interface::ui::navigation::UiNavigationContract;
+use zircon_runtime_interface::ui::picking::UiPickPolicy;
 use zircon_runtime_interface::ui::template::UiBindingRef;
 use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiChildMount,
     UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
     UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
 };
+use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
 pub(super) fn migrate_flat_toml_str(input: &str) -> Result<UiAssetDocument, UiAssetError> {
     let legacy: FlatUiAssetDocument =
@@ -104,6 +109,11 @@ fn build_tree_node(
         bindings: node.bindings.clone(),
         style_overrides: node.style_overrides.clone(),
         children,
+        focus: node.focus.clone(),
+        navigation: node.navigation.clone(),
+        picking: node.picking,
+        a11y: node.a11y.clone(),
+        widget: node.widget.clone(),
     })
 }
 
@@ -155,6 +165,16 @@ struct FlatUiNodeDefinition {
     pub bindings: Vec<UiBindingRef>,
     #[serde(default)]
     pub style_overrides: UiStyleDeclarationBlock,
+    #[serde(default)]
+    pub focus: Option<UiFocusContract>,
+    #[serde(default)]
+    pub navigation: Option<UiNavigationContract>,
+    #[serde(default)]
+    pub picking: Option<UiPickPolicy>,
+    #[serde(default)]
+    pub a11y: Option<UiAccessibilityContract>,
+    #[serde(default)]
+    pub widget: Option<UiWidgetContract>,
     #[serde(default)]
     pub children: Vec<FlatUiChildMount>,
 }

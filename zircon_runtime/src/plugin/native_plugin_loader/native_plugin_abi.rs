@@ -1,4 +1,7 @@
+use std::collections::BTreeMap;
 use std::ffi::{c_char, CStr, CString};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Mutex, OnceLock};
 
 use libloading::Library;
 
@@ -7,12 +10,16 @@ use crate::{
 };
 
 pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V1: u32 = 1;
-pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = 2;
-pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION;
+pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2: u32 = 2;
+pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3: u32 = 3;
+pub const ZIRCON_NATIVE_PLUGIN_ABI_VERSION: u32 = ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3;
 pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V1: &[u8] =
     b"zircon_native_plugin_descriptor_v1\0";
-pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL: &[u8] = b"zircon_native_plugin_descriptor_v2\0";
-pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2: &[u8] = ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL;
+pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2: &[u8] =
+    b"zircon_native_plugin_descriptor_v2\0";
+pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3: &[u8] =
+    b"zircon_native_plugin_descriptor_v3\0";
+pub const ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL: &[u8] = ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3;
 
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_OK: u32 = 0;
 pub const ZIRCON_NATIVE_PLUGIN_STATUS_ERROR: u32 = 1;
@@ -42,6 +49,25 @@ pub struct NativePluginAbiV2 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+pub struct NativePluginAbiV3 {
+    pub abi_version: u32,
+    pub plugin_id: *const c_char,
+    pub package_manifest_toml: *const c_char,
+    pub runtime_entry_name: *const c_char,
+    pub editor_entry_name: *const c_char,
+    pub requested_capabilities: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginSchemaVersionsV3 {
+    pub state_schema_version: u32,
+    pub command_manifest_schema: *const c_char,
+    pub event_manifest_schema: *const c_char,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct NativePluginEntryReportV1 {
     pub abi_version: u32,
     pub package_manifest_toml: *const c_char,
@@ -60,6 +86,16 @@ pub struct NativePluginEntryReportV2 {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
+pub struct NativePluginEntryReportV3 {
+    pub abi_version: u32,
+    pub package_manifest_toml: *const c_char,
+    pub diagnostics: *const c_char,
+    pub negotiated_capabilities: *const c_char,
+    pub behavior: *const NativePluginBehaviorV3,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct NativePluginHostFunctionTableV2 {
     pub abi_version: u32,
     pub host_handle: u64,
@@ -67,6 +103,18 @@ pub struct NativePluginHostFunctionTableV2 {
     pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
     pub host_has_capability:
         Option<unsafe extern "C" fn(*const NativePluginHostFunctionTableV2, *const c_char) -> u32>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginHostFunctionTableV3 {
+    pub abi_version: u32,
+    pub host_handle: u64,
+    pub granted_capabilities: *const c_char,
+    pub host_abi_version: Option<unsafe extern "C" fn() -> u32>,
+    pub host_has_capability: Option<NativePluginHostHasCapabilityFnV3>,
+    pub host_log: Option<NativePluginHostLogFnV3>,
+    pub host_diagnostic: Option<NativePluginHostDiagnosticFnV3>,
 }
 
 #[repr(C)]
@@ -135,6 +183,20 @@ pub struct NativePluginBehaviorV2 {
     pub unload: Option<NativePluginUnloadFnV2>,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct NativePluginBehaviorV3 {
+    pub abi_version: u32,
+    pub is_stateless: u32,
+    pub schema_versions: NativePluginSchemaVersionsV3,
+    pub command_manifest: *const c_char,
+    pub event_manifest: *const c_char,
+    pub invoke_command: Option<NativePluginInvokeCommandFnV3>,
+    pub save_state: Option<NativePluginSaveStateFnV3>,
+    pub restore_state: Option<NativePluginRestoreStateFnV3>,
+    pub unload: Option<NativePluginUnloadFnV3>,
+}
+
 pub type NativePluginFreeBytesFnV2 =
     unsafe extern "C" fn(NativePluginOwnedByteBufferV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginInvokeCommandFnV2 = unsafe extern "C" fn(
@@ -147,6 +209,28 @@ pub type NativePluginSaveStateFnV2 =
 pub type NativePluginRestoreStateFnV2 =
     unsafe extern "C" fn(NativePluginByteSliceV2) -> NativePluginCallbackStatusV2;
 pub type NativePluginUnloadFnV2 = unsafe extern "C" fn() -> NativePluginCallbackStatusV2;
+pub type NativePluginByteSliceV3 = NativePluginByteSliceV2;
+pub type NativePluginOwnedByteBufferV3 = NativePluginOwnedByteBufferV2;
+pub type NativePluginCallbackStatusV3 = NativePluginCallbackStatusV2;
+pub type NativePluginInvokeCommandFnV3 = NativePluginInvokeCommandFnV2;
+pub type NativePluginSaveStateFnV3 = NativePluginSaveStateFnV2;
+pub type NativePluginRestoreStateFnV3 = NativePluginRestoreStateFnV2;
+pub type NativePluginUnloadFnV3 = NativePluginUnloadFnV2;
+pub type NativePluginHostHasCapabilityFnV3 =
+    unsafe extern "C" fn(*const NativePluginHostFunctionTableV3, *const c_char) -> u32;
+pub type NativePluginHostLogFnV3 = unsafe extern "C" fn(
+    *const NativePluginHostFunctionTableV3,
+    u32,
+    *const c_char,
+    *const c_char,
+) -> u32;
+pub type NativePluginHostDiagnosticFnV3 = unsafe extern "C" fn(
+    *const NativePluginHostFunctionTableV3,
+    *const c_char,
+    f64,
+    *const c_char,
+    *const c_char,
+) -> u32;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NativePluginDescriptor {
@@ -171,6 +255,9 @@ pub struct NativePluginEntryReport {
 #[derive(Debug)]
 pub(super) struct NativePluginBehavior {
     pub is_stateless: bool,
+    pub state_schema_version: u32,
+    pub command_manifest_schema: Option<String>,
+    pub event_manifest_schema: Option<String>,
     pub command_manifest: Option<String>,
     pub event_manifest: Option<String>,
     invoke_command: Option<NativePluginInvokeCommandFnV2>,
@@ -188,16 +275,30 @@ pub struct NativePluginBehaviorCallReport {
 
 type NativePluginDescriptorFnV1 = unsafe extern "C" fn() -> *const NativePluginAbiV1;
 type NativePluginDescriptorFnV2 = unsafe extern "C" fn() -> *const NativePluginAbiV2;
+type NativePluginDescriptorFnV3 = unsafe extern "C" fn() -> *const NativePluginAbiV3;
 type NativePluginEntryFnV1 = unsafe extern "C" fn() -> *const NativePluginEntryReportV1;
 type NativePluginEntryFnV2 = unsafe extern "C" fn(
     *const NativePluginHostFunctionTableV2,
 ) -> *const NativePluginEntryReportV2;
+type NativePluginEntryFnV3 = unsafe extern "C" fn(
+    *const NativePluginHostFunctionTableV3,
+) -> *const NativePluginEntryReportV3;
 
 pub(super) unsafe fn probe_native_plugin_descriptor(
     library: &Library,
 ) -> Result<Option<NativePluginDescriptor>, String> {
     if let Ok(symbol) =
-        library.get::<NativePluginDescriptorFnV2>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL)
+        library.get::<NativePluginDescriptorFnV3>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V3)
+    {
+        let descriptor = symbol();
+        if descriptor.is_null() {
+            return Err("native plugin ABI v3 descriptor symbol returned null".to_string());
+        }
+        return NativePluginDescriptor::from_abi_v3(&*descriptor).map(Some);
+    }
+
+    if let Ok(symbol) =
+        library.get::<NativePluginDescriptorFnV2>(ZIRCON_NATIVE_PLUGIN_DESCRIPTOR_SYMBOL_V2)
     {
         let descriptor = symbol();
         if descriptor.is_null() {
@@ -227,7 +328,35 @@ pub(super) unsafe fn call_native_plugin_entry(
     descriptor: &NativePluginDescriptor,
 ) -> Result<NativePluginEntryReport, String> {
     let symbol_name = native_symbol_name(symbol_name);
-    if descriptor.abi_version == ZIRCON_NATIVE_PLUGIN_ABI_VERSION {
+    if descriptor.abi_version == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
+        let symbol = library
+            .get::<NativePluginEntryFnV3>(&symbol_name[..])
+            .map_err(|error| format!("native plugin entry symbol is missing: {error}"))?;
+        let granted_capabilities = granted_capabilities_for_entry(descriptor, module_kind);
+        let granted_capabilities = CString::new(granted_capabilities.join("\n")).map_err(|_| {
+            "native plugin requested capability contained an interior NUL".to_string()
+        })?;
+        let host_handle = register_native_host_callback_capture();
+        let host_functions = NativePluginHostFunctionTableV3 {
+            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3,
+            host_handle,
+            granted_capabilities: granted_capabilities.as_ptr(),
+            host_abi_version: Some(native_host_abi_version_v3),
+            host_has_capability: Some(native_host_has_capability_v3),
+            host_log: Some(native_host_log_v3),
+            host_diagnostic: Some(native_host_diagnostic_v3),
+        };
+        let report = symbol(&host_functions);
+        let callback_capture = take_native_host_callback_capture(host_handle);
+        if report.is_null() {
+            return Err("native plugin entry returned null".to_string());
+        }
+        let mut report = NativePluginEntryReport::from_abi_v3(plugin_id, module_kind, &*report)?;
+        report
+            .diagnostics
+            .extend(callback_capture.into_entry_diagnostics());
+        Ok(report)
+    } else if descriptor.abi_version == ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
         let symbol = library
             .get::<NativePluginEntryFnV2>(&symbol_name[..])
             .map_err(|error| format!("native plugin entry symbol is missing: {error}"))?;
@@ -236,7 +365,7 @@ pub(super) unsafe fn call_native_plugin_entry(
             "native plugin requested capability contained an interior NUL".to_string()
         })?;
         let host_functions = NativePluginHostFunctionTableV2 {
-            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION,
+            abi_version: ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2,
             host_handle: 1,
             granted_capabilities: granted_capabilities.as_ptr(),
             host_abi_version: Some(native_host_abi_version_v2),
@@ -282,10 +411,33 @@ impl NativePluginDescriptor {
     }
 
     unsafe fn from_abi_v2(abi: &NativePluginAbiV2) -> Result<Self, String> {
-        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
             return Err(format!(
                 "unsupported native plugin ABI version {}; expected {}",
-                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
+            ));
+        }
+        let plugin_id = read_required_c_string(abi.plugin_id, "plugin_id")?;
+        Ok(Self {
+            abi_version: abi.abi_version,
+            plugin_id,
+            package_manifest: package_manifest_from_toml(
+                &read_optional_c_string(abi.package_manifest_toml).unwrap_or_default(),
+                "native plugin package manifest is invalid",
+            )?,
+            runtime_entry_name: read_optional_c_string(abi.runtime_entry_name),
+            editor_entry_name: read_optional_c_string(abi.editor_entry_name),
+            requested_capabilities: parse_native_string_list(
+                &read_optional_c_string(abi.requested_capabilities).unwrap_or_default(),
+            ),
+        })
+    }
+
+    unsafe fn from_abi_v3(abi: &NativePluginAbiV3) -> Result<Self, String> {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
+            return Err(format!(
+                "unsupported native plugin ABI version {}; expected {}",
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
             ));
         }
         let plugin_id = read_required_c_string(abi.plugin_id, "plugin_id")?;
@@ -341,10 +493,10 @@ impl NativePluginEntryReport {
         module_kind: PluginModuleKind,
         abi: &NativePluginEntryReportV2,
     ) -> Result<Self, String> {
-        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
             return Err(format!(
                 "unsupported native plugin entry ABI version {}; expected {}",
-                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
             ));
         }
         Ok(Self {
@@ -371,18 +523,82 @@ impl NativePluginEntryReport {
             },
         })
     }
+
+    unsafe fn from_abi_v3(
+        plugin_id: &str,
+        module_kind: PluginModuleKind,
+        abi: &NativePluginEntryReportV3,
+    ) -> Result<Self, String> {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
+            return Err(format!(
+                "unsupported native plugin entry ABI version {}; expected {}",
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+            ));
+        }
+        Ok(Self {
+            plugin_id: plugin_id.to_string(),
+            module_kind,
+            package_manifest: package_manifest_from_toml(
+                &read_optional_c_string(abi.package_manifest_toml).unwrap_or_default(),
+                "native plugin entry package manifest is invalid",
+            )?,
+            diagnostics: read_optional_c_string(abi.diagnostics)
+                .unwrap_or_default()
+                .lines()
+                .map(str::trim)
+                .filter(|line| !line.is_empty())
+                .map(str::to_string)
+                .collect(),
+            negotiated_capabilities: parse_native_string_list(
+                &read_optional_c_string(abi.negotiated_capabilities).unwrap_or_default(),
+            ),
+            behavior: if abi.behavior.is_null() {
+                None
+            } else {
+                Some(NativePluginBehavior::from_abi_v3(&*abi.behavior)?)
+            },
+        })
+    }
 }
 
 impl NativePluginBehavior {
     unsafe fn from_abi_v2(abi: &NativePluginBehaviorV2) -> Result<Self, String> {
-        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2 {
             return Err(format!(
                 "unsupported native plugin behavior ABI version {}; expected {}",
-                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
             ));
         }
         Ok(Self {
             is_stateless: abi.is_stateless != 0,
+            state_schema_version: 0,
+            command_manifest_schema: None,
+            event_manifest_schema: None,
+            command_manifest: read_optional_c_string(abi.command_manifest),
+            event_manifest: read_optional_c_string(abi.event_manifest),
+            invoke_command: abi.invoke_command,
+            save_state: abi.save_state,
+            restore_state: abi.restore_state,
+            unload: abi.unload,
+        })
+    }
+
+    unsafe fn from_abi_v3(abi: &NativePluginBehaviorV3) -> Result<Self, String> {
+        if abi.abi_version != ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3 {
+            return Err(format!(
+                "unsupported native plugin behavior ABI version {}; expected {}",
+                abi.abi_version, ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+            ));
+        }
+        Ok(Self {
+            is_stateless: abi.is_stateless != 0,
+            state_schema_version: abi.schema_versions.state_schema_version,
+            command_manifest_schema: read_optional_c_string(
+                abi.schema_versions.command_manifest_schema,
+            ),
+            event_manifest_schema: read_optional_c_string(
+                abi.schema_versions.event_manifest_schema,
+            ),
             command_manifest: read_optional_c_string(abi.command_manifest),
             event_manifest: read_optional_c_string(abi.event_manifest),
             invoke_command: abi.invoke_command,
@@ -518,7 +734,7 @@ fn take_owned_bytes(
 }
 
 unsafe extern "C" fn native_host_abi_version_v2() -> u32 {
-    ZIRCON_NATIVE_PLUGIN_ABI_VERSION
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V2
 }
 
 unsafe extern "C" fn native_host_has_capability_v2(
@@ -543,6 +759,188 @@ unsafe extern "C" fn native_host_has_capability_v2(
     } else {
         ZIRCON_NATIVE_PLUGIN_STATUS_DENIED
     }
+}
+
+unsafe extern "C" fn native_host_abi_version_v3() -> u32 {
+    ZIRCON_NATIVE_PLUGIN_ABI_VERSION_V3
+}
+
+unsafe extern "C" fn native_host_has_capability_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    capability: *const c_char,
+) -> u32 {
+    if host_functions.is_null() || capability.is_null() {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    }
+    let Some(capability) = CStr::from_ptr(capability).to_str().ok() else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    };
+    let Some(granted_capabilities) = read_optional_c_string((*host_functions).granted_capabilities)
+    else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_DENIED;
+    };
+    if parse_native_string_list(&granted_capabilities)
+        .iter()
+        .any(|granted_capability| granted_capability == capability)
+    {
+        ZIRCON_NATIVE_PLUGIN_STATUS_OK
+    } else {
+        ZIRCON_NATIVE_PLUGIN_STATUS_DENIED
+    }
+}
+
+unsafe extern "C" fn native_host_log_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    level: u32,
+    target: *const c_char,
+    message: *const c_char,
+) -> u32 {
+    let Some(mut capture) = native_host_callback_capture(host_functions) else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    };
+    let Some(message) = read_optional_c_string(message) else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    };
+    let target = read_optional_c_string(target).unwrap_or_else(|| "native_plugin".to_string());
+    capture.logs.push(NativePluginHostLogRecord {
+        level,
+        target,
+        message,
+    });
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK
+}
+
+unsafe extern "C" fn native_host_diagnostic_v3(
+    host_functions: *const NativePluginHostFunctionTableV3,
+    path: *const c_char,
+    value: f64,
+    unit: *const c_char,
+    tags: *const c_char,
+) -> u32 {
+    let Some(mut capture) = native_host_callback_capture(host_functions) else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    };
+    let Some(path) = read_optional_c_string(path) else {
+        return ZIRCON_NATIVE_PLUGIN_STATUS_ERROR;
+    };
+    capture.diagnostics.push(NativePluginHostDiagnosticRecord {
+        path,
+        value,
+        unit: read_optional_c_string(unit),
+        tags: parse_native_string_list(&read_optional_c_string(tags).unwrap_or_default()),
+    });
+    ZIRCON_NATIVE_PLUGIN_STATUS_OK
+}
+
+fn register_native_host_callback_capture() -> u64 {
+    static NEXT_HOST_HANDLE: AtomicU64 = AtomicU64::new(2);
+    let host_handle = NEXT_HOST_HANDLE.fetch_add(1, Ordering::Relaxed);
+    let mut captures = lock_native_host_callback_captures();
+    captures.insert(host_handle, NativePluginHostCallbackCapture::default());
+    host_handle
+}
+
+fn take_native_host_callback_capture(host_handle: u64) -> NativePluginHostCallbackCapture {
+    let mut captures = lock_native_host_callback_captures();
+    captures.remove(&host_handle).unwrap_or_default()
+}
+
+unsafe fn native_host_callback_capture(
+    host_functions: *const NativePluginHostFunctionTableV3,
+) -> Option<NativePluginHostCallbackCaptureGuard<'static>> {
+    if host_functions.is_null() {
+        return None;
+    }
+    let host_handle = (*host_functions).host_handle;
+    let captures = lock_native_host_callback_captures();
+    if !captures.contains_key(&host_handle) {
+        return None;
+    }
+    Some(NativePluginHostCallbackCaptureGuard {
+        captures,
+        host_handle,
+    })
+}
+
+fn lock_native_host_callback_captures(
+) -> std::sync::MutexGuard<'static, BTreeMap<u64, NativePluginHostCallbackCapture>> {
+    native_host_callback_captures()
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
+fn native_host_callback_captures() -> &'static Mutex<BTreeMap<u64, NativePluginHostCallbackCapture>>
+{
+    static CAPTURES: OnceLock<Mutex<BTreeMap<u64, NativePluginHostCallbackCapture>>> =
+        OnceLock::new();
+    CAPTURES.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+#[derive(Default)]
+struct NativePluginHostCallbackCapture {
+    logs: Vec<NativePluginHostLogRecord>,
+    diagnostics: Vec<NativePluginHostDiagnosticRecord>,
+}
+
+impl NativePluginHostCallbackCapture {
+    fn into_entry_diagnostics(self) -> Vec<String> {
+        let mut diagnostics = Vec::new();
+        diagnostics.extend(self.logs.into_iter().map(|record| {
+            format!(
+                "host log level={} target={}: {}",
+                record.level, record.target, record.message
+            )
+        }));
+        diagnostics.extend(self.diagnostics.into_iter().map(|record| {
+            let mut message = format!("host diagnostic {}={}", record.path, record.value);
+            if let Some(unit) = record.unit.filter(|unit| !unit.is_empty()) {
+                message.push(' ');
+                message.push_str(&unit);
+            }
+            if !record.tags.is_empty() {
+                message.push_str(" tags=");
+                message.push_str(&record.tags.join(","));
+            }
+            message
+        }));
+        diagnostics
+    }
+}
+
+struct NativePluginHostCallbackCaptureGuard<'a> {
+    captures: std::sync::MutexGuard<'a, BTreeMap<u64, NativePluginHostCallbackCapture>>,
+    host_handle: u64,
+}
+
+impl std::ops::Deref for NativePluginHostCallbackCaptureGuard<'_> {
+    type Target = NativePluginHostCallbackCapture;
+
+    fn deref(&self) -> &Self::Target {
+        self.captures
+            .get(&self.host_handle)
+            .expect("native host callback capture should exist while guarded")
+    }
+}
+
+impl std::ops::DerefMut for NativePluginHostCallbackCaptureGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.captures
+            .get_mut(&self.host_handle)
+            .expect("native host callback capture should exist while guarded")
+    }
+}
+
+struct NativePluginHostLogRecord {
+    level: u32,
+    target: String,
+    message: String,
+}
+
+struct NativePluginHostDiagnosticRecord {
+    path: String,
+    value: f64,
+    unit: Option<String>,
+    tags: Vec<String>,
 }
 
 fn native_symbol_name(symbol_name: &str) -> Vec<u8> {

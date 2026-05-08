@@ -4,6 +4,7 @@ use crate::core::resource::ResourceId;
 use super::super::PipelineKey;
 
 #[derive(Clone, Copy, Debug)]
+#[allow(dead_code)]
 pub(crate) struct MaterialCaptureSeed {
     pub(crate) base_color: Vec4,
     pub(crate) emissive: Vec3,
@@ -20,6 +21,7 @@ pub(crate) struct MaterialCaptureSeed {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub(crate) struct MaterialRuntime {
     pub(crate) base_color: Vec4,
     pub(crate) emissive: Vec3,
@@ -37,6 +39,7 @@ pub(crate) struct MaterialRuntime {
 }
 
 impl MaterialRuntime {
+    #[allow(dead_code)]
     pub(crate) fn capture_seed(&self) -> MaterialCaptureSeed {
         MaterialCaptureSeed {
             base_color: self.base_color,

@@ -149,6 +149,7 @@ pub(crate) fn apply_presentation(
         menu_state: current_host_presentation.menu_state,
         close_prompt: current_host_presentation.close_prompt,
         pane_interaction_state: current_host_presentation.pane_interaction_state,
+        text_input_focus: current_host_presentation.text_input_focus,
         viewport_image: current_host_presentation.viewport_image,
     };
     ui.set_host_presentation(host_presentation);

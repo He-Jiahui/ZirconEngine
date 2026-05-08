@@ -26,9 +26,10 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         ImportedAsset::AnimationGraph(asset) => {
             references.extend(asset.nodes.iter().filter_map(|node| match node {
                 AnimationGraphNodeAsset::Clip { clip, .. } => Some(clip.clone()),
-                AnimationGraphNodeAsset::Blend { .. } | AnimationGraphNodeAsset::Output { .. } => {
-                    None
-                }
+                AnimationGraphNodeAsset::Blend { .. }
+                | AnimationGraphNodeAsset::Additive { .. }
+                | AnimationGraphNodeAsset::Mask { .. }
+                | AnimationGraphNodeAsset::Output { .. } => None,
             }));
         }
         ImportedAsset::AnimationStateMachine(asset) => {

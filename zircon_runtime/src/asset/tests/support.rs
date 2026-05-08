@@ -273,6 +273,7 @@ pub(crate) fn sample_animation_clip_asset() -> AnimationClipAsset {
         duration_seconds: 1.0,
         tracks: vec![AnimationClipBoneTrackAsset {
             bone_name: "Hand".to_string(),
+            target_id: Some("Root/Hand".to_string()),
             translation: vec3_channel([(0.0, [0.2, 0.8, 0.0]), (1.0, [0.25, 0.85, 0.0])]),
             rotation: quaternion_channel([
                 (0.0, [0.0, 0.0, 0.0, 1.0]),
@@ -280,6 +281,7 @@ pub(crate) fn sample_animation_clip_asset() -> AnimationClipAsset {
             ]),
             scale: vec3_channel([(0.0, [1.0, 1.0, 1.0]), (1.0, [1.05, 1.05, 1.05])]),
         }],
+        event_tracks: Vec::new(),
     }
 }
 
@@ -294,6 +296,7 @@ pub(crate) fn sample_animation_sequence_asset() -> AnimationSequenceAsset {
         frames_per_second: 30.0,
         bindings: vec![AnimationSequenceBindingAsset {
             entity_path: EntityPath::parse("Root/Hero").unwrap(),
+            target_id: Some("Root/Hero".to_string()),
             tracks: vec![
                 AnimationSequenceTrackAsset {
                     property_path: ComponentPropertyPath::parse("Transform.translation").unwrap(),

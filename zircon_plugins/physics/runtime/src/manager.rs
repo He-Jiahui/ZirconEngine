@@ -5,8 +5,8 @@ use zircon_runtime::core::framework::physics::{
     PhysicsBackendStatus, PhysicsBodySyncState, PhysicsBodyType, PhysicsColliderShape,
     PhysicsColliderSyncState, PhysicsContactEvent, PhysicsJointSyncState, PhysicsJointType,
     PhysicsManager, PhysicsMaterialMetadata, PhysicsMaterialSyncState, PhysicsRayCastHit,
-    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsSimulationMode,
-    PhysicsWorldStepPlan, PhysicsWorldSyncState,
+    PhysicsRayCastQuery, PhysicsSceneStepResult, PhysicsSettings, PhysicsWorldStepPlan,
+    PhysicsWorldSyncState,
 };
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::math::{Quat, Real, Transform, Vec3};
@@ -84,6 +84,7 @@ impl DefaultPhysicsManager {
                 steps: 0,
                 step_seconds,
                 remaining_seconds: 0.0,
+                interpolation_alpha: 0.0,
             };
         }
 
@@ -114,6 +115,7 @@ impl DefaultPhysicsManager {
             steps,
             step_seconds,
             remaining_seconds: *accumulator,
+            interpolation_alpha: physics_step_interpolation_alpha(*accumulator, step_seconds),
         }
     }
 }
@@ -124,7 +126,7 @@ pub fn build_world_sync_state(world_handle: WorldHandle, world: &World) -> Physi
         ..PhysicsWorldSyncState::default()
     };
 
-    for node in world.nodes() {
+    for node in world.node_records() {
         let entity_transform = world.world_transform(node.id).unwrap_or(node.transform);
 
         if let Some(rigid_body) = node.rigid_body.as_ref() {
@@ -229,7 +231,11 @@ pub fn integrate_builtin_physics_steps(world: &mut World, plan: PhysicsWorldStep
         return;
     }
 
-    let entities = world.nodes().iter().map(|node| node.id).collect::<Vec<_>>();
+    let entities = world
+        .node_records()
+        .iter()
+        .map(|node| node.id)
+        .collect::<Vec<_>>();
     for _ in 0..plan.steps {
         for entity in &entities {
             let Some(mut rigid_body) = world.rigid_body(*entity).cloned() else {
@@ -326,6 +332,7 @@ impl PhysicsManager for DefaultPhysicsManager {
                 steps: 0,
                 step_seconds: configured_step_seconds(&settings),
                 remaining_seconds: 0.0,
+                interpolation_alpha: 0.0,
             };
         }
 
@@ -521,6 +528,14 @@ fn configured_step_seconds(settings: &PhysicsSettings) -> Real {
         0.0
     } else {
         1.0 / settings.fixed_hz as Real
+    }
+}
+
+fn physics_step_interpolation_alpha(remaining_seconds: Real, step_seconds: Real) -> Real {
+    if remaining_seconds.is_finite() && step_seconds.is_finite() && step_seconds > 0.0 {
+        (remaining_seconds / step_seconds).clamp(0.0, 1.0)
+    } else {
+        0.0
     }
 }
 

@@ -21,7 +21,9 @@ impl UiRuntimeTreeLayoutExt for UiTree {
                 .nodes
                 .get(&parent_id)
                 .ok_or(UiTreeError::MissingNode(parent_id))?;
-            if !(parent.layout_boundary.propagates_child_layout_invalidation()
+            if !(parent
+                .layout_boundary
+                .propagates_child_layout_invalidation()
                 || parent.container.is_auto_layout_container())
             {
                 break;

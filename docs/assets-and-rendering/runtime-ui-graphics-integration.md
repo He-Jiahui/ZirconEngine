@@ -21,6 +21,9 @@ related_code:
   - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
+  - zircon_runtime/src/ui/surface/render/cache.rs
+  - zircon_runtime/src/ui/surface/node_pool.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
@@ -84,6 +87,9 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/asset_kind.rs
   - zircon_runtime/src/asset/artifact/store.rs
   - zircon_runtime/src/ui/surface/render/mod.rs
+  - zircon_runtime/src/ui/surface/render/cache.rs
+  - zircon_runtime/src/ui/surface/node_pool.rs
+  - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/mod.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
@@ -157,6 +163,7 @@ plan_sources:
   - user: 2026-04-21 继续推进 M1，让项目内 res:// 字体资产通过 ProjectAssetManager 进入 runtime UI 文本链路
   - user: 2026-04-28 继续文本的 SDF 渲染和排版能力任务
   - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
+  - .codex/plans/Zircon UI 增量布局、增量重绘与控件池优化计划.md
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
@@ -210,6 +217,7 @@ tests:
   - cargo test -p zircon_runtime --lib screen_space_ui_plan --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib text_attrs --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib native_runtime_text_painter --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
+  - cargo test -p zircon_runtime --lib surface_node_pool --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-incremental-layout-render --message-format short --color never
   doc_type: module-detail
 ---
 
@@ -315,7 +323,9 @@ flat asset 迁移逻辑只存在于 shared UI 的 test support 和 editor test s
 - `build_frame()` 把 `surface.render_extract` 塞进 `PublicRuntimeFrame.ui`
 - render framework / scene renderer 继续消费这份 shared draw extract
 
-R1-R7 render contract work adds a derived paint/batch/cache/text-shape/debug-visualizer layer on top of this same extract instead of adding a second frame boundary. `UiRenderCommand` can now derive `UiPaintElement` records with typed brush, text, resource, clip, and effect payloads, `UiBatchPlan` can explain stable merge/split decisions from those paint elements, `UiRenderCachePlan` can report paint/batch cache reuse or rebuild reasons, `UiShapedText` can carry glyph ids, advances, font/atlas resources, atlas UVs, ellipsis ranges, and edit decorations, and `UiRenderVisualizerSnapshot` can export paint rows, batch rows, overlays, overdraw regions, resource bindings, and text/backend stats for Widget Reflector style panels. Resource-bearing brush payloads now preserve revision, atlas page, UV rect, pixel size, fallback resource, and material variant state in `UiRenderResourceKey` / `UiRenderResourceState`, so future runtime atlas/cache/debug work can split, invalidate, and visualize by shared DTO fields instead of renderer-local guesses. R7 only adds the shared visualizer packet; runtime diagnostics/editor panels can consume it later while the runtime frame still submits `UiRenderExtract` as the authoritative UI payload.
+R1-R7 render contract work adds a derived paint/batch/cache/text-shape/debug-visualizer layer on top of this same extract instead of adding a second frame boundary. `UiRenderCommand` can now derive `UiPaintElement` records with typed brush, text, resource, clip, and effect payloads, `UiBatchPlan` can explain stable merge/split decisions from those paint elements, `UiRenderCachePlan` can report paint/batch cache reuse or rebuild reasons, `UiShapedText` can carry glyph ids, advances, font/atlas resources, atlas UVs, ellipsis ranges, and edit decorations, and `UiRenderVisualizerSnapshot` can export paint rows, batch rows, overlays, overdraw regions, resource bindings, and text/backend stats for Widget Reflector style panels. Resource-bearing brush payloads now preserve revision, atlas page, UV rect, pixel size, fallback resource, and material variant state in `UiRenderResourceKey` / `UiRenderResourceState`, so future runtime atlas/cache/debug work can split, invalidate, and visualize by shared DTO fields instead of renderer-local guesses. Runtime surfaces now also retain a first per-node `UiSurfaceRenderCache` over `UiRenderCommand` records. Dirty rebuilds reuse unchanged commands, rebuild changed commands, remove missing-node commands, and report damage as old/new frame union rectangles through `UiSurfaceRebuildReport`. `UiPaintElement.cache_generation` is populated from a stable command hash, so downstream debug/cache DTOs can observe reuse without the renderer guessing at local state. Runtime surfaces also retain a first `UiSurfaceNodePool` for template-backed controls: removed controls detach from the tree into a surface-owned pool, compatible future insertions reuse the retained node shell, and ordinary resize/property changes continue through dirty rebuilds without reloading `.ui.toml` descriptions or rebuilding the whole surface. The runtime frame still submits `UiRenderExtract` as the authoritative UI payload.
+
+The 2026-05-08 retained render-cache slice was validated at the runtime surface layer with `cargo test -p zircon_runtime --lib surface_dirty_domains --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ui-incremental-layout-render" --message-format short --color never`, which passed all 5 focused dirty-domain tests. The render-specific regression proves an unchanged render-dirty command is reused and reports zero damage rectangles. `cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir "E:\cargo-targets\zircon-ui-incremental-layout-render" --message-format short --color never` also passed for the shared render/cache DTO additions. The control-pool follow-up reached clean `rustfmt --edition 2021 --check` for the touched UI files, but its focused `cargo test -p zircon_runtime --lib surface_node_pool` and a fresh `cargo check -p zircon_runtime --lib` were blocked by unrelated asset-importer API drift before the UI tests could run. Broader editor/runtime validation remains unclaimed in this dirty checkout because unrelated editor host, runtime asset facade, native plugin ABI, and current asset-importer compile errors block those commands before the retained render/editor preview path can be exercised.
 
 `runtime-ui-integration-tests` feature 下的 all-fixture 验收现在会遍历 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList`，逐个通过 `RuntimeUiManager::load_builtin_fixture(...) -> build_frame() -> WgpuRenderFramework::submit_runtime_frame(...)` 提交，并检查 `RenderStats` 中的 UI command 与 quad/text payload 计数。这条测试只证明所有 builtin fixture 都进入同一 screen-space UI pass，不为某个 fixture 增加专用 renderer 分支。
 

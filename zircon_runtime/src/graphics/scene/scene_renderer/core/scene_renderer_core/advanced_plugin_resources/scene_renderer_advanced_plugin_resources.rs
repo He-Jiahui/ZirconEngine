@@ -57,6 +57,7 @@ impl SceneRendererAdvancedPluginResources {
         }
     }
 
+    #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn register_runtime_prepare_collector(
         &mut self,
         collector: SceneRendererRuntimePrepareCollector,
@@ -76,6 +77,7 @@ impl SceneRendererAdvancedPluginResources {
         self.capabilities.virtual_geometry
     }
 
+    #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn hybrid_gi_enabled(&self) -> bool {
         self.capabilities.hybrid_gi
     }

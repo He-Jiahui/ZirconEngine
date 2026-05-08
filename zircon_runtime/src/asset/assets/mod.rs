@@ -16,11 +16,11 @@ mod ui;
 pub use animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
     AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationConditionOperatorAsset,
-    AnimationGraphAsset, AnimationGraphNodeAsset, AnimationGraphParameterAsset,
-    AnimationInterpolationAsset, AnimationSequenceAsset, AnimationSequenceBindingAsset,
-    AnimationSequenceTrackAsset, AnimationSkeletonAsset, AnimationSkeletonBoneAsset,
-    AnimationStateAsset, AnimationStateMachineAsset, AnimationStateTransitionAsset,
-    AnimationTransitionConditionAsset,
+    AnimationEventTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
+    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
+    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
+    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
+    AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
 pub use authoring::{
     MaterialGraphAsset, MaterialGraphLinkAsset, MaterialGraphNodeAsset, MaterialGraphNodeKindAsset,

@@ -183,6 +183,7 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             }),
             error: None,
         },
+        store: Default::default(),
     }
 }
 

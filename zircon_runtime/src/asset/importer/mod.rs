@@ -8,11 +8,13 @@ mod schema;
 pub use contract::{
     AssetImportContext, AssetImportOutcome, AssetImporterDescriptor, AssetImporterHandler,
     AssetSchemaMigrationReport, DiagnosticOnlyAssetImporter, FunctionAssetImporter,
+    ImportedAssetEntry,
 };
 pub use error::AssetImportError;
 pub use ingest::AssetImporter;
 pub use native::{
-    NativeAssetImportRequestMetadata, NativeAssetImportResponseMetadata, NativeAssetImporterHandler,
+    NativeAssetImportEntryMetadata, NativeAssetImportRequestMetadata,
+    NativeAssetImportResponseMetadata, NativeAssetImporterHandler,
 };
 pub use registry::{AssetImporterRegistry, AssetImporterRegistryError};
 pub use schema::{AssetSchemaMigrator, StaticAssetSchemaMigrator};

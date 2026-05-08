@@ -31,11 +31,7 @@ pub struct UiSurfaceRenderCacheStats {
 }
 
 impl UiSurfaceRenderCache {
-    pub fn update(
-        &mut self,
-        extract: UiRenderExtract,
-        force_rebuild: bool,
-    ) -> UiRenderCacheUpdate {
+    pub fn update(&mut self, extract: UiRenderExtract, force_rebuild: bool) -> UiRenderCacheUpdate {
         let mut stats = UiSurfaceRenderCacheStats::default();
         let mut retained_commands = Vec::with_capacity(extract.list.commands.len());
         let mut seen_nodes = BTreeSet::new();

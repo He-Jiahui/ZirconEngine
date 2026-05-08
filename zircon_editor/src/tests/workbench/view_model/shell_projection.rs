@@ -1,4 +1,4 @@
-use crate::core::editor_event::MenuAction;
+use crate::core::editor_event::{MenuAction, ViewDescriptorId as EventViewDescriptorId};
 use crate::core::editor_extension::{EditorExtensionRegistry, EditorMenuItemDescriptor};
 use crate::core::editor_operation::EditorOperationPath;
 use crate::ui::workbench::autolayout::ShellFrame;
@@ -102,6 +102,30 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
         .map(|path| path.as_str())
         .expect("reset layout operation path");
     assert_eq!(reset_layout_operation, "Window.Layout.Reset");
+    let debug_observatory_item = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "Window")
+        .and_then(|menu| {
+            menu.items
+                .iter()
+                .find(|item| item.label == "Debug Observatory")
+        })
+        .expect("debug observatory window menu item");
+    assert_eq!(
+        debug_observatory_item.action,
+        Some(MenuAction::OpenView(EventViewDescriptorId::new(
+            "editor.debug_observatory"
+        )))
+    );
+    assert_eq!(
+        debug_observatory_item
+            .operation_path
+            .as_ref()
+            .map(|path| path.as_str()),
+        Some("Window.DebugObservatory.Open")
+    );
 }
 
 #[test]

@@ -207,8 +207,10 @@ fn importer_reports_ui_toml_schema_migration() {
         )
         .unwrap();
 
-    let migration = outcome
+    let root_entry = outcome.root_entry().expect("ui root asset entry");
+    let migration = root_entry
         .migration_report
+        .clone()
         .expect("ui importer should report source schema migration");
     assert_eq!(migration.source_schema_version, Some(1));
     assert_eq!(
@@ -216,7 +218,7 @@ fn importer_reports_ui_toml_schema_migration() {
         UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION
     );
     assert!(migration.summary.contains("SourceVersionBumped"));
-    match outcome.imported_asset {
+    match &root_entry.asset {
         ImportedAsset::UiLayout(layout) => {
             assert_eq!(
                 layout.document.asset.version,
@@ -540,14 +542,15 @@ fn test_data_outcome(
     context: &AssetImportContext,
     winner: &'static str,
 ) -> Result<AssetImportOutcome, crate::asset::AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Data(
-        crate::asset::DataAsset {
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(crate::asset::DataAsset {
             uri: context.uri.clone(),
             format: crate::asset::DataAssetFormat::Json,
             text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
             canonical_json: serde_json::json!({ "winner": winner }),
-        },
-    )))
+        }),
+    ))
 }
 
 fn assert_cooked_virtual_geometry(primitive: &ModelPrimitiveAsset, source_hint: &str) {

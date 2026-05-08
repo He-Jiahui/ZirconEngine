@@ -1,5 +1,6 @@
 //! Animation framework contracts for sequence, graph, state-machine, parameter, and pose evaluation.
 
+mod graph_blend_mode;
 mod graph_clip_instance;
 mod graph_evaluation;
 mod manager;
@@ -14,6 +15,7 @@ mod state_machine_evaluation;
 mod track_path;
 mod track_path_error;
 
+pub use graph_blend_mode::AnimationGraphBlendMode;
 pub use graph_clip_instance::AnimationGraphClipInstance;
 pub use graph_evaluation::AnimationGraphEvaluation;
 pub use manager::AnimationManager;

@@ -32,13 +32,17 @@ implementation_files:
   - zircon_runtime_interface/src/resource/untyped_handle.rs
 plan_sources:
   - user: 2026-05-02 keep zircon_runtime_interface as strict ABI/DTO/serialization contract layer
+  - user: 2026-05-08 implement Bevy-Style Asset Stack Completion Plan M1
+  - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
 tests:
   - zircon_runtime_interface/src/tests/boundary.rs
-  - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/resource_contracts.rs
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
   - cargo test -p zircon_runtime --lib core::resource --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-boundary --message-format short --color never
+  - zircon_runtime/src/asset/tests/facade.rs
+  - zircon_runtime/src/asset/tests/project/manager.rs
   - passed: CARGO_TARGET_DIR=target/codex-net-check cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_net_runtime --offline
 doc_type: module-detail
 ---
@@ -58,8 +62,8 @@ The interface resource surface exposes:
 - `ResourceLocator` for normalized `res://`, `lib://`, `builtin://`, and `mem://` locator strings.
 - `AssetUuid` and `ResourceId` for stable identity derivation where serialized resources need deterministic IDs.
 - `ResourceKind`, marker structs, `ResourceHandle<T>`, and `UntypedResourceHandle` for typed resource references without runtime object ownership.
-- `ResourceRecord`, `ResourceState`, `ResourceDiagnostic`, and `ResourceEvent` for serialized status and synchronization reports. `ResourceRecord` carries importer-facing status fields (`source_hash`, `importer_id`, `importer_version`, and `config_hash`) because asset pipeline status, editor lists, runtime handles, and future plugin importers all need the same serialized identity instead of parallel runtime-only records.
-- `ResourceRecord` exposes fluent builder helpers for artifact locator, source/importer/config hashes, state, and diagnostics. These helpers are part of the shared contract because asset import paths consume `ResourceRecord` through `zircon_runtime::core::resource`, which re-exports the interface-owned DTO.
+- `ResourceRecord`, `ResourceState`, `ResourceDiagnostic`, and `ResourceEvent` for serialized status and synchronization reports. `ResourceEvent` carries the affected `resource_kind` so typed asset subscribers can filter removed events after the record has already left the registry. `ResourceRecord` carries importer-facing status fields (`source_hash`, `importer_id`, `importer_version`, and `config_hash`) plus `dependency_ids` because asset pipeline status, editor lists, runtime handles, dependency graph queries, and future plugin importers all need the same serialized identity instead of parallel runtime-only records.
+- `ResourceRecord` exposes fluent builder helpers for artifact locator, source/importer/config hashes, state, diagnostics, and dependency IDs. These helpers are part of the shared contract because asset import paths consume `ResourceRecord` through `zircon_runtime::core::resource`, which re-exports the interface-owned DTO.
 
 The only helper logic allowed here is contract self-maintenance: parsing and formatting locator strings, deriving deterministic IDs, converting typed handles into untyped handles, and preserving DTO invariants. These helpers do not perform IO, spawn work, load assets, allocate runtime services, or call runtime/editor crates.
 
@@ -79,7 +83,7 @@ This keeps the dependency direction clean: implementation crates may depend on `
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/contracts.rs` constructs representative resource DTOs and verifies stable locator/ID/record behavior. `zircon_runtime_interface/src/tests/boundary.rs` guards the package dependency list and scans production interface source for runtime/editor source inclusion or implementation-crate imports.
+`zircon_runtime_interface/src/tests/resource_contracts.rs` constructs representative resource DTOs and verifies stable locator/ID/record behavior. `zircon_runtime_interface/src/tests/boundary.rs` guards the package dependency list and scans production interface source for runtime/editor source inclusion or implementation-crate imports.
 
 The listed Cargo commands are the intended scoped validation for this boundary. They prove the interface crate compiles, its contract tests pass, and the runtime library still type-checks while consuming the interface-owned resource DTOs. They do not claim workspace-wide acceptance.
 

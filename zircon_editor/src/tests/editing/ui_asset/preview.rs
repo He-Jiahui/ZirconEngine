@@ -1,4 +1,5 @@
 use super::support::*;
+use crate::ui::{asset_editor::UiAssetPreviewHost, template::EditorTemplateRuntimeService};
 
 #[test]
 fn ui_asset_editor_session_compiles_preview_surface_and_projects_reflection_state() {
@@ -224,6 +225,51 @@ fn ui_asset_editor_session_switches_preview_presets_and_rebuilds_preview_surface
     assert!(!session
         .set_preview_preset(UiAssetPreviewPreset::Dialog)
         .expect("same preset should no-op"));
+}
+
+#[test]
+fn ui_asset_preview_host_resizes_retained_surface_without_rebuilding_tree_state() {
+    let template_service = EditorTemplateRuntimeService;
+    let document = template_service
+        .parse_document_source(SIMPLE_LAYOUT_ASSET_TOML)
+        .expect("document should parse");
+    let compiled = template_service
+        .compile_document(&document)
+        .expect("document should compile");
+    let mut preview_host =
+        UiAssetPreviewHost::new(UiSize::new(640.0, 360.0), &document.asset.id, &compiled)
+            .expect("preview host");
+    let retained_node_id = *preview_host
+        .surface()
+        .tree
+        .nodes
+        .keys()
+        .last()
+        .expect("surface should contain nodes");
+    let node_count = preview_host.surface().tree.nodes.len();
+    preview_host.surface_mut().focus.focused = Some(retained_node_id);
+
+    preview_host
+        .rebuild_with_size(UiSize::new(800.0, 480.0), &document.asset.id, &compiled)
+        .expect("resize should relayout retained surface");
+
+    assert_eq!(preview_host.preview_size(), UiSize::new(800.0, 480.0));
+    assert_eq!(preview_host.surface().tree.nodes.len(), node_count);
+    assert_eq!(preview_host.surface().focus.focused, Some(retained_node_id));
+    assert!(
+        preview_host
+            .surface()
+            .last_rebuild_report
+            .dirty_flags
+            .layout
+    );
+    assert!(
+        preview_host
+            .surface()
+            .last_rebuild_report
+            .layout_visited_node_count
+            > 0
+    );
 }
 
 #[test]

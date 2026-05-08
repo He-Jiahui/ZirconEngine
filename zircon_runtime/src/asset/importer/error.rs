@@ -1,7 +1,7 @@
 use thiserror::Error;
 
 use super::AssetImporterRegistryError;
-use crate::core::resource::ResourceLocatorError;
+use crate::core::resource::{ResourceLocator, ResourceLocatorError};
 
 #[derive(Debug, Error)]
 pub enum AssetImportError {
@@ -19,6 +19,16 @@ pub enum AssetImportError {
     SchemaMigration(String),
     #[error("native asset importer failed: {0}")]
     Native(String),
+    #[error("duplicate asset label {label} for source {source_uri}")]
+    DuplicateAssetLabel {
+        source_uri: ResourceLocator,
+        label: String,
+    },
+    #[error("missing asset label {label} for source {source_uri}")]
+    MissingAssetLabel {
+        source_uri: ResourceLocator,
+        label: String,
+    },
     #[error("asset importer registry failed: {0}")]
     Registry(String),
     #[error("asset serialization failed: {0}")]

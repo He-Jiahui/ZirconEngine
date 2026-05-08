@@ -23,8 +23,8 @@ pub(super) fn infer_interaction(node: &UiTemplateNode) -> (UiStateFlags, UiInput
         explicit_clickable.unwrap_or(binding_capabilities.clickable || broad_capability);
     let hoverable =
         explicit_hoverable.unwrap_or(binding_capabilities.hoverable || broad_capability);
-    let focusable =
-        explicit_focusable.unwrap_or(binding_capabilities.focusable || broad_capability);
+    let focusable = explicit_focusable
+        .unwrap_or(node.focus.focusable || binding_capabilities.focusable || broad_capability);
     let receives_input = clickable || hoverable || focusable || is_interactive;
     (
         UiStateFlags {

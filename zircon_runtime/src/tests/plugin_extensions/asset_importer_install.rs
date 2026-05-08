@@ -113,12 +113,15 @@ fn write_weather_project(label: &str) -> (PathBuf, ProjectPaths) {
 fn import_weather_data(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
-    Ok(AssetImportOutcome::new(ImportedAsset::Data(DataAsset {
-        uri: context.uri.clone(),
-        format: DataAssetFormat::Json,
-        text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
-        canonical_json: serde_json::json!({ "kind": "weather" }),
-    })))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Data(DataAsset {
+            uri: context.uri.clone(),
+            format: DataAssetFormat::Json,
+            text: String::from_utf8_lossy(&context.source_bytes).into_owned(),
+            canonical_json: serde_json::json!({ "kind": "weather" }),
+        }),
+    ))
 }
 
 fn unique_temp_project_root(label: &str) -> PathBuf {

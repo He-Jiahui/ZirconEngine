@@ -19,6 +19,7 @@ pub type EntityId = u64;
 pub type NodeId = EntityId;
 
 pub mod components;
+pub mod ecs;
 mod render_extract;
 pub mod semantics;
 pub mod serializer;
@@ -27,8 +28,18 @@ pub mod world;
 pub use world::{ComponentTypeRegistry, DynamicComponentInstance, World};
 
 #[allow(unused_imports)]
-pub(crate) use components::{
-    default_render_layer_mask, Mobility, NodeKind, NodeRecord, Schedule, SystemStage,
+pub(crate) use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
+
+pub use ecs::{
+    Added, ArchetypeId, Bundle, ChangeTick, ChangeTickWindow, Changed, CommandQueue, Commands,
+    CommandsParam, Component, ComponentDescriptor, ComponentDescriptorSource, ComponentId,
+    ComponentKey, ComponentRegistry, ComponentRemoveResult, ComponentStorage, ComponentTicks,
+    EntityLocation, EntityRegistry, EntityRegistryError, EventStore, Events, InternalEntity, Local,
+    LocalParam, Query, QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryFilter,
+    QueryIter, QueryMutData, QueryState, Res, ResMut, ResMutParam, ResParam, Resource,
+    ResourceDescriptor, ResourceId, ResourceRegistry, ResourceStore, SceneSystemDescriptor,
+    SceneSystemRegistry, Schedule, StableEntityLocation, StorageError, StorageType, SystemParam,
+    SystemParamAccess, SystemParamError, SystemStage, SystemState, With, Without,
 };
 
 pub type Scene = World;

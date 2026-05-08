@@ -7,7 +7,14 @@ related_code:
   - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/window_input_contracts.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/event.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
   - zircon_runtime_interface/src/ui/surface/navigation/event_kind.rs
@@ -37,6 +44,12 @@ implementation_files:
   - zircon_runtime_interface/src/ui/dispatch/input/reply.rs
   - zircon_runtime_interface/src/ui/dispatch/input/effect.rs
   - zircon_runtime_interface/src/ui/dispatch/input/result.rs
+  - zircon_runtime_interface/src/ui/window/mod.rs
+  - zircon_runtime_interface/src/ui/window/metadata.rs
+  - zircon_runtime_interface/src/ui/window/metrics.rs
+  - zircon_runtime_interface/src/ui/window/impact.rs
+  - zircon_runtime_interface/src/ui/window/event.rs
+  - zircon_runtime_interface/src/ui/window/pump.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/event.rs
   - zircon_runtime_interface/src/ui/dispatch/pointer/component_event.rs
   - zircon_runtime/src/ui/surface/input/mod.rs
@@ -54,10 +67,14 @@ implementation_files:
   - zircon_runtime/src/ui/tests/popup_tooltip_state.rs
 plan_sources:
   - docs/superpowers/plans/2026-05-06-ui-complete-input-events.md
+  - .codex/plans/Bevy-Informed Zircon UI 架构优化里程碑计划.md
+  - docs/ui-and-layout/bevy-informed-ui-m0-gap-audit.md
   - user: 2026-05-06 implement Milestone 1 shared input contract foundation only
   - user: 2026-05-06 continue Milestone 2 runtime surface reply/effect application
+  - user: 2026-05-08 continue M1 window/input pump convergence interface slice
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime_interface/src/tests/window_input_contracts.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/runtime_input_ownership.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
@@ -94,6 +111,8 @@ tests:
   - 2026-05-07-m5-drag-analog-validation: cargo test -p zircon_runtime --lib drag_drop_ --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m5 --message-format short --color never (2 passed, 0 failed)
   - 2026-05-07-m5-drag-analog-validation: cargo test -p zircon_runtime --lib analog_input_suppresses_repeated_values_before_routing --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m5 --message-format short --color never (1 passed, 0 failed)
   - 2026-05-07-m5-native-validation: cargo test -p zircon_editor --lib native_input_translation --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (5 passed, 0 failed)
+  - 2026-05-08-m1-window-input-validation: cargo test -p zircon_runtime_interface --lib window_input_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (2 passed, 0 failed, 68 filtered out; existing sibling `ui_contract_spine` unused-import warning)
+  - 2026-05-08-m1-window-input-validation: cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-window-input-m1 --message-format short --color never (passed)
 doc_type: module-detail
 ---
 
@@ -104,6 +123,8 @@ doc_type: module-detail
 ## Contract Shape
 
 `metadata.rs` defines shared event metadata: timestamp, sequence, user/device/window/surface ids, pointer id, modifiers, and the synthetic-event flag.
+
+`zircon_runtime_interface::ui::window` adds the M1 neutral window/input pump layer that wraps these input events without duplicating their payloads. `UiWindowEvent` covers cursor move/enter/leave, focus, resize, scale-factor, redraw, close, and lifecycle-style cleanup events. `UiWindowInputPumpEvent` is either a window event or an existing `UiInputEvent`, and `UiWindowInputPumpBatch::push_coalesced(...)` drops consecutive redraw requests while preserving input/window ordering around non-redraw events. The window event impact DTO records the M1 dirty consequences: cursor leave clears hover and redraws, scale-factor changes mark layout metrics dirty only, and close requests remain distinguishable from close cleanup.
 
 `event.rs` defines `UiInputEvent` variants for pointer, keyboard, text, IME, navigation, analog, drag/drop, popup, and tooltip timer input. It reuses existing shared DTOs where they already exist: `UiPointerEvent`, `UiNavigationEventKind`, `UiPoint`, and `UiDragPayload`. Pointer input can carry optional `UiPreciseScrollDelta` x/y metadata with line or pixel units while legacy `UiPointerEvent::scroll_delta` remains the scalar fallback. `UiPointerEvent.click_count` carries host-supplied click count for double-click semantics and defaults to one for old payloads. IME ranges use `UiTextByteRange`, whose offsets are explicit UTF-8 byte positions into the event text, and drag/drop events can carry a `UiDragSessionId` for cross-event correlation.
 
@@ -140,5 +161,7 @@ Milestone 1 intentionally does not modify runtime or editor behavior. It only ma
 Milestone 2 changes runtime surface behavior only at the shared `UiSurface` seam. It preserves existing pointer click, hover, capture, scroll, and navigation tests while adding shared reply/effect application and focused keyboard/text/IME diagnostics. It does not implement M6 caret, selection, shaping, or text rendering, and it does not add editor-native event translation; those remain later milestones.
 
 Contract tests in `zircon_runtime_interface/src/tests/contracts.rs` construct every event family and every effect family. They also round-trip pointer, keyboard, IME, drag/drop, popup, tooltip, and input-method request payloads through serde JSON.
+
+Window/input pump contract tests in `zircon_runtime_interface/src/tests/window_input_contracts.rs` construct and round-trip Bevy-informed window events, assert cursor-leave and scale-factor impact semantics, and assert consecutive redraw coalescing while carrying existing `UiInputEvent` payloads. Runtime winit and editor host conversion remain later M1 behavior slices.
 
 Runtime tests in `zircon_runtime/src/ui/tests/event_routing.rs`, `zircon_runtime/src/ui/tests/runtime_input_ownership.rs`, `zircon_runtime/src/ui/tests/pointer_click_semantics.rs`, and `zircon_runtime/src/ui/tests/popup_tooltip_state.rs` cover focus/capture/high-precision reply effects, owner-targeted clear-focus behavior, rejected focus preserving the current IME owner, navigation and focus changes clearing previous IME owners, direct clear-focus cleanup, focus/capture rejection through hidden ancestors, phased reply propagation stopping later bubble effects, direct capture clearing stale pointer ids before high precision can enable, stale capture release rejection, stale pointer unlock rejection, stale high-precision disable rejection, high-precision enable requiring live capture, capture transfer clearing the previous captor's high precision, navigation/input-method host requests, input-method reset/update/disable current-owner checks, invalid and stale input-method owner rejection, focused keyboard diagnostics, text owner routing and fallback after stale IME cleanup, hidden-ancestor owner rejection, IME owner cleanup, scroll diagnostics, double-click component event generation on the shared route, popup stack open/toggle state, and tooltip pending/visible/cancel state. The broader `shared_core` filter preserves the existing shared layout/hit/focus/navigation baseline while the runtime surface input state is present.

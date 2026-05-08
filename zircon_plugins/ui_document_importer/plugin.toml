@@ -10,9 +10,14 @@ capabilities = [
     "runtime.plugin.ui_document_importer",
     "runtime.asset.importer.ui_document",
 ]
+maturity = "stable"
 asset_roots = []
 content_roots = []
 default_packaging = ["source_template", "library_embed"]
+
+[[capability_statuses]]
+capability = "runtime.asset.importer.ui_document"
+status = "partial"
 
 [[asset_importers]]
 id = "ui_document_importer.typed_toml"

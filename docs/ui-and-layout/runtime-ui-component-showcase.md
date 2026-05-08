@@ -281,7 +281,9 @@ plan_sources:
   - docs/superpowers/specs/2026-04-28-runtime-ui-drag-source-metadata-design.md
   - docs/superpowers/specs/2026-05-01-runtime-ui-real-data-source-adapter-design.md
   - docs/superpowers/specs/2026-05-01-runtime-ui-complex-components-design.md
+  - user: 2026-05-09 editor startup stack overflow in Runtime UI component catalog construction
 tests:
+  - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/material_layout.rs
@@ -1329,3 +1331,14 @@ This is an interface and catalog gate, not proof of a complete RHI/depth-aware r
 
 Validation evidence on `F:\cargo-targets\zircon-world-space-ui-interface`:
 - `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir F:\cargo-targets\zircon-world-space-ui-interface --message-format short --color never -- --nocapture`: passed with 39 tests.
+
+## 2026-05-09 Component catalog stack usage
+
+Related code:
+- `zircon_runtime/src/ui/component/catalog/editor_showcase.rs`
+- `zircon_runtime/src/ui/template/asset/compiler/ui_document_compiler.rs`
+- `zircon_editor/src/ui/layouts/views/view_projection.rs`
+
+The editor startup overflow reported through `UiDocumentCompiler::default()` was traced to the shared Runtime UI component catalog build, not to the project overview projection that happened to trigger it. The catalog previously built all showcase descriptors inside one large `editor_showcase_descriptors` expression. Each descriptor owns nested schema, default value, palette, and default-node metadata, so debug builds could reserve a large stack frame for the monolithic constructor before registration ever reached the editor-specific caller.
+
+`UiComponentDescriptorRegistry::editor_showcase()` now keeps the cached registry path, but the uncached build constructs each descriptor through a non-inlined factory boundary before pushing it into the descriptor vector. That keeps each descriptor's temporary builder chain in its own stack frame and removes the earlier workaround that spawned a separate high-stack catalog-builder thread. The regression test exercises `build_editor_showcase_registry()` directly on a 256 KiB stack so a cached `OnceLock` hit cannot hide the constructor stack behavior.

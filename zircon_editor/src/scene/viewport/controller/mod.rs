@@ -2,6 +2,7 @@ mod constants;
 mod scene_viewport_controller;
 mod scene_viewport_controller_accessors;
 mod scene_viewport_controller_apply_command;
+mod scene_viewport_controller_build_edit_mode_projection;
 mod scene_viewport_controller_build_render_snapshot;
 mod scene_viewport_controller_build_runtime_overlay_ui;
 mod scene_viewport_controller_camera;

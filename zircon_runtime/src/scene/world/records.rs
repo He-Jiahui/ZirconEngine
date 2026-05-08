@@ -52,6 +52,7 @@ impl World {
             return Err(format!("entity {} already exists", record.id));
         }
 
+        self.register_stable_entity(record.id)?;
         self.entities.push(record.id);
         self.kinds.insert(record.id, record.kind);
         self.names.insert(record.id, Name(record.name));
@@ -122,7 +123,8 @@ impl World {
 
         self.next_id = self.next_id.max(record.id + 1);
         self.validate_mobility_change(record.id, record.mobility)?;
-        self.rebuild_derived_state();
+        self.rebuild_fixed_component_presence_for_entity(record.id);
+        self.mark_derived_state_dirty();
         Ok(())
     }
 
@@ -143,14 +145,13 @@ impl World {
         if trimmed.is_empty() {
             return Err("node name cannot be empty".to_string());
         }
-        let Some(current) = self.names.get_mut(&entity) else {
+        let Some(current) = self.names.get(&entity) else {
             return Err(format!("cannot rename missing node {entity}"));
         };
         if current.0 == trimmed {
             return Ok(false);
         }
-        current.0 = trimmed.to_string();
-        self.refresh_node_cache();
+        self.insert(entity, Name(trimmed.to_string()))?;
         Ok(true)
     }
 }

@@ -5,7 +5,7 @@ use zircon_runtime::asset::{
 use zircon_runtime::core::framework::animation::{
     AnimationSequenceApplyReport, AnimationTrackPath,
 };
-use zircon_runtime::core::framework::scene::ScenePropertyValue;
+use zircon_runtime::core::framework::scene::{EntityPath, ScenePropertyValue};
 use zircon_runtime::core::math::{Quat, Real};
 use zircon_runtime::scene::world::World;
 
@@ -20,7 +20,12 @@ pub fn apply_sequence_to_world(
         resolve_sequence_sample_time(sequence.duration_seconds, time_seconds, looping);
 
     for binding in &sequence.bindings {
-        let Some(entity) = world.resolve_entity_path(&binding.entity_path) else {
+        let Some(entity) = binding
+            .target_id
+            .as_deref()
+            .and_then(|target_id| resolve_sequence_target_id(world, target_id))
+            .or_else(|| world.resolve_entity_path(&binding.entity_path))
+        else {
             report
                 .missing_tracks
                 .extend(binding.tracks.iter().map(|track| {
@@ -69,6 +74,25 @@ fn resolve_sequence_sample_time(duration_seconds: Real, time_seconds: Real, loop
     } else {
         clamped.min(duration_seconds)
     }
+}
+
+fn resolve_sequence_target_id(
+    world: &World,
+    target_id: &str,
+) -> Option<zircon_runtime::scene::EntityId> {
+    let target_id = target_id.trim();
+    if target_id.is_empty() {
+        return None;
+    }
+    target_id
+        .parse::<zircon_runtime::scene::EntityId>()
+        .ok()
+        .filter(|entity| world.contains_entity(*entity))
+        .or_else(|| {
+            EntityPath::parse(target_id)
+                .ok()
+                .and_then(|path| world.resolve_entity_path(&path))
+        })
 }
 
 pub(crate) trait AnimationChannelSampleExt {

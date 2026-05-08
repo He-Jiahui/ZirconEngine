@@ -219,9 +219,22 @@ pub struct AnimationSkeletonAsset {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationClipBoneTrackAsset {
     pub bone_name: String,
+    /// Stable optional retargeting id; legacy assets can continue to use `bone_name` alone.
+    #[serde(default)]
+    pub target_id: Option<String>,
     pub translation: AnimationChannelAsset,
     pub rotation: AnimationChannelAsset,
     pub scale: AnimationChannelAsset,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct AnimationEventTrackAsset {
+    #[serde(default)]
+    pub target_id: Option<String>,
+    pub event: String,
+    pub time_seconds: Real,
+    #[serde(default)]
+    pub payload: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -230,6 +243,8 @@ pub struct AnimationClipAsset {
     pub skeleton: AssetReference,
     pub duration_seconds: Real,
     pub tracks: Vec<AnimationClipBoneTrackAsset>,
+    #[serde(default)]
+    pub event_tracks: Vec<AnimationEventTrackAsset>,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -238,6 +253,24 @@ struct AnimationClipBinaryAsset {
     skeleton: AnimationAssetReferenceBinary,
     duration_seconds: Real,
     tracks: Vec<AnimationClipBoneTrackAsset>,
+    #[serde(default)]
+    event_tracks: Vec<AnimationEventTrackAsset>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationClipBinaryAssetV1 {
+    name: Option<String>,
+    skeleton: AnimationAssetReferenceBinary,
+    duration_seconds: Real,
+    tracks: Vec<AnimationClipBoneTrackAssetV1>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationClipBoneTrackAssetV1 {
+    bone_name: String,
+    translation: AnimationChannelAsset,
+    rotation: AnimationChannelAsset,
+    scale: AnimationChannelAsset,
 }
 
 impl From<&AnimationClipAsset> for AnimationClipBinaryAsset {
@@ -247,6 +280,7 @@ impl From<&AnimationClipAsset> for AnimationClipBinaryAsset {
             skeleton: AnimationAssetReferenceBinary::from(&value.skeleton),
             duration_seconds: value.duration_seconds,
             tracks: value.tracks.clone(),
+            event_tracks: value.event_tracks.clone(),
         }
     }
 }
@@ -260,6 +294,55 @@ impl TryFrom<AnimationClipBinaryAsset> for AnimationClipAsset {
             skeleton: value.skeleton.try_into()?,
             duration_seconds: value.duration_seconds,
             tracks: value.tracks,
+            event_tracks: value.event_tracks,
+        })
+    }
+}
+
+impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipBinaryAsset {
+    type Error = String;
+
+    fn try_from(value: AnimationClipBinaryAssetV1) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: value.name,
+            skeleton: value.skeleton,
+            duration_seconds: value.duration_seconds,
+            tracks: value
+                .tracks
+                .into_iter()
+                .map(|track| AnimationClipBoneTrackAsset {
+                    bone_name: track.bone_name,
+                    target_id: None,
+                    translation: track.translation,
+                    rotation: track.rotation,
+                    scale: track.scale,
+                })
+                .collect(),
+            event_tracks: Vec::new(),
+        })
+    }
+}
+
+impl TryFrom<AnimationClipBinaryAssetV1> for AnimationClipAsset {
+    type Error = String;
+
+    fn try_from(value: AnimationClipBinaryAssetV1) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: value.name,
+            skeleton: value.skeleton.try_into()?,
+            duration_seconds: value.duration_seconds,
+            tracks: value
+                .tracks
+                .into_iter()
+                .map(|track| AnimationClipBoneTrackAsset {
+                    bone_name: track.bone_name,
+                    target_id: None,
+                    translation: track.translation,
+                    rotation: track.rotation,
+                    scale: track.scale,
+                })
+                .collect(),
+            event_tracks: Vec::new(),
         })
     }
 }
@@ -273,7 +356,43 @@ pub struct AnimationSequenceTrackAsset {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AnimationSequenceBindingAsset {
     pub entity_path: EntityPath,
+    /// Stable optional scene target id; `entity_path` remains the path fallback for existing assets.
+    #[serde(default)]
+    pub target_id: Option<String>,
     pub tracks: Vec<AnimationSequenceTrackAsset>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationSequenceAssetV1 {
+    name: Option<String>,
+    duration_seconds: Real,
+    frames_per_second: Real,
+    bindings: Vec<AnimationSequenceBindingAssetV1>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationSequenceBindingAssetV1 {
+    entity_path: EntityPath,
+    tracks: Vec<AnimationSequenceTrackAsset>,
+}
+
+impl From<AnimationSequenceAssetV1> for AnimationSequenceAsset {
+    fn from(value: AnimationSequenceAssetV1) -> Self {
+        Self {
+            name: value.name,
+            duration_seconds: value.duration_seconds,
+            frames_per_second: value.frames_per_second,
+            bindings: value
+                .bindings
+                .into_iter()
+                .map(|binding| AnimationSequenceBindingAsset {
+                    entity_path: binding.entity_path,
+                    target_id: None,
+                    tracks: binding.tracks,
+                })
+                .collect(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -297,6 +416,17 @@ pub enum AnimationGraphNodeAsset {
         inputs: Vec<String>,
         weight_parameter: Option<String>,
     },
+    Additive {
+        id: String,
+        base: String,
+        additive: String,
+        weight_parameter: Option<String>,
+    },
+    Mask {
+        id: String,
+        input: String,
+        target_ids: Vec<String>,
+    },
     Output {
         source: String,
     },
@@ -304,6 +434,26 @@ pub enum AnimationGraphNodeAsset {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct AnimationGraphNodeBinary {
+    tag: u8,
+    id: String,
+    clip: Option<AnimationAssetReferenceBinary>,
+    playback_speed: Real,
+    looping: bool,
+    inputs: Vec<String>,
+    weight_parameter: Option<String>,
+    source: String,
+    #[serde(default)]
+    base: String,
+    #[serde(default)]
+    additive: String,
+    #[serde(default)]
+    input: String,
+    #[serde(default)]
+    target_ids: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationGraphNodeBinaryV1 {
     tag: u8,
     id: String,
     clip: Option<AnimationAssetReferenceBinary>,
@@ -331,6 +481,10 @@ impl From<&AnimationGraphNodeAsset> for AnimationGraphNodeBinary {
                 inputs: Vec::new(),
                 weight_parameter: None,
                 source: String::new(),
+                base: String::new(),
+                additive: String::new(),
+                input: String::new(),
+                target_ids: Vec::new(),
             },
             AnimationGraphNodeAsset::Blend {
                 id,
@@ -345,6 +499,47 @@ impl From<&AnimationGraphNodeAsset> for AnimationGraphNodeBinary {
                 inputs: inputs.clone(),
                 weight_parameter: weight_parameter.clone(),
                 source: String::new(),
+                base: String::new(),
+                additive: String::new(),
+                input: String::new(),
+                target_ids: Vec::new(),
+            },
+            AnimationGraphNodeAsset::Additive {
+                id,
+                base,
+                additive,
+                weight_parameter,
+            } => Self {
+                tag: 3,
+                id: id.clone(),
+                clip: None,
+                playback_speed: 1.0,
+                looping: false,
+                inputs: Vec::new(),
+                weight_parameter: weight_parameter.clone(),
+                source: String::new(),
+                base: base.clone(),
+                additive: additive.clone(),
+                input: String::new(),
+                target_ids: Vec::new(),
+            },
+            AnimationGraphNodeAsset::Mask {
+                id,
+                input,
+                target_ids,
+            } => Self {
+                tag: 4,
+                id: id.clone(),
+                clip: None,
+                playback_speed: 1.0,
+                looping: false,
+                inputs: Vec::new(),
+                weight_parameter: None,
+                source: String::new(),
+                base: String::new(),
+                additive: String::new(),
+                input: input.clone(),
+                target_ids: target_ids.clone(),
             },
             AnimationGraphNodeAsset::Output { source } => Self {
                 tag: 2,
@@ -355,6 +550,10 @@ impl From<&AnimationGraphNodeAsset> for AnimationGraphNodeBinary {
                 inputs: Vec::new(),
                 weight_parameter: None,
                 source: source.clone(),
+                base: String::new(),
+                additive: String::new(),
+                input: String::new(),
+                target_ids: Vec::new(),
             },
         }
     }
@@ -384,8 +583,71 @@ impl TryFrom<AnimationGraphNodeBinary> for AnimationGraphNodeAsset {
             2 => Ok(Self::Output {
                 source: value.source,
             }),
+            3 => Ok(Self::Additive {
+                id: value.id,
+                base: value.base,
+                additive: value.additive,
+                weight_parameter: value.weight_parameter,
+            }),
+            4 => Ok(Self::Mask {
+                id: value.id,
+                input: value.input,
+                target_ids: value.target_ids,
+            }),
             other => Err(format!("unknown animation graph node tag {other}")),
         }
+    }
+}
+
+impl TryFrom<AnimationGraphNodeBinaryV1> for AnimationGraphNodeAsset {
+    type Error = String;
+
+    fn try_from(value: AnimationGraphNodeBinaryV1) -> Result<Self, Self::Error> {
+        match value.tag {
+            0 => Ok(Self::Clip {
+                id: value.id,
+                clip: value
+                    .clip
+                    .ok_or_else(|| {
+                        "animation graph clip node is missing clip reference".to_string()
+                    })?
+                    .try_into()?,
+                playback_speed: value.playback_speed,
+                looping: value.looping,
+            }),
+            1 => Ok(Self::Blend {
+                id: value.id,
+                inputs: value.inputs,
+                weight_parameter: value.weight_parameter,
+            }),
+            2 => Ok(Self::Output {
+                source: value.source,
+            }),
+            other => Err(format!("unknown animation graph node tag {other}")),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+struct AnimationGraphAssetV1 {
+    name: Option<String>,
+    parameters: Vec<AnimationGraphParameterAsset>,
+    nodes: Vec<AnimationGraphNodeBinaryV1>,
+}
+
+impl TryFrom<AnimationGraphAssetV1> for AnimationGraphAsset {
+    type Error = String;
+
+    fn try_from(value: AnimationGraphAssetV1) -> Result<Self, Self::Error> {
+        Ok(Self {
+            name: value.name,
+            parameters: value.parameters,
+            nodes: value
+                .nodes
+                .into_iter()
+                .map(AnimationGraphNodeAsset::try_from)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -541,8 +803,11 @@ impl AnimationSkeletonAsset {
 
 impl AnimationClipAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset::<AnimationClipBinaryAsset>(AnimationBinaryAssetKind::Clip, bytes)
-            .and_then(AnimationClipAsset::try_from)
+        decode_binary_asset_with_fallback::<AnimationClipBinaryAsset, AnimationClipBinaryAssetV1>(
+            AnimationBinaryAssetKind::Clip,
+            bytes,
+        )
+        .and_then(AnimationClipAsset::try_from)
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
@@ -559,7 +824,10 @@ impl AnimationClipAsset {
 
 impl AnimationSequenceAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset(AnimationBinaryAssetKind::Sequence, bytes)
+        decode_binary_asset_with_fallback::<AnimationSequenceAsset, AnimationSequenceAssetV1>(
+            AnimationBinaryAssetKind::Sequence,
+            bytes,
+        )
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
@@ -576,11 +844,28 @@ impl AnimationSequenceAsset {
             })
             .collect()
     }
+
+    pub fn target_track_paths(&self) -> Vec<(Option<String>, AnimationTrackPath)> {
+        self.bindings
+            .iter()
+            .flat_map(|binding| {
+                binding.tracks.iter().cloned().map(|track| {
+                    (
+                        binding.target_id.clone(),
+                        AnimationTrackPath::new(binding.entity_path.clone(), track.property_path),
+                    )
+                })
+            })
+            .collect()
+    }
 }
 
 impl AnimationGraphAsset {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
-        decode_binary_asset(AnimationBinaryAssetKind::Graph, bytes)
+        decode_binary_asset_with_fallback::<AnimationGraphAsset, AnimationGraphAssetV1>(
+            AnimationBinaryAssetKind::Graph,
+            bytes,
+        )
     }
 
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
@@ -649,25 +934,78 @@ fn decode_binary_asset<T>(kind: AnimationBinaryAssetKind, bytes: &[u8]) -> Resul
 where
     T: DeserializeOwned,
 {
+    match decode_binary_document_asset(kind, bytes) {
+        Ok(payload) => Ok(payload),
+        Err(document_error) => decode_binary_stream_asset(kind, bytes).map_err(|stream_error| {
+            format!("{document_error}; animation stream decode failed: {stream_error}")
+        }),
+    }
+}
+
+fn decode_binary_asset_with_fallback<T, Legacy>(
+    kind: AnimationBinaryAssetKind,
+    bytes: &[u8],
+) -> Result<T, String>
+where
+    T: DeserializeOwned,
+    Legacy: DeserializeOwned + TryInto<T>,
+    <Legacy as TryInto<T>>::Error: std::fmt::Display,
+{
+    match decode_binary_asset(kind, bytes) {
+        Ok(payload) => Ok(payload),
+        Err(primary_error) => {
+            let legacy = decode_binary_asset::<Legacy>(kind, bytes)
+                .and_then(|payload| payload.try_into().map_err(|error| error.to_string()))
+                .map_err(|legacy_error| {
+                    format!("{primary_error}; legacy animation asset decode failed: {legacy_error}")
+                })?;
+            Ok(legacy)
+        }
+    }
+}
+
+fn decode_binary_document_asset<T>(
+    kind: AnimationBinaryAssetKind,
+    bytes: &[u8],
+) -> Result<T, String>
+where
+    T: DeserializeOwned,
+{
+    let document: AnimationBinaryDocument<T> =
+        bincode::deserialize(bytes).map_err(|error| error.to_string())?;
+    validate_binary_header(kind, document.magic, document.version, document.kind)?;
+    Ok(document.payload)
+}
+
+fn decode_binary_stream_asset<T>(kind: AnimationBinaryAssetKind, bytes: &[u8]) -> Result<T, String>
+where
+    T: DeserializeOwned,
+{
     let mut cursor = std::io::Cursor::new(bytes);
     let header: AnimationBinaryHeader =
         bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())?;
-
-    if header.magic != ANIMATION_BINARY_MAGIC {
-        return Err("invalid animation asset magic".to_string());
-    }
-    if header.version != ANIMATION_BINARY_VERSION {
-        return Err(format!(
-            "unsupported animation asset version {}",
-            header.version
-        ));
-    }
-    if header.kind != kind {
-        return Err(format!(
-            "animation asset kind mismatch: expected {:?}, found {:?}",
-            kind, header.kind
-        ));
-    }
+    validate_binary_header(kind, header.magic, header.version, header.kind)?;
 
     bincode::deserialize_from(&mut cursor).map_err(|error| error.to_string())
+}
+
+fn validate_binary_header(
+    kind: AnimationBinaryAssetKind,
+    magic: [u8; 8],
+    version: u32,
+    actual_kind: AnimationBinaryAssetKind,
+) -> Result<(), String> {
+    if magic != ANIMATION_BINARY_MAGIC {
+        return Err("invalid animation asset magic".to_string());
+    }
+    if version != ANIMATION_BINARY_VERSION {
+        return Err(format!("unsupported animation asset version {}", version));
+    }
+    if actual_kind != kind {
+        return Err(format!(
+            "animation asset kind mismatch: expected {:?}, found {:?}",
+            kind, actual_kind
+        ));
+    }
+    Ok(())
 }

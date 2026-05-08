@@ -83,6 +83,18 @@ pub struct SceneViewportExtractRequest {
     pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
 }
 
+impl Default for SceneViewportExtractRequest {
+    fn default() -> Self {
+        Self {
+            settings: ViewportRenderSettings::default(),
+            active_camera_override: None,
+            camera: None,
+            viewport_size: None,
+            virtual_geometry_debug: None,
+        }
+    }
+}
+
 pub const fn default_viewport_aspect_ratio() -> Real {
     16.0 / 9.0
 }

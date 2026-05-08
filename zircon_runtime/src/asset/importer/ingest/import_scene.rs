@@ -7,5 +7,8 @@ pub(crate) fn import_scene(
     let document = context.source_text()?;
     let scene = SceneAsset::from_toml_str(&document)
         .map_err(|error| AssetImportError::Parse(format!("parse scene toml: {error}")))?;
-    Ok(AssetImportOutcome::new(ImportedAsset::Scene(scene)))
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::Scene(scene),
+    ))
 }

@@ -17,6 +17,7 @@ pub(crate) mod command_entry;
 pub(crate) mod designer_state;
 pub(crate) mod emergency_state;
 pub(crate) mod hierarchy_projection;
+pub(crate) mod journal;
 pub(crate) mod lifecycle;
 pub(crate) mod navigation_state;
 pub(crate) mod palette_state;
@@ -24,6 +25,7 @@ pub(crate) mod presentation_state;
 pub(crate) mod preview_compile;
 pub(crate) mod preview_state;
 pub(crate) mod promotion_state;
+pub(crate) mod replay_artifact;
 pub(crate) mod resolver_state;
 pub(crate) mod root_class_policy_state;
 pub(crate) mod runtime_report_state;
@@ -34,6 +36,17 @@ pub(crate) mod style_state;
 pub(crate) mod theme_state;
 pub(crate) mod ui_asset_editor_session;
 
+pub use journal::{
+    UiAssetEditorCommandJournal, UiAssetEditorCommandJournalEntry,
+    UiAssetEditorCommandJournalReplayError, UiAssetEditorCommandJournalReplayReport,
+    UiAssetEditorJournalCommand, UI_ASSET_EDITOR_COMMAND_JOURNAL_SCHEMA_VERSION,
+};
+pub use replay_artifact::{
+    UiAssetEditorBugReportReplayArtifact, UiAssetEditorReplayArtifactRecord,
+    UiAssetEditorReplayArtifactRoute, UiAssetEditorReplayCommandSummary,
+    UiAssetEditorReplayExternalEffectSummary, UiAssetEditorReplaySelectionSummary,
+    UiAssetEditorReplaySourceSummary, UI_ASSET_EDITOR_BUG_REPORT_REPLAY_ARTIFACT_SCHEMA_VERSION,
+};
 pub use ui_asset_editor_session::{
     UiAssetEditorReplayResult, UiAssetEditorSession, UiAssetEditorSessionError,
 };

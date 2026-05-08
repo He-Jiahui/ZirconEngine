@@ -29,6 +29,7 @@ fn runtime_diagnostics_reports_missing_runtime_contracts_without_panicking() {
     assert!(!snapshot.animation.available);
     assert!(snapshot.animation.playback_settings.is_none());
     assert!(snapshot.animation.error.is_some());
+    assert!(snapshot.store.is_empty());
 }
 
 #[test]
@@ -57,6 +58,31 @@ fn runtime_diagnostics_combines_core_render_contract_and_missing_externalized_pl
     assert!(!snapshot.animation.available);
     assert!(snapshot.animation.playback_settings.is_none());
     assert!(snapshot.animation.error.is_some());
+
+    assert!(snapshot
+        .store
+        .series
+        .iter()
+        .any(|series| series.path.as_str() == "render.submitted_frames"
+            && series.current == Some(7.0)));
+
+    let devtools = crate::core::diagnostics::collect_runtime_devtools_snapshot(&runtime.handle());
+    assert!(devtools
+        .modules
+        .iter()
+        .any(|module| module.name == DIAGNOSTICS_TEST_MODULE));
+    assert!(devtools
+        .services
+        .iter()
+        .any(|service| service.name == crate::core::manager::RENDER_FRAMEWORK_NAME));
+    assert!(devtools
+        .plugin_catalog
+        .iter()
+        .any(|plugin| plugin.package_id == "physics"));
+    assert!(devtools
+        .diagnostics_summary
+        .tagged_subsystems
+        .contains(&"render".to_string()));
 }
 
 fn fake_render_module() -> ModuleDescriptor {
