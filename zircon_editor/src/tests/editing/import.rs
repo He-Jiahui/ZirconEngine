@@ -8,7 +8,7 @@ use super::support::test_state;
 #[test]
 fn imported_mesh_can_be_undone() {
     let mut state = test_state();
-    let initial_count = state.world.snapshot().nodes().len();
+    let initial_count = state.world.snapshot().node_records().len();
 
     assert!(state
         .import_mesh_asset(
@@ -22,12 +22,13 @@ fn imported_mesh_can_be_undone() {
         )
         .unwrap());
     let imported = state.world.snapshot();
-    assert_eq!(imported.nodes().len(), initial_count + 1);
+    let imported_nodes = imported.node_records();
+    assert_eq!(imported_nodes.len(), initial_count + 1);
     assert!(matches!(
-        imported.nodes().last().map(|node| &node.kind),
+        imported_nodes.last().map(|node| &node.kind),
         Some(NodeKind::Mesh)
     ));
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert_eq!(state.world.snapshot().nodes().len(), initial_count);
+    assert_eq!(state.world.snapshot().node_records().len(), initial_count);
 }

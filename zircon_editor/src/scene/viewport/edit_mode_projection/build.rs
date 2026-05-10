@@ -28,13 +28,13 @@ pub(crate) fn build_scene_edit_mode_projection(
 }
 
 fn build_hierarchy_rows(scene: &Scene, selected: Option<EntityId>) -> Vec<SceneHierarchyRow> {
-    let nodes = scene.nodes();
+    let nodes = scene.node_records();
     let node_by_entity = nodes
         .iter()
         .map(|node| (node.id, node))
         .collect::<HashMap<_, _>>();
     let mut children_by_parent: HashMap<Option<EntityId>, Vec<EntityId>> = HashMap::new();
-    for node in nodes {
+    for node in &nodes {
         children_by_parent
             .entry(node.parent)
             .or_default()
@@ -58,7 +58,7 @@ fn build_hierarchy_rows(scene: &Scene, selected: Option<EntityId>) -> Vec<SceneH
         }
     }
 
-    for node in nodes {
+    for node in &nodes {
         if !visited.contains(&node.id) {
             push_hierarchy_row(
                 scene,
@@ -407,7 +407,7 @@ fn build_stats(scene: &Scene, selected: Option<EntityId>) -> SceneViewportStats 
         selected_entity: selected,
         ..SceneViewportStats::default()
     };
-    for node in scene.nodes() {
+    for node in scene.node_records() {
         stats.node_count += 1;
         if scene.active_in_hierarchy(node.id) == Some(true) {
             stats.visible_node_count += 1;

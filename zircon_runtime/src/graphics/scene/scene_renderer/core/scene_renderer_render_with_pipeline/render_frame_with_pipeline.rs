@@ -1,5 +1,6 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
+use crate::graphics::backend::ViewportSurface;
 use crate::graphics::types::{GraphicsError, ViewportFrame, ViewportRenderFrame};
 use crate::render_graph::QueueLane;
 use crate::CompiledRenderPipeline;
@@ -20,6 +21,41 @@ impl SceneRenderer {
         pipeline: &CompiledRenderPipeline,
         history_handle: Option<FrameHistoryHandle>,
     ) -> Result<ViewportFrame, GraphicsError> {
+        let generation =
+            self.render_frame_with_pipeline_to_target(frame, pipeline, history_handle)?;
+        let target = self.target.as_ref().expect("offscreen target");
+        finish_viewport_frame(
+            &self.backend.device,
+            &self.backend.queue,
+            target,
+            generation,
+        )
+    }
+
+    pub(crate) fn present_frame_with_pipeline(
+        &mut self,
+        frame: &ViewportRenderFrame,
+        pipeline: &CompiledRenderPipeline,
+        history_handle: Option<FrameHistoryHandle>,
+        surface: &mut ViewportSurface,
+    ) -> Result<u64, GraphicsError> {
+        let generation =
+            self.render_frame_with_pipeline_to_target(frame, pipeline, history_handle)?;
+        let target = self.target.as_ref().expect("offscreen target");
+        surface.present_texture(
+            &self.backend.device,
+            &self.backend.queue,
+            &target.final_color_view,
+        )?;
+        Ok(generation)
+    }
+
+    fn render_frame_with_pipeline_to_target(
+        &mut self,
+        frame: &ViewportRenderFrame,
+        pipeline: &CompiledRenderPipeline,
+        history_handle: Option<FrameHistoryHandle>,
+    ) -> Result<u64, GraphicsError> {
         reset_last_runtime_outputs(self);
 
         self.streamer.ensure_scene_resources(
@@ -59,14 +95,7 @@ impl SceneRenderer {
 
         store_last_runtime_outputs(self, runtime_outputs)?;
         self.generation += 1;
-
-        let target = self.target.as_ref().expect("offscreen target");
-        finish_viewport_frame(
-            &self.backend.device,
-            &self.backend.queue,
-            target,
-            self.generation,
-        )
+        Ok(self.generation)
     }
 }
 

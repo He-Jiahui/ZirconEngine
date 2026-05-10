@@ -1,7 +1,8 @@
 use crate::core::framework::render::{
-    RenderFrameExtract, RenderFrameworkError, RenderPipelineHandle, RenderWorldSnapshotHandle,
+    CorePipelineKind, ProjectionMode, RenderFrameExtract, RenderFrameworkError,
+    RenderPipelineHandle, RenderSceneGeometryExtract, RenderSceneSnapshot,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
-use crate::scene::world::World;
 use crate::{CompiledRenderPipeline, RenderPipelineAsset, RenderPipelineCompileOptions};
 
 use super::super::wgpu_render_framework::WgpuRenderFramework;
@@ -13,6 +14,7 @@ pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
     let handle = pipeline.handle;
     let compiled = compile_pipeline_for_validation(&pipeline)?;
 
+    let _operation_guard = server.operation_lock.lock().unwrap();
     let mut state = server.state.lock().unwrap();
     state
         .renderer
@@ -29,7 +31,10 @@ pub(in crate::graphics::runtime::render_framework) fn compile_pipeline_for_valid
     pipeline: &RenderPipelineAsset,
 ) -> Result<CompiledRenderPipeline, RenderFrameworkError> {
     pipeline
-        .compile_with_options(&validation_extract(), &validation_compile_options(pipeline))
+        .compile_with_options(
+            &validation_extract_for_core_pipeline(pipeline.core_pipeline),
+            &validation_compile_options(pipeline),
+        )
         .map_err(|message| RenderFrameworkError::GraphCompileFailure {
             pipeline: pipeline.handle.raw(),
             message,
@@ -63,10 +68,32 @@ fn validation_compile_options(pipeline: &RenderPipelineAsset) -> RenderPipelineC
         )
 }
 
-fn validation_extract() -> RenderFrameExtract {
+fn validation_extract_for_core_pipeline(core_pipeline: CorePipelineKind) -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(0),
-        World::new().to_render_snapshot(),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot {
+                    projection_mode: match core_pipeline {
+                        CorePipelineKind::Core2d => ProjectionMode::Orthographic,
+                        CorePipelineKind::Core3d => ProjectionMode::Perspective,
+                    },
+                    ..ViewportCameraSnapshot::default()
+                },
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: Default::default(),
+            preview: crate::core::framework::render::PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: crate::core::framework::render::FallbackSkyboxKind::None,
+                clear_color: crate::core::math::Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
     )
 }
 

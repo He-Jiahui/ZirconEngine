@@ -10,7 +10,12 @@ pub(super) fn create_default_pipelines(
 ) -> HashMap<RenderPipelineHandle, RenderPipelineAsset> {
     let mut forward = RenderPipelineAsset::default_forward_plus();
     let mut deferred = RenderPipelineAsset::default_deferred();
+    let core2d = RenderPipelineAsset::default_core2d();
     forward.apply_plugin_render_features(render_features.iter().cloned());
     deferred.apply_plugin_render_features(render_features.iter().cloned());
-    HashMap::from([(forward.handle, forward), (deferred.handle, deferred)])
+    HashMap::from([
+        (forward.handle, forward),
+        (deferred.handle, deferred),
+        (core2d.handle, core2d),
+    ])
 }

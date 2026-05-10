@@ -1,4 +1,4 @@
-use crate::scene::ecs::{Component, QueryAccess, QueryAccessError};
+use crate::scene::ecs::{Component, Mut, QueryAccess, QueryAccessError, Ref};
 use crate::scene::{EntityId, World};
 
 pub trait QueryDataAccess {
@@ -10,12 +10,26 @@ pub trait QueryData: QueryDataAccess {
     type Item<'world>;
 
     fn fetch<'world>(world: &'world World, entity: EntityId) -> Option<Self::Item<'world>>;
+    fn fetch_with_ticks<'world>(
+        world: &'world World,
+        entity: EntityId,
+        _ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        Self::fetch(world, entity)
+    }
 }
 
 pub trait QueryMutData: QueryDataAccess {
     type Item<'world>;
 
     fn fetch_mut<'world>(world: &'world mut World, entity: EntityId) -> Option<Self::Item<'world>>;
+    fn fetch_mut_with_ticks<'world>(
+        world: &'world mut World,
+        entity: EntityId,
+        _ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        Self::fetch_mut(world, entity)
+    }
 }
 
 impl<'query, T> QueryDataAccess for &'query T
@@ -54,6 +68,84 @@ where
 
     fn matches_data(world: &World, entity: EntityId) -> bool {
         world.get::<T>(entity).is_some()
+    }
+}
+
+impl<'query, T> QueryDataAccess for Ref<'query, T>
+where
+    T: Component,
+{
+    fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
+        let component_id = world.component_id::<T>();
+        access.add_read(component_id)
+    }
+
+    fn matches_data(world: &World, entity: EntityId) -> bool {
+        world.get::<T>(entity).is_some()
+    }
+}
+
+impl<'query, T> QueryData for Ref<'query, T>
+where
+    T: Component,
+{
+    type Item<'world> = Ref<'world, T>;
+
+    fn fetch<'world>(world: &'world World, entity: EntityId) -> Option<Self::Item<'world>> {
+        Self::fetch_with_ticks(
+            world,
+            entity,
+            crate::scene::ecs::ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    fn fetch_with_ticks<'world>(
+        world: &'world World,
+        entity: EntityId,
+        ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let value = world.get::<T>(entity)?;
+        let component_ticks = world.component_change_ticks::<T>(entity)?;
+        Some(Ref::new(value, component_ticks, ticks))
+    }
+}
+
+impl<'query, T> QueryDataAccess for Mut<'query, T>
+where
+    T: Component,
+{
+    fn update_access(world: &mut World, access: &mut QueryAccess) -> Result<(), QueryAccessError> {
+        let component_id = world.component_id::<T>();
+        access.add_write(component_id)
+    }
+
+    fn matches_data(world: &World, entity: EntityId) -> bool {
+        world.get::<T>(entity).is_some()
+    }
+}
+
+impl<'query, T> QueryMutData for Mut<'query, T>
+where
+    T: Component,
+{
+    type Item<'world> = Mut<'world, T>;
+
+    fn fetch_mut<'world>(world: &'world mut World, entity: EntityId) -> Option<Self::Item<'world>> {
+        Self::fetch_mut_with_ticks(
+            world,
+            entity,
+            crate::scene::ecs::ChangeTickWindow::all(world.read_change_tick()),
+        )
+    }
+
+    fn fetch_mut_with_ticks<'world>(
+        world: &'world mut World,
+        entity: EntityId,
+        ticks: crate::scene::ecs::ChangeTickWindow,
+    ) -> Option<Self::Item<'world>> {
+        let component_ticks = world.component_change_ticks::<T>(entity)?;
+        let value = world.get_mut::<T>(entity)?;
+        Some(Mut::new(value, component_ticks, ticks))
     }
 }
 
@@ -163,6 +255,15 @@ macro_rules! tuple_query_data {
             #[allow(non_snake_case)]
             fn fetch<'world>(world: &'world World, entity: EntityId) -> Option<Self::Item<'world>> {
                 Some(($($name::fetch(world, entity)?,)*))
+            }
+
+            #[allow(non_snake_case)]
+            fn fetch_with_ticks<'world>(
+                world: &'world World,
+                entity: EntityId,
+                ticks: crate::scene::ecs::ChangeTickWindow,
+            ) -> Option<Self::Item<'world>> {
+                Some(($($name::fetch_with_ticks(world, entity, ticks)?,)*))
             }
         }
     };

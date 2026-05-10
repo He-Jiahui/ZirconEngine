@@ -11,151 +11,52 @@ widgets = []
 styles = []
 
 [root]
-node_id = "activity_rail_root"
+node = "activity_rail_root"
+
+[nodes.activity_rail_root]
 kind = "native"
 type = "Overlay"
 control_id = "ActivityRailRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { child = "activity_rail_panel" },
+  { child = "activity_rail_button_0" },
+  { child = "activity_rail_button_icon_0" },
+  { child = "activity_rail_button_1" },
+  { child = "activity_rail_button_icon_1" },
+]
 
-[root.layout]
-clip = true
-
-[root.layout.container]
-kind = "Overlay"
-
-[root.layout.width]
-stretch = "Stretch"
-
-[root.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "activity_rail_panel"
+[nodes.activity_rail_panel]
 kind = "native"
 type = "Container"
 control_id = "ActivityRailPanel"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[root.children.node.props]
-surface_variant = "panel"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = 0.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "activity_rail_button_0"
+[nodes.activity_rail_button_0]
 kind = "native"
 type = "Container"
 control_id = "ActivityRailButton0"
+props = { radius = 3.0, border_width = 0.0 }
+layout = { position = { x = 6.0, y = 6.0 }, width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-radius = 3.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 6.0
-y = 6.0
-
-[root.children.node.layout.width]
-min = 32.0
-preferred = 32.0
-max = 32.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 32.0
-preferred = 32.0
-max = 32.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "activity_rail_button_icon_0"
+[nodes.activity_rail_button_icon_0]
 kind = "native"
 type = "Icon"
 control_id = "ActivityRailButtonIcon0"
+props = { icon = "albums-outline", value = "ionicons/albums-outline.svg", text_tone = "muted" }
+layout = { position = { x = 13.0, y = 13.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-icon = "albums-outline"
-value = "ionicons/albums-outline.svg"
-text_tone = "muted"
-
-[root.children.node.layout.position]
-x = 13.0
-y = 13.0
-
-[root.children.node.layout.width]
-min = 18.0
-preferred = 18.0
-max = 18.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 18.0
-preferred = 18.0
-max = 18.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "activity_rail_button_1"
+[nodes.activity_rail_button_1]
 kind = "native"
 type = "Container"
 control_id = "ActivityRailButton1"
+props = { radius = 3.0, border_width = 0.0 }
+layout = { position = { x = 6.0, y = 42.0 }, width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-radius = 3.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 6.0
-y = 42.0
-
-[root.children.node.layout.width]
-min = 32.0
-preferred = 32.0
-max = 32.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 32.0
-preferred = 32.0
-max = 32.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "activity_rail_button_icon_1"
+[nodes.activity_rail_button_icon_1]
 kind = "native"
 type = "Icon"
 control_id = "ActivityRailButtonIcon1"
-
-[root.children.node.props]
-icon = "layers-outline"
-value = "ionicons/layers-outline.svg"
-text_tone = "muted"
-
-[root.children.node.layout.position]
-x = 13.0
-y = 49.0
-
-[root.children.node.layout.width]
-min = 18.0
-preferred = 18.0
-max = 18.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 18.0
-preferred = 18.0
-max = 18.0
-stretch = "Fixed"
+props = { icon = "layers-outline", value = "ionicons/layers-outline.svg", text_tone = "muted" }
+layout = { position = { x = 13.0, y = 49.0 }, width = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }

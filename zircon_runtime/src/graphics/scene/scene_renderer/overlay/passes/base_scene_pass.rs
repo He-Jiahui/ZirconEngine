@@ -46,7 +46,7 @@ impl BaseScenePass {
             multiview_mask: None,
         });
         pass.set_bind_group(0, scene_bind_group, &[]);
-        if frame.scene.overlays.display_mode == DisplayMode::WireOnly {
+        if frame.overlays().display_mode == DisplayMode::WireOnly {
             return;
         }
         for draw in mesh_draws {

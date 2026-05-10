@@ -53,6 +53,28 @@ pub struct RenderingBackendInfo {
     pub supports_shared_texture_viewports: bool,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct GraphicsDebuggerStatus {
+    /// True when the backend exposes a graphics-debugger capture hook through wgpu.
+    /// This does not prove that RenderDoc or another debugger is attached.
+    pub available: bool,
+    /// Concrete backend selected by wgpu, for example `wgpu(dx12)` or `wgpu(vulkan)`.
+    pub backend_name: String,
+    pub capture_pending: bool,
+    pub active_capture: bool,
+    pub last_capture_frame: Option<u64>,
+    pub last_error: Option<String>,
+}
+
+impl GraphicsDebuggerStatus {
+    pub fn unavailable(backend_name: impl Into<String>) -> Self {
+        Self {
+            backend_name: backend_name.into(),
+            ..Self::default()
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RenderQueueCapability {
     Graphics,
@@ -187,7 +209,7 @@ impl Default for RenderFeatureQualitySettings {
         Self {
             clustered_lighting: true,
             screen_space_ambient_occlusion: true,
-            history_resolve: true,
+            history_resolve: false,
             bloom: true,
             color_grading: true,
             reflection_probes: true,

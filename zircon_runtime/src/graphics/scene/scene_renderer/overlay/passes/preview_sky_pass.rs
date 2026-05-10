@@ -14,7 +14,7 @@ impl PreviewSkyPass {
         sky_pipeline: &wgpu::RenderPipeline,
         frame: &ViewportRenderFrame,
     ) {
-        let clear_color = frame.scene.preview.clear_color;
+        let clear_color = frame.preview().clear_color;
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("PreviewSkyPass"),
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
@@ -43,9 +43,9 @@ impl PreviewSkyPass {
             timestamp_writes: None,
             multiview_mask: None,
         });
-        if frame.scene.preview.skybox_enabled
+        if frame.preview().skybox_enabled
             && matches!(
-                frame.scene.preview.fallback_skybox,
+                frame.preview().fallback_skybox,
                 FallbackSkyboxKind::ProceduralGradient
             )
         {

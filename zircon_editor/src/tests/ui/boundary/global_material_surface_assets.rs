@@ -40,7 +40,13 @@ fn global_material_surface_assets_follow_responsive_contracts() {
             failures.push(format!("{} must define [root]", relative));
             continue;
         };
-        let effective_root = effective_root(document, root).unwrap_or(root);
+        let Some(effective_root) = effective_root(document, root) else {
+            failures.push(format!(
+                "{} root must resolve to an authored node",
+                relative
+            ));
+            continue;
+        };
         if !root_has_responsive_contract(&relative, effective_root) {
             failures.push(format!(
                 "{} root must stretch in width and height unless it is a bounded popup/menu/dialog/window chrome surface",
@@ -48,13 +54,19 @@ fn global_material_surface_assets_follow_responsive_contracts() {
             ));
         }
 
-        visit_nodes(&relative, "root", effective_root, &mut |location, node| {
-            check_interactive_material_contract(location, node, &mut failures);
-            check_fixed_axis_contract(location, node, &mut failures);
-        });
+        visit_nodes(
+            document,
+            &relative,
+            "root",
+            effective_root,
+            &mut |location, node| {
+                check_interactive_material_contract(location, node, &mut failures);
+                check_fixed_axis_contract(location, node, &mut failures);
+            },
+        );
 
         if is_collection_heavy(&relative, document)
-            && !has_scrollable_or_bounded_viewport(effective_root)
+            && !has_scrollable_or_bounded_viewport(document, effective_root)
             && !is_bounded_collection_exception(&relative)
         {
             failures.push(format!(
@@ -97,13 +109,14 @@ fn runtime_material_surfaces_use_shared_runtime_material_classes() {
         let root = document
             .get("root")
             .unwrap_or_else(|| panic!("{relative} defines [root]"));
+        let root = effective_root(&document, root).unwrap_or(root);
         let expected_surface_class = if relative.ends_with("runtime_hud.ui.toml") {
             "material-runtime-hud"
         } else {
             "material-runtime-dialog"
         };
         let mut found_surface_class = false;
-        visit_nodes(relative, "root", root, &mut |location, node| {
+        visit_nodes(&document, relative, "root", root, &mut |location, node| {
             if node_has_class(node, expected_surface_class) {
                 found_surface_class = true;
             }
@@ -298,14 +311,34 @@ fn root_responsive_pending_reason(relative: &str) -> Option<&'static str> {
 }
 
 fn effective_root<'a>(document: &'a Value, root: &'a Value) -> Option<&'a Value> {
+    let root = resolve_node_value(document, root)?;
     if root.get("kind").and_then(Value::as_str) != Some("component") {
         return Some(root);
     }
     let component_name = root.get("component").and_then(Value::as_str)?;
+    component_root_node(document, component_name)
+}
+
+fn component_root_node<'a>(document: &'a Value, component_name: &str) -> Option<&'a Value> {
     document
         .get("components")
         .and_then(|components| components.get(component_name))
         .and_then(|component| component.get("root"))
+        .and_then(|root| resolve_node_value(document, root))
+}
+
+fn resolve_node_value<'a>(document: &'a Value, value: &'a Value) -> Option<&'a Value> {
+    if let Some(node_id) = value.as_str() {
+        return flat_node(document, node_id);
+    }
+    if let Some(node_id) = value.get("node").and_then(Value::as_str) {
+        return flat_node(document, node_id);
+    }
+    Some(value)
+}
+
+fn flat_node<'a>(document: &'a Value, node_id: &str) -> Option<&'a Value> {
+    document.get("nodes").and_then(|nodes| nodes.get(node_id))
 }
 
 fn is_bounded_root_surface(relative: &str) -> bool {
@@ -343,17 +376,34 @@ fn material_import_pending_reason(relative: &str) -> Option<&'static str> {
     None
 }
 
-fn visit_nodes(relative: &str, location: &str, node: &Value, visit: &mut impl FnMut(&str, &Value)) {
+fn visit_nodes(
+    document: &Value,
+    relative: &str,
+    location: &str,
+    node: &Value,
+    visit: &mut impl FnMut(&str, &Value),
+) {
     visit(&format!("{relative}:{location}"), node);
     if let Some(children) = node.get("children").and_then(Value::as_array) {
         for (index, child) in children.iter().enumerate() {
-            if let Some(child_node) = child.get("node") {
+            if let Some(child_node) = child
+                .get("node")
+                .and_then(|node| resolve_node_value(document, node))
+                .or_else(|| {
+                    child
+                        .get("child")
+                        .and_then(Value::as_str)
+                        .and_then(|node_id| flat_node(document, node_id))
+                })
+            {
                 let child_location = child_node
                     .get("node_id")
                     .and_then(Value::as_str)
+                    .or_else(|| child.get("child").and_then(Value::as_str))
+                    .or_else(|| child_node.get("control_id").and_then(Value::as_str))
                     .map(str::to_string)
                     .unwrap_or_else(|| format!("{location}/child[{index}]"));
-                visit_nodes(relative, &child_location, child_node, visit);
+                visit_nodes(document, relative, &child_location, child_node, visit);
             }
         }
     }
@@ -598,18 +648,20 @@ fn contains_collection_node_type(document: &Value) -> bool {
     found
 }
 
-fn has_scrollable_or_bounded_viewport(root: &Value) -> bool {
+fn has_scrollable_or_bounded_viewport(document: &Value, root: &Value) -> bool {
     let mut found = false;
-    visit_value(root, &mut |value| {
-        if value.as_str() == Some("ScrollableBox") || value.as_str() == Some("WrapBox") {
-            found = true;
-        }
-        if value
-            .as_table()
-            .is_some_and(|table| table.contains_key("scroll") || table.contains_key("viewport"))
-        {
-            found = true;
-        }
+    visit_nodes(document, "", "root", root, &mut |_, node| {
+        visit_value(node, &mut |value| {
+            if value.as_str() == Some("ScrollableBox") || value.as_str() == Some("WrapBox") {
+                found = true;
+            }
+            if value
+                .as_table()
+                .is_some_and(|table| table.contains_key("scroll") || table.contains_key("viewport"))
+            {
+                found = true;
+            }
+        });
     });
     found
 }

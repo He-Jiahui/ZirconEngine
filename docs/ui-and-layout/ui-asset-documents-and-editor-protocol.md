@@ -134,7 +134,7 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/contract_diagnostics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
-  - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
 implementation_files:
@@ -264,7 +264,7 @@ implementation_files:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
-  - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
   - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
 plan_sources:
@@ -320,7 +320,7 @@ tests:
   - zircon_editor/src/tests/ui/ui_asset_editor/runtime_reports.rs
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
   - zircon_editor/src/tests/editing/ui_asset_replay.rs
-  - zircon_editor/tests/workbench_slint_shell.rs
+  - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
   - cargo test -p zircon_runtime ui_document_compiler_expands_imported_widget_references_and_applies_stylesheets --locked
   - cargo test -p zircon_runtime --lib ui::tests::asset_schema_migration --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-asset-schema-migration --message-format short --color never -- --nocapture
@@ -355,7 +355,7 @@ tests:
   - cargo test -p zircon_editor --lib ui_asset_editor_bootstrap_assets_parse_and_compile_with_imports --locked
   - cargo test -p zircon_editor --lib ui_asset_editor_bootstrap --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_editor --lib tests::ui::ui_asset_editor --locked --offline --message-format short
-  - cargo test -p zircon_editor --locked --offline --test workbench_slint_shell
+  - cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked workbench_retained_ui_asset_authoring_shell
   - cargo test -p zircon_runtime --lib asset_package_validation --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m16-ui-package-validation --message-format short --color never (5 passed)
   - cargo test -p zircon_runtime --lib ui::tests::asset --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m16-ui-package-validation --message-format short --color never (67 passed)
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-m16-ui-package-validation --message-format short --color never (passed with unrelated graphics/plugin warnings)
@@ -727,7 +727,7 @@ M15 resource collector/cache/invalidation/package reconciliation uses these focu
 
 M15 editor dependency view uses these focused commands:
 
-- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/slint_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
+- `rustfmt --edition 2021 --check zircon_editor/src/ui/asset_editor/session/lifecycle.rs zircon_editor/src/ui/asset_editor/session/ui_asset_editor_session.rs zircon_editor/src/ui/asset_editor/session/presentation_state.rs zircon_editor/src/ui/asset_editor/session/runtime_report_state.rs zircon_editor/src/ui/asset_editor/presentation.rs zircon_editor/src/ui/retained_host/host_contract/data/ui_asset.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs zircon_editor/src/tests/ui/ui_asset_editor/mod.rs zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs`
   - 2026-05-07：通过，无输出。
 - `cargo test -p zircon_editor --lib resource_dependency_view --locked --jobs 1 --target-dir D:\cargo-targets\zircon-ui-m15-resource-ux --message-format short --color never -- --nocapture --test-threads=1`
   - 2026-05-07：通过，`4 passed; 0 failed; 1136 filtered out`。覆盖 session dependency accessors、diagnostic-empty happy path、source edit refresh 和 compile-failure clearing。

@@ -1,4 +1,4 @@
-use crate::scene::ecs::{ChangeTick, Component, ComponentTicks, Resource};
+use crate::scene::ecs::{ChangeTick, Component, ComponentTicks, RemovedComponentEvents, Resource};
 use crate::scene::{EntityId, World};
 
 impl World {
@@ -59,5 +59,16 @@ impl World {
     {
         let tick = self.mutation_change_tick();
         self.resources.get_mut_at_tick_with_ticks::<T>(tick)
+    }
+
+    pub(crate) fn record_removed_component<T>(&mut self, entity: EntityId)
+    where
+        T: Component,
+    {
+        self.removed_component_events.push::<T>(entity);
+    }
+
+    pub(crate) fn removed_component_events(&self) -> &RemovedComponentEvents {
+        &self.removed_component_events
     }
 }

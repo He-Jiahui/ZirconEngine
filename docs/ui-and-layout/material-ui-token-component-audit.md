@@ -13,10 +13,10 @@ related_code:
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
 implementation_files:
@@ -30,10 +30,10 @@ implementation_files:
   - zircon_runtime/src/ui/tests/material_layout.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/tests/render_contracts.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/theme.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/tests/host/slint_window/native_material_painter.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
 plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
   - .codex/plans/Material UI 元组件与 .ui.toml 编辑器布局 Slate 化计划.md

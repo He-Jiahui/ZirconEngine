@@ -1,10 +1,12 @@
 use crate::core::framework::render::{
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, RenderVirtualGeometryExtract,
 };
+use crate::graphics::runtime::FrameHistoryValidationKey;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
 
 use crate::{VirtualGeometryRuntimeExtractOutput, VisibilityContext};
 
+use super::super::super::compiled_feature_names::compiled_feature_names;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissionStats};
 use super::compile_pipeline::compile_submission_pipeline;
@@ -17,7 +19,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     extract: &RenderFrameExtract,
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
-    let mut viewport_state = resolve_viewport_record_state(server, viewport)?;
+    let mut viewport_state = resolve_viewport_record_state(server, viewport, extract)?;
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline);
@@ -55,6 +57,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         &visibility_extract,
         viewport_state.previous_visibility(),
     );
+    let history_validation_key = FrameHistoryValidationKey::from_extract(
+        &visibility_extract,
+        compiled_feature_names(&compiled_pipeline),
+    );
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
@@ -67,9 +73,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     Ok(FrameSubmissionContext::new(
         viewport_state.size(),
         viewport_state.pipeline_handle(),
+        viewport_state.viewport_generation(),
         viewport_state.take_quality_profile(),
         compiled_pipeline,
         visibility_context,
+        history_validation_key,
         ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),

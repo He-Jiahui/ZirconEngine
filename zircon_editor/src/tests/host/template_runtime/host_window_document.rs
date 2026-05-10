@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn editor_ui_host_runtime_projects_builtin_host_template_into_slint_projection() {
+fn editor_ui_host_runtime_projects_builtin_host_template_into_retained_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -60,7 +60,7 @@ fn editor_ui_host_runtime_registers_only_generic_host_window_document_id() {
 }
 
 #[test]
-fn editor_ui_host_runtime_projects_asset_document_source_into_slint_projection() {
+fn editor_ui_host_runtime_projects_asset_document_source_into_retained_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime
         .register_document_source("ui.host_window.asset", ASSET_HOST_WINDOW_DOCUMENT_TOML)

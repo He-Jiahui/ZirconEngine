@@ -35,7 +35,7 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/subscribe_editor_asset_changes.rs
-  - zircon_editor/src/ui/slint_host/shell_pointer/effects.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer/effects.rs
 implementation_files:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/layout_commands.rs
@@ -72,7 +72,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/mod.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/broadcast.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/default_editor_asset_manager/subscribe_editor_asset_changes.rs
-  - zircon_editor/src/ui/slint_host/shell_pointer/effects.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer/effects.rs
 plan_sources:
   - user: 2026-05-03 修复其他 editor 生产路径 lock().unwrap() 热点
 tests:
@@ -97,7 +97,7 @@ Production host code should not call `Mutex::lock().unwrap()` or `Mutex::lock().
 
 The helper policy is intentionally narrow: recover poisoned locks with `into_inner()` and keep the original operation result path unchanged. This round does not introduce a new editor error variant for poisoning, because the selected hot path was direct panic removal rather than semantic state reconciliation after a panic.
 
-`DefaultEditorAssetManager` has a local `lock_change_subscribers` helper for subscriber broadcast state. `slint_host::shell_pointer::effects` uses a local drag-frame lock helper because that state is owned by the Slint shell pointer surface rather than by `EditorUiHost`.
+`DefaultEditorAssetManager` has a local `lock_change_subscribers` helper for subscriber broadcast state. `retained_host::shell_pointer::effects` uses a local drag-frame lock helper because that state is owned by the retained shell pointer surface rather than by `EditorUiHost`.
 
 ## Validation Scope
 

@@ -254,7 +254,8 @@ fn native_loader_falls_back_to_v2_when_v3_descriptor_is_absent() {
     let native_root = plugin_root.join("native");
     fs::create_dir_all(&native_root).unwrap();
 
-    let library_path = build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
+    let library_path =
+        build_native_dynamic_fixture_with_features(&fixture_target, &["abi_v2_only"]);
     fs::copy(
         &library_path,
         native_root.join(platform_library_file_name(

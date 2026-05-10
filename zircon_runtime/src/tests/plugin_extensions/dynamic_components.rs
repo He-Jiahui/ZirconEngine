@@ -2,6 +2,7 @@ use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::plugin::ComponentTypeDescriptor;
 use crate::scene::{components::NodeKind, World};
 use serde_json::json;
+use zircon_runtime_interface::reflect::ReflectError;
 
 #[test]
 fn world_component_type_registry_gates_dynamic_component_attachment_when_present() {
@@ -23,7 +24,10 @@ fn world_component_type_registry_gates_dynamic_component_attachment_when_present
         .unwrap_err();
     assert_eq!(
         duplicate,
-        "component type weather.Component.CloudLayer already registered"
+        ReflectError::DuplicateTypePath {
+            type_path: "weather.Component.CloudLayer".to_string(),
+        }
+        .to_string()
     );
     assert_eq!(
         world

@@ -3,6 +3,8 @@ use crate::core::math::UVec2;
 
 use crate::{FrameHistoryBinding, VisibilityHistorySnapshot};
 
+use super::FrameHistoryValidationKey;
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ViewportFrameHistory {
     pub(super) handle: FrameHistoryHandle,
@@ -11,4 +13,5 @@ pub(crate) struct ViewportFrameHistory {
     pub(super) generation: u64,
     pub(super) bindings: Vec<FrameHistoryBinding>,
     pub(super) visibility: VisibilityHistorySnapshot,
+    pub(super) validation_key: FrameHistoryValidationKey,
 }

@@ -16,7 +16,7 @@ impl WireframePass {
         buffer: Option<&(wgpu::Buffer, u32)>,
         frame: &ViewportRenderFrame,
     ) {
-        if frame.scene.overlays.display_mode == DisplayMode::Shaded {
+        if frame.overlays().display_mode == DisplayMode::Shaded {
             return;
         }
         let Some((buffer, count)) = buffer else {

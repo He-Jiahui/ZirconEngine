@@ -12,19 +12,18 @@ pub(crate) fn build_wireframe_vertices(
     streamer: &ResourceStreamer,
 ) -> Vec<LineVertex> {
     let selection: HashSet<_> = frame
-        .scene
-        .overlays
+        .overlays()
         .selection
         .iter()
         .map(|highlight| highlight.owner)
         .collect();
 
     let mut vertices = Vec::new();
-    for mesh_instance in &frame.scene.scene.meshes {
+    for mesh_instance in frame.meshes() {
         let Some(model) = streamer.model(&mesh_instance.model.id()) else {
             continue;
         };
-        let color = match frame.scene.overlays.display_mode {
+        let color = match frame.overlays().display_mode {
             DisplayMode::WireOverlay => Vec4::new(0.08, 0.09, 0.1, 0.9),
             DisplayMode::WireOnly => {
                 if selection.contains(&mesh_instance.node_id) {

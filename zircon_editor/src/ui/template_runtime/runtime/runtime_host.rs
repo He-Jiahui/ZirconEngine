@@ -14,7 +14,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::template_runtime::{
-    SlintUiHostAdapter, SlintUiHostModel, SlintUiHostProjection, SlintUiProjection,
+    RetainedUiHostAdapter, RetainedUiHostModel, RetainedUiHostProjection, RetainedUiProjection,
     UiComponentShowcaseDemoError, UiComponentShowcaseDemoEventInput, UiComponentShowcaseDemoState,
 };
 use zircon_runtime_interface::ui::component::UiComponentAdapterResult;
@@ -36,7 +36,7 @@ pub enum EditorUiHostRuntimeError {
     UiAsset(#[from] UiAssetError),
     #[error(transparent)]
     UiTemplateBuild(#[from] UiTemplateBuildError),
-    #[error("slint projection is missing binding {binding_id}")]
+    #[error("retained host projection is missing binding {binding_id}")]
     MissingProjectionBinding { binding_id: String },
     #[error("shared surface node {node_path} is missing template metadata")]
     MissingSurfaceMetadata { node_path: String },
@@ -145,7 +145,7 @@ impl EditorUiHostRuntime {
     pub fn project_document(
         &self,
         document_id: &str,
-    ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+    ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
         project_document(
             &self.template_service,
             &self.template_registry,
@@ -157,7 +157,7 @@ impl EditorUiHostRuntime {
     pub(crate) fn project_pane_body(
         &self,
         body: &PaneBodyPresentation,
-    ) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+    ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
         project_pane_body(
             &self.template_service,
             &self.template_registry,
@@ -169,7 +169,7 @@ impl EditorUiHostRuntime {
     pub fn register_projection_routes(
         &self,
         service: &mut EditorUiControlService,
-        projection: &mut SlintUiProjection,
+        projection: &mut RetainedUiProjection,
     ) -> Result<(), EditorUiHostRuntimeError> {
         for binding in &mut projection.bindings {
             let route_id = service
@@ -182,8 +182,8 @@ impl EditorUiHostRuntime {
 
     pub fn build_host_model(
         &self,
-        projection: &SlintUiProjection,
-    ) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
+        projection: &RetainedUiProjection,
+    ) -> Result<RetainedUiHostModel, EditorUiHostRuntimeError> {
         let mut host_model = build_host_model(projection)?;
         self.showcase_demo_state
             .apply_to_host_model(&mut host_model);
@@ -192,9 +192,9 @@ impl EditorUiHostRuntime {
 
     pub fn build_host_model_with_surface(
         &self,
-        projection: &SlintUiProjection,
+        projection: &RetainedUiProjection,
         surface: &UiSurface,
-    ) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
+    ) -> Result<RetainedUiHostModel, EditorUiHostRuntimeError> {
         let mut host_model = build_host_model_with_surface(projection, surface)?;
         self.showcase_demo_state
             .apply_to_host_model(&mut host_model);
@@ -214,20 +214,20 @@ impl EditorUiHostRuntime {
             .map_err(EditorUiHostRuntimeError::from)
     }
 
-    pub fn build_slint_host_projection(
+    pub fn build_retained_host_projection(
         &self,
-        projection: &SlintUiProjection,
-    ) -> Result<SlintUiHostProjection, EditorUiHostRuntimeError> {
+        projection: &RetainedUiProjection,
+    ) -> Result<RetainedUiHostProjection, EditorUiHostRuntimeError> {
         let host_model = self.build_host_model(projection)?;
-        Ok(SlintUiHostAdapter::build_projection(&host_model))
+        Ok(RetainedUiHostAdapter::build_projection(&host_model))
     }
 
-    pub fn build_slint_host_projection_with_surface(
+    pub fn build_retained_host_projection_with_surface(
         &self,
-        projection: &SlintUiProjection,
+        projection: &RetainedUiProjection,
         surface: &UiSurface,
-    ) -> Result<SlintUiHostProjection, EditorUiHostRuntimeError> {
+    ) -> Result<RetainedUiHostProjection, EditorUiHostRuntimeError> {
         let host_model = self.build_host_model_with_surface(projection, surface)?;
-        Ok(SlintUiHostAdapter::build_projection(&host_model))
+        Ok(RetainedUiHostAdapter::build_projection(&host_model))
     }
 }

@@ -137,6 +137,64 @@ selector = "Label"
 set = { self = { text = "B" } }
 "#;
 
+const UNUSED_WIDGET_IMPORT_LAYOUT_A: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.unused_widget_cache"
+version = 1
+
+[imports]
+widgets = ["asset://ui/cache/card.ui#Card"]
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Label"
+props = { text = "Unused Widget Import" }
+"##;
+
+const UNUSED_WIDGET_IMPORT_LAYOUT_B: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.unused_widget_cache"
+version = 1
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Label"
+props = { text = "Unused Widget Import" }
+"##;
+
+const UNUSED_STYLE_IMPORT_LAYOUT_A: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.unused_style_cache"
+version = 1
+
+[imports]
+styles = ["asset://ui/cache/style.ui"]
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Label"
+props = { text = "Unused Style Import" }
+"##;
+
+const UNUSED_STYLE_IMPORT_LAYOUT_B: &str = r##"
+[asset]
+kind = "layout"
+id = "editor.unused_style_cache"
+version = 1
+
+[root]
+node_id = "root"
+kind = "native"
+type = "Label"
+props = { text = "Unused Style Import" }
+"##;
+
 const RESOURCE_LAYOUT_A: &str = r##"
 [asset]
 kind = "layout"
@@ -283,6 +341,64 @@ fn asset_compile_cache_misses_when_style_import_fingerprint_changes() {
         .invalidation_report
         .stages
         .contains(&UiInvalidationStage::StyleValue));
+}
+
+#[test]
+fn asset_compile_cache_misses_when_declared_widget_import_list_changes() {
+    let first_document = UiAssetLoader::load_toml_str(UNUSED_WIDGET_IMPORT_LAYOUT_A).unwrap();
+    let second_document = UiAssetLoader::load_toml_str(UNUSED_WIDGET_IMPORT_LAYOUT_B).unwrap();
+    let widget = UiAssetLoader::load_toml_str(CARD_WIDGET_V1).unwrap();
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_widget_import("asset://ui/cache/card.ui#Card", widget)
+        .unwrap();
+    let mut cache = UiAssetCompileCache::new();
+
+    compiler
+        .compile_with_cache(&first_document, &mut cache)
+        .unwrap();
+    let second = compiler
+        .compile_with_cache(&second_document, &mut cache)
+        .unwrap();
+
+    assert!(!second.cache_hit);
+    assert!(second
+        .invalidation_report
+        .changes
+        .contains(&UiAssetChange::WidgetImport));
+    assert!(second
+        .invalidation_report
+        .stages
+        .contains(&UiInvalidationStage::ImportGraph));
+}
+
+#[test]
+fn asset_compile_cache_misses_when_declared_style_import_list_changes() {
+    let first_document = UiAssetLoader::load_toml_str(UNUSED_STYLE_IMPORT_LAYOUT_A).unwrap();
+    let second_document = UiAssetLoader::load_toml_str(UNUSED_STYLE_IMPORT_LAYOUT_B).unwrap();
+    let style = UiAssetLoader::load_toml_str(STYLE_ASSET_A).unwrap();
+    let mut compiler = UiDocumentCompiler::default();
+    compiler
+        .register_style_import("asset://ui/cache/style.ui", style)
+        .unwrap();
+    let mut cache = UiAssetCompileCache::new();
+
+    compiler
+        .compile_with_cache(&first_document, &mut cache)
+        .unwrap();
+    let second = compiler
+        .compile_with_cache(&second_document, &mut cache)
+        .unwrap();
+
+    assert!(!second.cache_hit);
+    assert!(second
+        .invalidation_report
+        .changes
+        .contains(&UiAssetChange::StyleImport));
+    assert!(second
+        .invalidation_report
+        .stages
+        .contains(&UiInvalidationStage::ImportGraph));
 }
 
 #[test]

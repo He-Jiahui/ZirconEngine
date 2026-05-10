@@ -28,7 +28,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
         .with_evictable_page_ids(prepared.take_virtual_geometry_evictable_page_ids());
     let virtual_geometry_indirect_segment_count = 0;
     let (previous_handle, history_handle) =
-        record_history(record, context, &frame, allocated_history);
+        record_history(record, context, frame.generation, allocated_history);
     record_capture(record, context, frame);
     let hybrid_gi_stats = update_hybrid_gi_runtime(record, hybrid_gi_feedback);
     let particle_stats = particle_feedback_stat_snapshot(particle_feedback);
@@ -47,7 +47,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn reco
     )
 }
 
-fn particle_feedback_stat_snapshot(
+pub(super) fn particle_feedback_stat_snapshot(
     feedback: crate::ParticleRuntimeFeedback,
 ) -> ParticleStatSnapshot {
     feedback
@@ -64,7 +64,7 @@ fn particle_feedback_stat_snapshot(
         .unwrap_or_default()
 }
 
-fn update_hybrid_gi_runtime(
+pub(super) fn update_hybrid_gi_runtime(
     record: &mut ViewportRecord,
     feedback: crate::HybridGiRuntimeFeedback,
 ) -> HybridGiStatSnapshot {
@@ -92,7 +92,7 @@ fn update_hybrid_gi_runtime(
     )
 }
 
-fn update_virtual_geometry_runtime(
+pub(super) fn update_virtual_geometry_runtime(
     record: &mut ViewportRecord,
     feedback: crate::VirtualGeometryRuntimeFeedback,
     indirect_segment_count: usize,

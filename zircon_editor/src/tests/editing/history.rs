@@ -8,18 +8,24 @@ use super::support::{cube_id, test_state};
 #[test]
 fn undo_redo_restores_created_nodes() {
     let mut state = test_state();
-    let initial_count = state.world.snapshot().nodes().len();
+    let initial_count = state.world.snapshot().node_records().len();
 
     assert!(state
         .apply_intent(EditorIntent::CreateNode(NodeKind::Cube))
         .unwrap());
-    assert_eq!(state.world.snapshot().nodes().len(), initial_count + 1);
+    assert_eq!(
+        state.world.snapshot().node_records().len(),
+        initial_count + 1
+    );
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
-    assert_eq!(state.world.snapshot().nodes().len(), initial_count);
+    assert_eq!(state.world.snapshot().node_records().len(), initial_count);
 
     assert!(state.apply_intent(EditorIntent::Redo).unwrap());
-    assert_eq!(state.world.snapshot().nodes().len(), initial_count + 1);
+    assert_eq!(
+        state.world.snapshot().node_records().len(),
+        initial_count + 1
+    );
 }
 
 #[test]

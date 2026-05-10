@@ -19,6 +19,12 @@ pub fn document_import_fingerprints(
         .collect()
 }
 
+pub fn declared_imports_fingerprint(
+    imports: &[String],
+) -> Result<UiAssetFingerprint, UiAssetError> {
+    fingerprint_serializable(&UiDeclaredImportsFingerprintInput { imports })
+}
+
 pub fn fingerprint_document(
     document: &UiAssetDocument,
 ) -> Result<UiAssetFingerprint, UiAssetError> {
@@ -54,6 +60,11 @@ pub fn resource_dependencies_fingerprint(
 #[derive(Serialize)]
 struct UiResourceDependencyFingerprintInput {
     references: Vec<UiResourceRef>,
+}
+
+#[derive(Serialize)]
+struct UiDeclaredImportsFingerprintInput<'a> {
+    imports: &'a [String],
 }
 
 fn append_contracts(

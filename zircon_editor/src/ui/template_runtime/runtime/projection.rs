@@ -8,8 +8,8 @@ use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{event_ui::UiNodeId, template::UiTemplateNode, tree::UiTree};
 
 use crate::ui::template_runtime::{
-    SlintUiBindingProjection, SlintUiHostBindingProjection, SlintUiHostModel,
-    SlintUiHostNodeProjection, SlintUiNodeProjection, SlintUiProjection,
+    RetainedUiBindingProjection, RetainedUiHostBindingProjection, RetainedUiHostModel,
+    RetainedUiHostNodeProjection, RetainedUiNodeProjection, RetainedUiProjection,
 };
 
 use super::runtime_host::EditorUiHostRuntimeError;
@@ -19,7 +19,7 @@ pub(super) fn project_document(
     template_registry: &EditorTemplateRegistry,
     template_adapter: &EditorTemplateAdapter,
     document_id: &str,
-) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
     let instance = template_service
         .instantiate(template_registry, document_id)
         .map_err(EditorUiHostRuntimeError::from)?;
@@ -30,10 +30,10 @@ pub(super) fn project_instance(
     document_id: &str,
     instance: &UiTemplateInstance,
     template_adapter: &EditorTemplateAdapter,
-) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
     let mut bindings = Vec::new();
     let root = project_node(&instance.root, template_adapter, &mut bindings)?;
-    Ok(SlintUiProjection {
+    Ok(RetainedUiProjection {
         document_id: document_id.to_string(),
         root,
         bindings,
@@ -41,8 +41,8 @@ pub(super) fn project_instance(
 }
 
 pub(super) fn build_host_model(
-    projection: &SlintUiProjection,
-) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
+    projection: &RetainedUiProjection,
+) -> Result<RetainedUiHostModel, EditorUiHostRuntimeError> {
     let bindings = projection
         .bindings
         .iter()
@@ -51,16 +51,16 @@ pub(super) fn build_host_model(
         .collect::<BTreeMap<_, _>>();
     let mut nodes = Vec::new();
     collect_host_nodes(&projection.root, None, "root", &bindings, &mut nodes)?;
-    Ok(SlintUiHostModel {
+    Ok(RetainedUiHostModel {
         document_id: projection.document_id.clone(),
         nodes,
     })
 }
 
 pub(super) fn build_host_model_with_surface(
-    projection: &SlintUiProjection,
+    projection: &RetainedUiProjection,
     surface: &UiSurface,
-) -> Result<SlintUiHostModel, EditorUiHostRuntimeError> {
+) -> Result<RetainedUiHostModel, EditorUiHostRuntimeError> {
     let bindings = projection
         .bindings
         .iter()
@@ -71,7 +71,7 @@ pub(super) fn build_host_model_with_surface(
     for root_id in &surface.tree.roots {
         collect_surface_host_nodes(&surface.tree, *root_id, &bindings, &mut nodes)?;
     }
-    Ok(SlintUiHostModel {
+    Ok(RetainedUiHostModel {
         document_id: projection.document_id.clone(),
         nodes,
     })
@@ -80,22 +80,22 @@ pub(super) fn build_host_model_with_surface(
 fn project_node(
     node: &UiTemplateNode,
     adapter: &EditorTemplateAdapter,
-    bindings: &mut Vec<SlintUiBindingProjection>,
-) -> Result<SlintUiNodeProjection, EditorUiHostRuntimeError> {
+    bindings: &mut Vec<RetainedUiBindingProjection>,
+) -> Result<RetainedUiNodeProjection, EditorUiHostRuntimeError> {
     let mut binding_ids = Vec::new();
     for binding_ref in &node.bindings {
         let binding = adapter
             .resolve_binding(binding_ref)
             .map_err(EditorUiHostRuntimeError::from)?;
         binding_ids.push(binding_ref.id.clone());
-        bindings.push(SlintUiBindingProjection {
+        bindings.push(RetainedUiBindingProjection {
             binding_id: binding_ref.id.clone(),
             binding,
             route_id: None,
         });
     }
 
-    Ok(SlintUiNodeProjection {
+    Ok(RetainedUiNodeProjection {
         component: node.component.clone().unwrap_or_default(),
         control_id: node.control_id.clone(),
         attributes: node.attributes.clone(),
@@ -110,11 +110,11 @@ fn project_node(
 }
 
 fn collect_host_nodes(
-    node: &SlintUiNodeProjection,
+    node: &RetainedUiNodeProjection,
     parent_id: Option<&str>,
     node_id: &str,
-    bindings: &BTreeMap<String, SlintUiBindingProjection>,
-    host_nodes: &mut Vec<SlintUiHostNodeProjection>,
+    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    host_nodes: &mut Vec<RetainedUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     let node_bindings = node
         .binding_ids
@@ -122,7 +122,7 @@ fn collect_host_nodes(
         .map(|binding_id| {
             bindings
                 .get(binding_id)
-                .map(|binding| SlintUiHostBindingProjection {
+                .map(|binding| RetainedUiHostBindingProjection {
                     binding_id: binding.binding_id.clone(),
                     event_kind: binding.binding.path().event_kind,
                     route_id: binding.route_id,
@@ -133,7 +133,7 @@ fn collect_host_nodes(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    host_nodes.push(SlintUiHostNodeProjection {
+    host_nodes.push(RetainedUiHostNodeProjection {
         node_id: node_id.to_string(),
         parent_id: parent_id.map(str::to_string),
         component: node.component.clone(),
@@ -156,8 +156,8 @@ fn collect_host_nodes(
 fn collect_surface_host_nodes(
     tree: &UiTree,
     node_id: UiNodeId,
-    bindings: &BTreeMap<String, SlintUiBindingProjection>,
-    host_nodes: &mut Vec<SlintUiHostNodeProjection>,
+    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    host_nodes: &mut Vec<RetainedUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     let node = tree
         .node(node_id)
@@ -173,7 +173,7 @@ fn collect_surface_host_nodes(
         .map(|binding_ref| {
             bindings
                 .get(&binding_ref.id)
-                .map(|binding| SlintUiHostBindingProjection {
+                .map(|binding| RetainedUiHostBindingProjection {
                     binding_id: binding.binding_id.clone(),
                     event_kind: binding.binding.path().event_kind,
                     route_id: binding.route_id,
@@ -184,7 +184,7 @@ fn collect_surface_host_nodes(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    host_nodes.push(SlintUiHostNodeProjection {
+    host_nodes.push(RetainedUiHostNodeProjection {
         node_id: node.node_path.0.clone(),
         parent_id: node
             .parent

@@ -12,7 +12,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
         vec!["view".to_string(), "debug".to_string()],
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Overlay,
+            RenderPassStage::Debug,
             "overlay-gizmo",
             QueueLane::Graphics,
         )

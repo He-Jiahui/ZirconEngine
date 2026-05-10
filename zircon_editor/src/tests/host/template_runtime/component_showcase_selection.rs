@@ -1,5 +1,5 @@
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
+    EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,
 };
 use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
@@ -28,14 +28,14 @@ fn try_apply_showcase_binding(
 
 fn project_showcase_dropdown(
     runtime: &EditorUiHostRuntime,
-) -> crate::ui::template_runtime::SlintUiHostNodeModel {
+) -> crate::ui::template_runtime::RetainedUiHostNodeModel {
     project_showcase_node(runtime, "DropdownDemo")
 }
 
 fn project_showcase_node(
     runtime: &EditorUiHostRuntime,
     control_id: &str,
-) -> crate::ui::template_runtime::SlintUiHostNodeModel {
+) -> crate::ui::template_runtime::RetainedUiHostNodeModel {
     let projection = runtime
         .project_document("editor.window.ui_component_showcase")
         .unwrap();
@@ -43,7 +43,7 @@ fn project_showcase_node(
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap()
         .node_by_control_id(control_id)
         .unwrap()
@@ -71,9 +71,9 @@ fn showcase_dropdown_uses_authored_multiple_and_disabled_option_metadata() {
     let dropdown = project_showcase_dropdown(&runtime);
     assert_eq!(
         dropdown.properties.get("value"),
-        Some(&SlintUiHostValue::Array(vec![
-            SlintUiHostValue::String("runtime".to_string()),
-            SlintUiHostValue::String("editor".to_string()),
+        Some(&RetainedUiHostValue::Array(vec![
+            RetainedUiHostValue::String("runtime".to_string()),
+            RetainedUiHostValue::String("editor".to_string()),
         ]))
     );
     assert_eq!(dropdown.selection_state.as_deref(), Some("multi"));
@@ -97,9 +97,9 @@ fn showcase_dropdown_uses_authored_multiple_and_disabled_option_metadata() {
     );
     assert_eq!(
         dropdown.properties.get("value"),
-        Some(&SlintUiHostValue::Array(vec![
-            SlintUiHostValue::String("runtime".to_string()),
-            SlintUiHostValue::String("editor".to_string()),
+        Some(&RetainedUiHostValue::Array(vec![
+            RetainedUiHostValue::String("runtime".to_string()),
+            RetainedUiHostValue::String("editor".to_string()),
         ]))
     );
 }
@@ -123,7 +123,7 @@ fn showcase_search_select_query_edit_is_retained_and_projected() {
     assert_eq!(search.value_text.as_deref(), Some("runtime.ui.NumberField"));
     assert_eq!(
         search.properties.get("query"),
-        Some(&SlintUiHostValue::String("vector".to_string()))
+        Some(&RetainedUiHostValue::String("vector".to_string()))
     );
 
     try_apply_showcase_binding(
@@ -140,7 +140,7 @@ fn showcase_search_select_query_edit_is_retained_and_projected() {
     assert_eq!(search.value_text.as_deref(), Some("runtime.ui.RangeField"));
     assert_eq!(
         search.properties.get("query"),
-        Some(&SlintUiHostValue::String("vector".to_string()))
+        Some(&RetainedUiHostValue::String("vector".to_string()))
     );
     assert!(runtime
         .showcase_demo_state()

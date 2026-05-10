@@ -5,6 +5,7 @@ mod component_contract;
 mod document;
 mod invalidation;
 mod localization;
+mod prototype;
 mod resource_ref;
 mod schema;
 mod style;
@@ -44,6 +45,10 @@ pub use invalidation::{
 pub use localization::{
     UiLocalizationDependency, UiLocalizationDiagnostic, UiLocalizationDiagnosticSeverity,
     UiLocalizationReport, UiLocalizationTextCandidate, UiLocalizedTextRef, UiTextDirection,
+};
+pub use prototype::{
+    UiComponentPrototype, UiDocumentPrototype, UiNodePrototype, UiPrototypeChildMount,
+    UiPrototypeNodeHandle, UiRawAssetPrototype, UiStylePrototype,
 };
 pub use resource_ref::{
     UiResourceCollectionReport, UiResourceDependency, UiResourceDependencySource,

@@ -6,6 +6,7 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+    let _operation_guard = server.operation_lock.lock().unwrap();
     let mut state = server.state.lock().unwrap();
     let frame = state
         .viewports

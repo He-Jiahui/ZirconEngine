@@ -11,172 +11,52 @@ widgets = []
 styles = []
 
 [root]
-node_id = "workbench_page_chrome_root"
+node = "workbench_page_chrome_root"
+
+[nodes.workbench_page_chrome_root]
 kind = "native"
 type = "Overlay"
 control_id = "WorkbenchPageChromeRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { child = "workbench_page_bar" },
+  { child = "workbench_page_project_path" },
+  { child = "workbench_page_tab_0" },
+  { child = "workbench_page_tab_1" },
+  { child = "workbench_page_tab_2" },
+]
 
-[root.layout]
-clip = true
-
-[root.layout.container]
-kind = "Overlay"
-
-[root.layout.width]
-stretch = "Stretch"
-
-[root.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_page_bar"
+[nodes.workbench_page_bar]
 kind = "native"
 type = "Container"
 control_id = "WorkbenchPageBar"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 26.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-surface_variant = "panel"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = 26.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 32.0
-preferred = 32.0
-max = 32.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_page_project_path"
+[nodes.workbench_page_project_path]
 kind = "native"
 type = "Label"
 control_id = "PageProjectPath"
+props = { text = "No project open", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -12.0, y = 35.0 }, width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "No project open"
-text_tone = "muted"
-font_size = 9.0
-text_align = "right"
-overflow = "elide"
-
-[root.children.node.layout.anchor]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.pivot]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.position]
-x = -12.0
-y = 35.0
-
-[root.children.node.layout.width]
-min = 280.0
-preferred = 280.0
-max = 280.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 14.0
-preferred = 14.0
-max = 14.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_page_tab_0"
+[nodes.workbench_page_tab_0]
 kind = "native"
 type = "Label"
 control_id = "PageTab0"
+props = { text = "Workbench", text_tone = "default", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 8.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Workbench"
-text_tone = "default"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 8.0
-y = 27.0
-
-[root.children.node.layout.width]
-min = 108.0
-preferred = 108.0
-max = 108.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_page_tab_1"
+[nodes.workbench_page_tab_1]
 kind = "native"
 type = "Label"
 control_id = "PageTab1"
+props = { text = "Asset", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 120.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Asset"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 120.0
-y = 27.0
-
-[root.children.node.layout.width]
-min = 108.0
-preferred = 108.0
-max = 108.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_page_tab_2"
+[nodes.workbench_page_tab_2]
 kind = "native"
 type = "Label"
 control_id = "PageTab2"
-
-[root.children.node.props]
-text = "UI"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 232.0
-y = 27.0
-
-[root.children.node.layout.width]
-min = 108.0
-preferred = 108.0
-max = 108.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 30.0
-preferred = 30.0
-max = 30.0
-stretch = "Fixed"
+props = { text = "UI", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 232.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

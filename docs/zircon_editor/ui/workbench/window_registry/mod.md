@@ -18,15 +18,15 @@ related_code:
   - zircon_editor/src/ui/workbench/layout/manager/detach.rs
   - zircon_editor/src/ui/workbench/layout/manager/focus.rs
   - zircon_editor/src/ui/workbench/layout/manager/normalize.rs
-  - zircon_editor/src/ui/slint_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/slint_host/app/native_window_close.rs
-  - zircon_editor/src/ui/slint_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
-  - zircon_editor/src/ui/slint_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/slint_host/app/native_window_close.rs
-  - zircon_editor/src/ui/slint_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
 implementation_files:
   - zircon_editor/src/ui/workbench/window_registry/mod.rs
   - zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs
@@ -48,9 +48,9 @@ plan_sources:
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
 tests:
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
-  - zircon_editor/src/ui/slint_host/app/tests/close_prompt.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib window_registry_syncs_collapsed_active_drawer_without_selecting_tab --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2026-05-07: 1 passed, 0 failed, 1104 filtered out)
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture (2026-05-07: 5 passed, 0 failed, 1101 filtered out)
@@ -83,7 +83,7 @@ The registry tracks three instance groups:
 
 `sync_from_layout` rebuilds a registry snapshot from `WorkbenchLayout.activity_windows()` and the current `ViewInstance` list. Windows with `activity_drawers` become `DrawerCapable`; windows without drawers become `Ordinary`. Floating windows are projected as `DrawerWindowInstance` only when their page id uses the `drawer-window:` prefix created by drawer detach routing; plain document floating windows remain ordinary floating workspaces and are not exposed as drawer windows. During sync, drawer tabs are still registered for typed lookup, but the owning window's `selected_drawer` is copied from drawer `active_view` only; a collapsed drawer with retained tabs and `active_view = None` therefore stays unselected instead of reopening the first tab. The same sync copies each window's `menu_overflow_mode`, so host-side registry queries observe the persisted menu popup preference. `workspace_state` calls this sync while recomputing session metadata so the host observes the same active-window drawer and menu facts that layout, projection, and hit testing use.
 
-`ActivityWindowLayout.menu_overflow_mode` is the durable per-window setting for menu popup overflow. Its serde default is `Auto`, which keeps older project/global layouts compatible. `EditorChromeSnapshot::build(...)` reads the active activity window's setting and exposes it as `EditorChromeSnapshot.menu_overflow_mode`; the Slint menu pointer builder then projects that value into `HostMenuPointerLayout`. This gives `MenuOverflowMode::MultiColumn` a production layout/config path instead of leaving it as a test-only layout override.
+`ActivityWindowLayout.menu_overflow_mode` is the durable per-window setting for menu popup overflow. Its serde default is `Auto`, which keeps older project/global layouts compatible. `EditorChromeSnapshot::build(...)` reads the active activity window's setting and exposes it as `EditorChromeSnapshot.menu_overflow_mode`; the retained menu pointer builder then projects that value into `HostMenuPointerLayout`. This gives `MenuOverflowMode::MultiColumn` a production layout/config path instead of leaving it as a test-only layout override.
 
 Runtime mutation still flows through layout commands. `SetDrawerMode`, `SetDrawerExtent`, `ActivateDrawerTab`, drawer attach, drawer detach, and drawer focus now resolve through the active `ActivityWindowLayout` rather than legacy root drawers. Collapsing a drawer list means the tabs/order can remain, but no drawer view is selected/open. Switching to a window without a registered drawer-capable layout therefore leaves `selected_drawer_for_active_window()` empty and prevents the previous window's drawer from leaking into the new window.
 

@@ -47,46 +47,46 @@ related_code:
   - zircon_runtime/src/ui/template/build/parsers.rs
   - zircon_runtime/src/ui/template/build/slot_contract.rs
   - zircon_runtime/src/ui/template/build/tree_builder.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/surface_frame.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs
-  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
-  - zircon_editor/src/ui/slint_host/app/invalidation.rs
-  - zircon_editor/src/ui/slint_host/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/diagnostics_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/route_for_control.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/cycle_display_mode_route.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/cycle_grid_mode_route.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/snap_routes.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/toggle_routes.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/frame_selection_route.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/route_for_control.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/cycle_display_mode_route.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/cycle_grid_mode_route.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/snap_routes.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/toggle_routes.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/frame_selection_route.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
@@ -138,44 +138,44 @@ implementation_files:
   - zircon_runtime/src/ui/template/build/parsers.rs
   - zircon_runtime/src/ui/template/build/slot_contract.rs
   - zircon_runtime/src/ui/template/build/tree_builder.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/host_interaction.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/host_root.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/surface_frame.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/viewport_toolbar.rs
-  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/redraw.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/frame.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/diagnostics_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
-  - zircon_editor/src/ui/slint_host/host_contract/diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/app/invalidation.rs
-  - zircon_editor/src/ui/slint_host/app/viewport_image_redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/host_interaction.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/host_root.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/surface_frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/redraw.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/diagnostics_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/host_contract/diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/ui/retained_host/app/viewport_image_redraw.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/mod.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/cycle_display_mode_route.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/cycle_grid_mode_route.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/snap_routes.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/toggle_routes.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/frame_selection_route.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/mod.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/shared_pointer/viewport_toolbar.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/viewport_toolbar/bridge.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/cycle_display_mode_route.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/cycle_grid_mode_route.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/snap_routes.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/toggle_routes.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/frame_selection_route.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
   - zircon_editor/src/ui/workbench/debug_reflector/model.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
@@ -251,10 +251,10 @@ tests:
   - cargo test -p zircon_editor --lib apply_presentation_resolves_splitters_from_shared_visible_drawer_projection --locked --target-dir E:\zircon-build\targets\slate-ui-framework --jobs 1
   - cargo test -p zircon_editor --lib viewport_toolbar_surface_frame_includes_projected_route_controls_without_action_list --locked --target-dir E:\zircon-build\targets\slate-ui-framework --jobs 1
   - cargo test -p zircon_editor --lib native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_body --locked --target-dir E:\zircon-build\targets\slate-ui-framework --jobs 1
-  - zircon_editor/src/tests/host/slint_viewport_toolbar_pointer/projection_fallback.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
-  - zircon_editor/src/tests/host/slint_window/shell_window.rs
+  - zircon_editor/src/tests/host/retained_viewport_toolbar_pointer/projection_fallback.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window.rs
   - cargo test -p zircon_editor --lib native_host_welcome_material_text_field_accepts_keyboard_input --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib native_host_welcome_material_button_routes_welcome_callback --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib native_host_generic_template_text_field_routes_builtin_change_binding --locked --jobs 1 --target-dir D:\cargo-targets\zircon-gui-regression-debug --message-format short --color never -- --nocapture
@@ -277,7 +277,7 @@ tests:
   - cargo test -p zircon_runtime --lib repeated_same_target_mouse_moves_do_not_dirty_or_rebuild_surface --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m7-current --message-format short --color never
   - cargo test -p zircon_editor --lib ui_debug_reflector --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m7-current --message-format short --color never
   - cargo test -p zircon_editor --lib builtin_template_compile_cache_is_reused_across_runtime_instances --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
-  - cargo test -p zircon_editor --lib tests::host::slint_window::native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
+  - cargo test -p zircon_editor --lib tests::host::retained_window::native_host_contract --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib shared_core --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - cargo test -p zircon_runtime --lib event_routing --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - cargo test -p zircon_runtime --lib component_catalog --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
@@ -383,19 +383,19 @@ The lifecycle/property slice adds a second, runtime-surface-oriented reflector D
 
 `UiSurface::mutate_property(...)` is the matching runtime mutation seam for safe reflected edits. It accepts visibility, input policy, basic state flags, and template metadata attributes, then reports the dirty domains that a caller must rebuild. Authored `.ui.toml` remains the source document, and the editor Widget Reflector consumer remains read-only unless it deliberately calls this runtime mutation API.
 
-The workbench consumer is `WorkbenchWidgetReflectorModel`. It projects rows and selected-node details from `UiReflectorSnapshot` while owning only local selection. It is not allowed to query Slint widget state or keep an alternate runtime UI tree.
+The workbench consumer is `WorkbenchWidgetReflectorModel`. It projects rows and selected-node details from `UiReflectorSnapshot` while owning only local selection. It is not allowed to query toolkit widget state or keep an alternate runtime UI tree.
 
 Render diagnostics are intentionally named as estimates until the renderer exposes backend-confirmed counters. `UiRenderDebugStats` groups commands by a stable material signature and reports estimated draw calls from geometry and text-producing commands. The material batch list records a deterministic `break_reason` beside each stable key, so Widget Reflector-style panels can explain whether a group was separated by command kind, clipping, opacity, text/image resource use, or style/material identity. The runtime WGPU pass can later replace the estimate with real submitted pass counters without changing the snapshot boundary.
 
 Overdraw diagnostics use a configurable sample grid over the visible render-command union. They report covered cells, overdrawn cells, max layers, and total layer samples. This is not a replacement for a GPU overdraw pass, but it gives the editor debug UI a deterministic CPU-side overlay source while the material batching and runtime renderer instrumentation mature.
 
-`UiSurfaceDebugSnapshot.overlay_primitives` is the only source for editor reflector overlays. The editor Debug Reflector overlay state may filter those primitives by kind and may derive a missing `DamageRegion` primitive from `UiDamageDebugReport.damage_region`, but it does not rebuild frames from Slint nodes or host rectangles. Runtime Diagnostics carries the filtered primitives through its pane payload into `RuntimeDiagnosticsPaneData.overlay_primitives`; the native painter then draws them as clipped borders/fills over the pane content through `debug_reflector_overlay.rs`. This keeps selected frames, clip frames, hit cells, hit paths, rejected bounds, overdraw cells, material batch bounds, and damage regions on the same shared `UiSurfaceFrame` authority as render and hit diagnostics.
+`UiSurfaceDebugSnapshot.overlay_primitives` is the only source for editor reflector overlays. The editor Debug Reflector overlay state may filter those primitives by kind and may derive a missing `DamageRegion` primitive from `UiDamageDebugReport.damage_region`, but it does not rebuild frames from generated UI nodes or host rectangles. Runtime Diagnostics carries the filtered primitives through its pane payload into `RuntimeDiagnosticsPaneData.overlay_primitives`; the native painter then draws them as clipped borders/fills over the pane content through `debug_reflector_overlay.rs`. This keeps selected frames, clip frames, hit cells, hit paths, rejected bounds, overdraw cells, material batch bounds, and damage regions on the same shared `UiSurfaceFrame` authority as render and hit diagnostics.
 
 The M7 live Runtime Diagnostics bridge follows the same authority rule. During presentation conversion, the Runtime Diagnostics pane first builds its normal host-projected `body_surface_frame`; only that frame is converted into a diagnostics-only `UiSurfaceFrame` for the Debug Reflector model, detail rows, and overlay primitives. This lets the pane show widget path, focus/capture, hit path, reject reason, render/hit counts, batch breaks, and dirty flags without inventing a second coordinate table. Repeated same-target pointer moves are also locked at the runtime surface layer: after the first hover state is established, 100 identical moves keep the previous rebuild report, dirty flags, requested damage, and component event list unchanged.
 
 ## Editor Host Route
 
-The native Slint host stores a toolbar `UiSurfaceFrame` in `SceneViewportChromeData`. That frame is built by iterating route-bearing projected controls from the `.ui.toml` host projection in `BuiltinViewportToolbarTemplateBridge`, so button hit rectangles match the component layout. Adding another toolbar button with a projected control id and binding makes it enter the surface frame without adding Rust coordinate rows or a toolbar action list. Root docks and floating-window active panes receive these frames before native pointer routing runs. `host_contract/surface_hit_test` calls the shared `hit_test_surface_frame(...)` helper and maps hit node `control_id` values to the existing toolbar and pane dispatch callbacks.
+The native retained host stores a toolbar `UiSurfaceFrame` in `SceneViewportChromeData`. That frame is built by iterating route-bearing projected controls from the `.ui.toml` host projection in `BuiltinViewportToolbarTemplateBridge`, so button hit rectangles match the component layout. Adding another toolbar button with a projected control id and binding makes it enter the surface frame without adding Rust coordinate rows or a toolbar action list. Root docks and floating-window active panes receive these frames before native pointer routing runs. `host_contract/surface_hit_test` calls the shared `hit_test_surface_frame(...)` helper and maps hit node `control_id` values to the existing toolbar and pane dispatch callbacks.
 
 Toolbar hit control ids are separated from projected control ids only where the current editor state supplies a parameterized action or an existing semantic alias must be preserved. For example, the projected `SetTool` button maps to the current `tool.move`/`tool.rotate` action key, `FrameSelection` keeps the existing `frame.selection` semantic id, and direct no-argument buttons such as play-mode controls can use their projected control id. This keeps hit geometry owned by layout while preserving the existing viewport command semantics.
 
@@ -409,7 +409,7 @@ Pane component projection keeps a separate fallback label heuristic for bound or
 
 The native pointer dispatch still gates toolbar activation to primary press only. Release, secondary, and middle button events do not dispatch toolbar commands.
 
-The 2026-05-06 native GUI regression slice extends the same host route to text and drag state. Template-node hits now carry enough projected metadata for native text focus: component role, dispatch kind, edit/commit action ids, and current value text. `HostTextInputFocusData` lives beside pointer capture state in the host contract, so keyboard and IME events are routed to the focused `.ui.toml` control instead of depending on a hidden Slint widget. Enter, Escape, Backspace, and commit text are translated at the window boundary, then forwarded through the same callback envelopes as pointer-dispatched template actions.
+The 2026-05-06 native GUI regression slice extends the same host route to text and drag state. Template-node hits now carry enough projected metadata for native text focus: component role, dispatch kind, edit/commit action ids, and current value text. `HostTextInputFocusData` lives beside pointer capture state in the host contract, so keyboard and IME events are routed to the focused `.ui.toml` control instead of depending on a hidden toolkit widget. Enter, Escape, Backspace, and commit text are translated at the window boundary, then forwarded through the same callback envelopes as pointer-dispatched template actions.
 
 Document, drawer, and floating tab drag also stay on the host route rather than using a painter-only overlay. Primary press over a chrome tab arms drag capture from the hit route, movement past the threshold emits the existing host drag callbacks, and release sends the matching drop/up callback before clearing the stored drag state. That cleanup is part of the hit/input contract: stale capture state must not survive into a later paint frame, or the native retained backbuffer can keep showing an obsolete drag marker.
 
@@ -423,22 +423,22 @@ Text input uses the same retained-damage contract. `TemplateNodePointerHit` carr
 
 The 2026-05-08 validation attempt for this text-input fast path ran through `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-input-perf --message-format short --color never`, but the workspace stopped in `zircon_runtime` before editor checking because `zircon_runtime/src/ui/surface/surface.rs` imports the currently missing `crate::ui::layout::compute_incremental_layout_tree`. That failure is tracked as an external incremental-layout workspace blocker rather than evidence against the editor text-input path.
 
-Viewport image updates now use the same paint-only channel as pointer damage. `SlintEditorHost::poll_viewport_image_for_native_host()` accepts a fresh viewport image into `HostViewportImageData`, then queues an external `HostRedrawRequest::Region` for the current viewport content frame. The native event loop drains and coalesces those external redraw requests in `about_to_wait`, so multiple image/damage requests collapse before softbuffer presentation. This path does not set `presentation_dirty`, `layout_dirty`, or `render_dirty`, and a drained region redraw does not invoke `request_frame_update()`.
+Viewport image updates now use the same paint-only channel as pointer damage. `RetainedEditorHost::poll_viewport_image_for_native_host()` accepts a fresh viewport image into `HostViewportImageData`, then queues an external `HostRedrawRequest::Region` for the current viewport content frame. The native event loop drains and coalesces those external redraw requests in `about_to_wait`, so multiple image/damage requests collapse before softbuffer presentation. This path does not set `presentation_dirty`, `layout_dirty`, or `render_dirty`, and a drained region redraw does not invoke `request_frame_update()`.
 
-Repeated status messages are guarded before presentation invalidation. `EditorEventRuntime::status_line()` exposes the current status without constructing a full chrome snapshot; `SlintEditorHost::set_status_line()` now returns when the message is unchanged. This keeps recurring background errors from causing one presentation rebuild per timer tick while preserving normal status-line refresh when the text actually changes.
+Repeated status messages are guarded before presentation invalidation. `EditorEventRuntime::status_line()` exposes the current status without constructing a full chrome snapshot; `RetainedEditorHost::set_status_line()` now returns when the message is unchanged. This keeps recurring background errors from causing one presentation rebuild per timer tick while preserving normal status-line refresh when the text actually changes.
 
 Builtin template loading is cached at the compiled-document and parsed-document level. The cache key includes the canonical path, modification timestamp, and file length, so multiple bridge/runtime instances can reuse the same builtin `.ui.toml` documents during one editor process without hiding file changes across process restarts. Diagnostic logs now distinguish cache hits from actual template loads, and host presentation logs include a rebuild count to make accidental full projection loops visible.
 
 `apply_presentation` now projects only the active pane payload for each pane kind before building that pane's `body_surface_frame`. Scene panes do not build hierarchy/inspector/console/module/export payloads, and non-project panes do not project project overview data. This keeps presentation conversion aligned with the current visible pane role instead of rebuilding every possible pane body variant on each refresh. Host-owned native payload buckets are still preserved when they are already non-empty, so a synthetic host-scene pane kind cannot drop valid UI Asset Editor, animation, hierarchy, inspector, console, assets, asset-browser, or project-overview data before the surface frame is rebuilt.
 
-`SlintEditorHost` also has a host-level invalidation root modeled after Unreal Slate's `FSlateInvalidationRoot`. The root records structured reasons instead of treating every change as the same dirty flag: layout, tree structure, presentation data, paint-only, pointer hover, viewport image, hit-test, window metrics, and render. Layout/window-metrics reasons still drive the current compatibility `layout_dirty`/`presentation_dirty` slow path, render reasons stay separate from presentation rebuilds, and viewport-image updates are counted as paint-only damage before queuing a regional redraw. The diagnostic channel `editor_host_invalidation` logs slow-path and render-path counts with the merged reasons, so repeated full refreshes can be traced to the source that requested them.
+`RetainedEditorHost` also has a host-level invalidation root modeled after Unreal Slate's `FSlateInvalidationRoot`. The root records structured reasons instead of treating every change as the same dirty flag: layout, tree structure, presentation data, paint-only, pointer hover, viewport image, hit-test, window metrics, and render. Layout/window-metrics reasons still drive the current compatibility `layout_dirty`/`presentation_dirty` slow path, render reasons stay separate from presentation rebuilds, and viewport-image updates are counted as paint-only damage before queuing a regional redraw. The diagnostic channel `editor_host_invalidation` logs slow-path and render-path counts with the merged reasons, so repeated full refreshes can be traced to the source that requested them.
 
 This invalidation root is intentionally a cutover layer, not a second layout system. Existing legacy dirty assignments can still force a slow path; when that happens the recompute log falls back to the observed legacy dirty flags. New editor host code should call `invalidate_host(...)` or `record_paint_only_invalidation(...)` so the reason survives coalescing and can later map directly onto retained arranged trees, hit grids, and cached paint output.
 
-Preview image loading for template-projected nodes now lives in `ui/layouts/views/preview_images.rs` instead of a private Slint host adapter. This keeps layout-level `ViewTemplateNodeData` projection independent of native host conversion and lets both material-style template projection and host conversion share the same icon/media lookup behavior.
+Preview image loading for template-projected nodes now lives in `ui/layouts/views/preview_images.rs` instead of a private host adapter. This keeps layout-level `ViewTemplateNodeData` projection independent of native host conversion and lets both material-style template projection and host conversion share the same icon/media lookup behavior.
 
 The retained painter fast path now also covers visual assets. Template-projected `Image`, `Icon`, and `SvgIcon` nodes carry loaded `preview_image` pixels into `TemplatePaneNodeData`; the native painter converts those pixels once per paint command and draws them through the same clipped `HostRgbaFrame` primitive as viewport images. Runtime-style `UiRenderCommandKind::Image` resolves `UiVisualAssetRef::Image` / `Icon` to cached decoded pixels before falling back to deterministic placeholders. Because these draw calls all use `HostRgbaFrame`'s active paint clip, local damage still limits the work to the dirty region and does not force a presentation rebuild just because an image command is present.
 
-The top-right debug readout is likewise part of the native shell paint path, not a Slint UI replacement. `HostWindowShellData.debug_refresh_rate` is projected into the host contract and painted inside the top-bar clip in `workbench.rs`. The startup fallback uses the same field shape as the live overlay: `FPS 0.0 | present 0 | full 0 | region 0 | pixels 0 | slow 0 | render 0 | paint-only 0`. After the first native present the text is produced from `HostRefreshDiagnostics` plus `HostInvalidationRoot::diagnostics_snapshot()`.
+The top-right debug readout is likewise part of the native shell paint path, not a generated UI replacement. `HostWindowShellData.debug_refresh_rate` is projected into the host contract and painted inside the top-bar clip in `workbench.rs`. The startup fallback uses the same field shape as the live overlay: `FPS 0.0 | present 0 | full 0 | region 0 | pixels 0 | slow 0 | render 0 | paint-only 0`. After the first native present the text is produced from `HostRefreshDiagnostics` plus `HostInvalidationRoot::diagnostics_snapshot()`.
 
 That live overlay makes the retained-damage contract visible in the shell itself. Presenter counters report full paints, region paints, total presents, and total painted pixels, while invalidation counters report slow-path rebuilds, render-path rebuilds, and paint-only requests. Paint-only invalidations still do not set presentation or layout dirty flags; they update the invalidation snapshot and continue through region redraw where a caller provides damage. Presenter region expansion and painter clipping both derive the marker frame from `presentation_top_bar_frame(...)`, which follows the same scene-layout-first top-bar height as the workbench painter before using the startup fallback height. The overlay therefore observes the existing damage behavior without introducing a new coordinate table or a screen-specific Asset Browser branch.

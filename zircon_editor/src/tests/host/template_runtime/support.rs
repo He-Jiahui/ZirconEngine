@@ -1,7 +1,7 @@
 pub(super) use crate::ui::control::EditorUiControlService;
 pub(super) use crate::ui::template_runtime::{
-    EditorUiCompatibilityHarness, EditorUiHostRuntime, SlintUiHostAdapter,
-    SlintUiHostComponentKind, SlintUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
+    EditorUiCompatibilityHarness, EditorUiHostRuntime, RetainedUiHostAdapter,
+    RetainedUiHostComponentKind, RetainedUiHostValue, UI_HOST_WINDOW_DOCUMENT_ID,
 };
 pub(super) use toml::Value;
 pub(super) use zircon_runtime_interface::ui::{

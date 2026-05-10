@@ -209,17 +209,17 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Convert `material.rs`, `texture.rs`, `model.rs`, and `shader.rs` into folder-backed modules without changing their public module names.
-- [ ] Add neutral render contracts under `core/framework/render/{image,mesh,shader,material}` and re-export them from `core/framework/render/mod.rs`.
-- [ ] Add `RenderImageDescriptor`, `RenderImageColorSpace`, `RenderSamplerDescriptor`, `RenderImageFallbackKind`, and `RenderImageUsage`.
-- [ ] Add `RenderMeshDescriptor`, `RenderMeshTopology`, `RenderMeshBounds`, `RenderMeshKind`, and conversion from `ModelPrimitiveAsset`.
-- [ ] Add `RenderShaderDependency`, `RenderShaderVariantKey`, and `RenderShaderPipelineLayoutDescriptor`; runtime source selection must prefer non-empty `wgsl_source`, then `source` only for `ShaderSourceLanguage::Wgsl`.
-- [ ] Add `StandardMaterialDescriptor`, `ColorMaterialDescriptor`, `RenderMaterialDependencySet`, `RenderMaterialReadinessReport`, and `RenderMaterialValidationError`.
-- [ ] Extend `MaterialAsset` validation so `AlphaMode::Mask { cutoff }` rejects non-finite values and values outside `0.0..=1.0`.
-- [ ] Extend `ImportedAsset::direct_references()` or its equivalent dependency projection so material shader and texture references become normal asset dependencies.
-- [ ] Update material, shader, texture, and model import paths to populate the new descriptors and readiness diagnostics.
-- [ ] Update resource streamer material/shader/texture code so missing references return a readiness report and a declared fallback class.
-- [ ] Update docs listed in the file map with exact related code, implementation files, plan source, and tests.
+- [x] Convert `material.rs`, `texture.rs`, `model.rs`, and `shader.rs` into folder-backed modules without changing their public module names.
+- [x] Add neutral render contracts under `core/framework/render/{image,mesh,shader,material}` and re-export them from `core/framework/render/mod.rs`.
+- [x] Add `RenderImageDescriptor`, `RenderImageColorSpace`, `RenderSamplerDescriptor`, `RenderImageFallbackKind`, and `RenderImageUsage`.
+- [x] Add `RenderMeshDescriptor`, `RenderMeshTopology`, `RenderMeshBounds`, `RenderMeshKind`, and conversion from `ModelPrimitiveAsset`.
+- [x] Add `RenderShaderDependency`, `RenderShaderVariantKey`, and `RenderShaderPipelineLayoutDescriptor`; runtime source selection must prefer non-empty `wgsl_source`, then `source` only for `ShaderSourceLanguage::Wgsl`.
+- [x] Add `StandardMaterialDescriptor`, `ColorMaterialDescriptor`, `RenderMaterialDependencySet`, `RenderMaterialReadinessReport`, and `RenderMaterialValidationError`.
+- [x] Extend `MaterialAsset` validation so `AlphaMode::Mask { cutoff }` rejects non-finite values and values outside `0.0..=1.0`.
+- [x] Extend `ImportedAsset::direct_references()` or its equivalent dependency projection so material shader and texture references become normal asset dependencies.
+- [x] Update material, shader, texture, and model import paths to populate the new descriptors and readiness diagnostics.
+- [x] Update resource streamer material/shader/texture code so missing references return a readiness report and a declared fallback class.
+- [x] Update docs listed in the file map with exact related code, implementation files, plan source, and tests.
 
 **Testing stage:**
 
@@ -250,16 +250,16 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `core_pipeline` neutral contracts and phase sort keys under `zircon_runtime/src/core/framework/render/core_pipeline/`.
-- [ ] Extend `RenderViewExtract` with a `CorePipelineKind` selected from camera mode.
-- [ ] Extend `GeometryExtract` with phase-classification inputs while preserving mesh payload identity.
-- [ ] Extend `RenderPassStage` with product stages needed by Core2d/Core3d without overloading `Opaque` and `Transparent` for all domains.
-- [ ] Add phase queue builders for mesh draw classification using material alpha mode and pipeline kind.
-- [ ] Update `default_forward_plus()` and `default_deferred()` to declare Core3d phase mapping instead of standalone global default behavior.
-- [ ] Add Core2d pipeline asset declaration with sprite hooks disabled until M6 activates sprite payloads.
-- [ ] In `submit_frame_extract`, replace the two-lock checked-then-expect pattern with viewport generation validation. If the viewport is gone or generation changed, return a structured `RenderFrameworkError` instead of panicking.
-- [ ] Add a product submit test that fails if submit requires `RenderFrameExtract::to_scene_snapshot()` to draw the frame.
-- [ ] Update render architecture docs with the accepted Core2d/Core3d ownership rule.
+- [x] Add `core_pipeline` neutral contracts and phase sort keys under `zircon_runtime/src/core/framework/render/core_pipeline/`.
+- [x] Extend `RenderViewExtract` with a `CorePipelineKind` selected from camera mode.
+- [x] Extend `GeometryExtract` with phase-classification inputs while preserving mesh payload identity.
+- [x] Extend `RenderPassStage` with product stages needed by Core2d/Core3d without overloading `Opaque` and `Transparent` for all domains.
+- [x] Add phase queue builders for mesh draw classification using material alpha mode and pipeline kind.
+- [x] Update `default_forward_plus()` and `default_deferred()` to declare Core3d phase mapping instead of standalone global default behavior.
+- [x] Add Core2d pipeline asset declaration with sprite hooks disabled until M6 activates sprite payloads.
+- [x] In `submit_frame_extract`, replace the two-lock checked-then-expect pattern with viewport generation validation. If the viewport is gone or generation changed, return a structured `RenderFrameworkError` instead of panicking.
+- [x] Add a product submit test that fails if submit requires `RenderFrameExtract::to_scene_snapshot()` to draw the frame.
+- [x] Update render architecture docs with the accepted Core2d/Core3d ownership rule.
 
 **Testing stage:**
 

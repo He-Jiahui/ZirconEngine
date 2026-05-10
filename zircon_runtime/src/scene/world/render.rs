@@ -1,7 +1,7 @@
 use crate::core::framework::render::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DebugOverlayExtract,
-    FallbackSkyboxKind, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
-    PreviewEnvironmentExtract, RenderBloomSettings, RenderColorGradingSettings,
+    FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
+    PostProcessExtract, PreviewEnvironmentExtract, RenderBloomSettings, RenderColorGradingSettings,
     RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderMeshSnapshot,
     RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
     RenderSceneSnapshot, RenderSpotLightSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
@@ -132,7 +132,7 @@ impl World {
     ) -> RenderFrameExtract {
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
         let camera = self.build_render_camera(request);
-        let meshes = self.collect_render_meshes();
+        let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs();
         let directional_lights = self.collect_directional_lights();
         let point_lights = self.collect_point_lights();
         let spot_lights = self.collect_spot_lights();
@@ -140,14 +140,19 @@ impl World {
 
         RenderFrameExtract {
             world,
-            view: RenderViewExtract { camera },
-            geometry: GeometryExtract {
-                meshes,
-                virtual_geometry: Some(RenderVirtualGeometryExtract {
+            view: RenderViewExtract::from_camera(camera.clone()),
+            geometry: {
+                let mut geometry = GeometryExtract::from_meshes_and_phase_inputs(
+                    camera.core_pipeline_kind(),
+                    meshes,
+                    phase_inputs,
+                );
+                geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
                     debug: request.virtual_geometry_debug.unwrap_or_default(),
                     ..RenderVirtualGeometryExtract::default()
-                }),
-                virtual_geometry_debug: request.virtual_geometry_debug,
+                });
+                geometry.virtual_geometry_debug = request.virtual_geometry_debug;
+                geometry
             },
             animation_poses: Vec::new(),
             lighting: LightingExtract {
@@ -175,25 +180,48 @@ impl World {
         }
     }
 
-    fn collect_render_meshes(&self) -> Vec<RenderMeshSnapshot> {
-        let mut meshes = self
+    fn collect_render_meshes_and_phase_inputs(
+        &self,
+    ) -> (Vec<RenderMeshSnapshot>, Vec<GeometryPhaseInput>) {
+        let mut mesh_entries = self
             .mesh_renderers
             .iter()
             .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, mesh)| RenderMeshSnapshot {
-                node_id: *entity,
-                transform: self.world_transform(*entity).unwrap_or_default(),
-                model: mesh.model,
-                material: mesh.material,
-                tint: mesh.tint,
-                mobility: self.mobility(*entity).unwrap_or_default(),
-                render_layer_mask: self
-                    .render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
+            .map(|(entity, mesh)| {
+                let snapshot = RenderMeshSnapshot {
+                    node_id: *entity,
+                    transform: self.world_transform(*entity).unwrap_or_default(),
+                    model: mesh.model,
+                    material: mesh.material,
+                    tint: mesh.tint,
+                    mobility: self.mobility(*entity).unwrap_or_default(),
+                    render_layer_mask: self
+                        .render_layer_mask(*entity)
+                        .unwrap_or(default_render_layer_mask()),
+                };
+                (snapshot, mesh.material_alpha_mode)
             })
             .collect::<Vec<_>>();
-        meshes.sort_by_key(|mesh| mesh.node_id);
-        meshes
+        mesh_entries.sort_by_key(|(mesh, _)| mesh.node_id);
+
+        let meshes = mesh_entries
+            .iter()
+            .map(|(mesh, _)| mesh.clone())
+            .collect::<Vec<_>>();
+        let phase_inputs = mesh_entries
+            .iter()
+            .enumerate()
+            .map(|(mesh_index, (mesh, material_alpha_mode))| {
+                GeometryPhaseInput::new(
+                    mesh.node_id,
+                    mesh_index,
+                    *material_alpha_mode,
+                    mesh.transform.translation.z,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        (meshes, phase_inputs)
     }
 
     fn collect_directional_lights(&self) -> Vec<RenderDirectionalLightSnapshot> {

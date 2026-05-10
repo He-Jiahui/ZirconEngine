@@ -3,6 +3,7 @@ use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::TextureAsset;
 use std::sync::Arc;
 
+use crate::core::framework::render::RenderMaterialReadinessReport;
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
@@ -20,6 +21,14 @@ impl ResourceStreamer {
 
     pub(crate) fn material(&self, id: &ResourceId) -> Option<&MaterialRuntime> {
         self.materials.get(id).map(|prepared| &prepared.runtime)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn material_readiness_report(
+        &self,
+        id: &ResourceId,
+    ) -> Option<&RenderMaterialReadinessReport> {
+        self.material(id).map(|material| &material.readiness_report)
     }
 
     #[allow(dead_code)]
@@ -42,14 +51,35 @@ impl ResourceStreamer {
                             _ => None,
                         },
                         base_color_texture: self
-                            .resolve_texture_id(material.base_color_texture.as_ref()),
-                        normal_texture: self.resolve_texture_id(material.normal_texture.as_ref()),
+                            .resolve_texture_reference(
+                                "base_color_texture",
+                                material.base_color_texture.as_ref(),
+                            )
+                            .id(),
+                        normal_texture: self
+                            .resolve_texture_reference(
+                                "normal_texture",
+                                material.normal_texture.as_ref(),
+                            )
+                            .id(),
                         metallic_roughness_texture: self
-                            .resolve_texture_id(material.metallic_roughness_texture.as_ref()),
+                            .resolve_texture_reference(
+                                "metallic_roughness_texture",
+                                material.metallic_roughness_texture.as_ref(),
+                            )
+                            .id(),
                         occlusion_texture: self
-                            .resolve_texture_id(material.occlusion_texture.as_ref()),
+                            .resolve_texture_reference(
+                                "occlusion_texture",
+                                material.occlusion_texture.as_ref(),
+                            )
+                            .id(),
                         emissive_texture: self
-                            .resolve_texture_id(material.emissive_texture.as_ref()),
+                            .resolve_texture_reference(
+                                "emissive_texture",
+                                material.emissive_texture.as_ref(),
+                            )
+                            .id(),
                     })
             })
     }

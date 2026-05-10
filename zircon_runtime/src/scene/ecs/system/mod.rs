@@ -1,13 +1,19 @@
+mod events;
 mod local;
+mod param_set;
 mod query;
+mod removed_components;
 mod res;
 mod system_param;
 mod system_param_access;
 mod system_param_error;
 mod system_state;
 
+pub use events::{EventReader, EventReaderParam, EventWriter, EventWriterParam};
 pub use local::{Local, LocalParam};
+pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;
+pub use removed_components::{RemovedComponents, RemovedComponentsParam};
 pub use res::{Res, ResMut, ResMutParam, ResParam};
 pub use system_param::SystemParam;
 pub use system_param_access::SystemParamAccess;

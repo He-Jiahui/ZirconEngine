@@ -241,7 +241,9 @@ where
 
 fn editor_event_source(source: EditorOperationSource) -> EditorEventSource {
     match source {
-        EditorOperationSource::Menu | EditorOperationSource::UiBinding => EditorEventSource::Slint,
+        EditorOperationSource::Menu | EditorOperationSource::UiBinding => {
+            EditorEventSource::RetainedHost
+        }
         EditorOperationSource::Remote => EditorEventSource::Headless,
         EditorOperationSource::Cli => EditorEventSource::Cli,
     }

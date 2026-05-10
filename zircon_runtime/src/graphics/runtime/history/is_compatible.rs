@@ -3,7 +3,7 @@ use crate::core::math::UVec2;
 
 use crate::FrameHistoryBinding;
 
-use super::viewport_frame_history::ViewportFrameHistory;
+use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 
 impl ViewportFrameHistory {
     pub(crate) fn is_compatible(
@@ -11,9 +11,11 @@ impl ViewportFrameHistory {
         viewport_size: UVec2,
         pipeline: RenderPipelineHandle,
         bindings: &[FrameHistoryBinding],
+        validation_key: &FrameHistoryValidationKey,
     ) -> bool {
         self.viewport_size == viewport_size
             && self.pipeline == pipeline
             && self.bindings == bindings
+            && self.validation_key == *validation_key
     }
 }

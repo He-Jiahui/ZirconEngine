@@ -5,9 +5,11 @@ use zircon_runtime_interface::ui::layout::UiFrame;
 #[cfg(test)]
 use crate::core::editor_event::EditorEventJournal;
 #[cfg(test)]
-use crate::ui::slint_host::tab_drag::ResolvedHostTabDropRoute;
+use crate::ui::retained_host::tab_drag::ResolvedHostTabDropRoute;
 
-use super::{SlintUiHostModel, SlintUiHostProjection, SlintUiNodeProjection, SlintUiProjection};
+use super::{
+    RetainedUiHostModel, RetainedUiHostProjection, RetainedUiNodeProjection, RetainedUiProjection,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct EditorUiCompatibilitySnapshot {
@@ -16,7 +18,7 @@ pub struct EditorUiCompatibilitySnapshot {
     pub binding_ids: Vec<String>,
     pub host_nodes: Vec<String>,
     pub surface_nodes: Vec<String>,
-    pub slint_nodes: Vec<String>,
+    pub retained_nodes: Vec<String>,
     pub route_bindings: Vec<String>,
     pub route_key_entries: Vec<String>,
     pub frame_entries: Vec<String>,
@@ -33,7 +35,7 @@ pub struct EditorUiCompatibilityHarness;
 
 impl EditorUiCompatibilityHarness {
     pub fn capture_projection_snapshot(
-        projection: &SlintUiProjection,
+        projection: &RetainedUiProjection,
     ) -> EditorUiCompatibilitySnapshot {
         let mut snapshot = EditorUiCompatibilitySnapshot {
             binding_ids: projection
@@ -48,7 +50,7 @@ impl EditorUiCompatibilityHarness {
     }
 
     pub fn capture_host_model_snapshot(
-        host_model: &SlintUiHostModel,
+        host_model: &RetainedUiHostModel,
     ) -> EditorUiCompatibilitySnapshot {
         let mut snapshot = EditorUiCompatibilitySnapshot::default();
         for node in &host_model.nodes {
@@ -130,8 +132,8 @@ impl EditorUiCompatibilityHarness {
         snapshot
     }
 
-    pub fn capture_slint_host_projection_snapshot(
-        projection: &SlintUiHostProjection,
+    pub fn capture_retained_host_projection_snapshot(
+        projection: &RetainedUiHostProjection,
     ) -> EditorUiCompatibilitySnapshot {
         let mut snapshot = EditorUiCompatibilitySnapshot::default();
         for node in &projection.nodes {
@@ -139,7 +141,7 @@ impl EditorUiCompatibilityHarness {
             if let Some(control_id) = &node.control_id {
                 snapshot.control_ids.push(control_id.clone());
             }
-            snapshot.slint_nodes.push(format!(
+            snapshot.retained_nodes.push(format!(
                 "{}|{}|{}",
                 node.node_id,
                 node.kind.as_str(),
@@ -266,7 +268,7 @@ impl EditorUiCompatibilityHarness {
             .route_result_entries
             .push(format!("label={}", route.target_label));
         match &route.target {
-            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::Attach(drop) => {
+            crate::ui::retained_host::tab_drag::ResolvedHostTabDropTarget::Attach(drop) => {
                 snapshot
                     .route_result_entries
                     .push("target=attach".to_string());
@@ -277,7 +279,7 @@ impl EditorUiCompatibilityHarness {
                     .route_result_entries
                     .push(format!("anchor={:?}", drop.anchor));
             }
-            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::DetachToWindow {
+            crate::ui::retained_host::tab_drag::ResolvedHostTabDropTarget::DetachToWindow {
                 new_window,
             } => {
                 snapshot
@@ -287,7 +289,7 @@ impl EditorUiCompatibilityHarness {
                     .route_result_entries
                     .push(format!("new_window={}", new_window.0));
             }
-            crate::ui::slint_host::tab_drag::ResolvedHostTabDropTarget::Split {
+            crate::ui::retained_host::tab_drag::ResolvedHostTabDropTarget::Split {
                 workspace,
                 path,
                 axis,
@@ -313,7 +315,7 @@ impl EditorUiCompatibilityHarness {
 }
 
 fn collect_node_snapshot(
-    node: &SlintUiNodeProjection,
+    node: &RetainedUiNodeProjection,
     snapshot: &mut EditorUiCompatibilitySnapshot,
 ) {
     snapshot.components.push(node.component.clone());

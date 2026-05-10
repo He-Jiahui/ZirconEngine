@@ -10,112 +10,44 @@ display_name = "Console"
 styles = ["res://ui/theme/editor_base.ui.toml"]
 
 [root]
-node_id = "console_root"
+node = "console_root"
+
+[nodes.top_space]
+kind = "native"
+type = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.left_space]
+kind = "native"
+type = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+
+[nodes.text_panel]
+kind = "native"
+type = "Space"
+control_id = "ConsoleTextPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_space]
+kind = "native"
+type = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_row]
+kind = "native"
+type = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ child = "left_space" }, { child = "text_panel" }, { child = "right_space" }]
+
+[nodes.bottom_space]
+kind = "native"
+type = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.console_root]
 kind = "native"
 type = "VerticalBox"
 control_id = "ConsoleRoot"
 classes = ["editor-shell"]
-
-[root.layout.container]
-kind = "VerticalBox"
-gap = 0.0
-
-[root.layout.width]
-stretch = "Stretch"
-
-[root.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "top_space"
-kind = "native"
-type = "Space"
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 8.0
-preferred = 8.0
-max = 8.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "content_row"
-kind = "native"
-type = "HorizontalBox"
-
-[root.children.node.layout.container]
-kind = "HorizontalBox"
-gap = 0.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-stretch = "Stretch"
-
-[[root.children.node.children]]
-[root.children.node.children.node]
-node_id = "left_space"
-kind = "native"
-type = "Space"
-
-[root.children.node.children.node.layout.width]
-min = 10.0
-preferred = 10.0
-max = 10.0
-stretch = "Fixed"
-
-[root.children.node.children.node.layout.height]
-stretch = "Stretch"
-
-[root.children.node.children.node.layout.scroll]
-vertical = true
-
-[[root.children.node.children]]
-[root.children.node.children.node]
-node_id = "text_panel"
-kind = "native"
-type = "Space"
-control_id = "ConsoleTextPanel"
-
-[root.children.node.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.children.node.layout.height]
-stretch = "Stretch"
-
-[[root.children.node.children]]
-[root.children.node.children.node]
-node_id = "right_space"
-kind = "native"
-type = "Space"
-
-[root.children.node.children.node.layout.width]
-min = 10.0
-preferred = 10.0
-max = 10.0
-stretch = "Fixed"
-
-[root.children.node.children.node.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "bottom_space"
-kind = "native"
-type = "Space"
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 8.0
-preferred = 8.0
-max = 8.0
-stretch = "Fixed"
-
-[components]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ child = "top_space" }, { child = "content_row" }, { child = "bottom_space" }]

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::framework::scene::EntityId;
 
-use super::RenderVirtualGeometryDebugState;
+use super::{CorePipelineKind, RenderVirtualGeometryDebugState};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ViewportCameraSnapshot {
@@ -20,12 +20,25 @@ impl ViewportCameraSnapshot {
     pub fn apply_viewport_size(&mut self, viewport_size: UVec2) {
         self.aspect_ratio = aspect_ratio_from_viewport_size(viewport_size);
     }
+
+    pub fn core_pipeline_kind(&self) -> CorePipelineKind {
+        self.projection_mode.core_pipeline_kind()
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ProjectionMode {
     Perspective,
     Orthographic,
+}
+
+impl ProjectionMode {
+    pub const fn core_pipeline_kind(self) -> CorePipelineKind {
+        match self {
+            Self::Orthographic => CorePipelineKind::Core2d,
+            Self::Perspective => CorePipelineKind::Core3d,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]

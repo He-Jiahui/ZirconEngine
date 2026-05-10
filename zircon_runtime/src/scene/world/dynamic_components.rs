@@ -2,7 +2,8 @@ use serde_json::{Map, Number, Value};
 
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::plugin::ComponentTypeDescriptor;
-use crate::scene::EntityId;
+use crate::scene::{reflect::RuntimeTypeRegistration, EntityId};
+use zircon_runtime_interface::reflect::ReflectError;
 
 use super::World;
 
@@ -18,7 +19,25 @@ impl World {
         &mut self,
         descriptor: ComponentTypeDescriptor,
     ) -> Result<(), String> {
-        self.component_types.register(descriptor)
+        let registration =
+            crate::scene::reflect::registration_from_component_descriptor(&descriptor)
+                .map_err(|error| error.to_string())?;
+        if self.type_registry.contains(&descriptor.type_id) {
+            return Err(ReflectError::DuplicateTypePath {
+                type_path: descriptor.type_id.clone(),
+            }
+            .to_string());
+        }
+        self.component_types.register(descriptor.clone())?;
+        self.type_registry
+            .register(RuntimeTypeRegistration {
+                registration,
+                component: Some(
+                    crate::scene::reflect::reflect_component_for_dynamic_descriptor(&descriptor),
+                ),
+                resource: None,
+            })
+            .map_err(|error| error.to_string())
     }
 
     pub fn component_type_descriptor(&self, type_id: &str) -> Option<&ComponentTypeDescriptor> {

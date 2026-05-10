@@ -17,6 +17,9 @@ pub(super) fn apply_disabled_profile_features(
     if profile.is_some_and(|profile| !profile.features.history_resolve) {
         options = options.with_feature_disabled(BuiltinRenderFeature::HistoryResolve);
     }
+    if profile.is_some_and(|profile| profile.features.history_resolve) {
+        options = options.with_feature_enabled(BuiltinRenderFeature::HistoryResolve);
+    }
     if profile.is_some_and(|profile| !profile.features.bloom) {
         options = options.with_feature_disabled(BuiltinRenderFeature::Bloom);
     }

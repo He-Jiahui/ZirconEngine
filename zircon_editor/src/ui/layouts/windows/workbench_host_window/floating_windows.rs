@@ -2,8 +2,10 @@ use super::frame_rect;
 use super::pane_projection::{blank_pane, find_tab_snapshot, pane_from_tab};
 use super::*;
 use crate::ui::layouts::common::model_rc;
-use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
-use crate::ui::slint_host::tab_drag::{floating_window_edge_group_key, floating_window_group_key};
+use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::retained_host::tab_drag::{
+    floating_window_edge_group_key, floating_window_group_key,
+};
 use crate::ui::widgets::common::document_tab_data;
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 

@@ -40,7 +40,7 @@ where
         let entities = world.entity_ids_for_query().to_vec();
         for entity in entities {
             if F::matches(world, entity, self.ticks) && D::matches_data(world, entity) {
-                if let Some(item) = D::fetch_mut(world, entity) {
+                if let Some(item) = D::fetch_mut_with_ticks(world, entity, self.ticks) {
                     f(item);
                 }
             }

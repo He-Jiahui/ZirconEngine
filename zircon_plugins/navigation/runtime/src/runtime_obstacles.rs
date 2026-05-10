@@ -21,9 +21,10 @@ pub(crate) struct RuntimeObstacle {
 }
 
 pub(crate) fn collect_runtime_obstacles(world: &World) -> Vec<RuntimeObstacle> {
+    // Obstacle carving and avoidance must observe direct dynamic component writes immediately.
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter_map(|node| {
             let value = world.dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)?;
             let obstacle = parse_component::<NavMeshObstacleDescriptor>(value);

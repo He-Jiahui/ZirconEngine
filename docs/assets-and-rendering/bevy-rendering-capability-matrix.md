@@ -26,10 +26,10 @@ related_code:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/scene/components/scene.rs
-  - zircon_runtime/src/asset/assets/texture.rs
-  - zircon_runtime/src/asset/assets/model.rs
-  - zircon_runtime/src/asset/assets/shader.rs
-  - zircon_runtime/src/asset/assets/material.rs
+  - zircon_runtime/src/asset/assets/texture/mod.rs
+  - zircon_runtime/src/asset/assets/model/mod.rs
+  - zircon_runtime/src/asset/assets/shader/mod.rs
+  - zircon_runtime/src/asset/assets/material/mod.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/graphics/pipeline/declarations/render_pass_stage.rs
@@ -46,6 +46,10 @@ implementation_files:
   - docs/zircon_runtime/core/framework/render/profile.md
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/mod.rs
+  - zircon_runtime/src/core/framework/render/image/mod.rs
+  - zircon_runtime/src/core/framework/render/mesh/mod.rs
+  - zircon_runtime/src/core/framework/render/shader/mod.rs
+  - zircon_runtime/src/core/framework/render/material/mod.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/engine_entry.rs
@@ -54,10 +58,14 @@ plan_sources:
   - user: 2026-05-08 implement ZirconEngine Bevy-Level Rendering Completion Plan M0
   - user: 2026-05-08 continue ZirconEngine Bevy-Level Rendering Completion Plan M1
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
+  - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - "M0 docs acceptance only: no runtime tests required by plan"
   - cargo test -p zircon_runtime render_profile --locked
   - cargo check -p zircon_app --locked --all-targets
+  - cargo test -p zircon_runtime --locked render_product_assets
+  - cargo test -p zircon_runtime --locked material
+  - cargo check -p zircon_runtime --lib --locked
 doc_type: milestone-detail
 ---
 
@@ -99,10 +107,10 @@ Advanced Virtual Geometry and Hybrid GI remain explicit advanced capability/prof
 | 3D pipeline and phases | `dev/bevy/crates/bevy_core_pipeline/src/core_3d/mod.rs:94-157` registers `Core3d`, prepass, deferred, opaque, alpha mask, and transparent phases. | `default_forward_plus.rs`, `default_deferred.rs`, `render_pass_stage.rs`, and compiled scene renderer paths. | `render::core_pipeline` and `render::pbr`. | Current pipelines are global renderer assets, not camera-selected `Core3d` schedules. |
 | Camera components | `dev/bevy/crates/bevy_camera/src/components.rs:8-89` defines `Camera2d`, `Camera3d`, and `Hdr`. | `zircon_runtime/src/core/framework/render/camera.rs:8-92`; `zircon_runtime/src/scene/components/scene.rs:99-113`. | `render::camera`. | Current `CameraComponent` only has FOV and near/far values. |
 | Visibility layers | `dev/bevy/crates/bevy_camera/src/visibility/render_layers.rs:10-20`, `45-50`, and `115-135` define default layer 0, empty invisible, and intersection semantics. | `zircon_runtime/src/scene/components/scene.rs:87-94` and `default_render_layer_mask()` at `scene.rs:419-421`; render masks also flow through render extract DTOs. | `render::camera` or `render::visibility` under framework render. | Current `RenderLayerMask(u32)` is not a Bevy-style set and does not encode empty-layer invisibility as a first-class contract. |
-| Image / texture | Bevy `common_api` includes `bevy_image` at `dev/bevy/Cargo.toml:204`. | `zircon_runtime/src/asset/assets/texture.rs`; runtime GPU texture resources under `zircon_runtime/src/graphics/scene/resources/*`. | `render::image` plus asset-side `ImageAsset`. | Missing sampler, color space, GPU usage, format metadata, and fallback opaque/transparent image contracts. |
-| Mesh / model | Bevy `common_api` includes `bevy_mesh` at `dev/bevy/Cargo.toml:205`. | `zircon_runtime/src/asset/assets/model.rs`; `MeshRenderer` in `zircon_runtime/src/scene/components/scene.rs:115-142`. | `render::mesh`. | Current product surface is model/primitive oriented, not explicit `MeshAsset`, `Mesh2d`, or `Mesh3d`. |
-| Shader | Bevy `common_api` includes `bevy_shader` at `dev/bevy/Cargo.toml:206`. | `zircon_runtime/src/asset/assets/shader.rs`; `zircon_runtime/src/graphics/shader/mod.rs`. | `render::shader`. | Shader variants exist minimally, but embedded/library dependencies, bind-group layouts, and full pipeline descriptors are not explicit. |
-| Material and PBR baseline | Bevy `common_api` includes `bevy_material` at `dev/bevy/Cargo.toml:207`; `StandardMaterial` starts at `dev/bevy/crates/bevy_pbr/src/pbr_material.rs:26`. | `zircon_runtime/src/asset/assets/material.rs:5-28`; `zircon_runtime/src/graphics/material/mod.rs`. | `render::material` and `render::pbr`. | `MaterialAsset` is close to a baseline PBR asset, but `Material`, `StandardMaterial`, `ColorMaterial`, `MeshMaterial2d`, and `MeshMaterial3d` contracts are not first-class. |
+| Image / texture | Bevy `common_api` includes `bevy_image` at `dev/bevy/Cargo.toml:204`. | `zircon_runtime/src/asset/assets/texture/mod.rs`; runtime GPU texture resources under `zircon_runtime/src/graphics/scene/resources/*`. | `render::image` plus asset-side texture projection. | M3A landed `RenderImageDescriptor` with sampler, color space, usage, format, mip/layer counts, and fallback class. Concrete texture fallback stats remain later renderer work. |
+| Mesh / model | Bevy `common_api` includes `bevy_mesh` at `dev/bevy/Cargo.toml:205`. | `zircon_runtime/src/asset/assets/model/mod.rs`; `MeshRenderer` in `zircon_runtime/src/scene/components/scene.rs:115-142`. | `render::mesh`. | M3A landed `RenderMeshDescriptor` with topology, bounds, kind, 2D/3D suitability, counts, and VG payload presence. First-class runtime `Mesh2d`/`Mesh3d` scene components remain later work. |
+| Shader | Bevy `common_api` includes `bevy_shader` at `dev/bevy/Cargo.toml:206`. | `zircon_runtime/src/asset/assets/shader/mod.rs`; `zircon_runtime/src/graphics/shader/mod.rs`. | `render::shader`. | M3A landed runtime WGSL selection, entry-point descriptors, variant keys, explicit serialized shader dependencies, and serialized pipeline layout descriptors with bind groups/bindings. Automatic source import parsing and deep bind-group reflection remain future work. |
+| Material and PBR baseline | Bevy `common_api` includes `bevy_material` at `dev/bevy/Cargo.toml:207`; `StandardMaterial` starts at `dev/bevy/crates/bevy_pbr/src/pbr_material.rs:26`. | `zircon_runtime/src/asset/assets/material/mod.rs`; `zircon_runtime/src/graphics/material/mod.rs`. | `render::material` and `render::pbr`. | M3A landed `StandardMaterialDescriptor`, `ColorMaterialDescriptor`, dependency extraction, alpha-mask validation, readiness reports, and fallback policy. M5A still owns concrete PBR renderer integration. |
 | Lights | `dev/bevy/crates/bevy_light/src/lib.rs:159-245` wires light visibility, clusters, shadow maps, and directional/point/spot/rect light visibility. | `DirectionalLight`, `PointLight`, and `SpotLight` in `zircon_runtime/src/scene/components/scene.rs:301-355`; render light snapshots in `scene_extract.rs`. | `render::light` and `render::pbr`. | Missing rect/ambient lights, physical defaults, probes, shadow config, fog, and volumetric contracts. |
 | Sprite | `dev/bevy/crates/bevy_sprite_render/src/lib.rs:52-125` wires sprite extraction, image bind groups, and 2D queueing. | No first-class runtime sprite product surface; only viewport overlay icon sprite internals exist. | `render::sprite`. | M6 must add sprite contracts, bounds, atlas/slice/flip/anchor handling, and 2D queueing. |
 | Runtime UI render | `dev/bevy/crates/bevy_ui_render/src/lib.rs:192-270` registers UI extraction and inserts `ui_pass` after post-process and before upscaling for Core2d/Core3d. | `zircon_runtime/src/ui/*`, `zircon_runtime_interface/src/ui/surface/*`, `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs`. | `render::ui_render` plus existing runtime UI contracts. | UI render exists but is not yet profile-selected, per-camera targeted, or explicitly ordered relative to Bevy-style core schedules. |
@@ -136,3 +144,7 @@ This document maps every Bevy feature collection required by M0 to a Zircon owne
 ## M1 Acceptance Evidence
 
 M1 product-profile validation is now recorded in the module-detail doc for [Runtime Render Profile Contracts](../zircon_runtime/core/framework/render/profile.md). The fresh 2026-05-08 gates were `cargo test -p zircon_runtime render_profile --locked` and `cargo check -p zircon_app --locked --all-targets`; both completed successfully with warning-only compile output outside the focused render-profile assertions.
+
+## M3A Asset Product Contract Update
+
+M3A gives the profile features for image, mesh, shader, and material a real asset-readiness surface. The owning docs are [Render Assets](../zircon_runtime/asset/render-assets.md) and [Render Material Contracts](../zircon_runtime/core/framework/render/material.md). Renderer phase scheduling, sprite rendering, anti-aliasing, Solari, and deep VG/HGI integration remain later milestones.

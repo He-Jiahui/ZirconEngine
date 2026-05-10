@@ -17,6 +17,7 @@ impl ViewportPointerRoute {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_target(target: HitTarget) -> Self {
         match target {
             HitTarget::HandleAxis { owner, axis } => Self::HandleAxis {
@@ -37,6 +38,7 @@ const fn picking_axis(axis: GizmoAxis) -> PickingAxis {
     }
 }
 
+#[cfg(test)]
 const fn gizmo_axis(axis: PickingAxis) -> GizmoAxis {
     match axis {
         PickingAxis::X => GizmoAxis::X,

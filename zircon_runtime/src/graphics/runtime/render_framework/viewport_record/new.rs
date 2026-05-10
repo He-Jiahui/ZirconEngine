@@ -10,11 +10,13 @@ impl ViewportRecord {
             descriptor,
             pipeline: None,
             quality_profile: None,
+            generation: 0,
             compiled_pipeline: None,
             hybrid_gi_runtime: None,
             virtual_geometry_runtime: None,
             last_capture: None,
             history: None,
+            surface: None,
         }
     }
 }

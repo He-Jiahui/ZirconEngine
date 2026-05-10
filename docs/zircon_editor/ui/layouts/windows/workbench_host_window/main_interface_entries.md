@@ -5,28 +5,28 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
-  - zircon_editor/src/ui/slint_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/slint_host/tab_drag/host_resolution.rs
+  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
   - zircon_editor/src/ui/reflection.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer/dispatcher.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer/pointer_bridge.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer/visual_screenshot.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/drawer_toggle.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/floating_window_focus.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/drawer_toggle.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/floating_window_focus.rs
   - zircon_editor/src/tests/ui/project_overview/bootstrap_assets.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
@@ -48,17 +48,17 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_layout.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/popup_layout.rs
-  - zircon_editor/src/ui/slint_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
-  - zircon_editor/src/ui/slint_host/shell_pointer/bridge.rs
-  - zircon_editor/src/ui/slint_host/host_contract/surface_hit_test/template_node.rs
-  - zircon_editor/src/ui/slint_host/tab_drag/host_resolution.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/popup_layout.rs
+  - zircon_editor/src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs
+  - zircon_editor/src/ui/retained_host/shell_pointer/bridge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node.rs
+  - zircon_editor/src/ui/retained_host/tab_drag/host_resolution.rs
   - zircon_editor/src/ui/reflection.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/workbench/autolayout/geometry/region_frames.rs
@@ -105,7 +105,7 @@ doc_type: module-detail
 
 ## Purpose
 
-M3.1a fixes the ownership map for the editor main interface before more GUI behavior is changed. The workbench still presents through the native/Slint host, but the main visible chrome must be backed by `.ui.toml` template assets and shared surface projection. The host may translate platform events, paint template nodes, and copy data into boundary DTOs; it must not become a second source of menu, drawer, toolbar, document pane, or floating-panel geometry.
+M3.1a fixes the ownership map for the editor main interface before more GUI behavior is changed. The workbench now presents through the Rust-owned retained host, and the main visible chrome must be backed by `.ui.toml` template assets and shared surface projection. The host may translate platform events, paint template nodes, and copy data into boundary DTOs; it must not become a second source of menu, drawer, toolbar, document pane, or floating-panel geometry.
 
 This document records the current accepted entry map for the M3 host cutover work.
 
@@ -152,7 +152,7 @@ M4 menu overflow keeps this same pointer boundary. `menu_pointer/popup_layout.rs
 ## Edge Cases and Constraints
 
 - Root workbench chrome assets under `assets/ui/editor/` are the canonical chrome projection inputs. Host-folder duplicates may remain as migration artifacts, but `chrome_template_projection.rs` must point to the root chrome assets until M8 cleanup removes duplicate sources.
-- Host `.ui.toml` assets under `assets/ui/editor/host/` are allowed for native window shell, drawer source, floating source, toolbar, and pane body projection. They are still template assets, not `.slint` business UI files.
+- Host `.ui.toml` assets under `assets/ui/editor/host/` are allowed for native window shell, drawer source, floating source, toolbar, and pane body projection. They are retained template assets, not generated UI business source files.
 - The host must not introduce menu, drawer, floating-window, document-pane, or toolbar hit tables. Hit frames should come from template node frames or shared surface hit data.
 - Fallback chrome nodes must preserve clickable frames and icon metadata. They are guardrails for a failed template load, not a parallel design system.
 
@@ -160,7 +160,7 @@ M4 menu overflow keeps this same pointer boundary. `menu_pointer/popup_layout.rs
 
 `workbench_main_interface_entries_are_template_backed_and_reflected` statically verifies the M3.1a entry map. It checks that the canonical chrome and host template assets exist, that chrome projection references the root chrome assets and shared `build_view_template_nodes(...)` path, that shell/pane projection owns the expected single DTO entry points, and that `reflection.rs` exposes the shared workbench tree.
 
-`workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables` verifies M3.1b. It scans the active editor host tree for deleted business `.slint` files and forbidden hit-table names, then checks that the menu, activity rail, drawer header, document tab, viewport toolbar, shell drag/resize and template-node hit paths all keep `UiSurface` / `UiPointerDispatcher` / `UiSurfaceFrame` ownership.
+`workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables` verifies M3.1b. It scans the active editor host tree for deleted generated UI business files and forbidden hit-table names, then checks that the menu, activity rail, drawer header, document tab, viewport toolbar, shell drag/resize and template-node hit paths all keep `UiSurface` / `UiPointerDispatcher` / `UiSurfaceFrame` ownership.
 
 M3.2 now has focused interaction gates:
 

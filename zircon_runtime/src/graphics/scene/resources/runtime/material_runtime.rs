@@ -1,3 +1,4 @@
+use crate::core::framework::render::RenderMaterialReadinessReport;
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
@@ -36,6 +37,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) occlusion_texture: Option<ResourceId>,
     pub(crate) emissive_texture: Option<ResourceId>,
     pub(crate) pipeline_key: PipelineKey,
+    pub(crate) readiness_report: RenderMaterialReadinessReport,
 }
 
 impl MaterialRuntime {

@@ -267,7 +267,10 @@ pub(super) fn find_tab_snapshot<'a>(
     None
 }
 
-fn shared_string_list(items: Vec<String>) -> slint::ModelRc<slint::SharedString> {
+fn shared_string_list(
+    items: Vec<String>,
+) -> crate::ui::retained_host::primitives::ModelRc<crate::ui::retained_host::primitives::SharedString>
+{
     model_rc(items.into_iter().map(SharedString::from).collect())
 }
 
@@ -559,20 +562,15 @@ fn inspector_pane_data(chrome: &EditorChromeSnapshot, info: &str) -> InspectorPa
                     .map(|component| super::InspectorPluginComponentViewData {
                         component_id: component.component_id.clone(),
                         display_name: component.display_name.clone(),
-                        plugin_id: component.plugin_id.clone(),
                         drawer_available: component.drawer_available,
                         drawer_ui_document: component.drawer_ui_document.clone(),
-                        drawer_controller: component.drawer_controller.clone(),
                         drawer_template_id: component.drawer_template_id.clone(),
-                        drawer_data_root: component.drawer_data_root.clone(),
-                        drawer_bindings: component.drawer_bindings.clone(),
                         diagnostic: component.diagnostic.clone(),
                         properties: component
                             .properties
                             .iter()
                             .map(|property| super::InspectorPluginComponentPropertyViewData {
                                 field_id: property.field_id.clone(),
-                                name: property.name.clone(),
                                 label: property.label.clone(),
                                 value: property.value.clone(),
                                 value_kind: property.value_kind.clone(),

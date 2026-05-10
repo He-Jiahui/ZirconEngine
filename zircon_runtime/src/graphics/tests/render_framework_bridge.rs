@@ -609,7 +609,7 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
             Vec::new(),
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::GBuffer,
+                RenderPassStage::Deferred,
                 "bad-gated-registration-pass",
                 QueueLane::Graphics,
             )
@@ -623,7 +623,7 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
         RenderFrameworkError::GraphCompileFailure {
             pipeline: 80,
             message:
-                "feature descriptor `bad-gated-descriptor` pass `bad-gated-registration-pass` targets undeclared stage `GBuffer`"
+                "feature descriptor `bad-gated-descriptor` pass `bad-gated-registration-pass` targets undeclared stage `Deferred`"
                     .to_string(),
         }
     );
@@ -878,7 +878,7 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert!(stats
         .last_effective_features
         .contains(&"hybrid_gi".to_string()));
-    assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 4);
+    assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 5);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
     assert_eq!(stats.last_virtual_geometry_visible_cluster_count, 2);
     assert_eq!(stats.last_virtual_geometry_requested_page_count, 1);

@@ -64,6 +64,7 @@ impl UiAssetPreviewHost {
         &self.surface
     }
 
+    #[cfg(test)]
     pub(crate) fn surface_mut(&mut self) -> &mut UiSurface {
         &mut self.surface
     }

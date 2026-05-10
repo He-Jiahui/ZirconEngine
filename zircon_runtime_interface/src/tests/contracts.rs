@@ -61,14 +61,15 @@ use crate::{
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeSessionHandle,
-    ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportMetricsV1,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
-    ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
-    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
-    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeNativeSurfaceTargetV1,
+    ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+    ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
+    ZR_RUNTIME_FETCH_FLAG_STREAMING_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
+    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
 };
 
 fn sample_ui_input_metadata() -> UiInputEventMetadata {
@@ -474,8 +475,40 @@ fn runtime_api_table_records_size_and_version() {
 
     assert_eq!(api.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV1>());
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV1>(), 80);
     assert!(api.create_session.is_none());
     assert!(api.capture_frame.is_none());
+    assert!(api.bind_viewport_surface.is_none());
+    assert!(api.unbind_viewport_surface.is_none());
+    assert!(api.present_viewport.is_none());
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV1, bind_viewport_surface),
+        core::mem::offset_of!(ZrRuntimeApiV1, capture_accessibility_tree)
+            + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV1>>()
+    );
+}
+
+#[test]
+fn runtime_native_surface_target_constructors_preserve_handles() {
+    let none = ZrRuntimeNativeSurfaceTargetV1::none(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let win32 =
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 0x1234, 0x5678);
+    let request = crate::ZrRuntimeBindViewportSurfaceRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(3),
+        ZrRuntimeViewportSizeV1::new(800, 600),
+        win32,
+    );
+
+    assert_eq!(none.kind, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1);
+    assert_eq!(none.window_handle, 0);
+    assert_eq!(none.display_handle, 0);
+    assert_eq!(win32.kind, ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1);
+    assert_eq!(win32.window_handle, 0x1234);
+    assert_eq!(win32.display_handle, 0x5678);
+    assert_eq!(request.viewport.raw(), 3);
+    assert_eq!(request.size.width, 800);
+    assert_eq!(request.target, win32);
 }
 
 #[test]
@@ -1381,6 +1414,8 @@ fn ui_component_template_policy_localization_and_package_contracts_construct() {
                 root_document: UiAssetFingerprint::from_bytes(b"root"),
                 widget_imports: Default::default(),
                 style_imports: Default::default(),
+                declared_widget_imports_revision: UiAssetFingerprint::default(),
+                declared_style_imports_revision: UiAssetFingerprint::default(),
                 descriptor_registry_revision: 1,
                 component_contract_revision: UiAssetFingerprint::from_bytes(b"component"),
                 resource_dependencies_revision: UiAssetFingerprint::from_bytes(b"resource"),

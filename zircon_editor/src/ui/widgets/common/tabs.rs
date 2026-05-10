@@ -1,4 +1,4 @@
-use slint::SharedString;
+use crate::ui::retained_host::primitives::SharedString;
 
 use crate::ui::layouts::windows::workbench_host_window::TabData;
 use crate::ui::workbench::layout::ActivityDrawerSlot;

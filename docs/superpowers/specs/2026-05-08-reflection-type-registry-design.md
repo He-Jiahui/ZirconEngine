@@ -21,6 +21,9 @@ implementation_files:
   - zircon_runtime_interface/src/reflect/type_path.rs
   - zircon_runtime_interface/src/reflect/type_kind.rs
   - zircon_runtime_interface/src/reflect/editor_hint.rs
+  - zircon_runtime_interface/src/reflect/object_address.rs
+  - zircon_runtime_interface/src/reflect/schema.rs
+  - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/field_info.rs
   - zircon_runtime_interface/src/reflect/type_info.rs
   - zircon_runtime_interface/src/reflect/type_registration.rs
@@ -33,6 +36,7 @@ implementation_files:
   - zircon_runtime/src/scene/reflect/reflect_resource.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/world_api.rs
   - zircon_runtime/src/scene/reflect/fixed/mod.rs
   - zircon_runtime/src/scene/reflect/fixed/name.rs
@@ -63,7 +67,7 @@ Build the M8 Reflection And Type Registry foundation from the Bevy-grade ECS roa
 
 ## Approved Direction
 
-Use the full staged design. The first implementation slice is manual registration, runtime registry, field schema, fixed component adapters, dynamic JSON component adapters, and one resource adapter. Proc macros, full dynamic scene persistence, editor-wide inspector replacement, and Remote/BRP endpoints are staged follow-up milestones that depend on the same contracts.
+Use the full staged design. The first implementation slice is manual registration, runtime registry, field schema, shared object addressing, schema/read/write DTOs, a unified `WorldReflection` facade, fixed component adapters, dynamic JSON component adapters, one resource adapter, and proof that editor and Remote/BRP will share those DTOs. Proc macros, full dynamic scene persistence, editor-wide inspector replacement, and concrete Remote/BRP transport endpoints are staged follow-up milestones that depend on the same contracts.
 
 This design does not import `bevy_ecs` or `bevy_reflect`. Bevy is used as precedent for the split between neutral type metadata and ECS-specific adapters. Zircon owns the runtime model and keeps stable external `EntityId = u64`.
 
@@ -191,6 +195,15 @@ Ordered field schema:
 - `editor_hint`: `ReflectEditorHint`.
 - `documentation`: optional doc string.
 
+### `ReflectObjectAddress`
+
+Stable address for a reflected object:
+
+- `Component { entity: u64, type_path: String }`: an entity component identified by stable external `EntityId` plus reflected type path.
+- `Resource { type_path: String }`: a scene/runtime resource identified by reflected type path.
+
+The address is intentionally not editor-specific and not transport-specific. Editor inspector, diff/patch, and Remote/BRP requests all use the same object address shape.
+
 ### `ReflectTypeInfo`
 
 Type metadata:
@@ -218,10 +231,28 @@ Registry entry:
 - `serialization`: `ReflectSerializationStrategy`.
 - `is_component`: component adapter may exist.
 - `is_resource`: resource adapter may exist.
-- `is_plugin_owned`: dynamic/plugin-owned type.
-- `is_editor_visible`: editor schema projection may include it.
-- `is_remote_readable`: Remote/BRP read may expose it.
-- `is_remote_writable`: Remote/BRP write may mutate it.
+- `plugin_owned`: dynamic/plugin-owned type.
+- `serializable`: field/value persistence may include it.
+- `editor_visible`: editor schema projection may include it.
+- `remote_visible`: Remote/BRP may expose it through the shared facade.
+- `plugin_id`: optional plugin owner id.
+
+### Shared Schema And Read/Write DTOs
+
+These DTOs are part of M8, not a later transport invention:
+
+- `ReflectSchemaFilter { type_path, include_components, include_resources, editor_visible, remote_visible, include_plugin_owned }`: selects one type or a filtered list of editor-visible, remote-visible, component, resource, and plugin-owned registrations.
+- `ReflectSchemaRequest { filter }`: carries the schema selection contract.
+- `ReflectSchemaResponse { registrations }`: deterministic list of `ReflectTypeRegistration` values.
+- `ReflectFieldsRequest { address }`: asks for every reflected field on the addressed object.
+- `ReflectFieldsResponse { address, fields }`: ordered field values for the addressed object.
+- `ReflectReadRequest { address, field_name }`: asks for one field value.
+- `ReflectReadResponse { address, field }`: returns one reflected field value.
+- `ReflectFieldValue { field_name, value }`: one reflected field value in a read response.
+- `ReflectWriteRequest { address, field_name, value }`: writes one field value.
+- `ReflectWriteResponse { address, field, changed }`: reports whether the write changed state and returns the current field value after the write.
+
+`ReflectError` is the error half of every response. Runtime callers may use `Result<Response, ReflectError>` directly; Remote/BRP later maps that result into transport status without changing the DTO contract.
 
 ### `ReflectedValue`
 
@@ -253,8 +284,9 @@ Structured error enum:
 - `UnknownType { type_path }`
 - `AmbiguousShortTypePath { short_type_path }`
 - `DuplicateTypePath { type_path }`
-- `MissingComponentAdapter { type_path }`
-- `MissingResourceAdapter { type_path }`
+- `InvalidTypePath { type_path, reason }`
+- `NoComponentAdapter { type_path }`
+- `NoResourceAdapter { type_path }`
 - `MissingEntity { entity }`
 - `MissingComponent { entity, type_path }`
 - `MissingResource { type_path }`
@@ -262,6 +294,7 @@ Structured error enum:
 - `NonEditableField { type_path, field_name }`
 - `TypeMismatch { type_path, field_name, expected, actual }`
 - `UnsupportedConversion { source, target }`
+- `AddressKindMismatch { expected, actual }`
 - `InvalidRegistration { type_path, reason }`
 
 Errors include enough context for editor diagnostics and Remote/BRP responses without parsing strings.
@@ -287,6 +320,7 @@ The registry is runtime-only. `World::empty`, `World::new`, and `Deserialize for
 - `read_field(world, entity, field_name) -> Result<ReflectedValue, ReflectError>`
 - `write_field(world, entity, field_name, value) -> Result<bool, ReflectError>`
 - `remove(world, entity) -> Result<bool, ReflectError>`
+- `reflect_fields(world, entity) -> Result<Vec<ReflectFieldValue>, ReflectError>`
 
 Adapters must call existing `World` mutation paths so dirty state, change ticks, typed component presence, and dynamic component presence stay coherent.
 
@@ -295,7 +329,7 @@ Adapters must call existing `World` mutation paths so dirty state, change ticks,
 Manual fixed adapters in the first implementation slice:
 
 - `Name`: `value` as `String`.
-- `LocalTransform`: `translation` as `Vec3`, `rotation` as `Quaternion`, `scale` as `Vec3`.
+- `LocalTransform`: `translation` as `Vec3`, `rotation` as `Vec4`, `scale` as `Vec3`.
 - `ActiveSelf`: `value` as `Bool`.
 - `RenderLayerMask`: `mask` as `Unsigned`.
 - `CameraComponent`: `fov_y_radians`, `z_near`, `z_far` as `Scalar`.
@@ -323,6 +357,7 @@ Dynamic adapter read/write uses existing `World::dynamic_component_property` and
 `ReflectResource` mirrors component reflection for scene resources:
 
 - `contains(world) -> bool`
+- `reflect_fields(world) -> Result<Vec<ReflectFieldValue>, ReflectError>`
 - `read_field(world, field_name) -> Result<ReflectedValue, ReflectError>`
 - `write_field(world, field_name, value) -> Result<bool, ReflectError>`
 
@@ -339,9 +374,21 @@ Resource writes use `World::get_resource_mut` / resource tick paths so change de
 
 Unsupported conversions return `ReflectError::UnsupportedConversion`. Vector dimensions must match exactly. Non-finite scalar JSON encoding returns a structured conversion error.
 
+## WorldReflection Facade
+
+`zircon_runtime::scene::reflect::WorldReflection` is the single runtime facade for schema and read/write operations. It wraps `World` access and exposes these operations:
+
+- `list_reflect_types(world, request: ReflectSchemaRequest) -> Result<ReflectSchemaResponse, ReflectError>`
+- `reflect_schema(world, type_path: &str) -> Result<ReflectTypeRegistration, ReflectError>`
+- `reflect_fields(world, request: ReflectFieldsRequest) -> Result<ReflectFieldsResponse, ReflectError>`
+- `reflect_read(world, request: ReflectReadRequest) -> Result<ReflectReadResponse, ReflectError>`
+- `reflect_write(world, request: ReflectWriteRequest) -> Result<ReflectWriteResponse, ReflectError>`
+
+`World` may expose convenience methods, but editor and remote code should be able to use the facade DTOs without learning fixed component maps, dynamic JSON storage, or resource internals. This prevents a second schema/read/write contract from appearing in editor or Remote/BRP code.
+
 ## Editor Inspector Path
 
-The editor inspector consumes `TypeRegistry` schema and calls world reflection read/write APIs. It does not inspect fixed component maps directly. The first editor-facing milestone should add a small projection layer rather than replacing every inspector call site at once.
+The editor inspector consumes `ReflectSchemaRequest`, `ReflectFieldsRequest`, `ReflectReadRequest`, and `ReflectWriteRequest` through `WorldReflection`. It does not inspect fixed component maps directly. The M8 implementation must include a runtime-interface contract test or runtime scene test proving editor-mode and remote-mode schema filters use the same DTOs and registry data, even if editor call sites are replaced in a later milestone.
 
 ## Diff, Patch, And Persistence Path
 
@@ -351,24 +398,27 @@ Scene diff/patch uses `ReflectTypeRegistration` for field enumeration and `Refle
 
 Remote schema/read/write endpoints consume the same registry and error types:
 
-- schema: list registrations and fields allowed by `is_remote_readable` / `is_remote_writable`
+- schema: list registrations and fields allowed by `remote_visible`
 - read: entity/resource plus type path plus optional field
 - write: entity/resource plus type path plus field plus `ReflectedValue`
 
 Remote/BRP is not allowed to invent a separate property schema. Its API is a transport projection over the runtime reflection contract.
 
+M8 does not implement the Remote/BRP transport endpoint, but it must provide and test the shared request/response DTOs that endpoint will carry.
+
 ## Staged Milestones
 
-1. Public reflect contracts: create serializable DTOs and contract tests in `zircon_runtime_interface::reflect`.
+1. Public reflect contracts: create serializable DTOs, object addressing, schema/read/write requests and responses, field-value DTOs, and contract tests in `zircon_runtime_interface::reflect`.
 2. Runtime registry: add deterministic `TypeRegistry`, `ReflectTypeRegistration` storage, short-path lookup, duplicate errors, and runtime-only `World` ownership.
 3. Reflected values and conversions: add tagged JSON roundtrip plus `ScenePropertyValue` and JSON conversion helpers.
-4. Fixed component adapters: manually register and read/write selected fixed components through reflection.
-5. Dynamic plugin component adapters: project `ComponentTypeDescriptor` into reflection and read/write dynamic JSON component fields through adapters.
-6. Resource reflection: add manual resource adapter registration and change-tick-aware resource mutation coverage.
-7. Editor inspector projection: add a narrow editor schema/read/write projection that consumes reflection without moving editor state into runtime.
-8. Scene diff/patch/persistence groundwork: add reflected field diff and patch DTOs that M9 `DynamicScene` can reuse.
-9. Remote/BRP projection: expose schema/read/write over the remote capability surface using reflection types and structured errors.
-10. Derive/proc-macro follow-up: add `zircon_reflect_derive` only after manual registration semantics are stable.
+4. Fixed component adapters: manually register, enumerate fields with `reflect_fields`, and read/write selected fixed components through reflection.
+5. Dynamic plugin component adapters: project `ComponentTypeDescriptor` into reflection and enumerate/read/write dynamic JSON component fields through adapters.
+6. Resource reflection: add manual resource adapter registration, field enumeration, and change-tick-aware resource mutation coverage.
+7. WorldReflection shared facade proof: route schema, field enumeration, read, and write through shared DTOs and prove editor/remote filters share the same registry data.
+8. Editor inspector projection: add a narrow editor schema/read/write projection that consumes reflection without moving editor state into runtime.
+9. Scene diff/patch/persistence groundwork: add reflected field diff and patch DTOs that M9 `DynamicScene` can reuse.
+10. Remote/BRP projection: expose schema/read/write over the remote capability surface using reflection types and structured errors.
+11. Derive/proc-macro follow-up: add `zircon_reflect_derive` only after manual registration semantics are stable.
 
 ## Validation Strategy
 
@@ -388,9 +438,12 @@ Because recent repo-local default `target` validation hit a dep-info race, imple
 The first implementation slice is accepted when:
 
 - `zircon_runtime_interface::reflect` exposes stable serializable contracts and tests pass.
+- `ReflectObjectAddress`, schema/read/write request/response DTOs, and reflected field-value DTOs serialize deterministically.
 - `World` owns a runtime-only `TypeRegistry` that is rebuilt after construction and deserialization.
 - Fixed scene components, dynamic plugin components, and at least one resource adapter are visible through the registry.
 - At least one fixed component, one dynamic plugin component, and one resource can be read and written through reflection APIs.
+- `WorldReflection` can enumerate schema, enumerate fields, read, and write using only shared DTOs.
+- Editor-visible and remote-readable schema filters are proven to use the same registry and DTO surface.
 - Reflection writes use existing `World` mutation paths so dirty state and change ticks remain coherent.
 - Unknown type, ambiguous short type path, unknown field, missing component/resource, non-editable field, and type mismatch return structured `ReflectError` values.
 - `ReflectedValue` tagged JSON roundtrip coverage passes.

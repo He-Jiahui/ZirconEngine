@@ -46,7 +46,7 @@ where
         while let Some(entity) = self.entities.get(self.index).copied() {
             self.index += 1;
             if F::matches(self.world, entity, self.ticks) && D::matches_data(self.world, entity) {
-                if let Some(item) = D::fetch(self.world, entity) {
+                if let Some(item) = D::fetch_with_ticks(self.world, entity, self.ticks) {
                     return Some(item);
                 }
             }

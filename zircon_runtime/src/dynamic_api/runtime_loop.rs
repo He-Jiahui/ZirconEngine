@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::core::framework::input::InputManager;
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError,
-    RenderViewportDescriptor, RenderViewportHandle,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
 };
 use crate::core::manager::resolve_render_framework;
 use crate::core::math::UVec2;
@@ -48,6 +48,34 @@ impl RuntimeRenderBridge {
         }
         self.last_generation = Some(frame.generation);
         Ok(Some(frame))
+    }
+
+    pub(super) fn bind_surface(
+        &mut self,
+        descriptor: RenderViewportSurfaceDescriptor,
+    ) -> Result<(), RenderFrameworkError> {
+        let viewport = self.ensure_viewport(descriptor.size)?;
+        self.render_framework
+            .bind_viewport_surface(viewport, descriptor)
+    }
+
+    pub(super) fn unbind_surface(&mut self) -> Result<(), RenderFrameworkError> {
+        let Some(viewport) = self.viewport else {
+            return Ok(());
+        };
+        self.render_framework
+            .unbind_viewport_surface(viewport.handle)
+    }
+
+    pub(super) fn present_extract(
+        &mut self,
+        mut extract: RenderFrameExtract,
+        size: UVec2,
+    ) -> Result<(), RenderFrameworkError> {
+        let viewport = self.ensure_viewport(size)?;
+        extract.apply_viewport_size(size);
+        self.render_framework
+            .present_frame_extract(viewport, extract)
     }
 
     fn ensure_viewport(

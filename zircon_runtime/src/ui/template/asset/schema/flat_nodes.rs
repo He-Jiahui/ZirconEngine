@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use serde::Deserialize;
 use toml::Value;
@@ -7,11 +7,12 @@ use zircon_runtime_interface::ui::accessibility::UiAccessibilityContract;
 use zircon_runtime_interface::ui::focus::UiFocusContract;
 use zircon_runtime_interface::ui::navigation::UiNavigationContract;
 use zircon_runtime_interface::ui::picking::UiPickPolicy;
-use zircon_runtime_interface::ui::template::UiBindingRef;
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiChildMount,
-    UiComponentDefinition, UiComponentParamSchema, UiNamedSlotSchema, UiNodeDefinition,
-    UiNodeDefinitionKind, UiStyleDeclarationBlock, UiStyleScope, UiStyleSheet,
+    UiAssetDocument, UiAssetError, UiAssetHeader, UiAssetImports, UiBindingRef, UiChildMount,
+    UiComponentDefinition, UiComponentParamSchema, UiComponentPrototype, UiDocumentPrototype,
+    UiNamedSlotSchema, UiNodeDefinition, UiNodeDefinitionKind, UiNodePrototype,
+    UiPrototypeChildMount, UiPrototypeNodeHandle, UiRawAssetPrototype, UiStyleDeclarationBlock,
+    UiStylePrototype, UiStyleScope, UiStyleSheet,
 };
 use zircon_runtime_interface::ui::widget::UiWidgetContract;
 
@@ -19,6 +20,14 @@ pub(super) fn migrate_flat_toml_str(input: &str) -> Result<UiAssetDocument, UiAs
     let legacy: FlatUiAssetDocument =
         toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
     legacy.into_tree_document()
+}
+
+pub(crate) fn load_flat_prototype_toml_str(
+    input: &str,
+) -> Result<UiRawAssetPrototype, UiAssetError> {
+    let flat: FlatUiAssetDocument =
+        toml::from_str(input).map_err(|error| UiAssetError::ParseToml(error.to_string()))?;
+    flat.into_raw_prototype()
 }
 
 impl FlatUiAssetDocument {
@@ -58,6 +67,151 @@ impl FlatUiAssetDocument {
             stylesheets: self.stylesheets,
         })
     }
+
+    fn into_raw_prototype(self) -> Result<UiRawAssetPrototype, UiAssetError> {
+        let node_handles = prototype_node_handles(&self.asset.id, &self.nodes)?;
+        validate_reachable_prototype_root(
+            &self.asset.id,
+            &self.nodes,
+            &node_handles,
+            self.root.as_ref().map(|root| root.node.as_str()),
+        )?;
+        for (component_name, component) in &self.components {
+            validate_reachable_prototype_root(
+                &self.asset.id,
+                &self.nodes,
+                &node_handles,
+                Some(component.root.as_str()),
+            )
+            .map_err(|error| match error {
+                UiAssetError::InvalidDocument { asset_id, detail } => {
+                    UiAssetError::InvalidDocument {
+                        asset_id,
+                        detail: format!("component {component_name}: {detail}"),
+                    }
+                }
+                other => other,
+            })?;
+        }
+
+        let mut nodes = vec![UiNodePrototype::default(); node_handles.len()];
+        for (node_id, flat_node) in &self.nodes {
+            let handle = node_handles[node_id];
+            nodes[handle.index()] =
+                flat_node.to_node_prototype(&self.asset.id, node_id, &node_handles)?;
+        }
+
+        let root = self.root.as_ref().map(|root| node_handles[&root.node]);
+        let components = self
+            .components
+            .into_iter()
+            .map(|(name, component)| {
+                Ok((
+                    name,
+                    UiComponentPrototype {
+                        root: node_handles[&component.root],
+                        style_scope: component.style_scope,
+                        contract: Default::default(),
+                        params: component.params,
+                        slots: component.slots,
+                    },
+                ))
+            })
+            .collect::<Result<_, UiAssetError>>()?;
+
+        Ok(UiRawAssetPrototype {
+            asset: self.asset,
+            imports: self.imports,
+            tokens: self.tokens,
+            document: UiDocumentPrototype { root, nodes },
+            components,
+            styles: self
+                .stylesheets
+                .into_iter()
+                .map(|stylesheet| UiStylePrototype { stylesheet })
+                .collect(),
+        })
+    }
+}
+
+fn prototype_node_handles(
+    asset_id: &str,
+    nodes: &BTreeMap<String, FlatUiNodeDefinition>,
+) -> Result<BTreeMap<String, UiPrototypeNodeHandle>, UiAssetError> {
+    if nodes.len() > u32::MAX as usize {
+        return Err(UiAssetError::InvalidDocument {
+            asset_id: asset_id.to_string(),
+            detail: "flat prototype node table exceeds u32 handle capacity".to_string(),
+        });
+    }
+
+    Ok(nodes
+        .keys()
+        .enumerate()
+        .map(|(index, node_id)| (node_id.clone(), UiPrototypeNodeHandle::new(index as u32)))
+        .collect())
+}
+
+fn validate_reachable_prototype_root(
+    asset_id: &str,
+    nodes: &BTreeMap<String, FlatUiNodeDefinition>,
+    node_handles: &BTreeMap<String, UiPrototypeNodeHandle>,
+    root: Option<&str>,
+) -> Result<(), UiAssetError> {
+    let Some(root) = root else {
+        return Ok(());
+    };
+    if !node_handles.contains_key(root) {
+        return Err(UiAssetError::MissingNode {
+            asset_id: asset_id.to_string(),
+            node_id: root.to_string(),
+        });
+    }
+
+    let mut visiting = BTreeSet::new();
+    let mut visited = BTreeSet::new();
+    let mut stack = vec![PrototypeVisitFrame::Enter(root.to_string())];
+    while let Some(frame) = stack.pop() {
+        match frame {
+            PrototypeVisitFrame::Enter(node_id) => {
+                if visited.contains(&node_id) {
+                    continue;
+                }
+                if !visiting.insert(node_id.clone()) {
+                    return Err(UiAssetError::InvalidDocument {
+                        asset_id: asset_id.to_string(),
+                        detail: format!("ui asset prototype contains a cycle at {node_id}"),
+                    });
+                }
+                let node = nodes
+                    .get(&node_id)
+                    .ok_or_else(|| UiAssetError::MissingNode {
+                        asset_id: asset_id.to_string(),
+                        node_id: node_id.clone(),
+                    })?;
+                stack.push(PrototypeVisitFrame::Exit(node_id));
+                for child in node.children.iter().rev() {
+                    if !node_handles.contains_key(&child.child) {
+                        return Err(UiAssetError::MissingNode {
+                            asset_id: asset_id.to_string(),
+                            node_id: child.child.clone(),
+                        });
+                    }
+                    stack.push(PrototypeVisitFrame::Enter(child.child.clone()));
+                }
+            }
+            PrototypeVisitFrame::Exit(node_id) => {
+                let _ = visiting.remove(&node_id);
+                let _ = visited.insert(node_id);
+            }
+        }
+    }
+    Ok(())
+}
+
+enum PrototypeVisitFrame {
+    Enter(String),
+    Exit(String),
 }
 
 fn build_tree_node(
@@ -115,6 +269,55 @@ fn build_tree_node(
         a11y: node.a11y.clone(),
         widget: node.widget.clone(),
     })
+}
+
+impl FlatUiNodeDefinition {
+    fn to_node_prototype(
+        &self,
+        asset_id: &str,
+        node_id: &str,
+        node_handles: &BTreeMap<String, UiPrototypeNodeHandle>,
+    ) -> Result<UiNodePrototype, UiAssetError> {
+        let children = self
+            .children
+            .iter()
+            .map(|child| {
+                let child_handle = node_handles.get(&child.child).copied().ok_or_else(|| {
+                    UiAssetError::MissingNode {
+                        asset_id: asset_id.to_string(),
+                        node_id: child.child.clone(),
+                    }
+                })?;
+                Ok(UiPrototypeChildMount {
+                    mount: child.mount.clone(),
+                    slot: child.slot.clone(),
+                    child: child_handle,
+                })
+            })
+            .collect::<Result<_, UiAssetError>>()?;
+
+        Ok(UiNodePrototype {
+            node_id: node_id.to_string(),
+            kind: self.kind,
+            widget_type: self.widget_type.clone(),
+            component: self.component.clone(),
+            component_ref: self.component_ref.clone(),
+            slot_name: self.slot_name.clone(),
+            control_id: self.control_id.clone(),
+            classes: self.classes.clone(),
+            params: self.params.clone(),
+            props: self.props.clone(),
+            layout: self.layout.clone(),
+            bindings: self.bindings.clone(),
+            style_overrides: self.style_overrides.clone(),
+            focus: self.focus.clone(),
+            navigation: self.navigation.clone(),
+            picking: self.picking,
+            a11y: self.a11y.clone(),
+            widget: self.widget.clone(),
+            children,
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize)]

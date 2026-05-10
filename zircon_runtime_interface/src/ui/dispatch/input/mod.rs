@@ -11,8 +11,8 @@ pub use effect::{
     UiTooltipEffectKind,
 };
 pub use event::{
-    UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind, UiImeInputEvent,
-    UiImeInputEventKind, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
+    UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,
+    UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiKeyboardInputEvent, UiKeyboardInputState,
     UiNavigationInputEvent, UiPointerInputEvent, UiPopupInputEvent, UiPopupInputEventKind,
     UiPreciseScrollDelta, UiScrollDeltaUnit, UiTextByteRange, UiTextInputEvent,
     UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,

@@ -6,6 +6,8 @@ mod document;
 mod invalidation;
 mod loader;
 mod localization;
+mod prototype_file_cache;
+mod prototype_store;
 mod resource_ref;
 mod schema;
 mod style;
@@ -20,9 +22,9 @@ pub use compiler::{
 pub use component_contract::component_contract_diagnostic;
 pub use document::{UiAssetDocumentRuntimeExt, UiAssetNodeIter, UiNodeParent};
 pub use invalidation::{
-    collect_invalidation_diagnostics, component_contract_fingerprint, document_import_fingerprints,
-    fingerprint_document, resource_dependencies_fingerprint, UiInvalidationGraph,
-    BROAD_SELECTOR_WARNING_THRESHOLD, LARGE_DOCUMENT_NODE_WARNING_THRESHOLD,
+    collect_invalidation_diagnostics, component_contract_fingerprint, declared_imports_fingerprint,
+    document_import_fingerprints, fingerprint_document, resource_dependencies_fingerprint,
+    UiInvalidationGraph, BROAD_SELECTOR_WARNING_THRESHOLD, LARGE_DOCUMENT_NODE_WARNING_THRESHOLD,
     NON_VIRTUALIZED_SCROLL_CHILD_WARNING_THRESHOLD,
 };
 pub use loader::UiAssetLoader;
@@ -31,6 +33,8 @@ pub use localization::{
     validate_document_localization, validate_localization_report_against_catalog,
     UiLocalizationTableCatalog,
 };
+pub use prototype_file_cache::{UiPrototypeStoreFileCache, UiPrototypeStoreLoadOutcome};
+pub use prototype_store::{UiPrototypeStore, UiPrototypeStoreBuilder};
 pub use resource_ref::{
     collect_document_resource_dependencies, validate_resource_dependency_files,
     UiResourcePathResolver,

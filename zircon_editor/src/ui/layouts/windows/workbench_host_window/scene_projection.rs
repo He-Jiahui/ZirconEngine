@@ -1,4 +1,4 @@
-use slint::{Model, ModelRc, SharedString};
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 
 use super::chrome_template_projection::{
     activity_rail_active_control_id, activity_rail_button_frames, activity_rail_nodes,
@@ -605,10 +605,10 @@ fn pane_with_animation_projection(mut pane: PaneData, width: f32, height: f32) -
 }
 
 fn floating_windows_with_pane_shell_layouts(
-    floating_windows: &slint::ModelRc<FloatingWindowData>,
+    floating_windows: &crate::ui::retained_host::primitives::ModelRc<FloatingWindowData>,
     header_height_px: f32,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
-) -> slint::ModelRc<FloatingWindowData> {
+) -> crate::ui::retained_host::primitives::ModelRc<FloatingWindowData> {
     model_rc(
         (0..floating_windows.row_count())
             .filter_map(|row| floating_windows.row_data(row))

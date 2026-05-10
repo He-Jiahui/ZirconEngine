@@ -10,7 +10,7 @@ impl ResourceStreamer {
         texture_layout: &wgpu::BindGroupLayout,
         frame: &ViewportRenderFrame,
     ) -> Result<(), GraphicsError> {
-        for mesh in &frame.scene.scene.meshes {
+        for mesh in frame.meshes() {
             self.ensure_model(device, mesh.model)?;
             self.ensure_material(device, queue, texture_layout, mesh.material)?;
         }

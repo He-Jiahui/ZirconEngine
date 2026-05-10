@@ -3,17 +3,19 @@ use crate::core::framework::render::{
 };
 
 use crate::{
-    runtime::ViewportFrameHistory, CompiledRenderPipeline, HybridGiRuntimeState,
-    VirtualGeometryRuntimeState,
+    graphics::backend::ViewportSurface, runtime::ViewportFrameHistory, CompiledRenderPipeline,
+    HybridGiRuntimeState, VirtualGeometryRuntimeState,
 };
 
 pub(in crate::graphics::runtime::render_framework) struct ViewportRecord {
     pub(super) descriptor: RenderViewportDescriptor,
     pub(super) pipeline: Option<RenderPipelineHandle>,
     pub(super) quality_profile: Option<RenderQualityProfile>,
+    pub(super) generation: u64,
     pub(super) compiled_pipeline: Option<CompiledRenderPipeline>,
     pub(super) hybrid_gi_runtime: Option<Box<dyn HybridGiRuntimeState>>,
     pub(super) virtual_geometry_runtime: Option<Box<dyn VirtualGeometryRuntimeState>>,
     pub(super) last_capture: Option<CapturedFrame>,
     pub(super) history: Option<ViewportFrameHistory>,
+    pub(super) surface: Option<ViewportSurface>,
 }

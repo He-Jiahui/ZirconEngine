@@ -246,5 +246,5 @@ pub(crate) fn normalize_editor_event_binding(
 
 fn viewport_event_from_binding(binding: &EditorUiBinding) -> Result<EditorViewportEvent, String> {
     let command = dispatch_viewport_binding(binding).map_err(|error| error.to_string())?;
-    Ok(crate::ui::slint_host::callback_dispatch::viewport_event_from_command(command))
+    Ok(crate::ui::retained_host::callback_dispatch::viewport_event_from_command(command))
 }

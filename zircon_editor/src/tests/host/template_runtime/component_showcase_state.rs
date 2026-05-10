@@ -5,7 +5,7 @@ use zircon_runtime_interface::ui::component::{
 };
 
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
+    EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,
 };
 
 fn showcase_binding(
@@ -194,7 +194,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
     assert!(
         host_projection
@@ -215,7 +215,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
     assert!(
         host_projection
@@ -358,7 +358,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     assert_eq!(
@@ -383,7 +383,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("ColorFieldDemo")
             .and_then(|node| node.properties.get("value")),
-        Some(&SlintUiHostValue::String("#ffcc33".to_string()))
+        Some(&RetainedUiHostValue::String("#ffcc33".to_string()))
     );
     assert_eq!(
         host_projection
@@ -395,10 +395,10 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("Vector3FieldDemo")
             .and_then(|node| node.properties.get("value")),
-        Some(&SlintUiHostValue::Array(vec![
-            SlintUiHostValue::Float(3.0),
-            SlintUiHostValue::Float(4.0),
-            SlintUiHostValue::Float(5.0),
+        Some(&RetainedUiHostValue::Array(vec![
+            RetainedUiHostValue::Float(3.0),
+            RetainedUiHostValue::Float(4.0),
+            RetainedUiHostValue::Float(5.0),
         ]))
     );
     assert_eq!(
@@ -411,7 +411,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("AssetFieldDemo")
             .and_then(|node| node.properties.get("drop_source_summary")),
-        Some(&SlintUiHostValue::String(
+        Some(&RetainedUiHostValue::String(
             "Material: Demo Material".to_string()
         ))
     );
@@ -425,7 +425,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         host_projection
             .node_by_control_id("AssetFieldDemo")
             .and_then(|node| node.properties.get("value")),
-        Some(&SlintUiHostValue::String(
+        Some(&RetainedUiHostValue::String(
             "res://materials/demo.mat".to_string()
         ))
     );
@@ -472,7 +472,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
     assert_eq!(
         host_projection
@@ -518,7 +518,7 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
     assert_eq!(
         host_projection
@@ -661,7 +661,7 @@ fn showcase_demo_state_exercises_full_component_action_bindings() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
     assert!(
         host_projection
@@ -757,7 +757,7 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let list_row = host_projection
@@ -818,7 +818,7 @@ fn showcase_demo_state_projects_collection_children_and_control_flags() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let list_row = host_projection
@@ -932,7 +932,7 @@ fn showcase_context_action_menu_opens_at_retained_pointer_anchor() {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let menu = host_projection
@@ -944,11 +944,11 @@ fn showcase_context_action_menu_opens_at_retained_pointer_anchor() {
     assert_eq!(menu.popup_anchor_y, 96.0);
     assert_eq!(
         menu.properties.get("popup_anchor_x"),
-        Some(&SlintUiHostValue::Float(212.0))
+        Some(&RetainedUiHostValue::Float(212.0))
     );
     assert_eq!(
         menu.properties.get("popup_anchor_y"),
-        Some(&SlintUiHostValue::Float(96.0))
+        Some(&RetainedUiHostValue::Float(96.0))
     );
 }
 

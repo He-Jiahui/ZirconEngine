@@ -48,9 +48,10 @@ pub struct UiA11yState {
     pub value: Option<String>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum UiAccessibilityAction {
+    #[default]
     Activate,
     Focus,
     Increment,
@@ -58,6 +59,60 @@ pub enum UiAccessibilityAction {
     SetValue,
     ScrollTo,
     Dismiss,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiAccessibilityActionSource {
+    #[default]
+    AssistiveTechnology,
+    Keyboard,
+    Pointer,
+    Programmatic,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiAccessibilityActionRequest {
+    pub target: UiNodeId,
+    pub action: UiAccessibilityAction,
+    pub source: UiAccessibilityActionSource,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub numeric_value: Option<f64>,
+}
+
+impl Default for UiAccessibilityActionRequest {
+    fn default() -> Self {
+        Self {
+            target: UiNodeId::default(),
+            action: UiAccessibilityAction::Activate,
+            source: UiAccessibilityActionSource::AssistiveTechnology,
+            value: None,
+            numeric_value: None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UiAccessibilityActionStatus {
+    #[default]
+    Accepted,
+    Rejected,
+    Unsupported,
+    StaleTarget,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct UiAccessibilityActionResult {
+    pub target: UiNodeId,
+    pub action: UiAccessibilityAction,
+    pub status: UiAccessibilityActionStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -117,6 +172,14 @@ pub enum UiAccessibilityDiagnosticCode {
     InvalidLabelReference,
     HiddenFocusable,
     DisabledAction,
+    DuplicateNodeId,
+    MissingBounds,
+    InvalidFocus,
+    DanglingLabel,
+    DanglingDescription,
+    RelationCycle,
+    UnsupportedRoleAction,
+    ExcludedFocusedNode,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

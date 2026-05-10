@@ -1,4 +1,4 @@
-//! Editor host UI built on Slint, with viewport frames coming from core graphics.
+//! Editor host UI built on Retained, with viewport frames coming from core graphics.
 
 pub mod core;
 pub mod scene;
@@ -25,7 +25,7 @@ pub use ui::host::{
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
 };
-pub use ui::slint_host::run_editor;
+pub use ui::retained_host::run_editor;
 
 #[cfg(test)]
 mod tests;

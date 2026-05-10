@@ -18,7 +18,7 @@ related_code:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/core/host/mod.rs
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -29,9 +29,9 @@ related_code:
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_impl.rs
   - zircon_editor/src/tests/editing/viewport.rs
   - zircon_editor/src/tests/host/render_framework_boundary.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/host_surface.slint
-  - zircon_editor/ui/workbench/host_surface_contract.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
@@ -61,9 +61,9 @@ related_code:
   - zircon_editor/src/tests/support.rs
   - zircon_editor/src/tests/editor_event/support.rs
   - zircon_editor/src/tests/host/manager/mod.rs
-  - zircon_editor/src/tests/host/slint_drawer_resize.rs
+  - zircon_editor/src/tests/host/retained_drawer_resize/mod.rs
   - zircon_editor/src/tests/host/ui_asset_editor_theme_tooling/mod.rs
-  - zircon_editor/src/ui/slint_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
 implementation_files:
   - Cargo.toml
   - zircon_runtime/src/asset/mod.rs
@@ -80,7 +80,7 @@ implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/core/host/mod.rs
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/scene/viewport/mod.rs
   - zircon_editor/src/scene/viewport/settings.rs
   - zircon_editor/src/scene/viewport/render_packet.rs
@@ -89,9 +89,9 @@ implementation_files:
   - zircon_editor/src/scene/viewport/handles/move_handle_tool_impl.rs
   - zircon_editor/src/scene/viewport/handles/rotate_handle_tool_impl.rs
   - zircon_editor/src/scene/viewport/handles/scale_handle_tool_impl.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/host_surface.slint
-  - zircon_editor/ui/workbench/host_surface_contract.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
   - zircon_runtime/src/core/framework/render/camera.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/overlay.rs
@@ -118,7 +118,7 @@ implementation_files:
   - zircon_runtime/src/foundation/runtime/config_path.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
   - zircon_editor/src/tests/support.rs
-  - zircon_editor/src/ui/slint_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
 plan_sources:
   - user: 2026-04-20 继续，把 runtime 层仍然存在的 editor only 实现迁回 editor
   - user: 2026-04-20 继续
@@ -130,7 +130,7 @@ tests:
   - cargo check -p zircon_runtime --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check
   - cargo check -p zircon_editor --tests --offline --message-format short --target-dir target/ta
-  - cargo test -p zircon_editor --lib editor_slint_host_prefers_winit_software_renderer_over_skia_wgpu_selection --offline --target-dir target/ta -j1 -- --nocapture
+  - cargo test -p zircon_editor --lib editor_retained_host_prefers_winit_software_renderer_over_skia_wgpu_selection --offline --target-dir target/ta -j1 -- --nocapture
   - cargo test -p zircon_app entry_uses_runtime_owned_builtin_module_list_without_manual_graphics_insertion --offline --target-dir target/ta -j1 -- --nocapture
   - cargo test -p zircon_runtime --offline --target-dir target/codex-graphics-recovery render_framework_bridge -- --nocapture
   - cargo test -p zircon_runtime --offline --target-dir target/codex-graphics-recovery pipeline_compile -- --nocapture
@@ -179,23 +179,23 @@ doc_type: module-detail
 
 ### Software Renderer Baseline
 
-这轮 graphics-first recovery 明确把 editor host 的 Slint 运行时固定到了 `winit + software`：
+这轮 graphics-first recovery 当时把 editor host 的 GUI 运行时固定到了 `winit + software`：
 
-- [Cargo.toml](/E:/Git/ZirconEngine/Cargo.toml) 里的 workspace `slint` features 已切成 `backend-winit + renderer-software + unstable-winit-030`
-- [app.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app.rs) 在 `run_editor()` 中显式调用 `.backend_name("winit".into())` 和 `.renderer_name("software".into())`
+- [Cargo.toml](/E:/Git/ZirconEngine/Cargo.toml) 里的 editor host dependency profile 当时被收窄到 software renderer baseline；当前 retained-host cutover 已删除 active Slint dependency authority
+- [app.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app.rs) 是 current editor host startup owner
 - [render_framework_boundary.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/host/render_framework_boundary.rs) 新增源码边界断言，持续拦截 `renderer-skia`、`unstable-wgpu-27` 和任何 `wgpu::` 直接回流到 editor host
 
-这样做的目标不是长期放弃 GPU 渲染，而是在当前吸收后的目录结构里先恢复 editor/runtime 的图形编译闭环。运行时图形能力仍然留在 `zircon_runtime::graphics` 的 RenderFramework/SRP 主链里；Slint host 只是切回了一个更稳的测试与 authoring baseline。
+这样做的目标不是长期放弃 GPU 渲染，而是在当前吸收后的目录结构里先恢复 editor/runtime 的图形编译闭环。运行时图形能力仍然留在 `zircon_runtime::graphics` 的 RenderFramework/SRP 主链里；当前 retained host 继续遵守“不直接拥有 `wgpu`”的 authoring boundary。
 
-### Slint Host Binding Recovery
+### Retained Host Binding Recovery
 
-[workbench.slint](/E:/Git/ZirconEngine/zircon_editor/ui/workbench.slint) 现在把 `UiHostWindow.host_presentation` 只作为 root 输入，再单向传给内部 `WorkbenchHostScaffold`：
+[`workbench_shell.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml) 与 Rust-owned [`host_contract`](../../zircon_editor/src/ui/retained_host/host_contract/mod.rs) 现在把 `UiHostWindow.host_presentation` 作为 retained host presentation 输入，再单向投影到 host DTO/surface：
 
 - `UiHostWindow` 保留 `in property <HostWindowPresentationData> host_presentation`
-- `host := WorkbenchHostScaffold { host_presentation: root.host_presentation; }`
-- 不再把 `host_presentation` 通过 `<=>` 双向别名回自身
+- retained host presentation 从 root state 投影到 `HostWindowPresentationData`
+- 不再把 `host_presentation` 通过 compatibility alias 或 generated UI surface 双向绑定回自身
 
-这消除了此前测试构建里出现的 `host_presentation` 自绑定环。当前 [host_surface.slint](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface.slint) 和 [host_surface_contract.slint](/E:/Git/ZirconEngine/zircon_editor/ui/workbench/host_surface_contract.slint) 也已经收敛成单纯的 presentation-to-surface 数据投影，不再把临时 surface 输出属性当作 host 自身状态来源。
+这消除了此前测试构建里出现的 `host_presentation` 自绑定环。当前 [`host_contract/window.rs`](../../zircon_editor/src/ui/retained_host/host_contract/window.rs) 与 [`host_contract/data/**`](../../zircon_editor/src/ui/retained_host/host_contract/data/mod.rs) 已经收敛成单纯的 presentation-to-surface 数据投影，不再把临时 surface 输出属性当作 host 自身状态来源。
 
 ### Current Host Ownership Shape
 
@@ -215,7 +215,7 @@ doc_type: module-detail
 - `cargo check -p zircon_runtime --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check`
 - `cargo check -p zircon_editor --lib --offline --message-format short --target-dir target/codex-editor-software-renderer-check`
 - `cargo check -p zircon_editor --tests --offline --message-format short --target-dir target/ta`
-- `cargo test -p zircon_editor --lib editor_slint_host_prefers_winit_software_renderer_over_skia_wgpu_selection --offline --target-dir target/ta -j1 -- --nocapture`
+- `cargo test -p zircon_editor --lib editor_retained_host_prefers_winit_software_renderer_over_skia_wgpu_selection --offline --target-dir target/ta -j1 -- --nocapture`
 - `cargo test -p zircon_app entry_uses_runtime_owned_builtin_module_list_without_manual_graphics_insertion --offline --target-dir target/ta -j1 -- --nocapture`
 
 这些检查证明了三件事：
@@ -339,7 +339,7 @@ runtime foundation 现在统一使用中性命名：
 
 所有会写 `ZIRCON_CONFIG_PATH` 的 editor crate tests 必须通过 [zircon_editor/src/tests/support.rs](/E:/Git/ZirconEngine/zircon_editor/src/tests/support.rs) 暴露的共享 `env_lock()` 串行化。这个锁是进程级环境变量的唯一测试保护层；子模块不能自建另一个 `Mutex` 来保护同一个变量，否则 Rust test harness 的默认并行执行仍会让两个测试同时切换 config path。
 
-2026-05-03 的 workspace acceptance 复现了这个边界问题：`tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_actions` 单测独立运行通过，`zircon_editor --lib -- --test-threads=1` 也通过，但默认并行 `zircon_editor --lib` 会偶发拿到错误的 config path。最低共享层不是 reflection route，而是 [zircon_editor/src/ui/slint_host/app/tests.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/slint_host/app/tests.rs) 里独立的本地 env lock。该 test module 现在改为调用 crate-wide `crate::tests::support::env_lock()`，并用默认并行 editor-lib 与 workspace test 重新验证。
+2026-05-03 的 workspace acceptance 复现了这个边界问题：`tests::workbench::reflection::action_dispatch::workbench_reflection_call_action_dispatches_docking_inspector_and_viewport_actions` 单测独立运行通过，`zircon_editor --lib -- --test-threads=1` 也通过，但默认并行 `zircon_editor --lib` 会偶发拿到错误的 config path。最低共享层不是 reflection route，而是 [zircon_editor/src/ui/retained_host/app/tests.rs](/E:/Git/ZirconEngine/zircon_editor/src/ui/retained_host/app/tests.rs) 里独立的本地 env lock。该 test module 现在改为调用 crate-wide `crate::tests::support::env_lock()`，并用默认并行 editor-lib 与 workspace test 重新验证。
 
 ## Graphics Root-Surface Contraction
 

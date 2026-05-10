@@ -13,6 +13,7 @@ pub(in crate::graphics::runtime::render_framework) fn set_pipeline_asset(
     viewport: RenderViewportHandle,
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
+    let _operation_guard = server.operation_lock.lock().unwrap();
     let mut state = server.state.lock().unwrap();
     let pipeline_asset =
         state

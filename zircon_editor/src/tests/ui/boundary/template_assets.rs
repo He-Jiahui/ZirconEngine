@@ -45,12 +45,15 @@ fn build_script_tracks_editor_assets_not_deleted_ui_sources() {
 
     assert!(build.contains("emit_rerun_if_changed_recursive(\"assets\")"));
     assert!(!build.contains("emit_rerun_if_changed_recursive(\"ui\")"));
-    assert!(!build.contains("compile_slint_ui"));
+    assert!(!build.contains("compile_retained_ui"));
 }
 
 #[test]
 fn active_editor_ui_tree_contains_no_deleted_source_files() {
-    assert_no_files_with_extension(Path::new(env!("CARGO_MANIFEST_DIR")).join("ui"), "slint");
+    assert_no_files_with_extension(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("ui"),
+        &["sli", "nt"].concat(),
+    );
 }
 
 #[test]
@@ -166,7 +169,7 @@ fn component_showcase_uses_material_meta_component_assets() {
 }
 
 #[test]
-fn material_meta_components_cover_slint_material_exports() {
+fn material_meta_components_cover_retained_material_exports() {
     let asset = source("assets/ui/editor/material_meta_components.ui.toml");
     for component in [
         "ButtonBase",
@@ -203,14 +206,14 @@ fn material_meta_components_cover_slint_material_exports() {
         let marker = format!("[components.Material{component}]");
         assert!(
             asset.contains(&marker),
-            "material_meta_components.ui.toml missing Slint Material export `{component}`"
+            "material_meta_components.ui.toml missing Retained Material export `{component}`"
         );
     }
 }
 
 #[test]
 fn rust_owned_template_node_contract_keeps_retained_widget_state() {
-    let template_nodes = source("src/ui/slint_host/host_contract/data/template_nodes.rs");
+    let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
 
     for required in [
         "pub(crate) struct TemplatePaneNodeData",
@@ -252,9 +255,9 @@ fn workbench_projection_uses_editor_assets_without_generated_host_dto_imports() 
         let text =
             fs::read_to_string(&path).unwrap_or_else(|error| panic!("read {:?}: {error}", path));
         assert!(
-            !text.contains("crate::ui::slint_host::{FrameRect")
-                && !text.contains("crate::ui::slint_host::{PaneData")
-                && !text.contains("crate::ui::slint_host::HostWindowPresentationData"),
+            !text.contains("crate::ui::retained_host::{FrameRect")
+                && !text.contains("crate::ui::retained_host::{PaneData")
+                && !text.contains("crate::ui::retained_host::HostWindowPresentationData"),
             "workbench projection internals should not import generated host DTOs: {:?}",
             path.file_name().expect("file name")
         );

@@ -25,11 +25,7 @@ impl EditorState {
             .selected_node()
             .and_then(|node_id| {
                 self.world
-                    .try_with_world(|scene| {
-                        scene
-                            .find_node(node_id)
-                            .map(|node| (node_id, node))
-                    })
+                    .try_with_world(|scene| scene.find_node(node_id).map(|node| (node_id, node)))
                     .flatten()
             });
         let Some((node_id, current)) = selected else {

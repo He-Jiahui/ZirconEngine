@@ -1,16 +1,17 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
   - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
@@ -28,15 +29,16 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/world/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/editing/state/mod.rs
+  - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_selection.rs
   - zircon_editor/src/ui/workbench/state/editor_state_field_updates.rs
   - zircon_editor/src/ui/binding_dispatch/inspector/apply.rs
@@ -53,7 +55,7 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/inspector.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_scene/src/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
@@ -66,6 +68,8 @@ plan_sources:
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
 tests:
   - zircon_editor/src/lib.rs
+  - zircon_editor/src/tests/editing/history.rs
+  - zircon_editor/src/tests/editing/import.rs
   - zircon_scene/src/lib.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
@@ -87,7 +91,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_editor` 不再把整个 ECS 世界直接塞进 undo/redo 快照，而是通过 `EditorCommand` 把一次编辑收束为可应用、可撤销、可重做的命令对象。这样 editor UI 可以保持 Slint 宿主职责，只负责维护草稿字段和触发 intent；真正的世界修改则统一通过命令层进入 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene`。
+`zircon_editor` 不再把整个 ECS 世界直接塞进 undo/redo 快照，而是通过 `EditorCommand` 把一次编辑收束为可应用、可撤销、可重做的命令对象。这样 editor UI 可以保持 retained host 职责，只负责维护草稿字段和触发 intent；真正的世界修改则统一通过命令层进入 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene`。
 
 这一设计直接服务当前路线图里的两个目标：
 
@@ -100,12 +104,12 @@ doc_type: module-detail
 - `zircon_editor/src/core/editor_operation.rs`: menu/toolbar/editor 插件 operation descriptor registry
 - `zircon_editor/src/core/editing/history.rs`: undo/redo 栈和 gizmo drag 聚合逻辑
 - `zircon_editor/src/core/editing/state/mod.rs`: `EditorIntent` 到命令执行的主入口，维护 inspector 草稿态
-- `zircon_editor/src/ui/slint_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
+- `zircon_editor/src/ui/retained_host/app.rs`: 统一接住项目保存/加载和多窗口 workbench 宿主消息，再驱动命令执行
 - `zircon_editor/src/core/host/manager.rs`: 提供布局、view registry、项目 workspace 的 editor 域协调入口
 - `zircon_editor/src/ui/workbench/project/mod.rs`: editor project/workspace sidecar 与 level 文档桥接
 - `zircon_editor/src/ui/workbench/snapshot/mod.rs`: workbench 与资产面板投影快照
-- `zircon_editor/src/ui/slint_host/callback_dispatch/common/dispatch.rs`: template binding 的 operation-first 分派入口
-- `zircon_editor/src/ui/slint_host/callback_dispatch/workbench/menu_action.rs`: workbench menu action 到 `EditorOperation` 的桥接
+- `zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs`: template binding 的 operation-first 分派入口
+- `zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs`: workbench menu action 到 `EditorOperation` 的桥接
 - `zircon_scene/src/world/mod.rs`: 世界层约束，如最后一个 camera 不可删、层级不可成环
 
 ## Behavior Model
@@ -139,13 +143,13 @@ doc_type: module-detail
 
 插件贡献的 `ComponentDrawerDescriptor` now carries the component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The live editor runtime filters these descriptors through the current capability snapshot before lookup and before `EditorState::snapshot_with_component_drawers(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
 
-Inspector snapshots and pane payloads preserve Component Drawer template metadata separately from generic dynamic component properties. When a runtime component schema and an enabled drawer descriptor are both present, the snapshot carries the drawer UI document, controller, template id, data root, and operation binding ids into the pane payload. The Slint host projection annotates the component header with the template id and UI document so the host can route the row as a custom drawer surface. When the plugin schema or enabled drawer descriptor is unavailable, `drawer_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
+Inspector snapshots and pane payloads preserve Component Drawer template metadata separately from generic dynamic component properties. When a runtime component schema and an enabled drawer descriptor are both present, the snapshot carries the drawer UI document, controller, template id, data root, and operation binding ids into the pane payload. The retained host-contract projection annotates the component header with the template id and UI document so the host can route the row as a custom drawer surface. When the plugin schema or enabled drawer descriptor is unavailable, `drawer_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
 
 Component Drawer template execution is host-mediated rather than native plugin UI embedding. A custom drawer control dispatches a `UiComponentEventEnvelope` targeting the `component_drawer` domain, with the dynamic component type in `subject` and the requested editor operation path in `path`. `EditorEventRuntime::dispatch_ui_component_adapter_event(...)` resolves only enabled drawer descriptors, rejects operations not declared in that descriptor's bindings, rejects draft-edit events such as `ValueChanged`, and accepts only safe action-style events such as pressed buttons, committed fields, selected options, expansion toggles, and reference navigation actions. Accepted envelopes then invoke the existing `EditorOperation` dispatcher as `UiBinding`. The operation registry still enforces missing handlers, disabled capabilities, undo metadata, and journal recording. The drawer adapter returns a component-adapter result for projection refresh, but the mutation authority remains the normal editor operation/command path.
 
 ### EditorOperation 分派
 
-1. Workbench menu item、toolbar button 或 builtin template binding 先携带 stable action id 进入 Slint host dispatcher
+1. Workbench menu item、toolbar button 或 builtin template binding 先携带 stable action id 进入 retained host dispatcher
 2. `operation_path_for_menu_action(...)` 把内置 menu action 映射到 `EditorOperationDescriptor` 路径，例如 `Scene.Node.CreateCube`、`Runtime.PlayMode.Enter`、`Runtime.PlayMode.Exit`、`View.BuildExport.Open`
 3. `dispatch_editor_binding(...)` 和 `dispatch_menu_action(...)` 优先调用 `EditorEventRuntime::invoke_operation(...)`
 4. operation registry 根据 capability snapshot 和 descriptor 决定该命令是否可见、可调用，以及是否声明 undoable
@@ -162,6 +166,8 @@ Component Drawer template execution is host-mediated rather than native plugin U
 5. 命令在构造阶段直接修改 `LevelSystem` 所托管的 `World`
 6. 成功后命令进入 `EditorHistory` 的 undo 栈
 7. `EditorState::sync_selection_state` 从当前世界回填 inspector 草稿和 orbit target
+
+`EditorState::snapshot_with_component_drawers(...)` 读取场景树时使用 `World::node_records()`，而不是 schedule-maintained `World::nodes()` 缓存。原因是 editor 命令在同一交互帧内需要立刻投影刚创建、导入、撤销或重做的节点；runtime ECS 的 `nodes()` 缓存仍遵守 `PostUpdate`/`RenderExtract` 刷新边界，不能作为 live authoring snapshot 的数据源。
 
 ### Inspector 批量提交
 

@@ -18,4 +18,6 @@ pub enum GraphicsError {
     ThreadBootstrap(String),
     #[error("buffer map failed: {0}")]
     BufferMap(String),
+    #[error("graphics debugger capture failed: {0}")]
+    GraphicsDebugger(String),
 }

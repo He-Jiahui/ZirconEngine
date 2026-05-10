@@ -2,7 +2,7 @@ mod builtin_engine_entry;
 mod profile_bootstrap;
 
 #[test]
-fn runtime_sources_route_preview_through_dynamic_api_without_wgpu_surface_bindings() {
+fn runtime_sources_route_preview_through_dynamic_api_without_app_wgpu_dependency() {
     let lib_source = include_str!("../../lib.rs");
     let production_lib_source = lib_source
         .split("\n#[cfg(test)]")
@@ -46,6 +46,36 @@ fn runtime_sources_route_preview_through_dynamic_api_without_wgpu_surface_bindin
     assert!(
         !manifest.contains("wgpu.workspace = true"),
         "zircon_app/Cargo.toml should not depend on wgpu directly"
+    );
+}
+
+#[test]
+fn runtime_preview_keeps_softbuffer_fallback_when_surface_api_is_optional() {
+    let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
+    let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
+    let runtime_session_source = include_str!("../runtime_library/runtime_session.rs");
+
+    assert!(
+        runtime_app_source.contains("surface_present_enabled: bool"),
+        "runtime entry app should track whether optional surface present is active"
+    );
+    assert!(
+        runtime_app_source.contains("presenter: Option<SoftbufferRuntimePresenter>"),
+        "softbuffer presenter should remain available as the fallback path"
+    );
+    assert!(
+        runtime_session_source.contains("return Ok(false);")
+            && runtime_session_source.contains("bind_viewport_surface")
+            && runtime_session_source.contains("present_viewport"),
+        "runtime session optional surface wrappers should report unavailable APIs without error"
+    );
+    assert!(
+        runtime_handler_source.contains("SoftbufferRuntimePresenter::new"),
+        "runtime redraw path should still be able to create the softbuffer fallback presenter"
+    );
+    assert!(
+        runtime_handler_source.contains("capture_frame"),
+        "runtime redraw fallback should continue using capture_frame()"
     );
 }
 

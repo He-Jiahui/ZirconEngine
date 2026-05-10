@@ -22,6 +22,10 @@ pub struct UiInvalidationSnapshot {
     pub document: UiAssetFingerprint,
     pub widget_imports: BTreeMap<String, UiAssetFingerprint>,
     pub style_imports: BTreeMap<String, UiAssetFingerprint>,
+    #[serde(default)]
+    pub declared_widget_imports_revision: UiAssetFingerprint,
+    #[serde(default)]
+    pub declared_style_imports_revision: UiAssetFingerprint,
     pub descriptor_registry_revision: u64,
     pub component_contract_revision: UiAssetFingerprint,
     pub resource_dependencies_revision: UiAssetFingerprint,

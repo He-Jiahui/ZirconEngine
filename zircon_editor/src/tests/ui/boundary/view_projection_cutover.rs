@@ -1,11 +1,11 @@
 use super::support::collect_rust_files;
 
-fn slint_host_import_blocks(source: &str) -> Vec<String> {
+fn retained_host_import_blocks(source: &str) -> Vec<String> {
     let normalized = source.split_whitespace().collect::<String>();
     let mut blocks = Vec::new();
     let mut rest = normalized.as_str();
 
-    while let Some(start) = rest.find("usecrate::ui::slint_host::{") {
+    while let Some(start) = rest.find("usecrate::ui::retained_host::{") {
         let after_start = &rest[start..];
         let Some(end) = after_start.find("};") else {
             break;
@@ -40,7 +40,7 @@ fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_o
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("ui")
-            .join("slint_host")
+            .join("retained_host")
             .join("ui")
             .join("apply_presentation.rs"),
     )
@@ -58,7 +58,7 @@ fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_o
 
     for path in collect_rust_files(&views_root) {
         let source = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{path:?}"));
-        let import_blocks = slint_host_import_blocks(&source);
+        let import_blocks = retained_host_import_blocks(&source);
 
         for forbidden in [
             "AssetFolderData",
@@ -80,7 +80,7 @@ fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_o
                 );
             }
             assert!(
-                !source.contains(&format!("crate::ui::slint_host::{forbidden}")),
+                !source.contains(&format!("crate::ui::retained_host::{forbidden}")),
                 "expected {:?} to stop importing host-contract DTO `{forbidden}` into layouts::views",
                 path.file_name().expect("file name")
             );

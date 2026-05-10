@@ -8,12 +8,16 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn workbench_shell_window_resize_contract_is_owned_by_rust_host_contract() {
-    let slint_host_mod = source("src/ui/slint_host/mod.rs");
-    let host_window_contract = source("src/ui/slint_host/host_contract/window.rs");
-    let shell_window_test = source("src/tests/host/slint_window/shell_window.rs");
+    let retained_host_mod = source("src/ui/retained_host/mod.rs");
+    let host_window_contract = source("src/ui/retained_host/host_contract/window.rs");
+    let shell_window_test = source("src/tests/host/retained_window/shell_window.rs");
 
-    let generated_include = ["slint::", "include_modules!()"].concat();
-    assert!(!slint_host_mod.contains(&generated_include));
+    let generated_include = [
+        "crate::ui::retained_host::primitives::",
+        "include_modules!()",
+    ]
+    .concat();
+    assert!(!retained_host_mod.contains(&generated_include));
     assert!(host_window_contract.contains("pub(crate) struct UiHostWindow"));
     assert!(host_window_contract.contains("pub(crate) fn set_size"));
     assert!(host_window_contract.contains("pub(crate) fn set_maximized"));

@@ -46,7 +46,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/state_panel.rs
-  - zircon_editor/src/ui/template_runtime/slint_adapter.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/mod.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
@@ -61,57 +61,57 @@ related_code:
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/component_showcase.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_option_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_value_conversion.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/reference_component_tests.rs
-  - zircon_editor/src/ui/slint_host/ui/structure_component_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_value_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs
+  - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_selection.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs
   - zircon_editor/src/tests/ui/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/slint_host/app/asset_drag_payload.rs
-  - zircon_editor/src/ui/slint_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/inspector.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/slint_host/app/reference_drop_payload.rs
-  - zircon_editor/src/ui/slint_host/app/showcase_event_inputs.rs
-  - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
-  - zircon_editor/src/ui/slint_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/slint_host/app/tests.rs
-  - zircon_editor/src/ui/slint_host/app/tests/drag_sources.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_window/shell_window.rs
-  - zircon_editor/src/ui/slint_host/asset_pointer/content/bridge.rs
-  - zircon_editor/src/ui/slint_host/asset_pointer/reference/bridge.rs
-  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/template_nodes.rs
-  - zircon_editor/tests/integration_contracts/workbench_slint_shell.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs
+  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/inspector.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
+  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained_host/app/reference_drop_payload.rs
+  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
+  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/drag_sources.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window.rs
+  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_resize.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
@@ -130,7 +130,7 @@ related_code:
   - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
-  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 implementation_files:
   - zircon_runtime/src/ui/component/mod.rs
@@ -178,7 +178,7 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/categories.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/defaults.rs
   - zircon_editor/src/ui/template_runtime/showcase_demo_state/state_panel.rs
-  - zircon_editor/src/ui/template_runtime/slint_adapter.rs
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/mod.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs
@@ -193,56 +193,56 @@ implementation_files:
   - zircon_editor/src/ui/host/builtin_views/activity_windows/component_showcase_view_descriptor.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/component_showcase.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_ui_asset_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/collection_fields.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/preview_images.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/showcase_actions.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_data.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_menu_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_option_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_value_conversion.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/reference_component_tests.rs
-  - zircon_editor/src/ui/slint_host/ui/structure_component_tests.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_value_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/reference_component_tests.rs
+  - zircon_editor/src/ui/retained_host/ui/structure_component_tests.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_category.rs
   - zircon_editor/src/tests/host/template_runtime/component_showcase_selection.rs
   - zircon_editor/src/tests/ui/mod.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
-  - zircon_editor/src/ui/slint_host/ui/tests/component_showcase.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
-  - zircon_editor/src/ui/slint_host/app/asset_drag_payload.rs
-  - zircon_editor/src/ui/slint_host/app/asset_content_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/asset_reference_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/hierarchy_pointer.rs
-  - zircon_editor/src/ui/slint_host/app/inspector.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs
-  - zircon_editor/src/ui/slint_host/app/reference_drop_payload.rs
-  - zircon_editor/src/ui/slint_host/app/showcase_event_inputs.rs
-  - zircon_editor/src/ui/slint_host/app/callback_wiring.rs
-  - zircon_editor/src/ui/slint_host/app/tests.rs
-  - zircon_editor/src/ui/slint_host/app/tests/drag_sources.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_window/shell_window.rs
-  - zircon_editor/src/ui/slint_host/asset_pointer/content/bridge.rs
-  - zircon_editor/src/ui/slint_host/asset_pointer/reference/bridge.rs
-  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/template_nodes.rs
-  - zircon_editor/tests/integration_contracts/workbench_slint_shell.rs
+  - zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs
+  - zircon_editor/src/ui/retained_host/app/asset_content_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/asset_reference_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/hierarchy_pointer.rs
+  - zircon_editor/src/ui/retained_host/app/inspector.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
+  - zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs
+  - zircon_editor/src/ui/retained_host/app/reference_drop_payload.rs
+  - zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs
+  - zircon_editor/src/ui/retained_host/app/callback_wiring.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests/drag_sources.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window.rs
+  - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
+  - zircon_editor/src/ui/retained_host/asset_pointer/reference/bridge.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
+  - zircon_editor/tests/integration_contracts/workbench_retained_shell.rs
   - zircon_editor/tests/integration_contracts/workbench_window_resize.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
   - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
@@ -265,7 +265,7 @@ implementation_files:
   - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
   - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
-  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 plan_sources:
   - user: 2026-04-27 Runtime UI 组件库与 Slint Material Showcase Cutover
@@ -300,24 +300,24 @@ tests:
   - zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_window/shell_window.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/graphics_surface/runtime_ui_integration.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
-  - zircon_editor/src/tests/host/slint_window/native_viewport_image.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - cargo test -p zircon_editor --lib native_host_painter_draws_template_svg_image_pixels --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
   - cargo test -p zircon_editor --lib rust_owned_host_painter_resolves_runtime_svg_image_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never
-  - zircon_editor/src/ui/slint_host/app/tests.rs
+  - zircon_editor/src/ui/retained_host/app/tests.rs
   - cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
   - cargo test -p zircon_runtime --lib ui_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never
   - cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture
   - cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture
   - .\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir E:\cargo-targets\zircon-ui-cutover-move-first
-  - rustfmt --edition 2021 --check zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_runtime\src\tests\ui_boundary\runtime_host.rs zircon_editor\src\tests\host\slint_window\generic_host_layout_paths.rs
+  - rustfmt --edition 2021 --check zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_runtime\src\tests\ui_boundary\runtime_host.rs zircon_editor\src\tests\host\retained_window\generic_host_layout_paths.rs
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-component-showcase-check
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
   - cargo test -p zircon_runtime --lib drop_binding_roundtrip_preserves_reference_payload_contract --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-component-showcase-check -- --nocapture
@@ -345,7 +345,7 @@ tests:
   - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-operation-path -- --test-threads=1
   - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1
   - cargo test -p zircon_editor --lib host_projection_carries_runtime_component_properties_and_routes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --nocapture
-  - cargo test -p zircon_editor --lib slint_host_build_uses_material_style --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --nocapture
+  - cargo test -p zircon_editor --lib retained_host_build_uses_material_style --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --nocapture
   - cargo test -p zircon_editor --lib builtin_activity_windows_expose_window_template_documents --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --nocapture
   - cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1
   - rustfmt --check zircon_runtime/src/ui/component/catalog.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/graphics/tests/render_framework_bridge.rs
@@ -365,7 +365,7 @@ tests:
   - cargo test -p zircon_editor --lib asset_field_drop_rejects_active_scene_instance_payload --locked --jobs 1
   - cargo test -p zircon_editor --lib instance_field_drop_rejects_active_asset_payload --locked --jobs 1
   - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1
-  - cargo test -p zircon_editor --lib slint_host --locked --jobs 1
+  - cargo test -p zircon_editor --lib retained_host --locked --jobs 1
   - cargo check -p zircon_editor --lib --locked --jobs 1
   - cargo fmt --package zircon_runtime -- --check
   - cargo fmt --package zircon_editor -- --check
@@ -389,12 +389,12 @@ tests:
   - cargo test -p zircon_editor --lib template_svg_icon_pixels_follow_requested_target_size --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m4 --message-format short --color never (SVG icon target-size rasterization: passed)
   - cargo test -p zircon_runtime --lib runtime_component_catalog_contains_showcase_v1_controls --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
   - cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1 --target-dir E:\cargo-targets\zircon-srp-rhi-main-chain --message-format short --color never
-  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/event.rs zircon_runtime/src/ui/component/state.rs zircon_runtime/src/ui/component/catalog/editor_showcase.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/ui/tests/component_catalog/complex_components.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/ui/component/event.rs zircon_runtime/src/ui/component/state.rs zircon_runtime/src/ui/component/catalog/editor_showcase.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/ui/tests/component_catalog/complex_components.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir target\codex-runtime-ui-complex-components --message-format short --color never
   - cargo test -p zircon_editor --lib runtime_component_projection --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never
-  - git diff --check -- docs/superpowers/specs/2026-05-01-runtime-ui-complex-components-design.md docs/superpowers/plans/2026-05-01-runtime-ui-complex-components.md docs/ui-and-layout/runtime-ui-component-showcase.md .codex/sessions/20260429-0719-runtime-ui-showcase-schema-panel.md zircon_runtime/src/ui/component/event.rs zircon_runtime/src/ui/component/state.rs zircon_runtime/src/ui/component/catalog/editor_showcase.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/ui/tests/component_catalog/complex_components.rs zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs
+  - git diff --check -- docs/superpowers/specs/2026-05-01-runtime-ui-complex-components-design.md docs/superpowers/plans/2026-05-01-runtime-ui-complex-components.md docs/ui-and-layout/runtime-ui-component-showcase.md .codex/sessions/20260429-0719-runtime-ui-showcase-schema-panel.md zircon_runtime/src/ui/component/event.rs zircon_runtime/src/ui/component/state.rs zircon_runtime/src/ui/component/catalog/editor_showcase.rs zircon_runtime/src/ui/tests/component_catalog.rs zircon_runtime/src/ui/tests/component_catalog/complex_components.rs zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - cargo test -p zircon_runtime_interface ui_component_state_with_value_clears_reference_source_metadata --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-big-cutover --message-format short --color never
   - cargo test -p zircon_runtime --lib component_state --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-component-state --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-interface-runtime-check --message-format short --color never
@@ -405,7 +405,7 @@ doc_type: module-detail
 
 ## Scope
 
-This document records the first retained Runtime UI component-library slice. The goal is to make editor screen-space UI components explicit runtime semantics while keeping `.ui.toml` as the business source of truth and keeping Slint as a generic Material host.
+This document records the first retained Runtime UI component-library slice. The goal is to make editor screen-space UI components explicit runtime semantics while keeping `.ui.toml` as the business source of truth and keeping the Rust-owned retained host as the generic Material-style host.
 
 The V1 acceptance target is not a visual mock. The showcase asset declares real component nodes, the runtime owns descriptors and typed event/state contracts, and host projection carries enough metadata for a generic renderer to show component role, value, validation, popup, selection, and drag/drop acceptance state. Interactive showcase rows also declare registered template bindings so Button, NumberField, Dropdown, Foldout, Array, Map, and reference-drop controls have concrete event entry points.
 
@@ -476,7 +476,7 @@ As of the 2026-04-30 follow-up, active `.slint` sources are no longer editor bui
 
 The active tree is now explicitly guarded: `generic_host_layout_paths.rs` asserts no active `.slint` remains under `zircon_editor/ui`, and `generic_host_boundary.rs` forbids editor host sources from depending on deleted Slint source trees, generated Slint includes, `slint_build` / `slint-build` build seams, or `as slint_ui` compatibility aliases. `zircon_editor/build.rs` no longer compiles active `ui/workbench.slint`, no longer stages deleted Slint sources into `OUT_DIR`, and no longer calls `slint_build`.
 
-The generated root seam is also removed: `zircon_editor/src/ui/slint_host/mod.rs` no longer exports `slint::include_modules!()`, and the Rust-owned replacement surface lives under `zircon_editor/src/ui/slint_host/host_contract/**`. The presentation, pane, template-node, and component-showcase conversion code now uses `to_host_contract_*` helpers for the Rust-owned host-contract DTO projection instead of local `to_slint_*` conversion names. The integration contract readers now assert Rust-owned host contracts and `.ui.toml` assets directly instead of joining active or deleted `zircon_editor/ui/workbench*.slint` paths.
+The generated root seam is also removed: `zircon_editor/src/ui/retained_host/mod.rs` no longer exports `slint::include_modules!()`, and the Rust-owned replacement surface lives under `zircon_editor/src/ui/retained_host/host_contract/**`. The presentation, pane, template-node, and component-showcase conversion code now uses `to_host_contract_*` helpers for the Rust-owned host-contract DTO projection instead of local `to_slint_*` conversion names. The integration contract readers now assert Rust-owned host contracts and `.ui.toml` assets directly instead of joining active or deleted `zircon_editor/ui/workbench*.slint` paths.
 
 Runtime UI input dispatch now stays on the same shared-surface boundary. `RuntimeUiManager::dispatch_pointer_event(...)` and `RuntimeUiManager::dispatch_navigation_event(...)` are crate-local forwarding methods over the owned `UiSurface`, so the manager can act as the runtime host facade while capture, focus, and navigation handling remain implemented by the shared tree/surface dispatch contracts.
 
@@ -542,7 +542,7 @@ On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, S
 
 On 2026-04-30, Task 7 Runtime UI graphics fixture acceptance was added and validated under the existing `runtime-ui-integration-tests` feature. `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test / 0 failed / 1195 filtered out after waiting for an artifact lock, and `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 7 tests / 0 failed.
 
-On 2026-04-30, Task 6 Runtime UI dispatch acceptance was validated through the manager facade and the existing runtime boundary suite. `cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed 1 test / 0 failed / 1190 filtered out, `cargo test -p zircon_runtime --lib ui_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed 17 tests / 0 failed / 1174 filtered out, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed. Targeted formatting also passed after applying rustfmt: `rustfmt --edition 2021 --check zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_runtime\src\tests\ui_boundary\runtime_host.rs zircon_editor\src\tests\host\slint_window\generic_host_layout_paths.rs`.
+On 2026-04-30, Task 6 Runtime UI dispatch acceptance was validated through the manager facade and the existing runtime boundary suite. `cargo test -p zircon_runtime --lib runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed 1 test / 0 failed / 1190 filtered out, `cargo test -p zircon_runtime --lib ui_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed 17 tests / 0 failed / 1174 filtered out, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime --message-format short --color never` passed. Targeted formatting also passed after applying rustfmt: `rustfmt --edition 2021 --check zircon_runtime\src\ui\runtime_ui\runtime_ui_manager.rs zircon_runtime\src\tests\ui_boundary\runtime_host.rs zircon_editor\src\tests\host\retained_window\generic_host_layout_paths.rs`.
 
 On 2026-04-30, the no-Slint Task 5 equivalent guards were rechecked after the hard fence: `cargo test -p zircon_editor --lib generic_host_layout_paths --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never` passed 3 tests / 0 failed / 841 filtered out, and `cargo test -p zircon_editor --lib generic_host_boundary --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never` passed 6 tests / 0 failed / 838 filtered out. The earlier parallel attempt for those editor guards timed out while waiting on Cargo package/artifact locks; the sequential reruns are the accepted evidence.
 
@@ -567,7 +567,7 @@ On 2026-04-27, the focused showcase cutover checks passed with `--locked` and `-
 - `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane`
 - `cargo test -p zircon_editor --lib component_showcase_template_fields_dispatch_live_edits`
 - `cargo test -p zircon_runtime --lib ui::tests::component_catalog`
-- `cargo test -p zircon_editor --lib slint_host_build_uses_material_style`
+- `cargo test -p zircon_editor --lib retained_host_build_uses_material_style`
 - `cargo check -p zircon_editor --lib`
 - `cargo test -p zircon_editor --lib builtin_activity_windows_expose_window_template_documents`
 - `cargo test -p zircon_editor --lib host_projection_carries_runtime_component_properties_and_routes`
@@ -611,44 +611,44 @@ The follow-up ContextActionMenu slice on 2026-04-28 added `TemplatePaneMenuItemD
 
 The first RED run of `component_showcase_template_materializes_structured_context_menu_rows` failed at compile time on the expected missing `structured_menu_items` projection field. After implementation, the full `component_showcase` filter passed 18 focused tests. The first green attempt exceeded the tool timeout while compiling dependencies, but the underlying Cargo process drained and the immediate rerun passed without any Runtime UI showcase failure.
 
-The follow-up ListRow/TreeRow slice on 2026-04-28 added explicit selected and tree hierarchy projection for generic component rows. `ListRowDemo` declares selected/focused/hovered state in `.ui.toml`, `TreeRowDemo` declares depth and indentation, and `template_pane.slint` applies the retained indentation to the disclosure icon and text columns. The focused WSL checks used `CARGO_TARGET_DIR=/tmp/zircon-target-ui-showcase` and passed:
+The follow-up ListRow/TreeRow slice on 2026-04-28 added explicit selected and tree hierarchy projection for generic component rows. `ListRowDemo` declares selected/focused/hovered state in `.ui.toml`, `TreeRowDemo` declares depth and indentation, and the retained host template projection applies that retained indentation to the disclosure icon and text columns. The focused WSL checks used `CARGO_TARGET_DIR=/tmp/zircon-target-ui-showcase` and passed:
 
 - `cargo test -p zircon_editor --lib component_showcase_template_materializes_tree_and_list_row_state --locked --jobs 1`
 - `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1`
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1`
 - `cargo check -p zircon_editor --lib --locked --jobs 1`
 
-The first RED run failed on the expected missing template use of `tree_depth`. After implementation, the full `component_showcase` filter passed 19 focused tests. `cargo check` passed with unrelated unused warnings in `zircon_editor/src/ui/slint_host/app/asset_drag_payload.rs`.
+The first RED run failed on the expected missing template use of `tree_depth`. After implementation, the full `component_showcase` filter passed 19 focused tests. `cargo check` passed with unrelated unused warnings in `zircon_editor/src/ui/retained_host/app/asset_drag_payload.rs`.
 
 At that stage, asset and instance drag/drop were semantic contracts and demo transient state. The active `runtime-ui-drag-source-metadata` session first added asset-browser row integration through existing editor data sources without changing the component descriptor layer. The later Hierarchy follow-up now covers scene-tree scene-instance payload arming for `InstanceField` and `ObjectField`, while other non-asset drag sources such as dedicated instance lists remain outside this slice.
 
-The latest Windows follow-up keeps the generic popup layer aligned with retained `.ui.toml` metadata by projecting `has_popup_anchor`, `popup_anchor_x`, and `popup_anchor_y` through `TemplatePaneNodeData`; `ContextActionMenu` now positions its popup from authored anchor data when present and falls back to the row frame otherwise. The same pass also fixed the real asset-browser drag-source fixture so `PaneSurfaceHostContext.asset_content_pointer_event` is validated with a visible catalog row and produces `UiDragPayload` through the normal Slint host -> asset pointer bridge path instead of an empty no-project snapshot. The focused `asset_drag_payload`, `component_showcase`, `tests::editor_event::runtime`, and `zircon_app` editor CLI parser filters passed against `D:\cargo-targets\zircon-codex-editor-component-drawer-bindings`.
+The latest Windows follow-up keeps the generic popup layer aligned with retained `.ui.toml` metadata by projecting `has_popup_anchor`, `popup_anchor_x`, and `popup_anchor_y` through `TemplatePaneNodeData`; `ContextActionMenu` now positions its popup from authored anchor data when present and falls back to the row frame otherwise. The same pass also fixed the real asset-browser drag-source fixture so `PaneSurfaceHostContext.asset_content_pointer_event` is validated with a visible catalog row and produces `UiDragPayload` through the normal retained host -> asset pointer bridge path instead of an empty no-project snapshot. The focused `asset_drag_payload`, `component_showcase`, `tests::editor_event::runtime`, and `zircon_app` editor CLI parser filters passed against `D:\cargo-targets\zircon-codex-editor-component-drawer-bindings`.
 
-The Hierarchy scene-instance drag-source follow-up on 2026-04-28 adds `PaneSurfaceHostContext.hierarchy_pointer_event`, routes left-button down/up from `HierarchyPaneView`, stores `active_scene_drag_payload` on the Slint editor host, and consumes that payload for `InstanceFieldDropped` and `ObjectFieldDropped`. Focused tests were added for hierarchy pointer-down arming, pointer-up clearing, and ObjectField scene-instance consumption. `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the tracked touched files with only LF-to-CRLF warnings, and static symbol checks confirmed the new callback and payload path. The focused Cargo run for `hierarchy_pointer_down_arms_scene_instance_payload_for_instance_field_drop` timed out in the local Cargo compile queue before any Rust/Slint diagnostic; a later 300-second rerun against `D:\cargo-targets\zircon-runtime-ui-catalog-props` also timed out before producing test output. No residual Cargo/rustc process for that target or test remained afterward, while unrelated concurrent validation processes were left untouched. Pending reruns:
+The Hierarchy scene-instance drag-source follow-up on 2026-04-28 adds `PaneSurfaceHostContext.hierarchy_pointer_event`, routes left-button down/up from `HierarchyPaneView`, stores `active_scene_drag_payload` on the retained editor host, and consumes that payload for `InstanceFieldDropped` and `ObjectFieldDropped`. Focused tests were added for hierarchy pointer-down arming, pointer-up clearing, and ObjectField scene-instance consumption. `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the tracked touched files with only LF-to-CRLF warnings, and static symbol checks confirmed the new callback and payload path. The focused Cargo run for `hierarchy_pointer_down_arms_scene_instance_payload_for_instance_field_drop` timed out in the local Cargo compile queue before any Rust diagnostic; a later 300-second rerun against `D:\cargo-targets\zircon-runtime-ui-catalog-props` also timed out before producing test output. No residual Cargo/rustc process for that target or test remained afterward, while unrelated concurrent validation processes were left untouched. Pending reruns:
 
 - `cargo test -p zircon_editor --lib hierarchy_pointer_down_arms_scene_instance_payload_for_instance_field_drop --locked --jobs 1`
 - `cargo test -p zircon_editor --lib hierarchy_pointer_up_clears_scene_instance_payload --locked --jobs 1`
 - `cargo test -p zircon_editor --lib object_field_drop_accepts_active_scene_instance_payload --locked --jobs 1`
 - `cargo check -p zircon_editor --lib --locked --jobs 1`
 
-The follow-up module-slimming pass moves real drag-source tests out of the oversized `zircon_editor/src/ui/slint_host/app/tests.rs` host test file and into `zircon_editor/src/ui/slint_host/app/tests/drag_sources.rs`. The extracted module owns Asset Browser payload metadata tests, AssetField real/drop fallback tests, Hierarchy scene-instance payload tests, and ObjectField scene-instance payload consumption. `app/tests.rs` remains the shared host harness and pointer-routing test boundary, dropping from roughly 1880 lines to roughly 1454 lines before further feature work. Formatting passed with `cargo fmt --package zircon_editor`; focused Cargo compilation remains pending behind the same local compile queue pressure.
+The follow-up module-slimming pass moves real drag-source tests out of the oversized `zircon_editor/src/ui/retained_host/app/tests.rs` host test file and into `zircon_editor/src/ui/retained_host/app/tests/drag_sources.rs`. The extracted module owns Asset Browser payload metadata tests, AssetField real/drop fallback tests, Hierarchy scene-instance payload tests, and ObjectField scene-instance payload consumption. `app/tests.rs` remains the shared host harness and pointer-routing test boundary, dropping from roughly 1880 lines to roughly 1454 lines before further feature work. Formatting passed with `cargo fmt --package zircon_editor`; focused Cargo compilation remains pending behind the same local compile queue pressure.
 
-The WSL follow-up on 2026-04-28 verifies the generic media-preview path for the showcase: `TemplatePaneNodeData` carries `preview_image: image` and `has_preview_image`, `ImageDemo` uses the local `ui/editor/showcase_checker.svg` asset, `IconDemo` resolves `icon_name` through the ionicons asset folder, and `SvgIconDemo` resolves its retained source into a loaded Slint SVG image with non-zero dimensions. The same WSL pass verifies the ContextActionMenu popup anchor values projected from `.ui.toml`.
+The WSL follow-up on 2026-04-28 verifies the generic media-preview path for the showcase: `TemplatePaneNodeData` carries `preview_image: image` and `has_preview_image`, `ImageDemo` uses the local `ui/editor/showcase_checker.svg` asset, `IconDemo` resolves `icon_name` through the ionicons asset folder, and `SvgIconDemo` resolves its retained source into a loaded SVG image with non-zero dimensions. The same WSL pass verifies the ContextActionMenu popup anchor values projected from `.ui.toml`.
 
 The 2026-05-06 native painter follow-up closes the visible part of that media-preview path. The shared preview loader now lives at `ui/layouts/views/preview_images.rs`, and the Rust-owned host painter consumes loaded `preview_image` pixels for `Image`, `Icon`, and `SvgIcon` template nodes instead of stopping at placeholder panels. Runtime image render commands also resolve `UiVisualAssetRef::Image` and `UiVisualAssetRef::Icon` through the editor asset roots before falling back to deterministic placeholders. In practice, `ImageDemo` draws the decoded checker SVG, `IconDemo` draws an ionicons SVG tinted for the native host, and `SvgIconDemo` draws the retained SVG source while control rows, bindings, and layout still come from `component_showcase.ui.toml`.
 
 The next Array/Map row-edit follow-up on 2026-04-28 extends `TemplatePaneCollectionFieldData` with `edit_action_id`. ArrayField and MapField child rows now project their row-specific Set binding ids, and the generic collection `LineEdit` dispatches `row_id=value` through `component_showcase_control_edited`. `pane_surface_actions.rs` converts `array-<index>=...` payloads into `UiComponentShowcaseDemoEventInput::SetElement` and `map-<key>=...` payloads into `SetMapEntry`, parsing numeric collection text into `UiValue::Float` and keeping non-numeric text as `UiValue::String`. This keeps row-level editing in the retained event path instead of adding showcase-specific Slint business logic.
 
-Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the touched files with only existing LF-to-CRLF warnings, and a first Windows compile attempt caught and fixed an invalid `SlintUiHostBindingProjection.dispatch_kind` field access. Focused Cargo tests could not be completed in this pass because concurrent Windows and WSL Cargo sessions repeatedly held editor/runtime build work for more than the tool timeout; the timed-out Cargo processes started by this pass were terminated, while unrelated concurrent validation processes were left untouched. The pending focused checks are:
+Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the touched files with only existing LF-to-CRLF warnings, and a first Windows compile attempt caught and fixed an invalid retained host binding-projection `dispatch_kind` field access. Focused Cargo tests could not be completed in this pass because concurrent Windows and WSL Cargo sessions repeatedly held editor/runtime build work for more than the tool timeout; the timed-out Cargo processes started by this pass were terminated, while unrelated concurrent validation processes were left untouched. The pending focused checks are:
 
 - `cargo test -p zircon_editor --lib component_showcase_template_materializes_collection_field_edit_rows --locked --jobs 1`
 - `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1`
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1`
 - `cargo check -p zircon_editor --lib --locked --jobs 1`
 
-The active drag target follow-up on 2026-04-28 fills the last retained control-state gap from the V1 projection list. `TemplatePaneNodeData` now carries `active_drag_target`, `pane_data_conversion/pane_component_projection/mod.rs` reads it from `.ui.toml`, legacy template-node conversion defaults it to false, and `template_pane.slint` renders active drag targets with a stronger border/background than ordinary drop-hover. `AssetFieldDemo` marks both `drop_hovered` and `active_drag_target` in `.ui.toml`, giving the showcase a static retained example of an active reference drop target without touching real asset-browser drag-source ownership.
+The active drag target follow-up on 2026-04-28 fills the last retained control-state gap from the V1 projection list. `TemplatePaneNodeData` now carries `active_drag_target`, `pane_data_conversion/pane_component_projection/mod.rs` reads it from `.ui.toml`, legacy template-node conversion defaults it to false, and retained host template projection renders active drag targets with a stronger border/background than ordinary drop-hover. `AssetFieldDemo` marks both `drop_hovered` and `active_drag_target` in `.ui.toml`, giving the showcase a static retained example of an active reference drop target without touching real asset-browser drag-source ownership.
 
-Validation note for this active-state follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the touched files with only existing LF-to-CRLF warnings, and static inspection confirmed `active_drag_target` is present in the shared Slint DTO, generic template styling, runtime component projection, legacy conversion defaults, and showcase asset. The focused WSL test `cargo test -p zircon_editor --lib component_showcase_template_materializes_deep_collection_and_menu_state --locked --jobs 1` was started with `CARGO_TARGET_DIR=/tmp/zircon-target-ui-showcase`, but exceeded the tool timeout while rebuilding dependency crates such as `wgpu_core`; the timed-out WSL Cargo/rustc processes from this pass were terminated. Other concurrent Windows editor tests were left untouched. Pending reruns remain:
+Validation note for this active-state follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for the touched files with only existing LF-to-CRLF warnings, and static inspection confirmed `active_drag_target` is present in the shared host-contract DTO, generic template styling, runtime component projection, legacy conversion defaults, and showcase asset. The focused WSL test `cargo test -p zircon_editor --lib component_showcase_template_materializes_deep_collection_and_menu_state --locked --jobs 1` was started with `CARGO_TARGET_DIR=/tmp/zircon-target-ui-showcase`, but exceeded the tool timeout while rebuilding dependency crates such as `wgpu_core`; the timed-out WSL Cargo/rustc processes from this pass were terminated. Other concurrent Windows editor tests were left untouched. Pending reruns remain:
 
 - `cargo test -p zircon_editor --lib component_showcase_template_materializes_deep_collection_and_menu_state --locked --jobs 1`
 - `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1`
@@ -670,7 +670,7 @@ Fresh focused Windows commands:
 - `cargo test -p zircon_editor --lib tests::editor_event::runtime --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1`
 - `cargo test -p zircon_app --features target-editor-host editor_cli_operation --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --test-threads=1`
 
-The SearchSelect query follow-up on 2026-04-28 adds `TemplatePaneNodeData.search_query`, projects the `SearchSelectDemo` `query = "number"` metadata through `pane_data_conversion/pane_component_projection/mod.rs`, defaults the field for legacy template-node conversion, and renders a retained SearchSelect primitive that shows the selected value and query text in `template_pane.slint`. The RED run failed at compile time on the expected missing `search_query` DTO field before implementation. Focused Windows validation then passed against `D:\cargo-targets\zircon-codex-editor-component-drawer-bindings`:
+The SearchSelect query follow-up on 2026-04-28 adds `TemplatePaneNodeData.search_query`, projects the `SearchSelectDemo` `query = "number"` metadata through `pane_data_conversion/pane_component_projection/mod.rs`, defaults the field for legacy template-node conversion, and renders a retained SearchSelect primitive that shows the selected value and query text through host-contract projection. The RED run failed at compile time on the expected missing `search_query` DTO field before implementation. Focused Windows validation then passed against `D:\cargo-targets\zircon-codex-editor-component-drawer-bindings`:
 
 - `cargo test -p zircon_editor --lib component_showcase_template_materializes_search_select_query_state --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --nocapture`
 - `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-component-drawer-bindings -- --nocapture`
@@ -686,7 +686,7 @@ The editable-field commit projection follow-up on 2026-05-01 adds `TemplatePaneN
 
 Focused validation for this follow-up passed in `target\codex-runtime-ui-showcase-validation`: `cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` ran 1 test / 0 failed, `cargo test -p zircon_editor --lib showcase_demo_state_applies_projected_bindings_to_retained_values_and_log --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` ran 1 test / 0 failed, `cargo test -p zircon_editor --lib showcase_edit_input_maps_collection_row_payloads_to_typed_events --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` ran 1 test / 0 failed, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` completed. Parallel final validation attempts and one cold sequential rerun timed out on package/artifact/build locks or dependency rebuilds before producing project diagnostics; the accepted evidence is from the warmed sequential reruns.
 
-The structured option-row follow-up on 2026-04-28 upgrades generic selection popups from string-only candidate rows to retained `TemplatePaneOptionData` rows. `Dropdown`, `ComboBox`, `EnumField`, `FlagsField`, and `SearchSelect` still carry the legacy `options: [string]` fallback, but `pane_data_conversion/pane_component_projection/mod.rs` now also derives `structured_options` from authored `.ui.toml` `options`, current `value`, `disabled_options`, and `special_options`. The generic Slint popup prefers structured rows, renders selected/disabled/special state, dispatches stable option ids, and blocks disabled option dispatch. `DropdownDemo` now marks `runtime` as a special option and `debug` as disabled, while `FlagsFieldDemo` projects selected flags from its array value.
+The structured option-row follow-up on 2026-04-28 upgrades generic selection popups from string-only candidate rows to retained `TemplatePaneOptionData` rows. `Dropdown`, `ComboBox`, `EnumField`, `FlagsField`, and `SearchSelect` still carry the legacy `options: [string]` fallback, but `pane_data_conversion/pane_component_projection/mod.rs` now also derives `structured_options` from authored `.ui.toml` `options`, current `value`, `disabled_options`, and `special_options`. The generic retained popup prefers structured rows, renders selected/disabled/special state, dispatches stable option ids, and blocks disabled option dispatch. `DropdownDemo` now marks `runtime` as a special option and `debug` as disabled, while `FlagsFieldDemo` projects selected flags from its array value.
 
 Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, and `git diff --check` passed for the touched showcase/template/projection files with only existing LF-to-CRLF warnings. The RED Cargo run for `component_showcase_template_popup_options_dispatch_candidate_selection` could not reach the new Runtime UI assertions because the current workspace is blocked earlier by unrelated duplicate `SceneRendererAdvancedPluginOutputs` virtual-geometry accessor definitions in `zircon_runtime`. Pending reruns once that external compile blocker is cleared:
 
@@ -695,13 +695,13 @@ Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, 
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1`
 - `cargo check -p zircon_editor --lib --locked --jobs 1`
 
-The structured option-state follow-up on 2026-04-28 extends those option rows with retained `focused`, `hovered`, `pressed`, and `matched` state so selection popups can show keyboard focus, pointer hover, active press, and search-query match state through the same `.ui.toml -> projection -> Slint host` path as the rest of the component state chain. `DropdownDemo` now authors `focused_options`, `hovered_options`, and `pressed_options` for visible showcase coverage, while `SearchSelectDemo` derives `matched` from its retained `query = "number"` value. The generic popup applies row background and focus border styling from those projected fields while continuing to block disabled option dispatch. This pass also extracts option-row projection into `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_option_projection.rs`, leaving `pane_data_conversion/pane_component_projection/mod.rs` as the component orchestration boundary instead of accumulating more selection-specific parsing helpers.
+The structured option-state follow-up on 2026-04-28 extends those option rows with retained `focused`, `hovered`, `pressed`, and `matched` state so selection popups can show keyboard focus, pointer hover, active press, and search-query match state through the same `.ui.toml -> projection -> retained host` path as the rest of the component state chain. `DropdownDemo` now authors `focused_options`, `hovered_options`, and `pressed_options` for visible showcase coverage, while `SearchSelectDemo` derives `matched` from its retained `query = "number"` value. The generic popup applies row background and focus border styling from those projected fields while continuing to block disabled option dispatch. This pass also extracts option-row projection into `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_option_projection.rs`, leaving `pane_data_conversion/pane_component_projection/mod.rs` as the component orchestration boundary instead of accumulating more selection-specific parsing helpers.
 
 Validation note for this follow-up: `cargo fmt --package zircon_editor` passed, `git diff --check` passed for tracked touched files with only existing LF-to-CRLF warnings, and a trailing-whitespace scan covered the new `pane_data_conversion/pane_option_projection.rs` file. A focused Cargo RED run could not reach the new assertions because Cargo was waiting on the shared artifact-directory lock; the broader editor/runtime Cargo validation remains pending behind the same external runtime compile/lock pressure described above. Pending reruns remain the same focused component-showcase commands plus `cargo check -p zircon_editor --lib`.
 
-The structured menu-row follow-up on 2026-04-28 applies the same retained interaction-state model to `ContextActionMenu`. `TemplatePaneMenuItemData` now carries `focused`, `hovered`, and `pressed` flags in addition to raw id, stable action id, label, shortcut, checked, disabled, and separator state. The generic popup uses those fields for row background and focus border styling while preserving disabled/separator dispatch rejection, and it dispatches `menu_item.action_id` so encoded display metadata such as `Duplicate|hovered,pressed|Ctrl+D` never leaks into the event reducer. `ContextActionMenuDemo` now authors `Inspect|checked,focused|Ctrl+I` and `Duplicate|hovered,pressed|Ctrl+D`, which lets the showcase validate menu focus and active-row states without embedding business UI structure in `.slint`. Menu-row parsing moved into `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_menu_projection.rs`, keeping `pane_data_conversion/pane_component_projection/mod.rs` focused on orchestration.
+The structured menu-row follow-up on 2026-04-28 applies the same retained interaction-state model to `ContextActionMenu`. `TemplatePaneMenuItemData` now carries `focused`, `hovered`, and `pressed` flags in addition to raw id, stable action id, label, shortcut, checked, disabled, and separator state. The generic popup uses those fields for row background and focus border styling while preserving disabled/separator dispatch rejection, and it dispatches `menu_item.action_id` so encoded display metadata such as `Duplicate|hovered,pressed|Ctrl+D` never leaks into the event reducer. `ContextActionMenuDemo` now authors `Inspect|checked,focused|Ctrl+I` and `Duplicate|hovered,pressed|Ctrl+D`, which lets the showcase validate menu focus and active-row states without embedding business UI structure in `.slint`. Menu-row parsing moved into `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_menu_projection.rs`, keeping `pane_data_conversion/pane_component_projection/mod.rs` focused on orchestration.
 
-Validation note for this follow-up: `cargo fmt --package zircon_editor` passed. `git diff --check` passed for the tracked touched docs, tests, and Slint template files with only existing LF-to-CRLF warnings, and a trailing-whitespace scan covered the untracked `pane_data_conversion/pane_menu_projection.rs` plus this session note. The first focused Cargo RED run and the later focused GREEN attempt for `component_showcase_template_materializes_structured_context_menu_rows` both timed out in the active local Cargo queue before producing a Rust/Slint diagnostic; no residual process from that specific focused test remained afterward, and unrelated concurrent validation processes were left untouched. Pending reruns remain the focused context-menu test, the pane projection test, broad `component_showcase`, and `cargo check -p zircon_editor --lib`.
+Validation note for this follow-up: `cargo fmt --package zircon_editor` passed. `git diff --check` passed for the tracked touched docs, tests, and retained template files with only existing LF-to-CRLF warnings, and a trailing-whitespace scan covered the untracked `pane_data_conversion/pane_menu_projection.rs` plus this session note. The first focused Cargo RED run and the later focused GREEN attempt for `component_showcase_template_materializes_structured_context_menu_rows` both timed out in the active local Cargo queue before producing a Rust diagnostic; no residual process from that specific focused test remained afterward, and unrelated concurrent validation processes were left untouched. Pending reruns remain the focused context-menu test, the pane projection test, broad `component_showcase`, and `cargo check -p zircon_editor --lib`.
 
 Task 7 documentation/validation for the Runtime UI drag-source metadata slice ran fresh focused Windows commands from the repository root without a custom target directory:
 
@@ -710,11 +710,11 @@ Task 7 documentation/validation for the Runtime UI drag-source metadata slice ra
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1` passed: 20 tests passed, 0 failed.
 - `cargo check -p zircon_editor --lib --locked --jobs 1` passed.
 
-The broad `slint_host` validation was then unblocked. The shared projection mismatch in `apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geometry_is_zeroed` was traced to a stale expectation that omitted the scene viewport toolbar height even though the default Scene document pane intentionally enables toolbar chrome. The assertion now derives expected viewport content from the shared document frame plus document/header/toolbar chrome, matching the adjacent visible-drawer projection tests. Two compile drift fixes were also required while rerunning the broad filters: manual editor HUD `UiRenderCommand` constructors now set `text_layout: None`, and the Slint adapter forwards `HostMenuChromeData.menus` into generated `HostMenuChromeMenuData` / `HostMenuChromeItemData` models.
+The broad `retained_host` validation was then unblocked. The shared projection mismatch in `apply_presentation_prefers_shared_visible_drawer_projection_when_legacy_geometry_is_zeroed` was traced to a stale expectation that omitted the scene viewport toolbar height even though the default Scene document pane intentionally enables toolbar chrome. The assertion now derives expected viewport content from the shared document frame plus document/header/toolbar chrome, matching the adjacent visible-drawer projection tests. Two compile drift fixes were also required while rerunning the broad filters: manual editor HUD `UiRenderCommand` constructors now set `text_layout: None`, and the retained adapter forwards `HostMenuChromeData.menus` into host-contract menu chrome models.
 
 Fresh final Windows evidence after those fixes:
 
-- `cargo test -p zircon_editor --lib slint_host --locked --jobs 1` passed: 114 tests passed, 0 failed.
+- `cargo test -p zircon_editor --lib retained_host --locked --jobs 1` passed: 114 tests passed, 0 failed.
 - `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1` passed: 20 tests passed, 0 failed.
 - `cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1` passed: 16 tests passed, 0 failed.
 - `cargo check -p zircon_editor --lib --locked --jobs 1` passed.
@@ -813,13 +813,13 @@ The component category documentation follow-up on 2026-04-28 adds Rustdoc to `Ui
 
 The extracted real drag-source test module then reached a lower Runtime graphics compile boundary before editor linkage. The fix is intentionally support-only: the seed-backed executed-cluster helper exports now match the split pass module boundary, the test-only ordering re-export is gated behind `cfg(test)`, and the builtin render-feature dispatcher uses the public `graphics::feature::RenderFeatureCapabilityRequirement` path. `cargo fmt --package zircon_runtime --package zircon_editor` passed. The focused editor compile command `cargo test -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-shared\editor --no-run drag_sources` still needs a quiet Cargo queue; the latest attempts were blocked by active shared package-cache/build-directory locks from unrelated sessions rather than a Runtime UI assertion.
 
-The follow-up test-structure cleanup moves the contiguous `component_showcase_*` Slint host assertions out of `zircon_editor/src/ui/slint_host/ui/tests.rs` into `zircon_editor/src/ui/slint_host/ui/tests/component_showcase.rs`. This keeps the parent file as the shared host fixture/projection harness and leaves the showcase-specific template/projection checks in a focused module. The parent file drops from roughly 3460 lines to roughly 2665 lines, while the new showcase test module is roughly 797 lines. Formatting checks passed with `cargo fmt --package zircon_editor -- --check`, `cargo fmt --package zircon_runtime -- --check`, and direct `rustfmt --edition 2021 ... --check` on the split files; Cargo test execution remains behind the same active local Cargo queue.
+The follow-up test-structure cleanup moves the contiguous `component_showcase_*` retained host assertions out of `zircon_editor/src/ui/retained_host/ui/tests.rs` into `zircon_editor/src/ui/retained_host/ui/tests/component_showcase.rs`. This keeps the parent file as the shared host fixture/projection harness and leaves the showcase-specific template/projection checks in a focused module. The parent file drops from roughly 3460 lines to roughly 2665 lines, while the new showcase test module is roughly 797 lines. Formatting checks passed with `cargo fmt --package zircon_editor -- --check`, `cargo fmt --package zircon_runtime -- --check`, and direct `rustfmt --edition 2021 ... --check` on the split files; Cargo test execution remains behind the same active local Cargo queue.
 
 The next module-slimming slice extracts the Runtime UI Showcase binding table out of `zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs` into `zircon_editor/src/ui/template_runtime/builtin/showcase_template_bindings.rs`. `template_bindings.rs` now owns the general workbench/editor binding registry and extends it with the showcase-specific list, while the new module owns the `UiComponentShowcase/*` binding ids and custom demo action payloads. This drops the main binding file from roughly 952 lines to roughly 581 lines and gives future showcase controls a focused binding home instead of growing the mixed workbench binding table.
 
 The Runtime catalog test file received the same boundary cleanup: `component_state_*` event/reducer tests now live in `zircon_runtime/src/ui/tests/component_catalog/component_state.rs`, while `component_catalog.rs` keeps descriptor presence, schema normalization, and shared assertion helpers. The parent catalog test drops from roughly 1235 lines to roughly 538 lines, and the new state-event module is roughly 699 lines. `cargo fmt --package zircon_runtime` was run after the extraction.
 
-The MapField row-edit follow-up adds retained key editing alongside the existing value cell editing. `UiComponentEventKind::RenameMapKey` and `UiComponentEvent::RenameMapKey` are now part of the runtime component contract, and `MapField` descriptors advertise that event. `UiComponentState` applies it by moving the old map value to the replacement key, rejecting duplicate target keys and missing source keys without creating fallback entries. On the editor side, `TemplatePaneCollectionFieldData` now carries `key_edit_action_id`; Map rows project it from the same `UiComponentShowcase/MapFieldSetEntry` binding as value edits, while Array rows and empty rows leave it empty. The generic `template_pane.slint` renders a `collection-field-key` `LineEdit` for Map keys and dispatches `key:<row_id>=<new-key>` payloads, and `pane_surface_actions.rs` translates those payloads into `UiComponentShowcaseDemoEventInput::RenameMapEntry`. This keeps Map key edits on the retained `.ui.toml -> projection -> Slint host -> event queue -> UiComponentState` route instead of adding showcase-specific Slint behavior.
+The MapField row-edit follow-up adds retained key editing alongside the existing value cell editing. `UiComponentEventKind::RenameMapKey` and `UiComponentEvent::RenameMapKey` are now part of the runtime component contract, and `MapField` descriptors advertise that event. `UiComponentState` applies it by moving the old map value to the replacement key, rejecting duplicate target keys and missing source keys without creating fallback entries. On the editor side, `TemplatePaneCollectionFieldData` now carries `key_edit_action_id`; Map rows project it from the same `UiComponentShowcase/MapFieldSetEntry` binding as value edits, while Array rows and empty rows leave it empty. The generic retained template renders a `collection-field-key` line edit for Map keys and dispatches `key:<row_id>=<new-key>` payloads, and `pane_surface_actions.rs` translates those payloads into `UiComponentShowcaseDemoEventInput::RenameMapEntry`. This keeps Map key edits on the retained `.ui.toml -> projection -> retained host -> event queue -> UiComponentState` route instead of adding showcase-specific retained host behavior.
 
 Current validation for the MapField key-edit slice is partially blocked by the active local Cargo queue. `cargo fmt --package zircon_runtime`, `cargo fmt --package zircon_editor`, `cargo fmt --package zircon_runtime -- --check`, and `cargo fmt --package zircon_editor -- --check` passed. A focused `cargo test -p zircon_runtime component_state_renames_map_keys_and_rejects_duplicate_targets --lib --locked --jobs 1` attempt timed out after four minutes while other unrelated Cargo/rustc processes were active; no Rust assertion or compiler diagnostic was produced for this slice. Focused editor/runtime reruns remain the next validation step once the shared Cargo pressure drains.
 
@@ -829,29 +829,29 @@ Validation for the type-metadata follow-up: formatting and static diff checks pa
 
 The next collection-row operation follow-up adds row-specific action metadata for item removal and Array reordering. `TemplatePaneCollectionFieldData` now carries `remove_action_id`, `move_up_action_id`, `move_up_payload`, `move_down_action_id`, and `move_down_payload`. Array rows derive those payloads from their retained index (`array-0=1`, `array-2=1`, etc.) and Map rows expose remove payloads keyed by `map-<key>`. The generic template renders compact row action affordances and dispatches them through `node_edited`, so the same event parsing path can map them back into `RemoveElement`, `MoveElement`, or `RemoveMapEntry` demo inputs. This removes another showcase-only assumption: row operations now belong to the retained collection row projection instead of hardcoded component-level action chips.
 
-Because collection row rendering was becoming its own responsibility, the Slint host row implementation was split out of `template_pane.slint` into `template_collection_field_row.slint`. `TemplatePane` now keeps only the collection row loop and forwards row edit callbacks, while the extracted row component owns key/value editors, bool toggles, and row-level remove/move affordances. This keeps the generic pane host closer to an orchestration boundary and gives future Array/Map validation UI a smaller component to extend.
+Because collection row rendering was becoming its own responsibility, the retained row projection was split out of the generic template pane path into a focused collection-field row owner. `TemplatePane` now keeps only the collection row loop and forwards row edit callbacks, while the extracted row component owns key/value editors, bool toggles, and row-level remove/move affordances. This keeps the generic pane host closer to an orchestration boundary and gives future Array/Map validation UI a smaller component to extend.
 
-The collection child-row validation follow-up makes Array/Map row metadata more than editable text. `pane_data_conversion/pane_component_projection/mod.rs` now derives per-row `validation_level` and `validation_message` from the declared `element_type`, `key_type`, and `value_type`: empty collections project a warning row, map keys are checked against required/non-string key constraints, numeric and boolean value rows reject incompatible `UiValue` kinds, reference-like rows warn when their value is empty, and vector/color rows validate their expected shape. `template_collection_field_row.slint` renders those retained validation messages directly in the row header, uses warning/error chrome from the row metadata, and hides editors on empty-state rows so an empty collection reads as an inspector state rather than an inert input field. The Runtime reducer now also writes collection operation errors into `UiValidationState` for missing array indices, duplicate map keys, and missing map keys, so failed row operations can surface through the same retained validation channel as numeric and reference-drop errors.
+The collection child-row validation follow-up makes Array/Map row metadata more than editable text. `pane_data_conversion/pane_component_projection/mod.rs` now derives per-row `validation_level` and `validation_message` from the declared `element_type`, `key_type`, and `value_type`: empty collections project a warning row, map keys are checked against required/non-string key constraints, numeric and boolean value rows reject incompatible `UiValue` kinds, reference-like rows warn when their value is empty, and vector/color rows validate their expected shape. The retained collection row renderer displays those validation messages directly in the row header, uses warning/error chrome from the row metadata, and hides editors on empty-state rows so an empty collection reads as an inspector state rather than an inert input field. The Runtime reducer now also writes collection operation errors into `UiValidationState` for missing array indices, duplicate map keys, and missing map keys, so failed row operations can surface through the same retained validation channel as numeric and reference-drop errors.
 
-Validation for this follow-up: targeted Rust formatting passed for `pane_data_conversion/pane_component_projection/mod.rs`, `structure_component_tests.rs`, `ui/tests/component_showcase.rs`, `state.rs`, and `component_state.rs`; targeted `git diff --check` passed for the touched Runtime UI/editor Slint/doc files with only LF/CRLF warnings. Focused Cargo execution is still subject to the active local Cargo queue described above, so the next quiet-window rerun should cover the new private projection tests plus the existing Runtime component-state filter.
+Validation for this follow-up: targeted Rust formatting passed for `pane_data_conversion/pane_component_projection/mod.rs`, `structure_component_tests.rs`, `ui/tests/component_showcase.rs`, `state.rs`, and `component_state.rs`; targeted `git diff --check` passed for the touched Runtime UI/editor retained-template/doc files with only LF/CRLF warnings. Focused Cargo execution is still subject to the active local Cargo queue described above, so the next quiet-window rerun should cover the new private projection tests plus the existing Runtime component-state filter.
 
-The asset reference-list drag-source follow-up extends the real drag source chain beyond the asset content list. `AssetReferenceListPointerBridge` now exposes press handling, `ProjectedReferencePanel` forwards left-button down/up pointer events, `PaneSurfaceHostContext` carries `asset_reference_pointer_event`, and `SlintEditorHost::asset_reference_pointer_event` resolves References / Used By rows into retained `UiDragPayloadKind::Asset` payloads. Payload metadata records the specific source surface (`browser.references`, `activity.used_by`, etc.), source control id, uuid, locator, display name, resource kind, and extension; non-project external references remain non-draggable. The showcase drop path can therefore consume assets dragged from Asset Browser reference panels with the same typed accept/reject semantics as content-list assets.
+The asset reference-list drag-source follow-up extends the real drag source chain beyond the asset content list. `AssetReferenceListPointerBridge` now exposes press handling, `ProjectedReferencePanel` forwards left-button down/up pointer events, `PaneSurfaceHostContext` carries `asset_reference_pointer_event`, and `RetainedEditorHost::asset_reference_pointer_event` resolves References / Used By rows into retained `UiDragPayloadKind::Asset` payloads. Payload metadata records the specific source surface (`browser.references`, `activity.used_by`, etc.), source control id, uuid, locator, display name, resource kind, and extension; non-project external references remain non-draggable. The showcase drop path can therefore consume assets dragged from Asset Browser reference panels with the same typed accept/reject semantics as content-list assets.
 
-Validation for this reference-list drag-source follow-up: targeted `rustfmt --edition 2021 --check` passed for the touched editor Rust files, targeted `git diff --check` passed for the touched docs/Rust/Slint files with only LF/CRLF warnings, and a trailing-whitespace scan passed for the untracked drag-source helper/test and reference-panel Slint files. Focused Cargo execution was not started in this slice because several unrelated Cargo/rustc editor/runtime builds were already active in the shared workspace; the next quiet-window rerun should cover `asset_drag_payload_resolves_reference_panel_metadata` and `asset_reference_pointer_down_arms_active_asset_drag_payload`.
+Validation for this reference-list drag-source follow-up: targeted `rustfmt --edition 2021 --check` passed for the touched editor Rust files, targeted `git diff --check` passed for the touched docs/Rust/retained-template files with only LF/CRLF warnings, and a trailing-whitespace scan passed for the untracked drag-source helper/test and reference-panel files. Focused Cargo execution was not started in this slice because several unrelated Cargo/rustc editor/runtime builds were already active in the shared workspace; the next quiet-window rerun should cover `asset_drag_payload_resolves_reference_panel_metadata` and `asset_reference_pointer_down_arms_active_asset_drag_payload`.
 
 The transient control-state projection follow-up completes another part of the retained interaction chain for the showcase. `UiComponentShowcaseDemoState` now treats explicit component state as authoritative for transient flags, so `focused`, `dragging`, `hovered`, `pressed`, `drop_hovered`, and `active_drag_target` are projected as explicit `true` or `false` values once a real event has touched that control. This lets runtime events such as `Hover(false)`, `Press(false)`, `DropHover(false)`, and `ActiveDragTarget(false)` override authored showcase props in `component_showcase.ui.toml` instead of leaving stale visual state stuck on. The editor showcase state test now exercises both sides of that transition for `ListRowDemo` and `AssetFieldDemo`.
 
 Validation for this transient-state follow-up: `rustfmt --edition 2021 --check zircon_editor/src/ui/template_runtime/showcase_demo_state.rs zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs` passed, and `git diff --check -- zircon_editor/src/ui/template_runtime/showcase_demo_state.rs zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs` passed with only LF/CRLF warnings. Focused Cargo reruns remain pending because several unrelated Cargo/rustc jobs were already active; the next quiet-window checks should include `cargo test -p zircon_editor --lib showcase_demo_state_projects_collection_children_and_control_flags --locked --jobs 1` and the runtime component-state filter that covers transient flag reducers.
 
-The ContextActionMenu trigger-position follow-up makes popup placement event-driven instead of only authored/static. `ContextActionMenu` now advertises retained `popup_anchor_x` and `popup_anchor_y` state plus the `OpenPopupAt` event in catalog coverage; `UiComponentState` stores the pointer anchor and opens the popup through the same reducer path as `OpenPopup`. The showcase binding table and `component_showcase.ui.toml` add `UiComponentShowcase/ContextActionMenuOpenAt`, `UiComponentShowcaseDemoState` accepts `OpenPopupAt { x, y }`, and `SlintUiHostNodeModel` exposes `has_popup_anchor`, `popup_anchor_x`, and `popup_anchor_y` for host tests and downstream projection. The generic Slint host now forwards right-button context requests from `TemplatePaneNode` with panel-space pointer coordinates through `PaneSurfaceHostContext.component_showcase_control_context_requested`, and `pane_surface_actions.rs` dispatches those coordinates into retained showcase state while keeping ordinary click activation on a deterministic demo anchor.
+The ContextActionMenu trigger-position follow-up makes popup placement event-driven instead of only authored/static. `ContextActionMenu` now advertises retained `popup_anchor_x` and `popup_anchor_y` state plus the `OpenPopupAt` event in catalog coverage; `UiComponentState` stores the pointer anchor and opens the popup through the same reducer path as `OpenPopup`. The showcase binding table and `component_showcase.ui.toml` add `UiComponentShowcase/ContextActionMenuOpenAt`, `UiComponentShowcaseDemoState` accepts `OpenPopupAt { x, y }`, and the retained host node model exposes `has_popup_anchor`, `popup_anchor_x`, and `popup_anchor_y` for host tests and downstream projection. The generic retained host now forwards right-button context requests from `TemplatePaneNode` with panel-space pointer coordinates through `PaneSurfaceHostContext.component_showcase_control_context_requested`, and `pane_surface_actions.rs` dispatches those coordinates into retained showcase state while keeping ordinary click activation on a deterministic demo anchor.
 
-Validation for this trigger-position follow-up: targeted Rust formatting passed for the touched Runtime UI tests plus editor showcase/runtime host files with `rustfmt --edition 2021`, and targeted `git diff --check` passed for the touched Runtime/editor/doc files with only LF/CRLF warnings. A focused RED-style Cargo attempt for `cargo test -p zircon_runtime --lib component_state_opens_context_action_menu_at_pointer_anchor --locked --jobs 1` timed out in the active local Cargo queue before any Rust/Slint diagnostic, so focused Cargo reruns remain pending. The next quiet-window checks should cover `component_state_opens_context_action_menu_at_pointer_anchor`, `showcase_context_action_menu_opens_at_retained_pointer_anchor`, and the `pane_surface_actions` unit test that parses `"x,y"` context anchors.
+Validation for this trigger-position follow-up: targeted Rust formatting passed for the touched Runtime UI tests plus editor showcase/runtime host files with `rustfmt --edition 2021`, and targeted `git diff --check` passed for the touched Runtime/editor/doc files with only LF/CRLF warnings. A focused RED-style Cargo attempt for `cargo test -p zircon_runtime --lib component_state_opens_context_action_menu_at_pointer_anchor --locked --jobs 1` timed out in the active local Cargo queue before any Rust diagnostic, so focused Cargo reruns remain pending. The next quiet-window checks should cover `component_state_opens_context_action_menu_at_pointer_anchor`, `showcase_context_action_menu_opens_at_retained_pointer_anchor`, and the `pane_surface_actions` unit test that parses `"x,y"` context anchors.
 
-The Inspector object drag-source follow-up adds the missing dedicated `UiDragPayloadKind::Object` source path for ObjectField. `SlintEditorHost` now keeps an `active_object_drag_payload` alongside the existing asset and scene-instance payloads, `ObjectFieldDropped` consumes object payloads before falling back to scene-instance or asset payloads, and `inspector.rs` can package the currently selected Inspector object as `object://scene/node/<id>` with `Scene Object: <name>` source metadata. Asset content/reference, Hierarchy, and Inspector pointer-down handlers also clear the other active reference payload slots before arming their own payload, so stale source state does not leak across real drag origins. The generic Inspector host forwards left-button down/up from the Transform header through `PaneSurfaceHostContext.inspector_reference_pointer_event`, so the flow stays retained and event-driven: Inspector pointer event -> typed drag payload -> showcase drop binding -> `UiComponentEvent::DropReference` -> retained ObjectField state and source summary projection.
+The Inspector object drag-source follow-up adds the missing dedicated `UiDragPayloadKind::Object` source path for ObjectField. `RetainedEditorHost` now keeps an `active_object_drag_payload` alongside the existing asset and scene-instance payloads, `ObjectFieldDropped` consumes object payloads before falling back to scene-instance or asset payloads, and `inspector.rs` can package the currently selected Inspector object as `object://scene/node/<id>` with `Scene Object: <name>` source metadata. Asset content/reference, Hierarchy, and Inspector pointer-down handlers also clear the other active reference payload slots before arming their own payload, so stale source state does not leak across real drag origins. The generic Inspector host forwards left-button down/up from the Transform header through `PaneSurfaceHostContext.inspector_reference_pointer_event`, so the flow stays retained and event-driven: Inspector pointer event -> typed drag payload -> showcase drop binding -> `UiComponentEvent::DropReference` -> retained ObjectField state and source summary projection.
 
 Validation for this object drag-source follow-up: targeted `rustfmt --edition 2021 --check` passed for the touched editor Rust host/test files, targeted `git diff --check` passed for the touched editor Slint/Rust/doc files with only LF/CRLF warnings, and the untracked drag-source test module plus session note passed a trailing-whitespace scan. Focused Cargo reruns should include `object_field_drop_consumes_active_object_drag_payload`, `inspector_pointer_down_arms_active_object_payload_for_object_field_drop`, and `inspector_pointer_up_clears_active_object_payload` once the local Cargo queue is quiet.
 
-The real drag-source rejection follow-up closes a host-side semantic gap in the reference drop path. `SlintEditorHost::demo_input_for_showcase_action` no longer falls back to the synthetic showcase payload when a real but incompatible drag payload is active. For `AssetFieldDropped`, the host prefers an active asset payload but will still deliver a scene-instance or object payload to Runtime if that is the real drag source, allowing `UiComponentState` and the `AssetField` drop policy to reject it and project `validation_level = error`. `InstanceFieldDropped` mirrors that behavior by preferring scene instances and forwarding active asset/object payloads for rejection. `ObjectFieldDropped` keeps the broad object/scene/asset acceptance path. After any real reference drop, the host clears all active reference payload slots so a finished drag cannot leak into the next retained event.
+The real drag-source rejection follow-up closes a host-side semantic gap in the reference drop path. `RetainedEditorHost::demo_input_for_showcase_action` no longer falls back to the synthetic showcase payload when a real but incompatible drag payload is active. For `AssetFieldDropped`, the host prefers an active asset payload but will still deliver a scene-instance or object payload to Runtime if that is the real drag source, allowing `UiComponentState` and the `AssetField` drop policy to reject it and project `validation_level = error`. `InstanceFieldDropped` mirrors that behavior by preferring scene instances and forwarding active asset/object payloads for rejection. `ObjectFieldDropped` keeps the broad object/scene/asset acceptance path. After any real reference drop, the host clears all active reference payload slots so a finished drag cannot leak into the next retained event.
 
 Validation for this rejection follow-up: `rustfmt --edition 2021` was run on `pane_surface_actions.rs` and `drag_sources.rs`. A focused RED-style Cargo attempt for `cargo test -p zircon_editor --lib asset_field_drop_rejects_active_scene_instance_payload --locked --jobs 1` timed out after three minutes behind unrelated active Cargo/rustc processes and produced no compiler or assertion diagnostic. The next quiet-window checks should rerun both new rejection tests plus the existing accepted real-payload drag-source tests.
 
@@ -861,7 +861,7 @@ The next module-slimming pass extracts deterministic showcase demo input constru
 
 The following module-slimming pass extracts module plugin action handling into `module_plugin_actions.rs`. The new module owns `ModulePluginAction` parsing, enable/disable dispatch, packaging policy cycling, target-mode cycling, project manifest persistence, status labels, and the focused unit tests for plugin action parsing and deterministic policy cycles. `pane_surface_actions.rs` now delegates `ModulePluginAction` clicks through the host method and otherwise stays focused on pane/control dispatch plus Runtime UI showcase binding application.
 
-The Slint host component-projection slimming pass splits `pane_data_conversion/pane_component_projection/mod.rs` into a small orchestration file and three focused child helpers. `collection_fields.rs` now owns Array/Map child-row projection, role inference, empty-state rows, and per-row validation tests; `showcase_actions.rs` owns the deterministic binding/action preference table and secondary action-chip projection; `preview_images.rs` owns Image/Icon/SvgIcon preview candidate resolution and Slint image loading. This leaves `pane_data_conversion/pane_component_projection/mod.rs` focused on converting a retained Runtime UI node into `TemplatePaneNodeData` while keeping collection semantics, action routing, and media preview lookup independently extensible.
+The retained host component-projection slimming pass splits `pane_data_conversion/pane_component_projection/mod.rs` into a small orchestration file and three focused child helpers. `collection_fields.rs` now owns Array/Map child-row projection, role inference, empty-state rows, and per-row validation tests; `showcase_actions.rs` owns the deterministic binding/action preference table and secondary action-chip projection; `preview_images.rs` owns Image/Icon/SvgIcon preview candidate resolution and retained image loading. This leaves `pane_data_conversion/pane_component_projection/mod.rs` focused on converting a retained Runtime UI node into `TemplatePaneNodeData` while keeping collection semantics, action routing, and media preview lookup independently extensible.
 
 The pane data conversion slimming pass extracts UI Asset Editor presentation DTO mapping into `pane_data_conversion/pane_ui_asset_conversion.rs`. The extracted module owns asset editor string selections, preview canvas node conversion, slot-target conversion, and the full `UiAssetEditorPanePresentation -> UiAssetEditorPaneData` mapping. `pane_data_conversion/mod.rs` keeps the retained pane selection, legacy template node conversion, builtin Runtime UI projection, and component showcase projection entry points, so Widget Editor payload conversion no longer lengthens the generic Runtime UI pane conversion surface.
 
@@ -878,7 +878,7 @@ The follow-up schema/state-panel pass on 2026-04-29 closes retained-state gaps t
 
 This pass also keeps touched files split by responsibility instead of stacking more logic into already-large modules. The showcase state reducer delegates category filtering to `categories.rs` and diagnostic row projection to `state_panel.rs`; the runtime component-state value-kind coverage lives in `component_state/value_validation.rs` instead of pushing the parent test module over the guardrail. The category-filter regression now lives in `component_showcase_category.rs`, leaving `component_showcase_state.rs` focused on retained reducer state and keeping it below the large-file warning threshold after the cleanup split.
 
-Completion-gate validation for this follow-up now has fresh evidence. `cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1` passed with 22 tests after one initial compile-only timeout; `cargo test -p zircon_runtime --lib ui::tests --locked --jobs 1` then passed with 124 tests, including the collection validation, component catalog, template, asset compiler, boundary, and shared UI runtime coverage. `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1` passed with 23 tests, covering the retained showcase state, category filtering, state panel, action chips, popup options, collection/menu rows, reference wells, and generic Slint host projection. Earlier focused editor single-test reruns hit dependency-compile timeouts without project diagnostics, but the broader `component_showcase` filter contains and passed those focused assertions. A later cleanup gated test-only SDF atlas helpers behind `cfg(test)`, removed the unused editor meta save path, and marked test/host-only showcase input variants as intentionally retained, so the final editor `cargo check` rerun no longer reports those dead-code warnings.
+Completion-gate validation for this follow-up now has fresh evidence. `cargo test -p zircon_runtime --lib ui::tests::component_catalog --locked --jobs 1` passed with 22 tests after one initial compile-only timeout; `cargo test -p zircon_runtime --lib ui::tests --locked --jobs 1` then passed with 124 tests, including the collection validation, component catalog, template, asset compiler, boundary, and shared UI runtime coverage. `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1` passed with 23 tests, covering the retained showcase state, category filtering, state panel, action chips, popup options, collection/menu rows, reference wells, and generic retained host projection. Earlier focused editor single-test reruns hit dependency-compile timeouts without project diagnostics, but the broader `component_showcase` filter contains and passed those focused assertions. A later cleanup gated test-only SDF atlas helpers behind `cfg(test)`, removed the unused editor meta save path, and marked test/host-only showcase input variants as intentionally retained, so the final editor `cargo check` rerun no longer reports those dead-code warnings.
 
 Completion-gate validation for the schema/category/state-panel slice was run after the milestone implementation pass. `cargo test -p zircon_runtime --lib ui_asset_compiler --locked --jobs 1` passed with 4 tests after one initial compile-only timeout. `cargo test -p zircon_runtime --lib ui::tests --locked --jobs 1` passed with 124 tests. The first editor rerun in the default target directory failed before compilation with a Cargo dep-info write error because `target\debug\.fingerprint` was absent while Cargo was writing `zircon_editor` artifacts; the rerun used the explicit isolated target `target\codex-runtime-ui-showcase-validation` for this validation exception. `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation` then passed with 23 tests after rebuilding the target, including `showcase_category_selection_filters_projected_demo_controls` from the extracted category test module. `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation` passed without dead-code warnings. Final formatting and whitespace checks for the cleanup are recorded in the closeout report rather than duplicated here.
 
@@ -892,13 +892,13 @@ The 2026-05-01 validation closeout pass rechecked the Runtime UI layer before mo
 
 The same closeout pass then reran the editor Runtime UI host gates in the isolated target directory. `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 17 component-showcase tests, covering Rust-owned template metadata, option/action callbacks, reference wells, structure/collection projection, category filtering, retained selection/query state, context menus, full component action bindings, and retained demo-state projection. `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` also passed. The editor run emitted four local warnings for unused Inspector component-adapter plumbing (`component_adapter/inspector.rs`, `component_adapter/registry.rs`, and the retained `apply_binding` helper), which are now treated as the next implementation seam for real Inspector data binding rather than as showcase failures.
 
-The first real Inspector binding slice connects that seam without removing the existing editor event journal path. `EditorEventRuntime::dispatch_ui_component_adapter_event` now routes `UiComponentEventEnvelope` values through `EditorUiComponentAdapterRegistry`, refreshes editor reflection after changed component adapter results, and surfaces adapter status text through the existing status line. The Inspector adapter supports `ValueChanged` and `Commit` envelopes for `name`, `parent`, and `transform.translation.{x,y,z}` targets under the `inspector` domain, mapping Runtime UI `UiValue` payloads into the existing draft/apply binding dispatch so subject resolution, selected-node synchronization, and scene mutation policy remain shared with the legacy Inspector commands. The Slint host Inspector change callback now creates a real Runtime UI component envelope before dispatching the old `DraftCommand.SetInspectorField` route, so actual window callbacks exercise the new data-binding adapter while preserving focus handling, journal records, and presentation effects. Focused evidence: `cargo test -p zircon_editor --lib child_window_inspector_control_focuses_source_window_before_runtime_dispatch --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, and the post-slice `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 17 tests. The remaining warnings are the pre-existing runtime graphics warnings recorded above.
+The first real Inspector binding slice connects that seam without removing the existing editor event journal path. `EditorEventRuntime::dispatch_ui_component_adapter_event` now routes `UiComponentEventEnvelope` values through `EditorUiComponentAdapterRegistry`, refreshes editor reflection after changed component adapter results, and surfaces adapter status text through the existing status line. The Inspector adapter supports `ValueChanged` and `Commit` envelopes for `name`, `parent`, and `transform.translation.{x,y,z}` targets under the `inspector` domain, mapping Runtime UI `UiValue` payloads into the existing draft/apply binding dispatch so subject resolution, selected-node synchronization, and scene mutation policy remain shared with the legacy Inspector commands. The retained host Inspector change callback now creates a real Runtime UI component envelope before dispatching the old `DraftCommand.SetInspectorField` route, so actual window callbacks exercise the new data-binding adapter while preserving focus handling, journal records, and presentation effects. Focused evidence: `cargo test -p zircon_editor --lib child_window_inspector_control_focuses_source_window_before_runtime_dispatch --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed, and the post-slice `cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 17 tests. The remaining warnings are the pre-existing runtime graphics warnings recorded above.
 
 The follow-up merge pass aligned the Inspector adapter implementation with the parallel real-data-source session interface: the editor runtime entry point is `dispatch_ui_component_adapter_event`, and `UiComponentAdapterError::MissingSource` uses `source_name` so `thiserror` does not interpret the field as an error source. The Inspector adapter now returns structured `UiComponentAdapterError` values directly, rejects unsupported subjects/properties/fields without mutation, and the migrated Inspector change callback uses the adapter as the authoritative path for supported fields instead of falling back to legacy draft dispatch. Dedicated adapter regressions live in `zircon_editor/src/tests/ui/component_adapter.rs`; the wider confirmation gate `cargo test -p zircon_editor --lib inspector --locked --jobs 1 --target-dir target\codex-runtime-ui-showcase-validation --message-format short --color never` passed with 57 tests. During that run the Inspector pane template projection also regained the bound/button-like control label fallback for empty authored text/label values, so `ApplyDraft` projects as `Apply Draft` through the Runtime UI host-node path.
 
 The 2026-05-01 real-data-source adapter milestone hardens the shared Runtime UI envelope contract and the editor adapter bridge. `zircon_runtime::ui::component::data_binding` now owns the typed `UiComponentBindingTarget`, `UiComponentEventEnvelope`, `UiComponentProjectionPatch`, `UiComponentAdapterResult`, and `UiComponentAdapterError` surface, and serde rejects mismatched wire event kinds before they can reach runtime dispatch. `zircon_editor::ui::template_runtime::component_adapter` now routes showcase envelopes through a registry-backed adapter path and resolves the `inspector` domain into the existing inspector draft mutation flow for `entity://selected`. Focused validation passed for the new slice with `cargo test -p zircon_editor --lib inspector_component_adapter --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`, `cargo test -p zircon_editor --lib inspector --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`, and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir target\codex-runtime-ui-real-data-source-adapter --message-format short --color never`. The matching runtime-only focused test remains blocked by unrelated active graphics/plugin cutover paths and `--locked` lockfile drift, so the accepted evidence for this milestone is the editor adapter bridge plus the shared contract tests rather than a clean workspace-wide pass.
 
-The 2026-05-01 component-library continuation extends the Runtime UI contract beyond Inspector binding into the next retained data layers. The component catalog now advertises `VirtualList`, `PagedList`, and `WorldSpaceSurface`: virtual lists carry retained `items`, total count, viewport start/count, item extent, and overscan metadata; paged lists carry retained page index/size/count and total count; world-space surfaces carry retained world transform, size, pixels-per-meter, billboard/depth policy, render order, and camera target metadata. `TemplatePaneNodeData` and the Slint host component projection now preserve those fields so the generic host contract can walk real complex-list, pagination, and world-space UI nodes without inventing new side channels later.
+The 2026-05-01 component-library continuation extends the Runtime UI contract beyond Inspector binding into the next retained data layers. The component catalog now advertises `VirtualList`, `PagedList`, and `WorldSpaceSurface`: virtual lists carry retained `items`, total count, viewport start/count, item extent, and overscan metadata; paged lists carry retained page index/size/count and total count; world-space surfaces carry retained world transform, size, pixels-per-meter, billboard/depth policy, render order, and camera target metadata. `TemplatePaneNodeData` and the retained host component projection now preserve those fields so the generic host contract can walk real complex-list, pagination, and world-space UI nodes without inventing new side channels later.
 
 The same pass adds the first shared data-source descriptor layer for property reflection and asset-editor binding. `zircon_runtime::ui::component::data_binding` now exports `UiComponentDataSourceDescriptor` and `UiComponentDataSourceKind`, alongside new `UiComponentBindingTarget::reflection` and `UiComponentBindingTarget::asset_editor` constructors. The editor component adapter registry advertises the selected-entity Inspector source, selected component/asset reflection sources, and UI Asset Editor widget/layout/slot/binding/style sources with stable `source_name`, subject, path-prefix, writability, and value-kind metadata. This keeps future Inspector, asset editor, and reflection binding work on one typed source contract rather than parallel hard-coded strings.
 
@@ -906,13 +906,13 @@ Focused validation for this continuation passed in `target\\codex-runtime-ui-sho
 
 The next 2026-05-01 continuation connects two of the retained component-library surfaces to real host behavior. The `asset_editor` component adapter domain now routes `ValueChanged` / `Commit` envelopes through `dispatch_ui_component_adapter_event` into the existing `EditorManager` UI Asset Editor mutation APIs. The target `subject` source carries the live `ViewInstanceId`, and supported paths include widget text/control id, slot mount/padding/preferred size, layout preferred size, and selected slot/layout semantic values. This keeps asset-editor field edits on the shared Runtime UI envelope contract while avoiding direct edits inside the active `asset_editor_sessions` implementation owned by another session.
 
-The same continuation makes `VirtualList` host projection window-aware. Retained `collection_items` are sliced by `viewport_start`, `viewport_count`, and `overscan` before becoming the Slint host model, so large-data list projection can feed only the visible window plus guard rows instead of materializing the whole collection into the UI surface. World-space UI remains represented by the host contract metadata added in the previous pass; real RHI/world rendering hookup is still intentionally deferred to the graphics/RHI owner sessions to avoid cross-session collisions.
+The same continuation makes `VirtualList` host projection window-aware. Retained `collection_items` are sliced by `viewport_start`, `viewport_count`, and `overscan` before becoming the retained host model, so large-data list projection can feed only the visible window plus guard rows instead of materializing the whole collection into the UI surface. World-space UI remains represented by the host contract metadata added in the previous pass; real RHI/world rendering hookup is still intentionally deferred to the graphics/RHI owner sessions to avoid cross-session collisions.
 
 The complex-components follow-up moves those surfaces from metadata-only descriptors toward retained Runtime UI component behavior. `VirtualList` now advertises and applies `SetVisibleRange`, normalizing negative starts/counts and clamping the visible window against retained `total_count` while keeping `items` separate for lazy data. `PagedList` advertises and applies `SetPage`, clamping page size, deriving page count from retained totals, and clamping page index to the available page range. `WorldSpaceSurface` advertises and applies transform and surface metadata events, stores Vec3 transform values, Vec2 surface size, clamped `pixels_per_meter`, render order, billboard/depth flags, and camera target, and rejects non-positive scale or surface size before mutation. The editor projection remains a generic consumer: its visible collection window clamps negative starts and overscan edges deterministically, but graphics/RHI world rendering remains out of scope.
 
-Focused validation for the complex-components follow-up passed on 2026-05-01. Targeted `rustfmt --edition 2021 --check` passed for `zircon_runtime/src/ui/component/event.rs`, `zircon_runtime/src/ui/component/state.rs`, `zircon_runtime/src/ui/component/catalog/editor_showcase.rs`, `zircon_runtime/src/ui/tests/component_catalog.rs`, `zircon_runtime/src/ui/tests/component_catalog/complex_components.rs`, and `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs`. `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir target\codex-runtime-ui-complex-components --message-format short --color never` passed with 37 tests. The E: target drive was below the repo free-space threshold, so the remaining editor/type-check gates switched to `D:\cargo-targets\zircon-runtime-ui-complex-components`; `cargo test -p zircon_editor --lib runtime_component_projection --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` passed with 4 tests after one earlier E: dependency-compile timeout. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` both completed. Remaining warnings are outside the complex-component reducer/projection slice: runtime graphics dead-code/unused warnings, `UiComponentApiVersionParseError` import drift in the UI asset component contract, editor component-adapter descriptor helpers that are currently unused outside tests, and an unrelated `world_space_submission::*` host-contract export warning in the editor test build. `git diff --check` reported only LF-to-CRLF notices for tracked touched files, and a targeted trailing-whitespace scan over the untracked complex-component spec/plan and split test/catalog files produced no matches.
+Focused validation for the complex-components follow-up passed on 2026-05-01. Targeted `rustfmt --edition 2021 --check` passed for `zircon_runtime/src/ui/component/event.rs`, `zircon_runtime/src/ui/component/state.rs`, `zircon_runtime/src/ui/component/catalog/editor_showcase.rs`, `zircon_runtime/src/ui/tests/component_catalog.rs`, `zircon_runtime/src/ui/tests/component_catalog/complex_components.rs`, and `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs`. `cargo test -p zircon_runtime --lib component_catalog --locked --jobs 1 --target-dir target\codex-runtime-ui-complex-components --message-format short --color never` passed with 37 tests. The E: target drive was below the repo free-space threshold, so the remaining editor/type-check gates switched to `D:\cargo-targets\zircon-runtime-ui-complex-components`; `cargo test -p zircon_editor --lib runtime_component_projection --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` passed with 4 tests after one earlier E: dependency-compile timeout. `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` and `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-ui-complex-components --message-format short --color never` both completed. Remaining warnings are outside the complex-component reducer/projection slice: runtime graphics dead-code/unused warnings, `UiComponentApiVersionParseError` import drift in the UI asset component contract, editor component-adapter descriptor helpers that are currently unused outside tests, and an unrelated `world_space_submission::*` host-contract export warning in the editor test build. `git diff --check` reported only LF-to-CRLF notices for tracked touched files, and a targeted trailing-whitespace scan over the untracked complex-component spec/plan and split test/catalog files produced no matches.
 
-The world-space host-to-render handoff now has a Rust-owned submission-list boundary without touching RHI. `zircon_editor::ui::slint_host::host_contract::data::world_space_submission` converts projected `TemplatePaneNodeData` values into `WorldSpaceUiSurfaceSubmission` records by filtering `world_space_enabled` nodes, resolving world size from explicit `world_width/world_height` or `frame / pixels_per_meter`, copying world transform/billboard/depth/order/camera metadata, and sorting by render order plus stable ids. This gives the render integration work a plain host-side list to consume instead of reaching back into Slint models or Runtime UI template nodes.
+The world-space host-to-render handoff now has a Rust-owned submission-list boundary without touching RHI. `zircon_editor::ui::retained_host::host_contract::data::world_space_submission` converts projected `TemplatePaneNodeData` values into `WorldSpaceUiSurfaceSubmission` records by filtering `world_space_enabled` nodes, resolving world size from explicit `world_width/world_height` or `frame / pixels_per_meter`, copying world transform/billboard/depth/order/camera metadata, and sorting by render order plus stable ids. This gives the render integration work a plain host-side list to consume instead of reaching back into Slint models or Runtime UI template nodes.
 
 The catalog/category stabilization follow-up removes the fragile self-reexport dependency inside the Runtime UI component catalog and descriptor validator. Catalog internals now import descriptor-owned types directly from the sibling `descriptor` module instead of reaching through the parent `crate::ui::component` public re-export surface, and descriptor validation uses its local `UiHostCapability` import for the virtualized-layout capability check. This keeps `Numeric` / `Selection` descriptor registration and category enumeration isolated from transient root re-export ordering drift while preserving the public `zircon_runtime::ui::component::*` API.
 
@@ -920,7 +920,7 @@ The 2026-05-01 category-helper regression fix keeps the V1 category authority in
 
 The 2026-05-01 closeout pass resolves the highest-priority Runtime UI component-library blockers and records fresh focused evidence. Runtime catalog internals no longer depend on root `component` re-exports for descriptor-owned types, and descriptor validation no longer self-imports `UiHostCapability` through the public component facade. The focused category guard now passes again, confirming the editor showcase registry exposes the full V1 category set including `Numeric` and `Selection`.
 
-UI Asset Editor field mutations now use the real component adapter route from the actual Slint host detail callback. Widget, slot, layout, and slot/layout semantic value/field set actions create `UiComponentEventEnvelope` values targeting the `asset_editor` domain and dispatch through `dispatch_ui_component_adapter_event`; delete actions remain direct manager commands because they are not value commits. The asset-editor adapter also accepts dynamic `slot.semantic.field.*` and `layout.semantic.field.*` target paths, so structured semantic field edits share the same adapter seam.
+UI Asset Editor field mutations now use the real component adapter route from the actual retained host detail callback. Widget, slot, layout, and slot/layout semantic value/field set actions create `UiComponentEventEnvelope` values targeting the `asset_editor` domain and dispatch through `dispatch_ui_component_adapter_event`; delete actions remain direct manager commands because they are not value commits. The asset-editor adapter also accepts dynamic `slot.semantic.field.*` and `layout.semantic.field.*` target paths, so structured semantic field edits share the same adapter seam.
 
 The generic property data-source contract now includes `UiComponentDataSourceFieldDescriptor` and `UiComponentDataSourceFieldOption`, covering field path, display name, value kind, writability, group, collapsed state, numeric range/step, options, array element kind, map key/value kinds, reference kind, and validation state/message. This gives Reflection and future property/asset editors a typed field-schema boundary instead of only source-level descriptors.
 
@@ -928,7 +928,7 @@ Fresh focused validation passed in `E:\cargo-targets\zircon-runtime-ui-closeout`
 
 The remaining closeout pass adds the missing non-RHI boundaries for mutation transactions and world-space interaction. `UiComponentAdapterResult` now carries `dirty`, `transaction_id`, and `mutation_source` metadata, giving Inspector, UI Asset Editor, and future reflection adapters a common transaction/dirty-reporting envelope for undo/redo and save integration. The UI Asset Editor adapter populates that metadata for selected widget/slot/layout mutations.
 
-World-space UI now has a viewport-side handoff cache and a host-side hit-test boundary without rendering through RHI. `WorldSpaceUiSurfaceSubmission` exposes viewport hit bounds, and `SlintViewportController` can cache the latest world-space UI submission list separately from the ordinary shared 2D UI overlay. This makes the next graphics/RHI integration a consumer of prepared host data rather than a crawler of Slint or Runtime UI state.
+World-space UI now has a viewport-side handoff cache and a host-side hit-test boundary without rendering through RHI. `WorldSpaceUiSurfaceSubmission` exposes viewport hit bounds, and `RetainedViewportController` can cache the latest world-space UI submission list separately from the ordinary shared 2D UI overlay. This makes the next graphics/RHI integration a consumer of prepared host data rather than a crawler of Slint or Runtime UI state.
 
 Fresh focused validation passed in `E:\cargo-targets\zircon-runtime-ui-closeout`: `cargo test -p zircon_runtime --lib component_projection_patch_keeps_attribute_and_state_values_separate --locked --jobs 1`; `cargo test -p zircon_editor --lib world_space_ui_surface_submissions --locked --jobs 1`; and `cargo test -p zircon_editor --lib controller_caches_world_space_ui_submission_list_without_rendering_it --locked --jobs 1`. These supplement the earlier closeout evidence for catalog/category, complex components, data-source fields, Asset Editor adapter, component_showcase, inspector, and editor check.
 
@@ -971,8 +971,8 @@ Validation evidence:
 
 ## 2026-05-01 world-space UI render/RHI consumption closeout
 
-- World-space UI submissions now leave the host-only cache and are folded into the viewport UI render extract during `SlintViewportController::submit_extract_with_ui`.
-- The Slint host recompute path collects world-space-enabled pane/template nodes from the current host scene presentation and submits them to the viewport before the next render frame submission.
+- World-space UI submissions now leave the host-only cache and are folded into the viewport UI render extract during `RetainedViewportController::submit_extract_with_ui`.
+- The retained host recompute path collects world-space-enabled pane/template nodes from the current host scene presentation and submits them to the viewport before the next render frame submission.
 - The render-side consumption path intentionally reuses `UiRenderExtract -> RenderFramework::submit_frame_extract_with_ui -> ViewportRenderFrame::with_ui -> ScreenSpaceUiRenderer`, so world-space UI reaches the existing wgpu/RHI UI pass without binding editor component logic directly to low-level RHI code.
 - Current implementation renders projected world-space surfaces as screen-space UI quads with label text, depth/billboard metadata reflected in styling and ordering. A future true 3D/depth-aware UI geometry pass can replace the projection consumer behind the same submission contract.
 - Validation: `cargo test -p zircon_editor --lib controller_submits_world_space_ui_surfaces_through_render_framework_ui_extract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-ui-closeout --color never` passed with 1 test, 0 failed; only pre-existing runtime graphics warnings were emitted.
@@ -1000,15 +1000,15 @@ Focused validation evidence from `E:\cargo-targets\zircon-ui-m10-root-class-auth
 ## 2026-05-02 world-space UI pointer route closeout
 
 - World-space UI surfaces now participate in viewport pointer routing before scene viewport dispatch.
-- `SlintViewportController::route_world_space_ui_pointer_event` resolves the topmost submitted world-space surface by projected viewport bounds and captures it across Down/Move/Scroll/Up until release.
-- The Slint viewport pointer callback now asks the world-space UI route first; when a surface is hit, the interaction is consumed by the world-space UI layer instead of leaking into scene camera/object selection.
+- `RetainedViewportController::route_world_space_ui_pointer_event` resolves the topmost submitted world-space surface by projected viewport bounds and captures it across Down/Move/Scroll/Up until release.
+- The retained viewport pointer callback now asks the world-space UI route first; when a surface is hit, the interaction is consumed by the world-space UI layer instead of leaking into scene camera/object selection.
 - The route remains host-side/editor-owned. The render framework still consumes only `UiRenderExtract`; editor interaction semantics do not move into RHI.
 - Added focused coverage for world-space UI pointer hit/capture behavior in the viewport controller tests. Full verification was delayed by long-running Windows Cargo compile/file-lock contention; the last observed blocker was no longer present in source, and `UiPointerEventKind` is confirmed `Copy`.
 
 ## 2026-05-02 VirtualList/PagedList real payload closeout
 
 Related code:
-- `zircon_editor/src/ui/slint_host/app/showcase_event_inputs.rs`
+- `zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs`
 - `zircon_editor/src/ui/template_runtime/showcase_demo_state.rs`
 - `zircon_runtime/src/ui/component/state.rs`
 
@@ -1021,7 +1021,7 @@ Validation status: focused unit coverage was added for both payload shapes. Carg
 ## 2026-05-02 Action-only complex list state advancement
 
 Related code:
-- `zircon_editor/src/ui/slint_host/app/pane_surface_actions.rs`
+- `zircon_editor/src/ui/retained_host/app/pane_surface_actions.rs`
 - `zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs`
 - `zircon_editor/src/ui/template_runtime/showcase_demo_state.rs`
 
@@ -1032,7 +1032,7 @@ This complements the value-bearing payload route: real host callbacks can either
 ## 2026-05-02 Asset Editor binding mutation adapter closeout
 
 Related code:
-- `zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs`
+- `zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/registry.rs`
 
@@ -1045,7 +1045,7 @@ This removes another direct field-mutation bypass from the real window callback 
 Related code:
 - `zircon_editor/src/ui/template_runtime/component_adapter/registry.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs`
-- `zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs`
+- `zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs`
 
 The asset-editor data source now describes the binding route/action target fields that already exist in the real UI Asset Editor callback surface. `binding.route_target` and `binding.action_target` are registered as writable asset-editor fields and are consumed by the asset-editor mutation adapter. Their real window callbacks now dispatch Runtime UI component envelopes instead of directly mutating through `EditorManager`.
 
@@ -1098,10 +1098,10 @@ The editor-side Runtime UI tree imports now follow the same split as surface, di
 ## 2026-05-02 Runtime UI render-framework type convergence
 
 Related code:
-- `zircon_editor/src/ui/slint_host/viewport/submit_extract.rs`
-- `zircon_editor/src/ui/slint_host/viewport/world_space_ui.rs`
-- `zircon_editor/src/ui/slint_host/viewport/test_render_framework.rs`
-- `zircon_editor/src/ui/slint_host/viewport/tests/fake_render_framework.rs`
+- `zircon_editor/src/ui/retained_host/viewport/submit_extract.rs`
+- `zircon_editor/src/ui/retained_host/viewport/world_space_ui.rs`
+- `zircon_editor/src/ui/retained_host/viewport/test_render_framework.rs`
+- `zircon_editor/src/ui/retained_host/viewport/tests/fake_render_framework.rs`
 - `zircon_runtime/src/core/framework/render/framework.rs`
 - `zircon_runtime/src/graphics/runtime/render_framework/render_framework_impl/trait_impl.rs`
 - `zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs`
@@ -1139,7 +1139,7 @@ Known non-blocking output:
 ## 2026-05-02 Showcase and Inspector focused validation
 
 Related code:
-- `zircon_editor/src/ui/slint_host/app/showcase_event_inputs.rs`
+- `zircon_editor/src/ui/retained_host/app/showcase_event_inputs.rs`
 - `zircon_editor/src/ui/template_runtime/showcase_demo_state.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/inspector.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs`
@@ -1156,9 +1156,9 @@ The passing showcase suite covers category filtering, retained component state, 
 ## 2026-05-02 UI Asset Editor adapter boundary validation
 
 Related code:
-- `zircon_editor/src/ui/slint_host/app/ui_asset_editor.rs`
+- `zircon_editor/src/ui/retained_host/app/ui_asset_editor.rs`
 - `zircon_editor/src/ui/template_runtime/component_adapter/asset_editor.rs`
-- `zircon_editor/src/tests/host/slint_window/ui_asset_editor.rs`
+- `zircon_editor/src/tests/host/retained_window/ui_asset_editor.rs`
 
 The UI Asset Editor detail dispatch contract now treats authored binding fields as component-adapter field commits instead of direct host detail actions. The structural host test was updated to assert that `binding.id`, `binding.event`, `binding.route`, `binding.route_target`, and `binding.action_target` flow through `dispatch_ui_asset_component_adapter_commit`, and that the asset editor component adapter owns the corresponding `EditorManager` mutation calls.
 
@@ -1189,7 +1189,7 @@ Related code:
 - `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
 - `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
 - `zircon_editor/assets/ui/theme/editor_material.ui.toml`
-- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/pane_component_projection/mod.rs`
+- `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs`
 - `zircon_runtime/src/ui/template/asset/compiler/component_instance_expander.rs`
 - `zircon_runtime/src/ui/tests/asset.rs`
 - `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
@@ -1199,18 +1199,18 @@ This slice introduces TOML-authored Material-style meta components based on the 
 
 The shared asset compiler now copies bindings authored on a component instance to the expanded component root. That lets `component_showcase.ui.toml` swap Button/Input/Range rows to reference-based Material meta components without losing click, change, or drag routes. The editor native projection also forwards those visual attributes into `TemplatePaneNodeData`, so Rust-owned painting consumes the same component metadata that runtime render extraction already sees.
 
-## 2026-05-06 Slint Material export coverage
+## 2026-05-06 Material Export Coverage
 
 Related code:
 - `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
 - `zircon_editor/assets/ui/editor/component_showcase.ui.toml`
 - `zircon_editor/assets/ui/theme/editor_material.ui.toml`
-- `zircon_editor/src/ui/slint_host/host_contract/window.rs`
-- `zircon_editor/src/ui/slint_host/mod.rs`
-- `zircon_editor/src/ui/slint_host/ui.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/window.rs`
+- `zircon_editor/src/ui/retained_host/mod.rs`
+- `zircon_editor/src/ui/retained_host/ui.rs`
 - `zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs`
-- `zircon_editor/src/tests/host/slint_window/native_host_contract.rs`
-- `zircon_editor/src/tests/host/slint_window/shell_window.rs`
+- `zircon_editor/src/tests/host/retained_window/native_host_contract.rs`
+- `zircon_editor/src/tests/host/retained_window/shell_window.rs`
 - `zircon_editor/src/tests/ui/boundary/template_assets.rs`
 
 The Material meta component asset now covers the exported widget set under `dev/slint/internal/compiler/widgets/material`: `MaterialButtonBase`, `MaterialButton`, `MaterialTextButton`, `MaterialIconButton`, `MaterialCheckBox`, `MaterialComboBox`, `MaterialRipple`, `MaterialStateLayer`, `MaterialListItem`, `MaterialDatePickerPopup`, `MaterialGroupBox`, `MaterialLineEdit`, `MaterialMenuBarItem`, `MaterialMenuBar`, `MaterialMenuFrame`, `MaterialMenuItem`, `MaterialProgressIndicator`, `MaterialScrollView`, `MaterialSlider`, `MaterialSpinBox`, `MaterialSpinner`, `MaterialSwitch`, `MaterialStandardTableView`, the tab-widget family, `MaterialTextEdit`, and `MaterialTimePickerPopup`.
@@ -1229,7 +1229,7 @@ Validation evidence on `E:\zircon-build\targets`:
 - `cargo fmt --package zircon_runtime --package zircon_editor -- --check`: passed.
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
 - `cargo test -p zircon_runtime --lib hit_grid --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
-- `cargo test -p zircon_editor --lib material_meta_components_cover_slint_material_exports --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib material_meta_components_cover_retained_material_exports --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
 - `cargo test -p zircon_editor --lib component_showcase_projection_carries_runtime_component_semantics --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
 - `cargo test -p zircon_editor --lib component_showcase_uses_material_meta_component_assets --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
 - `cargo test -p zircon_editor --lib component_showcase_authored_props_are_declared_by_runtime_catalog --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed.
@@ -1240,7 +1240,7 @@ Validation evidence on `E:\zircon-build\targets`:
 - `git diff --check` over this slice's tracked docs, TOML assets, and tests: passed with only Windows LF-to-CRLF notices.
 
 Follow-up validation on 2026-05-06 for the projected Material native-hit route:
-- `rustfmt --edition 2021 --check --config skip_children=true zircon_editor\src\ui\slint_host\mod.rs zircon_editor\src\ui\slint_host\ui.rs zircon_editor\src\tests\host\slint_window\native_host_contract.rs`: passed.
+- `rustfmt --edition 2021 --check --config skip_children=true zircon_editor\src\ui\retained_host\mod.rs zircon_editor\src\ui\retained_host\ui.rs zircon_editor\src\tests\host\retained_window\native_host_contract.rs`: passed.
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warning noise.
 - `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warning noise.
 - `cargo test -p zircon_runtime --lib event_routing --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with 5 tests.
@@ -1265,7 +1265,7 @@ Validation evidence:
 - `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`: passed with existing warnings.
 - `cargo test -p zircon_editor --lib host_projection_carries_runtime_component_properties_and_routes --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never -- --nocapture`: passed.
 - `cargo test -p zircon_editor --lib component_showcase_projection_carries_runtime_component_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never -- --nocapture`: passed after the test fixture now computes shared layout before checking arranged frame sizes.
-- `cargo test -p zircon_editor --lib material_meta_components_cover_slint_material_exports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed.
+- `cargo test -p zircon_editor --lib material_meta_components_cover_retained_material_exports --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed.
 - `cargo test -p zircon_editor --lib component_showcase_uses_material_meta_component_assets --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-slate-followup --message-format short --color never`: passed.
 - Runtime focused checks passed on `D:\cargo-targets\zircon-material-slate-followup`: `hit_grid` 11 tests, `event_routing` 16 tests, and `material_layout` 15 tests.
 - The first runtime `hit_grid` attempt on `E:\zircon-build\targets` failed before tests with `no space on device`; the editor check was rerun and passed on that planned E target after space became available.
@@ -1282,7 +1282,7 @@ Related code:
 - `zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml`
 - `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
 - `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs`
-- `zircon_editor/src/tests/host/slint_window/native_material_painter.rs`
+- `zircon_editor/src/tests/host/retained_window/native_material_painter.rs`
 
 Global UI Material M4 moves the showcase Material vocabulary from a set of local component examples into a single editor/runtime theme contract. `editor_material.ui.toml` declares the shared state palette for surfaces, hover, pressed, selected, disabled, accent-soft, disabled text, warning, error, popup, track, and focus-ring roles. `editor_base.ui.toml` imports that Material theme, so legacy base-theme surfaces are no longer a separate source of normal control colors.
 
@@ -1303,9 +1303,9 @@ Related code:
 - `zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs`
 - `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
 - `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml`
-- `zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs`
-- `zircon_editor/src/ui/slint_host/host_contract/painter/template_nodes.rs`
-- `zircon_editor/src/tests/host/slint_window/native_viewport_image.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs`
+- `zircon_editor/src/tests/host/retained_window/native_viewport_image.rs`
 
 The M4.3 semantic golden compiles the editor and runtime Quest Log `.ui.toml` assets through the same `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, layout pass, and render extract path. It snapshots semantic control ids, visible text, button counts, and Click binding routes, proving the editor runtime asset and the Slint-free runtime fixture agree on the shared surface contract. The Quest Log buttons now carry the same runtime routes in both assets: `RuntimeAction.TrackQuest` and `RuntimeAction.CloseQuestLog`.
 

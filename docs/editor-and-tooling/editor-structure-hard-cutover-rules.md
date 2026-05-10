@@ -11,7 +11,7 @@ related_code:
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/module.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/workbench/mod.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
@@ -120,14 +120,14 @@ This document is the editor-side authority for the converged `core/scene/ui` spl
   - Owns authoring-time scene viewport, gizmo, handle, pointer routing, and viewport state.
   - Must not absorb runtime world ownership or generic UI host behavior.
 - `ui/`
-  - Owns editor host surfaces, workbench shell, asset editor UI, Slint integration, and editor-only UI bindings.
+  - Owns editor host surfaces, workbench shell, asset editor UI, retained host integration, and editor-only UI bindings.
 
 ## UI Owner Rules
 
 - `ui/host/`
   - Sole owner of `EditorManager`, `EditorModule`, module descriptor/service names, window host state, startup/workspace persistence, builtin layout/view registration, and asset-editor session orchestration.
-- `ui/slint_host/`
-  - Slint adapter and native-window glue only.
+- `ui/retained_host/`
+  - Rust-owned retained host and native-window glue only.
   - No business ownership for workbench state or asset-editor session logic.
   - `callback_dispatch/mod.rs` plus namespace roots such as `asset/mod.rs`, `inspector/mod.rs`, `layout/mod.rs`, `shared_pointer/mod.rs`, `viewport/mod.rs`, and `workbench/mod.rs` stay structural; pointer/layout/menu/template dispatch behavior lives below those roots.
 - `ui/asset_editor/`

@@ -30,7 +30,7 @@ related_code:
   - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
@@ -44,14 +44,14 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/root_shell_projection.rs
-  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/mod.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/build.rs
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
@@ -64,14 +64,14 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
   - zircon_editor/assets/ui/editor/project_overview.ui.toml
-  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_editor/src/ui/slint_host/tab_drag.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - zircon_editor/src/ui/retained_host/tab_drag.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
   - .codex/plans/Bevy 对齐的 Zircon UI Text Widgets Focus A11y 里程碑计划.md
   - dev/bevy/crates/bevy_ui/src/lib.rs
   - dev/bevy/crates/bevy_input_focus/src/lib.rs
@@ -116,7 +116,7 @@ implementation_files:
   - zircon_runtime/src/ui/surface/arranged.rs
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_editor/src/ui/workbench/debug_reflector/overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
   - zircon_runtime_interface/src/ui/surface/arranged.rs
   - zircon_runtime_interface/src/ui/surface/hit.rs
   - zircon_runtime_interface/src/ui/surface/frame.rs
@@ -130,14 +130,14 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/root_shell_projection.rs
-  - zircon_editor/src/ui/slint_host/host_contract/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/window.rs
-  - zircon_editor/src/ui/slint_host/host_contract/globals.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/mod.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/root_shell_projection.rs
+  - zircon_editor/src/ui/retained_host/host_contract/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
+  - zircon_editor/src/ui/retained_host/host_contract/globals.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/mod.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/build.rs
   - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
@@ -150,14 +150,14 @@ implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_runtime_overlay_ui.rs
   - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
   - zircon_editor/assets/ui/editor/project_overview.ui.toml
-  - zircon_editor/src/ui/slint_host/ui/template_node_conversion.rs
+  - zircon_editor/src/ui/retained_host/ui/template_node_conversion.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/build_compiled_scene_draws.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_scene/render_scene.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_post_process/execute/build_post_process_params/build.rs
-  - zircon_editor/src/ui/slint_host/tab_drag.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_boundary.rs
-  - zircon_editor/src/tests/host/slint_window/generic_host_layout_paths.rs
+  - zircon_editor/src/ui/retained_host/tab_drag.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_layout_paths.rs
   - docs/ui-and-layout/bevy-ui-text-widgets-focus-a11y-m0-gap-audit.md
 plan_sources:
   - user: 2026-04-14 实现运行时/编辑器共享 UI 布局与事件系统架构计划
@@ -216,7 +216,7 @@ doc_type: category-index
 
 - 哪些布局/几何/命中语义已经属于 `zircon_runtime::ui`
 - editor workbench 还保留哪些 editor-only 壳体职责
-- Rust-owned host contract、legacy-named `slint_host` glue 和未来其他宿主如何只做适配层，而不是再次成为布局真源
+- Rust-owned host contract、legacy-named `retained_host` glue 和未来其他宿主如何只做适配层，而不是再次成为布局真源
 
 ## Documents
 
@@ -228,11 +228,11 @@ doc_type: category-index
 - [Zircon UI 与 Unreal Slate 布局差异审计](./zircon-ui-unreal-slate-layout-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 布局源码，细化 prepass、`FGeometry`、arranged children、parent-owned slot policy、Overlay/Canvas/Linear/Grid/Flow/Scroll/Splitter/Scale panel、DPI、pixel snapping 和 clipping 与当前 Zircon layout pass 的差距及后续布局里程碑。
   该文档现在也记录了 `zircon_runtime_interface::ui::layout` 的 L1 起步契约、template build 将 parent-owned slot record 保留到 `UiTree.slots` 的当前落点、Linear slot size-rule、Overlay slot z-order、Canvas/Free slot placement contract 的 preservation 状态，以及 runtime layout pass 对 Linear/Overlay/Free slot padding/alignment/order 的最小消费边界。
 - [Runtime UI Layout Pass Slots](../zircon_runtime/ui/layout/pass.md): `zircon_runtime::ui::layout::pass` 的 slot/panel module detail，记录 `UiSlotSchema`、`UiSlot`、`UiContainerKind`、template slot contract、runtime slot padding/alignment/order consumption、M1.3 overlay/scroll shared-frame focused tests，以及 grid/flow、overlay slot `z_order` 和 canvas placement 的剩余缺口。
-- [Material UI Token And Component Audit](./material-ui-token-component-audit.md): M2.1a 的 Slint Material 与 Zircon `.ui.toml` Material token/component 对照表，覆盖 density、spacing、radius、color roles、state layers、focus ring、shadow/elevation、typography、meta component coverage、Slint export gap、runtime Material layout support 和 M2.1b/M2.2/M2.3 下一步边界。
+- [Material UI Token And Component Audit](./material-ui-token-component-audit.md): M2.1a 的参考 Material 组件与 Zircon `.ui.toml` Material token/component 对照表，覆盖 density、spacing、radius、color roles、state layers、focus ring、shadow/elevation、typography、meta component coverage、参考导出缺口、runtime Material layout support 和 M2.1b/M2.2/M2.3 下一步边界。
 - [Zircon UI 与 Unreal Slate 渲染差异审计](../assets-and-rendering/runtime-ui-slate-rendering-gap-audit.md): 参照 `dev/UnrealEngine` 的 Slate 渲染源码，细化 paint element、brush/material payload、batch plan、cached render elements、runtime renderer/debug visualizer 与当前 shared UI render extract 的差距及后续渲染里程碑。
 - [Shared UI Template Runtime](./shared-ui-template-runtime.md): `zircon_runtime::ui::template` 的 TOML 文档模型、component/slot 节点语义、模板校验规则、运行时实例展开、shared `UiTree` / `UiSurface` 桥接，以及 `.ui.toml -> UiSurface -> host projection / UiRenderExtract` 的显式映射；它记录 no-Slint generic host fence、Rust-owned `host_contract` DTO/callback seam、runtime fixture acceptance，以及 workbench pane body、HostMenuChrome business rows/popup、top menu/Page tab/Dock header/status bar/floating header/activity rail chrome 从手写 `.slint` 迁到 `.ui.toml -> TemplatePane` 的 cutover 状态。
 - [Workbench Main Interface Entries](../zircon_editor/ui/layouts/windows/workbench_host_window/main_interface_entries.md): M3.1a 主界面入口收口文档，记录菜单、drawer、toolbar、document pane、floating panel 如何以 `.ui.toml + shared surface` 为真源，并把 host 限制在投影/呈现边界。
-- [Runtime UI Component Showcase](./runtime-ui-component-showcase.md): Runtime UI 组件描述注册表、typed value/event/state/drop 契约、`editor.ui_component_showcase` Activity Window、Showcase `.ui.toml` 资产和 Slint Material generic component-row projection。
+- [Runtime UI Component Showcase](./runtime-ui-component-showcase.md): Runtime UI 组件描述注册表、typed value/event/state/drop 契约、`editor.ui_component_showcase` Activity Window、Showcase `.ui.toml` 资产和 retained host generic component-row projection。
 - [UI Asset Documents And Editor Protocol](./ui-asset-documents-and-editor-protocol.md): `zircon_runtime::ui::template::asset` 当前 tree-shaped `.ui.toml` authority、flat-to-tree 一次性迁移器、shared loader/compiler/surface builder，以及 editor/runtime 如何继续共用同一条资产消费链路。
 - [UI Module Boundary Refactor](./ui-module-boundary-refactor.md): `event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 从混合单文件重构成 folder-backed subtree 后的职责边界，并记录 `binding/model` DTO owner 已硬切到 `zircon_runtime_interface::ui::binding`。
 - [Editor Host Final Cleanup](./editor-host-final-cleanup.md): `Final cleanup` 阶段对 editor host 剩余 legacy seam 的删除记录，覆盖 drawer extent root binding、menu button frame host setter/binding、floating-window drag/document-tab 生产路径里的 geometry outer-frame fallback，以及 root-shell projection / callback sizing helper 对 legacy geometry 的最后兜底。
@@ -254,8 +254,8 @@ doc_type: category-index
 - `zircon_editor/src/ui/workbench/autolayout/mod.rs`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs`
 - `zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs`
-- `zircon_editor/src/ui/slint_host/host_contract/mod.rs`
-- `zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/mod.rs`
+- `zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs`
 
 ## Current Scope
 
@@ -267,7 +267,7 @@ doc_type: category-index
 - `event_ui/manager`、`layout/pass`、`template/build`、`tree/node` 已经按 folder-backed subtree 重新分层；`binding/model` neutral DTO declarations 已硬切到 `zircon_runtime_interface::ui::binding`，runtime `binding/mod.rs` 只保留 router behavior 与 interface DTO re-export
 - `template/asset` 已经承接正式 `layout/widget/style` 资产 AST、tree-shaped `.ui.toml` authority、一次性 flat-to-tree migration adapter，以及编译到 `UiTemplateInstance` / `UiSurface` 的 shared 真源链路
 - editor workbench 首批 pane body 已把 `.ui.toml -> PanePresentation` 作为结构 authority，Rust-owned host/native 需要的 DTO 被限制在 `PaneNativeBodyData` 宿主投影内
-- active `zircon_editor/ui` tree 已硬性保持无 `.slint` 源，former generated Slint DTO/callback seam 由 `zircon_editor/src/ui/slint_host/host_contract/**` 的 Rust-owned structs/globals 承接；`generic_host_layout_paths` 和 `generic_host_boundary` 同时禁止恢复 `ui/workbench.slint`、`slint_build`/`slint-build`、`slint::include_modules!()`、`temp/slint-migration/**` 或 `as slint_ui` alias
+- active `zircon_editor/ui` tree 已硬性保持无 `.slint` 源，former generated Slint DTO/callback seam 由 `zircon_editor/src/ui/retained_host/host_contract/**` 的 Rust-owned structs/globals 承接；`generic_host_layout_paths` 和 `generic_host_boundary` 同时禁止恢复 `ui/workbench.slint`、`slint_build`/`slint-build`、`slint::include_modules!()`、`temp/slint-migration/**` 或 `as slint_ui` alias
 - runtime UI fixture acceptance 已证明 `HudOverlay`、`PauseMenu`、`SettingsDialog` 和 `InventoryList` 全部能从 `.ui.toml` 经 `RuntimeUiManager -> UiSurface -> UiRenderExtract -> WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass
 - editor root viewport 在 Drawer 可见时优先使用 drawer 派生出的 document frame 作为 Scene 内容区域，并在换算 Scene canvas 时扣除 document header、1px separator 和 viewport toolbar，避免 stale `PaneSurfaceRoot` 尺寸把 Scene render 拉回整窗宽高或把渲染帧算高后再纵向压缩；host scene image 使用 fill 承接 renderer 输出尺寸，不再二次 contain letterbox。该项以窗口截图 `target/visual-layout/editor-window-20260427-layout-continue-header-fix.png` 验收，截图中 Scene 标签和状态栏均显示 `1078 x 655`，可见画面底边对齐 Console 上沿。
 - Scene viewport toolbar 现在由 host pane surface 在 viewport canvas 之后绘制并显式占用 `viewport_toolbar_height`，避免只预留高度但控件被下层画面或空背景吞掉；场景内旧 runtime HUD 不再输出 `Move | Persp | Shaded` 状态条，防止和正式 toolbar 重复并遮挡渲染画面。该项以窗口截图 `target/visual-layout/editor-window-20260428-toolbar-no-viewport-hud.png` 验收，截图中 Scene 工具栏位于 Scene 标签下方，视口内部不再显示重复 HUD，Scene 标签和状态栏均显示 `1078 x 655`。
@@ -276,7 +276,7 @@ doc_type: category-index
 - Side drawer compact 现在在 1100px 以下启用非对称宽度策略，左侧保留 Project/Assets/Hierarchy tab 可读宽度，右侧 Inspector 更积极压缩，把额外横向空间交给 Scene；Project Overview Details/Catalog 垂直堆叠在小窗口下会压缩间距与 panel 高度，Catalog 按钮保持左锚定纵向排列，避免窄 Drawer 中 `Asset Browser` 被横向或纵向裁切。该项以 `target/visual-layout/editor-window-20260428-side-compact-asymmetric-1024x700.png` 验收：1024x700 下 Scene 从 `486 x 399` 提升到 `526 x 399`，左侧 tab 和 Project 按钮均未裁切；`target/visual-layout/editor-window-20260428-project-vertical-compact-800x620.png` 覆盖 800x620 极窄窗口，Project 的 `Open Assets` 与 `Asset Browser` 均可见，Scene 保持 `302 x 336`；`target/visual-layout/editor-window-20260428-side-compact-240-1616x1019.png` 和 `target/visual-layout/editor-window-20260428-project-vertical-compact-1024x700.png` 覆盖大窗口/中窗口回归。
 - Ultra-compact layout 在 760px 以下进一步压缩左右 Drawer，在 420px 以下的 center+bottom 可用高度中把 bottom drawer 限制到 `80px..96px`，优先保留 Scene 和 Project 操作入口；Project Overview 的 Catalog 按钮现在在矮窗口下先于摘要显示。该项以 `target/visual-layout/editor-window-20260428-catalog-actions-first-700x620.png`、`target/visual-layout/editor-window-20260428-catalog-actions-first-900x500.png`、`target/visual-layout/editor-window-20260428-catalog-actions-first-1280x520.png` 验收：700x620 下 Scene 从 `202 x 336` 提升到 `302 x 336`，900x500 下 Scene 从 `402 x 216` 提升到 `402 x 256`，1280x520 下 Scene 从 `742 x 236` 提升到 `742 x 273`；三个截图中 Project 的 `Open Assets` 与 `Asset Browser` 操作入口均可见，矮窗口中 Catalog 摘要允许被下方裁切。
 - Scene 后处理不再把 clustered-lighting tile buffer 作为默认可见颜色/强度叠加到最终 frame，避免编辑器预览区出现块状阶梯伪影；该项以窗口截图 `target/visual-layout/editor-window-20260427-after-cluster-tile-fix.png` 作为人工视觉验收样本。
-- editor root generated Slint bootstrap 已退场，当前 `UiHostWindow`、`UiHostContext`、`HostWindowSceneData`、`host_scene_data`、`HostWindowSurface*` scene contract 名称和 `host_drag_pointer_event` / `host_resize_pointer_event` 宿主事件由 Rust-owned `host_contract/**` 暴露，并用源码守卫阻止旧 workbench host bootstrap 名称或 deleted Slint source authority 回流
+- editor root generated bootstrap 已退场，当前 `UiHostWindow`、`UiHostContext`、`HostWindowSceneData`、`host_scene_data`、`HostWindowSurface*` scene contract 名称和 `host_drag_pointer_event` / `host_resize_pointer_event` 宿主事件由 Rust-owned `host_contract/**` 暴露，并用源码守卫阻止旧 workbench host bootstrap 名称或 deleted source authority 回流
 - `zircon_runtime/src/ui/mod.rs` 进一步收缩为 crate 导航层，`UiConfig`、`UI_MODULE_NAME` 和 `module_descriptor` 已下沉到 `zircon_runtime/src/ui/module.rs`
 - shared pointer button payload、capture 持续派发语义，以及第一条 editor host viewport pointer/scroll shared bridge 已经接到 `zircon_runtime::ui`
 - Slate-style `UiVisibility` / `UiArrangedTree` / `UiSurfaceFrame` 契约已经进入 `zircon_runtime_interface::ui`；runtime arranged-tree builder 会把 legacy `state_flags.visible=false` 规范化为 effective `Hidden`，render extract、hit grid、focus/navigation 和 scroll candidate 都消费同一份 effective visibility helper

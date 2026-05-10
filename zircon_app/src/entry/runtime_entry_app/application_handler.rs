@@ -5,13 +5,13 @@ use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, Wi
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimeViewportSizeV1, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_BUTTON_STATE_PRESSED_V1, ZR_RUNTIME_BUTTON_STATE_RELEASED_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
+    ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeViewportSizeV1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
 };
 
-use super::RuntimeEntryApp;
+use super::{window_surface::runtime_native_surface_target, RuntimeEntryApp};
 use crate::runtime_presenter::SoftbufferRuntimePresenter;
 
 impl ApplicationHandler for RuntimeEntryApp {
@@ -31,15 +31,17 @@ impl ApplicationHandler for RuntimeEntryApp {
             }
         };
         let size = window.surface_size();
-        if self
-            .resize_viewport(ZrRuntimeViewportSizeV1::new(size.width, size.height))
-            .is_err()
-        {
+        let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
+        self.window = Some(window.clone());
+        self.viewport_size = viewport_size;
+        self.surface_present_enabled = self.bind_window_surface(window.as_ref()).unwrap_or(false);
+        if self.resize_viewport(viewport_size).is_err() {
             event_loop.exit();
             return;
         }
-        self.window = Some(window.clone());
-        self.presenter = Some(SoftbufferRuntimePresenter::new(window).expect("runtime presenter"));
+        if !self.surface_present_enabled && !self.ensure_fallback_presenter(event_loop) {
+            return;
+        }
     }
 
     fn window_event(
@@ -51,18 +53,23 @@ impl ApplicationHandler for RuntimeEntryApp {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::SurfaceResized(size) => {
+                let viewport_size =
+                    ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
                 if let Some(presenter) = self.presenter.as_mut() {
-                    if presenter
-                        .resize(ZrRuntimeViewportSizeV1::new(size.width, size.height))
-                        .is_err()
-                    {
+                    if presenter.resize(viewport_size).is_err() {
                         event_loop.exit();
                     }
                 }
-                if self
-                    .resize_viewport(ZrRuntimeViewportSizeV1::new(size.width, size.height))
-                    .is_err()
-                {
+                if self.surface_present_enabled {
+                    self.viewport_size = viewport_size;
+                    match self.bind_current_window_surface() {
+                        Ok(true) => {}
+                        Ok(false) | Err(_) => {
+                            self.disable_surface_present();
+                        }
+                    }
+                }
+                if self.resize_viewport(viewport_size).is_err() {
                     event_loop.exit();
                 }
             }
@@ -112,6 +119,23 @@ impl ApplicationHandler for RuntimeEntryApp {
                 }
             }
             WindowEvent::RedrawRequested => {
+                if self.surface_present_enabled {
+                    match self
+                        .session
+                        .present_viewport(self.viewport, self.viewport_size)
+                    {
+                        Ok(true) => return,
+                        Ok(false) => {
+                            self.disable_surface_present();
+                        }
+                        Err(_) => {
+                            self.disable_surface_present();
+                        }
+                    }
+                }
+                if !self.ensure_fallback_presenter(event_loop) {
+                    return;
+                }
                 if let Some(presenter) = self.presenter.as_mut() {
                     match self
                         .session
@@ -152,5 +176,61 @@ fn button_state(state: ElementState) -> Option<u32> {
     match state {
         ElementState::Pressed => Some(ZR_RUNTIME_BUTTON_STATE_PRESSED_V1),
         ElementState::Released => Some(ZR_RUNTIME_BUTTON_STATE_RELEASED_V1),
+    }
+}
+
+impl RuntimeEntryApp {
+    fn bind_current_window_surface(
+        &self,
+    ) -> Result<bool, crate::entry::runtime_library::RuntimeLibraryError> {
+        let Some(window) = self.window.as_ref() else {
+            return Ok(false);
+        };
+        self.bind_window_surface(window.as_ref())
+    }
+
+    fn bind_window_surface(
+        &self,
+        window: &dyn Window,
+    ) -> Result<bool, crate::entry::runtime_library::RuntimeLibraryError> {
+        if !self.session.supports_viewport_surface_present() {
+            return Ok(false);
+        }
+        let Some(target) = runtime_native_surface_target(window) else {
+            return Ok(false);
+        };
+        self.session
+            .bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                self.viewport,
+                self.viewport_size,
+                target,
+            ))
+    }
+
+    fn disable_surface_present(&mut self) {
+        if self.surface_present_enabled {
+            let _ = self.session.unbind_viewport_surface(self.viewport);
+        }
+        self.surface_present_enabled = false;
+    }
+
+    fn ensure_fallback_presenter(&mut self, event_loop: &dyn ActiveEventLoop) -> bool {
+        if self.presenter.is_some() {
+            return true;
+        }
+        let Some(window) = self.window.as_ref() else {
+            return false;
+        };
+        match SoftbufferRuntimePresenter::new(window.clone()) {
+            Ok(presenter) => {
+                self.presenter = Some(presenter);
+                true
+            }
+            Err(_) => {
+                event_loop.exit();
+                false
+            }
+        }
     }
 }

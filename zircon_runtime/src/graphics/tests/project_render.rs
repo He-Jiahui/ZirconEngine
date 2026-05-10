@@ -222,7 +222,7 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
 }
 
 #[test]
-fn history_resolve_blends_previous_scene_color_when_enabled() {
+fn history_resolve_rotates_history_when_scene_material_changes() {
     let root = unique_temp_project_root("graphics_history_resolve");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
@@ -286,7 +286,8 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
             history_viewport,
             RenderQualityProfile::new("history-only")
                 .with_clustered_lighting(false)
-                .with_screen_space_ambient_occlusion(false),
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(true),
         )
         .unwrap();
 
@@ -307,6 +308,7 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
             viewport_size,
         ),
     );
+    let first_history = server.query_stats().unwrap().last_frame_history;
     let _ = server.capture_frame(history_viewport).unwrap();
     let history_frame = submit_snapshot(
         &server,
@@ -325,6 +327,7 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
             viewport_size,
         ),
     );
+    let second_history = server.query_stats().unwrap().last_frame_history;
 
     let no_history_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -358,9 +361,10 @@ fn history_resolve_blends_previous_scene_color_when_enabled() {
 
     let history_green_pixels = dominant_green_pixels(&history_frame.rgba);
     let no_history_green_pixels = dominant_green_pixels(&no_history_frame.rgba);
+    assert_ne!(first_history, second_history);
     assert!(
-        history_green_pixels > no_history_green_pixels + 64,
-        "expected history resolve to preserve prior frame color; green pixels with history={history_green_pixels}, without history={no_history_green_pixels}"
+        history_green_pixels <= no_history_green_pixels + 64,
+        "history resolve should rotate on material change instead of preserving prior color; green pixels with history={history_green_pixels}, without history={no_history_green_pixels}"
     );
 
     let _ = fs::remove_dir_all(root);

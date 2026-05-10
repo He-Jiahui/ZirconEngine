@@ -7,7 +7,9 @@ related_code:
   - zircon_runtime/src/scene/ecs/change_detection/change_tick.rs
   - zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs
   - zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs
+  - zircon_runtime/src/scene/ecs/change_detection/wrappers.rs
   - zircon_runtime/src/scene/ecs/commands/mod.rs
+  - zircon_runtime/src/scene/ecs/commands/command.rs
   - zircon_runtime/src/scene/ecs/commands/command_queue.rs
   - zircon_runtime/src/scene/ecs/commands/commands.rs
   - zircon_runtime/src/scene/ecs/component.rs
@@ -27,6 +29,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/query/query_filter.rs
   - zircon_runtime/src/scene/ecs/query/query_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/removal.rs
   - zircon_runtime/src/scene/ecs/resource.rs
   - zircon_runtime/src/scene/ecs/resource_id.rs
   - zircon_runtime/src/scene/ecs/resource_registry.rs
@@ -43,8 +46,11 @@ related_code:
   - zircon_runtime/src/scene/ecs/storage/storage_error.rs
   - zircon_runtime/src/scene/ecs/storage_type.rs
   - zircon_runtime/src/scene/ecs/system/mod.rs
+  - zircon_runtime/src/scene/ecs/system/events.rs
   - zircon_runtime/src/scene/ecs/system/local.rs
+  - zircon_runtime/src/scene/ecs/system/param_set.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
+  - zircon_runtime/src/scene/ecs/system/removed_components.rs
   - zircon_runtime/src/scene/ecs/system/res.rs
   - zircon_runtime/src/scene/ecs/system/system_param.rs
   - zircon_runtime/src/scene/ecs/system/system_param_access.rs
@@ -60,6 +66,7 @@ related_code:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -75,7 +82,9 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/change_detection/change_tick.rs
   - zircon_runtime/src/scene/ecs/change_detection/change_tick_window.rs
   - zircon_runtime/src/scene/ecs/change_detection/component_ticks.rs
+  - zircon_runtime/src/scene/ecs/change_detection/wrappers.rs
   - zircon_runtime/src/scene/ecs/commands/mod.rs
+  - zircon_runtime/src/scene/ecs/commands/command.rs
   - zircon_runtime/src/scene/ecs/commands/command_queue.rs
   - zircon_runtime/src/scene/ecs/commands/commands.rs
   - zircon_runtime/src/scene/ecs/component.rs
@@ -95,6 +104,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/query/query_filter.rs
   - zircon_runtime/src/scene/ecs/query/query_iter.rs
   - zircon_runtime/src/scene/ecs/query/query_state.rs
+  - zircon_runtime/src/scene/ecs/removal.rs
   - zircon_runtime/src/scene/ecs/resource.rs
   - zircon_runtime/src/scene/ecs/resource_id.rs
   - zircon_runtime/src/scene/ecs/resource_registry.rs
@@ -111,8 +121,11 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/storage/storage_error.rs
   - zircon_runtime/src/scene/ecs/storage_type.rs
   - zircon_runtime/src/scene/ecs/system/mod.rs
+  - zircon_runtime/src/scene/ecs/system/events.rs
   - zircon_runtime/src/scene/ecs/system/local.rs
+  - zircon_runtime/src/scene/ecs/system/param_set.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
+  - zircon_runtime/src/scene/ecs/system/removed_components.rs
   - zircon_runtime/src/scene/ecs/system/res.rs
   - zircon_runtime/src/scene/ecs/system/system_param.rs
   - zircon_runtime/src/scene/ecs/system/system_param_access.rs
@@ -128,6 +141,7 @@ implementation_files:
   - zircon_runtime/src/scene/world/derived_state.rs
   - zircon_runtime/src/scene/world/dirty_state.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
+  - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
   - zircon_runtime/src/scene/world/project_io.rs
@@ -139,12 +153,14 @@ implementation_files:
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
+  - .codex/plans/ECS SystemParam Commands Change Detection 下一阶段计划.md
   - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
   - .codex/plans/ZirconEngine Bevy-Style 自研 ECS 与场景编辑模式计划.md
 tests:
   - zircon_runtime/src/scene/tests/ecs_identity_storage.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
+  - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
@@ -163,8 +179,8 @@ doc_type: module-detail
 - typed component/resource/bundle contracts and registries for the M2 public `World` API without importing `bevy_ecs`;
 - typed resource and event stores for systems without ad hoc global maps;
 - typed query/access descriptors for M3 runtime borrow-safety checks;
-- deferred command queues, system parameter state, and per-system run windows for M4-style systems;
-- per-component/resource change ticks plus `Added<T>` and `Changed<T>` filters for M5 change detection;
+- typed deferred command queues, Bevy-style system parameter state, event params, and per-system run windows for M4-style systems;
+- per-component/resource change ticks plus `Added<T>`, `Changed<T>`, `Ref<T>`, `Mut<T>`, and removed-component readers for M5 change detection;
 - stage/system descriptors that let `WorldDriver` run native scene systems and plugin hooks in one deterministic schedule.
 
 The implementation follows Bevy's split between external entity values, entity locations, component IDs, storage type selection, and table/sparse backing stores. It deliberately diverges by keeping Zircon's serialized `EntityId` as the stable project-facing key instead of making the generational handle the saved identity. Fyrox's generational pool model also informs the stale-handle behavior: an index alone is never enough to prove liveness after despawn.
@@ -201,11 +217,11 @@ The M2 typed API is intentionally narrow:
 
 ## Resources And Events
 
-`ResourceStore` and `EventStore` are type-indexed support layers for scene systems. They use `TypeId` internally but expose typed `insert`, `get`, `get_mut`, `remove`, `send`, `update`, and `drain` operations so future systems can avoid ad hoc global maps. `ResourceStore` now records `ComponentTicks` for resources too, allowing `Res<T>` and `ResMut<T>` system params to expose `is_added()` and `is_changed()`. `Events<T>` keeps a `next` queue and a `current` queue; `send` publishes into the next frame, while `update` swaps it into the readable queue. The explicit `Default` implementation intentionally does not require `T: Default`.
+`ResourceStore` and `EventStore` are type-indexed support layers for scene systems. They use `TypeId` internally but expose typed `insert`, `get`, `get_mut`, `remove`, `send`, `update`, and `drain` operations so systems avoid ad hoc global maps. `ResourceStore` records `ComponentTicks` for resources too, allowing `Res<T>` and `ResMut<T>` system params to expose `is_added()`, `is_changed()`, and `last_changed()`. `Events<T>` keeps a `next` queue and a `current` queue; `send` publishes into the next frame, while `update` swaps it into the readable queue. The explicit `Default` implementation intentionally does not require `T: Default`.
 
 `World::resource_id`, `World::registered_resource_id`, `World::insert_resource`, `World::resource`, `World::get_resource`, `World::resource_mut`, `World::get_resource_mut`, and `World::remove_resource` expose the M2 resource API over `ResourceRegistry` and `ResourceStore`. `World::resource` and `World::resource_mut` intentionally panic on missing resources; use the `get_*` variants for optional access.
 
-`EventStore` remains the lower-layer scheduled event primitive. Event readers/writers and lifecycle observers remain future M6+ work.
+`World::send_event`, `World::update_events`, and `World::events` expose the runtime event queue. `EventWriterParam<T>` writes through `EventStore::send` into `next`, and `EventReaderParam<T>` reads only the current queue. This mirrors Bevy's current/next event visibility rule without adding observer/lifecycle hooks in this milestone.
 
 ## Query Model
 
@@ -217,28 +233,38 @@ The initial supported data forms are deliberately narrow:
 
 - `&T` reads a required `Component`.
 - `&mut T` mutably reads a required `Component` through `QueryState::for_each_mut`.
+- `Ref<T>` reads a required component with `is_added()`, `is_changed()`, and `last_changed()` metadata.
+- `Mut<T>` mutably reads a required component with the same metadata surface as `Ref<T>` and uses the existing mutable fetch path that marks the component changed.
 - `Option<&T>` reads an optional component without filtering out entities that lack it.
 - `EntityId` returns the stable public scene entity id.
 - tuples up to four items compose read-only query data.
 
 `With<T>` and `Without<T>` compose as query filters and also participate in access disjointness. `Added<T>` and `Changed<T>` read component tick metadata against the current system run window; `Changed<T>` includes newly added components, matching Bevy's behavior. `QueryAccess::conflicts_with` reports a conflict when two states both touch the same component and at least one writes it, unless their filter sets prove the matching entity sets are disjoint, such as `With<Player>` versus `Without<Player>`. `QueryState::try_new` rejects conflicting access inside one query, including duplicate `&mut T` access.
 
-This is Bevy-inspired but intentionally smaller than Bevy's full `WorldQuery` system. Mutable tuple query data is still deferred; the current mutable path supports one mutable data item so M3 can establish borrow-safety diagnostics before wider system execution.
+This is Bevy-inspired but intentionally smaller than Bevy's full `WorldQuery` system. Mutable tuple query data is still deferred; the current mutable path supports one mutable data item (`&mut T` or `Mut<T>`) so M3/M5 can establish borrow-safety diagnostics and change-tick behavior before wider system execution.
 
 ## System Params, Commands, And Change Detection
 
-`SystemState<P>` is the first local system execution wrapper. It caches `P::State`, records `SystemParamAccess`, tracks the system's `last_run` tick, advances `World` to a fresh `ChangeTick` for each run, and fetches `P::Item<'_>` for the user closure. Tuple params compose up to four items and share one access descriptor so duplicate mutable resource or component access is rejected before a system runs.
+`SystemState<P>` is the local system execution wrapper. It caches `P::State`, records `SystemParamAccess`, tracks the system's `last_run` tick, advances `World` to a fresh `ChangeTick` for each run, and fetches `P::Item<'_>` for the user closure. Tuple params compose up to eight items and share one access descriptor so duplicate mutable resource, component, or event access is rejected before a system runs.
 
 Supported system params in this slice are:
 
 - `QueryState<D, F>` as a param, yielding `Query<D, F>` with `iter()` and `for_each_mut(...)` over the current tick window.
-- `ResParam<T>` and `ResMutParam<T>`, yielding `Res<T>` and `ResMut<T>` wrappers with `Deref`, `DerefMut` for mutable access, and `is_added()` / `is_changed()` helpers.
-- `CommandsParam`, yielding `Commands`, which queues deferred `spawn`, `despawn`, component insert/remove, resource insert/remove, or custom closures.
+- `ResParam<T>` and `ResMutParam<T>`, yielding `Res<T>` and `ResMut<T>` wrappers with `Deref`, `DerefMut` for mutable access, and `is_added()` / `is_changed()` / `last_changed()` helpers.
+- `Option<ResParam<T>>` and `Option<ResMutParam<T>>`, returning `None` when a resource is absent while still recording the declared access. Required `ResParam<T>` and `ResMutParam<T>` fail `SystemState::new(...)` with `SystemParamError::MissingResource` if the resource is missing.
+- `CommandsParam`, yielding `Commands`, which queues deferred `spawn`, `spawn_empty`, `entity`, `entity_or_spawn`, `despawn`, component insert/remove, bundle insert, resource insert/remove, or custom `Command`/closure work.
+- `EventReaderParam<T>` and `EventWriterParam<T>`, yielding current-queue readers and next-queue writers over runtime `EventStore`.
+- `RemovedComponentsParam<T>`, yielding a stateful `RemovedComponents<T>` reader that reports entities whose `T` was removed after the reader's last cursor.
+- `ParamSet<(P0, P1, ...)>` for arities one through eight, allowing potentially conflicting params to be declared together while exposing only segmented `p0()` through `p7()` access.
 - `LocalParam<T>`, yielding persistent local state initialized from `T::default()` and preserved across `SystemState::run(...)` calls.
 
-`World::commands()` exposes the same deferred queue outside system params, and `World::apply_deferred()` applies queued commands at a fresh active change tick. Command effects are intentionally invisible until `apply_deferred()` runs, which gives later schedule graph work a deterministic sync point equivalent to Bevy's `ApplyDeferred`. The current command queue uses ordered boxed closures instead of Bevy's optimized byte buffer; the semantic contract is ordered application and deferred visibility, not storage parity.
+`ParamSet` checks each child parameter against the access baseline from outside the set, then merges child access into the outer descriptor without preserving sibling query filters. This keeps sibling params allowed to conflict with each other while making the aggregate access conservative when another system compares against the whole `ParamSet`.
 
-Change detection uses a simple monotonic `u64`-backed `ChangeTick` rather than Bevy's wrapped `u32` maintenance path. Direct world mutations outside a system advance the world tick immediately. Mutations inside `SystemState::run(...)` use that system's active tick, so the mutating system does not see its own previous run as changed on the next run while other systems with older `last_run` windows can observe the change. `World::get_mut`, `World::insert`, resource mutation, deferred command application, fixed scene component maps, and typed ECS storage all flow through this tick path.
+`World::commands()` exposes the same deferred queue outside system params, and `World::apply_deferred()` applies queued commands at a fresh active change tick. Command effects are intentionally invisible until `apply_deferred()` runs, which gives schedule work a deterministic sync point equivalent to Bevy's `ApplyDeferred`. `Commands::spawn(...)` and `spawn_empty()` reserve stable `EntityId` values from `World::next_id` before application, so `EntityCommands::id()` is stable even while the entity is not yet visible in the world. The current command queue stores ordered typed `Command` values behind an erased trait, with `FnCommand` keeping closure commands available; the semantic contract is ordered application and deferred visibility, not Bevy byte-buffer storage parity.
+
+Change detection uses a simple monotonic `u64`-backed `ChangeTick` rather than Bevy's wrapped `u32` maintenance path. Direct world mutations outside a system advance the world tick immediately. Mutations inside `SystemState::run(...)` use that system's active tick, so the mutating system does not see its own previous run as changed on the next run while other systems with older `last_run` windows can observe the change. `Changed<T>` intentionally includes newly added components, matching Bevy. `World::get_mut`, `World::insert`, resource mutation, deferred command application, fixed scene component maps, and typed ECS storage all flow through this tick path.
+
+Removed-component events are runtime-only world state. Direct `World::remove<T>`, recursive/despawn entity removal, deferred `EntityCommands::remove<T>()`, and deferred despawn all record the removed component type and stable entity id. The reader cursor lives in `RemovedComponentReader<T>` / `RemovedComponentsParam<T>`, so each system observes only events it has not already consumed.
 
 ## Schedule Model
 
@@ -256,7 +282,9 @@ Change detection uses a simple monotonic `u64`-backed `ChangeTick` rather than B
 - `zircon.scene.node_cache` in `PostUpdate`;
 - `zircon.scene.render_extract_prepare` in `RenderExtract`.
 
-`SceneScheduleRunner` merges native built-in descriptors with plugin `SceneRuntimeHookRegistration` values for each stage. It defers eager derived-state flushing while a stage is running so plugin hooks can mutate local scene state through the normal dirty path. When the stage finishes successfully, the runner disables defer mode and runs that stage's built-in systems once more. This preserves plugin hook order semantics while still making hook mutations visible before the next stage or frame boundary.
+`InternalSceneSystem::ApplyDeferred` is a runtime-only synchronization system that calls `World::apply_deferred()`. It can be registered explicitly when a stage needs a named sync point. The current runner also flushes deferred commands after every internal system except `ApplyDeferred` itself and after every plugin hook, so command effects become visible to later ordered steps in the same stage. This is a deterministic local integration point, not Bevy's full graph analysis or automatic insertion algorithm.
+
+`SceneScheduleRunner` merges native built-in descriptors with plugin `SceneRuntimeHookRegistration` values for each stage. It defers eager derived-state flushing while a stage is running so plugin hooks can mutate local scene state through the normal dirty path. When the stage finishes successfully, the runner disables defer mode and runs that stage's built-in systems once more. This preserves plugin hook order semantics while still making hook mutations and deferred ECS command effects visible before the next stage or frame boundary.
 
 ## Derived State Systems
 
@@ -278,7 +306,7 @@ The typed ECS M2 tests cover tuple bundle spawn, typed insert/get/get_mut/remove
 
 The typed ECS M3 query tests cover required component reads, optional component reads, stable `EntityId` query items, `With<T>` and `Without<T>` filters, single-component mutable iteration, fixed scene component queries, access conflict detection, filter-proven disjointness, and duplicate mutable access rejection.
 
-The typed ECS system-param/change-detection tests cover deferred command visibility before/after `World::apply_deferred()`, tuple system params combining query/resource/commands access, persistent local params, `Added<T>` windows, and `Changed<T>` windows after direct mutable component access.
+The typed ECS system-param/change-detection tests cover deferred command visibility before/after `World::apply_deferred()`, entity command builder ordering, tuple system params up to eight items, tuple params combining query/resource/commands access, optional and required resource params, `ParamSet` segmented conflicting access up to eight items, event reader/writer current/next queues, persistent local params, `Ref<T>`/`Mut<T>` query wrappers, `Added<T>` windows, `Changed<T>` windows after direct mutable component access, removed-component readers, and explicit `ApplyDeferred` schedule flushing.
 
 The transform/active dirty-state M2 tests cover dirty-only mutators, direct read projection without clearing dirty bits, `PostUpdate` cache propagation, `RenderExtract` flushing after parent reorder and active changes, and mobility changes that dirty cached node/render state without forcing transform propagation.
 

@@ -8,6 +8,7 @@ use crate::ui::tree::{
     UiHitTestIndex, UiHitTestResult, UiRuntimeTreeAccessExt, UiRuntimeTreeFocusExt,
     UiRuntimeTreeInteractionExt, UiRuntimeTreeRoutingExt, UiRuntimeTreeScrollExt,
 };
+use zircon_runtime_interface::ui::accessibility::UiAccessibilityTreeSnapshot;
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchReply, UiDispatchReplyStep, UiInputDispatchResult, UiInputEvent,
     UiPointerComponentEvent, UiPointerComponentEventReason, UiPointerDispatchEffect,
@@ -361,6 +362,10 @@ impl UiSurface {
             focus_state: self.focus.clone(),
             last_rebuild: self.last_rebuild_report.debug_stats(),
         }
+    }
+
+    pub fn accessibility_snapshot(&self) -> UiAccessibilityTreeSnapshot {
+        crate::ui::accessibility::accessibility_snapshot(self)
     }
 
     pub fn debug_hit_test(&self, point: UiPoint) -> UiHitTestDebugDump {

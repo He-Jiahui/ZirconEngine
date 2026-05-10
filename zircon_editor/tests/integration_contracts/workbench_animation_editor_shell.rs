@@ -8,7 +8,7 @@ fn source(relative: &str) -> String {
 
 #[test]
 fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
-    let panes = source("src/ui/slint_host/host_contract/data/panes.rs");
+    let panes = source("src/ui/retained_host/host_contract/data/panes.rs");
     let asset = source("assets/ui/editor/animation_editor.ui.toml");
 
     for required in [

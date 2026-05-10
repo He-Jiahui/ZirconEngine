@@ -20,7 +20,7 @@ related_code:
   - zircon_editor/src/scene/mod.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
   - zircon_editor/src/ui/workbench/mod.rs
 implementation_files:
@@ -41,7 +41,7 @@ implementation_files:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/host/mod.rs
-  - zircon_editor/src/ui/slint_host/mod.rs
+  - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/asset_editor/mod.rs
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
@@ -120,8 +120,8 @@ This document is the cutover authority for the current workspace refactor. Every
 - New owner: `zircon_editor::ui::workbench::state::EditorState`
 - Old owner: `core` holding UI host, workbench, layout, window, or asset-editor session implementation
 - New owner: `ui/host` and `ui/workbench`
-- Old owner: `ui/slint_host` mixing shell glue with business ownership
-- New owner: `ui/slint_host` only for Slint/native-window/platform glue; business state stays in `ui/host`, `ui/workbench`, and `ui/asset_editor`
+- Old owner: `ui/slint_host` mixing generated toolkit glue with business ownership
+- New owner: `ui/retained_host` owns Rust-owned window/input/painter glue only; business state stays in `ui/host`, `ui/workbench`, and `ui/asset_editor`
 - Old owner: `ui/asset_editor` flat files coexisting with same-domain folder-backed modules
 - New owner: folder-backed `binding/`, `preview/`, `session/`, `source/`, `style/`, and `tree/` subtrees only
 

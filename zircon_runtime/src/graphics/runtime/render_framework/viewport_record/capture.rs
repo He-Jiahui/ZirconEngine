@@ -19,4 +19,11 @@ impl ViewportRecord {
         self.compiled_pipeline = Some(compiled_pipeline);
         self.last_capture = Some(capture);
     }
+
+    pub(in crate::graphics::runtime::render_framework) fn store_presented_pipeline(
+        &mut self,
+        compiled_pipeline: CompiledRenderPipeline,
+    ) {
+        self.compiled_pipeline = Some(compiled_pipeline);
+    }
 }

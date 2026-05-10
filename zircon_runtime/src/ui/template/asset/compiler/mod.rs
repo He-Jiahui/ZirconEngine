@@ -4,6 +4,7 @@ mod component_instance_expander;
 mod component_props;
 mod node_expander;
 mod package;
+mod prototype_instancer;
 mod shape_validator;
 mod style_apply;
 mod ui_document_compiler;

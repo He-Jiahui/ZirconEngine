@@ -212,7 +212,7 @@ mod tests {
                 vec!["particles".to_string()],
                 Vec::new(),
                 vec![RenderFeaturePassDescriptor::new(
-                    RenderPassStage::Transparent,
+                    RenderPassStage::Transparent3d,
                     "particle-render",
                     QueueLane::Graphics,
                 )

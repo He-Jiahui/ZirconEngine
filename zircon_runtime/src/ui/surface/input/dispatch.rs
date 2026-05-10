@@ -135,6 +135,9 @@ pub(crate) fn dispatch_input_event(
         UiInputEvent::DragDrop(drag_drop) => Ok(dispatch_drag_drop_input(surface, drag_drop)),
         UiInputEvent::Popup(popup) => Ok(dispatch_popup_input(surface, popup)),
         UiInputEvent::TooltipTimer(tooltip) => Ok(dispatch_tooltip_timer_input(surface, tooltip)),
+        UiInputEvent::Accessibility(accessibility) => Ok(
+            crate::ui::accessibility::dispatch_accessibility_action(surface, accessibility),
+        ),
     }
 }
 
@@ -823,7 +826,8 @@ fn focused_input_kind_for_event(event: &UiInputEvent) -> Option<UiFocusedInputKi
         UiInputEvent::Analog(_)
         | UiInputEvent::DragDrop(_)
         | UiInputEvent::Popup(_)
-        | UiInputEvent::TooltipTimer(_) => None,
+        | UiInputEvent::TooltipTimer(_)
+        | UiInputEvent::Accessibility(_) => None,
     }
 }
 

@@ -1,5 +1,7 @@
 //! Scene rasterization and resource streaming.
 
+#[cfg(test)]
+mod render_product_streamer_tests;
 mod resources;
 #[path = "scene_renderer/mod.rs"]
 mod scene_renderer;

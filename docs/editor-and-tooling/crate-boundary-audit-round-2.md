@@ -74,10 +74,10 @@ related_code:
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/core/editor_event/runtime/execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/ui/asset_surface_presentation.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/layouts/views/asset_surface_presentation.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
@@ -86,8 +86,8 @@ related_code:
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/tests/host/resource_access/mod.rs
-  - zircon_editor/src/tests/host/slint_asset_refresh/mod.rs
-  - zircon_editor/src/tests/host/slint_asset_pointer.rs
+  - zircon_editor/src/tests/host/retained_asset_refresh/mod.rs
+  - zircon_editor/src/tests/host/retained_asset_pointer.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
   - zircon_app/src/entry/tests/mod.rs
 implementation_files:
@@ -152,10 +152,10 @@ implementation_files:
   - zircon_editor/src/ui/workbench/project/editor_state_asset_workspace.rs
   - zircon_editor/src/core/editor_event/runtime/execution/common.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/app/backend_refresh.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/ui/asset_surface_presentation.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/app/backend_refresh.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/layouts/views/asset_surface_presentation.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_item_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_reference_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/asset/asset_selection_snapshot.rs
@@ -295,7 +295,7 @@ doc_type: module-detail
 
 - 两者成员集合一致：`Model / Material / Texture / Shader / Scene / UiLayout / UiWidget / UiStyle`
 - 迁移前旧的 pipeline-manager records 投影链每次投影 `AssetMetadata` 时都要把 `AssetKind` 手动映射成 `AssetRecordKind`
-- `zircon_editor` 的 asset workspace、resource access、Slint asset surface 继续消费的是 `AssetRecordKind`
+- `zircon_editor` 的 asset workspace、resource access、retained asset surface 继续消费的是 `AssetRecordKind`
 
 按更严格标准，这属于典型的 “canonical enum duplication”：
 
@@ -538,7 +538,7 @@ doc_type: module-detail
 1. `zircon_manager::AssetRecordKind` 已删除，`AssetStatusRecord.kind` / `ResourceStatusRecord.kind` 统一改成 `zircon_resource::ResourceKind`
 2. `zircon_manager::PreviewStateRecord` 已删除，editor-facing catalog/details/reference records 直接使用 `zircon_asset::project::PreviewState`
 3. `zircon_asset` 不再做 façade taxonomy 投影；`editor/records.rs` 与 `pipeline/manager/records/mod.rs` 下的 records 子树都直接传递 canonical kind / preview state
-4. `zircon_editor` asset workspace、resource access、event filter parser、Slint asset surface、snapshot structs 和对应测试全部切到 `ResourceKind`
+4. `zircon_editor` asset workspace、resource access、event filter parser、retained asset surface、snapshot structs 和对应测试全部切到 `ResourceKind`
 5. `zircon_framework::input` 成为 `InputButton` / `InputEvent` / `InputEventRecord` / `InputSnapshot` 的独立协议 owner
 6. `zircon_manager` 删除输入协议 re-export 与 `src/records/input.rs`，只保留 `InputManager` façade trait
 7. `zircon_runtime::input` 根级 re-export 输入协议，运行态实现不再从 `zircon_manager` 反向取输入类型
@@ -552,7 +552,7 @@ doc_type: module-detail
 15. `zircon_editor` asset workspace / resource access / host tests 已切到 typed `ResourceRecord`，不再把 `id` / `locator` / `artifact_locator` / `diagnostics` 降级成字符串 record
 16. `zircon_manager::ResourceChangeKind` / `ResourceChangeRecord` 已删除，`ResourceManager::subscribe_resource_changes` 统一改成 `ChannelReceiver<zircon_resource::ResourceEvent>`
 17. `zircon_asset` 不再把 `ResourceEvent` 桥接成字符串化 contract DTO；resource contract 直接转发资源子系统原生事件流
-18. `zircon_editor` host refresh planner、Slint asset refresh 测试和边界测试已切到 typed `ResourceEvent` / `ResourceEventKind`
+18. `zircon_editor` host refresh planner、retained asset refresh 测试和边界测试已切到 typed `ResourceEvent` / `ResourceEventKind`
 19. generic `AssetManager` trait、`AssetManagerHandle` 与 `resolve_asset_manager` 已从 `zircon_manager` 迁回 `zircon_asset`；对应的 `AssetModule` / `ASSET_MANAGER_NAME` module-registration surface 则继续收口到 `zircon_runtime::asset`
 20. `AssetPipelineInfo` / `ProjectInfo` 已随 `AssetManager` 协议线回到 `zircon_asset`，不再作为 façade 残留 record 保留在 `zircon_manager`
 21. `AssetManager::subscribe_asset_changes` 已统一改成 `ChannelReceiver<zircon_asset::watch::AssetChange>`，`AssetChangeRecord` / `AssetChangeKind` 镜像已删除

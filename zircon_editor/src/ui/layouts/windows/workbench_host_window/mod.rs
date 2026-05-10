@@ -1,4 +1,4 @@
-use slint::SharedString;
+use crate::ui::retained_host::primitives::SharedString;
 
 use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload};
 use crate::ui::workbench::autolayout::WorkbenchShellGeometry;

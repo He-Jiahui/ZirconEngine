@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
-use slint::SharedString;
+use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;

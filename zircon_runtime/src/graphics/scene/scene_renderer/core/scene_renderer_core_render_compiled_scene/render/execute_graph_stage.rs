@@ -1,5 +1,6 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::debug_markers::{insert_marker, marker_for_render_pass_stage};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 use crate::graphics::scene::scene_renderer::graph_execution::{
@@ -108,6 +109,9 @@ fn execute_graph_pass(
     };
     if pass.culled {
         return Ok(());
+    }
+    if let Some(marker) = marker_for_render_pass_stage(stage_entry.stage) {
+        insert_marker(encoder, marker);
     }
     let executor_id = pass.executor_id.as_ref().ok_or_else(|| {
         GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name))

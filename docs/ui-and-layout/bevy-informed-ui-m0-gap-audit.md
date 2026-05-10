@@ -20,8 +20,8 @@ related_code:
   - zircon_runtime/src/ui/surface/render/cache.rs
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
-  - zircon_editor/src/ui/slint_host/app/invalidation.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/ui/retained_host/app/invalidation.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
 implementation_files:
   - docs/ui-and-layout/bevy-informed-ui-m0-gap-audit.md
   - tests/acceptance/bevy-informed-ui-m0-baseline.md
@@ -40,7 +40,7 @@ tests:
   - .github/workflows/ci.yml
   - zircon_runtime/src/ui/tests/event_routing.rs
   - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
 doc_type: milestone-detail
 ---
 
@@ -82,16 +82,16 @@ Current Zircon anchors:
 - `zircon_runtime_interface/src/ui/surface/render/batch.rs:9` defines `UiBatchPlan`, `UiBatchKey`, split reasons, and CPU-estimated draw-call counts from paint elements.
 - `zircon_runtime_interface/src/ui/surface/diagnostics.rs:61` exposes debug snapshots, rebuild stats, render debug stats, hit-grid stats, invalidation, damage, and optional backend render stats.
 - `zircon_runtime/src/ui/surface/render/cache.rs:10` retains render commands by node and reports reused, rebuilt, and damage counts.
-- `zircon_editor/src/ui/slint_host/app/invalidation.rs:3` has an editor-native invalidation mask that separates layout, tree, presentation, paint-only, pointer-hover, viewport-image, hit-test, window-metrics, and render reasons.
+- `zircon_editor/src/ui/retained_host/app/invalidation.rs:3` has an editor-native invalidation mask that separates layout, tree, presentation, paint-only, pointer-hover, viewport-image, hit-test, window-metrics, and render reasons.
 - `zircon_runtime/src/ui/tests/event_routing.rs:179` covers repeated same-target mouse movement staying idle without dirtying or rebuilding a surface.
 - `zircon_runtime/src/ui/tests/surface_dirty_domains.rs:13` covers dirty-domain phase separation and incremental layout/render-cache expectations.
-- `zircon_editor/src/tests/host/slint_window/native_host_contract.rs:1117` and nearby tests cover native host repeated hover fast paths and shared pane/template routing.
+- `zircon_editor/src/tests/host/retained_window/native_host_contract.rs:1117` and nearby tests cover native host repeated hover fast paths and shared pane/template routing.
 
 ## Gap Matrix
 
 | Area | Bevy reference behavior | Zircon current evidence | M0 gap and target milestone |
 | --- | --- | --- | --- |
-| Window and input pump | Bevy translates winit events into neutral typed window messages for cursor, focus, scale factor, redraw, close, IME, and file drag/drop. | Zircon has shared `UiInputEvent` DTOs for UI input and editor-native translation helpers, but no single shared window-event DTO/pump that both runtime winit and editor Slint/native hosts consume. | M1 must add a neutral window/input pump for cursor enter/move/leave, focus, scale factor, redraw, close, IME, and file drag/drop, then route runtime and editor hosts through it. |
+| Window and input pump | Bevy translates winit events into neutral typed window messages for cursor, focus, scale factor, redraw, close, IME, and file drag/drop. | Zircon has shared `UiInputEvent` DTOs for UI input and editor-native translation helpers, but no single shared window-event DTO/pump that both runtime winit and retained/native editor hosts consume. | M1 must add a neutral window/input pump for cursor enter/move/leave, focus, scale factor, redraw, close, IME, and file drag/drop, then route runtime and editor hosts through it. |
 | UI schedule | Bevy names and orders `Focus`, `Prepare`, `Propagate`, `Content`, `Layout`, `PostLayout`, and `Stack`; UI render has separate extract, queue, prepare, and pass stages. | Zircon `UiSurface::rebuild_dirty(...)` and editor invalidation masks expose useful phase stats, but the runtime UI path is still method-driven rather than a named pipeline schedule with stable stage DTOs. | M2 must define explicit UI stages such as `InputCollect`, `FocusInteraction`, `ContentMeasure`, `Layout`, `PostLayoutStack`, `HitGrid`, `RenderExtract`, `BatchPrepare`, `PaintSubmit`, and `Diagnostics`. |
 | Layout engine | Bevy converts node fields into `taffy::style::Style` for flex/grid/block/content-size semantics. | Zircon uses recursive `measure_node(...)` and `arrange_node(...)` over custom container kinds. Searches found no production `UiLayoutEngine`, `TaffyLayoutEngine`, or UI taffy adapter. | M3 must introduce a `UiLayoutEngine` abstraction, retain Zircon-specific `Free`, `Overlay`, `Scrollable`, and virtualized list semantics, and map flex/grid/wrap/block-compatible fields to taffy. |
 | Focus, hit, and pointer interaction | Bevy focus walks the stack top-down, resets hidden nodes, applies recursive clip checks, tracks relative cursor, and stops on blocking focus policy. | Zircon has hit-grid routing, focus/capture state, same-target hover suppression, and visibility-aware tests, but focus, pointer capture, popup, tooltip, and editor hover policies are not yet unified under one headless behavior layer. | M4/M8 must converge focus, capture, tooltip, popup, menu, disabled/hidden, keyboard navigation, and accessibility policy around one runtime-owned behavior/focus contract. |
@@ -106,9 +106,9 @@ M0 found these current or recently accepted baseline cases that should become mi
 
 - Repeated same-target runtime mouse moves: `repeated_same_target_mouse_moves_do_not_dirty_or_rebuild_surface` in `zircon_runtime/src/ui/tests/event_routing.rs` asserts 100 same-target moves do not dirty flags, emit events, request damage, or mutate the last rebuild report.
 - Runtime dirty-domain separation: `surface_dirty_rebuild_separates_hit_input_render_and_legacy_state_flags`, `surface_dirty_layout_skips_siblings_under_non_auto_parent`, and `surface_dirty_render_reuses_unchanged_commands_without_damage` in `zircon_runtime/src/ui/tests/surface_dirty_domains.rs` define the current incremental rebuild baseline.
-- Editor native hover fast path: `native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation` and neighboring repeated-hover tests in `zircon_editor/src/tests/host/slint_window/native_host_contract.rs` define the current no-slow-path baseline for host hover motion.
+- Editor native hover fast path: `native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation` and neighboring repeated-hover tests in `zircon_editor/src/tests/host/retained_window/native_host_contract.rs` define the current no-slow-path baseline for host hover motion.
 - Click cancellation: `primary_release_outside_pressed_target_does_not_mark_click_target` and `captured_release_uses_hit_path_not_capture_target_for_click_target` in `zircon_runtime/src/ui/tests/event_routing.rs` define release-outside behavior that headless widgets must preserve.
-- Text/native input routing: `native_host_welcome_material_text_field_accepts_keyboard_input` in `zircon_editor/src/tests/host/slint_window/native_host_contract.rs` records the editor-native text-input route that later shared input pump work must not regress.
+- Text/native input routing: `native_host_welcome_material_text_field_accepts_keyboard_input` in `zircon_editor/src/tests/host/retained_window/native_host_contract.rs` records the editor-native text-input route that later shared input pump work must not regress.
 
 ## M0 Decisions
 

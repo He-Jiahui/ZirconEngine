@@ -37,6 +37,36 @@ impl UiTemplateTreeBuilder {
         node: &UiTemplateNode,
         path: &str,
     ) -> Result<UiNodeId, UiTemplateBuildError> {
+        let mut root_node_id = None;
+        let mut pending = vec![PendingTemplateNode {
+            parent_id,
+            node,
+            path: path.to_string(),
+        }];
+
+        while let Some(task) = pending.pop() {
+            let node_id = self.insert_single_node(tree, task.parent_id, task.node, &task.path)?;
+            root_node_id.get_or_insert(node_id);
+
+            for (index, child) in task.node.children.iter().enumerate().rev() {
+                pending.push(PendingTemplateNode {
+                    parent_id: Some(node_id),
+                    node: child,
+                    path: format!("{}/{}", task.path, child_segment(child, index)),
+                });
+            }
+        }
+
+        Ok(root_node_id.expect("insert_node always starts with one pending node"))
+    }
+
+    fn insert_single_node(
+        &mut self,
+        tree: &mut UiTree,
+        parent_id: Option<UiNodeId>,
+        node: &UiTemplateNode,
+        path: &str,
+    ) -> Result<UiNodeId, UiTemplateBuildError> {
         let node_id = UiNodeId::new(self.next_node_id);
         self.next_node_id += 1;
 
@@ -71,6 +101,8 @@ impl UiTemplateTreeBuilder {
                 style_overrides: node.style_overrides.clone(),
                 style_tokens: node.style_tokens.clone(),
                 bindings: node.bindings.clone(),
+                a11y: node.a11y.clone(),
+                widget: node.widget.clone(),
             });
         if container.is_scrollable() {
             tree_node = tree_node.with_scroll_state(UiScrollState::default());
@@ -92,11 +124,12 @@ impl UiTemplateTreeBuilder {
             tree.insert_root(tree_node);
         }
 
-        for (index, child) in node.children.iter().enumerate() {
-            let child_path = format!("{path}/{}", child_segment(child, index));
-            self.insert_node(tree, Some(node_id), child, &child_path)?;
-        }
-
         Ok(node_id)
     }
+}
+
+struct PendingTemplateNode<'a> {
+    parent_id: Option<UiNodeId>,
+    node: &'a UiTemplateNode,
+    path: String,
 }

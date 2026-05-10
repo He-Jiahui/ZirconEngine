@@ -11,279 +11,84 @@ widgets = []
 styles = []
 
 [root]
-node_id = "workbench_menu_chrome_root"
+node = "workbench_menu_chrome_root"
+
+[nodes.workbench_menu_chrome_root]
 kind = "native"
 type = "Overlay"
 control_id = "WorkbenchMenuBarRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { child = "workbench_menu_top_bar" },
+  { child = "workbench_menu_separator" },
+  { child = "workbench_menu_slot_0" },
+  { child = "workbench_menu_slot_1" },
+  { child = "workbench_menu_slot_2" },
+  { child = "workbench_menu_slot_3" },
+  { child = "workbench_menu_slot_4" },
+  { child = "workbench_menu_slot_5" },
+  { child = "workbench_menu_slot_6" },
+]
 
-[root.layout]
-clip = true
-
-[root.layout.container]
-kind = "Overlay"
-
-[root.layout.width]
-stretch = "Stretch"
-
-[root.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_top_bar"
+[nodes.workbench_menu_top_bar]
 kind = "native"
 type = "Container"
 control_id = "WorkbenchMenuTopBar"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-surface_variant = "panel"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = 0.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 24.0
-preferred = 24.0
-max = 24.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_separator"
+[nodes.workbench_menu_separator]
 kind = "native"
 type = "Container"
 control_id = "WorkbenchMenuSeparator"
+props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 24.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-surface_variant = "inset"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = 24.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 1.0
-preferred = 1.0
-max = 1.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_0"
+[nodes.workbench_menu_slot_0]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot0"
+props = { text = "File", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 8.0, y = 2.0 }, width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "File"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 8.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 40.0
-preferred = 40.0
-max = 40.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_1"
+[nodes.workbench_menu_slot_1]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot1"
+props = { text = "Edit", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 50.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Edit"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 50.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 42.0
-preferred = 42.0
-max = 42.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_2"
+[nodes.workbench_menu_slot_2]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot2"
+props = { text = "Selection", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 94.0, y = 2.0 }, width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Selection"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 94.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 74.0
-preferred = 74.0
-max = 74.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_3"
+[nodes.workbench_menu_slot_3]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot3"
+props = { text = "Play", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 170.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Play"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 170.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 42.0
-preferred = 42.0
-max = 42.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_4"
+[nodes.workbench_menu_slot_4]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot4"
+props = { text = "View", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 214.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "View"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 214.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 42.0
-preferred = 42.0
-max = 42.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_5"
+[nodes.workbench_menu_slot_5]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot5"
+props = { text = "Window", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 258.0, y = 2.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Window"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 258.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 56.0
-preferred = 56.0
-max = 56.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_menu_slot_6"
+[nodes.workbench_menu_slot_6]
 kind = "native"
 type = "Label"
 control_id = "MenuSlot6"
-
-[root.children.node.props]
-text = "Help"
-text_tone = "subtle"
-font_size = 11.0
-text_align = "center"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 316.0
-y = 2.0
-
-[root.children.node.layout.width]
-min = 40.0
-preferred = 40.0
-max = 40.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 22.0
-preferred = 22.0
-max = 22.0
-stretch = "Fixed"
+props = { text = "Help", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 316.0, y = 2.0 }, width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }

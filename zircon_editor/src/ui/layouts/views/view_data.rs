@@ -1,6 +1,6 @@
 use std::fmt;
 
-use slint::{Image, ModelRc, SharedString};
+use crate::ui::retained_host::primitives::{Image, ModelRc, SharedString};
 
 #[derive(Clone)]
 pub(crate) struct SceneViewportChromeData {

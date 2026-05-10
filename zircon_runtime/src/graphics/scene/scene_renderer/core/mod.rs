@@ -11,8 +11,10 @@ mod scene_renderer_core_write_scene_uniform;
 mod scene_renderer_history;
 mod scene_renderer_new;
 mod scene_renderer_render;
+mod scene_renderer_render_capture;
 mod scene_renderer_render_with_pipeline;
 mod scene_renderer_runtime_outputs;
+mod scene_renderer_surface;
 mod scene_renderer_target;
 mod target_extent;
 

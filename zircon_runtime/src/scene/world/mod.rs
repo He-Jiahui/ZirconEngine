@@ -8,6 +8,7 @@ mod component_type_registry;
 mod derived_state;
 mod dirty_state;
 mod dynamic_components;
+mod events;
 mod hierarchy;
 mod identity;
 mod project_io;

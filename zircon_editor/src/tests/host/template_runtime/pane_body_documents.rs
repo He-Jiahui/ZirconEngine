@@ -13,7 +13,9 @@ use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
-use crate::ui::template_runtime::{EditorUiHostRuntime, SlintUiHostNodeModel, SlintUiHostValue};
+use crate::ui::template_runtime::{
+    EditorUiHostRuntime, RetainedUiHostNodeModel, RetainedUiHostValue,
+};
 use crate::ui::workbench::view::ViewDescriptorId;
 
 fn editor_runtime() -> CoreRuntime {
@@ -91,15 +93,15 @@ fn collect_showcase_prop_schema_mismatches(
     }
 }
 
-fn host_numeric_property(node: &SlintUiHostNodeModel, property: &str) -> Option<f64> {
+fn host_numeric_property(node: &RetainedUiHostNodeModel, property: &str) -> Option<f64> {
     match node.properties.get(property) {
-        Some(SlintUiHostValue::Float(value)) => Some(*value),
-        Some(SlintUiHostValue::Integer(value)) => Some(*value as f64),
+        Some(RetainedUiHostValue::Float(value)) => Some(*value),
+        Some(RetainedUiHostValue::Integer(value)) => Some(*value as f64),
         _ => None,
     }
 }
 
-fn assert_host_numeric_property(node: &SlintUiHostNodeModel, property: &str, expected: f64) {
+fn assert_host_numeric_property(node: &RetainedUiHostNodeModel, property: &str, expected: f64) {
     let actual = host_numeric_property(node, property).unwrap_or_else(|| {
         panic!(
             "missing numeric property `{property}` on `{}`",
@@ -109,38 +111,38 @@ fn assert_host_numeric_property(node: &SlintUiHostNodeModel, property: &str, exp
     assert_eq!(actual, expected);
 }
 
-fn assert_host_bool_property(node: &SlintUiHostNodeModel, property: &str, expected: bool) {
+fn assert_host_bool_property(node: &RetainedUiHostNodeModel, property: &str, expected: bool) {
     let actual = match node.properties.get(property) {
-        Some(SlintUiHostValue::Bool(value)) => *value,
+        Some(RetainedUiHostValue::Bool(value)) => *value,
         _ => panic!("missing bool property `{property}` on `{}`", node.node_id),
     };
     assert_eq!(actual, expected);
 }
 
-fn assert_material_button_layout_properties(node: &SlintUiHostNodeModel) {
-    assert_host_numeric_property(node, "layout_padding_left", 24.0);
-    assert_host_numeric_property(node, "layout_padding_right", 24.0);
-    assert_host_numeric_property(node, "layout_padding_top", 10.0);
-    assert_host_numeric_property(node, "layout_padding_bottom", 10.0);
-    assert_host_numeric_property(node, "layout_spacing", 8.0);
-    assert_host_numeric_property(node, "layout_min_width", 40.0);
-    assert_host_numeric_property(node, "layout_min_height", 40.0);
-    assert_host_numeric_property(node, "layout_icon_size", 18.0);
+fn assert_material_button_layout_properties(node: &RetainedUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 12.0);
+    assert_host_numeric_property(node, "layout_padding_right", 12.0);
+    assert_host_numeric_property(node, "layout_padding_top", 6.0);
+    assert_host_numeric_property(node, "layout_padding_bottom", 6.0);
+    assert_host_numeric_property(node, "layout_spacing", 6.0);
+    assert_host_numeric_property(node, "layout_min_width", 32.0);
+    assert_host_numeric_property(node, "layout_min_height", 32.0);
+    assert_host_numeric_property(node, "layout_icon_size", 16.0);
 }
 
-fn assert_material_field_layout_properties(node: &SlintUiHostNodeModel) {
-    assert_host_numeric_property(node, "layout_padding_left", 16.0);
-    assert_host_numeric_property(node, "layout_padding_right", 16.0);
-    assert_host_numeric_property(node, "layout_padding_top", 4.0);
-    assert_host_numeric_property(node, "layout_padding_bottom", 4.0);
-    assert_host_numeric_property(node, "layout_min_height", 56.0);
+fn assert_material_field_layout_properties(node: &RetainedUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 10.0);
+    assert_host_numeric_property(node, "layout_padding_right", 10.0);
+    assert_host_numeric_property(node, "layout_padding_top", 3.0);
+    assert_host_numeric_property(node, "layout_padding_bottom", 3.0);
+    assert_host_numeric_property(node, "layout_min_height", 32.0);
 }
 
-fn assert_material_list_layout_properties(node: &SlintUiHostNodeModel) {
-    assert_host_numeric_property(node, "layout_padding_left", 16.0);
-    assert_host_numeric_property(node, "layout_padding_right", 16.0);
-    assert_host_numeric_property(node, "layout_spacing", 8.0);
-    assert_host_numeric_property(node, "layout_min_height", 40.0);
+fn assert_material_list_layout_properties(node: &RetainedUiHostNodeModel) {
+    assert_host_numeric_property(node, "layout_padding_left", 10.0);
+    assert_host_numeric_property(node, "layout_padding_right", 10.0);
+    assert_host_numeric_property(node, "layout_spacing", 6.0);
+    assert_host_numeric_property(node, "layout_min_height", 32.0);
 }
 
 fn assert_runtime_material_button_metadata(
@@ -193,7 +195,7 @@ fn assert_runtime_material_button_metadata(
 }
 
 fn assert_frame_covers_text_with_horizontal_padding(
-    node: &SlintUiHostNodeModel,
+    node: &RetainedUiHostNodeModel,
     padding_left: f64,
     padding_right: f64,
 ) {
@@ -220,7 +222,7 @@ fn assert_frame_covers_text_with_horizontal_padding(
     );
 }
 
-fn projected_visible_text(node: &SlintUiHostNodeModel) -> &str {
+fn projected_visible_text(node: &RetainedUiHostNodeModel) -> &str {
     node.text
         .as_deref()
         .or(node.value_text.as_deref())
@@ -233,7 +235,7 @@ fn projected_visible_text(node: &SlintUiHostNodeModel) -> &str {
 }
 
 fn text_width_with_padding(
-    node: &SlintUiHostNodeModel,
+    node: &RetainedUiHostNodeModel,
     padding_left: f64,
     padding_right: f64,
 ) -> f64 {
@@ -257,7 +259,7 @@ fn surface_desired_width_for_control(surface: &UiSurface, control_id: &str) -> f
 
 fn assert_desired_size_covers_projected_text_with_horizontal_padding(
     surface: &UiSurface,
-    node: &SlintUiHostNodeModel,
+    node: &RetainedUiHostNodeModel,
     padding_left: f64,
     padding_right: f64,
 ) {
@@ -334,7 +336,7 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
     let host_projection = ui_runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let material_button = host_projection
@@ -349,17 +351,17 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_desired_size_covers_projected_text_with_horizontal_padding(
         &surface,
         material_button,
-        24.0,
-        24.0,
+        12.0,
+        12.0,
     );
-    assert_frame_covers_text_with_horizontal_padding(material_button, 24.0, 24.0);
+    assert_frame_covers_text_with_horizontal_padding(material_button, 12.0, 12.0);
     assert!(
-        material_button.frame.width >= 84.0,
+        material_button.frame.width >= 60.0,
         "ButtonDemo arranged width should include text intrinsic width plus Material horizontal padding, got {}",
         material_button.frame.width
     );
     assert!(
-        material_button.frame.height >= 40.0,
+        material_button.frame.height >= 32.0,
         "ButtonDemo arranged height should include Material control height, got {}",
         material_button.frame.height
     );
@@ -372,10 +374,10 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_desired_size_covers_projected_text_with_horizontal_padding(
         &surface,
         material_input,
-        16.0,
-        16.0,
+        10.0,
+        10.0,
     );
-    assert_frame_covers_text_with_horizontal_padding(material_input, 16.0, 16.0);
+    assert_frame_covers_text_with_horizontal_padding(material_input, 10.0, 10.0);
 
     let number = host_projection
         .node_by_control_id("NumberFieldDemo")
@@ -386,8 +388,8 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_host_bool_property(number, "input_clickable", true);
     assert_host_bool_property(number, "input_hoverable", true);
     assert_host_bool_property(number, "input_focusable", true);
-    assert_desired_size_covers_projected_text_with_horizontal_padding(&surface, number, 16.0, 16.0);
-    assert_frame_covers_text_with_horizontal_padding(number, 16.0, 16.0);
+    assert_desired_size_covers_projected_text_with_horizontal_padding(&surface, number, 10.0, 10.0);
+    assert_frame_covers_text_with_horizontal_padding(number, 10.0, 10.0);
     assert_eq!(number.component_role.as_deref(), Some("number-field"));
     assert_eq!(number.value_text.as_deref(), Some("42"));
     assert_eq!(number.validation_level.as_deref(), Some("normal"));
@@ -410,9 +412,9 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_host_bool_property(combo_box, "input_hoverable", true);
     assert_host_bool_property(combo_box, "input_focusable", true);
     assert_desired_size_covers_projected_text_with_horizontal_padding(
-        &surface, combo_box, 16.0, 16.0,
+        &surface, combo_box, 10.0, 10.0,
     );
-    assert_frame_covers_text_with_horizontal_padding(combo_box, 16.0, 16.0);
+    assert_frame_covers_text_with_horizontal_padding(combo_box, 10.0, 10.0);
 
     let material_list = host_projection
         .node_by_control_id("ListRowDemo")
@@ -422,10 +424,10 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_desired_size_covers_projected_text_with_horizontal_padding(
         &surface,
         material_list,
-        16.0,
-        16.0,
+        10.0,
+        10.0,
     );
-    assert_frame_covers_text_with_horizontal_padding(material_list, 16.0, 16.0);
+    assert_frame_covers_text_with_horizontal_padding(material_list, 10.0, 10.0);
 
     let table_row = host_projection
         .node_by_control_id("TableRowDemo")
@@ -433,9 +435,9 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_eq!(table_row.component, "TableRow");
     assert_material_list_layout_properties(table_row);
     assert_desired_size_covers_projected_text_with_horizontal_padding(
-        &surface, table_row, 16.0, 16.0,
+        &surface, table_row, 10.0, 10.0,
     );
-    assert_frame_covers_text_with_horizontal_padding(table_row, 16.0, 16.0);
+    assert_frame_covers_text_with_horizontal_padding(table_row, 10.0, 10.0);
 
     let dropdown = host_projection
         .node_by_control_id("DropdownDemo")
@@ -464,10 +466,10 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .node_by_control_id("IconButtonDemo")
         .expect("component showcase should project IconButtonDemo through MaterialIconButton");
     assert_eq!(icon_button.component, "IconButton");
-    assert_host_numeric_property(icon_button, "layout_min_width", 40.0);
-    assert_host_numeric_property(icon_button, "layout_min_height", 40.0);
+    assert_host_numeric_property(icon_button, "layout_min_width", 32.0);
+    assert_host_numeric_property(icon_button, "layout_min_height", 32.0);
     assert!(
-        icon_button.frame.width >= 40.0 && icon_button.frame.height >= 40.0,
+        icon_button.frame.width >= 32.0 && icon_button.frame.height >= 32.0,
         "IconButtonDemo should keep a square Material frame, got {}x{}",
         icon_button.frame.width,
         icon_button.frame.height
@@ -484,7 +486,7 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
     assert_eq!(menu_frame.popup_anchor_x, 156.0);
     assert_eq!(menu_frame.popup_anchor_y, 24.0);
     assert!(
-        menu_frame.frame.height >= 40.0,
+        menu_frame.frame.height >= 32.0,
         "ContextActionMenuDemo should carry Material row height, got {}",
         menu_frame.frame.height
     );
@@ -572,7 +574,7 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
     let projection = ui_runtime.project_document(document_id).unwrap();
     let surface = ui_runtime.build_shared_surface(document_id).unwrap();
     let host_projection = ui_runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let name_field = host_projection
@@ -582,9 +584,9 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
     assert_eq!(name_field.text.as_deref(), None);
     assert_eq!(
         name_field.properties.get("placeholder"),
-        Some(&SlintUiHostValue::String("Name".to_string()))
+        Some(&RetainedUiHostValue::String("Name".to_string()))
     );
-    assert_host_numeric_property(name_field, "layout_min_height", 32.0);
+    assert_host_numeric_property(name_field, "layout_min_height", 28.0);
     assert_host_bool_property(name_field, "input_focusable", true);
     assert!(name_field.routes.iter().any(|route| {
         route.binding_id == "InspectorView/NameField" && route.event_kind == UiEventKind::Change
@@ -595,7 +597,7 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
         .expect("inspector surface should project PositionXField");
     assert_eq!(position_x.component, "NumberField");
     assert_eq!(position_x.value_text.as_deref(), Some("0"));
-    assert_host_numeric_property(position_x, "layout_min_height", 32.0);
+    assert_host_numeric_property(position_x, "layout_min_height", 28.0);
     assert_host_bool_property(position_x, "input_focusable", true);
     assert!(position_x.routes.iter().any(|route| {
         route.binding_id == "InspectorView/PositionXField"
@@ -607,7 +609,7 @@ fn host_projection_carries_runtime_component_properties_and_routes() {
         .expect("inspector surface should project ApplyBatchButton");
     assert_eq!(apply_button.component, "Button");
     assert_eq!(apply_button.text.as_deref(), Some("Apply"));
-    assert_host_numeric_property(apply_button, "layout_min_height", 32.0);
+    assert_host_numeric_property(apply_button, "layout_min_height", 28.0);
     assert_host_bool_property(apply_button, "input_clickable", true);
     assert!(apply_button.routes.iter().any(|route| {
         route.binding_id == "InspectorView/ApplyBatchButton"

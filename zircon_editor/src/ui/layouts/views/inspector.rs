@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
-use slint::ModelRc;
+use crate::ui::retained_host::primitives::ModelRc;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use super::ViewTemplateNodeData;

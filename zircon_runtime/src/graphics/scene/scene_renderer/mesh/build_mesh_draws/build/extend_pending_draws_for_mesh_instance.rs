@@ -35,7 +35,7 @@ pub(super) fn extend_pending_draws_for_mesh_instance(
         .map(|material| material.pipeline_key.clone())
         .unwrap_or_else(default_pipeline_key);
     let base_tint = if build_context.selection.contains(&mesh_instance.node_id)
-        && frame.scene.overlays.display_mode != DisplayMode::WireOnly
+        && frame.overlays().display_mode != DisplayMode::WireOnly
     {
         mesh_instance.tint * material_tint * Vec4::new(1.0, 0.94, 0.72, 1.0)
     } else {

@@ -55,6 +55,7 @@ impl DerivedStateDirty {
 
     pub(super) fn should_run(&self, system: InternalSceneSystem) -> bool {
         match system {
+            InternalSceneSystem::ApplyDeferred => false,
             InternalSceneSystem::HierarchyValidity => self.hierarchy,
             InternalSceneSystem::ActiveHierarchy => self.active,
             InternalSceneSystem::WorldTransform => self.transforms,
@@ -65,6 +66,7 @@ impl DerivedStateDirty {
 
     pub(super) fn clear(&mut self, system: InternalSceneSystem) {
         match system {
+            InternalSceneSystem::ApplyDeferred => {}
             InternalSceneSystem::HierarchyValidity => self.hierarchy = false,
             InternalSceneSystem::ActiveHierarchy => self.active = false,
             InternalSceneSystem::WorldTransform => self.transforms = false,

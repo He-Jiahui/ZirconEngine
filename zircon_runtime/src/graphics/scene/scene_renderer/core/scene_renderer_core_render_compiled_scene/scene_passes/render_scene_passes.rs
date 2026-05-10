@@ -1,4 +1,8 @@
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::debug_markers::{
+    insert_marker, pop_group, push_group, RENDERDOC_MARKER_CLEAR,
+    RENDERDOC_MARKER_DEFERRED_LIGHTING, RENDERDOC_MARKER_MAIN_SCENE, RENDERDOC_MARKER_PREPASS,
+};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::RenderPassExecutorRegistry;
@@ -29,6 +33,7 @@ impl SceneRendererCore {
         transparent_mesh_draws: &[&MeshDraw],
     ) -> Result<(), GraphicsError> {
         if runtime_features.deferred_lighting_enabled {
+            insert_marker(encoder, RENDERDOC_MARKER_CLEAR);
             self.overlay_renderer.record_preview_sky(
                 encoder,
                 &target.final_color_view,
@@ -36,6 +41,7 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 frame,
             );
+            push_group(encoder, RENDERDOC_MARKER_PREPASS);
             self.normal_prepass.record(
                 encoder,
                 &target.normal_view,
@@ -43,6 +49,8 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 opaque_mesh_draws.iter().copied(),
             );
+            pop_group(encoder);
+            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
             self.deferred.record_gbuffer_geometry(
                 encoder,
                 &target.gbuffer_albedo_view,
@@ -50,7 +58,10 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 opaque_mesh_draws.iter().copied(),
             );
+            pop_group(encoder);
         } else {
+            insert_marker(encoder, RENDERDOC_MARKER_CLEAR);
+            push_group(encoder, RENDERDOC_MARKER_PREPASS);
             self.normal_prepass.record(
                 encoder,
                 &target.normal_view,
@@ -58,6 +69,8 @@ impl SceneRendererCore {
                 &self.scene_bind_group,
                 mesh_draws.iter(),
             );
+            pop_group(encoder);
+            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
             self.overlay_renderer.record_scene_content(
                 encoder,
                 device,
@@ -69,10 +82,22 @@ impl SceneRendererCore {
                 streamer,
                 frame,
             );
+            pop_group(encoder);
             execute_graph_stage(
                 pipeline,
                 render_pass_executors,
-                RenderPassStage::Transparent,
+                RenderPassStage::AlphaMask3d,
+                device,
+                queue,
+                encoder,
+                frame,
+                &self.scene_bind_group,
+                graph_execution,
+            )?;
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                RenderPassStage::Transparent3d,
                 device,
                 queue,
                 encoder,
@@ -81,6 +106,7 @@ impl SceneRendererCore {
                 graph_execution,
             )?;
             if runtime_features.particle_rendering_enabled {
+                push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
                 self.particle_renderer.record(
                     device,
                     encoder,
@@ -89,10 +115,12 @@ impl SceneRendererCore {
                     &self.scene_bind_group,
                     frame,
                 );
+                pop_group(encoder);
             }
         }
 
         if runtime_features.deferred_lighting_enabled {
+            push_group(encoder, RENDERDOC_MARKER_DEFERRED_LIGHTING);
             self.deferred.execute_lighting(
                 device,
                 encoder,
@@ -102,6 +130,8 @@ impl SceneRendererCore {
                 &target.final_color_view,
                 &target.scene_color_view,
             );
+            pop_group(encoder);
+            push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
             self.overlay_renderer.record_meshes(
                 encoder,
                 device,
@@ -113,10 +143,22 @@ impl SceneRendererCore {
                 streamer,
                 frame,
             );
+            pop_group(encoder);
             execute_graph_stage(
                 pipeline,
                 render_pass_executors,
-                RenderPassStage::Transparent,
+                RenderPassStage::AlphaMask3d,
+                device,
+                queue,
+                encoder,
+                frame,
+                &self.scene_bind_group,
+                graph_execution,
+            )?;
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                RenderPassStage::Transparent3d,
                 device,
                 queue,
                 encoder,
@@ -125,6 +167,7 @@ impl SceneRendererCore {
                 graph_execution,
             )?;
             if runtime_features.particle_rendering_enabled {
+                push_group(encoder, RENDERDOC_MARKER_MAIN_SCENE);
                 self.particle_renderer.record(
                     device,
                     encoder,
@@ -133,6 +176,7 @@ impl SceneRendererCore {
                     &self.scene_bind_group,
                     frame,
                 );
+                pop_group(encoder);
             }
         }
 

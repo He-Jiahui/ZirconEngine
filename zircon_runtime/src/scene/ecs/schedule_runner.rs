@@ -1,7 +1,7 @@
 use crate::core::math::Real;
 use crate::core::{CoreError, CoreHandle};
 use crate::plugin::{SceneRuntimeHookContext, SceneRuntimeHookRegistration};
-use crate::scene::ecs::{SceneSystemDescriptor, SystemStage};
+use crate::scene::ecs::{InternalSceneSystem, SceneSystemDescriptor, SystemStage};
 use crate::scene::LevelSystem;
 
 pub(crate) struct SceneScheduleRunner;
@@ -40,9 +40,13 @@ impl SceneScheduleRunner {
                         level.with_world_mut(|world| {
                             world.run_internal_scene_system(system.system())
                         });
+                        if system.system() != InternalSceneSystem::ApplyDeferred {
+                            level.with_world_mut(|world| world.apply_deferred());
+                        }
                     }
                     SceneScheduleStep::Hook(hook) => {
                         hook.run(SceneRuntimeHookContext::new(core, level, delta_seconds))?;
+                        level.with_world_mut(|world| world.apply_deferred());
                     }
                 }
             }

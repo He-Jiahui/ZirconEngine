@@ -6,6 +6,14 @@ use super::RenderCapabilityMismatchDetail;
 pub enum RenderFrameworkError {
     #[error("render framework viewport `{viewport}` does not exist")]
     UnknownViewport { viewport: u64 },
+    #[error(
+        "render framework viewport `{viewport}` changed during submit: expected generation {expected_generation}, found {actual_generation}"
+    )]
+    ViewportChanged {
+        viewport: u64,
+        expected_generation: u64,
+        actual_generation: u64,
+    },
     #[error("render framework pipeline `{pipeline}` does not exist")]
     UnknownPipeline { pipeline: u64 },
     #[error("render framework pipeline `{pipeline}` failed graph validation: {message}")]

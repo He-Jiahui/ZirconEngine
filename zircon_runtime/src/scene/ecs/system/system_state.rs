@@ -1,3 +1,4 @@
+use std::fmt;
 use std::marker::PhantomData;
 
 use crate::scene::ecs::{
@@ -5,7 +6,6 @@ use crate::scene::ecs::{
 };
 use crate::scene::World;
 
-#[derive(Debug)]
 pub struct SystemState<P>
 where
     P: SystemParam,
@@ -48,5 +48,20 @@ where
         world.replace_active_change_tick(previous_active_tick);
         self.last_run = this_run;
         result
+    }
+}
+
+impl<P> fmt::Debug for SystemState<P>
+where
+    P: SystemParam,
+    P::State: fmt::Debug,
+{
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("SystemState")
+            .field("state", &self.state)
+            .field("access", &self.access)
+            .field("last_run", &self.last_run)
+            .finish_non_exhaustive()
     }
 }

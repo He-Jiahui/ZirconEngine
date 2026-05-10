@@ -2,6 +2,7 @@ use std::sync::mpsc;
 
 use crate::core::math::UVec2;
 
+use crate::graphics::debug_markers::{insert_marker, RENDERDOC_MARKER_READBACK};
 use crate::graphics::types::GraphicsError;
 
 pub(crate) fn read_texture_rgba(
@@ -24,6 +25,7 @@ pub(crate) fn read_texture_rgba(
     let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
         label: Some("zircon-readback-encoder"),
     });
+    insert_marker(&mut encoder, RENDERDOC_MARKER_READBACK);
     encoder.copy_texture_to_buffer(
         texture.as_image_copy(),
         wgpu::TexelCopyBufferInfo {

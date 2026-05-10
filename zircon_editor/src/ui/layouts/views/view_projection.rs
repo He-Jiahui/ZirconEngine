@@ -1,11 +1,15 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
+use std::sync::{Mutex, OnceLock};
 
-use slint::SharedString;
+use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
-use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
+use zircon_runtime::ui::template::{
+    UiDocumentCompiler, UiPrototypeStoreFileCache, UiTemplateBuildError, UiTemplateSurfaceBuilder,
+};
 use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
@@ -15,14 +19,12 @@ use zircon_runtime_interface::ui::{
     tree::{UiTemplateNodeMetadata, UiTreeError},
 };
 
-use crate::ui::template::EditorTemplateRuntimeService;
-
 use super::{load_preview_image, ViewTemplateFrameData, ViewTemplateNodeData};
 
 pub(crate) struct ViewTemplateVisualAssets {
     pub(crate) media_source: String,
     pub(crate) icon_name: String,
-    pub(crate) preview_image: slint::Image,
+    pub(crate) preview_image: crate::ui::retained_host::primitives::Image,
     pub(crate) has_preview_image: bool,
 }
 
@@ -61,31 +63,71 @@ pub(crate) fn build_view_template_nodes_with_imports(
     size: UiSize,
     text_overrides: &BTreeMap<String, String>,
 ) -> Result<Vec<ViewTemplateNodeData>, ViewTemplateProjectionError> {
-    let template_service = EditorTemplateRuntimeService;
-    let layout = template_service.load_document_file(asset_path(layout_asset_path))?;
-    let mut widget_import_documents = BTreeMap::new();
-    let mut style_import_documents = BTreeMap::new();
-    for (asset_id, widget_path) in widget_imports {
-        let widget = template_service.load_document_file(asset_path(widget_path))?;
-        widget_import_documents.insert((*asset_id).to_string(), widget);
-    }
-    for (asset_id, style_path) in style_imports {
-        let style = template_service.load_document_file(asset_path(style_path))?;
-        style_import_documents.insert((*asset_id).to_string(), style);
-    }
+    build_view_template_nodes_from_prototype_store(
+        document_tree_id,
+        layout_asset_path,
+        widget_imports,
+        style_imports,
+        size,
+        text_overrides,
+    )
+}
 
-    let compiled = template_service.compile_document_with_import_maps(
-        &layout,
-        &widget_import_documents,
-        &style_import_documents,
-    )?;
-    let mut surface = template_service.build_surface_from_compiled_document(
+fn build_view_template_nodes_from_prototype_store(
+    document_tree_id: &str,
+    layout_asset_path: &str,
+    widget_imports: &[(&str, &str)],
+    style_imports: &[(&str, &str)],
+    size: UiSize,
+    text_overrides: &BTreeMap<String, String>,
+) -> Result<Vec<ViewTemplateNodeData>, ViewTemplateProjectionError> {
+    let source_paths = prototype_source_paths(layout_asset_path, widget_imports, style_imports);
+    let outcome = view_prototype_store_file_cache()
+        .lock()
+        .expect("view prototype store cache mutex should not be poisoned")
+        .load_flat_store(source_paths)?;
+
+    let compiled = UiDocumentCompiler::default()
+        .compile_prototype_asset(&outcome.root_asset_id, outcome.store.as_ref())?;
+    let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
         UiTreeId::new(document_tree_id.to_string()),
         &compiled,
     )?;
     surface.compute_layout(size)?;
 
-    let render = template_service.extract_render(&surface);
+    Ok(view_template_nodes_from_surface(&surface, text_overrides))
+}
+
+fn prototype_source_paths(
+    layout_asset_path: &str,
+    widget_imports: &[(&str, &str)],
+    style_imports: &[(&str, &str)],
+) -> Vec<PathBuf> {
+    let mut paths = Vec::with_capacity(1 + widget_imports.len() + style_imports.len());
+    paths.push(asset_path(layout_asset_path));
+    paths.extend(
+        widget_imports
+            .iter()
+            .map(|(_, widget_path)| asset_path(widget_path)),
+    );
+    paths.extend(
+        style_imports
+            .iter()
+            .map(|(_, style_path)| asset_path(style_path)),
+    );
+    paths
+}
+
+fn view_prototype_store_file_cache() -> &'static Mutex<UiPrototypeStoreFileCache> {
+    static CACHE: OnceLock<Mutex<UiPrototypeStoreFileCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(UiPrototypeStoreFileCache::new()))
+}
+
+fn view_template_nodes_from_surface(
+    surface: &UiSurface,
+    text_overrides: &BTreeMap<String, String>,
+) -> Vec<ViewTemplateNodeData> {
+    let render = extract_ui_render_tree(&surface.tree);
     let mut nodes = Vec::new();
     for command in render.list.commands {
         let Some(tree_node) = surface.tree.node(command.node_id) else {
@@ -163,7 +205,7 @@ pub(crate) fn build_view_template_nodes_with_imports(
         });
     }
 
-    Ok(nodes)
+    nodes
 }
 
 pub(crate) fn resolve_visual_assets(metadata: &UiTemplateNodeMetadata) -> ViewTemplateVisualAssets {
@@ -257,5 +299,37 @@ fn text_align_name(align: UiTextAlign) -> &'static str {
         UiTextAlign::Left => "left",
         UiTextAlign::Center => "center",
         UiTextAlign::Right => "right",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn flat_view_template_projection_uses_shared_prototype_store_cache() {
+        let text_overrides = BTreeMap::new();
+
+        let nodes = build_view_template_nodes_from_prototype_store(
+            "view.prototype.quest_log",
+            "/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml",
+            &[],
+            &[],
+            UiSize::new(640.0, 480.0),
+            &text_overrides,
+        )
+        .unwrap();
+
+        assert!(nodes
+            .iter()
+            .any(|node| node.control_id == "QuestLogTitle" && node.text == "Quest Log"));
+        assert!(
+            view_prototype_store_file_cache()
+                .lock()
+                .expect("prototype cache mutex should not be poisoned")
+                .len()
+                > 0
+        );
     }
 }

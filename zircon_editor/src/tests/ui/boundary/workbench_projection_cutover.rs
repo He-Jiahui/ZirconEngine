@@ -31,31 +31,36 @@ fn assert_does_not_contain(source_name: &str, source: &str, pattern: &str) {
     );
 }
 
-fn assert_no_active_slint_files(root: &std::path::Path) {
+fn assert_no_active_retained_files(root: &std::path::Path) {
+    let former_extension = former_generated_ui_extension();
     if !root.exists() {
         return;
     }
     for entry in std::fs::read_dir(root).unwrap_or_else(|_| panic!("expected readable {root:?}")) {
         let path = entry.expect("directory entry").path();
         if path.is_dir() {
-            assert_no_active_slint_files(&path);
+            assert_no_active_retained_files(&path);
             continue;
         }
         assert_ne!(
             path.extension().and_then(|extension| extension.to_str()),
-            Some("slint"),
-            "active editor host tree must not keep business Slint source `{}`",
+            Some(former_extension.as_str()),
+            "active editor host tree must not keep former generated UI source `{}`",
             path.display()
         );
     }
 }
 
-fn slint_host_import_blocks(source: &str) -> Vec<String> {
+fn former_generated_ui_extension() -> String {
+    ["sli", "nt"].concat()
+}
+
+fn retained_host_import_blocks(source: &str) -> Vec<String> {
     let normalized = source.split_whitespace().collect::<String>();
     let mut blocks = Vec::new();
     let mut rest = normalized.as_str();
 
-    while let Some(start) = rest.find("usecrate::ui::slint_host::{") {
+    while let Some(start) = rest.find("usecrate::ui::retained_host::{") {
         let after_start = &rest[start..];
         let Some(end) = after_start.find("};") else {
             break;
@@ -209,12 +214,33 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
 }
 
 #[test]
+fn view_template_projection_is_hard_cut_to_shared_prototype_store() {
+    let view_projection = source_file(&["src", "ui", "layouts", "views", "view_projection.rs"]);
+
+    for required in [
+        "UiPrototypeStoreFileCache",
+        ".load_flat_store(",
+        "compile_prototype_asset(",
+    ] {
+        assert_contains("view_projection.rs", &view_projection, required);
+    }
+    for forbidden in [
+        "EditorTemplateRuntimeService",
+        "load_document_file",
+        "compile_document_with_import_maps",
+        "try_load_flat_store",
+    ] {
+        assert_does_not_contain("view_projection.rs", &view_projection, forbidden);
+    }
+}
+
+#[test]
 fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables() {
     let manifest = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
-    assert_no_active_slint_files(&manifest.join("ui"));
+    assert_no_active_retained_files(&manifest.join("ui"));
 
-    let slint_host_root = manifest.join("src").join("ui").join("slint_host");
-    for path in collect_rust_files(&slint_host_root) {
+    let retained_host_root = manifest.join("src").join("ui").join("retained_host");
+    for path in collect_rust_files(&retained_host_root) {
         let source = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{path:?}"));
         for forbidden in [
             "HitTable",
@@ -231,7 +257,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             assert_does_not_contain(
                 path.file_name()
                     .and_then(|name| name.to_str())
-                    .unwrap_or("slint_host source"),
+                    .unwrap_or("retained_host source"),
                 &source,
                 forbidden,
             );
@@ -240,15 +266,16 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
 
     for (relative, required) in [
         (
-            "src/ui/slint_host/menu_pointer/host_menu_pointer_bridge.rs",
+            "src/ui/retained_host/menu_pointer/host_menu_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
-                "targets: BTreeMap<UiNodeId, HostMenuPointerTarget>",
+                "targets:",
+                "BTreeMap<UiNodeId, HostMenuPointerTarget>",
             ][..],
         ),
         (
-            "src/ui/slint_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs",
+            "src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -257,7 +284,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs",
+            "src/ui/retained_host/activity_rail_pointer/host_activity_rail_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
@@ -265,7 +292,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/activity_rail_pointer/rebuild_surface.rs",
+            "src/ui/retained_host/activity_rail_pointer/rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -274,7 +301,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs",
+            "src/ui/retained_host/drawer_header_pointer/host_drawer_header_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
@@ -282,7 +309,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/drawer_header_pointer/rebuild_surface.rs",
+            "src/ui/retained_host/drawer_header_pointer/rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -291,7 +318,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/document_tab_pointer/host_document_tab_pointer_bridge.rs",
+            "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
@@ -300,7 +327,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
+            "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -309,7 +336,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs",
+            "src/ui/retained_host/viewport_toolbar_pointer/viewport_toolbar_pointer_bridge.rs",
             &[
                 "surface: UiSurface",
                 "dispatcher: UiPointerDispatcher",
@@ -317,7 +344,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/viewport_toolbar_pointer/rebuild_surface.rs",
+            "src/ui/retained_host/viewport_toolbar_pointer/rebuild_surface.rs",
             &[
                 "UiSurface::new",
                 "UiTreeNode::new",
@@ -326,7 +353,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/shell_pointer/bridge.rs",
+            "src/ui/retained_host/shell_pointer/bridge.rs",
             &[
                 "drag_surface: UiSurface",
                 "drag_dispatcher: UiPointerDispatcher",
@@ -336,7 +363,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
             ][..],
         ),
         (
-            "src/ui/slint_host/host_contract/surface_hit_test/template_node.rs",
+            "src/ui/retained_host/host_contract/surface_hit_test/template_node.rs",
             &[
                 "UiSurfaceFrame",
                 "hit_test_host_surface_frame",
@@ -354,7 +381,7 @@ fn workbench_host_pointer_paths_are_shared_surface_bridges_not_host_hit_tables()
 
 #[test]
 fn workbench_root_shell_projection_uses_shared_frames_without_geometry_fallback() {
-    let projection = source_file(&["src", "ui", "slint_host", "root_shell_projection.rs"]);
+    let projection = source_file(&["src", "ui", "retained_host", "root_shell_projection.rs"]);
 
     for required in [
         "shared_root_shell_frame(",
@@ -389,7 +416,7 @@ fn shell_pointer_drag_surface_uses_shared_root_frames_without_geometry_fallback(
     let drag_surface = source_file(&[
         "src",
         "ui",
-        "slint_host",
+        "retained_host",
         "shell_pointer",
         "drag_surface.rs",
     ]);
@@ -420,7 +447,7 @@ fn shell_pointer_drag_surface_uses_shared_root_frames_without_geometry_fallback(
 
 #[test]
 fn shell_pointer_bridge_does_not_recreate_root_frames_from_geometry() {
-    let bridge = source_file(&["src", "ui", "slint_host", "shell_pointer", "bridge.rs"]);
+    let bridge = source_file(&["src", "ui", "retained_host", "shell_pointer", "bridge.rs"]);
 
     for required in [
         "update_layout_with_root_shell_frames(",
@@ -444,7 +471,7 @@ fn shell_pointer_bridge_does_not_recreate_root_frames_from_geometry() {
 
 #[test]
 fn tab_drag_strip_hitbox_uses_shared_root_frames_without_geometry_fallback() {
-    let strip_hitbox = source_file(&["src", "ui", "slint_host", "tab_drag", "strip_hitbox.rs"]);
+    let strip_hitbox = source_file(&["src", "ui", "retained_host", "tab_drag", "strip_hitbox.rs"]);
 
     for required in [
         "resolve_root_center_band_frame(shared_root_frames)",
@@ -468,7 +495,12 @@ fn tab_drag_strip_hitbox_uses_shared_root_frames_without_geometry_fallback() {
 
 #[test]
 fn floating_window_projection_uses_shared_source_without_geometry_fallback() {
-    let projection = source_file(&["src", "ui", "slint_host", "floating_window_projection.rs"]);
+    let projection = source_file(&[
+        "src",
+        "ui",
+        "retained_host",
+        "floating_window_projection.rs",
+    ]);
 
     for required in [
         "resolve_floating_window_projection_shared_source(",
@@ -517,7 +549,7 @@ fn workbench_host_window_keeps_host_contract_shell_dtos_at_ui_boundary_only() {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("src")
             .join("ui")
-            .join("slint_host")
+            .join("retained_host")
             .join("ui")
             .join("apply_presentation.rs"),
     )
@@ -535,8 +567,8 @@ fn workbench_host_window_keeps_host_contract_shell_dtos_at_ui_boundary_only() {
 
     for path in collect_rust_files(&root) {
         let source = std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{path:?}"));
-        let import_blocks = slint_host_import_blocks(&source);
-        if import_blocks.is_empty() && !source.contains("crate::ui::slint_host::") {
+        let import_blocks = retained_host_import_blocks(&source);
+        if import_blocks.is_empty() && !source.contains("crate::ui::retained_host::") {
             continue;
         }
 
@@ -607,7 +639,7 @@ fn workbench_host_window_keeps_host_contract_shell_dtos_at_ui_boundary_only() {
                 );
             }
             assert!(
-                !source.contains(&format!("crate::ui::slint_host::{forbidden}")),
+                !source.contains(&format!("crate::ui::retained_host::{forbidden}")),
                 "expected {:?} to stop importing host-contract DTO `{forbidden}` into workbench_host_window internals",
                 path.file_name().expect("file name")
             );

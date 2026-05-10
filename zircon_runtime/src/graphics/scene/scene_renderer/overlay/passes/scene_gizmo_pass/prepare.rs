@@ -14,12 +14,12 @@ impl SceneGizmoPass {
         texture_layout: &wgpu::BindGroupLayout,
         frame: &ViewportRenderFrame,
     ) -> Result<PreparedSceneGizmoPass, GraphicsError> {
-        let camera = &frame.scene.scene.camera;
+        let camera = frame.camera();
         let camera_right = camera.transform.right();
         let camera_up = camera.transform.up();
         let mut icon_draws = Vec::new();
 
-        for gizmo in &frame.scene.overlays.scene_gizmos {
+        for gizmo in &frame.overlays().scene_gizmos {
             for icon in &gizmo.icons {
                 let Some(bind_group) = self.icon_atlas.ensure(
                     icon.id,

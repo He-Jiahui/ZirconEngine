@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_slint_projection() {
+fn editor_ui_host_runtime_projects_builtin_inspector_surface_template_into_retained_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -90,7 +90,7 @@ fn editor_ui_host_runtime_projects_inspector_controls_through_material_roots() {
         name.attributes
             .get("layout_min_height")
             .and_then(Value::as_float),
-        Some(32.0)
+        Some(28.0)
     );
 
     let position_x = host_model

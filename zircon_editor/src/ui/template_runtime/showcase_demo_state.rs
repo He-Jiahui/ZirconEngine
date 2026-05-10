@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::component::{
     UiComponentState, UiDragPayload, UiDragSourceMetadata, UiValue,
 };
 
-use super::host_nodes::SlintUiHostModel;
+use super::host_nodes::RetainedUiHostModel;
 
 mod categories;
 mod defaults;
@@ -136,6 +136,7 @@ impl UiComponentShowcaseDemoState {
         &self.event_log
     }
 
+    #[cfg(test)]
     pub(crate) fn value_text(&self, control_id: &str, property: &str) -> Option<String> {
         if let Some(value) = self
             .states
@@ -200,7 +201,7 @@ impl UiComponentShowcaseDemoState {
         Ok(changed_value)
     }
 
-    pub(crate) fn apply_to_host_model(&self, host_model: &mut SlintUiHostModel) {
+    pub(crate) fn apply_to_host_model(&self, host_model: &mut RetainedUiHostModel) {
         if host_model.document_id != SHOWCASE_DOCUMENT_ID {
             return;
         }

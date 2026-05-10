@@ -150,7 +150,7 @@ pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
         ],
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent,
+            RenderPassStage::Transparent3d,
             "particle-render",
             QueueLane::Graphics,
         )

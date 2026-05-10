@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use zircon_editor::ui::slint_host::tab_drag::{
+use zircon_editor::ui::retained_host::tab_drag::{
     resolve_host_drag_target_group, HostDragTargetGroup,
 };
 use zircon_editor::ui::workbench::autolayout::{

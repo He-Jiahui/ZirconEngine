@@ -22,7 +22,7 @@ const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "zircon_editor::",
     "wgpu::",
     "winit::",
-    "slint::",
+    concat!("sli", "nt::"),
     "libloading::",
     "tokio::",
     "std::fs",

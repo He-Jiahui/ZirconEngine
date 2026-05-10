@@ -1,36 +1,57 @@
 mod backend_types;
 mod camera;
+mod core_pipeline;
 mod frame_extract;
 mod framework;
 mod framework_error;
+mod image;
+mod material;
+mod mesh;
 mod overlay;
 mod plugin_renderer_outputs;
 mod prepared_runtime_sidebands;
 mod profile;
 mod scene_extract;
+mod shader;
+mod surface;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
 
 pub use backend_types::{
-    CapturedFrame, FrameHistoryHandle, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings, RenderPipelineHandle,
-    RenderQualityProfile, RenderQuery, RenderQueueCapability, RenderStats,
-    RenderViewportDescriptor, RenderViewportHandle, RenderingBackendInfo,
+    CapturedFrame, FrameHistoryHandle, GraphicsDebuggerStatus, RenderCapabilityKind,
+    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderCommand,
+    RenderFeatureQualitySettings, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
+    RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
     FallbackSkyboxKind, ProjectionMode, SceneViewportExtractRequest, ViewportCameraSnapshot,
     ViewportRenderSettings,
 };
+pub use core_pipeline::{
+    build_mesh_phase_queue, CorePipelineKind, MeshPhaseInput, RenderPhase, RenderPhaseItem,
+    RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortKey,
+};
 pub use frame_extract::{
-    DebugOverlayExtract, GeometryExtract, LightingExtract, ParticleExtract, PostProcessExtract,
-    RenderExtractContext, RenderExtractProducer, RenderFrameExtract, RenderParticleGpuFrameExtract,
-    RenderSkeletalPoseExtract, RenderViewExtract, RenderWorldSnapshotHandle, VisibilityInput,
-    VisibilityRenderableInput,
+    DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
+    PostProcessExtract, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
+    RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
+    RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
+pub use image::{
+    RenderImageColorSpace, RenderImageDescriptor, RenderImageFallbackKind, RenderImageUsage,
+    RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+};
+pub use material::{
+    ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
+    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
+    RenderMaterialReadinessReport, RenderMaterialValidationError, StandardMaterialDescriptor,
+};
+pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
     GridOverlayExtract, HandleElementExtract, HandleOverlayExtract, OverlayAxis,
     OverlayBillboardIcon, OverlayLineSegment, OverlayPickShape, OverlayWireShape,
@@ -63,6 +84,12 @@ pub use scene_extract::{
     SceneViewportRenderPacket,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
+pub use shader::{
+    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
+    RenderShaderBindingResourceType, RenderShaderDependency, RenderShaderEntryPointDescriptor,
+    RenderShaderPipelineLayoutDescriptor, RenderShaderStage, RenderShaderVariantKey,
+};
+pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,
     RenderVirtualGeometryClusterSelectionInputSource,

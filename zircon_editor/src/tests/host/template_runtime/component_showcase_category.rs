@@ -1,5 +1,6 @@
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, SlintUiHostProjection, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
+    EditorUiHostRuntime, RetainedUiHostProjection, RetainedUiHostValue,
+    UiComponentShowcaseDemoEventInput,
 };
 
 fn showcase_binding(
@@ -27,7 +28,7 @@ fn apply_showcase_binding(
         .unwrap();
 }
 
-fn project_showcase(runtime: &EditorUiHostRuntime) -> SlintUiHostProjection {
+fn project_showcase(runtime: &EditorUiHostRuntime) -> RetainedUiHostProjection {
     let projection = runtime
         .project_document("editor.window.ui_component_showcase")
         .unwrap();
@@ -35,7 +36,7 @@ fn project_showcase(runtime: &EditorUiHostRuntime) -> SlintUiHostProjection {
         .build_shared_surface("editor.window.ui_component_showcase")
         .unwrap();
     runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap()
 }
 
@@ -77,13 +78,13 @@ fn showcase_category_selection_filters_projected_demo_controls() {
         host_projection
             .node_by_control_id("ShowDataCategory")
             .and_then(|node| node.properties.get("selected")),
-        Some(&SlintUiHostValue::Bool(true))
+        Some(&RetainedUiHostValue::Bool(true))
     );
     assert_eq!(
         host_projection
             .node_by_control_id("ShowInputCategory")
             .and_then(|node| node.properties.get("selected")),
-        Some(&SlintUiHostValue::Bool(false))
+        Some(&RetainedUiHostValue::Bool(false))
     );
 
     apply_showcase_binding(

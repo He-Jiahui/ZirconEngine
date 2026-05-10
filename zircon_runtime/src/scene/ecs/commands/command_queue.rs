@@ -2,7 +2,9 @@ use std::fmt;
 
 use crate::scene::World;
 
-type QueuedCommand = Box<dyn FnOnce(&mut World) + Send + 'static>;
+use super::{Command, ErasedCommand};
+
+type QueuedCommand = Box<dyn ErasedCommand>;
 
 #[derive(Default)]
 pub struct CommandQueue {
@@ -10,13 +12,13 @@ pub struct CommandQueue {
 }
 
 impl CommandQueue {
-    pub fn push(&mut self, command: impl FnOnce(&mut World) + Send + 'static) {
+    pub fn push(&mut self, command: impl Command) {
         self.commands.push(Box::new(command));
     }
 
     pub fn apply(&mut self, world: &mut World) {
         for command in std::mem::take(&mut self.commands) {
-            command(world);
+            command.apply_boxed(world);
         }
     }
 

@@ -201,7 +201,7 @@ slot = { kind = "Overlay", h_align = "Fill", v_align = "Start", padding = { left
 2. `UiSurface::compute_layout()` 使用 root `UiLayoutMetrics` 运行 prepass 和 arrange。
 3. Layout pass 输出 `UiArrangedTree`，节点携带 layout geometry、render geometry policy、clip chain、visibility、slot-derived order 和 diagnostics。
 4. Render extract、hit grid、pointer route、focus/navigation、debug reflector 都只消费该 arranged tree。
-5. Editor Slint/native host 只能投影 arranged output，不能重新手写 toolbar、pane、popup 或 list 的坐标表。
+5. Editor retained/native host 只能投影 arranged output，不能重新手写 toolbar、pane、popup 或 list 的坐标表。
 
 ## 实现顺序约束
 

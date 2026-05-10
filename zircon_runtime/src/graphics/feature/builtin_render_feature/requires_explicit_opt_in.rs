@@ -4,7 +4,10 @@ impl BuiltinRenderFeature {
     pub const fn requires_explicit_opt_in(self) -> bool {
         matches!(
             self,
-            Self::GlobalIllumination | Self::RayTracing | Self::VirtualGeometry
+            Self::GlobalIllumination
+                | Self::HistoryResolve
+                | Self::RayTracing
+                | Self::VirtualGeometry
         )
     }
 }

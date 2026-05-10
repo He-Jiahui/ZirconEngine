@@ -14,5 +14,6 @@ impl ViewportRecord {
         profile: RenderQualityProfile,
     ) {
         self.quality_profile = Some(profile);
+        self.bump_generation();
     }
 }

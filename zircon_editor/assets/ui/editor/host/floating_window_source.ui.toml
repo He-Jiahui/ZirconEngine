@@ -75,9 +75,9 @@ children = []
 [components.FloatingWindowSource.root.children.node.props]
 
 [components.FloatingWindowSource.root.children.node.layout.height]
-max = 59.0
-min = 59.0
-preferred = 59.0
+max = 57.0
+min = 57.0
+preferred = 57.0
 stretch = "Fixed"
 
 [components.FloatingWindowSource.root.children.node.layout.width]
@@ -138,9 +138,9 @@ children = []
 stretch = "Stretch"
 
 [components.FloatingWindowSource.root.children.node.children.node.layout.width]
-max = 56.0
-min = 56.0
-preferred = 56.0
+max = 44.0
+min = 44.0
+preferred = 44.0
 stretch = "Fixed"
 
 [components.FloatingWindowSource.root.children.node.children.node.style_overrides.self]

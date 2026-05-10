@@ -1,7 +1,9 @@
+mod accessibility_contracts;
 mod boundary;
 mod contracts;
 mod layout_engine_contracts;
 mod pipeline_contracts;
+mod reflect_contracts;
 mod render_contracts;
 mod resource_contracts;
 mod ui_contract_spine;

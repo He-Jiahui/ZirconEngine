@@ -1,9 +1,13 @@
-use crate::core::framework::render::{RenderFrameExtract, RenderWorldSnapshotHandle};
+use crate::core::framework::render::{
+    FallbackSkyboxKind, PreviewEnvironmentExtract, ProjectionMode, RenderFrameExtract, RenderPhase,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+    ViewportCameraSnapshot,
+};
+use crate::core::math::Vec4;
 use crate::graphics::tests::plugin_render_feature_fixtures::{
     hybrid_gi_render_feature_descriptor, virtual_geometry_render_feature_descriptor,
 };
 use crate::render_graph::{QueueLane, RenderGraphResourceKind};
-use crate::scene::world::World;
 
 use crate::{
     BuiltinRenderFeature, FrameHistoryAccess, FrameHistoryBinding, FrameHistorySlot,
@@ -16,6 +20,8 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     let pipeline = RenderPipelineAsset::default_forward_plus();
     let compiled = pipeline.compile(&test_extract()).unwrap();
 
+    assert!(pipeline.phase_mapping.contains(&RenderPhase::AlphaMask3d));
+
     assert_eq!(
         compiled.stages,
         vec![
@@ -23,10 +29,12 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Shadow,
             RenderPassStage::AmbientOcclusion,
             RenderPassStage::Lighting,
-            RenderPassStage::Opaque,
-            RenderPassStage::Transparent,
+            RenderPassStage::Opaque3d,
+            RenderPassStage::AlphaMask3d,
+            RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
             RenderPassStage::Overlay,
+            RenderPassStage::Debug,
         ]
     );
     assert_eq!(
@@ -41,10 +49,10 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "shadow-map",
             "clustered-light-culling",
             "opaque-mesh",
+            "alpha-mask-mesh",
             "transparent-mesh",
             "bloom-extract",
             "color-grade",
-            "history-resolve",
             "overlay-gizmo",
         ]
     );
@@ -59,12 +67,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "visibility".to_string(),
         ]
     );
-    assert_eq!(
-        compiled.history_bindings,
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::SceneColor
-        )]
-    );
+    assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
 }
 
 #[test]
@@ -72,17 +75,21 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     let pipeline = RenderPipelineAsset::default_deferred();
     let compiled = pipeline.compile(&test_extract()).unwrap();
 
+    assert!(pipeline.phase_mapping.contains(&RenderPhase::AlphaMask3d));
+
     assert_eq!(
         compiled.stages,
         vec![
             RenderPassStage::DepthPrepass,
             RenderPassStage::Shadow,
-            RenderPassStage::GBuffer,
+            RenderPassStage::Deferred,
+            RenderPassStage::AlphaMask3d,
             RenderPassStage::AmbientOcclusion,
             RenderPassStage::Lighting,
-            RenderPassStage::Transparent,
+            RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
             RenderPassStage::Overlay,
+            RenderPassStage::Debug,
         ]
     );
     assert_eq!(
@@ -96,12 +103,12 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "depth-prepass",
             "shadow-map",
             "gbuffer-mesh",
+            "alpha-mask-mesh",
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
             "bloom-extract",
             "color-grade",
-            "history-resolve",
             "overlay-gizmo",
         ]
     );
@@ -116,12 +123,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "visibility".to_string(),
         ]
     );
-    assert_eq!(
-        compiled.history_bindings,
-        vec![FrameHistoryBinding::read_write(
-            FrameHistorySlot::SceneColor
-        )]
-    );
+    assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
 }
 
 #[test]
@@ -196,22 +198,21 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "ssao-evaluate",
             "clustered-light-culling",
             "opaque-mesh",
+            "alpha-mask-mesh",
             "transparent-mesh",
             "bloom-extract",
             "reflection-probe-composite",
             "baked-lighting-composite",
             "post-process",
             "color-grade",
-            "history-resolve",
             "overlay-gizmo",
         ]
     );
     assert_eq!(
         compiled.history_bindings,
-        vec![
-            FrameHistoryBinding::read_write(FrameHistorySlot::AmbientOcclusion),
-            FrameHistoryBinding::read_write(FrameHistorySlot::SceneColor),
-        ]
+        vec![FrameHistoryBinding::read_write(
+            FrameHistorySlot::AmbientOcclusion
+        )]
     );
 }
 
@@ -232,6 +233,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "depth-prepass",
             "shadow-map",
             "gbuffer-mesh",
+            "alpha-mask-mesh",
             "ssao-evaluate",
             "clustered-light-culling",
             "deferred-lighting",
@@ -241,10 +243,48 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "baked-lighting-composite",
             "post-process",
             "color-grade",
-            "history-resolve",
             "overlay-gizmo",
         ]
     );
+}
+
+#[test]
+fn history_resolve_compiles_only_with_explicit_feature_opt_in() {
+    let pipeline = RenderPipelineAsset::default_forward_plus();
+
+    let default_compiled = pipeline.compile(&test_extract()).unwrap();
+    let default_pass_names = default_compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+    assert!(!default_pass_names.contains(&"history-resolve"));
+    assert!(!default_compiled
+        .history_bindings
+        .contains(&FrameHistoryBinding::read_write(
+            FrameHistorySlot::SceneColor
+        )));
+
+    let enabled_compiled = pipeline
+        .compile_with_options(
+            &test_extract(),
+            &RenderPipelineCompileOptions::default()
+                .with_feature_enabled(BuiltinRenderFeature::HistoryResolve),
+        )
+        .unwrap();
+    let enabled_pass_names = enabled_compiled
+        .graph
+        .passes()
+        .iter()
+        .map(|pass| pass.name.as_str())
+        .collect::<Vec<_>>();
+    assert!(enabled_pass_names.contains(&"history-resolve"));
+    assert!(enabled_compiled
+        .history_bindings
+        .contains(&FrameHistoryBinding::read_write(
+            FrameHistorySlot::SceneColor
+        )));
 }
 
 #[test]
@@ -766,7 +806,7 @@ fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {
         ],
         Vec::new(),
         vec![RenderFeaturePassDescriptor::new(
-            RenderPassStage::Transparent,
+            RenderPassStage::Transparent3d,
             "particle-render",
             QueueLane::Graphics,
         )
@@ -880,7 +920,7 @@ fn legacy_advanced_builtin_pipeline() -> RenderPipelineAsset {
 #[test]
 fn pipeline_compile_rejects_duplicate_stage_entries() {
     let mut pipeline = RenderPipelineAsset::default_forward_plus();
-    pipeline.renderer.stages.push(RenderPassStage::Opaque);
+    pipeline.renderer.stages.push(RenderPassStage::Opaque3d);
 
     let error = pipeline.compile(&test_extract()).unwrap_err();
 
@@ -902,6 +942,35 @@ fn pipeline_compile_rejects_duplicate_feature_entries() {
 
     assert!(
         error.contains("duplicate feature"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn pipeline_compile_rejects_core_pipeline_mismatch_from_extract() {
+    let error = RenderPipelineAsset::default_forward_plus()
+        .compile(&orthographic_extract())
+        .unwrap_err();
+
+    assert!(
+        error.contains("core pipeline mismatch")
+            && error.contains("Core3d")
+            && error.contains("Core2d"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn pipeline_compile_rejects_declared_renderer_stage_missing_product_phase_mapping() {
+    let mut pipeline = RenderPipelineAsset::default_core2d();
+    pipeline
+        .phase_mapping
+        .retain(|phase| *phase != RenderPhase::Transparent2d);
+
+    let error = pipeline.compile(&orthographic_extract()).unwrap_err();
+
+    assert!(
+        error.contains("missing product phase") && error.contains("Transparent2d"),
         "unexpected error: {error}"
     );
 }
@@ -989,7 +1058,7 @@ fn pipeline_compile_validates_quality_gated_descriptor_overrides_even_when_gate_
             Vec::new(),
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::GBuffer,
+                RenderPassStage::Opaque,
                 "bad-gated-pass",
                 QueueLane::Graphics,
             )
@@ -1093,7 +1162,7 @@ fn pipeline_compile_rejects_descriptor_passes_for_undeclared_stages() {
             Vec::new(),
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::GBuffer,
+                RenderPassStage::Opaque,
                 "custom-gbuffer-pass",
                 QueueLane::Graphics,
             )
@@ -1335,6 +1404,48 @@ fn pipeline_compile_rejects_empty_descriptor_resource_names_after_executor_is_va
 fn test_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
-        World::new().to_render_snapshot(),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: Default::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    )
+}
+
+fn orthographic_extract() -> RenderFrameExtract {
+    RenderFrameExtract::from_snapshot(
+        RenderWorldSnapshotHandle::new(2),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot {
+                    projection_mode: ProjectionMode::Orthographic,
+                    ..ViewportCameraSnapshot::default()
+                },
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+            },
+            overlays: Default::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
     )
 }

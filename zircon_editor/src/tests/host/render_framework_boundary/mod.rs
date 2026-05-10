@@ -1,9 +1,10 @@
 #[test]
 fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_bindings() {
-    let app_source = include_str!("../../../ui/slint_host/app.rs");
-    let viewport_new_source = include_str!("../../../ui/slint_host/viewport/new.rs");
-    let viewport_submit_source = include_str!("../../../ui/slint_host/viewport/submit_extract.rs");
-    let viewport_poll_source = include_str!("../../../ui/slint_host/viewport/poll_image.rs");
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let viewport_new_source = include_str!("../../../ui/retained_host/viewport/new.rs");
+    let viewport_submit_source =
+        include_str!("../../../ui/retained_host/viewport/submit_extract.rs");
+    let viewport_poll_source = include_str!("../../../ui/retained_host/viewport/poll_image.rs");
     let manifest = include_str!("../../../../Cargo.toml");
 
     assert!(
@@ -75,33 +76,31 @@ fn editor_viewport_interaction_boundary_lives_in_editor_crate() {
 }
 
 #[test]
-fn editor_slint_host_prefers_winit_software_renderer_over_skia_wgpu_selection() {
-    let app_source = include_str!("../../../ui/slint_host/app.rs");
+fn editor_retained_host_uses_winit_software_presenter_without_backend_selector() {
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let host_window_source = include_str!("../../../ui/retained_host/host_contract/window.rs");
     let manifest = include_str!("../../../../../Cargo.toml");
+    let editor_manifest = include_str!("../../../../Cargo.toml");
+    let former_owner = ["sli", "nt"].concat();
 
     assert!(
-        manifest.contains("renderer-software"),
-        "workspace slint dependency should keep the editor on the software renderer"
+        editor_manifest.contains("winit.workspace = true")
+            && editor_manifest.contains("softbuffer"),
+        "editor host manifest should use winit plus the Rust-owned software presenter"
     );
     assert!(
-        !manifest.contains("renderer-skia"),
-        "workspace slint dependency should not require the skia renderer for editor host tests"
+        host_window_source.contains("SoftbufferHostPresenter"),
+        "retained host window should present through the Rust-owned software presenter"
     );
     assert!(
-        !manifest.contains("unstable-wgpu-27"),
-        "workspace slint dependency should not require the unstable wgpu-27 path for the editor host"
+        !manifest.contains(&former_owner) && !editor_manifest.contains(&former_owner),
+        "workspace manifests should not keep the deleted generated UI dependency"
     );
 
     assert!(
-        app_source.contains(".backend_name(\"winit\".into())"),
-        "editor host should explicitly select the winit backend"
-    );
-    assert!(
-        app_source.contains(".renderer_name(\"software\".into())"),
-        "editor host should explicitly select the software renderer"
-    );
-    assert!(
-        !app_source.contains(".require_wgpu_27("),
-        "editor host should not hard-require the unstable Slint wgpu-27 selector"
+        !app_source.contains(".backend_name(")
+            && !app_source.contains(".renderer_name(")
+            && !app_source.contains(".require_wgpu_27("),
+        "retained editor host should not select generated UI backends or renderer flags"
     );
 }

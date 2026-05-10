@@ -31,7 +31,9 @@ impl UiInvalidationGraph {
             changes.push(UiAssetChange::Document);
             stages.extend(full_rebuild_stages());
         }
-        if previous.widget_imports != next.widget_imports {
+        if previous.widget_imports != next.widget_imports
+            || previous.declared_widget_imports_revision != next.declared_widget_imports_revision
+        {
             changes.push(UiAssetChange::WidgetImport);
             stages.extend([
                 UiInvalidationStage::ImportGraph,
@@ -42,7 +44,9 @@ impl UiInvalidationGraph {
                 UiInvalidationStage::Render,
             ]);
         }
-        if previous.style_imports != next.style_imports {
+        if previous.style_imports != next.style_imports
+            || previous.declared_style_imports_revision != next.declared_style_imports_revision
+        {
             changes.push(UiAssetChange::StyleImport);
             stages.extend([
                 UiInvalidationStage::ImportGraph,

@@ -27,5 +27,6 @@ impl ViewportRecord {
         pipeline: RenderPipelineHandle,
     ) {
         self.pipeline = Some(pipeline);
+        self.bump_generation();
     }
 }

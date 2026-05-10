@@ -491,14 +491,10 @@ fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
 #[test]
 fn material_meta_components_emit_stable_state_metadata() {
     let document = material_meta_document();
-    let components = material_components(&document);
     let mut failures = Vec::new();
 
     for (component, stable_class, required_props) in REQUIRED_STATEFUL_COMPONENTS {
-        let Some(root) = components
-            .get(*component)
-            .and_then(|component| component.get("root"))
-        else {
+        let Some(root) = component_root_node(&document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -522,14 +518,10 @@ fn material_meta_components_emit_stable_state_metadata() {
 #[test]
 fn material_meta_components_project_input_and_popup_contracts() {
     let document = material_meta_document();
-    let components = material_components(&document);
     let mut failures = Vec::new();
 
     for component in REQUIRED_INPUT_CAPABILITY_COMPONENTS {
-        let Some(root) = components
-            .get(*component)
-            .and_then(|component| component.get("root"))
-        else {
+        let Some(root) = component_root_node(&document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -543,10 +535,7 @@ fn material_meta_components_project_input_and_popup_contracts() {
     }
 
     for component in REQUIRED_POPUP_ANCHOR_COMPONENTS {
-        let Some(root) = components
-            .get(*component)
-            .and_then(|component| component.get("root"))
-        else {
+        let Some(root) = component_root_node(&document, component) else {
             failures.push(format!("missing component `{component}`"));
             continue;
         };
@@ -577,7 +566,9 @@ fn material_meta_component_roots_forward_interaction_accessibility_and_capabilit
             failures.push(format!("{component_name} must declare [params]"));
             continue;
         };
-        let Some(root_props) = component.get("root").and_then(node_props) else {
+        let Some(root_props) =
+            component_root_node_from_document(&document, component).and_then(node_props)
+        else {
             failures.push(format!("{component_name} root must declare props"));
             continue;
         };
@@ -603,14 +594,10 @@ fn material_meta_component_roots_forward_interaction_accessibility_and_capabilit
 #[test]
 fn material_meta_components_carry_shared_style_defaults_on_root_nodes() {
     let document = material_meta_document();
-    let components = material_components(&document);
     let mut failures = Vec::new();
 
     for (component_name, required_props) in REQUIRED_SHARED_STYLE_ROOTS {
-        let Some(root_props) = components
-            .get(*component_name)
-            .and_then(|component| component.get("root"))
-            .and_then(node_props)
+        let Some(root_props) = component_root_node(&document, component_name).and_then(node_props)
         else {
             failures.push(format!("{component_name} root must declare props"));
             continue;
@@ -722,6 +709,21 @@ fn material_components(document: &Value) -> &toml::map::Map<String, Value> {
         .expect("material meta components declare [components]")
 }
 
+fn component_root_node<'a>(document: &'a Value, component_name: &str) -> Option<&'a Value> {
+    material_components(document)
+        .get(component_name)
+        .and_then(|component| component_root_node_from_document(document, component))
+}
+
+fn component_root_node_from_document<'a>(
+    document: &'a Value,
+    component: &'a Value,
+) -> Option<&'a Value> {
+    component
+        .get("root")
+        .and_then(|root| resolve_node_value(document, root))
+}
+
 fn load_document(path: &std::path::Path) -> Value {
     let source = std::fs::read_to_string(path).expect("ui asset is readable");
     let source = source.trim_start_matches("stylesheets = []").trim_start();
@@ -781,6 +783,24 @@ fn node_props(node: &Value) -> Option<&toml::map::Map<String, Value>> {
     node.get("props")
         .or_else(|| node.get("params"))
         .and_then(Value::as_table)
+}
+
+fn node_at_path<'a>(document: &'a Value, path: &[&str]) -> Option<&'a Value> {
+    value_at(document, path).and_then(|value| resolve_node_value(document, value))
+}
+
+fn resolve_node_value<'a>(document: &'a Value, value: &'a Value) -> Option<&'a Value> {
+    if let Some(node_id) = value.as_str() {
+        return flat_node(document, node_id);
+    }
+    if let Some(node_id) = value.get("node").and_then(Value::as_str) {
+        return flat_node(document, node_id);
+    }
+    Some(value)
+}
+
+fn flat_node<'a>(document: &'a Value, node_id: &str) -> Option<&'a Value> {
+    document.get("nodes").and_then(|nodes| nodes.get(node_id))
 }
 
 fn assert_number_at(document: &Value, path: &[&str], expected: f64, failures: &mut Vec<String>) {
@@ -858,12 +878,12 @@ fn assert_child_controls_max_axis(
     require_square: bool,
     failures: &mut Vec<String>,
 ) {
-    let Some(root) = value_at(document, root_path) else {
+    let Some(root) = node_at_path(document, root_path) else {
         failures.push(format!("`{}` must exist", root_path.join(".")));
         return;
     };
     let mut matched = 0usize;
-    visit_child_nodes(root, &mut |node| {
+    visit_child_nodes(document, root, &mut |node| {
         if node_type(node) != Some(expected_type) {
             return;
         }
@@ -921,15 +941,23 @@ fn node_type(node: &Value) -> Option<&str> {
         .and_then(Value::as_str)
 }
 
-fn visit_child_nodes(root: &Value, visit: &mut impl FnMut(&Value)) {
+fn visit_child_nodes(document: &Value, root: &Value, visit: &mut impl FnMut(&Value)) {
     let Some(children) = root.get("children").and_then(Value::as_array) else {
         return;
     };
     for child in children {
-        let Some(node) = child.get("node") else {
-            continue;
-        };
-        visit(node);
+        if let Some(node) = child
+            .get("node")
+            .and_then(|node| resolve_node_value(document, node))
+            .or_else(|| {
+                child
+                    .get("child")
+                    .and_then(Value::as_str)
+                    .and_then(|node_id| flat_node(document, node_id))
+            })
+        {
+            visit(node);
+        }
     }
 }
 

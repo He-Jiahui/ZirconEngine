@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/lib.rs
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
   - zircon_editor/src/core/editor_operation.rs
@@ -20,15 +20,15 @@ related_code:
   - zircon_runtime_interface/src/resource/mod.rs
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/chrome.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_scene/src/lib.rs
   - zircon_scene/src/world/mod.rs
 implementation_files:
-  - zircon_editor/src/ui/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/host/module.rs
   - zircon_editor/src/ui/host/resource_access.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/history.rs
   - zircon_editor/src/core/editor_operation.rs
@@ -41,8 +41,8 @@ implementation_files:
   - zircon_runtime_interface/src/resource/resource_handle.rs
   - zircon_runtime_interface/src/resource/locator.rs
   - zircon_editor/src/ui/workbench/view/mod.rs
-  - zircon_editor/ui/workbench.slint
-  - zircon_editor/ui/workbench/chrome.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_scene/src/world/mod.rs
 plan_sources:
   - user: 2026-04-12 扩展 editor 命令系统到删除节点、改父子层级、重命名和 inspector 字段批量提交
@@ -82,7 +82,7 @@ doc_type: category-index
 
 本目录记录编辑器宿主层、workbench 壳以及场景编辑工作流的实现细节，重点覆盖：
 
-- `zircon_editor` 如何把 Slint 宿主组织成 workbench shell
+- `zircon_editor` 如何把 Rust-owned retained host 组织成 workbench shell
 - 布局、view registry、项目 workspace 和配置持久化如何协同
 - UI 草稿态如何转换成命令，并在 `zircon_runtime::scene::LevelSystem` 所托管的 `zircon_scene::Scene` 上安全执行与 undo/redo
 - `EditorOperation` 如何以路径命名方式把菜单、远控、CLI 和未来组件编辑器入口统一提交到 editor event runtime
@@ -102,11 +102,11 @@ doc_type: category-index
 - [Animation Binding Command Surface](./animation-binding-command-surface.md): `AnimationCommand` 如何统一轨道创建/删除、重绑定、关键帧、scrub 和 playback 的 editor authoring binding 面，并进入正式 `EditorEventRuntime` 事件链与动画资产 view 路由。
 - [Animation Editor Pane Session](./animation-editor-pane-session.md): `ui::animation_editor` 与 `ui::host::animation_editor_sessions` 如何维护 sequence/graph/state-machine 的最小真实 session model，并把 animation 资产页签投影到正式 workbench pane。
 - [Engine Architecture / Runtime Diagnostics Contract](../engine-architecture/runtime-diagnostics-contract.md): `EditorManager::runtime_diagnostics()`、`editor.runtime_diagnostics` activity pane、`RuntimeDiagnosticsV1` pane payload 和 `pane.runtime.diagnostics.body` TOML 模板的 editor-facing inspection 边界。
-- [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor::ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及后续把 TOML 模板实例接到 Slint host 的迁移顺序。
+- [Editor Template Compatibility Migration](./editor-template-compatibility-migration.md): `zircon_editor::ui` 的 editor-only template catalog/registry/adapter，如何把 shared `UiBindingRef` 收口到 typed `EditorUiBinding`，以及当前把 TOML 模板实例接到 retained host 的迁移顺序。
 - [UI Asset Editor Host Session](./ui-asset-editor-host-session.md): `zircon_editor::ui::host` 与 `zircon_editor::ui::asset_editor` 的当前 owner 边界，说明 `EditorManager`、layout/window/session orchestration 已回迁到 `src/ui/`，且不再通过 `core` 兼容 re-export 持有实现。
 - [Editor Host Locking](./editor-host-locking.md): `zircon_editor::ui::host` 生产路径共享状态的锁获取策略，记录 host/session/asset/animation/shell pointer direct `lock().unwrap()` 与 `lock().expect(...)` 收口。
 - [Editor Host Minimal Plugin Loading](./editor-host-minimal-plugin-loading.md): `EditorHostMinimal` 白名单、扩展黑名单、EngineModule/VM 双轨加载入口、VM host capability handle bridge 和失败隔离策略。
-- [Editor Structure Hard Cutover Rules](./editor-structure-hard-cutover-rules.md): `core/scene/ui` 顶层分工、`ui/host` vs `ui/slint_host` vs `ui/asset_editor` vs `ui/workbench` 的 owner 红线，以及 `zircon_editor` crate root/public surface 收口规则。
+- [Editor Structure Hard Cutover Rules](./editor-structure-hard-cutover-rules.md): `core/scene/ui` 顶层分工、`ui/host` vs `ui/retained_host` vs `ui/asset_editor` vs `ui/workbench` 的 owner 红线，以及 `zircon_editor` crate root/public surface 收口规则。
 - [UI And Layout / UI Asset Documents And Editor Protocol](../ui-and-layout/ui-asset-documents-and-editor-protocol.md): `zircon_runtime::ui::template::asset` 的 `layout/widget/style` 编译链、selector stylesheet、test-only fixture migration、slot-aware shared bridge，以及 shared asset model 如何移交给 editor asset pipeline 和 host session。
 - [UI And Layout / Shared UI Core Foundation](../ui-and-layout/shared-ui-core-foundation.md): 运行时/编辑器共享的 `zircon_ui` 约束类型、retained tree、命中索引、surface/render extract，以及 editor workbench 对共享布局核心的复用边界。
 - [UI And Layout / Shared UI Template Runtime](../ui-and-layout/shared-ui-template-runtime.md): shared TOML 模板文档、slot/composite 展开和稳定 binding ref 保留语义，是 editor shell compatibility migration 的共享模板真源。
@@ -121,8 +121,8 @@ doc_type: category-index
 - `zircon_editor/src/scene/viewport/controller/mod.rs`
 - `zircon_editor/src/scene/viewport/handles/mod.rs`
 - `zircon_editor/src/ui/workbench/layout/mod.rs`
-- `zircon_editor/src/ui/slint_host/app.rs`
-- `zircon_editor/src/ui/slint_host/ui.rs`
+- `zircon_editor/src/ui/retained_host/app.rs`
+- `zircon_editor/src/ui/retained_host/ui.rs`
 - `zircon_editor/src/ui/host/mod.rs`
 - `zircon_editor/src/ui/host/module.rs`
 - `zircon_editor/src/core/editor_event/host_adapter.rs`
@@ -138,8 +138,8 @@ doc_type: category-index
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/overlay/mod.rs`
-- `zircon_editor/ui/workbench.slint`
-- `zircon_editor/ui/workbench/chrome.slint`
+- `zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml`
+- `zircon_editor/src/ui/retained_host/host_contract/window.rs`
 - `zircon_scene/src/world/mod.rs`
 
 ## Current Scope

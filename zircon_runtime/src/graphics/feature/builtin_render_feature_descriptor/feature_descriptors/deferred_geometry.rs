@@ -24,7 +24,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .with_executor_id("deferred.depth-prepass")
             .write_texture("scene-depth"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::GBuffer,
+                RenderPassStage::Deferred,
                 "gbuffer-mesh",
                 QueueLane::Graphics,
             )
@@ -34,7 +34,15 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             .write_texture("gbuffer-normal")
             .write_texture("gbuffer-material"),
             RenderFeaturePassDescriptor::new(
-                RenderPassStage::Transparent,
+                RenderPassStage::AlphaMask3d,
+                "alpha-mask-mesh",
+                QueueLane::Graphics,
+            )
+            .with_executor_id("mesh.alpha-mask")
+            .read_texture("scene-depth")
+            .write_texture("scene-color"),
+            RenderFeaturePassDescriptor::new(
+                RenderPassStage::Transparent3d,
                 "transparent-mesh",
                 QueueLane::Graphics,
             )

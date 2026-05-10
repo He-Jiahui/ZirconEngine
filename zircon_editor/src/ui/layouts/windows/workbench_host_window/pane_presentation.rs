@@ -49,6 +49,7 @@ impl<'a> PanePayloadBuildContext<'a> {
         self
     }
 
+    #[cfg(test)]
     pub fn with_active_ui_debug_snapshot(mut self, snapshot: &'a UiSurfaceDebugSnapshot) -> Self {
         self.active_ui_debug_snapshot = Some(snapshot);
         self

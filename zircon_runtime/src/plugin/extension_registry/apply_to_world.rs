@@ -12,7 +12,9 @@ impl RuntimeExtensionRegistry {
             world
                 .register_component_type(component.clone())
                 .map_err(|error| {
-                    if error.contains("already registered") {
+                    if error.contains("already registered")
+                        || error.contains("duplicate reflected type path")
+                    {
                         RuntimeExtensionRegistryError::DuplicateComponentType(
                             component.type_id.clone(),
                         )

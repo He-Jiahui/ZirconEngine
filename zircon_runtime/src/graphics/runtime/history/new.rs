@@ -3,7 +3,7 @@ use crate::core::math::UVec2;
 
 use crate::{FrameHistoryBinding, VisibilityHistorySnapshot};
 
-use super::viewport_frame_history::ViewportFrameHistory;
+use super::{FrameHistoryValidationKey, ViewportFrameHistory};
 
 impl ViewportFrameHistory {
     pub(crate) fn new(
@@ -13,6 +13,7 @@ impl ViewportFrameHistory {
         generation: u64,
         bindings: Vec<FrameHistoryBinding>,
         visibility: VisibilityHistorySnapshot,
+        validation_key: FrameHistoryValidationKey,
     ) -> Self {
         Self {
             handle,
@@ -21,6 +22,7 @@ impl ViewportFrameHistory {
             generation,
             bindings,
             visibility,
+            validation_key,
         }
     }
 }

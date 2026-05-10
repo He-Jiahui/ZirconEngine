@@ -1,9 +1,10 @@
 use std::slice;
 
 use zircon_runtime_interface::{
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1,
-    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
+    ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::{LoadedRuntime, RuntimeLibraryError};
@@ -77,6 +78,58 @@ impl RuntimeSession {
         ensure_status(status, "capture runtime frame")?;
         Ok(RuntimeFrame { frame })
     }
+
+    pub(crate) fn bind_viewport_surface(
+        &self,
+        request: ZrRuntimeBindViewportSurfaceRequestV1,
+    ) -> Result<bool, RuntimeLibraryError> {
+        let Some(bind) = self.runtime.bind_viewport_surface() else {
+            return Ok(false);
+        };
+        ensure_status(
+            unsafe { bind(self.handle, request) },
+            "bind runtime viewport surface",
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn unbind_viewport_surface(
+        &self,
+        viewport: ZrRuntimeViewportHandle,
+    ) -> Result<bool, RuntimeLibraryError> {
+        let Some(unbind) = self.runtime.unbind_viewport_surface() else {
+            return Ok(false);
+        };
+        ensure_status(
+            unsafe { unbind(self.handle, viewport) },
+            "unbind runtime viewport surface",
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn present_viewport(
+        &self,
+        viewport: ZrRuntimeViewportHandle,
+        size: ZrRuntimeViewportSizeV1,
+    ) -> Result<bool, RuntimeLibraryError> {
+        let Some(present) = self.runtime.present_viewport() else {
+            return Ok(false);
+        };
+        ensure_status(
+            unsafe {
+                present(
+                    self.handle,
+                    ZrRuntimeFrameRequestV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, size),
+                )
+            },
+            "present runtime viewport",
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn supports_viewport_surface_present(&self) -> bool {
+        self.runtime.supports_viewport_surface_present()
+    }
 }
 
 #[cfg(feature = "target-editor-host")]
@@ -114,6 +167,7 @@ impl zircon_editor::EditorRuntimeClient for RuntimeSession {
 
 impl Drop for RuntimeSession {
     fn drop(&mut self) {
+        let _ = self.unbind_viewport_surface(ZrRuntimeViewportHandle::new(1));
         if let Some(destroy_session) = self.runtime.api().destroy_session {
             let _ = unsafe { destroy_session(self.handle) };
         }

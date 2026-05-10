@@ -12,11 +12,9 @@ pub(crate) fn build_selection_vertices(
     streamer: &ResourceStreamer,
 ) -> Vec<LineVertex> {
     let mut vertices = Vec::new();
-    for highlight in &frame.scene.overlays.selection {
+    for highlight in &frame.overlays().selection {
         let Some(mesh_instance) = frame
-            .scene
-            .scene
-            .meshes
+            .meshes()
             .iter()
             .find(|mesh| mesh.node_id == highlight.owner)
         else {
@@ -25,7 +23,7 @@ pub(crate) fn build_selection_vertices(
         let Some(model) = streamer.model(&mesh_instance.model.id()) else {
             continue;
         };
-        let color = if frame.scene.overlays.display_mode == DisplayMode::WireOnly {
+        let color = if frame.overlays().display_mode == DisplayMode::WireOnly {
             Vec4::new(1.0, 0.88, 0.32, 1.0)
         } else {
             Vec4::new(1.0, 0.76, 0.18, 1.0)
@@ -41,14 +39,14 @@ pub(crate) fn build_selection_vertices(
         }
     }
 
-    for anchor in &frame.scene.overlays.selection_anchors {
+    for anchor in &frame.overlays().selection_anchors {
         append_cross(
             &mut vertices,
             anchor.position,
             anchor.size,
             anchor.color,
-            frame.scene.scene.camera.transform.right(),
-            frame.scene.scene.camera.transform.up(),
+            frame.camera().transform.right(),
+            frame.camera().transform.up(),
         );
     }
 

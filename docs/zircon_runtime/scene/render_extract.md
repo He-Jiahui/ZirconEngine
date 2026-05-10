@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
@@ -10,6 +11,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
 implementation_files:
+  - zircon_runtime/src/scene/components/scene.rs
   - zircon_runtime/src/scene/render_extract/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
@@ -18,6 +20,7 @@ implementation_files:
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
+  - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
@@ -52,7 +55,7 @@ The prepared path is:
 
 ## Snapshot Contents
 
-`World::build_prepared_render_frame_extract_for_request(...)` emits sorted meshes, directional lights, point lights, and spot lights. Mesh rows include stable node id, world transform, model handle, material handle, tint, mobility, and render-layer mask. Camera rows preserve explicit viewport-request overrides and derive aspect ratio from the request size when present.
+`World::build_prepared_render_frame_extract_for_request(...)` emits sorted meshes, directional lights, point lights, and spot lights. Mesh rows include stable node id, world transform, model handle, material handle, tint, mobility, and render-layer mask. The prepared frame path also builds `GeometryPhaseInput` from the same sorted mesh rows and each `MeshRenderer.material_alpha_mode`, so mesh indices and phase classification stay aligned for opaque, alpha-mask, and transparent queues. Camera rows preserve explicit viewport-request overrides and derive aspect ratio from the request size when present.
 
 Inactive entities are filtered by `ActiveInHierarchy`. Because `RenderExtractPrepare` runs before the rows are collected, parent active-state propagation, parent reorders, and world transform propagation are current when the renderer sees the prepared extract. Read-only clone-based helpers can also produce a fresh packet or frame extract, but they do not clear dirty bits on the original world.
 
@@ -70,6 +73,7 @@ The focused M1/M2 tests verify that:
 - dirty-only parent, active, transform, mobility, and render-layer mutations remain pending until `PostUpdate` or `RenderExtract` systems flush them;
 - render extract preparation handles parent reorder plus inactive-parent propagation before collecting mesh rows.
 - M3 canonical render-frame extraction populates direct frame sections, including camera aspect, visibility buckets, postprocess defaults, VG debug/default sidebands, and disabled Hybrid GI sidebands.
+- M4A prepared render-frame extraction queues alpha-mask and transparent meshes from `MeshRenderer` alpha hints instead of treating production world meshes as all opaque.
 - a structural guard rejects reintroducing `RenderFrameExtract::from_snapshot(...)` inside `zircon_runtime/src/scene/render_extract/mod.rs`.
 
 Fresh focused M2 validation passed on 2026-05-08. The focused render-extract regression passed with `1 passed; 0 failed; 1061 filtered out`, the broader `scene::tests` filter passed with `45 passed; 0 failed; 1018 filtered out`, and the renderer-facing `graphics::tests` filter passed with `107 passed; 0 failed; 956 filtered out`.

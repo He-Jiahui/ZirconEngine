@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::PhysicsMaterialMetadata;
+use crate::core::framework::render::RenderMaterialAlphaMode;
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
 use crate::core::resource::{
@@ -117,6 +118,8 @@ pub struct MeshRenderer {
     pub model: ResourceHandle<ModelMarker>,
     pub material: ResourceHandle<MaterialMarker>,
     pub tint: Vec4,
+    #[serde(default)]
+    pub material_alpha_mode: RenderMaterialAlphaMode,
 }
 
 impl MeshRenderer {
@@ -128,6 +131,7 @@ impl MeshRenderer {
             model,
             material,
             tint: Vec4::ONE,
+            material_alpha_mode: RenderMaterialAlphaMode::Opaque,
         }
     }
 }

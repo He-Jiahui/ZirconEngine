@@ -76,6 +76,8 @@ pub(in crate::asset::pipeline::manager) fn builtin_resources() -> Vec<(&'static 
                 source: builtin_pbr_wgsl().to_string(),
                 wgsl_source: builtin_pbr_wgsl().to_string(),
                 entry_points: Vec::new(),
+                dependencies: Vec::new(),
+                pipeline_layout: Default::default(),
                 validation_diagnostics: Vec::new(),
             }),
         ),

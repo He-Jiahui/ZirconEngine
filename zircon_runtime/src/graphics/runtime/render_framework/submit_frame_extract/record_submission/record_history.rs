@@ -1,6 +1,6 @@
 use crate::core::framework::render::FrameHistoryHandle;
 
-use crate::{runtime::ViewportFrameHistory, ViewportFrame};
+use crate::runtime::ViewportFrameHistory;
 
 use super::super::super::viewport_record::ViewportRecord;
 use super::super::frame_submission_context::FrameSubmissionContext;
@@ -8,16 +8,17 @@ use super::super::frame_submission_context::FrameSubmissionContext;
 pub(super) fn record_history(
     record: &mut ViewportRecord,
     context: &FrameSubmissionContext,
-    frame: &ViewportFrame,
+    generation: u64,
     allocated_history: Option<FrameHistoryHandle>,
 ) -> (Option<FrameHistoryHandle>, FrameHistoryHandle) {
     let previous_handle = record.history().map(|history| history.handle());
     let history_handle = match (record.history_mut(), allocated_history) {
         (Some(history), None) => {
             history.update(
-                frame.generation,
+                generation,
                 context.compiled_pipeline().history_bindings.clone(),
                 context.visibility_context().history_snapshot.clone(),
+                context.history_validation_key().clone(),
             );
             history.handle()
         }
@@ -26,9 +27,10 @@ pub(super) fn record_history(
                 handle,
                 context.size(),
                 context.pipeline_handle(),
-                frame.generation,
+                generation,
                 context.compiled_pipeline().history_bindings.clone(),
                 context.visibility_context().history_snapshot.clone(),
+                context.history_validation_key().clone(),
             ));
             handle
         }

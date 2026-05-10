@@ -1,7 +1,7 @@
 use super::support::*;
 
 #[test]
-fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_slint_projection() {
+fn editor_ui_host_runtime_projects_builtin_viewport_toolbar_template_into_retained_projection() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 

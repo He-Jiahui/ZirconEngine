@@ -12,6 +12,9 @@ use crate::rhi_wgpu::WgpuRenderDevice;
 use crate::{GraphicsError, SceneRenderer};
 
 use super::super::capability_summary::capability_summary;
+use super::super::graphics_debugger_capture::{
+    renderdoc_capture_next_from_env, GraphicsDebuggerState,
+};
 use super::super::render_framework_state::RenderFrameworkState;
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::create_default_pipelines::create_default_pipelines;
@@ -58,14 +61,20 @@ impl WgpuRenderFramework {
             .into_iter()
             .collect::<Vec<_>>();
         let render_device = WgpuRenderDevice::new_headless();
+        let renderer = SceneRenderer::new_with_plugin_render_extensions(
+            asset_manager,
+            render_features.clone(),
+            render_pass_executors,
+            runtime_prepare_collectors,
+        )?;
+        let graphics_debugger = GraphicsDebuggerState::available_with_capture_next_created_viewport(
+            renderer.backend_name(),
+            renderdoc_capture_next_from_env(),
+        );
         Ok(Self {
+            operation_lock: Mutex::new(()),
             state: Mutex::new(RenderFrameworkState {
-                renderer: SceneRenderer::new_with_plugin_render_extensions(
-                    asset_manager,
-                    render_features.clone(),
-                    render_pass_executors,
-                    runtime_prepare_collectors,
-                )?,
+                renderer,
                 next_viewport_id: 1,
                 next_history_id: 1,
                 pipelines: create_default_pipelines(&render_features),
@@ -79,6 +88,7 @@ impl WgpuRenderFramework {
                     capabilities: capability_summary(render_device.caps()),
                     ..crate::core::framework::render::RenderStats::default()
                 },
+                graphics_debugger,
             }),
         })
     }

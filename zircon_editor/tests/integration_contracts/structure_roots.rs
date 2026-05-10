@@ -22,15 +22,15 @@ fn editor_crate_root_keeps_editor_module_out_of_lib_rs() {
 }
 
 #[test]
-fn slint_host_root_stays_structural_after_rust_contract_cutover() {
-    let root = source("src/ui/slint_host/mod.rs");
-    let host_contract = source("src/ui/slint_host/host_contract/mod.rs");
-    let data_root = source("src/ui/slint_host/host_contract/data/mod.rs");
+fn retained_host_root_stays_structural_after_rust_contract_cutover() {
+    let root = source("src/ui/retained_host/mod.rs");
+    let host_contract = source("src/ui/retained_host/host_contract/mod.rs");
+    let data_root = source("src/ui/retained_host/host_contract/data/mod.rs");
 
     for required in ["mod host_contract;", "pub(crate) use host_contract::*;"] {
         assert!(
             root.contains(required),
-            "slint_host root missing `{required}`"
+            "retained_host root missing `{required}`"
         );
     }
     for required in ["mod data;", "mod globals;", "mod window;"] {

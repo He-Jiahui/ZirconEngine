@@ -15,8 +15,22 @@ pub type ZrRuntimeCaptureFrameFnV1 = unsafe extern "C" fn(
     ZrRuntimeFrameRequestV1,
     *mut ZrRuntimeFrameV1,
 ) -> ZrStatus;
+pub type ZrRuntimeCaptureAccessibilityTreeFnV1 = unsafe extern "C" fn(
+    ZrRuntimeSessionHandle,
+    ZrRuntimeAccessibilityTreeRequestV1,
+    *mut ZrOwnedByteBuffer,
+) -> ZrStatus;
+pub type ZrRuntimeBindViewportSurfaceFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeBindViewportSurfaceRequestV1) -> ZrStatus;
+pub type ZrRuntimeUnbindViewportSurfaceFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeViewportHandle) -> ZrStatus;
+pub type ZrRuntimePresentViewportFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeFrameRequestV1) -> ZrStatus;
 pub type ZrRuntimeHostFetchFnV1 =
     unsafe extern "C" fn(ZrRuntimeHostFetchRequestV1, *mut ZrOwnedByteBuffer) -> ZrStatus;
+
+pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1: u32 = 0;
+pub const ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1: u32 = 1;
 
 pub const ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1: u32 = 1;
 pub const ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1: u32 = 2;
@@ -25,6 +39,7 @@ pub const ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1: u32 = 4;
 pub const ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1: u32 = 5;
 pub const ZR_RUNTIME_EVENT_KIND_TOUCH_V1: u32 = 6;
 pub const ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1: u32 = 7;
+pub const ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1: u32 = 8;
 
 pub const ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1: u32 = 1;
 pub const ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1: u32 = 2;
@@ -79,6 +94,10 @@ pub struct ZrRuntimeApiV1 {
     pub destroy_session: Option<ZrRuntimeDestroySessionFnV1>,
     pub handle_event: Option<ZrRuntimeHandleEventFnV1>,
     pub capture_frame: Option<ZrRuntimeCaptureFrameFnV1>,
+    pub capture_accessibility_tree: Option<ZrRuntimeCaptureAccessibilityTreeFnV1>,
+    pub bind_viewport_surface: Option<ZrRuntimeBindViewportSurfaceFnV1>,
+    pub unbind_viewport_surface: Option<ZrRuntimeUnbindViewportSurfaceFnV1>,
+    pub present_viewport: Option<ZrRuntimePresentViewportFnV1>,
 }
 
 impl ZrRuntimeApiV1 {
@@ -90,6 +109,10 @@ impl ZrRuntimeApiV1 {
             destroy_session: None,
             handle_event: None,
             capture_frame: None,
+            capture_accessibility_tree: None,
+            bind_viewport_surface: None,
+            unbind_viewport_surface: None,
+            present_viewport: None,
         }
     }
 }
@@ -144,6 +167,60 @@ impl ZrRuntimeViewportMetricsV1 {
 impl ZrRuntimeViewportSizeV1 {
     pub const fn new(width: u32, height: u32) -> Self {
         Self { width, height }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeNativeSurfaceTargetV1 {
+    pub abi_version: u32,
+    pub kind: u32,
+    pub window_handle: u64,
+    pub display_handle: u64,
+}
+
+impl ZrRuntimeNativeSurfaceTargetV1 {
+    pub const fn none(abi_version: u32) -> Self {
+        Self {
+            abi_version,
+            kind: ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
+            window_handle: 0,
+            display_handle: 0,
+        }
+    }
+
+    pub const fn win32(abi_version: u32, hwnd: u64, hinstance: u64) -> Self {
+        Self {
+            abi_version,
+            kind: ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1,
+            window_handle: hwnd,
+            display_handle: hinstance,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeBindViewportSurfaceRequestV1 {
+    pub abi_version: u32,
+    pub viewport: ZrRuntimeViewportHandle,
+    pub size: ZrRuntimeViewportSizeV1,
+    pub target: ZrRuntimeNativeSurfaceTargetV1,
+}
+
+impl ZrRuntimeBindViewportSurfaceRequestV1 {
+    pub const fn new(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        size: ZrRuntimeViewportSizeV1,
+        target: ZrRuntimeNativeSurfaceTargetV1,
+    ) -> Self {
+        Self {
+            abi_version,
+            viewport,
+            size,
+            target,
+        }
     }
 }
 
@@ -310,6 +387,21 @@ impl ZrRuntimeEventV1 {
             ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, viewport)
         }
     }
+
+    pub const fn accessibility_action(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        payload: ZrByteSlice,
+    ) -> Self {
+        Self {
+            payload,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
+                viewport,
+            )
+        }
+    }
 }
 
 #[repr(C)]
@@ -418,6 +510,31 @@ impl ZrRuntimeFrameRequestV1 {
             abi_version,
             viewport,
             size,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ZrRuntimeAccessibilityTreeRequestV1 {
+    pub abi_version: u32,
+    pub viewport: ZrRuntimeViewportHandle,
+    pub size: ZrRuntimeViewportSizeV1,
+    pub generation_hint: u64,
+}
+
+impl ZrRuntimeAccessibilityTreeRequestV1 {
+    pub const fn new(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        size: ZrRuntimeViewportSizeV1,
+        generation_hint: u64,
+    ) -> Self {
+        Self {
+            abi_version,
+            viewport,
+            size,
+            generation_hint,
         }
     }
 }

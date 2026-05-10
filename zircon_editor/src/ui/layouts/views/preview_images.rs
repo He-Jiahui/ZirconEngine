@@ -1,14 +1,50 @@
 use std::path::{Path, PathBuf};
 
+use resvg::{tiny_skia, usvg};
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 
-pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> slint::Image {
+use crate::ui::retained_host::primitives::{Image, Rgba8Pixel, SharedPixelBuffer};
+
+pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> Image {
     for path in preview_image_candidates(source, icon_name) {
         if path.exists() {
-            return slint::Image::load_from_path(&path).unwrap_or_default();
+            return load_preview_image_from_path(&path).unwrap_or_default();
         }
     }
-    slint::Image::default()
+    Image::default()
+}
+
+fn load_preview_image_from_path(path: &Path) -> Option<Image> {
+    if is_svg_path(path) {
+        return render_svg_preview_image(path);
+    }
+    Image::load_from_path(path).ok()
+}
+
+fn render_svg_preview_image(path: &Path) -> Option<Image> {
+    let svg = std::fs::read(path).ok()?;
+    let mut options = usvg::Options {
+        resources_dir: std::fs::canonicalize(path)
+            .ok()
+            .and_then(|path| path.parent().map(Path::to_path_buf)),
+        ..usvg::Options::default()
+    };
+    options.fontdb_mut().load_system_fonts();
+
+    let tree = usvg::Tree::from_data(&svg, &options).ok()?;
+    let size = tree.size();
+    let width = size.width().ceil().max(1.0) as u32;
+    let height = size.height().ceil().max(1.0) as u32;
+    let mut pixmap = tiny_skia::Pixmap::new(width, height)?;
+    resvg::render(
+        &tree,
+        tiny_skia::Transform::identity(),
+        &mut pixmap.as_mut(),
+    );
+    let pixels = pixmap.take_demultiplied();
+    Some(Image::from_rgba8(
+        SharedPixelBuffer::<Rgba8Pixel>::clone_from_slice(&pixels, width, height),
+    ))
 }
 
 fn preview_image_candidates(source: &str, icon_name: &str) -> Vec<PathBuf> {
@@ -65,6 +101,12 @@ fn push_candidate(candidates: &mut Vec<PathBuf>, path: PathBuf) {
     }
 }
 
+fn is_svg_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("svg"))
+}
+
 fn normalized_asset_relative_path(source: &str) -> PathBuf {
     let mut value = source.trim().replace('\\', "/");
     for prefix in ["res://", "asset://", "assets://"] {
@@ -76,4 +118,19 @@ fn normalized_asset_relative_path(source: &str) -> PathBuf {
     let value = value.trim_start_matches('/');
     let value = value.strip_prefix("assets/").unwrap_or(value);
     Path::new(value).to_path_buf()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn preview_loader_rasterizes_svg_icon_candidates() {
+        let image = load_preview_image("", "folder-open-outline");
+        let size = image.size();
+
+        assert!(size.width > 0);
+        assert!(size.height > 0);
+        assert!(image.to_rgba8().is_some());
+    }
 }

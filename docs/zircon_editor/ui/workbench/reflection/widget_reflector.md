@@ -39,4 +39,4 @@ Each `WorkbenchWidgetReflectorRow` contains the stable node id/path, parent, dep
 
 ## Boundary
 
-This module is the first editor Widget Reflector consumer surface for the lifecycle/reflection milestone. Runtime owns the source snapshot and property mutation seam; the workbench model owns only local presentation state. Future UI panels should continue to consume `UiReflectorSnapshot` through this read model or another equally read-only adapter instead of querying Slint widgets or runtime internals directly.
+This module is the first editor Widget Reflector consumer surface for the lifecycle/reflection milestone. Runtime owns the source snapshot and property mutation seam; the workbench model owns only local presentation state. Future UI panels should continue to consume `UiReflectorSnapshot` through this read model or another equally read-only adapter instead of querying host widgets or runtime internals directly.

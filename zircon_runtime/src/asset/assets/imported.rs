@@ -44,6 +44,7 @@ impl ImportedAsset {
             Self::AnimationClip(asset) => asset.direct_references(),
             Self::AnimationGraph(asset) => asset.direct_references(),
             Self::AnimationStateMachine(asset) => asset.direct_references(),
+            Self::Material(asset) => asset.direct_references(),
             Self::MaterialGraph(asset) => asset.direct_references(),
             Self::Scene(asset) => asset.direct_references(),
             Self::Terrain(asset) => asset.direct_references(),

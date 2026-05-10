@@ -64,7 +64,7 @@ where
         let ticks = ChangeTickWindow::all(world.read_change_tick());
         for entity in entities {
             if F::matches(world, entity, ticks) && D::matches_data(world, entity) {
-                if let Some(item) = D::fetch_mut(world, entity) {
+                if let Some(item) = D::fetch_mut_with_ticks(world, entity, ticks) {
                     f(item);
                 }
             }

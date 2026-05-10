@@ -152,6 +152,7 @@ fn child_node() -> UiTreeNode {
             style_overrides: BTreeMap::new(),
             style_tokens: BTreeMap::new(),
             bindings: Vec::new(),
+            ..Default::default()
         })
 }
 

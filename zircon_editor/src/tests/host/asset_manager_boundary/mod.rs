@@ -1,8 +1,8 @@
 #[test]
 fn editor_asset_boundary_lives_in_editor_crate() {
-    let app_source = include_str!("../../../ui/slint_host/app.rs");
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
     let ui_host_mod_source = include_str!("../../../ui/host/mod.rs");
-    let host_lifecycle_source = include_str!("../../../ui/slint_host/app/host_lifecycle.rs");
+    let host_lifecycle_source = include_str!("../../../ui/retained_host/app/host_lifecycle.rs");
     let project_access_source = include_str!("../../../ui/host/project_access.rs");
     let asset_workspace_source =
         include_str!("../../../ui/workbench/project/asset_workspace_state.rs");
@@ -109,14 +109,15 @@ fn editor_asset_boundary_lives_in_editor_crate() {
 
 #[test]
 fn editor_host_uses_asset_owned_asset_change_stream() {
-    let app_source = include_str!("../../../ui/slint_host/app.rs");
-    let backend_refresh_source = include_str!("../../../ui/slint_host/app/backend_refresh.rs");
-    let slint_asset_refresh_test_source = include_str!("../slint_asset_refresh/scene_reload.rs");
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let backend_refresh_source = include_str!("../../../ui/retained_host/app/backend_refresh.rs");
+    let retained_asset_refresh_test_source =
+        include_str!("../retained_asset_refresh/scene_reload.rs");
 
     for source in [
         app_source,
         backend_refresh_source,
-        slint_asset_refresh_test_source,
+        retained_asset_refresh_test_source,
     ] {
         assert!(
             !source.contains("AssetChangeRecord"),
@@ -127,7 +128,7 @@ fn editor_host_uses_asset_owned_asset_change_stream() {
     for source in [
         app_source,
         backend_refresh_source,
-        slint_asset_refresh_test_source,
+        retained_asset_refresh_test_source,
     ] {
         assert!(
             source.contains("AssetChange"),
@@ -246,16 +247,17 @@ fn editor_asset_workspace_uses_canonical_resource_record() {
 
 #[test]
 fn editor_host_uses_canonical_resource_event() {
-    let app_source = include_str!("../../../ui/slint_host/app.rs");
-    let backend_refresh_source = include_str!("../../../ui/slint_host/app/backend_refresh.rs");
+    let app_source = include_str!("../../../ui/retained_host/app.rs");
+    let backend_refresh_source = include_str!("../../../ui/retained_host/app/backend_refresh.rs");
     let resource_access_test_source = include_str!("../resource_access/mod.rs");
-    let slint_asset_refresh_test_source = include_str!("../slint_asset_refresh/scene_reload.rs");
+    let retained_asset_refresh_test_source =
+        include_str!("../retained_asset_refresh/scene_reload.rs");
 
     for source in [
         app_source,
         backend_refresh_source,
         resource_access_test_source,
-        slint_asset_refresh_test_source,
+        retained_asset_refresh_test_source,
     ] {
         assert!(
             !source.contains("ResourceChangeRecord"),
@@ -270,7 +272,7 @@ fn editor_host_uses_canonical_resource_event() {
     for source in [
         app_source,
         backend_refresh_source,
-        slint_asset_refresh_test_source,
+        retained_asset_refresh_test_source,
     ] {
         assert!(
             source.contains("ResourceEvent"),

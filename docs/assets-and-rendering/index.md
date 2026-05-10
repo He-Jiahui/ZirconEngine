@@ -195,7 +195,7 @@ related_code:
   - zircon_scene/src/render_extract/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
-  - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
 implementation_files:
@@ -393,7 +393,7 @@ implementation_files:
   - zircon_scene/src/render_extract/mod.rs
   - zircon_editor/src/workbench/project/mod.rs
   - zircon_editor/src/host/app.rs
-  - zircon_editor/src/host/slint_host/app.rs
+  - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/editing/command.rs
   - zircon_editor/src/editing/state/mod.rs
 plan_sources:

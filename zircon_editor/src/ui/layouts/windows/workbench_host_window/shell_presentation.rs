@@ -5,12 +5,12 @@ use crate::ui::layouts::views::{
     asset_surface_presentation, project_overview_data, welcome_presentation,
     AssetSurfacePresentation, WelcomePresentation,
 };
-use crate::ui::slint_host::floating_window_projection::FloatingWindowProjectionBundle;
+use crate::ui::retained_host::floating_window_projection::FloatingWindowProjectionBundle;
 use crate::ui::widgets::common::{collect_tabs, document_tab_data, host_tab_data, side_expanded};
 use crate::ui::workbench::startup::{display_project_text, display_project_title};
 use zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot;
 
-use crate::ui::slint_host::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
+use crate::ui::retained_host::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
 
 pub(crate) struct ShellPresentation {
     pub host_surface_data: HostWindowSurfaceData,

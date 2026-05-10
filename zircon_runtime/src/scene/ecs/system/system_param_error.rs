@@ -6,6 +6,8 @@ use crate::scene::ecs::{QueryAccessError, ResourceId};
 pub enum SystemParamError {
     Query(QueryAccessError),
     ConflictingResourceAccess { resource_id: ResourceId },
+    ConflictingEventAccess { type_name: &'static str },
+    MissingResource { type_name: &'static str },
 }
 
 impl fmt::Display for SystemParamError {
@@ -17,6 +19,13 @@ impl fmt::Display for SystemParamError {
                 "system accesses resource {:?} mutably while it is already read or written",
                 resource_id
             ),
+            Self::ConflictingEventAccess { type_name } => write!(
+                f,
+                "system accesses event {type_name} mutably while events are already read or written"
+            ),
+            Self::MissingResource { type_name } => {
+                write!(f, "requested missing scene resource {type_name}")
+            }
         }
     }
 }

@@ -14,7 +14,7 @@ use crate::scene::EntityId;
 
 impl World {
     pub fn empty() -> Self {
-        Self {
+        let mut world = Self {
             entities: Vec::new(),
             kinds: HashMap::new(),
             names: HashMap::new(),
@@ -40,20 +40,25 @@ impl World {
             mobility: HashMap::new(),
             dynamic_components: HashMap::new(),
             component_types: Default::default(),
+            type_registry: Default::default(),
             next_id: 1,
             active_camera: 0,
             schedule: Schedule::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),
+            removed_component_events: Default::default(),
             resource_registry: Default::default(),
             resources: Default::default(),
+            events: Default::default(),
             command_queue: Default::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             active_change_tick: None,
             node_cache: Vec::new(),
             derived_state_dirty: Default::default(),
-        }
+        };
+        crate::scene::reflect::register_builtin_reflection(&mut world);
+        world
     }
 
     pub fn new() -> Self {
@@ -70,14 +75,12 @@ impl World {
     pub fn spawn_node(&mut self, kind: NodeKind) -> EntityId {
         let id = self.next_id;
         self.next_id += 1;
+        let default_name = default_name(&kind, self.ordinal_for(kind.clone()));
         self.register_stable_entity(id)
             .expect("spawned scene entity must have a unique stable id");
         self.entities.push(id);
         self.kinds.insert(id, kind.clone());
-        self.names.insert(
-            id,
-            Name(default_name(&kind, self.ordinal_for(kind.clone()))),
-        );
+        self.names.insert(id, Name(default_name));
         self.hierarchy.insert(id, Hierarchy::default());
         self.active_self.insert(id, ActiveSelf::default());
         self.active_in_hierarchy

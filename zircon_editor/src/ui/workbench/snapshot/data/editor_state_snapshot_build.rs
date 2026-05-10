@@ -38,7 +38,7 @@ impl EditorState {
                         ),
                     });
                 let scene_entries = scene
-                    .nodes()
+                    .node_records()
                     .iter()
                     .map(|node| SceneEntry {
                         id: node.id,

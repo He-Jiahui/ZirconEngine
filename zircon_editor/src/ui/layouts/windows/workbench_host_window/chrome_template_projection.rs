@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use slint::{Model, ModelRc, SharedString};
+use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use zircon_runtime_interface::ui::layout::UiSize;
 
 use crate::ui::layouts::common::model_rc;
@@ -1177,7 +1177,6 @@ impl SlotFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use slint::Model;
 
     use crate::ui::layouts::windows::workbench_host_window::HostMenuChromeItemData;
 
@@ -1395,6 +1394,25 @@ mod tests {
             dock_close.has_preview_image,
             "dock close controls should render as SVG icon buttons instead of empty inset blocks"
         );
+    }
+
+    #[test]
+    fn status_bar_nodes_project_text_overrides_from_flat_asset() {
+        let nodes = status_bar_nodes(
+            &"Runtime ready".into(),
+            &"2 warnings".into(),
+            &"1920 x 1080".into(),
+            800.0,
+            22.0,
+        );
+
+        assert_eq!(
+            node(&nodes, STATUS_PRIMARY_CONTROL_ID).text,
+            "Runtime ready"
+        );
+        assert_eq!(node(&nodes, STATUS_SECONDARY_CONTROL_ID).text, "2 warnings");
+        assert_eq!(node(&nodes, STATUS_VIEWPORT_CONTROL_ID).text, "1920 x 1080");
+        assert!(node(&nodes, "StatusBarPanel").frame.width > 0.0);
     }
 
     #[test]

@@ -34,13 +34,14 @@ related_code:
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/runtime.rs
@@ -49,7 +50,8 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/ui/workbench.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
   - zircon_editor/src/tests/host/binding_dispatch.rs
   - zircon_editor/src/tests/editing/viewport.rs
 implementation_files:
@@ -84,13 +86,14 @@ implementation_files:
   - zircon_editor/src/ui/binding/mod.rs
   - zircon_editor/src/core/editing/state/mod.rs
   - zircon_editor/src/scene/viewport/mod.rs
+  - zircon_editor/src/scene/viewport/edit_mode_projection/build.rs
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
   - zircon_editor/src/scene/viewport/projection.rs
-  - zircon_editor/src/ui/slint_host/app.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
-  - zircon_editor/src/ui/slint_host/viewport/mod.rs
+  - zircon_editor/src/ui/retained_host/app.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
+  - zircon_editor/src/ui/retained_host/viewport/mod.rs
   - zircon_editor/src/ui/binding_dispatch/mod.rs
   - zircon_editor/src/core/editor_event/types.rs
   - zircon_editor/src/core/editor_event/runtime.rs
@@ -99,7 +102,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/assets/viewport_gizmos/camera.pbm
   - zircon_editor/assets/viewport_gizmos/directional_light.pbm
-  - zircon_editor/ui/workbench.slint
+  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml
 plan_sources:
   - user: 2026-04-15 Scene Viewport Gizmos/Handle/Overlay 规范化方案
   - user: 2026-04-15 Section 1-4 最终规格与 proposed_plan 收束
@@ -111,12 +115,12 @@ tests:
   - zircon_graphics/src/tests/scene_overlay.rs
   - zircon_editor/src/tests/ui/binding/viewport.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
-  - zircon_editor/src/tests/host/slint_builtin_assets.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport/pointer_bridge.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/viewport/typed_command.rs
+  - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/pointer_bridge.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/viewport/typed_command.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/tests/editing/viewport.rs
-  - zircon_editor/src/ui/slint_host/ui.rs
+  - zircon_editor/src/ui/retained_host/ui.rs
   - cargo test -p zircon_scene --test viewport_packet -- --nocapture
   - cargo test -p zircon_graphics project_render -- --nocapture
   - cargo test -p zircon_graphics --lib -- --nocapture
@@ -124,7 +128,7 @@ tests:
   - cargo test -p zircon_editor --lib --locked
   - cargo test -p zircon_editor --lib viewport_ --offline -- --nocapture
   - cargo check -p zircon_editor --lib --offline
-  - cargo test -p zircon_editor --lib slint_builtin_assets -- --nocapture
+  - cargo test -p zircon_editor --lib material_meta_components_cover_retained_material_exports -- --nocapture
   - cargo test -p zircon_editor --lib editing::state -- --nocapture
   - cargo test -p zircon_editor --lib scene_document_pane_projects_viewport_toolbar_state -- --nocapture
   - cargo test -p zircon_editor --lib typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge -- --nocapture
@@ -154,6 +158,7 @@ doc_type: module-detail
 - `zircon_framework/src/render/camera.rs`
 - `zircon_scene/src/world/render.rs`
 - `zircon_editor/src/scene/viewport/render_packet.rs`
+- `zircon_editor/src/scene/viewport/edit_mode_projection/build.rs`
 - `zircon_graphics/src/scene/resources/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/core/mod.rs`
 - `zircon_graphics/src/scene/scene_renderer/mesh/mod.rs`
@@ -174,7 +179,7 @@ doc_type: module-detail
 - `zircon_editor/src/ui/binding_dispatch/mod.rs`
 - `zircon_editor/src/core/editor_event/runtime.rs`
 - `zircon_editor/src/ui/workbench/reflection/mod.rs`
-- `zircon_editor/src/ui/slint_host/viewport/mod.rs`
+- `zircon_editor/src/ui/retained_host/viewport/mod.rs`
 
 ## Behavior Model
 
@@ -375,7 +380,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 - `zircon_editor/build.rs` 生成 `viewport_gizmo_icon_manifest.rs`
 - `zircon_editor/src/builtin_assets.rs` 把 `ViewportIconId -> &'static [u8]` 固化成 typed source
-- `SlintViewportController` 在 attach renderer 时把 editor builtin source 注入 shared texture render service
+- `RetainedViewportController` 通过 resolved render framework 消费 editor viewport extract，scene gizmo icon identity 继续由 `ViewportIconId` 随 packet 交给 runtime graphics
 - `zircon_runtime::graphics` 的 `SceneGizmoPass` 通过 crate-private `ViewportIconSource` + `ViewportIconAtlas` 懒加载纹理 icon
 
 如果 icon source 缺失，graphics 仍会回退到线框 glyph，不会让 gizmo 图标完全消失；但 Scene editor 正常路径现在已经会优先走 editor builtin 资源，而不是继续把 Camera/Light 图标硬编码在 renderer 里。
@@ -395,13 +400,15 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 `EditorEventRuntime` 的 viewport 事件分支也已经改成同一条命令流，避免 UI 绑定和 runtime replay 走两套状态机。
 
+Scene edit-mode hierarchy and stats projection reads `World::node_records()` so immediate editor mutations are visible before the runtime schedule refreshes `World::nodes()`. The scheduled cache remains valid for runtime frame boundaries; authoring chrome uses current projected node records because toolbar, hierarchy, and inspector feedback must reflect same-frame create/import/undo/redo changes.
+
 ### Workbench Projection
 
 这轮把 Scene viewport 的 shell 投影也补到了真正可用状态，而不再停留在“只有 typed payload，没有真实 chrome”的中间态：
 
 - `EditorDataSnapshot` / `EditorChromeSnapshot` 直接携带 `SceneViewportSettings`
-- `slint_host/ui.rs` 把它映射成 `PaneData.viewport: SceneViewportChromeData`
-- `workbench.slint` 在 `Scene` pane 内渲染独立 `SceneViewportToolbar`
+- `retained_host/ui.rs` 把它映射成 `PaneData.viewport: SceneViewportChromeData`
+- `scene_viewport_toolbar.ui.toml` 在 `Scene` pane 内声明独立 `SceneViewportToolbar` chrome
 
 当前 Scene-only toolbar 固定分成两组：
 
@@ -410,16 +417,16 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 
 `Game` pane 明确不吃这组 editor-only chrome，只继续显示 viewport 内容本身，避免把 Scene 的编辑控件扩散到非作用域页面。
 
-### Slint Host Callback Path
+### Retained Host Callback Path
 
-`slint_host/app.rs` 现在不再只接 pointer 类 viewport 回调，还会把 Scene toolbar/right-top 的 callback 参数解析成 typed `ViewportCommand`，再统一走：
+`retained_host/app.rs` 现在不再只接 pointer 类 viewport 回调，还会把 Scene toolbar/right-top 的 callback 参数解析成 typed `ViewportCommand`，再统一走：
 
 1. `callback_dispatch::dispatch_viewport_command(...)`
 2. `EditorEventRuntime`
 3. `EditorState::apply_viewport_command(...)`
 4. `SceneViewportController`
 
-这样 Scene toolbar、right-top 方向控件、headless binding 测试和 runtime replay 共享同一套 typed command 语义，不需要再引入一套 Slint-only 字符串命令解释器。
+这样 Scene toolbar、right-top 方向控件、headless binding 测试和 runtime replay 共享同一套 typed command 语义，不需要再引入一套 host-only 字符串命令解释器。
 
 ### Packet Build Path
 
@@ -430,9 +437,9 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 3. 调用 `World::build_viewport_render_packet(...)` 取得基础 scene packet
 4. 在 editor 层补齐 selection / grid / scene gizmo / handle overlay
 
-### Slint Viewport Render Attachment
+### Retained Viewport Render Attachment
 
-当前 `zircon_editor/src/ui/slint_host/viewport/**` 只负责消费 render framework 输出并导入 frame image；Scene viewport 的 gizmo overlay 只通过 render packet 里的 `ViewportIconId` 进入 graphics。真正的 icon bytes source 仍是 graphics 内部 seam，而不是 editor 对外可调用的 `BuiltinViewportIconSource` 注入 API；当没有绑定 icon source 时，renderer 会继续回退到线框 glyph。
+当前 `zircon_editor/src/ui/retained_host/viewport/**` 只负责消费 render framework 输出并导入 frame image；Scene viewport 的 gizmo overlay 只通过 render packet 里的 `ViewportIconId` 进入 graphics。真正的 icon bytes source 仍是 graphics 内部 seam，而不是 editor 对外可调用的 `BuiltinViewportIconSource` 注入 API；当没有绑定 icon source 时，renderer 会继续回退到线框 glyph。
 
 ### Graphics Pass Expectations
 
@@ -463,7 +470,7 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
 - `preview_skybox = true` 且场景无 sky 时，graphics 必须稳定回退到 procedural sky。
 - `preview_lighting = true` 且场景无灯时，renderer 必须回退到 preview key light，避免全黑。
 - 当前 handle drag 仍按当前 editor 场景切片的 root-space transform 工作；更复杂的 parented/world-space 精细变换仍可继续增强。
-- 当前 UI 层已经具备 typed viewport command 协议和 reflection action id，但更完整的 Scene toolbar/right-top shell 组合仍可以继续在 Slint 视图上做视觉和交互投影收尾。
+- 当前 UI 层已经具备 typed viewport command 协议和 reflection action id，但更完整的 Scene toolbar/right-top shell 组合仍可以继续在 retained-host `.ui.toml` 视图上做视觉和交互投影收尾。
 
 ## Test Coverage
 
@@ -504,11 +511,11 @@ viewport scene gizmo icon 现在有了独立的 builtin icon source 管线：
   - `Drag` 模式点击 renderable 仍然会提交 selection
   - scene gizmo 点击会选中 non-renderable directional light
   - pointer-driven handle drag 会折叠成单条 undo/redo 命令
-- `zircon_editor/src/tests/host/slint_callback_dispatch/mod.rs`
+- `zircon_editor/src/tests/host/retained_callback_dispatch/mod.rs`
   - typed `ViewportCommand` 不经过 pointer bridge 也能更新 render packet
-- `zircon_editor/src/tests/host/slint_builtin_assets.rs`
+- `zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs`
   - viewport gizmo builtin icon manifest 同时暴露 camera / directional light 两种 icon bytes
-- `zircon_editor/src/ui/slint_host/ui.rs`
+- `zircon_editor/src/ui/retained_host/ui.rs`
   - Scene document pane 会投影 viewport toolbar/right-top 状态到 `PaneData.viewport`
 
 最新验证证据：

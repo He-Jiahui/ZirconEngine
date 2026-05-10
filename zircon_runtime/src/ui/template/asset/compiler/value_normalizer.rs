@@ -2,12 +2,26 @@ use std::collections::BTreeMap;
 
 use toml::{map::Map, Value};
 
-use zircon_runtime_interface::ui::template::UiNodeDefinition;
+use zircon_runtime_interface::ui::template::{UiNodeDefinition, UiNodePrototype};
 
 const MAX_TOKEN_RESOLUTION_DEPTH: usize = 32;
 
 pub(super) fn build_attribute_map(
     node: &UiNodeDefinition,
+    tokens: &BTreeMap<String, Value>,
+    params: &BTreeMap<String, Value>,
+) -> BTreeMap<String, Value> {
+    let mut attributes = resolve_value_map(&node.props, tokens, params);
+    if let Some(layout) = &node.layout {
+        let mut layout = resolve_value_map(layout, tokens, params);
+        normalize_layout_table(&mut layout);
+        let _ = attributes.insert("layout".to_string(), table_value(layout));
+    }
+    attributes
+}
+
+pub(super) fn build_prototype_attribute_map(
+    node: &UiNodePrototype,
     tokens: &BTreeMap<String, Value>,
     params: &BTreeMap<String, Value>,
 ) -> BTreeMap<String, Value> {

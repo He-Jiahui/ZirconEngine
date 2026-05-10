@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use crate::core::math::{Transform, Vec3};
 
+use crate::scene::components::Name;
 use crate::scene::{world::World, NodeKind, SystemStage};
 
 use super::support::{material_handle, model_handle};
@@ -39,6 +40,18 @@ fn spawned_entities_have_unique_ids() {
     let first = world.spawn_node(NodeKind::Cube);
     let second = world.spawn_node(NodeKind::Cube);
     assert_ne!(first, second);
+}
+
+#[test]
+fn spawn_node_assigns_one_based_kind_ordinals() {
+    let mut world = World::empty();
+    let first_mesh = world.spawn_node(NodeKind::Mesh);
+    let second_mesh = world.spawn_node(NodeKind::Mesh);
+    let first_cube = world.spawn_node(NodeKind::Cube);
+
+    assert_eq!(world.get::<Name>(first_mesh).unwrap().0, "Mesh 1");
+    assert_eq!(world.get::<Name>(second_mesh).unwrap().0, "Mesh 2");
+    assert_eq!(world.get::<Name>(first_cube).unwrap().0, "Cube 1");
 }
 
 #[test]

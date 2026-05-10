@@ -1,5 +1,4 @@
 use crate::ui::layouts::views::animation_editor_pane_nodes;
-use slint::Model;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::layout::UiSize;
 

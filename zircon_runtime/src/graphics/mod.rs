@@ -1,6 +1,7 @@
 //! Core rendering, scene rasterization, and host-agnostic GPU services.
 
 pub(crate) mod backend;
+pub(crate) mod debug_markers;
 pub(crate) mod extract;
 pub(crate) mod feature;
 pub mod hybrid_gi_extract_sources;

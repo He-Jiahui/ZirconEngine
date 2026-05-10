@@ -2,10 +2,10 @@ use std::fs;
 use std::path::Path;
 
 use zircon_runtime_interface::ui::template::{
-    UiAssetDocument, UiAssetError, UiAssetMigrationOutcome,
+    UiAssetDocument, UiAssetError, UiAssetMigrationOutcome, UiRawAssetPrototype,
 };
 
-use super::schema::UiAssetSchemaMigrator;
+use super::schema::{load_flat_prototype_toml_str, UiAssetSchemaMigrator};
 
 #[derive(Default)]
 pub struct UiAssetLoader;
@@ -13,6 +13,10 @@ pub struct UiAssetLoader;
 impl UiAssetLoader {
     pub fn load_toml_str(input: &str) -> Result<UiAssetDocument, UiAssetError> {
         Ok(Self::load_toml_str_with_migration_report(input)?.document)
+    }
+
+    pub fn load_flat_prototype_toml_str(input: &str) -> Result<UiRawAssetPrototype, UiAssetError> {
+        load_flat_prototype_toml_str(input)
     }
 
     pub fn load_toml_str_with_migration_report(
@@ -25,6 +29,14 @@ impl UiAssetLoader {
         let input =
             fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
         Self::load_toml_str(&input)
+    }
+
+    pub fn load_flat_prototype_toml_file(
+        path: impl AsRef<Path>,
+    ) -> Result<UiRawAssetPrototype, UiAssetError> {
+        let input =
+            fs::read_to_string(path).map_err(|error| UiAssetError::Io(error.to_string()))?;
+        Self::load_flat_prototype_toml_str(&input)
     }
 
     pub fn load_toml_file_with_migration_report(

@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
-    DisplayMode, RenderExtractContext, RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle,
-    SceneViewportExtractRequest, ViewportRenderSettings,
+    DisplayMode, RenderExtractContext, RenderMaterialAlphaMode, RenderPhase,
+    RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
 use crate::core::CoreRuntime;
@@ -10,12 +11,17 @@ use crate::plugin::{
     RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
     SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
 };
-use crate::scene::components::Mobility;
+use crate::scene::components::{MeshRenderer, Mobility};
 use crate::scene::ecs::{
-    EventStore, Events, InternalSceneSystem, ResourceStore, SceneSystemDescriptor, Schedule,
-    SystemStage,
+    CommandsParam, Component, EventStore, Events, InternalSceneSystem, ResourceStore,
+    SceneSystemDescriptor, Schedule, SystemStage, SystemState,
 };
 use crate::scene::{create_default_level, module_descriptor, NodeKind, SCENE_MODULE_NAME};
+
+#[derive(Debug, PartialEq, Eq)]
+struct DeferredMarker;
+
+impl Component for DeferredMarker {}
 
 #[test]
 fn resource_store_keeps_resources_by_concrete_type() {
@@ -56,6 +62,22 @@ fn typed_events_publish_on_update_and_keep_next_frame_events_separate() {
     assert_eq!(events.drain(), vec![7]);
     events.update();
     assert_eq!(events.drain(), vec![9]);
+}
+
+#[test]
+fn apply_deferred_internal_system_flushes_queued_commands() {
+    let mut world = crate::scene::World::empty();
+    let entity = world.spawn_node(NodeKind::Mesh);
+    let mut system = SystemState::<CommandsParam>::new(&mut world).unwrap();
+
+    system.run(&mut world, |mut commands| {
+        commands.entity(entity).insert((DeferredMarker,));
+    });
+
+    assert!(world.get::<DeferredMarker>(entity).is_none());
+    world.run_internal_scene_system(InternalSceneSystem::ApplyDeferred);
+
+    assert_eq!(world.get::<DeferredMarker>(entity), Some(&DeferredMarker));
 }
 
 #[test]
@@ -311,6 +333,67 @@ fn canonical_render_frame_extract_populates_scene_sections_directly() {
         .iter()
         .any(|entity| *entity == mesh));
     assert!(!world.has_pending_scene_systems());
+}
+
+#[test]
+fn prepared_render_frame_extract_queues_meshes_from_mesh_renderer_alpha_hints() {
+    let mut world = crate::scene::World::new();
+    let alpha_mask_mesh = world.spawn_node(NodeKind::Mesh);
+    let transparent_mesh = world.spawn_node(NodeKind::Mesh);
+    world
+        .get_mut::<MeshRenderer>(alpha_mask_mesh)
+        .unwrap()
+        .material_alpha_mode = RenderMaterialAlphaMode::Mask { cutoff: 0.37 };
+    world
+        .get_mut::<MeshRenderer>(transparent_mesh)
+        .unwrap()
+        .material_alpha_mode = RenderMaterialAlphaMode::Blend;
+    world
+        .update_transform(
+            transparent_mesh,
+            Transform::from_translation(Vec3::new(0.0, 0.0, 9.0)),
+        )
+        .unwrap();
+    let context = RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(56),
+        SceneViewportExtractRequest::default(),
+    );
+
+    let extract = world.build_prepared_render_frame_extract(&context);
+    let alpha_mask_index = extract
+        .geometry
+        .meshes
+        .iter()
+        .position(|mesh| mesh.node_id == alpha_mask_mesh)
+        .expect("alpha-mask mesh should be extracted");
+    let transparent_index = extract
+        .geometry
+        .meshes
+        .iter()
+        .position(|mesh| mesh.node_id == transparent_mesh)
+        .expect("transparent mesh should be extracted");
+
+    assert!(extract.geometry.phase_inputs.iter().any(|input| {
+        input.entity == alpha_mask_mesh
+            && input.mesh_index == alpha_mask_index
+            && input.material_alpha_mode == RenderMaterialAlphaMode::Mask { cutoff: 0.37 }
+    }));
+    assert!(extract.geometry.phase_inputs.iter().any(|input| {
+        input.entity == transparent_mesh
+            && input.mesh_index == transparent_index
+            && input.material_alpha_mode == RenderMaterialAlphaMode::Blend
+            && input.depth == 9.0
+    }));
+    assert!(extract
+        .geometry
+        .phase_queue
+        .items_for_phase(RenderPhase::AlphaMask3d)
+        .any(|item| item.entity == alpha_mask_mesh));
+    assert!(extract
+        .geometry
+        .phase_queue
+        .items_for_phase(RenderPhase::Transparent3d)
+        .any(|item| item.entity == transparent_mesh));
 }
 
 #[test]

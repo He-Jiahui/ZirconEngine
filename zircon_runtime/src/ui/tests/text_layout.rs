@@ -34,6 +34,7 @@ wrap = "word"
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
 
@@ -80,6 +81,7 @@ wrap = "glyph"
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
     surface
@@ -124,6 +126,7 @@ rich_text = true
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
 
@@ -168,6 +171,7 @@ wrap = "none"
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
 
@@ -228,6 +232,7 @@ wrap = "none"
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
 
@@ -313,6 +318,7 @@ read_only = true
                 style_overrides: Default::default(),
                 style_tokens: Default::default(),
                 bindings: Vec::new(),
+                ..Default::default()
             }),
     );
 

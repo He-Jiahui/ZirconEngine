@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::ui::accessibility::UiAccessibilityActionRequest;
 use crate::ui::component::UiDragPayload;
 use crate::ui::dispatch::UiPointerEvent;
 use crate::ui::layout::UiPoint;
@@ -18,6 +19,7 @@ pub enum UiInputEvent {
     DragDrop(UiDragDropInputEvent),
     Popup(UiPopupInputEvent),
     TooltipTimer(UiTooltipTimerInputEvent),
+    Accessibility(UiAccessibilityInputEvent),
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -179,4 +181,10 @@ pub struct UiTooltipTimerInputEvent {
     pub metadata: UiInputEventMetadata,
     pub kind: UiTooltipTimerInputEventKind,
     pub tooltip_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct UiAccessibilityInputEvent {
+    pub metadata: UiInputEventMetadata,
+    pub request: UiAccessibilityActionRequest,
 }

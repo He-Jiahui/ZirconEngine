@@ -39,6 +39,8 @@ fn shader_asset(uri: &str) -> ShaderAsset {
             name: "fs_main".to_string(),
             stage: "fragment".to_string(),
         }],
+        dependencies: Vec::new(),
+        pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     }
 }

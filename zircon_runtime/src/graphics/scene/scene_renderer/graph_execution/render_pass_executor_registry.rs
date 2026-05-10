@@ -128,6 +128,7 @@ const BUILTIN_NOOP_EXECUTOR_IDS: &[&str] = &[
     "lighting.deferred",
     "lighting.reflection-probes",
     "mesh.depth-prepass",
+    "mesh.alpha-mask",
     "mesh.opaque",
     "mesh.transparent",
     "overlay.gizmo",

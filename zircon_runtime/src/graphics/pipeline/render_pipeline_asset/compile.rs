@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::core::framework::render::RenderFrameExtract;
+use crate::core::framework::render::{RenderFrameExtract, RenderPhase};
 use crate::render_graph::RenderGraphBuilder;
 use crate::rhi::{BufferDesc, BufferUsage, TextureDesc, TextureFormat, TextureUsage};
 
@@ -25,8 +25,9 @@ impl RenderPipelineAsset {
         extract: &RenderFrameExtract,
         options: &RenderPipelineCompileOptions,
     ) -> Result<CompiledRenderPipeline, String> {
-        let _ = extract;
+        validate_core_pipeline_matches_extract(self, extract)?;
         validate_renderer_asset(&self.renderer)?;
+        validate_renderer_stage_phase_mapping(self)?;
         let asset_descriptors = self
             .renderer
             .features
@@ -222,6 +223,58 @@ impl RenderPipelineAsset {
             history_bindings,
             graph: graph.compile().map_err(|error| error.to_string())?,
         })
+    }
+}
+
+fn validate_core_pipeline_matches_extract(
+    pipeline: &RenderPipelineAsset,
+    extract: &RenderFrameExtract,
+) -> Result<(), String> {
+    if pipeline.core_pipeline != extract.view.core_pipeline {
+        return Err(format!(
+            "core pipeline mismatch: pipeline `{}` declares {:?} but extract requires {:?}",
+            pipeline.name, pipeline.core_pipeline, extract.view.core_pipeline
+        ));
+    }
+
+    Ok(())
+}
+
+fn validate_renderer_stage_phase_mapping(pipeline: &RenderPipelineAsset) -> Result<(), String> {
+    for stage in &pipeline.renderer.stages {
+        let Some(phase) = render_phase_for_stage(*stage) else {
+            continue;
+        };
+        if !pipeline.phase_mapping.contains(&phase) {
+            return Err(format!(
+                "renderer `{}` declares stage `{:?}` but pipeline `{}` phase mapping is missing product phase `{:?}`",
+                pipeline.renderer.name, stage, pipeline.name, phase
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+fn render_phase_for_stage(stage: RenderPassStage) -> Option<RenderPhase> {
+    match stage {
+        RenderPassStage::DepthPrepass => Some(RenderPhase::Prepass),
+        RenderPassStage::Shadow => Some(RenderPhase::Shadow),
+        RenderPassStage::Deferred => Some(RenderPhase::Deferred),
+        RenderPassStage::Opaque2d => Some(RenderPhase::Opaque2d),
+        RenderPassStage::AlphaMask2d => Some(RenderPhase::AlphaMask2d),
+        RenderPassStage::Transparent2d => Some(RenderPhase::Transparent2d),
+        RenderPassStage::Opaque3d => Some(RenderPhase::Opaque3d),
+        RenderPassStage::AlphaMask3d => Some(RenderPhase::AlphaMask3d),
+        RenderPassStage::Transparent3d => Some(RenderPhase::Transparent3d),
+        RenderPassStage::PostProcess => Some(RenderPhase::PostProcess),
+        RenderPassStage::Ui => Some(RenderPhase::Ui),
+        RenderPassStage::Overlay => Some(RenderPhase::Overlay),
+        RenderPassStage::Debug => Some(RenderPhase::Debug),
+        RenderPassStage::AmbientOcclusion
+        | RenderPassStage::Lighting
+        | RenderPassStage::Opaque
+        | RenderPassStage::Transparent => None,
     }
 }
 
@@ -453,9 +506,17 @@ mod tests {
         let pipeline = RenderPipelineAsset {
             handle: RenderPipelineHandle::new(77),
             name: "stage-test".to_string(),
+            core_pipeline: crate::core::framework::render::CorePipelineKind::Core3d,
+            phase_mapping: vec![
+                crate::core::framework::render::RenderPhase::Prepass,
+                crate::core::framework::render::RenderPhase::Transparent3d,
+            ],
             renderer: RendererAsset {
                 name: "stage-test-renderer".to_string(),
-                stages: vec![RenderPassStage::DepthPrepass, RenderPassStage::Transparent],
+                stages: vec![
+                    RenderPassStage::DepthPrepass,
+                    RenderPassStage::Transparent3d,
+                ],
                 features: vec![crate::graphics::pipeline::RendererFeatureAsset::plugin(
                     RenderFeatureDescriptor::new(
                         "stage-test-feature",
@@ -463,7 +524,7 @@ mod tests {
                         Vec::new(),
                         vec![
                             RenderFeaturePassDescriptor::new(
-                                RenderPassStage::Transparent,
+                                RenderPassStage::Transparent3d,
                                 "particle-render",
                                 QueueLane::Graphics,
                             )
@@ -488,7 +549,7 @@ mod tests {
         );
         assert_eq!(
             compiled.pass_stage("particle-render"),
-            Some(RenderPassStage::Transparent)
+            Some(RenderPassStage::Transparent3d)
         );
         assert_eq!(compiled.pass_stage("missing-pass"), None);
         assert_eq!(compiled.pass_stages.len(), compiled.graph.passes().len());

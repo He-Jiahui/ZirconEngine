@@ -52,6 +52,10 @@ impl<T> Res<'_, T> {
     pub fn is_changed(&self) -> bool {
         self.ticks.is_changed(self.window)
     }
+
+    pub fn last_changed(&self) -> crate::scene::ecs::ChangeTick {
+        self.ticks.changed()
+    }
 }
 
 impl<T> ResMut<'_, T> {
@@ -61,6 +65,10 @@ impl<T> ResMut<'_, T> {
 
     pub fn is_changed(&self) -> bool {
         self.ticks.is_changed(self.window)
+    }
+
+    pub fn last_changed(&self) -> crate::scene::ecs::ChangeTick {
+        self.ticks.changed()
     }
 }
 
@@ -77,6 +85,11 @@ where
     ) -> Result<Self::State, SystemParamError> {
         let resource_id = world.resource_id::<T>();
         access.add_resource_read(resource_id)?;
+        if world.get_resource::<T>().is_none() {
+            return Err(SystemParamError::MissingResource {
+                type_name: std::any::type_name::<T>(),
+            });
+        }
         Ok(())
     }
 
@@ -111,6 +124,11 @@ where
     ) -> Result<Self::State, SystemParamError> {
         let resource_id = world.resource_id::<T>();
         access.add_resource_write(resource_id)?;
+        if world.get_resource::<T>().is_none() {
+            return Err(SystemParamError::MissingResource {
+                type_name: std::any::type_name::<T>(),
+            });
+        }
         Ok(())
     }
 
@@ -128,5 +146,68 @@ where
             ticks: resource_ticks,
             window: ticks,
         }
+    }
+}
+
+impl<T> SystemParam for Option<ResParam<T>>
+where
+    T: Resource,
+{
+    type State = ();
+    type Item<'world> = Option<Res<'world, T>>;
+
+    fn init_state(
+        world: &mut World,
+        access: &mut SystemParamAccess,
+    ) -> Result<Self::State, SystemParamError> {
+        let resource_id = world.resource_id::<T>();
+        access.add_resource_read(resource_id)?;
+        Ok(())
+    }
+
+    unsafe fn get_param<'world>(
+        world: *mut World,
+        _state: &'world mut Self::State,
+        ticks: ChangeTickWindow,
+    ) -> Self::Item<'world> {
+        let world = &*world;
+        let value = world.get_resource::<T>()?;
+        let resource_ticks = world.resource_change_ticks::<T>()?;
+        Some(Res {
+            value,
+            ticks: resource_ticks,
+            window: ticks,
+        })
+    }
+}
+
+impl<T> SystemParam for Option<ResMutParam<T>>
+where
+    T: Resource,
+{
+    type State = ();
+    type Item<'world> = Option<ResMut<'world, T>>;
+
+    fn init_state(
+        world: &mut World,
+        access: &mut SystemParamAccess,
+    ) -> Result<Self::State, SystemParamError> {
+        let resource_id = world.resource_id::<T>();
+        access.add_resource_write(resource_id)?;
+        Ok(())
+    }
+
+    unsafe fn get_param<'world>(
+        world: *mut World,
+        _state: &'world mut Self::State,
+        ticks: ChangeTickWindow,
+    ) -> Self::Item<'world> {
+        let world = &mut *world;
+        let (value, resource_ticks) = world.resource_mut_with_ticks::<T>()?;
+        Some(ResMut {
+            value,
+            ticks: resource_ticks,
+            window: ticks,
+        })
     }
 }

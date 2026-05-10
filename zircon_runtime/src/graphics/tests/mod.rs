@@ -4,6 +4,8 @@ mod m5_flagship_slots;
 mod pipeline_compile;
 mod plugin_render_feature_fixtures;
 mod project_render;
+mod render_debugger_and_history;
 mod render_framework_bridge;
+mod render_product_submit;
 mod scene_overlay;
 mod visibility;

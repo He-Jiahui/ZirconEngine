@@ -1,5 +1,9 @@
 use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::OffscreenTarget;
+use crate::graphics::debug_markers::{
+    insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT, RENDERDOC_MARKER_HISTORY_COPY,
+    RENDERDOC_MARKER_OVERLAY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_UI,
+};
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
 use crate::graphics::scene::scene_renderer::graph_execution::{
@@ -21,6 +25,24 @@ use super::execute_graph_stage::{
 };
 use super::partition_mesh_draws::partition_mesh_draws;
 use super::prepare_overlay_buffers::prepare_overlay_buffers;
+
+const EARLY_GRAPH_STAGES: &[RenderPassStage] = &[
+    RenderPassStage::DepthPrepass,
+    RenderPassStage::Shadow,
+    RenderPassStage::Deferred,
+    RenderPassStage::AmbientOcclusion,
+    RenderPassStage::Lighting,
+    RenderPassStage::Opaque2d,
+    RenderPassStage::AlphaMask2d,
+    RenderPassStage::Transparent2d,
+    RenderPassStage::Opaque3d,
+];
+
+const LATE_GRAPH_STAGES: &[RenderPassStage] = &[
+    RenderPassStage::Ui,
+    RenderPassStage::Overlay,
+    RenderPassStage::Debug,
+];
 
 impl SceneRendererCore {
     #[allow(clippy::too_many_arguments)]
@@ -44,6 +66,7 @@ impl SceneRendererCore {
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("zircon-compiled-scene-encoder"),
         });
+        insert_marker(&mut encoder, RENDERDOC_MARKER_FRAME_EXTRACT);
         let mut compiled_scene_draws = build_compiled_scene_draws(
             &self.advanced_plugin_resources,
             device,
@@ -83,18 +106,11 @@ impl SceneRendererCore {
             &mut graph_execution_record,
             &mut graph_plugin_outputs,
         );
-        for stage in [
-            RenderPassStage::DepthPrepass,
-            RenderPassStage::Shadow,
-            RenderPassStage::GBuffer,
-            RenderPassStage::AmbientOcclusion,
-            RenderPassStage::Lighting,
-            RenderPassStage::Opaque,
-        ] {
+        for stage in EARLY_GRAPH_STAGES {
             execute_graph_stage(
                 pipeline,
                 render_pass_executors,
-                stage,
+                *stage,
                 device,
                 queue,
                 &mut encoder,
@@ -118,6 +134,7 @@ impl SceneRendererCore {
             &opaque_mesh_draws,
             &transparent_mesh_draws,
         )?;
+        insert_marker(&mut encoder, RENDERDOC_MARKER_POST_PROCESS);
         execute_graph_stage(
             pipeline,
             render_pass_executors,
@@ -140,18 +157,28 @@ impl SceneRendererCore {
             history_textures.as_deref(),
             history_available,
         );
+        let history_copy_required = history_textures.is_some()
+            && (runtime_features.history_resolve_enabled
+                || runtime_features.hybrid_global_illumination_enabled
+                || runtime_features.ssao_enabled);
+        if history_copy_required {
+            insert_marker(&mut encoder, RENDERDOC_MARKER_HISTORY_COPY);
+        }
         self.copy_history_textures(&mut encoder, target, history_textures, runtime_features);
-        execute_graph_stage(
-            pipeline,
-            render_pass_executors,
-            RenderPassStage::Overlay,
-            device,
-            queue,
-            &mut encoder,
-            frame,
-            &self.scene_bind_group,
-            &mut graph_execution,
-        )?;
+        for stage in LATE_GRAPH_STAGES {
+            execute_graph_stage(
+                pipeline,
+                render_pass_executors,
+                *stage,
+                device,
+                queue,
+                &mut encoder,
+                frame,
+                &self.scene_bind_group,
+                &mut graph_execution,
+            )?;
+        }
+        insert_marker(&mut encoder, RENDERDOC_MARKER_OVERLAY);
         self.overlay_renderer.record_overlays(
             &mut encoder,
             &target.final_color_view,
@@ -160,6 +187,7 @@ impl SceneRendererCore {
             frame,
             &prepared_overlays,
         );
+        insert_marker(&mut encoder, RENDERDOC_MARKER_UI);
         self.screen_space_ui_renderer.record(
             device,
             queue,
@@ -176,5 +204,25 @@ impl SceneRendererCore {
             SceneRendererAdvancedPluginReadbacks::from_outputs(renderer_outputs),
             graph_execution_record,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{EARLY_GRAPH_STAGES, LATE_GRAPH_STAGES};
+    use crate::graphics::pipeline::RenderPassStage;
+
+    #[test]
+    fn compiled_scene_graph_stage_lists_cover_core2d_product_stages() {
+        assert!(EARLY_GRAPH_STAGES.contains(&RenderPassStage::Transparent2d));
+        assert!(!EARLY_GRAPH_STAGES.contains(&RenderPassStage::AlphaMask3d));
+        assert_eq!(
+            LATE_GRAPH_STAGES,
+            &[
+                RenderPassStage::Ui,
+                RenderPassStage::Overlay,
+                RenderPassStage::Debug,
+            ]
+        );
     }
 }

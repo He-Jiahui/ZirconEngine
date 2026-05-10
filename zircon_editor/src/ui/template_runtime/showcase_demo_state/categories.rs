@@ -1,6 +1,6 @@
 use toml::Value as TomlValue;
 
-use super::super::host_nodes::SlintUiHostNodeProjection;
+use super::super::host_nodes::RetainedUiHostNodeProjection;
 
 const CATEGORY_ALL: &str = "All";
 const CATEGORY_VISUAL: &str = "Visual";
@@ -12,7 +12,7 @@ const CATEGORY_COLLECTIONS: &str = "Collections";
 const CATEGORY_FEEDBACK: &str = "Feedback";
 
 pub(super) fn project_selected_category_state(
-    nodes: &mut [SlintUiHostNodeProjection],
+    nodes: &mut [RetainedUiHostNodeProjection],
     selected_category: &str,
 ) {
     for node in nodes {
@@ -33,7 +33,7 @@ pub(super) fn project_selected_category_state(
 }
 
 pub(super) fn should_keep_for_selected_category(
-    node: &SlintUiHostNodeProjection,
+    node: &RetainedUiHostNodeProjection,
     selected_category: &str,
 ) -> bool {
     let Some(control_id) = node.control_id.as_deref() else {

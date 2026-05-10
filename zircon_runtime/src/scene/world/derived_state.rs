@@ -21,10 +21,15 @@ impl World {
     }
 
     pub(crate) fn run_internal_scene_system(&mut self, system: InternalSceneSystem) {
+        if system == InternalSceneSystem::ApplyDeferred {
+            self.apply_deferred();
+            return;
+        }
         if !self.derived_state_dirty.should_run(system) {
             return;
         }
         match system {
+            InternalSceneSystem::ApplyDeferred => unreachable!("ApplyDeferred is handled above"),
             InternalSceneSystem::HierarchyValidity => self.rebuild_hierarchy_validity(),
             InternalSceneSystem::ActiveHierarchy => self.rebuild_active_in_hierarchy(),
             InternalSceneSystem::WorldTransform => self.rebuild_world_matrices(),

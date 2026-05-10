@@ -1,0 +1,53 @@
+pub(super) use crate::core::editor_event::{EditorEvent, LayoutCommand, MainPageId, MenuAction};
+pub(super) use crate::core::editor_extension::EditorExtensionRegistry;
+pub(super) use crate::core::editor_operation::{EditorOperationDescriptor, EditorOperationPath};
+pub(super) use crate::tests::editor_event::support::{env_lock, EventRuntimeHarness};
+pub(super) use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventKind};
+pub(super) use crate::ui::retained_host::callback_dispatch::{
+    dispatch_menu_action, dispatch_shared_menu_pointer_click, BuiltinHostRootShellFrames,
+    BuiltinHostWindowTemplateBridge,
+};
+pub(super) use crate::ui::retained_host::menu_pointer::{
+    build_host_menu_pointer_layout, HostMenuPointerBridge, HostMenuPointerLayout,
+    HostMenuPointerRoute, HostMenuPointerState, MenuItemSpec,
+};
+pub(super) use crate::ui::workbench::model::{
+    MenuBarModel, MenuItemModel, MenuModel, WorkbenchViewModel,
+};
+pub(super) use crate::ui::workbench::window_registry::MenuOverflowMode;
+pub(super) use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint, UiSize};
+
+pub(super) fn default_menu_layout() -> HostMenuPointerLayout {
+    HostMenuPointerLayout {
+        shell_frame: UiFrame::new(0.0, 0.0, 1280.0, 720.0),
+        button_frames: vec![
+            UiFrame::new(8.0, 2.0, 40.0, 22.0),
+            UiFrame::new(50.0, 2.0, 42.0, 22.0),
+            UiFrame::new(94.0, 2.0, 74.0, 22.0),
+            UiFrame::new(170.0, 2.0, 42.0, 22.0),
+            UiFrame::new(214.0, 2.0, 42.0, 22.0),
+            UiFrame::new(258.0, 2.0, 56.0, 22.0),
+            UiFrame::new(316.0, 2.0, 40.0, 22.0),
+        ],
+        menu_bar_content_width: 356.0,
+        save_project_enabled: true,
+        undo_enabled: true,
+        redo_enabled: true,
+        delete_enabled: true,
+        preset_names: vec!["rider".to_string(), "compact".to_string()],
+        active_preset_name: "rider".to_string(),
+        resolved_preset_name: "rider".to_string(),
+        window_popup_height: 132.0,
+        menu_overflow_mode: MenuOverflowMode::Auto,
+        menus: Vec::new(),
+    }
+}
+
+pub(super) fn window_menu_layout(preset_count: usize) -> HostMenuPointerLayout {
+    let mut layout = default_menu_layout();
+    layout.preset_names = (0..preset_count)
+        .map(|index| format!("alpha-{index:02}"))
+        .collect();
+    layout.window_popup_height = 192.0;
+    layout
+}

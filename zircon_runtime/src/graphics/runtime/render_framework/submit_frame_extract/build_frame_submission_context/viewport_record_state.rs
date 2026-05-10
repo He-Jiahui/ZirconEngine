@@ -6,6 +6,7 @@ use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistory
 pub(super) struct ViewportRecordState {
     size: UVec2,
     pipeline_handle: RenderPipelineHandle,
+    viewport_generation: u64,
     quality_profile: Option<String>,
     previous_visibility: Option<VisibilityHistorySnapshot>,
     pipeline_asset: RenderPipelineAsset,
@@ -19,6 +20,7 @@ impl ViewportRecordState {
     pub(super) fn new(
         size: UVec2,
         pipeline_handle: RenderPipelineHandle,
+        viewport_generation: u64,
         quality_profile: Option<String>,
         previous_visibility: Option<VisibilityHistorySnapshot>,
         pipeline_asset: RenderPipelineAsset,
@@ -29,6 +31,7 @@ impl ViewportRecordState {
         Self {
             size,
             pipeline_handle,
+            viewport_generation,
             quality_profile,
             previous_visibility,
             pipeline_asset,
@@ -44,6 +47,10 @@ impl ViewportRecordState {
 
     pub(super) fn pipeline_handle(&self) -> RenderPipelineHandle {
         self.pipeline_handle
+    }
+
+    pub(super) fn viewport_generation(&self) -> u64 {
+        self.viewport_generation
     }
 
     pub(super) fn previous_visibility(&self) -> Option<&VisibilityHistorySnapshot> {

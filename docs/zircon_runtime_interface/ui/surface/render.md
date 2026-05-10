@@ -24,8 +24,8 @@ related_code:
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/layout/geometry.rs
   - zircon_runtime_interface/src/ui/layout/metrics.rs
@@ -49,8 +49,8 @@ implementation_files:
   - zircon_runtime/src/ui/surface/diagnostics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
 plan_sources:
   - docs/assets-and-rendering/runtime-ui-slate-rendering-gap-audit.md
   - user: 2026-05-06 restore preedit text when composition is canceled

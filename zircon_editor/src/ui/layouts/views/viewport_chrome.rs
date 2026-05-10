@@ -1,4 +1,4 @@
-use slint::SharedString;
+use crate::ui::retained_host::primitives::SharedString;
 
 use crate::scene::viewport::{
     DisplayMode, GridMode, ProjectionMode, SceneViewportSettings, SceneViewportTool,

@@ -38,6 +38,7 @@ impl EditorTemplateRuntimeService {
         UiAssetLoader::load_toml_file(path)
     }
 
+    #[cfg(test)]
     pub fn compile_document(
         &self,
         document: &UiAssetDocument,
@@ -69,6 +70,7 @@ impl EditorTemplateRuntimeService {
         compiler.compile(document)
     }
 
+    #[cfg(test)]
     pub fn register_asset_document(
         &self,
         registry: &mut EditorTemplateRegistry,

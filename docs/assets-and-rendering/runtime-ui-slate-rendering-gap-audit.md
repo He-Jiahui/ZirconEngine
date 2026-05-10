@@ -33,10 +33,10 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElementTypes.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElements.h
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Rendering/DrawElementPayloads.h
@@ -82,10 +82,10 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/render_commands.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/primitives.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/visual_assets.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/text.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/text.rs
 plan_sources:
   - user: 2026-05-06 完善渲染方面内容，参照 dev 下虚幻源码
   - user: 2026-05-06 Zircon UI 与 Unreal Slate 差异审计及后续里程碑
@@ -140,7 +140,7 @@ doc_type: milestone-detail
 
 `zircon_runtime_interface::ui::surface::render` 当前定义了中立 render DTO。`UiRenderCommandKind` 只有 `Group`、`Quad`、`Text`、`Image` 四类，`UiRenderCommand` 保存 `node_id`、`kind`、`UiFrame`、可选 `clip_frame`、`z_index`、`UiResolvedStyle`、可选 `UiResolvedTextLayout`、文本、图片引用和 opacity。这个 DTO 已经足够让 editor host painter 和 runtime renderer 共用基础视觉输出，但不足以描述 Slate 级 brush、material、vector、custom verts、batch key 和 debug/cached 状态。
 
-`zircon_runtime::ui::surface::render::extract_ui_render_tree_from_arranged()` 已经从同一 `UiArrangedTree` 生成 `UiRenderExtract`，说明 render 与 hit/layout 共用 arranged geometry 的方向正确。`zircon_runtime::graphics::scene::scene_renderer::ui::render` 会把 visible UI extract 转成 screen-space quad vertices、scissor 和 text batches，并分流 auto/native/SDF 文本。`zircon_editor::ui::slint_host::host_contract::painter::render_commands` 也从同一 `UiRenderCommand` 生成 host paint commands。
+`zircon_runtime::ui::surface::render::extract_ui_render_tree_from_arranged()` 已经从同一 `UiArrangedTree` 生成 `UiRenderExtract`，说明 render 与 hit/layout 共用 arranged geometry 的方向正确。`zircon_runtime::graphics::scene::scene_renderer::ui::render` 会把 visible UI extract 转成 screen-space quad vertices、scissor 和 text batches，并分流 auto/native/SDF 文本。`zircon_editor::ui::retained_host::host_contract::painter::render_commands` 也从同一 `UiRenderCommand` 生成 host paint commands。
 
 当前关键限制是：runtime renderer 的批处理以 command 为单位规划 draw，缺少跨 command 的 batch key 合并；quad 只能表达实心背景和简单 border；image 只有 `UiVisualAssetRef`，尚未区分 image/box/border/vector/material resource；text layout 与 renderer text backend 尚未共享 shaped glyph truth；debug 数据还不能复盘为什么某个节点拆成某个 batch、某个 clip 或某次 drawcall。
 
@@ -155,7 +155,7 @@ doc_type: milestone-detail
 | Batch key | Slate 以 resource + shader params + draw flags + shader type + primitive + draw effects + clip + instance data + scene index 作为 batch key，并稳定按 layer 合并。 | `plan_screen_space_ui_batches()` 逐 command 输出 vertex range 和 scissor；text 按 auto/native/SDF 分流。 | 需要显式 `UiBatchKey`、`UiBatchPlan`、stable layer/order 合并、batch split reason 和 final vertex/index/resource stats；text atlas page、image atlas page、material id 都必须进入 key。 |
 | Cached element / invalidation | Slate cached element list 绑定 widget owner、cached clip states、cached batches 和 invalidation root；未失效时复用。 | Zircon 有 dirty flags、render extract rebuild、editor redraw 起点。 | 需要按 surface/node generation 建立 render command cache、batch plan cache、clip state cache；debug snapshot 应显示 recached node、cache hit/miss、invalidated reason。 |
 | Resource / atlas | Slate brush 通过 resource handle/proxy 取渲染资源；batch 不能跨多个 shader resource 合并。 | Image/SVG/icon 已进入 shared UI asset 路径，runtime renderer 与 editor painter都有占位/加载路径。 | 需要 UI image/icon/SVG atlas contract、resource revision、UV rect、fallback texture 和 material resource key；atlas page 变化必须触发 batch/cache invalidation。 |
-| Material / shader | Slate batch key 区分 shader type、shader params、draw flags、material shader；RHI renderer 接 HDR/VT feedback。 | UI pass 当前主要是 color quad + text；Material UI 主要还是组件视觉描述。 | 需要 UI material descriptor、shader variant key、blend/effect、sRGB/HDR policy、VT/feedback 占位；Material component 不能只停在编辑器 Slint 风格。 |
+| Material / shader | Slate batch key 区分 shader type、shader params、draw flags、material shader；RHI renderer 接 HDR/VT feedback。 | UI pass 当前主要是 color quad + text；Material UI 主要还是组件视觉描述。 | 需要 UI material descriptor、shader variant key、blend/effect、sRGB/HDR policy、VT/feedback 占位；Material component 不能只停在编辑器 retained-host 风格。 |
 | Text render | Slate 区分 text/shaped text payload，font cache/shaper 与 draw element 共享 glyph sequence，支持 outline/overflow。 | `UiResolvedTextLayout` 已有行框、方向、overflow、range、line metrics、rich runs、editable caret/selection/composition DTO；runtime 使用 glyphon/SDF，editor fallback 仍有 estimated width。 | 需要把 shared layout foundation 继续接到真实 shaping/font fallback/BiDi visual order，并让 editor painter 和 runtime renderer消费同一 shaped text artifact。 |
 | Debug visualizer | Slate 有 overdraw、batching、wireframe、drawcall stat、SDF text debug visual 和 Slate debugging stats。 | `UiHitTestDebugDump`、surface debug snapshot、drawcall/overdraw/material batch 统计只有起点。 | 需要 `UiRenderDebugSnapshot`，覆盖 command count、batch count、drawcall count、merged/split reason、overdraw heat、scissor/clip overlay、atlas/material stats、text backend stats。 |
 

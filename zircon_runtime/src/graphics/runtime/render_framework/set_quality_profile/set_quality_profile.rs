@@ -13,6 +13,7 @@ pub(in crate::graphics::runtime::render_framework) fn set_quality_profile(
     viewport: RenderViewportHandle,
     profile: RenderQualityProfile,
 ) -> Result<(), RenderFrameworkError> {
+    let _operation_guard = server.operation_lock.lock().unwrap();
     let mut state = server.state.lock().unwrap();
     let capabilities = state.stats.capabilities.clone();
     let active_pipeline = state

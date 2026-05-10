@@ -347,9 +347,10 @@ impl Default for NavigationRuntimeState {
 }
 
 fn collect_surfaces(world: &World) -> Vec<(u64, NavMeshSurfaceDescriptor)> {
+    // Navigation authoring scans must see direct world mutations before PostUpdate refreshes nodes().
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter_map(|node| {
             let value = world.dynamic_component(node.id, NAV_MESH_SURFACE_COMPONENT_TYPE)?;
             let surface = parse_component::<NavMeshSurfaceDescriptor>(value);
@@ -360,8 +361,8 @@ fn collect_surfaces(world: &World) -> Vec<(u64, NavMeshSurfaceDescriptor)> {
 
 fn collect_agents(world: &World) -> Vec<(u64, NavMeshAgentDescriptor)> {
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter_map(|node| {
             let value = world.dynamic_component(node.id, NAV_MESH_AGENT_COMPONENT_TYPE)?;
             Some((node.id, parse_component::<NavMeshAgentDescriptor>(value)))
@@ -448,12 +449,12 @@ fn collect_bake_geometry(
         .and_then(|entity| direct_modifier(world, entity, agent_type))
         .filter(|modifier| modifier.override_area)
         .map(|modifier| modifier.area);
-    for node in world.nodes() {
+    for node in world.node_records() {
         if should_exclude_from_bake(world, node.id) {
             geometry.skipped_navigation_components += 1;
             continue;
         }
-        if !node_matches_surface_collection(world, node, surface_entity, surface) {
+        if !node_matches_surface_collection(world, &node, surface_entity, surface) {
             continue;
         }
 
@@ -465,7 +466,7 @@ fn collect_bake_geometry(
             geometry.removed_by_modifier += 1;
             continue;
         }
-        if node_intersects_obstacle(world, node, &carved_obstacles) {
+        if node_intersects_obstacle(world, &node, &carved_obstacles) {
             geometry.carved_by_obstacle += 1;
             continue;
         }
@@ -482,10 +483,10 @@ fn collect_bake_geometry(
         let before = geometry.source_triangles();
         match surface.use_geometry {
             NavMeshUseGeometry::RenderMeshes => {
-                collect_render_node_geometry(world, node, &mut geometry, area)
+                collect_render_node_geometry(world, &node, &mut geometry, area)
             }
             NavMeshUseGeometry::PhysicsColliders => {
-                collect_collider_geometry(world, node, &mut geometry, area)
+                collect_collider_geometry(world, &node, &mut geometry, area)
             }
         }
         if geometry.source_triangles() > before {
@@ -685,8 +686,8 @@ fn modifier_affects_agent(modifier: &NavMeshModifierDescriptor, agent_type: &str
 
 fn collect_off_mesh_links(world: &World, agent_type: &str) -> Vec<NavMeshLinkAsset> {
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter_map(|node| {
             let value = world.dynamic_component(node.id, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE)?;
             let link = parse_component::<NavMeshOffMeshLinkDescriptor>(value);
@@ -808,8 +809,8 @@ fn unsupported_bake_setting_diagnostics(
 
 fn count_obstacles(world: &World) -> usize {
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter(|node| {
             world
                 .dynamic_component(node.id, NAV_MESH_OBSTACLE_COMPONENT_TYPE)
@@ -820,8 +821,8 @@ fn count_obstacles(world: &World) -> usize {
 
 fn count_off_mesh_links(world: &World) -> usize {
     world
-        .nodes()
-        .iter()
+        .node_records()
+        .into_iter()
         .filter(|node| {
             world
                 .dynamic_component(node.id, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE)
@@ -886,7 +887,8 @@ fn avoidance_adjusted_target(
 
 pub fn count_navigation_components(world: &World) -> NavigationRuntimeStats {
     let mut stats = NavigationRuntimeStats::default();
-    for node in world.nodes() {
+    // Use fresh projections so editor/runtime dynamic component writes are counted immediately.
+    for node in world.node_records() {
         if world
             .dynamic_component(node.id, NAV_MESH_AGENT_COMPONENT_TYPE)
             .is_some()

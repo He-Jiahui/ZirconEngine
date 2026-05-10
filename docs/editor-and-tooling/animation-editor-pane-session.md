@@ -20,14 +20,12 @@ related_code:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/ui/workbench/animation_editor_pane_view.slint
-  - zircon_editor/ui/workbench/pane_content.slint
-  - zircon_editor/ui/workbench/pane_data.slint
-  - zircon_editor/ui/workbench/pane_surface.slint
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/editor_event/animation_runtime.rs
@@ -54,28 +52,26 @@ implementation_files:
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/ui/workbench/animation_editor_pane_view.slint
-  - zircon_editor/ui/workbench/pane_content.slint
-  - zircon_editor/ui/workbench/pane_data.slint
-  - zircon_editor/ui/workbench/pane_surface.slint
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
 plan_sources:
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
   - .codex/plans/Physics + Full Animation Support 新计划.md
 tests:
   - zircon_editor/src/tests/ui/animation_editor/bootstrap_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
   - zircon_editor/src/tests/editor_event/animation_runtime.rs
   - zircon_editor/src/ui/animation_editor/session/tests.rs
   - zircon_editor/src/tests/host/animation_editor.rs
   - zircon_editor/tests/workbench_animation_editor_shell.rs
   - cargo test -p zircon_editor --locked tests::ui::animation_editor:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
   - cargo test -p zircon_editor --locked tests::ui::boundary::template_assets:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
-  - cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_slint_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
+  - cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_host_contract_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture
   - cargo check -p zircon_editor --lib --locked --target-dir F:/cargo-targets/zircon-codex-a
   - cargo test -p zircon_editor animation_editor --locked
   - cargo test -p zircon_editor --locked tests::editor_event::animation_runtime:: -- --nocapture --test-threads=1
@@ -112,7 +108,7 @@ doc_type: module-detail
   - 负责 `CreateTrack`、`AddKey`、`CreateTransition` 之类 session 内变更
 - `presentation.rs`
   - 定义 `AnimationEditorPanePresentation`
-  - 把 sequence / graph / state-machine 三种文档模式收敛到同一份 host/slint DTO
+  - 把 sequence / graph / state-machine 三种文档模式收敛到同一份 retained host DTO
 - `mod.rs`
   - 保持对外入口轻量，只导出 pane/session 所需公共面
 
@@ -186,45 +182,38 @@ animation 命令现在有两条目标解析规则：
 
 ## Presentation Route
 
-animation pane 现在已经接到正式 workbench/slint 投影链：
+animation pane 现在已经接到正式 workbench/retained-host 投影链：
 
 - `pane_projection.rs`、`shell_presentation.rs`、`floating_windows.rs`
   - 把 `ViewInstanceId` 映射到 `AnimationEditorPanePresentation`
 - `apply_presentation.rs`
-  - 把 animation pane 数据写进 Slint host presentation
+  - 把 animation pane 数据写进 retained host presentation
 - `host_lifecycle.rs`
   - 在宿主 tick/recompute 周期里保留 animation pane 数据流
-- `pane_surface.slint`
-  - 继续负责非 scene/game pane 的外层 surface，并把正文内容委托给 `PaneContent`
-- `pane_content.slint`
-  - 现在显式 import `AnimationEditorPaneView`
-  - 把 `AnimationSequenceEditor` / `AnimationGraphEditor` 两类 pane kind 路由到 animation 视图
-- `animation_editor_pane_view.slint`
-  - 提供 sequence / graph / state-machine 三种视图
-  - 现在消费 host 投影进来的 `shell_layout`，不再继续持有 `64px` header、`12px` inset、`140px/148px` band offset 这类手写壳层真源
+- `retained_host/host_contract/data/panes.rs`
+  - 提供 sequence / graph / state-machine 三种 host-contract pane 视图
+  - 消费 host 投影进来的 `shell_layout`，不再依赖 `64px` header、`12px` inset、`140px/148px` band offset 这类删除前的手写壳层真源
 
 结果是 animation 资产页签现在不再借用通用 fallback pane。中心文档区和浮动窗口都会显示真实 animation pane 数据。
 
 ## Bootstrap Shell Layout Authority
 
-这轮 cutover 继续把 animation pane 的壳层几何从 `.slint` 手写常量迁回 crate `assets/`：
+这轮 cutover 继续把 animation pane 的壳层几何从删除前的手写常量迁回 crate `assets/`：
 
 - [`animation_editor.ui.toml`](../../zircon_editor/assets/ui/editor/animation_editor.ui.toml)
   - 现在固定了 `AnimationEditorHeaderPanel` / `AnimationEditorBodyPanel`
   - 同时把 `HeaderModeRow`、`HeaderPathRow`、`HeaderStatusRow` 以及 sequence / graph / state-machine 三套 mode band 全部落进同一份 bootstrap asset
-  - `BodyPanel` 使用 overlay 容器，让三种 mode shell 共享同一块 authoring 内容区域，而不是在 `.slint` 里各自抄一遍 inset/offset 公式
+  - `BodyPanel` 使用 overlay 容器，让三种 mode shell 共享同一块 authoring 内容区域，而不是在 host 叶子层各自抄一遍 inset/offset 公式
 - [`animation_editor_shell_layout.rs`](../../zircon_editor/src/ui/layouts/views/animation_editor_shell_layout.rs)
   - 从 crate `assets/` 读取 tree asset、注册 editor base style、编译 `UiSurface`
   - 把 control frame 萃取成 `AnimationEditorShellLayout`
-- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs)
+- [`host_data.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs)、[`scene_projection.rs`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/scene_projection.rs)、[`pane_data_conversion/mod.rs`](../../zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs)
   - 把这份 layout 作为 `AnimationEditorPaneViewData -> AnimationEditorPaneData -> AnimationEditorShellLayoutData` 的正式投影链
-- [`pane_content.slint`](../../zircon_editor/ui/workbench/pane_content.slint)
-  - 显式导入 `AnimationEditorPaneView`，把 animation pane kind 接回通用 `PaneContent` 路由
-- [`animation_editor_pane_view.slint`](../../zircon_editor/ui/workbench/animation_editor_pane_view.slint)
-  - 现在只消费 `root.pane.shell_layout.*` frame，再在对应 band 内放 mode text、timeline text、track/state/node 列表
-  - 这让 Slint owner 收窄为“消费 frame 并摆叶子控件”，不再自己定义动画 pane 的顶层几何
+- [`host_contract/data/panes.rs`](../../zircon_editor/src/ui/retained_host/host_contract/data/panes.rs)
+  - 现在只消费 `shell_layout.*` frame，再在对应 band 内承载 mode text、timeline text、track/state/node 列表
+  - 这让 retained host owner 收窄为“消费 frame 并呈现叶子数据”，不再自己定义动画 pane 的顶层几何
 
-这一步并没有把 animation 业务 leaf 全部迁出 Slint；track list、parameter list、state list 仍然是 pane 视图 owner。但最外层 pane shell 已经和 `UiAssetEditor` / `AssetBrowserPane` 一样，回到 bootstrap `.ui.toml` authority。
+这一步并没有把 animation 业务 leaf 全部迁到 runtime renderer；track list、parameter list、state list 仍然是 retained pane 视图 owner。但最外层 pane shell 已经和 `UiAssetEditor` / `AssetBrowserPane` 一样，回到 bootstrap `.ui.toml` authority。
 
 ## Asset Routing And Restore
 
@@ -268,7 +257,7 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 
 - `cargo test -p zircon_editor --locked tests::ui::animation_editor:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
 - `cargo test -p zircon_editor --locked tests::ui::boundary::template_assets:: --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
-- `cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_slint_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
+- `cargo test -p zircon_editor --locked host_scene_projection_converts_host_owned_panes_to_host_contract_panes --lib --target-dir F:/cargo-targets/zircon-codex-a -- --nocapture`
 - `cargo check -p zircon_editor --lib --locked --target-dir F:/cargo-targets/zircon-codex-a`
 - `cargo test -p zircon_editor animation_editor --locked`
 - `cargo test -p zircon_editor --locked tests::editor_event::animation_runtime:: -- --nocapture --test-threads=1`
@@ -285,9 +274,9 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
 - host save 会清掉 workbench dirty metadata，而不会破坏原有 payload path
 - workbench shell 已经声明 animation pane，而不是只剩 fallback surface
 - animation pane bootstrap asset 能导出 header/body 和 sequence / graph / state-machine mode frame
-- `pane_content.slint` 现在显式导入 animation pane view，Slint build 不再因为缺失 pane import 而把 animation surface 卡死在 build script
-- Slint source guard 已锁住 animation pane 不再退回到 `64px` header、`y: 140px` graph node band、`y: 148px` transition band 这类硬编码壳层公式
-- host -> Slint 投影回归已经证明 animation shell layout 会穿过 `host_data.rs` / `pane_data_conversion/mod.rs` 边界，而不是重新把这份几何留在 `.slint`
+- retained host-contract pane data now exposes the animation pane view, so the current build path no longer depends on generated pane imports
+- retained source guards lock the animation pane against returning to deleted `64px` header、`y: 140px` graph node band、`y: 148px` transition band 壳层公式
+- host -> host-contract 投影回归已经证明 animation shell layout 会穿过 `host_data.rs` / `pane_data_conversion/mod.rs` 边界，而不是重新把这份几何留在 host leaf layer
 - sequence/graph authoring 的关键防御分支现在也被直接回归覆盖，包括：
   - 重复 rebind 不会删源轨道
   - 删除选中轨道会清掉悬空选区
@@ -307,4 +296,4 @@ animation editor 现在已经有正式的 host save 链路，而不是只会把 
   - transition condition 也不会再接受 `NaN` / `Inf` 标量或带非有限分量的 vector literal
   - 已有 transition condition 的 typed value 也不再接受错类型 literal，例如已有 `Scalar` 不会被 `"true"` 改写成 `Bool`
 
-本轮没有把结论扩大成“整个 `zircon_editor` / `zircon_runtime` 工作区都已经全绿”。当前能够确认的是 animation editor 的保存链路和相关 Slint pane 路由已经在定向验证下跑通；更宽的 workspace 级回归仍需要单独稳定化轮次。
+本轮没有把结论扩大成“整个 `zircon_editor` / `zircon_runtime` 工作区都已经全绿”。当前能够确认的是 animation editor 的保存链路和相关 retained pane 路由已经在定向验证下跑通；更宽的 workspace 级回归仍需要单独稳定化轮次。

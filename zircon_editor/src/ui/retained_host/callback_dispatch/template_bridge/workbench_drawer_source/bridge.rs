@@ -1,0 +1,111 @@
+use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
+#[cfg(test)]
+use zircon_runtime_interface::ui::surface::UiSurfaceRebuildDebugStats;
+
+use crate::ui::template_runtime::EditorUiHostRuntime;
+use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
+use crate::ui::workbench::model::WorkbenchViewModel;
+
+use super::error::BuiltinHostDrawerSourceTemplateBridgeError;
+use super::layout::{
+    build_builtin_host_drawer_source_surface, default_drawer_layout_inputs,
+    drawer_layout_inputs_from_workbench_model, rebuild_builtin_host_drawer_source_surface,
+    rebuild_builtin_host_drawer_source_surface_with_anchors, BuiltinHostDrawerLayoutAnchors,
+};
+use super::source_frames::{source_frames_from_surface, BuiltinHostDrawerSourceFrames};
+
+pub(crate) struct BuiltinHostDrawerSourceTemplateBridge {
+    surface: UiSurface,
+}
+
+impl BuiltinHostDrawerSourceTemplateBridge {
+    pub(crate) fn new(
+        shell_size: UiSize,
+    ) -> Result<Self, BuiltinHostDrawerSourceTemplateBridgeError> {
+        let mut runtime = EditorUiHostRuntime::default();
+        runtime.load_builtin_host_templates()?;
+        let surface = build_builtin_host_drawer_source_surface(
+            &runtime,
+            shell_size,
+            default_drawer_layout_inputs(),
+            WorkbenchChromeMetrics::default(),
+        )?;
+        Ok(Self { surface })
+    }
+
+    #[cfg(test)]
+    pub(crate) fn recompute_layout(
+        &mut self,
+        shell_size: UiSize,
+    ) -> Result<(), BuiltinHostDrawerSourceTemplateBridgeError> {
+        rebuild_builtin_host_drawer_source_surface(
+            &mut self.surface,
+            shell_size,
+            default_drawer_layout_inputs(),
+            WorkbenchChromeMetrics::default(),
+        )?;
+        Ok(())
+    }
+
+    #[cfg(test)]
+    pub(crate) fn recompute_layout_with_workbench_model(
+        &mut self,
+        shell_size: UiSize,
+        model: &WorkbenchViewModel,
+        metrics: &WorkbenchChromeMetrics,
+    ) -> Result<(), BuiltinHostDrawerSourceTemplateBridgeError> {
+        rebuild_builtin_host_drawer_source_surface(
+            &mut self.surface,
+            shell_size,
+            drawer_layout_inputs_from_workbench_model(model, metrics),
+            *metrics,
+        )?;
+        Ok(())
+    }
+
+    pub(in crate::ui::retained_host::callback_dispatch::template_bridge) fn recompute_layout_with_workbench_model_and_anchors(
+        &mut self,
+        shell_size: UiSize,
+        model: &WorkbenchViewModel,
+        metrics: &WorkbenchChromeMetrics,
+        anchors: Option<BuiltinHostDrawerLayoutAnchors>,
+    ) -> Result<(), BuiltinHostDrawerSourceTemplateBridgeError> {
+        rebuild_builtin_host_drawer_source_surface_with_anchors(
+            &mut self.surface,
+            shell_size,
+            drawer_layout_inputs_from_workbench_model(model, metrics),
+            *metrics,
+            anchors,
+        )?;
+        Ok(())
+    }
+
+    pub(crate) fn control_frame(&self, control_id: &str) -> Option<UiFrame> {
+        self.source_frames().control_frame(control_id)
+    }
+
+    pub(crate) fn source_frames(&self) -> BuiltinHostDrawerSourceFrames {
+        source_frames_from_surface(&self.surface)
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_surface_node_ids(&self) -> Vec<u64> {
+        self.surface
+            .tree
+            .nodes
+            .keys()
+            .map(|node_id| node_id.0)
+            .collect()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_render_command_count(&self) -> usize {
+        self.surface.render_extract.list.commands.len()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_last_rebuild_report(&self) -> UiSurfaceRebuildDebugStats {
+        self.surface.surface_frame().last_rebuild
+    }
+}

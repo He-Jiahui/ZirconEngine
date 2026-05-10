@@ -15,10 +15,12 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
   - zircon_app/src/entry/runtime_library/mod.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
+  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/runtime_presenter.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
@@ -53,10 +55,12 @@ implementation_files:
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
   - zircon_app/src/entry/runtime_library/mod.rs
   - zircon_app/src/entry/runtime_library/library_path.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
+  - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/runtime_presenter.rs
   - zircon_runtime_interface/Cargo.toml
   - zircon_runtime_interface/src/lib.rs
@@ -77,6 +81,7 @@ plan_sources:
   - user: 2026-05-01 request runtime/editor/plugin compile isolation through interface crate plus runtime cdylib
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
   - docs/superpowers/plans/2026-05-02-ui-runtime-interface-big-cutover.md
+  - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
   - zircon_runtime/src/dynamic_api/tests.rs
@@ -90,6 +95,9 @@ tests:
   - cargo test -p zircon_app --lib runtime_library --locked
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-m2-editor --message-format short --color never
   - cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-interface-m2-editor --message-format short --color never
+  - cargo fmt --all --check
+  - cargo test -p zircon_runtime_interface --locked --verbose
+  - cargo test -p zircon_app --locked --verbose
 doc_type: module-detail
 ---
 
@@ -116,7 +124,7 @@ The interface is deliberately narrower than the existing Rust module contracts. 
 - `handles.rs` defines zero-invalid opaque runtime, viewport, and plugin handles.
 - `status.rs` defines raw status codes and diagnostic byte payload attachment.
 - `buffer.rs` defines borrowed byte slices and plugin/runtime-owned byte buffers with explicit free callbacks.
-- `runtime_api.rs` defines the runtime dynamic library symbol, the v1 runtime function table shape, fixed event records, viewport sizing records, frame requests, and typed captured-frame results.
+- `runtime_api.rs` defines the runtime dynamic library symbol, the v1 runtime function table shape, fixed event records, viewport sizing records, native surface binding requests, frame requests, and typed captured-frame results.
 - `plugin_api.rs` defines the future plugin entry symbol and v1 plugin entry report shape.
 - `manifest.rs` defines target mode, module kind, and module descriptor DTO seeds for later runtime/plugin adapters.
 - `ui/mod.rs` exposes the shared neutral Runtime UI contract namespace for editor-facing UI DTOs: `binding`, `component`, `dispatch`, `event_ui`, `layout`, `surface`, `template`, and `tree`. The UI namespace is now backed by real `zircon_runtime_interface/src/ui/**` files instead of path-including `zircon_runtime/src/ui/**`. Runtime-only behavior such as component registries, event managers, dispatchers, layout passes, render extraction, text layout, tree mutation, template loading, compiling, and validation remains owned by `zircon_runtime`.
@@ -139,7 +147,9 @@ The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, po
 
 `zircon_app` runtime profile now loads runtime with `libloading` instead of bootstrapping runtime preview internals directly. The loader resolves the library path from `ZIRCON_RUNTIME_LIBRARY` first, then falls back to an executable-sibling platform name: `zircon_runtime.dll`, `libzircon_runtime.dylib`, or `libzircon_runtime.so`. Development builds launched directly from Cargo target directories also check executable-sibling `deps/<platform runtime library>` when the packaged sibling library has not been staged yet.
 
-`RuntimeEntryApp` now owns only the window, softbuffer presenter, dynamic runtime session wrapper, viewport handle, and current viewport size. Winit events are converted to interface events and sent to runtime. Redraw requests call the runtime function table `capture_frame` and blit the returned RGBA bytes through softbuffer.
+`RuntimeEntryApp` now owns only the window, optional softbuffer presenter, dynamic runtime session wrapper, viewport handle, and current viewport size. Winit events are converted to interface events and sent to runtime. Redraw requests prefer the optional runtime surface-present ABI only when `bind_viewport_surface`, `unbind_viewport_surface`, and `present_viewport` are all inside the advertised table size and non-null. Otherwise, redraw falls back to `capture_frame` and blits the returned RGBA bytes through softbuffer.
+
+The appended surface-present ABI fields remain optional within ABI v1. `LoadedRuntime` gates every appended field by `ZrRuntimeApiV1::size_bytes` before returning a function pointer, so an older v1 table falls back cleanly instead of reading past the producer's advertised table. `RuntimeEntryApp` binds native Win32 surface metadata before the resize event when the coherent surface path is available, rebinds before later resize events, and unbinds before falling back if a previously enabled surface-present path stops presenting.
 
 ## Validation
 

@@ -1,4 +1,4 @@
-//! Editor module registration (Slint host shell).
+//! Editor module registration (Retained host shell).
 
 use std::sync::Arc;
 
@@ -29,7 +29,7 @@ pub struct EditorHostDriver;
 pub fn module_descriptor() -> ModuleDescriptor {
     ModuleDescriptor::new(
         EDITOR_MODULE_NAME,
-        "Slint-based editor host and tooling shell",
+        "Retained-based editor host and tooling shell",
     )
     .with_driver(DriverDescriptor::new(
         qualified_name(EDITOR_MODULE_NAME, ServiceKind::Driver, "EditorHostDriver"),
@@ -76,7 +76,7 @@ impl EngineModule for EditorModule {
     }
 
     fn module_description(&self) -> &'static str {
-        "Slint-based editor host and tooling shell"
+        "Retained-based editor host and tooling shell"
     }
 
     fn descriptor(&self) -> ModuleDescriptor {

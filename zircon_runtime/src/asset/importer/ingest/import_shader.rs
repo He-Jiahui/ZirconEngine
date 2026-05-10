@@ -36,6 +36,8 @@ fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
             source: source.clone(),
             wgsl_source: source,
             entry_points,
+            dependencies: Vec::new(),
+            pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
     ))
@@ -97,6 +99,8 @@ fn module_to_shader_asset(
             source,
             wgsl_source,
             entry_points,
+            dependencies: Vec::new(),
+            pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
     ))

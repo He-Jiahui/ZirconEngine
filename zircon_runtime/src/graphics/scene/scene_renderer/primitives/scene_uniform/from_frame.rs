@@ -8,7 +8,7 @@ use super::SceneUniform;
 
 impl SceneUniform {
     pub(crate) fn from_frame(frame: &ViewportRenderFrame, aspect: Real) -> Self {
-        let camera = &frame.scene.scene.camera;
+        let camera = frame.camera();
         let projection = match camera.projection_mode {
             ProjectionMode::Perspective => Mat4::perspective_rh(
                 camera.fov_y_radians,
@@ -30,8 +30,8 @@ impl SceneUniform {
             }
         };
         let view = view_matrix(camera.transform);
-        let (light_dir, light_color, ambient_color) = if frame.scene.preview.lighting_enabled {
-            if let Some(light) = frame.scene.scene.directional_lights.first() {
+        let (light_dir, light_color, ambient_color) = if frame.preview().lighting_enabled {
+            if let Some(light) = frame.directional_lights().first() {
                 (
                     render_vec3_or(
                         light.direction,

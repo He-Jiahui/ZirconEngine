@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
-    CapturedFrame, RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderPipelineHandle,
-    RenderQualityProfile, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
+    CapturedFrame, GraphicsDebuggerStatus, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, RenderStats,
+    RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
     RenderVirtualGeometryDebugSnapshot,
 };
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
@@ -8,13 +9,18 @@ use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use super::super::capture_frame::capture_frame;
 use super::super::create_viewport::create_viewport;
 use super::super::destroy_viewport::destroy_viewport;
+use super::super::graphics_debugger_capture::{
+    query_graphics_debugger_status, request_graphics_debugger_capture,
+};
 use super::super::query_stats::query_stats;
 use super::super::query_virtual_geometry_debug_snapshot::query_virtual_geometry_debug_snapshot;
 use super::super::register_pipeline_asset::register_pipeline_asset;
 use super::super::reload_pipeline::reload_pipeline;
 use super::super::set_pipeline_asset::set_pipeline_asset;
 use super::super::set_quality_profile::set_quality_profile;
+use super::super::submit_frame_extract::present_frame_extract;
 use super::super::submit_frame_extract::{submit_frame_extract, submit_frame_extract_with_ui};
+use super::super::viewport_surface::{bind_viewport_surface, unbind_viewport_surface};
 use super::super::wgpu_render_framework::WgpuRenderFramework;
 use crate::RenderPipelineAsset;
 
@@ -47,6 +53,29 @@ impl RenderFramework for WgpuRenderFramework {
         submit_frame_extract_with_ui(self, viewport, extract, ui)
     }
 
+    fn bind_viewport_surface(
+        &self,
+        viewport: RenderViewportHandle,
+        descriptor: RenderViewportSurfaceDescriptor,
+    ) -> Result<(), RenderFrameworkError> {
+        bind_viewport_surface(self, viewport, descriptor)
+    }
+
+    fn unbind_viewport_surface(
+        &self,
+        viewport: RenderViewportHandle,
+    ) -> Result<(), RenderFrameworkError> {
+        unbind_viewport_surface(self, viewport)
+    }
+
+    fn present_frame_extract(
+        &self,
+        viewport: RenderViewportHandle,
+        extract: RenderFrameExtract,
+    ) -> Result<(), RenderFrameworkError> {
+        present_frame_extract(self, viewport, extract)
+    }
+
     fn set_pipeline_asset(
         &self,
         viewport: RenderViewportHandle,
@@ -74,6 +103,19 @@ impl RenderFramework for WgpuRenderFramework {
         &self,
     ) -> Result<Option<RenderVirtualGeometryDebugSnapshot>, RenderFrameworkError> {
         query_virtual_geometry_debug_snapshot(self)
+    }
+
+    fn request_graphics_debugger_capture(
+        &self,
+        viewport: RenderViewportHandle,
+    ) -> Result<(), RenderFrameworkError> {
+        request_graphics_debugger_capture(self, viewport)
+    }
+
+    fn query_graphics_debugger_status(
+        &self,
+    ) -> Result<GraphicsDebuggerStatus, RenderFrameworkError> {
+        query_graphics_debugger_status(self)
     }
 
     fn capture_frame(

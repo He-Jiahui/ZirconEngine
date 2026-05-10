@@ -9,6 +9,7 @@ use crate::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 
+use super::super::graphics_debugger_capture::GraphicsDebuggerState;
 use super::super::viewport_record::ViewportRecord;
 
 pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
@@ -26,4 +27,5 @@ pub(in crate::graphics::runtime::render_framework) struct RenderFrameworkState {
     pub(in crate::graphics::runtime::render_framework) viewports:
         HashMap<RenderViewportHandle, ViewportRecord>,
     pub(in crate::graphics::runtime::render_framework) stats: RenderStats,
+    pub(in crate::graphics::runtime::render_framework) graphics_debugger: GraphicsDebuggerState,
 }

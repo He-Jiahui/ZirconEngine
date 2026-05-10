@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use super::support::*;
 use crate::ui::control::EditorUiControlService;
 use crate::ui::template_runtime::{
-    EditorUiHostRuntime, SlintUiHostValue, UiComponentShowcaseDemoEventInput,
+    EditorUiHostRuntime, RetainedUiHostValue, UiComponentShowcaseDemoEventInput,
 };
 use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue};
 
@@ -46,15 +46,17 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         let host_model = runtime
             .build_host_model_with_surface(&projection, &surface)
             .unwrap();
-        let slint_projection = runtime
-            .build_slint_host_projection_with_surface(&projection, &surface)
+        let retained_projection = runtime
+            .build_retained_host_projection_with_surface(&projection, &surface)
             .unwrap();
 
         let surface_snapshot =
             EditorUiCompatibilityHarness::capture_shared_surface_snapshot(&surface);
         let host_snapshot = EditorUiCompatibilityHarness::capture_host_model_snapshot(&host_model);
-        let slint_snapshot =
-            EditorUiCompatibilityHarness::capture_slint_host_projection_snapshot(&slint_projection);
+        let retained_snapshot =
+            EditorUiCompatibilityHarness::capture_retained_host_projection_snapshot(
+                &retained_projection,
+            );
         let surface_frames = sorted(surface_snapshot.frame_entries);
         let surface_attributes =
             stable_attribute_entries(document_id, surface_snapshot.attribute_entries);
@@ -66,8 +68,8 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         let host_style_tokens = sorted(host_snapshot.style_token_entries);
         let host_bindings = sorted(host_snapshot.binding_ids);
         let host_route_bindings = sorted(host_snapshot.route_bindings);
-        let slint_frames = sorted(slint_snapshot.frame_entries);
-        let slint_route_bindings = sorted(slint_snapshot.route_bindings);
+        let retained_frames = sorted(retained_snapshot.frame_entries);
+        let retained_route_bindings = sorted(retained_snapshot.route_bindings);
 
         assert_sets_equal(
             &surface_frames,
@@ -91,13 +93,13 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
         );
         assert_sets_equal(
             &host_frames,
-            &slint_frames,
-            "{document_id} Slint/native projection must retain host model frames",
+            &retained_frames,
+            "{document_id} Retained/native projection must retain host model frames",
         );
         assert_sets_equal(
             &host_route_bindings,
-            &slint_route_bindings,
-            "{document_id} Slint/native projection must retain registered host routes",
+            &retained_route_bindings,
+            "{document_id} Retained/native projection must retain registered host routes",
         );
     }
 }
@@ -122,7 +124,7 @@ fn dual_host_parity_routes_material_events_to_runtime_component_state() {
         .unwrap();
     surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
     let host_projection = runtime
-        .build_slint_host_projection_with_surface(&projection, &surface)
+        .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
     let input = host_projection
@@ -173,22 +175,22 @@ fn dual_host_parity_routes_material_events_to_runtime_component_state() {
         .expect("component showcase should project VirtualListDemo");
     assert_eq!(
         virtual_list.properties.get("viewport_count"),
-        Some(&SlintUiHostValue::Integer(25))
+        Some(&RetainedUiHostValue::Integer(25))
     );
     assert_eq!(
         virtual_list.properties.get("item_extent"),
-        Some(&SlintUiHostValue::Float(28.0))
+        Some(&RetainedUiHostValue::Float(28.0))
     );
     let world_surface = host_projection
         .node_by_control_id("WorldSpaceSurfaceDemo")
         .expect("component showcase should project WorldSpaceSurfaceDemo");
     assert_eq!(
         world_surface.properties.get("pixels_per_meter"),
-        Some(&SlintUiHostValue::Float(256.0))
+        Some(&RetainedUiHostValue::Float(256.0))
     );
     assert_eq!(
         world_surface.properties.get("camera_target"),
-        Some(&SlintUiHostValue::String("viewport-main".to_string()))
+        Some(&RetainedUiHostValue::String("viewport-main".to_string()))
     );
 
     assert_changed(

@@ -1,4 +1,4 @@
-//! Responsive shell auto-layout for the Slint workbench host.
+//! Responsive shell auto-layout for the Retained workbench host.
 
 pub use zircon_runtime::ui::layout::solve_axis_constraints;
 pub use zircon_runtime_interface::ui::layout::{

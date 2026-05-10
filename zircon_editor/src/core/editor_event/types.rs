@@ -37,7 +37,7 @@ define_id!(EditorEventSequence);
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorEventSource {
-    Slint,
+    RetainedHost,
     Headless,
     Cli,
     Mcp,

@@ -220,13 +220,20 @@ impl ComponentStorage {
         }
     }
 
-    pub fn remove_entity(&mut self, entity: InternalEntity) {
-        for storage in self.table_components.values_mut() {
-            storage.remove(entity);
+    pub fn remove_entity(&mut self, entity: InternalEntity) -> Vec<ComponentId> {
+        let mut removed = Vec::new();
+        for (component_id, storage) in self.table_components.iter_mut() {
+            if storage.remove(entity).is_some() {
+                removed.push(*component_id);
+            }
         }
-        for storage in self.sparse_components.values_mut() {
-            storage.remove(entity);
+        for (component_id, storage) in self.sparse_components.iter_mut() {
+            if storage.remove(entity).is_some() {
+                removed.push(*component_id);
+            }
         }
+        removed.sort_unstable();
+        removed
     }
 
     pub fn storage_type(&self, component_id: ComponentId) -> Option<StorageType> {

@@ -1,14 +1,16 @@
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::prepared_runtime_submission::PreparedRuntimeSubmission;
-use crate::core::framework::render::RenderPluginRendererOutputs;
+use super::super::viewport_generation_guard::validate_viewport_generation;
+use crate::core::framework::render::{RenderFrameworkError, RenderPluginRendererOutputs};
 use crate::{HybridGiRuntimePrepareInput, VirtualGeometryRuntimePrepareInput};
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prepare_runtime_submission(
     state: &mut RenderFrameworkState,
     viewport: crate::core::framework::render::RenderViewportHandle,
     context: &FrameSubmissionContext,
-) -> PreparedRuntimeSubmission {
+) -> Result<PreparedRuntimeSubmission, RenderFrameworkError> {
+    validate_viewport_generation(state, viewport, context)?;
     let (hybrid_gi_evictable_probe_ids, hybrid_gi_renderer_outputs) =
         prepare_hybrid_gi_runtime(state, viewport, context)
             .map(crate::HybridGiRuntimePrepareOutput::into_parts)
@@ -22,11 +24,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn prep
         virtual_geometry_renderer_outputs,
     );
 
-    PreparedRuntimeSubmission::new(
+    Ok(PreparedRuntimeSubmission::new(
         hybrid_gi_evictable_probe_ids,
         virtual_geometry_evictable_page_ids,
         plugin_renderer_outputs,
-    )
+    ))
 }
 
 fn merge_prepare_plugin_renderer_outputs(
@@ -61,7 +63,7 @@ fn prepare_hybrid_gi_runtime(
     let record = state
         .viewports
         .get_mut(&viewport)
-        .expect("viewport checked while building frame submission context");
+        .expect("viewport generation checked before runtime prepare");
     let input = HybridGiRuntimePrepareInput::new(
         context.hybrid_gi_extract(),
         context.scene_meshes(),
@@ -99,7 +101,7 @@ fn prepare_virtual_geometry_runtime(
     let record = state
         .viewports
         .get_mut(&viewport)
-        .expect("viewport checked while building frame submission context");
+        .expect("viewport generation checked before runtime prepare");
     let visibility_context = context.visibility_context();
     let input = VirtualGeometryRuntimePrepareInput::new(
         context.virtual_geometry_extract(),

@@ -1,4 +1,4 @@
-//! Editor-only UI contracts, reusable widget/layout composition, Slint host runtime,
+//! Editor-only UI contracts, reusable widget/layout composition, Retained host runtime,
 //! and workbench projection.
 
 pub mod activity;
@@ -10,7 +10,7 @@ pub mod control;
 pub mod host;
 pub(crate) mod layouts;
 mod reflection;
-pub mod slint_host;
+pub mod retained_host;
 pub(crate) mod template;
 pub mod template_runtime;
 pub(crate) mod widgets;

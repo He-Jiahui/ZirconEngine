@@ -24,8 +24,7 @@ use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorRenderFrameSubmission;
 use crate::ui::workbench::view::{ViewDescriptor, ViewInstance};
 use zircon_runtime_interface::ui::component::{
-    UiComponentAdapterError, UiComponentAdapterResult, UiComponentDataSourceDescriptor,
-    UiComponentEventEnvelope,
+    UiComponentAdapterError, UiComponentAdapterResult, UiComponentEventEnvelope,
 };
 
 impl EditorEventRuntime {
@@ -138,7 +137,10 @@ impl EditorEventRuntime {
         )
     }
 
-    pub(crate) fn ui_component_data_sources(&self) -> Vec<UiComponentDataSourceDescriptor> {
+    #[cfg(test)]
+    pub(crate) fn ui_component_data_sources(
+        &self,
+    ) -> Vec<zircon_runtime_interface::ui::component::UiComponentDataSourceDescriptor> {
         crate::ui::template_runtime::component_adapter::registry::EditorUiComponentAdapterRegistry::data_sources()
     }
 

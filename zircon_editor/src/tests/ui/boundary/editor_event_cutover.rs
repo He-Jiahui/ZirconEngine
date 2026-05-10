@@ -15,7 +15,7 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
     let ui_reflection_root = crate_root.join("ui").join("workbench").join("reflection");
     let callback_dispatch_root = crate_root
         .join("ui")
-        .join("slint_host")
+        .join("retained_host")
         .join("callback_dispatch");
 
     let core_mod_source =
@@ -51,7 +51,7 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
 
     assert!(
         !core_event_root.join("host_adapter.rs").exists(),
-        "expected core/editor_event/host_adapter.rs to be deleted after slint adapter cutover"
+        "expected core/editor_event/host_adapter.rs to be deleted after retained host adapter cutover"
     );
     assert!(
         !core_event_root.join("transient.rs").exists(),
@@ -280,8 +280,8 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
         "expected ui::workbench::reflection to own transient projection helpers directly"
     );
     assert!(
-        menu_action_source.contains("fn slint_menu_action("),
-        "expected workbench menu action module to own Slint menu normalization directly"
+        menu_action_source.contains("fn retained_menu_action("),
+        "expected workbench menu action module to own Retained menu normalization directly"
     );
 
     for file in collect_rust_files(&callback_dispatch_root) {
@@ -297,8 +297,8 @@ fn core_editor_event_stops_owning_ui_binding_and_projection_surfaces() {
 #[test]
 fn editor_host_input_translation_uses_shared_dispatch_contracts_without_private_effect_types() {
     let crate_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let slint_host_root = crate_root.join("ui").join("slint_host");
-    let host_contract_root = slint_host_root.join("host_contract");
+    let retained_host_root = crate_root.join("ui").join("retained_host");
+    let host_contract_root = retained_host_root.join("host_contract");
     let native_translation_source =
         std::fs::read_to_string(host_contract_root.join("native_input_translation.rs"))
             .expect("native input translation source");
@@ -307,7 +307,7 @@ fn editor_host_input_translation_uses_shared_dispatch_contracts_without_private_
     let native_translation_tests = crate_root
         .join("tests")
         .join("host")
-        .join("slint_window")
+        .join("retained_window")
         .join("native_input_translation.rs");
 
     for required in [
@@ -339,20 +339,20 @@ fn editor_host_input_translation_uses_shared_dispatch_contracts_without_private_
         native_translation_tests
     );
 
-    for path in collect_rust_files(&slint_host_root) {
-        let source = std::fs::read_to_string(&path).expect("slint host source");
+    for path in collect_rust_files(&retained_host_root) {
+        let source = std::fs::read_to_string(&path).expect("retained host source");
         for forbidden in [
             "HostDispatchReply",
             "HostDispatchEffect",
             "EditorDispatchReply",
             "EditorDispatchEffect",
-            "SlintDispatchReply",
-            "SlintDispatchEffect",
+            "RetainedDispatchReply",
+            "RetainedDispatchEffect",
             "PrivateDispatchReply",
             "PrivateDispatchEffect",
             "HostInputEffect",
             "EditorInputEffect",
-            "SlintInputEffect",
+            "RetainedInputEffect",
         ] {
             assert!(
                 !source.contains(forbidden),

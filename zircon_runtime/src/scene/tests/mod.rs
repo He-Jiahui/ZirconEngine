@@ -1,7 +1,9 @@
 mod asset_scene;
 mod component_structure;
+mod ecs_change_detection;
 mod ecs_identity_storage;
 mod ecs_query;
+mod ecs_reflect;
 mod ecs_schedule;
 mod ecs_systems;
 mod ecs_typed_api;

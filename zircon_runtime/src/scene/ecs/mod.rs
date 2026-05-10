@@ -15,6 +15,7 @@ mod events;
 mod internal_entity;
 mod internal_scene_system;
 mod query;
+mod removal;
 mod resource;
 mod resource_id;
 mod resource_registry;
@@ -32,8 +33,8 @@ mod system_stage;
 
 pub use archetype_id::ArchetypeId;
 pub use bundle::Bundle;
-pub use change_detection::{ChangeTick, ChangeTickWindow, ComponentTicks};
-pub use commands::{CommandQueue, Commands, CommandsParam};
+pub use change_detection::{ChangeTick, ChangeTickWindow, ComponentTicks, Mut, Ref};
+pub use commands::{Command, CommandQueue, Commands, CommandsParam, EntityCommands, FnCommand};
 pub use component::Component;
 pub use component_id::ComponentId;
 pub use component_registry::{
@@ -50,6 +51,7 @@ pub use query::{
     Added, Changed, QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryFilter,
     QueryIter, QueryMutData, QueryState, With, Without,
 };
+pub use removal::{RemovedComponentEvent, RemovedComponentEvents, RemovedComponentReader};
 pub use resource::Resource;
 pub use resource_id::ResourceId;
 pub use resource_registry::{ResourceDescriptor, ResourceRegistry};
@@ -62,8 +64,9 @@ pub use stable_entity_location::StableEntityLocation;
 pub use storage::{ComponentRemoveResult, ComponentStorage, StorageError};
 pub use storage_type::StorageType;
 pub use system::{
-    Local, LocalParam, Query, Res, ResMut, ResMutParam, ResParam, SystemParam, SystemParamAccess,
-    SystemParamError, SystemState,
+    EventReader, EventReaderParam, EventWriter, EventWriterParam, Local, LocalParam, ParamSet,
+    ParamSetItem, ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut,
+    ResMutParam, ResParam, SystemParam, SystemParamAccess, SystemParamError, SystemState,
 };
 pub use system_stage::SystemStage;
 

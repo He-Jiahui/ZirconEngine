@@ -12,6 +12,7 @@ pub(crate) use runtime_ui::PublicRuntimeFrame;
 #[cfg(test)]
 pub(crate) use runtime_ui::{RuntimeUiFixture, RuntimeUiManager};
 
+pub mod accessibility;
 pub mod binding;
 pub mod component;
 pub mod dispatch;

@@ -4,7 +4,7 @@ use crate::ui::layouts::windows::workbench_host_window::{PaneBodyPresentation, P
 use crate::ui::template::{
     EditorTemplateAdapter, EditorTemplateRegistry, EditorTemplateRuntimeService,
 };
-use crate::ui::template_runtime::SlintUiProjection;
+use crate::ui::template_runtime::RetainedUiProjection;
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{projection::project_instance, runtime_host::EditorUiHostRuntimeError};
@@ -14,7 +14,7 @@ pub(super) fn project_pane_body(
     template_registry: &EditorTemplateRegistry,
     template_adapter: &EditorTemplateAdapter,
     body: &PaneBodyPresentation,
-) -> Result<SlintUiProjection, EditorUiHostRuntimeError> {
+) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
     let mut instance = template_service
         .instantiate(template_registry, &body.document_id)
         .map_err(EditorUiHostRuntimeError::from)?;

@@ -465,6 +465,32 @@ fn template_surface_builder_maps_known_container_components_into_shared_runtime_
 }
 
 #[test]
+fn template_surface_builder_leaves_projection_lazy_until_layout_or_rebuild() {
+    let document = UiTemplateLoader::load_toml_str(SHARED_CONTAINER_TEMPLATE_TOML).unwrap();
+    let instance = UiTemplateInstance::from_document(&document).unwrap();
+
+    let mut surface = UiTemplateSurfaceBuilder::build_surface(
+        UiTreeId::new("shared.container.template.lazy"),
+        &instance,
+    )
+    .unwrap();
+
+    assert_eq!(surface.tree.nodes.len(), 4);
+    assert!(surface.arranged_tree.nodes.is_empty());
+    assert!(surface.render_extract.list.commands.is_empty());
+    assert_eq!(surface.last_rebuild_report.render_command_count, 0);
+
+    surface.compute_layout(UiSize::new(320.0, 180.0)).unwrap();
+
+    assert_eq!(surface.arranged_tree.nodes.len(), surface.tree.nodes.len());
+    assert_eq!(
+        surface.render_extract.list.commands.len(),
+        surface.tree.nodes.len()
+    );
+    assert_eq!(surface.last_rebuild_report.render_command_count, 4);
+}
+
+#[test]
 fn template_tree_builder_maps_layout_contract_attributes_into_shared_runtime_nodes() {
     let document = UiTemplateLoader::load_toml_str(LAYOUT_CONTRACT_TEMPLATE_TOML).unwrap();
     let instance = UiTemplateInstance::from_document(&document).unwrap();

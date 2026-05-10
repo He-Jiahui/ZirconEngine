@@ -56,6 +56,7 @@ fn should_rotate_history(
                 context.size(),
                 context.pipeline_handle(),
                 &context.compiled_pipeline().history_bindings,
+                context.history_validation_key(),
             )
         })
 }

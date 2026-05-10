@@ -1,4 +1,4 @@
-//! Editor UI layout composition separated from the Slint host adapter boundary.
+//! Editor UI layout composition separated from the Retained host adapter boundary.
 
 pub(crate) mod common;
 pub(crate) mod fields;

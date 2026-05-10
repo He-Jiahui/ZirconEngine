@@ -10,7 +10,15 @@ impl World {
             return false;
         };
         if let Some(internal) = self.internal_entity(entity) {
-            self.component_storage.remove_entity(internal);
+            let removed_components = self.component_storage.remove_entity(internal);
+            for component_id in removed_components {
+                if let Some((type_id, type_name)) =
+                    self.component_registry.rust_type_for_id(component_id)
+                {
+                    self.removed_component_events
+                        .push_type_id(type_id, type_name, entity);
+                }
+            }
         }
         self.unregister_stable_entity(entity);
         self.entities.remove(index);

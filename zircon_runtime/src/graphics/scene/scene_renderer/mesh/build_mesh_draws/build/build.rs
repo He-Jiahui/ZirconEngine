@@ -1,3 +1,4 @@
+use crate::core::framework::render::{RenderPhaseMeshSource, RenderPhaseQueue};
 use crate::graphics::scene::resources::GpuMeshResource;
 use crate::graphics::types::ViewportRenderFrame;
 
@@ -63,7 +64,7 @@ pub(crate) fn build_mesh_draws(
 ) -> BuiltMeshDraws {
     let build_context = build_mesh_draw_build_context(frame, virtual_geometry_enabled);
     let mut pending_draws = Vec::new();
-    for mesh_instance in &frame.scene.scene.meshes {
+    for mesh_instance in phase_ordered_meshes(frame) {
         extend_pending_draws_for_mesh_instance(
             &mut pending_draws,
             streamer,
@@ -160,6 +161,30 @@ pub(crate) fn build_mesh_draws(
     }
 }
 
+fn phase_ordered_meshes(
+    frame: &ViewportRenderFrame,
+) -> Vec<&crate::core::framework::render::RenderMeshSnapshot> {
+    let phase_queue = &frame.extract.geometry.phase_queue;
+    if phase_queue.items.is_empty() {
+        return frame.meshes().iter().collect();
+    }
+
+    meshes_from_phase_queue(frame, phase_queue)
+}
+
+fn meshes_from_phase_queue<'a>(
+    frame: &'a ViewportRenderFrame,
+    phase_queue: &RenderPhaseQueue,
+) -> Vec<&'a crate::core::framework::render::RenderMeshSnapshot> {
+    phase_queue
+        .items
+        .iter()
+        .filter_map(|item| match item.mesh_source {
+            RenderPhaseMeshSource::MeshIndex(index) => frame.meshes().get(index),
+        })
+        .collect()
+}
+
 fn submission_detail_from_draw_ref(
     draw_ref: Option<super::pending_mesh_draw::VirtualGeometryIndirectDrawRef>,
     submission_token: Option<u32>,
@@ -201,4 +226,92 @@ fn submission_detail_from_draw_ref(
         draw_ref.segment_key.lod_level,
         draw_ref.segment_key.frontier_rank,
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::phase_ordered_meshes;
+    use crate::core::framework::render::{
+        FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput, PreviewEnvironmentExtract,
+        RenderFrameExtract, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderWorldSnapshotHandle,
+        ViewportCameraSnapshot,
+    };
+    use crate::core::framework::scene::Mobility;
+    use crate::core::math::{Transform, UVec2, Vec4};
+    use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
+    use crate::graphics::ViewportRenderFrame;
+
+    #[test]
+    fn phase_ordered_meshes_follow_extract_phase_queue_instead_of_mesh_vector_order() {
+        let mut extract = RenderFrameExtract::from_snapshot(
+            RenderWorldSnapshotHandle::new(9),
+            RenderSceneSnapshot {
+                scene: RenderSceneGeometryExtract {
+                    camera: ViewportCameraSnapshot::default(),
+                    meshes: vec![test_mesh(30), test_mesh(10), test_mesh(20)],
+                    directional_lights: Vec::new(),
+                    point_lights: Vec::new(),
+                    spot_lights: Vec::new(),
+                },
+                overlays: RenderOverlayExtract::default(),
+                preview: PreviewEnvironmentExtract {
+                    lighting_enabled: false,
+                    skybox_enabled: false,
+                    fallback_skybox: FallbackSkyboxKind::None,
+                    clear_color: Vec4::ZERO,
+                },
+                virtual_geometry_debug: None,
+            },
+        );
+        extract.geometry = GeometryExtract::from_meshes_and_phase_inputs(
+            extract.view.core_pipeline,
+            extract.geometry.meshes.clone(),
+            vec![
+                GeometryPhaseInput {
+                    entity: 30,
+                    mesh_index: 0,
+                    material_alpha_mode: RenderMaterialAlphaMode::Blend,
+                    depth: 3.0,
+                },
+                GeometryPhaseInput {
+                    entity: 10,
+                    mesh_index: 1,
+                    material_alpha_mode: RenderMaterialAlphaMode::Opaque,
+                    depth: 1.0,
+                },
+                GeometryPhaseInput {
+                    entity: 20,
+                    mesh_index: 2,
+                    material_alpha_mode: RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
+                    depth: 2.0,
+                },
+            ],
+        );
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(320, 240));
+
+        assert_eq!(
+            phase_ordered_meshes(&frame)
+                .into_iter()
+                .map(|mesh| mesh.node_id)
+                .collect::<Vec<_>>(),
+            vec![10, 20, 30]
+        );
+    }
+
+    fn test_mesh(node_id: u64) -> RenderMeshSnapshot {
+        RenderMeshSnapshot {
+            node_id,
+            transform: Transform::default(),
+            model: ResourceHandle::<ModelMarker>::new(ResourceId::from_stable_label(&format!(
+                "builtin://test-model/{node_id}"
+            ))),
+            material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
+                &format!("builtin://test-material/{node_id}"),
+            )),
+            tint: Vec4::ONE,
+            mobility: Mobility::Dynamic,
+            render_layer_mask: u32::MAX,
+        }
+    }
 }

@@ -1,6 +1,5 @@
 use crate::ui::layouts::views::project_overview_pane_data;
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
-use slint::Model;
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::layout::UiSize;
 

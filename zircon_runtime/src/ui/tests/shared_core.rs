@@ -218,6 +218,7 @@ line_height = 12.0
                     style_overrides: Default::default(),
                     style_tokens: Default::default(),
                     bindings: Vec::new(),
+                    ..Default::default()
                 }),
         )
         .unwrap();
@@ -277,6 +278,7 @@ line_height = 12.0
                     style_overrides: Default::default(),
                     style_tokens: Default::default(),
                     bindings: Vec::new(),
+                    ..Default::default()
                 }),
         )
         .unwrap();
@@ -433,6 +435,7 @@ radius = 6.0
                     style_overrides: Default::default(),
                     style_tokens: Default::default(),
                     bindings: Vec::new(),
+                    ..Default::default()
                 }),
         )
         .unwrap();
@@ -547,6 +550,7 @@ label = "Locate In Assets"
                     style_overrides: Default::default(),
                     style_tokens: Default::default(),
                     bindings: Vec::new(),
+                    ..Default::default()
                 }),
         )
         .unwrap();

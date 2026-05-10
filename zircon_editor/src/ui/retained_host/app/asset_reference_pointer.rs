@@ -1,0 +1,343 @@
+use super::*;
+
+impl RetainedEditorHost {
+    pub(super) fn asset_reference_pointer_event(
+        &mut self,
+        surface_mode: &str,
+        list_kind: &str,
+        kind: i32,
+        button: i32,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        if button == 1 && kind == 2 {
+            self.active_asset_drag_payload = None;
+            return;
+        }
+        if kind != 0 || button != 1 {
+            return;
+        }
+        self.active_scene_drag_payload = None;
+        self.active_object_drag_payload = None;
+        self.recompute_if_dirty();
+        self.focus_callback_source_window();
+        let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
+            self.active_asset_drag_payload = None;
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.active_asset_drag_payload = None;
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
+
+        let dispatch = {
+            let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+                return;
+            };
+            let Some(list) = surface.reference_list_mut(list_kind) else {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.size = list_size;
+            let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.bridge.sync(layout, list.state.clone());
+            list.bridge.handle_press(UiPoint::new(x, y))
+        };
+
+        match dispatch {
+            Ok(dispatch) => {
+                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                    if let Some(list) = surface.reference_list_mut(list_kind) {
+                        list.state = dispatch.state;
+                    }
+                }
+                self.apply_asset_pointer_state_to_ui(surface_mode);
+                if let Some(AssetPointerReferenceRoute::Item { asset_uuid, .. }) = dispatch.route {
+                    self.active_asset_drag_payload =
+                        asset_drag_payload::asset_drag_payload_from_reference(
+                            surface_mode,
+                            list_kind,
+                            asset_uuid.as_str(),
+                            &snapshot,
+                        );
+                    if let Some(summary) = self
+                        .active_asset_drag_payload
+                        .as_ref()
+                        .and_then(UiDragPayload::source_summary)
+                    {
+                        self.set_status_line(format!("Asset reference drag source: {summary}"));
+                    }
+                } else {
+                    self.active_asset_drag_payload = None;
+                }
+            }
+            Err(error) => {
+                self.active_asset_drag_payload = None;
+                self.set_status_line(error);
+            }
+        }
+    }
+
+    pub(super) fn asset_reference_pointer_clicked(
+        &mut self,
+        surface_mode: &str,
+        list_kind: &str,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        self.recompute_if_dirty();
+        self.focus_callback_source_window();
+        let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
+
+        {
+            let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+                self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+                return;
+            };
+            let Some(list) = surface.reference_list_mut(list_kind) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.size = list_size;
+            let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.bridge.sync(layout, list.state.clone());
+        }
+
+        let runtime = &self.runtime;
+        let bridge = &self.asset_surface_bridge;
+        let point = UiPoint::new(x, y);
+        let dispatch = match (surface_mode, list_kind) {
+            ("activity", "references") => {
+                callback_dispatch::dispatch_shared_asset_reference_pointer_click(
+                    runtime,
+                    bridge,
+                    &mut self.activity_asset_pointer.references.bridge,
+                    point,
+                )
+            }
+            ("activity", "used_by") => {
+                callback_dispatch::dispatch_shared_asset_reference_pointer_click(
+                    runtime,
+                    bridge,
+                    &mut self.activity_asset_pointer.used_by.bridge,
+                    point,
+                )
+            }
+            ("browser", "references") => {
+                callback_dispatch::dispatch_shared_asset_reference_pointer_click(
+                    runtime,
+                    bridge,
+                    &mut self.browser_asset_pointer.references.bridge,
+                    point,
+                )
+            }
+            ("browser", "used_by") => {
+                callback_dispatch::dispatch_shared_asset_reference_pointer_click(
+                    runtime,
+                    bridge,
+                    &mut self.browser_asset_pointer.used_by.bridge,
+                    point,
+                )
+            }
+            _ => {
+                self.set_status_line(format!(
+                    "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+                ));
+                return;
+            }
+        };
+
+        match dispatch {
+            Ok(dispatch) => {
+                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                    if let Some(list) = surface.reference_list_mut(list_kind) {
+                        list.state = dispatch.pointer.state;
+                    }
+                }
+                self.apply_asset_pointer_state_to_ui(surface_mode);
+                if let Some(effects) = dispatch.effects {
+                    self.apply_dispatch_effects(effects);
+                }
+            }
+            Err(error) => self.set_status_line(error),
+        }
+    }
+
+    pub(super) fn asset_reference_pointer_moved(
+        &mut self,
+        surface_mode: &str,
+        list_kind: &str,
+        x: f32,
+        y: f32,
+        width: f32,
+        height: f32,
+    ) {
+        self.recompute_if_dirty();
+        self.focus_callback_source_window();
+        let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
+
+        let dispatch = {
+            let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+                self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+                return;
+            };
+            let Some(list) = surface.reference_list_mut(list_kind) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.size = list_size;
+            let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.bridge.sync(layout, list.state.clone());
+            list.bridge.handle_move(UiPoint::new(x, y))
+        };
+
+        match dispatch {
+            Ok(dispatch) => {
+                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                    if let Some(list) = surface.reference_list_mut(list_kind) {
+                        list.state = dispatch.state;
+                    }
+                }
+                self.apply_asset_pointer_state_to_ui(surface_mode);
+            }
+            Err(error) => self.set_status_line(error),
+        }
+    }
+
+    pub(super) fn asset_reference_pointer_scrolled(
+        &mut self,
+        surface_mode: &str,
+        list_kind: &str,
+        x: f32,
+        y: f32,
+        delta: f32,
+        width: f32,
+        height: f32,
+    ) {
+        self.recompute_if_dirty();
+        self.focus_callback_source_window();
+        let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
+            self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+            return;
+        };
+        let Some(list_size) = self
+            .asset_surface_pointer_state(surface_mode)
+            .and_then(|surface| surface.reference_list(list_kind))
+            .and_then(|list| {
+                self.resolve_callback_surface_size_for_asset_surface(
+                    surface_mode,
+                    width,
+                    height,
+                    list.size,
+                )
+            })
+        else {
+            self.set_status_line(format!(
+                "Unknown asset reference pointer target {surface_mode}/{list_kind}"
+            ));
+            return;
+        };
+
+        let dispatch = {
+            let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) else {
+                self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
+                return;
+            };
+            let Some(list) = surface.reference_list_mut(list_kind) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.size = list_size;
+            let Some(layout) = Self::asset_reference_layout(&snapshot, list_kind, list.size) else {
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return;
+            };
+            list.bridge.sync(layout, list.state.clone());
+            list.bridge.handle_scroll(UiPoint::new(x, y), delta)
+        };
+
+        match dispatch {
+            Ok(dispatch) => {
+                if let Some(surface) = self.asset_surface_pointer_state_mut(surface_mode) {
+                    if let Some(list) = surface.reference_list_mut(list_kind) {
+                        list.state = dispatch.state;
+                    }
+                }
+                self.apply_asset_pointer_state_to_ui(surface_mode);
+            }
+            Err(error) => self.set_status_line(error),
+        }
+    }
+}

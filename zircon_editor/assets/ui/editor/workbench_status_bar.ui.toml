@@ -11,172 +11,52 @@ widgets = []
 styles = []
 
 [root]
-node_id = "workbench_status_bar_root"
+node = "workbench_status_bar_root"
+
+[nodes.workbench_status_bar_root]
 kind = "native"
 type = "Overlay"
 control_id = "WorkbenchStatusBarRoot"
+layout = { clip = false, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { child = "workbench_status_bar_separator" },
+  { child = "workbench_status_bar_panel" },
+  { child = "status_primary_label" },
+  { child = "status_secondary_label" },
+  { child = "status_viewport_label" },
+]
 
-[root.layout]
-clip = false
-
-[root.layout.container]
-kind = "Overlay"
-
-[root.layout.width]
-stretch = "Stretch"
-
-[root.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_status_bar_separator"
+[nodes.workbench_status_bar_separator]
 kind = "native"
 type = "Container"
 control_id = "StatusBarSeparator"
+props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = -1.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-surface_variant = "inset"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = -1.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 1.0
-preferred = 1.0
-max = 1.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "workbench_status_bar_panel"
+[nodes.workbench_status_bar_panel]
 kind = "native"
 type = "Container"
 control_id = "StatusBarPanel"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
-[root.children.node.props]
-surface_variant = "panel"
-radius = 0.0
-border_width = 0.0
-
-[root.children.node.layout.position]
-x = 0.0
-y = 0.0
-
-[root.children.node.layout.width]
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-stretch = "Stretch"
-
-[[root.children]]
-[root.children.node]
-node_id = "status_primary_label"
+[nodes.status_primary_label]
 kind = "native"
 type = "Label"
 control_id = "StatusPrimaryLabel"
+props = { text = "Ready", text_tone = "subtle", font_size = 10.0, text_align = "left", overflow = "elide" }
+layout = { position = { x = 12.0, y = 4.0 }, width = { min = 240.0, preferred = 560.0, max = 960.0, stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = "Ready"
-text_tone = "subtle"
-font_size = 10.0
-text_align = "left"
-overflow = "elide"
-
-[root.children.node.layout.position]
-x = 12.0
-y = 4.0
-
-[root.children.node.layout.width]
-min = 240.0
-preferred = 560.0
-max = 960.0
-stretch = "Stretch"
-
-[root.children.node.layout.height]
-min = 14.0
-preferred = 14.0
-max = 14.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "status_secondary_label"
+[nodes.status_secondary_label]
 kind = "native"
 type = "Label"
 control_id = "StatusSecondaryLabel"
+props = { text = "", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -128.0, y = 4.0 }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
 
-[root.children.node.props]
-text = ""
-text_tone = "muted"
-font_size = 10.0
-text_align = "right"
-overflow = "elide"
-
-[root.children.node.layout.anchor]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.pivot]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.position]
-x = -128.0
-y = 4.0
-
-[root.children.node.layout.width]
-min = 96.0
-preferred = 96.0
-max = 96.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 14.0
-preferred = 14.0
-max = 14.0
-stretch = "Fixed"
-
-[[root.children]]
-[root.children.node]
-node_id = "status_viewport_label"
+[nodes.status_viewport_label]
 kind = "native"
 type = "Label"
 control_id = "StatusViewportLabel"
-
-[root.children.node.props]
-text = "1280 x 720"
-text_tone = "muted"
-font_size = 10.0
-text_align = "right"
-overflow = "elide"
-
-[root.children.node.layout.anchor]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.pivot]
-x = 1.0
-y = 0.0
-
-[root.children.node.layout.position]
-x = -14.0
-y = 4.0
-
-[root.children.node.layout.width]
-min = 104.0
-preferred = 104.0
-max = 104.0
-stretch = "Fixed"
-
-[root.children.node.layout.height]
-min = 14.0
-preferred = 14.0
-max = 14.0
-stretch = "Fixed"
+props = { text = "1280 x 720", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -14.0, y = 4.0 }, width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }

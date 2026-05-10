@@ -17,7 +17,7 @@ use crate::core::editor_event::{
     LayoutCommand, MenuAction, ViewDescriptorId as EventViewDescriptorId,
     ViewInstanceId as EventViewInstanceId,
 };
-use crate::ui::slint_host::callback_dispatch::slint_menu_action;
+use crate::ui::retained_host::callback_dispatch::retained_menu_action;
 use crate::ui::workbench::event::menu_action_binding;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::view::ViewDescriptorId;
@@ -789,7 +789,7 @@ fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity()
     let enter_record = runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::WorkbenchMenu(MenuAction::EnterPlayMode),
         )
         .expect("enter play mode");
@@ -805,7 +805,7 @@ fn play_mode_menu_operations_use_runtime_backend_and_record_operation_identity()
     let exit_record = runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::WorkbenchMenu(MenuAction::ExitPlayMode),
         )
         .expect("exit play mode");
@@ -836,7 +836,7 @@ fn inspector_field_apply_batch_records_undoable_operation_stack_entry() {
     let record = runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::Inspector(EditorInspectorEvent {
                 subject_path: "entity://selected".to_string(),
                 changes: vec![InspectorFieldChange::new(
@@ -2479,20 +2479,20 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
 }
 
 #[test]
-fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() {
+fn retained_adapter_binding_and_call_action_share_the_same_normalized_menu_event() {
     let _guard = env_lock().lock().unwrap();
 
-    let slint = EventRuntimeHarness::new("zircon_editor_event_slint");
+    let retained_host = EventRuntimeHarness::new("zircon_editor_event_retained_host");
     let binding = EventRuntimeHarness::new("zircon_editor_event_binding");
     let action = EventRuntimeHarness::new("zircon_editor_event_action");
 
-    let slint_before = slint.runtime.editor_snapshot().scene_entries.len();
+    let retained_before = retained_host.runtime.editor_snapshot().scene_entries.len();
     let binding_before = binding.runtime.editor_snapshot().scene_entries.len();
     let action_before = action.runtime.editor_snapshot().scene_entries.len();
 
-    let slint_record = slint
+    let retained_record = retained_host
         .runtime
-        .dispatch_envelope(slint_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(retained_menu_action("CreateNode.Cube").unwrap())
         .unwrap();
     let binding_record = binding
         .runtime
@@ -2514,17 +2514,17 @@ fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() 
     };
 
     assert_eq!(
-        slint_record.event,
+        retained_record.event,
         EditorEvent::WorkbenchMenu(MenuAction::CreateNode(NodeKind::Cube))
     );
-    assert_eq!(binding_record.event, slint_record.event);
+    assert_eq!(binding_record.event, retained_record.event);
     assert_eq!(
         binding_record.operation_id.as_deref(),
         Some("Scene.Node.CreateCube")
     );
     assert_eq!(
         action.runtime.journal().records()[0].event,
-        slint_record.event
+        retained_record.event
     );
     assert_eq!(
         action.runtime.journal().records()[0]
@@ -2532,12 +2532,12 @@ fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() 
             .as_deref(),
         Some("Scene.Node.CreateCube")
     );
-    assert_eq!(binding_record.result.value, slint_record.result.value);
-    assert_eq!(action_result.value, slint_record.result.value);
+    assert_eq!(binding_record.result.value, retained_record.result.value);
+    assert_eq!(action_result.value, retained_record.result.value);
 
     assert_eq!(
-        slint.runtime.editor_snapshot().scene_entries.len(),
-        slint_before + 1
+        retained_host.runtime.editor_snapshot().scene_entries.len(),
+        retained_before + 1
     );
     assert_eq!(
         binding.runtime.editor_snapshot().scene_entries.len(),
@@ -2548,10 +2548,10 @@ fn slint_adapter_binding_and_call_action_share_the_same_normalized_menu_event() 
         action_before + 1
     );
 
-    let serialized = serde_json::to_string(&slint_record).unwrap();
+    let serialized = serde_json::to_string(&retained_record).unwrap();
     assert!(
         !serialized.contains("WorkbenchMenuBar"),
-        "canonical event record leaked slint view ids: {serialized}"
+        "canonical event record leaked deleted generated UI view ids: {serialized}"
     );
 }
 
@@ -2562,7 +2562,7 @@ fn serialized_journal_replays_editor_and_layout_state_through_the_same_runtime_p
     let source = EventRuntimeHarness::new("zircon_editor_event_replay_source");
     source
         .runtime
-        .dispatch_envelope(slint_menu_action("CreateNode.Cube").unwrap())
+        .dispatch_envelope(retained_menu_action("CreateNode.Cube").unwrap())
         .unwrap();
     source
         .runtime
@@ -2624,7 +2624,7 @@ fn transient_state_projects_into_reflection_without_reading_a_live_ui_tree() {
     runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::Transient(EditorEventTransient::HoverNode {
                 node_path: "editor/workbench/pages/workbench/editor.scene#1".to_string(),
                 hovered: true,
@@ -2634,7 +2634,7 @@ fn transient_state_projects_into_reflection_without_reading_a_live_ui_tree() {
     runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::Transient(EditorEventTransient::FocusNode {
                 node_path: "editor/workbench/pages/workbench/editor.scene#1".to_string(),
             }),
@@ -2643,7 +2643,7 @@ fn transient_state_projects_into_reflection_without_reading_a_live_ui_tree() {
     runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::Transient(EditorEventTransient::PressNode {
                 node_path: "editor/workbench/pages/workbench/editor.scene#1".to_string(),
                 pressed: true,
@@ -2653,7 +2653,7 @@ fn transient_state_projects_into_reflection_without_reading_a_live_ui_tree() {
     runtime
         .runtime
         .dispatch_event(
-            EditorEventSource::Slint,
+            EditorEventSource::RetainedHost,
             EditorEvent::Transient(EditorEventTransient::SetDrawerResizing {
                 drawer_id: "left_top".to_string(),
                 resizing: true,
@@ -2723,9 +2723,9 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
 }
 
 #[test]
-fn slint_preset_menu_actions_normalize_to_layout_events_with_expected_names() {
-    let save = slint_menu_action("SavePreset.rider").unwrap();
-    let load = slint_menu_action("LoadPreset.").unwrap();
+fn retained_preset_menu_actions_normalize_to_layout_events_with_expected_names() {
+    let save = retained_menu_action("SavePreset.rider").unwrap();
+    let load = retained_menu_action("LoadPreset.").unwrap();
 
     assert_eq!(
         save.event,

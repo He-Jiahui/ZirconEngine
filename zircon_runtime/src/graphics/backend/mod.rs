@@ -2,4 +2,8 @@
 
 mod render_backend;
 
-pub(crate) use render_backend::{read_texture_rgba, OffscreenTarget, RenderBackend};
+#[cfg(test)]
+pub(crate) use render_backend::RenderBackendConfig;
+pub(crate) use render_backend::{
+    read_texture_rgba, GraphicsDebuggerCaptureStop, OffscreenTarget, RenderBackend, ViewportSurface,
+};

@@ -51,7 +51,7 @@ pub use scene::{
     SceneMobilityAsset, ScenePointLightAsset, SceneRigidBodyAsset, SceneRigidBodyTypeAsset,
     SceneSpotLightAsset, SceneTerrainAsset, SceneTileMapAsset, TransformAsset,
 };
-pub use shader::{ShaderAsset, ShaderEntryPointAsset, ShaderSourceLanguage};
+pub use shader::{ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, ShaderSourceLanguage};
 pub use sound::SoundAsset;
 pub use texture::{TextureAsset, TexturePayload};
 pub use ui::{

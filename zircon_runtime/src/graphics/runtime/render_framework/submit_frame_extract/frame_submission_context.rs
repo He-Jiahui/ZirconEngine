@@ -5,6 +5,7 @@ use crate::core::framework::render::{
     RenderVirtualGeometryExtract,
 };
 use crate::core::math::UVec2;
+use crate::graphics::runtime::FrameHistoryValidationKey;
 
 use crate::{
     CompiledRenderPipeline, VisibilityContext, VisibilityHybridGiFeedback,
@@ -24,9 +25,11 @@ pub(super) struct UiSubmissionStats {
 pub(super) struct FrameSubmissionContext {
     size: UVec2,
     pipeline_handle: RenderPipelineHandle,
+    viewport_generation: u64,
     quality_profile: Option<String>,
     compiled_pipeline: CompiledRenderPipeline,
     visibility_context: VisibilityContext,
+    history_validation_key: FrameHistoryValidationKey,
     ui_stats: UiSubmissionStats,
     hybrid_gi_enabled: bool,
     virtual_geometry_enabled: bool,
@@ -51,9 +54,11 @@ impl FrameSubmissionContext {
     pub(super) fn new(
         size: UVec2,
         pipeline_handle: RenderPipelineHandle,
+        viewport_generation: u64,
         quality_profile: Option<String>,
         compiled_pipeline: CompiledRenderPipeline,
         visibility_context: VisibilityContext,
+        history_validation_key: FrameHistoryValidationKey,
         ui_stats: UiSubmissionStats,
         hybrid_gi_enabled: bool,
         virtual_geometry_enabled: bool,
@@ -96,9 +101,11 @@ impl FrameSubmissionContext {
         Self {
             size,
             pipeline_handle,
+            viewport_generation,
             quality_profile,
             compiled_pipeline,
             visibility_context,
+            history_validation_key,
             ui_stats,
             hybrid_gi_enabled,
             virtual_geometry_enabled,
@@ -126,6 +133,10 @@ impl FrameSubmissionContext {
         self.pipeline_handle
     }
 
+    pub(super) fn viewport_generation(&self) -> u64 {
+        self.viewport_generation
+    }
+
     pub(super) fn quality_profile(&self) -> Option<&str> {
         self.quality_profile.as_deref()
     }
@@ -136,6 +147,10 @@ impl FrameSubmissionContext {
 
     pub(super) fn visibility_context(&self) -> &VisibilityContext {
         &self.visibility_context
+    }
+
+    pub(super) fn history_validation_key(&self) -> &FrameHistoryValidationKey {
+        &self.history_validation_key
     }
 
     pub(super) fn ui_stats(&self) -> &UiSubmissionStats {

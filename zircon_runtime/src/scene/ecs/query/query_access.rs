@@ -61,6 +61,15 @@ impl QueryAccess {
         !self.has_disjoint_filter(other)
     }
 
+    pub(crate) fn merge_param_set_unchecked(&mut self, other: &Self) {
+        for component_id in other.reads.iter().copied() {
+            insert_id(&mut self.reads, component_id);
+        }
+        for component_id in other.writes.iter().copied() {
+            insert_id(&mut self.writes, component_id);
+        }
+    }
+
     fn has_data_conflict(&self, other: &Self) -> bool {
         intersects(&self.writes, &other.reads)
             || intersects(&self.reads, &other.writes)

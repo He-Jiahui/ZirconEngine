@@ -8,15 +8,17 @@ use super::{
     net::{NetEndpoint, NetError, NetPacket, NetSocketId},
     physics::{PhysicsCombineRule, PhysicsMaterialMetadata, PhysicsSettings},
     render::{
-        CapturedFrame, FallbackSkyboxKind, FrameHistoryHandle, PreviewEnvironmentExtract,
-        RenderCapabilityKind, RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
+        CapturedFrame, CorePipelineKind, FallbackSkyboxKind, FrameHistoryHandle, GeometryExtract,
+        GeometryPhaseInput, PreviewEnvironmentExtract, RenderCapabilityKind,
+        RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
         RenderFeatureQualitySettings, RenderFrameExtract, RenderFrameworkError,
         RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
-        RenderOverlayExtract, RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature,
-        RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
-        RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-        RenderSpotLightSnapshot, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-        RenderingBackendInfo, ViewportCameraSnapshot,
+        RenderMaterialAlphaMode, RenderOverlayExtract, RenderPhase, RenderPhaseMeshSource,
+        RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature, RenderProductProfile,
+        RenderProfileBundle, RenderProfileValidationError, RenderQualityProfile,
+        RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats,
+        RenderViewportDescriptor, RenderViewportHandle, RenderingBackendInfo,
+        ViewportCameraSnapshot,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
     tasks::{
@@ -111,6 +113,87 @@ fn framework_contract_types_are_constructible() {
 
     let history = FrameHistoryHandle::new(19);
     assert_eq!(history.raw(), 19);
+}
+
+#[test]
+fn render_product_pipeline_phase_queue_orders_opaque_mask_and_transparent_for_2d_and_3d() {
+    assert_mesh_phase_order(
+        CorePipelineKind::Core2d,
+        &[
+            RenderPhase::Opaque2d,
+            RenderPhase::AlphaMask2d,
+            RenderPhase::Transparent2d,
+        ],
+    );
+    assert_mesh_phase_order(
+        CorePipelineKind::Core3d,
+        &[
+            RenderPhase::Opaque3d,
+            RenderPhase::AlphaMask3d,
+            RenderPhase::Transparent3d,
+        ],
+    );
+}
+
+#[test]
+fn render_product_pipeline_camera_projection_selects_core_pipeline_kind() {
+    let perspective = ViewportCameraSnapshot::default();
+    assert_eq!(perspective.core_pipeline_kind(), CorePipelineKind::Core3d);
+
+    let orthographic = ViewportCameraSnapshot {
+        projection_mode: super::render::ProjectionMode::Orthographic,
+        ..ViewportCameraSnapshot::default()
+    };
+    assert_eq!(orthographic.core_pipeline_kind(), CorePipelineKind::Core2d);
+}
+
+fn assert_mesh_phase_order(pipeline: CorePipelineKind, expected: &[RenderPhase; 3]) {
+    let queue = GeometryExtract::from_meshes_and_phase_inputs(
+        pipeline,
+        Vec::new(),
+        vec![
+            GeometryPhaseInput {
+                entity: 30,
+                mesh_index: 0,
+                material_alpha_mode: RenderMaterialAlphaMode::Blend,
+                depth: 2.0,
+            },
+            GeometryPhaseInput {
+                entity: 10,
+                mesh_index: 1,
+                material_alpha_mode: RenderMaterialAlphaMode::Opaque,
+                depth: 1.0,
+            },
+            GeometryPhaseInput {
+                entity: 20,
+                mesh_index: 2,
+                material_alpha_mode: RenderMaterialAlphaMode::Mask { cutoff: 0.5 },
+                depth: 1.5,
+            },
+        ],
+    )
+    .phase_queue;
+
+    assert_eq!(
+        queue
+            .items
+            .iter()
+            .map(|item| item.phase)
+            .collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(
+        queue
+            .items
+            .iter()
+            .map(|item| item.mesh_source)
+            .collect::<Vec<_>>(),
+        vec![
+            RenderPhaseMeshSource::MeshIndex(1),
+            RenderPhaseMeshSource::MeshIndex(2),
+            RenderPhaseMeshSource::MeshIndex(0),
+        ]
+    );
 }
 
 #[test]

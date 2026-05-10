@@ -14,13 +14,13 @@ related_code:
   - zircon_editor/src/ui/workbench/window_registry/drawer_window_instance.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_binding.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_dock_position.rs
-  - zircon_editor/src/ui/slint_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/slint_host/app/native_window_close.rs
-  - zircon_editor/src/ui/slint_host/app/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/slint_host/tab_drag/resolved_drop.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
   - zircon_editor/src/ui/workbench/autolayout/region/tool_region/presence.rs
@@ -54,14 +54,14 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_ui_host.rs
   - zircon_editor/src/ui/host/workspace_state.rs
   - zircon_editor/src/ui/host/layout_commands.rs
-  - zircon_editor/src/ui/slint_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/slint_host/app/native_window_close.rs
-  - zircon_editor/src/ui/slint_host/app/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/close_prompt.rs
-  - zircon_editor/src/ui/slint_host/host_contract/native_pointer.rs
-  - zircon_editor/src/ui/slint_host/callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/ui/slint_host/tab_drag/resolved_drop.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
+  - zircon_editor/src/ui/retained_host/app/native_window_close.rs
+  - zircon_editor/src/ui/retained_host/app/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/close_prompt.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer.rs
+  - zircon_editor/src/ui/retained_host/callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/ui/retained_host/tab_drag/resolved_drop.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/workbench/main_page_snapshot.rs
   - zircon_editor/src/ui/workbench/model/build/workbench_view_model_build.rs
@@ -85,9 +85,9 @@ tests:
   - zircon_editor/src/tests/workbench/layout/editor_main_frame_layout.rs
   - zircon_editor/src/tests/workbench/layout/window_drawer_ownership.rs
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
-  - zircon_editor/src/ui/slint_host/app/tests/close_prompt.rs
-  - zircon_editor/src/tests/host/slint_callback_dispatch/layout/tab_drop.rs
-  - zircon_editor/src/tests/host/slint_menu_pointer/visual_screenshot.rs
+  - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
+  - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
+  - zircon_editor/src/tests/host/retained_menu_pointer/visual_screenshot.rs
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/tests/host/builtin_window_descriptors.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
@@ -116,7 +116,7 @@ doc_type: module-detail
 
 The editor main frame is now modeled separately from drawer-capable editor windows. `EditorMainFrameLayout` stores only the active window and ordered window tabs. Drawer-capable windows use `ActivityWindowLayout`, which owns `activity_drawers` and a content workspace.
 
-The reusable `.ui.toml` shell is `editor.host.activity_drawer_window`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` reference that shell and mount their own left, right, bottom, and content regions. Slint remains a host projection layer; these new business window structures are `.ui.toml` assets.
+The reusable `.ui.toml` shell is `editor.host.activity_drawer_window`. `WorkbenchWindow`, `AssetWindow`, and `UILayoutEditorWindow` reference that shell and mount their own left, right, bottom, and content regions. The retained host consumes Rust-owned `host_contract` projection data; these business window structures are `.ui.toml` assets.
 
 `WorkbenchLayout::activity_windows()` remains the compatibility read surface for old layouts that still only persisted root `drawers`, but current presentation no longer treats the first or root drawer map as active by default. `MainHostPageLayout::WorkbenchPage` now binds the page to an `ActivityWindowId`, and `EditorChromeSnapshot::build(...)` projects drawer snapshots only from the activity window attached to `active_main_page`.
 

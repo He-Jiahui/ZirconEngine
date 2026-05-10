@@ -236,7 +236,7 @@ mod tests {
         let mut record = RenderGraphExecutionRecord::default();
 
         record.push_executed_pass_with_stage_declared_queue_dependencies_and_resources(
-            Some(RenderPassStage::Transparent),
+            Some(RenderPassStage::Transparent3d),
             "particle-render",
             "particle.transparent",
             QueueLane::Graphics,
@@ -247,9 +247,12 @@ mod tests {
 
         assert_eq!(
             record.executed_pass_stages(),
-            &[Some(RenderPassStage::Transparent)]
+            &[Some(RenderPassStage::Transparent3d)]
         );
-        assert_eq!(record.executed_stage_count(RenderPassStage::Transparent), 1);
+        assert_eq!(
+            record.executed_stage_count(RenderPassStage::Transparent3d),
+            1
+        );
         assert_eq!(record.executed_stage_count(RenderPassStage::PostProcess), 0);
     }
 }

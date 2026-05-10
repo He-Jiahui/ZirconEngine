@@ -69,3 +69,7 @@ tuple_system_param!(A);
 tuple_system_param!(A, B);
 tuple_system_param!(A, B, C);
 tuple_system_param!(A, B, C, D);
+tuple_system_param!(A, B, C, D, E);
+tuple_system_param!(A, B, C, D, E, F);
+tuple_system_param!(A, B, C, D, E, F, G);
+tuple_system_param!(A, B, C, D, E, F, G, H);

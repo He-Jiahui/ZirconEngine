@@ -1,5 +1,3 @@
-use slint::Model;
-
 use super::super::pane_payload::{
     ModulePluginStatusPayload, ModulePluginsPanePayload, PanePayload,
 };

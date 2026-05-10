@@ -14,19 +14,19 @@ related_code:
   - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
 implementation_files:
   - zircon_runtime_interface/src/ui/surface/timeline.rs
   - zircon_runtime/src/ui/surface/timeline.rs
@@ -42,19 +42,19 @@ implementation_files:
   - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
   - zircon_editor/src/core/editor_operation.rs
-  - zircon_editor/src/ui/slint_host/menu_pointer/menu_items_for_layout.rs
+  - zircon_editor/src/ui/retained_host/menu_pointer/menu_items_for_layout.rs
   - zircon_editor/src/ui/workbench/reflection/name_mapping.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_payload_builders/runtime_diagnostics.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/runtime_diagnostics.rs
-  - zircon_editor/src/ui/slint_host/host_contract/data/panes.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/mod.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/debug_reflector_overlay.rs
-  - zircon_editor/src/ui/slint_host/host_contract/painter/workbench.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/runtime_diagnostics.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/mod.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/debug_reflector_overlay.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/workbench.rs
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
 plan_sources:
   - docs/superpowers/specs/2026-05-07-debug-observatory-design.md
   - docs/superpowers/plans/2026-05-08-debug-observatory-m2.md
@@ -75,11 +75,11 @@ tests:
   - zircon_editor/src/tests/host/pane_presentation.rs
   - zircon_editor/src/tests/host/template_runtime/pane_payload_projection.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
-  - zircon_editor/src/tests/host/slint_runtime_diagnostics_template_body.rs
-  - zircon_editor/src/tests/host/slint_window/ui_debug_reflector.rs
-  - zircon_editor/src/tests/host/slint_window/native_host_contract.rs
-  - zircon_editor/src/tests/host/slint_window/shell_window.rs
-  - zircon_editor/src/ui/slint_host/ui/tests.rs
+  - zircon_editor/src/tests/host/retained_runtime_diagnostics_template_body.rs
+  - zircon_editor/src/tests/host/retained_window/ui_debug_reflector.rs
+  - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
+  - zircon_editor/src/tests/host/retained_window/shell_window.rs
+  - zircon_editor/src/ui/retained_host/ui/tests.rs
   - tests/acceptance/ui-debug-reflector-full-closure.md
 doc_type: module-detail
 ---
@@ -114,7 +114,7 @@ Debug Observatory M2 adds a runtime-owned bounded snapshot timeline. `zircon_run
 
 The editor timeline model is deliberately read-only. `EditorUiDebugTimelineModel::from_timeline(...)` derives retention text, latest/selected labels, previous/next frame handles, frame rows, and a selected-frame `EditorUiDebugReflectorModel` from the shared timeline snapshot. If the selected handle is missing, the model falls back to the latest retained frame; if the timeline is empty, it reuses `EditorUiDebugReflectorModel::no_active_surface()`. Historical selection never calls runtime layout, hit-test, mutation, or rebuild APIs.
 
-The Slint host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
+The retained host conversion path uses `runtime_diagnostics.rs` to project those anchors and append text rows for reflector details. It rewrites the template nodes once with payload values before adding the generated text rows, so the host model does not keep stale authored placeholder labels beside live payload text. This keeps Runtime Diagnostics separate from Module Plugins in host contract data and lets the native painter draw the text/list section through normal template-node rendering.
 
 The host-scene conversion seam is part of the reflector acceptance boundary because Runtime Diagnostics eventually travels through `apply_presentation.rs::to_host_contract_pane(...)` like every other workbench pane. That conversion must be payload-driven, not string-only. A host-scene pane may use a synthetic pane kind while carrying a real host-owned native-body payload; non-empty native-body buckets are therefore preserved even when `kind` is not the canonical editor pane label. The regression `host_scene_projection_converts_host_owned_panes_to_host_contract_panes` locks this boundary so Debug Reflector and other native panes do not lose their template nodes before the host contract rebuilds `body_surface_frame`.
 
@@ -138,7 +138,7 @@ The M7 overlay replay path also converts `UiRenderVisualizerOverlay` rows into `
 
 ## Boundaries
 
-The editor reflector must not rebuild a hit grid, infer layout from host rectangles, or query Slint widget internals. When a pane body surface is available, it must first be converted into a runtime `UiSurfaceDebugSnapshot` and then passed through this module. Runtime Diagnostics follows that rule for its own host-projected body surface; selecting some other pane's live surface remains a separate workflow.
+The editor reflector must not rebuild a hit grid, infer layout from host rectangles, or query host widget internals. When a pane body surface is available, it must first be converted into a runtime `UiSurfaceDebugSnapshot` and then passed through this module. Runtime Diagnostics follows that rule for its own host-projected body surface; selecting some other pane's live surface remains a separate workflow.
 
 ## Validation
 

@@ -81,6 +81,17 @@ impl ComponentRegistry {
         self.descriptors.get(id.index())
     }
 
+    pub(crate) fn rust_type_for_id(&self, id: ComponentId) -> Option<(TypeId, String)> {
+        self.ids_by_key.iter().find_map(|(key, component_id)| {
+            (*component_id == id).then(|| match key {
+                ComponentKey::Rust(type_id) => {
+                    Some((*type_id, self.descriptors[id.index()].type_name.clone()))
+                }
+                ComponentKey::Dynamic(_) => None,
+            })?
+        })
+    }
+
     pub fn descriptors(&self) -> &[ComponentDescriptor] {
         &self.descriptors
     }

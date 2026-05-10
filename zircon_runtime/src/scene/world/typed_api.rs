@@ -13,8 +13,40 @@ impl World {
         B: Bundle,
     {
         let entity = self.spawn_node(NodeKind::Mesh);
-        bundle.insert_into(self, entity)?;
+        self.insert_bundle(entity, bundle)?;
         Ok(entity)
+    }
+
+    pub(crate) fn spawn_empty_at(&mut self, entity: EntityId) -> bool {
+        if self.contains_entity(entity) {
+            return false;
+        }
+        if self.next_id <= entity {
+            self.next_id = entity + 1;
+        }
+        self.register_stable_entity(entity)
+            .expect("reserved scene entity must have a unique stable id");
+        self.entities.push(entity);
+        self.kinds.insert(entity, NodeKind::Mesh);
+        self.refresh_stable_entity_locations();
+        self.mark_derived_state_dirty();
+        true
+    }
+
+    pub(crate) fn spawn_at<B>(&mut self, entity: EntityId, bundle: B) -> Result<EntityId, String>
+    where
+        B: Bundle,
+    {
+        self.spawn_empty_at(entity);
+        self.insert_bundle(entity, bundle)?;
+        Ok(entity)
+    }
+
+    pub(crate) fn insert_bundle<B>(&mut self, entity: EntityId, bundle: B) -> Result<(), String>
+    where
+        B: Bundle,
+    {
+        bundle.insert_into(self, entity)
     }
 
     pub fn component_id<T>(&mut self) -> ComponentId
@@ -120,6 +152,7 @@ impl World {
                     .map_err(|error| error.to_string())?;
             }
             if removed.is_some() {
+                self.record_removed_component::<T>(entity);
                 self.mark_component_mutation::<T>();
             }
             return Ok(removed);
@@ -133,6 +166,7 @@ impl World {
             .map_err(|error| error.to_string())?
             .map(|ComponentRemoveResult { value, .. }| value);
         if removed.is_some() {
+            self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>();
         }
         Ok(removed)

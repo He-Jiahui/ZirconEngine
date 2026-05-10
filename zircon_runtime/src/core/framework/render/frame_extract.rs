@@ -5,13 +5,14 @@ use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 
 use super::{
-    DisplayMode, PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
+    build_mesh_phase_queue, CorePipelineKind, DisplayMode, FallbackSkyboxKind, MeshPhaseInput,
+    PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
     RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderHybridGiExtract,
-    RenderMeshSnapshot, RenderOverlayExtract, RenderParticleBoundsSnapshot,
-    RenderParticleSpriteSnapshot, RenderPointLightSnapshot, RenderReflectionProbeSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
-    RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
-    ViewportCameraSnapshot,
+    RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
+    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPhaseQueue,
+    RenderPointLightSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderVirtualGeometryDebugState,
+    RenderVirtualGeometryExtract, SceneViewportExtractRequest, ViewportCameraSnapshot,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -52,13 +53,108 @@ pub trait RenderExtractProducer {
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
+    pub core_pipeline: CorePipelineKind,
+}
+
+impl RenderViewExtract {
+    pub fn from_camera(camera: ViewportCameraSnapshot) -> Self {
+        let core_pipeline = camera.core_pipeline_kind();
+        Self {
+            camera,
+            core_pipeline,
+        }
+    }
+}
+
+impl From<ViewportCameraSnapshot> for RenderViewExtract {
+    fn from(camera: ViewportCameraSnapshot) -> Self {
+        Self::from_camera(camera)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GeometryPhaseInput {
+    pub entity: EntityId,
+    pub mesh_index: usize,
+    pub material_alpha_mode: RenderMaterialAlphaMode,
+    pub depth: f32,
+}
+
+impl GeometryPhaseInput {
+    pub fn new(
+        entity: EntityId,
+        mesh_index: usize,
+        material_alpha_mode: RenderMaterialAlphaMode,
+        depth: f32,
+    ) -> Self {
+        Self {
+            entity,
+            mesh_index,
+            material_alpha_mode,
+            depth,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
 pub struct GeometryExtract {
     pub meshes: Vec<RenderMeshSnapshot>,
+    pub phase_inputs: Vec<GeometryPhaseInput>,
+    pub phase_queue: RenderPhaseQueue,
     pub virtual_geometry: Option<RenderVirtualGeometryExtract>,
     pub virtual_geometry_debug: Option<RenderVirtualGeometryDebugState>,
+}
+
+impl GeometryExtract {
+    pub fn from_meshes(core_pipeline: CorePipelineKind, meshes: Vec<RenderMeshSnapshot>) -> Self {
+        let phase_inputs = meshes
+            .iter()
+            .enumerate()
+            .map(|(mesh_index, mesh)| GeometryPhaseInput {
+                entity: mesh.node_id,
+                mesh_index,
+                material_alpha_mode: RenderMaterialAlphaMode::Opaque,
+                depth: mesh.transform.translation.z,
+            })
+            .collect::<Vec<_>>();
+        Self::from_meshes_and_phase_inputs(core_pipeline, meshes, phase_inputs)
+    }
+
+    pub fn from_meshes_and_phase_inputs(
+        core_pipeline: CorePipelineKind,
+        meshes: Vec<RenderMeshSnapshot>,
+        phase_inputs: Vec<GeometryPhaseInput>,
+    ) -> Self {
+        let phase_queue = build_mesh_phase_queue(
+            core_pipeline,
+            phase_inputs.iter().map(|input| MeshPhaseInput {
+                entity: input.entity,
+                mesh_index: input.mesh_index,
+                material_alpha_mode: &input.material_alpha_mode,
+                depth: input.depth,
+            }),
+        );
+
+        Self {
+            meshes,
+            phase_inputs,
+            phase_queue,
+            virtual_geometry: None,
+            virtual_geometry_debug: None,
+        }
+    }
+
+    pub fn rebuild_phase_queue(&mut self, core_pipeline: CorePipelineKind) {
+        self.phase_queue = build_mesh_phase_queue(
+            core_pipeline,
+            self.phase_inputs.iter().map(|input| MeshPhaseInput {
+                entity: input.entity,
+                mesh_index: input.mesh_index,
+                material_alpha_mode: &input.material_alpha_mode,
+                depth: input.depth,
+            }),
+        );
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Default)]
@@ -77,6 +173,22 @@ pub struct PostProcessExtract {
     pub display_mode: DisplayMode,
     pub bloom: RenderBloomSettings,
     pub color_grading: RenderColorGradingSettings,
+}
+
+impl Default for PostProcessExtract {
+    fn default() -> Self {
+        Self {
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: false,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: crate::core::math::Vec4::ZERO,
+            },
+            display_mode: DisplayMode::Shaded,
+            bloom: RenderBloomSettings::default(),
+            color_grading: RenderColorGradingSettings::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -165,13 +277,14 @@ impl RenderFrameExtract {
 
         Self {
             world,
-            view: RenderViewExtract {
-                camera: snapshot.scene.camera.clone(),
-            },
-            geometry: GeometryExtract {
-                meshes: snapshot.scene.meshes.clone(),
-                virtual_geometry: None,
-                virtual_geometry_debug: snapshot.virtual_geometry_debug,
+            view: RenderViewExtract::from_camera(snapshot.scene.camera.clone()),
+            geometry: {
+                let mut geometry = GeometryExtract::from_meshes(
+                    snapshot.scene.camera.core_pipeline_kind(),
+                    snapshot.scene.meshes.clone(),
+                );
+                geometry.virtual_geometry_debug = snapshot.virtual_geometry_debug;
+                geometry
             },
             animation_poses: Vec::new(),
             lighting: LightingExtract {

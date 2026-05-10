@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::Path;
 
-use slint::{Image, ModelRc, SharedString};
+use crate::ui::retained_host::primitives::{Image, ModelRc, SharedString};
 use zircon_runtime_interface::resource::{ResourceKind, ResourceState};
 
 use crate::ui::layouts::common::model_rc;

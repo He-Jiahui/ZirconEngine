@@ -16,7 +16,7 @@ impl SceneRendererCore {
         if let Some(history) = history_textures {
             if runtime_features.history_resolve_enabled {
                 encoder.copy_texture_to_texture(
-                    target.final_color.as_image_copy(),
+                    target.scene_color.as_image_copy(),
                     history.scene_color.as_image_copy(),
                     texture_extent(target.size),
                 );

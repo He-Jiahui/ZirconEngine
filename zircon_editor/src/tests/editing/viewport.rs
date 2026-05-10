@@ -249,7 +249,7 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
     assert!(projection.toolbar.has_selection);
     assert!(projection.toolbar.can_frame_selection);
 
-    assert_eq!(projection.stats.node_count, scene.nodes().len());
+    assert_eq!(projection.stats.node_count, scene.node_records().len());
     assert_eq!(projection.stats.camera_count, 1);
     assert_eq!(projection.stats.mesh_count, 1);
     assert_eq!(projection.stats.light_count, 2);

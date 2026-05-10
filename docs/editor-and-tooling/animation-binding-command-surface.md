@@ -21,13 +21,13 @@ related_code:
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/ui/workbench/animation_editor_pane.slint
-  - zircon_editor/ui/workbench/pane_surface.slint
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
   - zircon_editor/src/tests/ui/binding/mod.rs
   - zircon_editor/src/tests/ui/binding/animation.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
@@ -58,13 +58,13 @@ implementation_files:
   - zircon_editor/src/ui/host/animation_editor_sessions/editing.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_sequence_view_descriptor.rs
   - zircon_editor/src/ui/host/builtin_views/activity_windows/animation_graph_view_descriptor.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/ui/apply_presentation.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/ui/apply_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/pane_projection.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/shell_presentation.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/floating_windows.rs
-  - zircon_editor/ui/workbench/animation_editor_pane.slint
-  - zircon_editor/ui/workbench/pane_surface.slint
+  - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
+  - zircon_editor/src/ui/retained_host/host_contract/window.rs
 plan_sources:
   - user: 2026-04-20 继续正在runtime/editor/framework实现完整的物理和动画系统
   - user: 2026-04-20 PLEASE IMPLEMENT THIS PLAN
@@ -261,9 +261,9 @@ track path 无效时，dispatch 统一返回 `EditorBindingDispatchError::Invali
 
 workbench 壳现在也不再把 animation 资产页签渲染成 fallback pane：
 
-- `pane_surface.slint` 增加了 animation branch
-- `animation_editor_pane.slint` 定义了 sequence / graph / state-machine 三种 pane 数据视图
-- `pane_projection`、`shell_presentation`、`floating_windows`、`apply_presentation` 与 `host_lifecycle` 把 `AnimationEditorPanePresentation` 一路投影到 Slint host
+- retained `host_contract` pane data exposes the animation branch through Rust-owned `AnimationEditorPaneData`
+- `retained_host/ui/pane_data_conversion/mod.rs` maps sequence / graph / state-machine views into the host-contract pane payload
+- `pane_projection`、`shell_presentation`、`floating_windows`、`apply_presentation` 与 `host_lifecycle` 把 `AnimationEditorPanePresentation` 一路投影到 retained host
 
 因此 `.sequence.zranim` 和 `.graph/.state_machine.zranim` 不只是 descriptor 路由正确，workbench 中心页签和浮动窗口也都能展示真实 animation pane 内容，而不是通用 empty/fallback 提示。
 

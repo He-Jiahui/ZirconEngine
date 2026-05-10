@@ -9,9 +9,10 @@ use crate::scene::components::{
     RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, WorldMatrix,
 };
 use crate::scene::ecs::{
-    ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry,
-    ResourceRegistry, ResourceStore, Schedule,
+    ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry, EventStore,
+    RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
+use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
 
 use super::{dirty_state::DerivedStateDirty, ComponentTypeRegistry};
@@ -62,6 +63,8 @@ pub struct World {
     pub(super) dynamic_components: HashMap<EntityId, HashMap<String, serde_json::Value>>,
     #[serde(skip, default)]
     pub(super) component_types: ComponentTypeRegistry,
+    #[serde(skip, default)]
+    pub(super) type_registry: TypeRegistry,
     pub(super) next_id: EntityId,
     pub(super) active_camera: EntityId,
     #[serde(skip, default)]
@@ -73,9 +76,13 @@ pub struct World {
     #[serde(skip, default)]
     pub(super) component_storage: ComponentStorage,
     #[serde(skip, default)]
+    pub(super) removed_component_events: RemovedComponentEvents,
+    #[serde(skip, default)]
     pub(super) resource_registry: ResourceRegistry,
     #[serde(skip, default)]
     pub(super) resources: ResourceStore,
+    #[serde(skip, default)]
+    pub(super) events: EventStore,
     #[serde(skip, default)]
     pub(super) command_queue: CommandQueue,
     #[serde(skip, default = "default_change_tick")]
@@ -163,20 +170,24 @@ impl<'de> Deserialize<'de> for World {
             mobility: state.mobility,
             dynamic_components: state.dynamic_components,
             component_types: Default::default(),
+            type_registry: Default::default(),
             next_id: state.next_id,
             active_camera: state.active_camera,
             schedule: Default::default(),
             entity_registry: Default::default(),
             component_registry: Default::default(),
             component_storage: Default::default(),
+            removed_component_events: Default::default(),
             resource_registry: Default::default(),
             resources: Default::default(),
+            events: Default::default(),
             command_queue: Default::default(),
             change_tick: default_change_tick(),
             active_change_tick: None,
             node_cache: Vec::new(),
             derived_state_dirty: Default::default(),
         };
+        crate::scene::reflect::register_builtin_reflection(&mut world);
         world.rebuild_entity_registry();
         world.rebuild_typed_component_presence();
         Ok(world)
@@ -190,5 +201,15 @@ fn default_change_tick() -> ChangeTick {
 impl Default for World {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl World {
+    pub(in crate::scene) fn type_registry_for_reflection(&self) -> &TypeRegistry {
+        &self.type_registry
+    }
+
+    pub(in crate::scene) fn type_registry_mut_for_reflection(&mut self) -> &mut TypeRegistry {
+        &mut self.type_registry
     }
 }

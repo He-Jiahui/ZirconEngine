@@ -6,6 +6,7 @@ pub(in crate::graphics::runtime::render_framework) fn destroy_viewport(
     server: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<(), RenderFrameworkError> {
+    let _operation_guard = server.operation_lock.lock().unwrap();
     let mut state = server.state.lock().unwrap();
     let removed = state.viewports.remove(&viewport);
     if removed.is_none() {
@@ -16,6 +17,7 @@ pub(in crate::graphics::runtime::render_framework) fn destroy_viewport(
     if let Some(history) = removed.and_then(|record| record.into_history()) {
         state.renderer.release_history(history.handle());
     }
+    state.graphics_debugger.forget_viewport(viewport);
     state.stats.active_viewports = state.viewports.len();
     Ok(())
 }

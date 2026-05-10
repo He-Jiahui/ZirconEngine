@@ -3,7 +3,8 @@ use crate::scene::World;
 
 impl World {
     pub fn commands(&mut self) -> Commands<'_> {
-        Commands::new(&mut self.command_queue)
+        let (queue, next_entity) = self.command_state_mut();
+        Commands::new(queue, next_entity)
     }
 
     pub fn apply_deferred(&mut self) {
@@ -21,7 +22,7 @@ impl World {
         !self.command_queue.is_empty()
     }
 
-    pub(crate) fn command_queue_mut(&mut self) -> &mut CommandQueue {
-        &mut self.command_queue
+    pub(crate) fn command_state_mut(&mut self) -> (&mut CommandQueue, &mut crate::scene::EntityId) {
+        (&mut self.command_queue, &mut self.next_id)
     }
 }

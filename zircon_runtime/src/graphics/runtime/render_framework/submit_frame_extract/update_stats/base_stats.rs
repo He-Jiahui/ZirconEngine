@@ -52,7 +52,7 @@ pub(super) fn update_base_stats(
         count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "particle.");
     state.stats.last_transparent_graph_executed_pass_count = state
         .renderer
-        .last_render_graph_executed_stage_count(RenderPassStage::Transparent);
+        .last_render_graph_executed_stage_count(RenderPassStage::Transparent3d);
     state.stats.last_async_compute_pass_count = state
         .renderer
         .last_render_graph_executed_queue_lane_count(QueueLane::AsyncCompute);

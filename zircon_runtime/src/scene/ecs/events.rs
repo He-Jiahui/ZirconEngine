@@ -98,3 +98,15 @@ impl fmt::Debug for EventStore {
             .finish()
     }
 }
+
+impl Clone for EventStore {
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+
+impl PartialEq for EventStore {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}

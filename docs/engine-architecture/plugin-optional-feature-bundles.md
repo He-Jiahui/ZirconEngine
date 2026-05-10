@@ -32,9 +32,9 @@ related_code:
   - zircon_editor/src/ui/host/editor_manager_plugins_export/package_projection/native_project_selection.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/status/builtin.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/status/native.rs
-  - zircon_editor/src/ui/slint_host/app/host_lifecycle.rs
-  - zircon_editor/src/ui/slint_host/app/module_plugin_actions.rs
-  - zircon_editor/src/ui/slint_host/ui/pane_data_conversion/mod.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/module_plugin_actions.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/mod.rs
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/features/timeline_animation_track/runtime/src/lib.rs
   - zircon_plugins/sound/features/ray_traced_convolution_reverb/runtime/src/lib.rs

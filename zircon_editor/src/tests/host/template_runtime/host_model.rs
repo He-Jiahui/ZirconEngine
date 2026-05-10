@@ -181,7 +181,7 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
 }
 
 #[test]
-fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
+fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
@@ -193,55 +193,57 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
         .unwrap();
     let host_model = runtime.build_host_model(&projection).unwrap();
 
-    let slint_projection = SlintUiHostAdapter::build_projection(&host_model);
+    let retained_projection = RetainedUiHostAdapter::build_projection(&host_model);
 
-    assert_eq!(slint_projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
+    assert_eq!(retained_projection.document_id, UI_HOST_WINDOW_DOCUMENT_ID);
     assert_eq!(
-        slint_projection
+        retained_projection
             .nodes
             .iter()
             .map(|node| node.kind)
             .collect::<Vec<_>>(),
         vec![
-            SlintUiHostComponentKind::Root,
-            SlintUiHostComponentKind::VerticalBox,
-            SlintUiHostComponentKind::Toolbar,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::HorizontalBox,
-            SlintUiHostComponentKind::ActivityRail,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::IconButton,
-            SlintUiHostComponentKind::DocumentHost,
-            SlintUiHostComponentKind::TabStrip,
-            SlintUiHostComponentKind::PaneSurface,
-            SlintUiHostComponentKind::StatusBar,
-            SlintUiHostComponentKind::Label,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
-            SlintUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Root,
+            RetainedUiHostComponentKind::VerticalBox,
+            RetainedUiHostComponentKind::Toolbar,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::HorizontalBox,
+            RetainedUiHostComponentKind::ActivityRail,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::IconButton,
+            RetainedUiHostComponentKind::DocumentHost,
+            RetainedUiHostComponentKind::TabStrip,
+            RetainedUiHostComponentKind::PaneSurface,
+            RetainedUiHostComponentKind::StatusBar,
+            RetainedUiHostComponentKind::Label,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
+            RetainedUiHostComponentKind::Unknown,
         ]
     );
 
-    let open_project = slint_projection.node_by_control_id("OpenProject").unwrap();
+    let open_project = retained_projection
+        .node_by_control_id("OpenProject")
+        .unwrap();
     assert_eq!(open_project.node_id, "root.0.0.0");
     assert_eq!(open_project.parent_id.as_deref(), Some("root.0.0"));
-    assert_eq!(open_project.kind, SlintUiHostComponentKind::IconButton);
+    assert_eq!(open_project.kind, RetainedUiHostComponentKind::IconButton);
     assert_eq!(open_project.text.as_deref(), Some("Open"));
     assert_eq!(open_project.icon.as_deref(), Some("folder-open-outline"));
     assert_eq!(
         open_project.properties.get("label").cloned().unwrap(),
-        SlintUiHostValue::String("Open".to_string())
+        RetainedUiHostValue::String("Open".to_string())
     );
     let click_route = open_project
         .routes
@@ -261,14 +263,16 @@ fn slint_ui_host_adapter_builds_generic_projection_from_host_model() {
             .as_ui_binding()
     );
 
-    let status_text = slint_projection.node_by_control_id("StatusText").unwrap();
-    assert_eq!(status_text.kind, SlintUiHostComponentKind::Label);
+    let status_text = retained_projection
+        .node_by_control_id("StatusText")
+        .unwrap();
+    assert_eq!(status_text.kind, RetainedUiHostComponentKind::Label);
     assert_eq!(status_text.text.as_deref(), Some("Ready"));
     assert_eq!(status_text.icon, None);
 }
 
 #[test]
-fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
+fn editor_ui_host_runtime_builds_retained_host_projection_and_snapshot() {
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     let mut projection = runtime
@@ -279,16 +283,17 @@ fn editor_ui_host_runtime_builds_slint_host_projection_and_snapshot() {
         .register_projection_routes(&mut service, &mut projection)
         .unwrap();
 
-    let slint_projection = runtime.build_slint_host_projection(&projection).unwrap();
-    let snapshot =
-        EditorUiCompatibilityHarness::capture_slint_host_projection_snapshot(&slint_projection);
+    let retained_projection = runtime.build_retained_host_projection(&projection).unwrap();
+    let snapshot = EditorUiCompatibilityHarness::capture_retained_host_projection_snapshot(
+        &retained_projection,
+    );
 
-    assert_eq!(slint_projection.nodes.len(), 27);
+    assert_eq!(retained_projection.nodes.len(), 27);
     assert!(snapshot
-        .slint_nodes
+        .retained_nodes
         .contains(&"root.0.0.0|IconButton|OpenProject".to_string()));
     assert!(snapshot
-        .slint_nodes
+        .retained_nodes
         .contains(&"root.0.4.0|Label|StatusText".to_string()));
     assert!(snapshot
         .text_entries
