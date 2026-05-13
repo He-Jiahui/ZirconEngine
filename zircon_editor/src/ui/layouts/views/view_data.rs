@@ -121,8 +121,13 @@ pub(crate) struct ViewTemplateNodeData {
     pub control_id: SharedString,
     pub role: SharedString,
     pub text: SharedString,
+    pub component_role: SharedString,
+    pub value_text: SharedString,
     pub dispatch_kind: SharedString,
     pub action_id: SharedString,
+    pub binding_id: SharedString,
+    pub edit_action_id: SharedString,
+    pub commit_action_id: SharedString,
     pub surface_variant: SharedString,
     pub text_tone: SharedString,
     pub button_variant: SharedString,
@@ -153,8 +158,13 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("control_id", &self.control_id)
             .field("role", &self.role)
             .field("text", &self.text)
+            .field("component_role", &self.component_role)
+            .field("value_text", &self.value_text)
             .field("dispatch_kind", &self.dispatch_kind)
             .field("action_id", &self.action_id)
+            .field("binding_id", &self.binding_id)
+            .field("edit_action_id", &self.edit_action_id)
+            .field("commit_action_id", &self.commit_action_id)
             .field("surface_variant", &self.surface_variant)
             .field("text_tone", &self.text_tone)
             .field("button_variant", &self.button_variant)
@@ -189,8 +199,13 @@ impl PartialEq for ViewTemplateNodeData {
             && self.control_id == other.control_id
             && self.role == other.role
             && self.text == other.text
+            && self.component_role == other.component_role
+            && self.value_text == other.value_text
             && self.dispatch_kind == other.dispatch_kind
             && self.action_id == other.action_id
+            && self.binding_id == other.binding_id
+            && self.edit_action_id == other.edit_action_id
+            && self.commit_action_id == other.commit_action_id
             && self.surface_variant == other.surface_variant
             && self.text_tone == other.text_tone
             && self.button_variant == other.button_variant
@@ -221,8 +236,13 @@ impl Default for ViewTemplateNodeData {
             control_id: SharedString::default(),
             role: SharedString::default(),
             text: SharedString::default(),
+            component_role: SharedString::default(),
+            value_text: SharedString::default(),
             dispatch_kind: SharedString::default(),
             action_id: SharedString::default(),
+            binding_id: SharedString::default(),
+            edit_action_id: SharedString::default(),
+            commit_action_id: SharedString::default(),
             surface_variant: SharedString::default(),
             text_tone: SharedString::default(),
             button_variant: SharedString::default(),

@@ -28,7 +28,7 @@ impl RetainedEditorHost {
         y: f32,
         delta: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         let event = match map_viewport_pointer_event(kind, button, x, y, delta) {
             Ok(event) => event,
             Err(error) => {
@@ -72,7 +72,7 @@ impl RetainedEditorHost {
         point_x: f32,
         point_y: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         let surface_size = self.viewport_toolbar_surface_size(surface_key);
         let _ = self.viewport_toolbar_bridge.recompute_layout(surface_size);

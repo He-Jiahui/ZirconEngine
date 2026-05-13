@@ -1,0 +1,23 @@
+[asset]
+kind = "view"
+id = "navigation.navmesh_obstacle.drawer"
+version = 2
+display_name = "NavMeshObstacle"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_navmesh_obstacle_drawer_root"
+
+[nodes.navigation_navmesh_obstacle_fields]
+component = "Space"
+control_id = "NavigationNavMeshObstacleFields"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_navmesh_obstacle_drawer_root]
+component = "VerticalGroup"
+control_id = "NavigationNavMeshObstacleDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_navmesh_obstacle_fields" }]

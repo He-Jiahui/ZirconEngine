@@ -1,0 +1,69 @@
+[asset]
+kind = "view"
+id = "editor.host.startup.welcome_controls"
+version = 2
+display_name = "startup welcome controls"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "WelcomeSurfaceControls"
+classes = ["editor-surface-controls", "welcome-controls"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_name" }, { node = "location" }, { node = "actions" }, { node = "recent_actions" }]
+
+[nodes.project_name]
+component = "InputField"
+control_id = "ProjectNameEdited"
+props = { label = "Project", placeholder = "Project name", value_text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WelcomeSurface/ProjectNameEdited", event = "Change", route = "WelcomeCommand.SetProjectName" }]
+
+[nodes.location]
+component = "InputField"
+control_id = "LocationEdited"
+props = { label = "Location", placeholder = "Project location", value_text = "" }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+events = [{ id = "WelcomeSurface/LocationEdited", event = "Change", route = "WelcomeCommand.SetLocation" }]
+
+[nodes.actions]
+component = "HorizontalGroup"
+control_id = "WelcomePrimaryActions"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "create" }, { node = "open_existing" }]
+
+[nodes.create]
+component = "IconButton"
+control_id = "CreateProject"
+props = { label = "Create", icon = "add-circle-outline" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "WelcomeCommand.CreateProject" }]
+
+[nodes.open_existing]
+component = "IconButton"
+control_id = "OpenExistingProject"
+props = { label = "Open", icon = "folder-open-outline" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = "WelcomeCommand.OpenExistingProject" }]
+
+[nodes.recent_actions]
+component = "HorizontalGroup"
+control_id = "WelcomeRecentActions"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "open_recent" }, { node = "remove_recent" }]
+
+[nodes.open_recent]
+component = "IconButton"
+control_id = "OpenRecentProject"
+props = { label = "Open Recent", icon = "time-outline" }
+layout = { width = { min = 116.0, preferred = 116.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "WelcomeCommand.OpenRecentProject" }]
+
+[nodes.remove_recent]
+component = "IconButton"
+control_id = "RemoveRecentProject"
+props = { label = "Remove", icon = "close-circle-outline" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WelcomeSurface/RemoveRecentProject", event = "Click", route = "WelcomeCommand.RemoveRecentProject" }]

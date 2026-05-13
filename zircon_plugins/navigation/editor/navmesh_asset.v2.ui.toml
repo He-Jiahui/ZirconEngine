@@ -1,0 +1,23 @@
+[asset]
+kind = "view"
+id = "navigation.navmesh_asset"
+version = 2
+display_name = "NavMesh Asset"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_navmesh_asset_root"
+
+[nodes.navigation_navmesh_asset_summary]
+component = "Space"
+control_id = "NavigationNavMeshAssetSummary"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_navmesh_asset_root]
+component = "VerticalGroup"
+control_id = "NavigationNavMeshAssetRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_navmesh_asset_summary" }]

@@ -33,6 +33,8 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
   - zircon_editor/src/ui/retained_host/app/pointer_layout.rs
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/retained_host/menu_pointer/constants.rs
   - zircon_editor/src/ui/retained_host/menu_pointer/build_host_menu_pointer_layout.rs
@@ -55,6 +57,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_popup.v2.ui.toml
 plan_sources:
   - user: 2026-05-06 Drawer/Window/Menu Slate plan requested menu tree, popup bounds, scroll overflow, and optional multi-column popup behavior
   - .codex/plans/Drawer_Window_Menu Slate 化推进计划.md
@@ -64,6 +68,7 @@ tests:
   - zircon_editor/src/tests/host/retained_menu_pointer/dispatcher.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/pointer_bridge.rs
   - zircon_editor/src/tests/host/retained_menu_pointer/support.rs
+  - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state -- --nocapture (2026-05-11: passed)
   - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_clamps_popup_hit_frames_to_tiny_shell --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib shared_menu_pointer_bridge_routes_multi_column_popup_items_after_right_edge_clamp --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never -- --nocapture
   - cargo check -p zircon_editor --lib --tests --locked --jobs 1 --target-dir F:\cargo-targets\zircon-m4-menu-overflow --message-format short --color never
@@ -78,6 +83,7 @@ tests:
   - cargo test -p zircon_editor --lib retained_menu_pointer --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never -- --nocapture
   - cargo check -p zircon_editor --lib --tests --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never
   - cargo test -p zircon_editor --lib menu_chrome_nodes_project_extension_slots_beyond_authored_stencil --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m4-menu-overflow-dynamic --message-format short --color never -- --nocapture
+  - cargo test -p zircon_editor retained_menu_pointer -- --nocapture (2026-05-11: passed, 22 passed, 4 ignored)
 doc_type: module-detail
 ---
 
@@ -89,11 +95,11 @@ doc_type: module-detail
 
 ## Data Flow
 
-`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`.
+`build_host_menu_pointer_layout(...)` receives the current `MenuBarModel`, chrome snapshot, shell size, layout presets, and optional projected root-shell frames. It resolves the top-level menu button frames from the shared menu bar or shell frame and builds `HostMenuPointerLayout`. The shared menu bar frame stencil now comes from `workbench_menu_chrome.v2.ui.toml` through the v2 file cache rather than reparsing the old root chrome asset.
 
 `HostMenuPointerLayout` carries editor action state, preset rows, popup height, explicit tree-shaped `menus`, dynamic top-level button frames, menu-bar content width, menu-bar scroll offset state, and `menu_overflow_mode`. `build_host_menu_pointer_layout(...)` reads overflow mode from `EditorChromeSnapshot`, whose active-window value comes from persisted `ActivityWindowLayout.menu_overflow_mode`. When `menus` is present, the pointer bridge consumes those rows rather than rebuilding hard-coded menu contents. Branch rows stay as enabled tree nodes with children; leaves preserve either legacy `MenuAction` ids or `EditorOperationPath` ids so extension operations dispatch through the operation runtime.
 
-`HostMenuPointerBridge::sync(...)` clamps retained popup and menu-bar scroll offsets against the current metrics, rebuilds the `UiSurface`, and registers each interactive node with `UiPointerDispatcher`. Clicks on menu buttons open or close the active popup; hover/click on `SubmenuBranch` nodes stores `open_submenu_path` and rebuilds child popup layers; clicks on interactive leaf nodes close the popup and return the action id; clicks outside the popup hit the dismiss overlay.
+`HostMenuPointerBridge::sync(...)` first compares the incoming layout and state with the committed pair. If both are unchanged, it returns `false` and keeps the current `UiSurface`; otherwise it clamps retained popup and menu-bar scroll offsets against the current metrics, rebuilds the surface, and registers each interactive node with `UiPointerDispatcher`. Clicks on menu buttons open or close the active popup; hover/click on `SubmenuBranch` nodes stores `open_submenu_path` and rebuilds child popup layers; clicks on interactive leaf nodes close the popup and return the action id; clicks outside the popup hit the dismiss overlay.
 
 ## Popup Geometry
 
@@ -117,7 +123,7 @@ Overwide menu bars use `menu_bar_content_width` plus `menu_bar_scroll_offset`. T
 
 ## Native Chrome Projection
 
-Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows still come from the `.ui.toml` popup template, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar `.ui.toml` stencil still owns the first seven JetBrains-like Material menu slots, and `chrome_template_projection.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
+Workbench chrome projection now keeps menu items as a tree through `HostMenuChromeItemData.children`. Root popup rows come from `workbench_menu_popup.v2.ui.toml`, while native child popups are painted from the same tree and `HostMenuStateData.open_submenu_path`. The menu-bar v2 stencil still owns the first seven JetBrains-like Material menu slots, and `chrome_template_projection.rs` clones that stencil horizontally for extension menus beyond slot 6 so projected `menu_frames` and shared pointer frames do not truncate plugin top-level menus. The native pointer guard also treats open child popup frames as menu-owned space, so pointer events over a child popup stay in the shared menu pointer route instead of falling through to panes or the viewport.
 
 ## Test Coverage
 
@@ -134,6 +140,8 @@ Existing menu pointer coverage still owns the single-column paths: opening and d
 `shared_menu_pointer_layout_extends_menu_button_frames_for_extension_menus` verifies production menu pointer layout derives slots beyond the authored seven-slot menu bar stencil and exposes scrollable content width for overwide extension menus.
 
 `shared_menu_pointer_bridge_scrolls_overwide_menu_bar_to_extension_button` verifies the shared pointer surface scrolls an overwide top menu bar horizontally, clips button hit frames to the viewport, and opens an extension menu button after it is brought into view.
+
+`shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state` verifies identical layout/state syncs do not rebuild the bridge-local pointer surface, while all scroll/hover/open-menu tests above continue to prove real state changes rebuild the route surface.
 
 `menu_chrome_nodes_project_extension_slots_beyond_authored_stencil` verifies native chrome projection clones menu slot nodes beyond `MenuSlot6` while preserving the extension label and monotonically increasing x position.
 

@@ -1,0 +1,46 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.hierarchy.v2"
+version = 2
+display_name = "Hierarchy"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "hierarchy_root"
+
+[nodes.top_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.left_space]
+component = "Space"
+layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.list_panel]
+component = "Space"
+control_id = "HierarchyListPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_space]
+component = "Space"
+layout = { width = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_space" }, { node = "list_panel" }, { node = "right_space" }]
+
+[nodes.bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.hierarchy_root]
+component = "VerticalBox"
+control_id = "HierarchyRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]

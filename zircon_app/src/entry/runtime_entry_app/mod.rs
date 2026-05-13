@@ -14,6 +14,8 @@ pub(super) struct RuntimeEntryApp {
     window: Option<Arc<dyn Window>>,
     presenter: Option<SoftbufferRuntimePresenter>,
     surface_present_enabled: bool,
+    surface_present_failed: bool,
+    surface_present_attempted: bool,
     session: RuntimeSession,
     viewport: ZrRuntimeViewportHandle,
     viewport_size: ZrRuntimeViewportSizeV1,

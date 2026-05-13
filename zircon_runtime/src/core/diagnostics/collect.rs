@@ -13,12 +13,14 @@ pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnaps
     let physics = collect_physics_diagnostics(core);
     let animation = collect_animation_diagnostics(core);
     let store = collect_diagnostic_store_snapshot(&render, &physics, &animation);
+    let profile = super::profiling::snapshot();
 
     RuntimeDiagnosticsSnapshot {
         render,
         physics,
         animation,
         store,
+        profile,
     }
 }
 

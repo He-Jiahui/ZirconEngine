@@ -9,7 +9,7 @@ fn source(relative: &str) -> String {
 #[test]
 fn ui_asset_authoring_preview_and_binding_contracts_are_rust_owned() {
     let ui_asset = source("src/ui/retained_host/host_contract/data/ui_asset.rs");
-    let asset = source("assets/ui/editor/ui_asset_editor.ui.toml");
+    let asset = source("assets/ui/editor/ui_asset_editor.v2.ui.toml");
 
     for required in [
         "pub(crate) struct UiAssetPreviewMockData",

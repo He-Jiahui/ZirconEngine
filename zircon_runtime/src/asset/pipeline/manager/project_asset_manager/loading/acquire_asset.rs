@@ -11,7 +11,7 @@ use crate::asset::{
     AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
     AnimationStateMachineAsset, AssetId, FontAsset, MaterialAsset, ModelAsset,
     PhysicsMaterialAsset, SceneAsset, ShaderAsset, SoundAsset, TextureAsset, UiLayoutAsset,
-    UiStyleAsset, UiWidgetAsset,
+    UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -137,5 +137,30 @@ impl ProjectAssetManager {
         id: AssetId,
     ) -> Result<ResourceLease<UiStyleAsset>, CoreError> {
         self.acquire_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui style")
+    }
+
+    pub fn acquire_ui_v2_view_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceLease<UiV2ViewAsset>, CoreError> {
+        self.acquire_typed(id, ResourceHandle::<UiLayoutMarker>::new(id), "ui v2 view")
+    }
+
+    pub fn acquire_ui_v2_component_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceLease<UiV2ComponentAsset>, CoreError> {
+        self.acquire_typed(
+            id,
+            ResourceHandle::<UiWidgetMarker>::new(id),
+            "ui v2 component",
+        )
+    }
+
+    pub fn acquire_ui_v2_style_asset(
+        &self,
+        id: AssetId,
+    ) -> Result<ResourceLease<UiV2StyleAsset>, CoreError> {
+        self.acquire_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui v2 style")
     }
 }

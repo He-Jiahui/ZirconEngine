@@ -48,6 +48,10 @@ pub(super) fn build_hierarchy_items(
     let mut items = Vec::new();
     if let Some(root_id) = document.root_node_id() {
         visit(&mut items, document, root_id, 0, selected);
+    } else {
+        for component in document.components.values() {
+            visit(&mut items, document, &component.root.node_id, 0, selected);
+        }
     }
     items
 }
@@ -107,6 +111,10 @@ pub(super) fn hierarchy_node_ids(document: &UiAssetDocument) -> Vec<String> {
     let mut items = Vec::new();
     if let Some(root_id) = document.root_node_id() {
         visit(&mut items, document, root_id);
+    } else {
+        for component in document.components.values() {
+            visit(&mut items, document, &component.root.node_id);
+        }
     }
     items
 }

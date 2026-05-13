@@ -10,8 +10,8 @@ use crate::asset::tests::support::{
 };
 use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterDescriptor,
-    AssetImporterRegistry, AssetUri, FunctionAssetImporter, ImportedAsset, MeshVertex, ModelAsset,
-    ModelPrimitiveAsset,
+    AssetImporterRegistry, AssetImporterRegistryError, AssetUri, FunctionAssetImporter,
+    ImportedAsset, MeshVertex, ModelAsset, ModelPrimitiveAsset,
 };
 use crate::core::math::{Vec2, Vec3};
 use crate::ui::template::UI_ASSET_CURRENT_SOURCE_SCHEMA_VERSION;
@@ -142,6 +142,88 @@ id = "main"
     }
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_registry_routes_v2_ui_toml_to_v2_document_backend() {
+    let root = unique_temp_project_root("v2_ui_toml_registry");
+    fs::create_dir_all(&root).unwrap();
+    let path = root.join("hud_overlay.v2.ui.toml");
+    fs::write(&path, minimal_v2_ui_view_toml()).unwrap();
+
+    let default_descriptor = AssetImporter::default()
+        .registry()
+        .descriptor_for_source(&path)
+        .unwrap();
+    assert_eq!(
+        default_descriptor.id,
+        "zircon.builtin.ui_document.v2_ui_toml"
+    );
+    assert_eq!(default_descriptor.importer_version, 2);
+    assert_eq!(default_descriptor.full_suffixes, vec![".v2.ui.toml"]);
+    let default_imported = AssetImporter::default()
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://ui/hud_overlay.v2.ui.toml").unwrap(),
+        )
+        .unwrap();
+    assert!(matches!(default_imported, ImportedAsset::UiV2View(_)));
+
+    let fixture_importer = importer_with_first_wave_plugin_fixtures();
+    let fixture_descriptor = fixture_importer
+        .registry()
+        .descriptor_for_source(&path)
+        .unwrap();
+    assert_eq!(fixture_descriptor.id, "ui_document_importer.v2_typed_toml");
+    assert_eq!(fixture_descriptor.full_suffixes, vec![".v2.ui.toml"]);
+
+    let imported = fixture_importer
+        .import_from_source(
+            &path,
+            &AssetUri::parse("res://ui/hud_overlay.v2.ui.toml").unwrap(),
+        )
+        .unwrap();
+    assert!(matches!(imported, ImportedAsset::UiV2View(_)));
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_default_rejects_legacy_ui_toml_without_migration_fixture_backend() {
+    let error = AssetImporter::default()
+        .registry()
+        .descriptor_for_source(Path::new("legacy.ui.toml"))
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("typed toml asset suffix `.ui.toml` has no registered importer"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn importer_registry_rejects_non_fixture_legacy_ui_toml_importer_registration() {
+    let mut registry = AssetImporterRegistry::default();
+
+    let error = registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "third_party.legacy_ui",
+                "third_party",
+                crate::asset::AssetKind::UiLayout,
+                1,
+            )
+            .with_full_suffixes([".ui.toml"]),
+            |context| test_data_outcome(context, "legacy"),
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        AssetImporterRegistryError::LegacyUiTomlImporter("third_party.legacy_ui".to_string())
+    );
 }
 
 #[test]
@@ -535,6 +617,24 @@ node_id = "legacy_root"
 kind = "native"
 type = "VerticalBox"
 control_id = "LegacyRoot"
+"#
+}
+
+fn minimal_v2_ui_view_toml() -> &'static str {
+    r#"
+[asset]
+kind = "view"
+id = "runtime.ui.hud_overlay"
+version = 2
+display_name = "Runtime HUD Overlay"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Text"
+control_id = "HudRoot"
+props = { text = "HUD" }
 "#
 }
 

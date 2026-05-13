@@ -23,7 +23,7 @@ enum HostPointerFactKind {
 
 impl RetainedEditorHost {
     pub(super) fn host_drag_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         let kind = match map_host_pointer_kind(kind, "drag") {
             Ok(kind) => kind,
             Err(error) => {
@@ -41,7 +41,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn host_resize_pointer_event(&mut self, kind: i32, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         let kind = match map_host_pointer_kind(kind, "resize") {
             Ok(kind) => kind,
             Err(error) => {
@@ -171,7 +171,7 @@ impl RetainedEditorHost {
         self.transient_region_preferred
             .insert(active.region, preferred);
         self.mark_layout_dirty();
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
     }
 
     fn finish_drawer_resize_capture(&mut self, x: f32, y: f32) {
@@ -202,7 +202,7 @@ impl RetainedEditorHost {
             Err(error) => self.set_status_line(error),
         }
 
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
     }
 }
 

@@ -331,45 +331,55 @@ fn editor_dev_asset_root() -> std::path::PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use super::super::runtime_host::{
+        clear_v2_template_file_cache_for_tests, v2_template_file_cache_len_for_tests,
+    };
     use super::*;
 
     #[test]
-    fn builtin_template_compile_cache_is_reused_across_runtime_instances() {
+    fn builtin_v2_template_file_cache_is_reused_across_runtime_instances() {
+        clear_v2_template_file_cache_for_tests();
+        builtin_template_compile_cache()
+            .lock()
+            .expect("legacy compile cache mutex should not be poisoned")
+            .clear();
+        builtin_template_document_cache()
+            .lock()
+            .expect("legacy document cache mutex should not be poisoned")
+            .clear();
+
         let mut first = EditorUiHostRuntime::default();
         first
             .load_builtin_host_templates()
             .expect("first runtime should load builtin templates");
-        let compiled_after_first = builtin_template_compile_cache()
-            .lock()
-            .expect("cache mutex should not be poisoned")
-            .len();
-        let documents_after_first = builtin_template_document_cache()
-            .lock()
-            .expect("document cache mutex should not be poisoned")
-            .len();
+        let v2_entries_after_first = v2_template_file_cache_len_for_tests();
 
         let mut second = EditorUiHostRuntime::default();
         second
             .load_builtin_host_templates()
             .expect("second runtime should reuse builtin template cache");
 
-        assert!(compiled_after_first > 0);
-        assert!(documents_after_first > 0);
+        assert!(v2_entries_after_first > 0);
+        assert_eq!(
+            v2_template_file_cache_len_for_tests(),
+            v2_entries_after_first,
+            "second runtime should not reload or recompile additional v2 builtin documents"
+        );
         assert_eq!(
             builtin_template_compile_cache()
                 .lock()
-                .expect("cache mutex should not be poisoned")
+                .expect("legacy compile cache mutex should not be poisoned")
                 .len(),
-            compiled_after_first,
-            "second runtime should not compile additional builtin documents"
+            0,
+            "v2 builtin host templates should bypass the legacy recursive compiler cache"
         );
         assert_eq!(
             builtin_template_document_cache()
                 .lock()
-                .expect("document cache mutex should not be poisoned")
+                .expect("legacy document cache mutex should not be poisoned")
                 .len(),
-            documents_after_first,
-            "second runtime should not reload additional builtin documents"
+            0,
+            "v2 builtin host templates should bypass the legacy recursive document cache"
         );
     }
 }

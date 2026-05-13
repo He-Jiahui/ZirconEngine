@@ -1,0 +1,46 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.console.v2"
+version = 2
+display_name = "Console"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "console_root"
+
+[nodes.top_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.left_space]
+component = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+
+[nodes.text_panel]
+component = "Space"
+control_id = "ConsoleTextPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_space]
+component = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_space" }, { node = "text_panel" }, { node = "right_space" }]
+
+[nodes.bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 8.0, preferred = 8.0, max = 8.0, stretch = "Fixed" } }
+
+[nodes.console_root]
+component = "VerticalBox"
+control_id = "ConsoleRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]

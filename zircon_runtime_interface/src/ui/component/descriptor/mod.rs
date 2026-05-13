@@ -1,4 +1,5 @@
 mod component_descriptor;
+mod component_model;
 mod default_node_template;
 mod fallback_policy;
 mod host_capability;
@@ -9,6 +10,7 @@ mod render_capability;
 mod slot_schema;
 
 pub use component_descriptor::UiComponentDescriptor;
+pub use component_model::{UiComponentDescriptorKind, UiComponentLayoutRole};
 pub use default_node_template::UiDefaultNodeTemplate;
 pub use fallback_policy::{
     UiWidgetEditorFallback, UiWidgetFallbackPolicy, UiWidgetRuntimeFallback,

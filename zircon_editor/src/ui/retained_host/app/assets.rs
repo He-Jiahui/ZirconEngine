@@ -42,7 +42,7 @@ impl RetainedEditorHost {
         );
 
         if plan.sync_catalog {
-            self.sync_asset_catalog();
+            self.sync_asset_catalog_snapshot();
         }
         if plan.sync_resources {
             self.sync_asset_resources();
@@ -63,7 +63,13 @@ impl RetainedEditorHost {
         if plan.mark_presentation_dirty {
             invalidation.insert(HostInvalidationMask::PRESENTATION_DATA);
         }
-        self.invalidate_host(invalidation);
+        if !invalidation.is_empty() {
+            self.invalidate_host(invalidation);
+        }
+        if plan.mark_paint_only_dirty {
+            self.record_paint_only_invalidation(HostInvalidationMask::PAINT_ONLY);
+            self.request_asset_preview_paint_only_redraw();
+        }
 
         Ok(())
     }
@@ -150,9 +156,13 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn sync_asset_catalog(&mut self) {
+        self.sync_asset_catalog_snapshot();
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+    }
+
+    fn sync_asset_catalog_snapshot(&mut self) {
         self.runtime
             .sync_asset_catalog(self.editor_asset_server.catalog_snapshot());
-        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn sync_asset_resources(&mut self) {
@@ -213,6 +223,11 @@ impl RetainedEditorHost {
                 .editor_asset_server
                 .request_preview_refresh(&uuid, true);
         }
+    }
+
+    fn request_asset_preview_paint_only_redraw(&self) {
+        let frame = self.ui.get_host_window_bootstrap().shell_frame;
+        self.ui.request_redraw_region(frame);
     }
 
     pub(super) fn dispatch_asset_control_changed(

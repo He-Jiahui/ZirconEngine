@@ -72,7 +72,7 @@ impl EditorUiHost {
             .map_err(EditorError::Registry)?;
         drop(registry);
 
-        let target = target_host.unwrap_or_else(|| instance.host.clone());
+        let target = target_host.unwrap_or_else(|| default_open_target_for_instance(&instance));
         self.attach_instance(instance, target)
     }
 
@@ -153,17 +153,41 @@ impl EditorUiHost {
         instance: ViewInstance,
         target: ViewHost,
     ) -> Result<ViewInstanceId, EditorError> {
+        let floating_window_to_open = match &target {
+            ViewHost::FloatingWindow(window_id, _)
+                if !self
+                    .current_layout()
+                    .floating_windows
+                    .iter()
+                    .any(|window| &window.window_id == window_id) =>
+            {
+                Some(window_id.clone())
+            }
+            ViewHost::Drawer(_)
+            | ViewHost::Document(_, _)
+            | ViewHost::FloatingWindow(_, _)
+            | ViewHost::ExclusivePage(_) => None,
+        };
         {
             let mut session = self.lock_session();
             session
                 .open_view_instances
                 .insert(instance.instance_id.clone(), instance.clone());
         }
-        self.apply_layout_command(LayoutCommand::AttachView {
-            instance_id: instance.instance_id.clone(),
-            target,
-            anchor: None,
-        })?;
+        if let Some(window_id) = floating_window_to_open {
+            self.apply_layout_command(LayoutCommand::DetachViewToWindow {
+                instance_id: instance.instance_id.clone(),
+                new_window: window_id.clone(),
+            })?;
+            self.lock_window_host_manager()
+                .open_native_window(window_id, None);
+        } else {
+            self.apply_layout_command(LayoutCommand::AttachView {
+                instance_id: instance.instance_id.clone(),
+                target,
+                anchor: None,
+            })?;
+        }
         Ok(instance.instance_id)
     }
 
@@ -177,5 +201,21 @@ impl EditorUiHost {
                     "editor.scene" | "editor.game"
                 )
             })
+    }
+}
+
+fn default_open_target_for_instance(instance: &ViewInstance) -> ViewHost {
+    normalize_default_open_target(&instance.instance_id, instance.host.clone())
+}
+
+fn normalize_default_open_target(instance_id: &ViewInstanceId, target: ViewHost) -> ViewHost {
+    match target {
+        ViewHost::FloatingWindow(window_id, path) if window_id.0 == "floating" => {
+            ViewHost::FloatingWindow(MainPageId::new(format!("window:{}", instance_id.0)), path)
+        }
+        ViewHost::ExclusivePage(page_id) if page_id.0 == "exclusive" => {
+            ViewHost::ExclusivePage(MainPageId::new(format!("page:{}", instance_id.0)))
+        }
+        target => target,
     }
 }

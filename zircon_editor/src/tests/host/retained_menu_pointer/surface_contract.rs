@@ -36,8 +36,8 @@ fn host_menu_chrome_uses_projected_toml_frames_and_rust_owned_data() {
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
     let scene_projection =
         source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
-    let menu_asset = source("assets/ui/editor/workbench_menu_chrome.ui.toml");
-    let popup_asset = source("assets/ui/editor/workbench_menu_popup.ui.toml");
+    let menu_asset = source("assets/ui/editor/workbench_menu_chrome.v2.ui.toml");
+    let popup_asset = source("assets/ui/editor/workbench_menu_popup.v2.ui.toml");
 
     assert!(host_components.contains("pub menu_frames: ModelRc<HostChromeControlFrameData>"));
     assert!(host_interaction.contains("pub menu_bar_scroll_px: f32"));

@@ -7,6 +7,7 @@ use super::CoreHandle;
 
 impl CoreHandle {
     pub fn activate_module(&self, module_name: &str) -> Result<(), CoreError> {
+        crate::profile_scope!("runtime", "core", "activate_module");
         {
             let mut modules = self.inner.modules.lock().unwrap();
             let entry = modules
@@ -49,6 +50,7 @@ impl CoreHandle {
     }
 
     pub fn deactivate_module(&self, module_name: &str) -> Result<(), CoreError> {
+        crate::profile_scope!("runtime", "core", "deactivate_module");
         {
             let mut modules = self.inner.modules.lock().unwrap();
             let entry = modules

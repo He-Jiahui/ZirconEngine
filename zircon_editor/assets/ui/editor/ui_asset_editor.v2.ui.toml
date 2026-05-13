@@ -1,0 +1,440 @@
+[asset]
+kind = "view"
+id = "editor.ui_asset_editor.projection.v2"
+version = 2
+display_name = "UI Asset Editor Projection"
+
+[root]
+node = "ui_asset_editor_root"
+
+[imports]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[tokens]
+surface = "$material_surface_container_low"
+panel = "$material_surface"
+panel_inset = "$material_surface_inset"
+outline = "$material_outline"
+text = "$material_text"
+muted = "$material_text_muted"
+accent = "$material_color_primary"
+
+[[stylesheets]]
+id = "ui_asset_editor_projection_material"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-shell"
+[stylesheets.rules.set.self]
+background_color = "$surface"
+foreground_color = "$text"
+
+[[stylesheets.rules]]
+selector = ".ui-asset-panel"
+[stylesheets.rules.set.self]
+background_color = "$panel"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "panel"
+radius = 6.0
+corner_radius = 6.0
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".ui-asset-inset"
+[stylesheets.rules.set.self]
+background_color = "$panel_inset"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "inset"
+radius = 5.0
+corner_radius = 5.0
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".ui-asset-row"
+[stylesheets.rules.set.self]
+background_color = "$panel_inset"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "row"
+radius = 4.0
+corner_radius = 4.0
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".ui-asset-section"
+[stylesheets.rules.set.self]
+background_color = "$panel_inset"
+border_color = "$outline"
+foreground_color = "$text"
+surface_variant = "section"
+radius = 5.0
+corner_radius = 5.0
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".ui-asset-muted"
+[stylesheets.rules.set.self]
+foreground_color = "$muted"
+font_size = 11.0
+
+[nodes.ui_asset_editor_root]
+component = "VerticalGroup"
+control_id = "UiAssetEditorRoot"
+classes = ["ui-asset-shell"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "header_panel" },
+  { node = "body" },
+]
+
+[nodes.header_panel]
+component = "VerticalGroup"
+control_id = "HeaderPanel"
+classes = ["ui-asset-panel"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+children = [
+  { node = "header_asset_row" },
+  { node = "header_status_row" },
+  { node = "header_action_row" },
+]
+
+[nodes.header_asset_row]
+component = "HorizontalGroup"
+control_id = "HeaderAssetRow"
+classes = ["ui-asset-row"]
+props = { text = "UI Asset", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.header_status_row]
+component = "HorizontalGroup"
+control_id = "HeaderStatusRow"
+classes = ["ui-asset-row", "ui-asset-muted"]
+props = { text = "Valid prototype cache", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.header_action_row]
+component = "HorizontalGroup"
+control_id = "HeaderActionRow"
+classes = ["ui-asset-row"]
+props = { text = "Actions", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.body]
+component = "HorizontalGroup"
+control_id = "UiAssetEditorBody"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "left_column" },
+  { node = "center_column" },
+  { node = "right_column" },
+]
+
+[nodes.left_column]
+component = "VerticalGroup"
+control_id = "LeftColumn"
+classes = ["ui-asset-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 220.0, preferred = 260.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "palette_panel" },
+  { node = "hierarchy_panel" },
+]
+
+[nodes.palette_panel]
+component = "VerticalGroup"
+control_id = "PalettePanel"
+classes = ["ui-asset-section"]
+props = { text = "Palette", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 220.0, max = 260.0, stretch = "Stretch" } }
+
+[nodes.hierarchy_panel]
+component = "VerticalGroup"
+control_id = "HierarchyPanel"
+classes = ["ui-asset-section"]
+props = { text = "Hierarchy", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.center_column]
+component = "VerticalGroup"
+control_id = "CenterColumn"
+classes = ["ui-asset-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 420.0, preferred = 620.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "designer_panel" },
+  { node = "action_bar_panel" },
+  { node = "source_panel" },
+]
+
+[nodes.designer_panel]
+component = "VerticalGroup"
+control_id = "DesignerPanel"
+classes = ["ui-asset-section"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 220.0, preferred = 240.0, max = 250.0, stretch = "Stretch" } }
+children = [
+  { node = "designer_tool_mode_row" },
+  { node = "designer_canvas_panel" },
+  { node = "designer_diagnostic_overlay_panel" },
+  { node = "emergency_shell_panel" },
+  { node = "render_stack_panel" },
+]
+
+[nodes.designer_tool_mode_row]
+component = "HorizontalGroup"
+control_id = "DesignerToolModeRow"
+classes = ["ui-asset-row"]
+props = { text = "Select Move Anchor Slot", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.designer_canvas_panel]
+component = "CanvasBox"
+control_id = "DesignerCanvasPanel"
+classes = ["ui-asset-inset"]
+props = { text = "Canvas", text_tone = "muted" }
+layout = { container = { kind = "Free" }, width = { stretch = "Stretch" }, height = { min = 90.0, preferred = 118.0, stretch = "Stretch" } }
+
+[nodes.designer_diagnostic_overlay_panel]
+component = "Overlay"
+control_id = "DesignerDiagnosticOverlayPanel"
+classes = ["ui-asset-row"]
+props = { text = "Diagnostics", text_tone = "muted" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.emergency_shell_panel]
+component = "Overlay"
+control_id = "EmergencyShellPanel"
+classes = ["ui-asset-row"]
+props = { text = "Emergency Shell", text_tone = "muted" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.render_stack_panel]
+component = "VerticalGroup"
+control_id = "RenderStackPanel"
+classes = ["ui-asset-row"]
+props = { text = "Render Stack", text_tone = "muted" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 52.0, max = 64.0, stretch = "Stretch" } }
+
+[nodes.action_bar_panel]
+component = "VerticalGroup"
+control_id = "ActionBarPanel"
+classes = ["ui-asset-section"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 84.0, preferred = 88.0, max = 92.0, stretch = "Stretch" } }
+children = [
+  { node = "action_insert_row" },
+  { node = "action_reparent_row" },
+  { node = "action_structure_row" },
+]
+
+[nodes.action_insert_row]
+component = "HorizontalGroup"
+control_id = "ActionInsertRow"
+classes = ["ui-asset-row"]
+props = { text = "Insert", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.action_reparent_row]
+component = "HorizontalGroup"
+control_id = "ActionReparentRow"
+classes = ["ui-asset-row"]
+props = { text = "Reparent", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.action_structure_row]
+component = "HorizontalGroup"
+control_id = "ActionStructureRow"
+classes = ["ui-asset-row"]
+props = { text = "Structure", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.source_panel]
+component = "VerticalGroup"
+control_id = "SourcePanel"
+classes = ["ui-asset-section"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "source_info_panel" },
+  { node = "source_outline_panel" },
+  { node = "mock_workspace_panel" },
+  { node = "mock_subjects_panel" },
+  { node = "mock_editor_panel" },
+  { node = "mock_state_graph_panel" },
+  { node = "source_text_panel" },
+]
+
+[nodes.source_info_panel]
+component = "HorizontalGroup"
+control_id = "SourceInfoPanel"
+classes = ["ui-asset-row"]
+props = { text = "Source info", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.source_outline_panel]
+component = "VerticalGroup"
+control_id = "SourceOutlinePanel"
+classes = ["ui-asset-row"]
+props = { text = "Source outline", text_tone = "muted" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 24.0, max = 28.0, stretch = "Stretch" } }
+
+[nodes.mock_workspace_panel]
+component = "HorizontalGroup"
+control_id = "MockWorkspacePanel"
+classes = ["ui-asset-row"]
+props = { text = "Workspace", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.mock_subjects_panel]
+component = "HorizontalGroup"
+control_id = "MockSubjectsPanel"
+classes = ["ui-asset-row"]
+props = { text = "Subjects", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.mock_editor_panel]
+component = "HorizontalGroup"
+control_id = "MockEditorPanel"
+classes = ["ui-asset-row"]
+props = { text = "Editor mock", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.mock_state_graph_panel]
+component = "HorizontalGroup"
+control_id = "MockStateGraphPanel"
+classes = ["ui-asset-row"]
+props = { text = "State graph", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" } }
+
+[nodes.source_text_panel]
+component = "CanvasBox"
+control_id = "SourceTextPanel"
+classes = ["ui-asset-inset"]
+props = { text = "TOML source", text_tone = "muted" }
+layout = { container = { kind = "Free" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_column]
+component = "VerticalGroup"
+control_id = "RightColumn"
+classes = ["ui-asset-panel"]
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { min = 260.0, preferred = 320.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "inspector_panel" },
+  { node = "stylesheet_panel" },
+]
+
+[nodes.inspector_panel]
+component = "VerticalGroup"
+control_id = "InspectorPanel"
+classes = ["ui-asset-section"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 260.0, preferred = 300.0, stretch = "Stretch" } }
+children = [
+  { node = "inspector_content_panel" },
+  { node = "inspector_widget_section" },
+  { node = "inspector_promote_section" },
+  { node = "inspector_slot_section" },
+  { node = "inspector_layout_section" },
+  { node = "inspector_binding_section" },
+]
+
+[nodes.inspector_content_panel]
+component = "VerticalGroup"
+control_id = "InspectorContentPanel"
+classes = ["ui-asset-row"]
+props = { text = "Inspector content", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 48.0, max = 64.0, stretch = "Stretch" } }
+
+[nodes.inspector_widget_section]
+component = "VerticalGroup"
+control_id = "InspectorWidgetSection"
+classes = ["ui-asset-row"]
+props = { text = "Widget", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 42.0, stretch = "Stretch" } }
+
+[nodes.inspector_promote_section]
+component = "VerticalGroup"
+control_id = "InspectorPromoteSection"
+classes = ["ui-asset-row"]
+props = { text = "Promote", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 42.0, stretch = "Stretch" } }
+
+[nodes.inspector_slot_section]
+component = "VerticalGroup"
+control_id = "InspectorSlotSection"
+classes = ["ui-asset-row"]
+props = { text = "Slot", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 42.0, stretch = "Stretch" } }
+
+[nodes.inspector_layout_section]
+component = "VerticalGroup"
+control_id = "InspectorLayoutSection"
+classes = ["ui-asset-row"]
+props = { text = "Layout", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 42.0, stretch = "Stretch" } }
+
+[nodes.inspector_binding_section]
+component = "VerticalGroup"
+control_id = "InspectorBindingSection"
+classes = ["ui-asset-row"]
+props = { text = "Bindings", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 32.0, max = 42.0, stretch = "Stretch" } }
+
+[nodes.stylesheet_panel]
+component = "VerticalGroup"
+control_id = "StylesheetPanel"
+classes = ["ui-asset-section"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "stylesheet_action_row" },
+  { node = "stylesheet_state_primary_row" },
+  { node = "stylesheet_state_secondary_row" },
+  { node = "stylesheet_content_panel" },
+  { node = "stylesheet_theme_section" },
+  { node = "stylesheet_authoring_section" },
+  { node = "stylesheet_matched_rule_section" },
+]
+
+[nodes.stylesheet_action_row]
+component = "HorizontalGroup"
+control_id = "StylesheetActionRow"
+classes = ["ui-asset-row"]
+props = { text = "Stylesheet actions", text_tone = "default" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.stylesheet_state_primary_row]
+component = "HorizontalGroup"
+control_id = "StylesheetStatePrimaryRow"
+classes = ["ui-asset-row"]
+props = { text = "Primary state", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.stylesheet_state_secondary_row]
+component = "HorizontalGroup"
+control_id = "StylesheetStateSecondaryRow"
+classes = ["ui-asset-row"]
+props = { text = "Secondary state", text_tone = "muted" }
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.stylesheet_content_panel]
+component = "VerticalGroup"
+control_id = "StylesheetContentPanel"
+classes = ["ui-asset-row"]
+props = { text = "Style content", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 42.0, preferred = 48.0, max = 64.0, stretch = "Stretch" } }
+
+[nodes.stylesheet_theme_section]
+component = "VerticalGroup"
+control_id = "StylesheetThemeSection"
+classes = ["ui-asset-row"]
+props = { text = "Theme", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 36.0, max = 48.0, stretch = "Stretch" } }
+
+[nodes.stylesheet_authoring_section]
+component = "VerticalGroup"
+control_id = "StylesheetAuthoringSection"
+classes = ["ui-asset-row"]
+props = { text = "Authoring", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 36.0, max = 48.0, stretch = "Stretch" } }
+
+[nodes.stylesheet_matched_rule_section]
+component = "VerticalGroup"
+control_id = "StylesheetMatchedRuleSection"
+classes = ["ui-asset-row"]
+props = { text = "Matched rule", text_tone = "default" }
+layout = { container = { kind = "VerticalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 36.0, max = 48.0, stretch = "Stretch" } }

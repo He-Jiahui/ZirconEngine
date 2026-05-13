@@ -49,6 +49,8 @@ impl EntryRunner {
                 "editor",
                 diagnostic_args.filter,
             );
+            #[cfg(feature = "profiling-tracy")]
+            let _ = zircon_runtime::core::diagnostics::profiling::initialize_tracy_sink();
             let request = EditorCliOperationRequest::parse(diagnostic_args.remaining_args)?;
             if let Some(request) = request {
                 let response = Self::run_editor_operation(request)?;

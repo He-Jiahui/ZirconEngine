@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for TextureEditorPlugin {
                 drawer_id: TEXTURE_DRAWER_ID,
                 drawer_display_name: "Texture Tools",
                 template_id: TEXTURE_TEMPLATE_ID,
-                template_document: "plugins://texture/editor/authoring.ui.toml",
+                template_document: "plugins://texture/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     TEXTURE_AUTHORING_VIEW_ID,
                     "Texture",

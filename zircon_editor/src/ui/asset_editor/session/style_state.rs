@@ -3,8 +3,9 @@ use super::{
     inspector_fields::{
         set_selected_node_control_id, set_selected_node_layout_height_preferred,
         set_selected_node_layout_width_preferred, set_selected_node_mount,
-        set_selected_node_slot_height_preferred, set_selected_node_slot_padding,
-        set_selected_node_slot_width_preferred, set_selected_node_text_property,
+        set_selected_node_prop_value, set_selected_node_slot_height_preferred,
+        set_selected_node_slot_padding, set_selected_node_slot_width_preferred,
+        set_selected_node_state_value, set_selected_node_text_property,
     },
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group,
@@ -203,6 +204,44 @@ impl UiAssetEditorSession {
             return Ok(false);
         }
         self.apply_document_edit(document)?;
+        Ok(true)
+    }
+
+    pub fn set_selected_widget_prop_literal(
+        &mut self,
+        path: impl AsRef<str>,
+        literal: impl AsRef<str>,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !set_selected_node_prop_value(
+            &mut document,
+            &self.selection,
+            path.as_ref(),
+            parse_token_literal(literal.as_ref()),
+        ) {
+            return Ok(false);
+        }
+        self.apply_document_edit_with_label(document, "Widget Prop Edit")?;
+        Ok(true)
+    }
+
+    pub fn set_selected_widget_state_literal(
+        &mut self,
+        path: impl AsRef<str>,
+        literal: impl AsRef<str>,
+    ) -> Result<bool, UiAssetEditorSessionError> {
+        self.ensure_editable_source()?;
+        let mut document = self.last_valid_document.clone();
+        if !set_selected_node_state_value(
+            &mut document,
+            &self.selection,
+            path.as_ref(),
+            parse_token_literal(literal.as_ref()),
+        ) {
+            return Ok(false);
+        }
+        self.apply_document_edit_with_label(document, "Widget State Edit")?;
         Ok(true)
     }
 

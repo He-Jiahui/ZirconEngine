@@ -80,6 +80,105 @@ fn runtime_preview_keeps_softbuffer_fallback_when_surface_api_is_optional() {
 }
 
 #[test]
+fn runtime_entry_surface_present_switch_keeps_diagnostics_and_fallback_paths() {
+    let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
+    let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
+
+    assert!(
+        runtime_app_source.contains("surface_present_failed: bool"),
+        "runtime entry app should remember failed surface-present state"
+    );
+    assert!(
+        runtime_handler_source
+            .contains("self.surface_present_enabled && !self.surface_present_failed"),
+        "redraw should skip native present after a surface-present failure"
+    );
+    assert_source_order(
+        runtime_handler_source,
+        &[
+            "let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));",
+            "self.resize_viewport(viewport_size).is_err()",
+            "self.bind_window_surface(window.as_ref())",
+        ],
+        "runtime entry should resize the runtime viewport before initial surface binding",
+    );
+    for bind_path in [
+        "runtime_native_surface_target(window)",
+        "ZrRuntimeBindViewportSurfaceRequestV1::new(",
+        "self.session\n            .bind_viewport_surface",
+    ] {
+        assert!(
+            runtime_handler_source.contains(bind_path),
+            "runtime entry surface bind path should preserve `{bind_path}`"
+        );
+    }
+    assert_source_order(
+        runtime_handler_source,
+        &[
+            "WindowEvent::SurfaceResized(size)",
+            "self.resize_viewport(viewport_size).is_err()",
+            "self.surface_present_enabled && !self.surface_present_failed",
+            "self.bind_current_window_surface()",
+        ],
+        "runtime surface resize should resize the runtime viewport before rebinding the active surface",
+    );
+    assert_source_order(
+        runtime_handler_source,
+        &[
+            "WindowEvent::RedrawRequested",
+            "self.surface_present_enabled && !self.surface_present_failed",
+            ".present_viewport(self.viewport, self.viewport_size)",
+            "self.fail_surface_present();",
+            "self.ensure_fallback_presenter(event_loop)",
+            ".capture_frame(self.viewport, self.viewport_size)",
+        ],
+        "runtime redraw should fall back to capture_frame plus softbuffer after native present failure in the same branch",
+    );
+    assert_source_order(
+        runtime_handler_source,
+        &[
+            "fn fail_surface_present(&mut self)",
+            "self.surface_present_failed = true;",
+            "self.fallback_surface_present();",
+            "fn ensure_fallback_presenter",
+        ],
+        "surface-present failure should mark failure before entering the softbuffer fallback path",
+    );
+    for unbind_path in [
+        "self.session.unbind_viewport_surface(self.viewport)",
+        "fn drop(&mut self)",
+        "self.disable_surface_present();",
+    ] {
+        assert!(
+            runtime_handler_source.contains(unbind_path),
+            "runtime surface-present teardown should preserve `{unbind_path}`"
+        );
+    }
+    for diagnostic in [
+        "runtime_surface_present_enabled",
+        "runtime_surface_present_fallback",
+        "runtime_surface_present_failed",
+    ] {
+        assert!(
+            runtime_handler_source.contains(diagnostic),
+            "runtime surface-present diagnostic `{diagnostic}` should remain source-visible"
+        );
+    }
+    for required_path in [
+        "present_viewport",
+        "capture_frame",
+        "SoftbufferRuntimePresenter::new",
+        "about_to_wait",
+        "request_redraw",
+    ] {
+        assert!(
+            runtime_handler_source.contains(required_path),
+            "runtime entry surface-present switch should preserve `{required_path}`"
+        );
+    }
+}
+
+#[test]
 fn runtime_viewport_interaction_is_owned_by_dynamic_runtime_session() {
     let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
     let runtime_construct_source = include_str!("../runtime_entry_app/construct.rs");
@@ -128,6 +227,16 @@ fn runtime_input_protocol_crosses_through_runtime_interface_events() {
 
 fn runtime_handler_source_for_tests() -> &'static str {
     include_str!("../runtime_entry_app/application_handler.rs")
+}
+
+fn assert_source_order(source: &str, needles: &[&str], message: &str) {
+    let mut offset = 0;
+    for needle in needles {
+        let Some(index) = source[offset..].find(needle) else {
+            panic!("{message}: missing `{needle}`");
+        };
+        offset += index + needle.len();
+    }
 }
 
 #[test]

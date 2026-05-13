@@ -165,8 +165,7 @@ impl RetainedUiHostAdapter {
                         frame: node.frame,
                         clip_frame: node.clip_frame,
                         z_index: node.z_index,
-                        text: extract_non_empty_string(&properties, "text")
-                            .or_else(|| extract_non_empty_string(&properties, "label")),
+                        text: projected_text(&properties),
                         icon: extract_string(&properties, "icon"),
                         properties,
                         style_tokens: node.style_tokens.clone(),
@@ -310,6 +309,29 @@ fn extract_non_empty_string(
     key: &str,
 ) -> Option<String> {
     extract_string(properties, key).filter(|value| !value.is_empty())
+}
+
+fn projected_text(properties: &BTreeMap<String, RetainedUiHostValue>) -> Option<String> {
+    extract_non_empty_string(properties, "text").or_else(|| {
+        if label_is_field_metadata(properties) {
+            None
+        } else {
+            extract_non_empty_string(properties, "label")
+        }
+    })
+}
+
+fn label_is_field_metadata(properties: &BTreeMap<String, RetainedUiHostValue>) -> bool {
+    [
+        "placeholder",
+        "value",
+        "value_text",
+        "options",
+        "items",
+        "entries",
+    ]
+    .into_iter()
+    .any(|key| properties.contains_key(key))
 }
 
 fn map_value(value: &Value) -> RetainedUiHostValue {

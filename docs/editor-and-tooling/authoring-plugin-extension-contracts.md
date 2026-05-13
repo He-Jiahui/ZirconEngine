@@ -5,6 +5,7 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/scene.rs
@@ -24,6 +25,7 @@ implementation_files:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
+  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/terrain/runtime/src/lib.rs
   - zircon_plugins/terrain/editor/src/lib.rs
   - zircon_plugins/terrain/README.md
@@ -56,6 +58,15 @@ tests:
   - cargo test -p zircon_editor --lib builtin_editor_catalog_declares_authoring_plugin_capabilities --locked --jobs 1 --message-format short --color never
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_editor_support authoring_batch_registers_menu_items_payload_schemas_and_all_descriptor_families --locked --jobs 1 --message-format short --color never
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_material_editor_editor -p zircon_plugin_timeline_sequence_editor -p zircon_plugin_animation_graph_editor -p zircon_plugin_prefab_tools_editor -p zircon_plugin_terrain_editor -p zircon_plugin_tilemap_2d_editor --locked --jobs 1 --target-dir E:\cargo-targets\zircon-authoring-plugin-behavior --message-format short --color never
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib typed_toml_importer_decodes_ui_v2_view_asset --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib package_declares_only_ui_v2_toml_importer --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib plugin_toml_declares_only_ui_v2_toml_importer --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib registration_does_not_select_legacy_ui_document_formats --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 5 passed)
+  - cargo metadata --manifest-path zircon_plugins\Cargo.toml --locked --no-deps --format-version 1 (2026-05-13: passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_particles_editor --lib particles_editor_plugin_contributes_authoring_extensions --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_navigation_editor --lib navigation_editor_plugin_contributes_authoring_extensions --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
+  - RUSTFLAGS="-C linker=rust-lld" cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_sound_editor --lib --jobs 1 --target-dir target\codex-ui-v2-plugin-guard (2026-05-13: passed, 1 passed)
   - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_prefab_tools_runtime -p zircon_plugin_terrain_runtime -p zircon_plugin_tilemap_2d_runtime --locked --target-dir E:\cargo-targets\zircon-plugins-runtime-interface-boundary --jobs 1 -- --format terse
   - cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --target-dir E:\cargo-targets\zircon-plugins-runtime-interface-boundary --jobs 1 -- --format terse
   - cargo build --workspace --locked --verbose
@@ -96,6 +107,8 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 这些 descriptor 都带有 capability gate 字段。`EditorExtensionRegistry` 为每一类 descriptor 提供独立 map 和 `register_*` 方法，并执行重复 ID、空 ID、graph palette 空节点和重复 node ID 校验。`EditorPluginCatalog::editor_extensions()` 聚合插件扩展时统一合并 view、drawer、template、operation、menu item、importer、asset editor、component drawer、tool mode、graph/timeline descriptor；workbench 侧应继续消费通用 descriptor，不为单个 Authoring 插件写特殊分支。
 
 `zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、tool mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
+
+Authoring UI document references are v2-only on the production extension path. `EditorUiTemplateDescriptor` and `ComponentDrawerDescriptor` must reference `.v2.ui.toml` assets; the registry rejects stale `.ui.toml` paths. Plugin packages that ship editor surfaces should therefore package v2 flat graph documents and use `UiV2ViewAsset`/`UiV2ComponentAsset`/`UiV2StyleAsset` import payloads. The split `ui_document_importer` package manifest and runtime registration now expose only `ui_document_importer.v2_typed_toml`; the legacy serialized `.ui.json`, `.zui`, and `.uidoc` importers have been removed from production packaging. Legacy `.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
 
 `EditorOperationDescriptor` 现在有可选 `payload_schema_id`，用于把命令 ID、菜单路径和操作参数 DTO 版本连起来。六个 Authoring editor crate 的用户可触发 operation 都同时声明：
 

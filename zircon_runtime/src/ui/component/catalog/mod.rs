@@ -1,4 +1,5 @@
 mod editor_showcase;
+mod material_foundation;
 mod palette_view;
 mod registry;
 

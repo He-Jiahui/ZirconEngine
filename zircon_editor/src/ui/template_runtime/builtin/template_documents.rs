@@ -12,6 +12,7 @@ pub(crate) const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
 pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
 pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
     "editor.window.ui_component_showcase";
+pub(crate) const MATERIAL_DEMO_WINDOW_DOCUMENT_ID: &str = "editor.window.material_demo";
 pub(crate) const UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID: &str = "editor.window.ui_layout_editor";
 pub(crate) const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
 pub(crate) const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "floating_window.source";
@@ -52,95 +53,99 @@ fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 22] {
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 23] {
     let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
-            builtin_host_template_path("editor_main_frame.ui.toml"),
+            builtin_host_template_path("editor_main_frame.v2.ui.toml"),
         ),
         (
             ACTIVITY_DRAWER_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("activity_drawer_window.ui.toml"),
+            builtin_host_template_path("activity_drawer_window.v2.ui.toml"),
         ),
         (
             WORKBENCH_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("workbench_window.ui.toml"),
+            builtin_window_template_path("workbench_window.v2.ui.toml"),
         ),
         (
             ASSET_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("asset_window.ui.toml"),
+            builtin_window_template_path("asset_window.v2.ui.toml"),
         ),
         (
             UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID,
-            builtin_window_template_path("ui_layout_editor_window.ui.toml"),
+            builtin_window_template_path("ui_layout_editor_window.v2.ui.toml"),
         ),
         (
             UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID,
-            builtin_editor_template_path("component_showcase.ui.toml"),
+            builtin_editor_template_path("component_showcase.v2.ui.toml"),
+        ),
+        (
+            MATERIAL_DEMO_WINDOW_DOCUMENT_ID,
+            builtin_editor_template_path("material_demo_window.v2.ui.toml"),
         ),
         (
             UI_HOST_WINDOW_DOCUMENT_ID,
-            builtin_host_template_path("workbench_shell.ui.toml"),
+            builtin_host_template_path("workbench_shell.v2.ui.toml"),
         ),
         (
             HOST_DRAWER_SOURCE_DOCUMENT_ID,
-            builtin_host_template_path("workbench_drawer_source.ui.toml"),
+            builtin_host_template_path("workbench_drawer_source.v2.ui.toml"),
         ),
         (
             FLOATING_WINDOW_SOURCE_DOCUMENT_ID,
-            builtin_host_template_path("floating_window_source.ui.toml"),
+            builtin_host_template_path("floating_window_source.v2.ui.toml"),
         ),
         (
             SCENE_VIEWPORT_TOOLBAR_DOCUMENT_ID,
-            builtin_host_template_path("scene_viewport_toolbar.ui.toml"),
+            builtin_host_template_path("scene_viewport_toolbar.v2.ui.toml"),
         ),
         (
             ASSET_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("asset_surface_controls.ui.toml"),
+            builtin_host_template_path("asset_surface_controls.v2.ui.toml"),
         ),
         (
             WELCOME_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("startup_welcome_controls.ui.toml"),
+            builtin_host_template_path("startup_welcome_controls.v2.ui.toml"),
         ),
         (
             INSPECTOR_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("inspector_surface_controls.ui.toml"),
+            builtin_host_template_path("inspector_surface_controls.v2.ui.toml"),
         ),
         (
             PANE_SURFACE_DOCUMENT_ID,
-            builtin_host_template_path("pane_surface_controls.ui.toml"),
+            builtin_host_template_path("pane_surface_controls.v2.ui.toml"),
         ),
         (
             PANE_CONSOLE_BODY_DOCUMENT_ID,
-            builtin_host_template_path("console_body.ui.toml"),
+            builtin_host_template_path("console_body.v2.ui.toml"),
         ),
         (
             PANE_INSPECTOR_BODY_DOCUMENT_ID,
-            builtin_host_template_path("inspector_body.ui.toml"),
+            builtin_host_template_path("inspector_body.v2.ui.toml"),
         ),
         (
             PANE_HIERARCHY_BODY_DOCUMENT_ID,
-            builtin_host_template_path("hierarchy_body.ui.toml"),
+            builtin_host_template_path("hierarchy_body.v2.ui.toml"),
         ),
         (
             PANE_ANIMATION_SEQUENCE_BODY_DOCUMENT_ID,
-            builtin_host_template_path("animation_sequence_body.ui.toml"),
+            builtin_host_template_path("animation_sequence_body.v2.ui.toml"),
         ),
         (
             PANE_ANIMATION_GRAPH_BODY_DOCUMENT_ID,
-            builtin_host_template_path("animation_graph_body.ui.toml"),
+            builtin_host_template_path("animation_graph_body.v2.ui.toml"),
         ),
         (
             PANE_RUNTIME_DIAGNOSTICS_BODY_DOCUMENT_ID,
-            builtin_host_template_path("runtime_diagnostics_body.ui.toml"),
+            builtin_host_template_path("runtime_diagnostics_body.v2.ui.toml"),
         ),
         (
             PANE_MODULE_PLUGINS_BODY_DOCUMENT_ID,
-            builtin_host_template_path("module_plugins_body.ui.toml"),
+            builtin_host_template_path("module_plugins_body.v2.ui.toml"),
         ),
         (
             PANE_BUILD_EXPORT_BODY_DOCUMENT_ID,
-            builtin_host_template_path("build_export_desktop_body.ui.toml"),
+            builtin_host_template_path("build_export_desktop_body.v2.ui.toml"),
         ),
     ];
 

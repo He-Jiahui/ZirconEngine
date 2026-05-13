@@ -2,7 +2,7 @@ use super::*;
 
 impl RetainedEditorHost {
     pub(super) fn menu_pointer_clicked(&mut self, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         match callback_dispatch::dispatch_shared_menu_pointer_click(
             &self.runtime,
             &self.template_bridge,
@@ -21,7 +21,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn menu_pointer_moved(&mut self, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         match self.menu_pointer_bridge.handle_move(UiPoint::new(x, y)) {
             Ok(dispatch) => {
                 self.menu_pointer_state = dispatch.state;
@@ -32,7 +32,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn menu_pointer_scrolled(&mut self, x: f32, y: f32, delta: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         match self
             .menu_pointer_bridge
             .handle_scroll(UiPoint::new(x, y), delta)

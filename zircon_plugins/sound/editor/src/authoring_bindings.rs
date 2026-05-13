@@ -13,11 +13,11 @@ use crate::{
 };
 
 pub const SOUND_AUDIO_SOURCE_DRAWER_TEMPLATE: &str =
-    "plugins://sound/editor/audio_source.drawer.ui.toml";
+    "plugins://sound/editor/audio_source.drawer.v2.ui.toml";
 pub const SOUND_AUDIO_LISTENER_DRAWER_TEMPLATE: &str =
-    "plugins://sound/editor/audio_listener.drawer.ui.toml";
+    "plugins://sound/editor/audio_listener.drawer.v2.ui.toml";
 pub const SOUND_AUDIO_VOLUME_DRAWER_TEMPLATE: &str =
-    "plugins://sound/editor/audio_volume.drawer.ui.toml";
+    "plugins://sound/editor/audio_volume.drawer.v2.ui.toml";
 
 pub const SOUND_MIXER_OPERATION_PATHS: &[&str] = &[
     "Sound.Mixer.Track.Create",

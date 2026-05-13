@@ -15,9 +15,10 @@ pub use data_binding::{
     UiComponentProjectionPatch,
 };
 pub use descriptor::{
-    UiComponentDescriptor, UiDefaultNodeTemplate, UiHostCapability, UiHostCapabilitySet,
-    UiOptionDescriptor, UiPaletteMetadata, UiPropSchema, UiRenderCapability, UiSlotSchema,
-    UiWidgetEditorFallback, UiWidgetFallbackPolicy, UiWidgetRuntimeFallback,
+    UiComponentDescriptor, UiComponentDescriptorKind, UiComponentLayoutRole, UiDefaultNodeTemplate,
+    UiHostCapability, UiHostCapabilitySet, UiOptionDescriptor, UiPaletteMetadata, UiPropSchema,
+    UiRenderCapability, UiSlotSchema, UiWidgetEditorFallback, UiWidgetFallbackPolicy,
+    UiWidgetRuntimeFallback,
 };
 pub use drag::{UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiDropPolicy};
 pub use event::{UiComponentEvent, UiComponentEventError, UiComponentEventKind};

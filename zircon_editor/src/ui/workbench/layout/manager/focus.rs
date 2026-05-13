@@ -1,6 +1,8 @@
 use crate::ui::workbench::view::ViewInstanceId;
 
-use super::super::{DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout};
+use super::super::{
+    ActivityDrawerMode, DocumentNode, LayoutManager, MainHostPageLayout, WorkbenchLayout,
+};
 
 impl LayoutManager {
     pub(crate) fn focus_instance(
@@ -17,6 +19,9 @@ impl LayoutManager {
                 if drawer.tab_stack.tabs.contains(instance_id) {
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
                     drawer.active_view = Some(instance_id.clone());
+                    if drawer.mode == ActivityDrawerMode::Collapsed {
+                        drawer.mode = ActivityDrawerMode::Pinned;
+                    }
                     focused_activity_window = Some(activity_window_id.clone());
                     break;
                 }

@@ -1011,11 +1011,11 @@ fn runtime_fixture_assets_live_under_crate_assets() {
     let actual_files = collect_ui_toml_files(&fixture_root);
 
     let expected_files = vec![
-        "assets/ui/runtime/fixtures/hud_overlay.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/inventory_list.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/pause_menu.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/quest_log_dialog.ui.toml".to_string(),
-        "assets/ui/runtime/fixtures/settings_dialog.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/inventory_list.v2.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/pause_menu.v2.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml".to_string(),
+        "assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml".to_string(),
     ];
 
     assert_eq!(
@@ -1060,14 +1060,67 @@ fn runtime_ui_manager_loads_fixture_documents_from_asset_files() {
     .expect("runtime_ui_manager.rs should be readable");
 
     assert!(
-        manager_source.contains("UiAssetLoader::load_toml_file(fixture.asset_path())"),
-        "runtime ui manager should load fixture documents directly from asset files"
+        manager_source.contains("UiV2PrototypeStoreFileCache")
+            && manager_source.contains(".load_store(std::iter::once(fixture.asset_path()))")
+            && manager_source.contains("UiV2SurfaceBuilder::build_surface_from_compiled_document")
+            && manager_source.contains("apply_pointer_dispatch_dirty(&result)")
+            && manager_source.contains("rebuild_dirty(self.root_size())"),
+        "runtime ui manager should load fixture documents through the v2 heap-resident file cache and refresh the persistent surface by dirty domain"
     );
 
-    for forbidden in ["fixture.source()", "include_str!"] {
+    for forbidden in [
+        "fixture.source()",
+        "include_str!",
+        "UiAssetLoader::load_toml_file",
+        "UiDocumentCompiler",
+        "UiTemplateSurfaceBuilder::build_surface_from_compiled_document",
+    ] {
         assert!(
             !manager_source.contains(forbidden),
             "runtime ui manager should not regress to embedded fixture source `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn ui_v2_surface_projection_does_not_call_template_tree_builder() {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let surface_builder_source =
+        fs::read_to_string(manifest_dir.join("src/ui/v2/surface_builder.rs"))
+            .expect("ui v2 surface_builder.rs should be readable");
+    let mut combined_source = surface_builder_source;
+    for relative in [
+        "src/ui/v2/surface_tree/mod.rs",
+        "src/ui/v2/surface_tree/node.rs",
+        "src/ui/v2/surface_tree/layout.rs",
+        "src/ui/v2/surface_tree/slot.rs",
+        "src/ui/v2/surface_tree/interaction.rs",
+        "src/ui/v2/surface_tree/parse.rs",
+    ] {
+        combined_source.push('\n');
+        combined_source.push_str(
+            &fs::read_to_string(manifest_dir.join(relative)).unwrap_or_else(|error| {
+                panic!("ui v2 surface tree file {relative} should be readable: {error}")
+            }),
+        );
+    }
+
+    for required in ["UiV2ArenaNode", "UiTreeNode", "UiTemplateNodeMetadata"] {
+        assert!(
+            combined_source.contains(required),
+            "ui v2 surface projection should build runtime tree data directly with `{required}`"
+        );
+    }
+
+    for forbidden in [
+        "UiTemplateTreeBuilder",
+        "UiTemplateSurfaceBuilder",
+        "crate::ui::template",
+        "ui::template::UiTemplateNode",
+    ] {
+        assert!(
+            !combined_source.contains(forbidden),
+            "ui v2 surface projection should not depend on old template tree path `{forbidden}`"
         );
     }
 }

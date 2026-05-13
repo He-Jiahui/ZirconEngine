@@ -29,6 +29,8 @@ impl EntryRunner {
             "runtime",
             diagnostic_args.filter,
         );
+        #[cfg(feature = "profiling-tracy")]
+        let _ = zircon_runtime::core::diagnostics::profiling::initialize_tracy_sink();
         let runtime = LoadedRuntime::load_default()?;
         let session = RuntimeSession::create(runtime)?;
         let event_loop = EventLoop::new()?;

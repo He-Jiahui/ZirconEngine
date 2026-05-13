@@ -244,11 +244,11 @@ fn register_importer_and_inspector(
     )?;
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         ASSET_INSPECTOR_VIEW_ID,
-        "asset://plugin_sdk_examples/editor/model_inspector.ui.toml",
+        "asset://plugin_sdk_examples/editor/model_inspector.v2.ui.toml",
     ))?;
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         MODEL_IMPORT_SETTINGS_TEMPLATE_ID,
-        "asset://plugin_sdk_examples/editor/model_import_settings.ui.toml",
+        "asset://plugin_sdk_examples/editor/model_import_settings.v2.ui.toml",
     ))?;
     registry.register_asset_creation_template(
         AssetCreationTemplateDescriptor::new(
@@ -263,7 +263,7 @@ fn register_importer_and_inspector(
     registry.register_component_drawer(
         ComponentDrawerDescriptor::new(
             MODEL_IMPORT_SETTINGS_COMPONENT,
-            "asset://plugin_sdk_examples/editor/model_import_settings.ui.toml",
+            "asset://plugin_sdk_examples/editor/model_import_settings.v2.ui.toml",
             "sdk.example.ModelImportSettingsController",
         )
         .with_binding(open_operation.as_str()),

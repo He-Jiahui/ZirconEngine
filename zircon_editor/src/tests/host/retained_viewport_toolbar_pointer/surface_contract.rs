@@ -8,7 +8,7 @@ fn shared_viewport_toolbar_surface_uses_toml_controls_and_rust_callbacks() {
     let globals = source("src/ui/retained_host/host_contract/globals.rs");
     let wiring = source("src/ui/retained_host/app/callback_wiring.rs");
     let viewport = source("src/ui/retained_host/app/viewport.rs");
-    let toolbar = source("assets/ui/editor/host/scene_viewport_toolbar.ui.toml");
+    let toolbar = source("assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml");
 
     assert!(globals.contains("on_viewport_toolbar_pointer_clicked"));
     assert!(wiring.contains("pane_surface_host.on_viewport_toolbar_pointer_clicked("));

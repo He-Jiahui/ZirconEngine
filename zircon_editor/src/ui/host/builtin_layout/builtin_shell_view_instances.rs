@@ -9,17 +9,9 @@ pub(super) fn builtin_shell_view_instances(
 ) -> Vec<ViewInstance> {
     let mut instances = vec![
         ViewInstance {
-            instance_id: ViewInstanceId::new("editor.project#1"),
-            descriptor_id: ViewDescriptorId::new("editor.project"),
-            title: "Project".to_string(),
-            serializable_payload: serde_json::Value::Null,
-            dirty: false,
-            host: ViewHost::Drawer(ActivityDrawerSlot::LeftTop),
-        },
-        ViewInstance {
             instance_id: ViewInstanceId::new("editor.assets#1"),
             descriptor_id: ViewDescriptorId::new("editor.assets"),
-            title: "Assets".to_string(),
+            title: "Asset Browser".to_string(),
             serializable_payload: serde_json::json!({ "root": "crate://" }),
             dirty: false,
             host: ViewHost::Drawer(ActivityDrawerSlot::LeftTop),

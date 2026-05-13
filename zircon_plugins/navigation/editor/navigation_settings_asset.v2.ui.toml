@@ -1,0 +1,23 @@
+[asset]
+kind = "view"
+id = "navigation.settings_asset"
+version = 2
+display_name = "Navigation Settings Asset"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_settings_asset_root"
+
+[nodes.navigation_settings_asset_summary]
+component = "Space"
+control_id = "NavigationSettingsAssetSummary"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_settings_asset_root]
+component = "VerticalGroup"
+control_id = "NavigationSettingsAssetRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_settings_asset_summary" }]

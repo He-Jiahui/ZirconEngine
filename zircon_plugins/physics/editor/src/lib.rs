@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for PhysicsEditorPlugin {
                 drawer_id: PHYSICS_DRAWER_ID,
                 drawer_display_name: "Physics Tools",
                 template_id: PHYSICS_TEMPLATE_ID,
-                template_document: "plugins://physics/editor/authoring.ui.toml",
+                template_document: "plugins://physics/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     PHYSICS_AUTHORING_VIEW_ID,
                     "Physics",

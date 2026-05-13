@@ -46,7 +46,7 @@ impl zircon_editor::EditorPlugin for PrefabToolsEditorPlugin {
                 drawer_id: PREFAB_DRAWER_ID,
                 drawer_display_name: "Prefab Tools",
                 template_id: PREFAB_TEMPLATE_ID,
-                template_document: "plugins://prefab_tools/editor/authoring.ui.toml",
+                template_document: "plugins://prefab_tools/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     PREFAB_AUTHORING_VIEW_ID,
                     "Prefabs",
@@ -135,7 +135,7 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
         .with_required_capabilities([CAPABILITY])],
         component_drawers: vec![ComponentDrawerDescriptor::new(
             zircon_plugin_prefab_tools_runtime::PREFAB_INSTANCE_COMPONENT_TYPE,
-            "plugins://prefab_tools/editor/prefab_instance.ui.toml",
+            "plugins://prefab_tools/editor/prefab_instance.v2.ui.toml",
             "prefab_tools.editor.component",
         )],
         asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(

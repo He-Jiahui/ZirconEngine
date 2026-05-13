@@ -7,16 +7,22 @@ use crate::ui::component::{
 };
 
 use super::{
-    UiDefaultNodeTemplate, UiHostCapability, UiPaletteMetadata, UiPropSchema, UiRenderCapability,
-    UiSlotSchema, UiWidgetFallbackPolicy,
+    UiComponentDescriptorKind, UiComponentLayoutRole, UiDefaultNodeTemplate, UiHostCapability,
+    UiPaletteMetadata, UiPropSchema, UiRenderCapability, UiSlotSchema, UiWidgetFallbackPolicy,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UiComponentDescriptor {
     pub id: String,
     pub display_name: String,
+    #[serde(default)]
+    pub descriptor_kind: UiComponentDescriptorKind,
     pub category: UiComponentCategory,
     pub role: String,
+    #[serde(default)]
+    pub default_classes: Vec<String>,
+    #[serde(default)]
+    pub layout_role: UiComponentLayoutRole,
     pub default_props: Vec<(String, UiValue)>,
     pub prop_schema: Vec<UiPropSchema>,
     pub state_schema: Vec<UiPropSchema>,
@@ -46,8 +52,11 @@ impl UiComponentDescriptor {
         Self {
             id: id.into(),
             display_name: display_name.into(),
+            descriptor_kind: UiComponentDescriptorKind::Primitive,
             category,
             role: role.into(),
+            default_classes: Vec::new(),
+            layout_role: UiComponentLayoutRole::Leaf,
             default_props: Vec::new(),
             prop_schema: Vec::new(),
             state_schema: Vec::new(),
@@ -60,6 +69,37 @@ impl UiComponentDescriptor {
             default_node_template: UiDefaultNodeTemplate::default(),
             fallback_policy: UiWidgetFallbackPolicy::default(),
         }
+    }
+
+    /// Sets the component model tier used by the UI v2 catalog.
+    pub fn descriptor_kind(mut self, kind: UiComponentDescriptorKind) -> Self {
+        self.descriptor_kind = kind;
+        self
+    }
+
+    /// Adds a default style class applied by v2 instancing.
+    pub fn default_class(mut self, class_name: impl Into<String>) -> Self {
+        let class_name = class_name.into();
+        if !self.default_classes.contains(&class_name) {
+            self.default_classes.push(class_name);
+        }
+        self
+    }
+
+    /// Adds multiple default style classes, preserving first-seen order.
+    pub fn default_classes(mut self, class_names: impl IntoIterator<Item = String>) -> Self {
+        for class_name in class_names {
+            if !self.default_classes.contains(&class_name) {
+                self.default_classes.push(class_name);
+            }
+        }
+        self
+    }
+
+    /// Declares which layout family owns children for this component.
+    pub fn layout_role(mut self, role: UiComponentLayoutRole) -> Self {
+        self.layout_role = role;
+        self
     }
 
     /// Adds a default authored prop value for this component.

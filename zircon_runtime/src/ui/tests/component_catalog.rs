@@ -7,11 +7,11 @@ use crate::ui::component::{
     validate_component_descriptor, UiComponentDescriptorError, UiComponentDescriptorRegistry,
 };
 use zircon_runtime_interface::ui::component::{
-    UiComponentCategory, UiComponentDescriptor, UiComponentEvent, UiComponentEventKind,
-    UiComponentState, UiDefaultNodeTemplate, UiDragPayload, UiDragPayloadKind,
-    UiDragSourceMetadata, UiHostCapability, UiHostCapabilitySet, UiPaletteMetadata, UiPropSchema,
-    UiRenderCapability, UiValidationLevel, UiValue, UiValueKind, UiWidgetEditorFallback,
-    UiWidgetFallbackPolicy, UiWidgetRuntimeFallback,
+    UiComponentCategory, UiComponentDescriptor, UiComponentDescriptorKind, UiComponentEvent,
+    UiComponentEventKind, UiComponentLayoutRole, UiComponentState, UiDefaultNodeTemplate,
+    UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata, UiHostCapability, UiHostCapabilitySet,
+    UiPaletteMetadata, UiPropSchema, UiRenderCapability, UiValidationLevel, UiValue, UiValueKind,
+    UiWidgetEditorFallback, UiWidgetFallbackPolicy, UiWidgetRuntimeFallback,
 };
 
 #[test]
@@ -21,16 +21,25 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
     let showcase_v1_components = [
         "Container",
         "Overlay",
+        "ListView",
+        "FlexBox",
         "HorizontalBox",
+        "HorizontalGroup",
         "VerticalBox",
+        "VerticalGroup",
         "FlowBox",
         "GridBox",
+        "GridGroup",
         "ScrollableBox",
+        "CanvasBox",
+        "SizeBox",
         "Space",
         "Label",
         "RichLabel",
+        "Text",
         "Image",
         "Icon",
+        "Canvas",
         "Separator",
         "ProgressBar",
         "Spinner",
@@ -41,6 +50,8 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         "ToggleButton",
         "Checkbox",
         "Radio",
+        "RadioField",
+        "Toggle",
         "SegmentedControl",
         "InputField",
         "TextField",
@@ -60,6 +71,7 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         "ObjectField",
         "Group",
         "Foldout",
+        "Popup",
         "PropertyRow",
         "InspectorSection",
         "WorldSpaceSurface",
@@ -69,8 +81,13 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         "VirtualList",
         "PagedList",
         "TreeRow",
+        "TreeView",
+        "EditableTable",
+        "Table",
+        "MessageBox",
         "ContextActionMenu",
         "SvgIcon",
+        "Svg",
     ];
 
     assert!(!registry.is_empty());
@@ -112,14 +129,17 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
             "Image",
             "Label",
             "RichLabel",
+            "Text",
             "Separator",
+            "Canvas",
+            "Svg",
             "SvgIcon",
         ],
     );
     assert_category_component_ids(
         &registry,
         UiComponentCategory::Feedback,
-        &["Badge", "HelpRow", "ProgressBar", "Spinner"],
+        &["Badge", "HelpRow", "MessageBox", "ProgressBar", "Spinner"],
     );
     assert_category_component_ids(
         &registry,
@@ -131,8 +151,10 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
             "IconButton",
             "InputField",
             "Radio",
+            "RadioField",
             "SegmentedControl",
             "TextField",
+            "Toggle",
             "ToggleButton",
         ],
     );
@@ -169,17 +191,25 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         UiComponentCategory::Container,
         &[
             "Container",
+            "CanvasBox",
+            "FlexBox",
             "Foldout",
             "FlowBox",
             "GridBox",
+            "GridGroup",
             "Group",
             "HorizontalBox",
+            "HorizontalGroup",
             "InspectorSection",
+            "ListView",
             "Overlay",
+            "Popup",
             "PropertyRow",
             "ScrollableBox",
+            "SizeBox",
             "Space",
             "VerticalBox",
+            "VerticalGroup",
             "WorldSpaceSurface",
         ],
     );
@@ -188,10 +218,13 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
         UiComponentCategory::Collection,
         &[
             "ArrayField",
+            "EditableTable",
             "ListRow",
             "MapField",
             "PagedList",
+            "Table",
             "TreeRow",
+            "TreeView",
             "VirtualList",
         ],
     );
@@ -407,6 +440,384 @@ fn runtime_component_catalog_contains_showcase_v1_controls() {
 
     let map_field = registry.descriptor("MapField").unwrap();
     assert_has_prop(map_field, "validation_level");
+
+    let text = registry.descriptor("Text").unwrap();
+    assert_has_prop(text, "text");
+
+    let popup = registry.descriptor("Popup").unwrap();
+    assert_has_prop(popup, "popup_open");
+    assert!(popup.slot_schema("content").is_some());
+
+    let table = registry.descriptor("EditableTable").unwrap();
+    assert_has_prop(table, "rows");
+    assert_has_prop(table, "columns");
+    assert!(table.slot_schema("cell").is_some());
+
+    let message_box = registry.descriptor("MessageBox").unwrap();
+    assert_has_prop(message_box, "rich_text");
+    assert_has_event(message_box, UiComponentEventKind::OpenPopup);
+}
+
+#[test]
+fn material_editor_foundation_catalog_covers_planned_component_layers() {
+    let registry = UiComponentDescriptorRegistry::material_editor_foundation();
+    let expected = [
+        "Button",
+        "IconButton",
+        "TextField",
+        "Checkbox",
+        "Switch",
+        "Dropdown",
+        "Slider",
+        "Tabs",
+        "Menu",
+        "Tooltip",
+        "Scrollbar",
+        "Splitter",
+        "Panel",
+        "Modal",
+        "Slot",
+        "Composite",
+        "FlexGroup",
+        "HorizontalGroup",
+        "VerticalGroup",
+        "GridGroup",
+        "Overlay",
+        "ScrollView",
+        "ListView",
+        "VirtualList",
+        "TreeView",
+        "PropertyGrid",
+        "InspectorSection",
+        "SearchField",
+        "ContextMenu",
+        "FieldEditor",
+        "FolderTree",
+        "AssetGrid",
+        "AssetList",
+        "PreviewPane",
+        "MetadataPane",
+        "ViewportHost",
+        "PaneToolbar",
+        "GizmoControls",
+        "FilterBar",
+        "SeverityChips",
+        "CategorizedList",
+        "StatusActionControls",
+        "GraphCanvas",
+        "SourceEditor",
+        "Timeline",
+        "VisualDesigner",
+        "Drawer",
+        "View",
+        "ViewTab",
+        "Window",
+        "WindowFrame",
+        "DocumentNode",
+        "TabStack",
+        "FloatingWindow",
+        "DockHost",
+        "WorkbenchShell",
+    ];
+
+    assert_eq!(registry.len(), expected.len());
+    assert_eq!(
+        registry.component_ids().collect::<BTreeSet<_>>(),
+        expected.iter().copied().collect::<BTreeSet<_>>()
+    );
+
+    for descriptor in registry.descriptors() {
+        for class in ["material_dark", "material", "material-dark"] {
+            assert!(
+                descriptor
+                    .default_classes
+                    .iter()
+                    .any(|value| value == class),
+                "{} missing default class {class}",
+                descriptor.id
+            );
+        }
+        for state_name in [
+            "hovered", "pressed", "selected", "disabled", "focused", "error", "warning",
+        ] {
+            assert!(
+                descriptor.state_prop(state_name).is_some(),
+                "{} missing state {state_name}",
+                descriptor.id
+            );
+        }
+        assert!(descriptor.prop("density").is_some());
+    }
+
+    let tree_view = registry
+        .descriptor("TreeView")
+        .expect("TreeView descriptor");
+    assert_has_prop(tree_view, "query");
+    assert_has_prop(tree_view, "expanded");
+    assert_has_event(tree_view, UiComponentEventKind::ToggleExpanded);
+    assert_has_event(tree_view, UiComponentEventKind::Commit);
+
+    let property_grid = registry
+        .descriptor("PropertyGrid")
+        .expect("PropertyGrid descriptor");
+    assert_has_prop(property_grid, "selection_summary");
+
+    let inspector_section = registry
+        .descriptor("InspectorSection")
+        .expect("InspectorSection descriptor");
+    assert_has_prop(inspector_section, "text");
+    assert_has_prop(inspector_section, "expanded");
+    assert_has_event(inspector_section, UiComponentEventKind::ToggleExpanded);
+
+    let drawer = registry.descriptor("Drawer").expect("Drawer descriptor");
+    assert_has_prop(drawer, "slot");
+    assert_has_prop(drawer, "mode");
+    assert_has_prop(drawer, "active_view");
+    assert_has_event(drawer, UiComponentEventKind::SelectOption);
+
+    let view = registry.descriptor("View").expect("View descriptor");
+    assert_has_prop(view, "view_id");
+    assert_has_prop(view, "dirty");
+    assert_has_event(view, UiComponentEventKind::Focus);
+
+    let window = registry.descriptor("Window").expect("Window descriptor");
+    assert_has_prop(window, "window_id");
+    assert_has_prop(window, "dock_policy");
+    assert_has_prop(window, "floating");
+    assert_has_event(window, UiComponentEventKind::BeginDrag);
+
+    let workbench_shell = registry
+        .descriptor("WorkbenchShell")
+        .expect("WorkbenchShell descriptor");
+    assert_has_prop(workbench_shell, "skin_id");
+    assert_has_prop(workbench_shell, "panel_preset_id");
+    assert_has_prop(workbench_shell, "shell_preset_id");
+    assert_has_prop(workbench_shell, "window_model_preset_id");
+
+    let dock_host = registry
+        .descriptor("DockHost")
+        .expect("DockHost descriptor");
+    assert_eq!(dock_host.descriptor_kind, UiComponentDescriptorKind::Layout);
+    assert_eq!(dock_host.layout_role, UiComponentLayoutRole::EditorDock);
+    assert!(dock_host
+        .required_host_capabilities
+        .contains(&UiHostCapability::Editor));
+
+    let virtual_list = registry
+        .descriptor("VirtualList")
+        .expect("VirtualList descriptor");
+    assert_eq!(virtual_list.layout_role, UiComponentLayoutRole::VirtualList);
+    assert_has_prop(virtual_list, "item_count");
+    assert_has_prop(virtual_list, "item_extent");
+    assert_has_prop(virtual_list, "overscan");
+    assert_has_event(virtual_list, UiComponentEventKind::SetVisibleRange);
+    assert!(virtual_list
+        .required_host_capabilities
+        .contains(&UiHostCapability::VirtualizedLayout));
+    assert!(virtual_list
+        .required_render_capabilities
+        .contains(&UiRenderCapability::VirtualizedLayout));
+
+    let tree_view = registry
+        .descriptor("TreeView")
+        .expect("TreeView descriptor");
+    assert_has_prop(tree_view, "query");
+    assert_has_event(tree_view, UiComponentEventKind::ToggleExpanded);
+    assert_has_event(tree_view, UiComponentEventKind::OpenPopupAt);
+
+    let property_grid = registry
+        .descriptor("PropertyGrid")
+        .expect("PropertyGrid descriptor");
+    assert_has_event(property_grid, UiComponentEventKind::ValueChanged);
+
+    let search_field = registry
+        .descriptor("SearchField")
+        .expect("SearchField descriptor");
+    assert_has_prop(search_field, "query");
+    assert_has_event(search_field, UiComponentEventKind::ValueChanged);
+    assert!(search_field
+        .required_host_capabilities
+        .contains(&UiHostCapability::TextInput));
+
+    let field_editor = registry
+        .descriptor("FieldEditor")
+        .expect("FieldEditor descriptor");
+    assert_has_prop(field_editor, "text");
+    assert_has_prop(field_editor, "value_text");
+    assert!(field_editor.slot_schema("field").is_some());
+
+    let asset_grid = registry
+        .descriptor("AssetGrid")
+        .expect("AssetGrid descriptor");
+    assert_has_prop(asset_grid, "item_count");
+    assert_has_event(asset_grid, UiComponentEventKind::OpenReference);
+    assert_has_event(asset_grid, UiComponentEventKind::LocateReference);
+
+    let viewport_host = registry
+        .descriptor("ViewportHost")
+        .expect("ViewportHost descriptor");
+    assert_eq!(
+        viewport_host.descriptor_kind,
+        UiComponentDescriptorKind::Layout
+    );
+    assert_eq!(viewport_host.layout_role, UiComponentLayoutRole::Canvas);
+    assert!(viewport_host
+        .required_host_capabilities
+        .contains(&UiHostCapability::CanvasRender));
+    assert!(viewport_host
+        .required_render_capabilities
+        .contains(&UiRenderCapability::Canvas));
+    assert_has_event(viewport_host, UiComponentEventKind::SetWorldSurface);
+
+    let graph_canvas = registry
+        .descriptor("GraphCanvas")
+        .expect("GraphCanvas descriptor");
+    assert_eq!(graph_canvas.layout_role, UiComponentLayoutRole::Canvas);
+    assert!(graph_canvas.slot_schema("nodes").is_some());
+    assert!(graph_canvas.slot_schema("edges").is_some());
+    assert_has_event(graph_canvas, UiComponentEventKind::DropHover);
+
+    let source_editor = registry
+        .descriptor("SourceEditor")
+        .expect("SourceEditor descriptor");
+    assert_has_prop(source_editor, "text");
+    assert!(source_editor
+        .required_host_capabilities
+        .contains(&UiHostCapability::TextInput));
+
+    let timeline = registry
+        .descriptor("Timeline")
+        .expect("Timeline descriptor");
+    assert_has_prop(timeline, "time");
+    assert_has_prop(timeline, "duration");
+    assert_has_event(timeline, UiComponentEventKind::DragDelta);
+
+    let drawer = registry.descriptor("Drawer").expect("Drawer descriptor");
+    assert_has_prop(drawer, "slot");
+    assert_has_prop(drawer, "mode");
+    assert_has_prop(drawer, "active_view");
+    assert_has_event(drawer, UiComponentEventKind::SelectOption);
+
+    let view = registry.descriptor("View").expect("View descriptor");
+    assert_has_prop(view, "view_id");
+    assert_has_prop(view, "dirty");
+    assert_has_event(view, UiComponentEventKind::Focus);
+
+    let window = registry.descriptor("Window").expect("Window descriptor");
+    assert_has_prop(window, "window_id");
+    assert_has_prop(window, "dock_policy");
+    assert_has_prop(window, "floating");
+    assert_has_event(window, UiComponentEventKind::BeginDrag);
+
+    let document_node = registry
+        .descriptor("DocumentNode")
+        .expect("DocumentNode descriptor");
+    assert_eq!(
+        document_node.descriptor_kind,
+        UiComponentDescriptorKind::Layout
+    );
+    assert_eq!(document_node.layout_role, UiComponentLayoutRole::EditorDock);
+    assert_has_prop(document_node, "node_kind");
+
+    let tab_stack = registry
+        .descriptor("TabStack")
+        .expect("TabStack descriptor");
+    assert_has_prop(tab_stack, "active_tab");
+    assert!(tab_stack.slot_schema("tabs").is_some());
+    assert!(tab_stack.slot_schema("content").is_some());
+    assert_has_event(tab_stack, UiComponentEventKind::SelectOption);
+
+    let floating_window = registry
+        .descriptor("FloatingWindow")
+        .expect("FloatingWindow descriptor");
+    assert_has_prop(floating_window, "window_id");
+    assert_has_prop(floating_window, "focused_view");
+    assert_has_event(floating_window, UiComponentEventKind::Focus);
+    assert_has_event(floating_window, UiComponentEventKind::BeginDrag);
+
+    let workbench_shell = registry
+        .descriptor("WorkbenchShell")
+        .expect("WorkbenchShell descriptor");
+    assert_has_prop(workbench_shell, "skin_id");
+    assert_has_prop(workbench_shell, "panel_preset_id");
+    assert_has_prop(workbench_shell, "shell_preset_id");
+    assert_has_prop(workbench_shell, "window_model_preset_id");
+
+    let editor_visible = registry.descriptors_for_host(&UiHostCapabilitySet::editor_authoring());
+    assert_eq!(editor_visible.len(), expected.len());
+    let runtime_visible_ids = registry
+        .descriptors_for_host(&UiHostCapabilitySet::runtime_basic())
+        .into_iter()
+        .map(|descriptor| descriptor.id.as_str())
+        .collect::<BTreeSet<_>>();
+    assert!(!runtime_visible_ids.contains("DockHost"));
+    assert!(!runtime_visible_ids.contains("WorkbenchShell"));
+}
+
+#[test]
+fn runtime_component_catalog_marks_v2_model_tiers_and_layout_roles() {
+    let registry = UiComponentDescriptorRegistry::editor_showcase();
+
+    for component_id in [
+        "Container",
+        "Overlay",
+        "ListView",
+        "FlexBox",
+        "HorizontalGroup",
+        "VerticalGroup",
+        "GridGroup",
+        "CanvasBox",
+        "SizeBox",
+        "VirtualList",
+    ] {
+        let descriptor = registry.descriptor(component_id).unwrap();
+        assert_eq!(
+            descriptor.descriptor_kind,
+            UiComponentDescriptorKind::Layout,
+            "{component_id} should be a v2 layout component"
+        );
+    }
+
+    assert_eq!(
+        registry.descriptor("Overlay").unwrap().layout_role,
+        UiComponentLayoutRole::Overlay
+    );
+    assert_eq!(
+        registry.descriptor("GridGroup").unwrap().layout_role,
+        UiComponentLayoutRole::Grid
+    );
+    assert_eq!(
+        registry.descriptor("CanvasBox").unwrap().layout_role,
+        UiComponentLayoutRole::Canvas
+    );
+    assert_eq!(
+        registry.descriptor("VirtualList").unwrap().layout_role,
+        UiComponentLayoutRole::VirtualList
+    );
+
+    for component_id in [
+        "AssetField",
+        "ObjectField",
+        "Foldout",
+        "TreeView",
+        "EditableTable",
+        "MessageBox",
+    ] {
+        let descriptor = registry.descriptor(component_id).unwrap();
+        assert_eq!(
+            descriptor.descriptor_kind,
+            UiComponentDescriptorKind::EditorOnly,
+            "{component_id} should be editor-only"
+        );
+    }
+
+    assert_eq!(
+        registry
+            .descriptor("InspectorSection")
+            .unwrap()
+            .descriptor_kind,
+        UiComponentDescriptorKind::Composite
+    );
 }
 
 #[test]

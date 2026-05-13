@@ -206,6 +206,7 @@ fn runtime_api_default_leaves_accessibility_capture_optional() {
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV1>());
     assert!(api.capture_frame.is_none());
     assert!(api.capture_accessibility_tree.is_none());
+    assert!(api.profile_control.is_none());
     assert_eq!(
         core::mem::offset_of!(ZrRuntimeApiV1, capture_accessibility_tree),
         core::mem::offset_of!(ZrRuntimeApiV1, capture_frame)

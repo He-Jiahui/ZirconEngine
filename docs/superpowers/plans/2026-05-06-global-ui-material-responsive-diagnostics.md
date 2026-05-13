@@ -54,7 +54,7 @@ zircon_editor/assets/ui/editor/layout_workbench.ui.toml
 zircon_editor/assets/ui/editor/preview_state_lab.ui.toml
 zircon_editor/assets/ui/editor/project_overview.ui.toml
 zircon_editor/assets/ui/editor/theme_browser.ui.toml
-zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
+zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
 zircon_editor/assets/ui/editor/welcome.ui.toml
 zircon_editor/assets/ui/editor/workbench_activity_rail.ui.toml
 zircon_editor/assets/ui/editor/workbench_dock_header.ui.toml
@@ -88,11 +88,11 @@ zircon_editor/assets/ui/editor/host/workbench_side_dock_header.ui.toml
 zircon_editor/assets/ui/editor/windows/asset_window.ui.toml
 zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.ui.toml
 zircon_editor/assets/ui/editor/windows/workbench_window.ui.toml
-zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
-zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
-zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
-zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
-zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
+zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
+zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
+zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
+zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
 ```
 
 ## Current Repository Baseline
@@ -556,12 +556,12 @@ material-text-edit
 material-runtime-dialog
 ```
 
-- [x] Update runtime dialog `.ui.toml` files to import Material theme and use Material classes/components:
-  - `zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml`
-  - `zircon_editor/assets/ui/runtime/pause_dialog.ui.toml`
-  - `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
-  - `zircon_editor/assets/ui/runtime/settings_dialog.ui.toml`
-  - `zircon_editor/assets/ui/runtime/runtime_hud.ui.toml`
+- [x] Update runtime dialog `.v2.ui.toml` files to import Material theme and use Material classes/components. The old editor-owned runtime `.ui.toml` copies have since been deleted; active runtime fixtures are:
+  - `zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml`
+  - `zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml`
+  - `zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml`
+  - `zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml`
+  - `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
 - [x] Update editor host surfaces and windows to use Material style imports/classes where they currently use legacy `editor_base` only.
 - [x] If native painter fallback colors in `workbench.rs` visibly conflict with Material surfaces, extract host chrome colors into a small `painter/theme.rs` module. Keep this limited to shell chrome fallback; template-rendered controls should still use projected visual fields.
 - [x] Add asset-boundary and focused native-painter tests that assert M4 Material tokens/classes and state-palette pixels across editor and runtime UI paths.

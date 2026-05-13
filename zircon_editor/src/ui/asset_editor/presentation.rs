@@ -25,6 +25,14 @@ pub struct UiAssetEditorPreviewCanvasSlotTarget {
     pub selected: bool,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct UiAssetEditorWidgetPropStateItem {
+    pub kind: String,
+    pub path: String,
+    pub value: String,
+    pub display: String,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UiAssetEditorPanePresentation {
     pub(crate) nodes: Vec<ViewTemplateNodeData>,
@@ -268,6 +276,8 @@ pub struct UiAssetEditorPanePresentation {
     pub inspector_promote_component_name: String,
     pub inspector_promote_document_id: String,
     pub inspector_can_edit_promote_draft: bool,
+    pub inspector_widget_prop_state_items: Vec<String>,
+    pub inspector_widget_prop_state_rows: Vec<UiAssetEditorWidgetPropStateItem>,
     pub palette_items: Vec<String>,
     pub hierarchy_items: Vec<String>,
     pub inspector_items: Vec<String>,

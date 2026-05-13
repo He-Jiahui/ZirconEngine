@@ -1,0 +1,85 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.workbench_menu_chrome.v2"
+version = 2
+display_name = "workbench menu chrome"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "workbench_menu_chrome_root"
+
+[nodes.workbench_menu_chrome_root]
+component = "Overlay"
+control_id = "WorkbenchMenuBarRoot"
+classes = ["menu-chrome", "editor-shell"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "workbench_menu_top_bar" },
+  { node = "workbench_menu_separator" },
+  { node = "workbench_menu_slot_0" },
+  { node = "workbench_menu_slot_1" },
+  { node = "workbench_menu_slot_2" },
+  { node = "workbench_menu_slot_3" },
+  { node = "workbench_menu_slot_4" },
+  { node = "workbench_menu_slot_5" },
+  { node = "workbench_menu_slot_6" },
+]
+
+[nodes.workbench_menu_top_bar]
+component = "Container"
+control_id = "WorkbenchMenuTopBar"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_separator]
+component = "Container"
+control_id = "WorkbenchMenuSeparator"
+props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 24.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_0]
+component = "Label"
+control_id = "MenuSlot0"
+props = { text = "File", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 8.0, y = 2.0 }, width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_1]
+component = "Label"
+control_id = "MenuSlot1"
+props = { text = "Edit", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 50.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_2]
+component = "Label"
+control_id = "MenuSlot2"
+props = { text = "Selection", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 94.0, y = 2.0 }, width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_3]
+component = "Label"
+control_id = "MenuSlot3"
+props = { text = "Play", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 170.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_4]
+component = "Label"
+control_id = "MenuSlot4"
+props = { text = "View", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 214.0, y = 2.0 }, width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_5]
+component = "Label"
+control_id = "MenuSlot5"
+props = { text = "Window", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 258.0, y = 2.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.workbench_menu_slot_6]
+component = "Label"
+control_id = "MenuSlot6"
+props = { text = "Help", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 316.0, y = 2.0 }, width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }

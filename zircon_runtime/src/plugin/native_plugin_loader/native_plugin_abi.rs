@@ -135,23 +135,6 @@ pub struct NativePluginOwnedByteBufferV2 {
 }
 
 impl NativePluginOwnedByteBufferV2 {
-    #[cfg(test)]
-    pub(crate) fn new_for_test(
-        data: *mut u8,
-        len: usize,
-        capacity: usize,
-        owner_token: u64,
-        free: Option<NativePluginFreeBytesFnV2>,
-    ) -> Self {
-        Self {
-            data,
-            len,
-            capacity,
-            owner_token,
-            free,
-        }
-    }
-
     fn empty() -> Self {
         Self {
             data: std::ptr::null_mut(),

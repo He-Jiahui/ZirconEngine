@@ -1,0 +1,226 @@
+[asset]
+kind = "view"
+id = "editor.demo.fyrox_panel_components"
+version = 2
+display_name = "Fyrox Panel Component Demo"
+
+[imports]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[root]
+node = "workbench_shell"
+
+[nodes.workbench_shell]
+component = "WorkbenchShell"
+control_id = "FyroxPanelDemoShell"
+classes = ["material_dark", "fyrox-panel-demo", "jetbrains-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "scene_view" },
+  { node = "hierarchy_view" },
+  { node = "inspector_view" },
+  { node = "asset_browser_view" },
+  { node = "console_view" },
+  { node = "plugin_manager_view" },
+  { node = "material_editor_view" },
+  { node = "ui_asset_editor_view" },
+  { node = "animation_editor_view" },
+]
+
+[nodes.scene_view]
+component = "View"
+control_id = "FyroxSceneView"
+props = { view_id = "editor.scene", text = "Scene" }
+children = [
+  { node = "scene_toolbar" },
+  { node = "scene_viewport" },
+  { node = "scene_gizmos" },
+]
+
+[nodes.scene_toolbar]
+component = "PaneToolbar"
+control_id = "ScenePaneToolbar"
+children = [{ node = "scene_toolbar_action" }]
+
+[nodes.scene_toolbar_action]
+component = "IconButton"
+control_id = "SceneToolbarAction"
+classes = ["material-control"]
+props = { icon = "move", text = "Move" }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.scene_viewport]
+component = "ViewportHost"
+control_id = "SceneViewportHost"
+props = { camera_target = "editor.camera.scene" }
+
+[nodes.scene_gizmos]
+component = "GizmoControls"
+control_id = "SceneGizmoControls"
+props = { mode = "translate" }
+
+[nodes.hierarchy_view]
+component = "View"
+control_id = "FyroxHierarchyView"
+props = { view_id = "editor.hierarchy", text = "Hierarchy" }
+children = [
+  { node = "hierarchy_search" },
+  { node = "hierarchy_tree" },
+  { node = "hierarchy_context_menu" },
+]
+
+[nodes.hierarchy_search]
+component = "SearchField"
+control_id = "HierarchySearch"
+props = { query = "" }
+
+[nodes.hierarchy_tree]
+component = "TreeView"
+control_id = "HierarchyTree"
+props = { query = "" }
+
+[nodes.hierarchy_context_menu]
+component = "ContextMenu"
+control_id = "HierarchyContextMenu"
+
+[nodes.inspector_view]
+component = "View"
+control_id = "FyroxInspectorView"
+props = { view_id = "editor.inspector", text = "Inspector" }
+children = [{ node = "inspector_grid" }]
+
+[nodes.inspector_grid]
+component = "PropertyGrid"
+control_id = "InspectorPropertyGrid"
+children = [{ node = "transform_section" }]
+
+[nodes.transform_section]
+component = "InspectorSection"
+control_id = "TransformSection"
+props = { text = "Transform" }
+children = [{ node = "field_editor" }]
+
+[nodes.field_editor]
+component = "FieldEditor"
+control_id = "PositionFieldEditor"
+props = { text = "Position", value_text = "0, 0, 0" }
+
+[nodes.asset_browser_view]
+component = "View"
+control_id = "FyroxAssetBrowserView"
+props = { view_id = "editor.assets", text = "Asset Browser" }
+children = [
+  { node = "asset_folder_tree" },
+  { node = "asset_grid" },
+  { node = "asset_list" },
+  { node = "asset_preview" },
+  { node = "asset_metadata" },
+]
+
+[nodes.asset_folder_tree]
+component = "FolderTree"
+control_id = "AssetFolderTree"
+props = { root_path = "res://", query = "" }
+
+[nodes.asset_grid]
+component = "AssetGrid"
+control_id = "AssetGrid"
+props = { item_count = 64, query = "" }
+
+[nodes.asset_list]
+component = "AssetList"
+control_id = "AssetList"
+props = { item_count = 64, query = "" }
+
+[nodes.asset_preview]
+component = "PreviewPane"
+control_id = "AssetPreviewPane"
+props = { asset_id = "res://materials/grid.zmat" }
+
+[nodes.asset_metadata]
+component = "MetadataPane"
+control_id = "AssetMetadataPane"
+props = { asset_id = "res://materials/grid.zmat" }
+
+[nodes.console_view]
+component = "View"
+control_id = "FyroxConsoleView"
+props = { view_id = "editor.console", text = "Console" }
+children = [
+  { node = "console_filter" },
+  { node = "console_severity" },
+  { node = "console_logs" },
+]
+
+[nodes.console_filter]
+component = "FilterBar"
+control_id = "ConsoleFilterBar"
+props = { query = "", severity = "all" }
+
+[nodes.console_severity]
+component = "SeverityChips"
+control_id = "ConsoleSeverityChips"
+props = { selected_severity = "warning" }
+
+[nodes.console_logs]
+component = "VirtualList"
+control_id = "ConsoleVirtualList"
+props = { item_count = 10000, item_extent = 24.0, overscan = 4 }
+
+[nodes.plugin_manager_view]
+component = "View"
+control_id = "FyroxPluginManagerView"
+props = { view_id = "editor.module_plugins", text = "Plugin Manager" }
+children = [
+  { node = "plugin_categories" },
+  { node = "plugin_actions" },
+]
+
+[nodes.plugin_categories]
+component = "CategorizedList"
+control_id = "PluginCategorizedList"
+props = { query = "" }
+
+[nodes.plugin_actions]
+component = "StatusActionControls"
+control_id = "PluginStatusActions"
+props = { status = "enabled" }
+
+[nodes.material_editor_view]
+component = "View"
+control_id = "FyroxMaterialEditorView"
+props = { view_id = "editor.material.graph", text = "Material" }
+children = [{ node = "material_graph" }]
+
+[nodes.material_graph]
+component = "GraphCanvas"
+control_id = "MaterialGraphCanvas"
+
+[nodes.ui_asset_editor_view]
+component = "View"
+control_id = "FyroxUiAssetEditorView"
+props = { view_id = "editor.ui.designer", text = "UI Asset" }
+children = [
+  { node = "ui_visual_designer" },
+  { node = "ui_source_editor" },
+]
+
+[nodes.ui_visual_designer]
+component = "VisualDesigner"
+control_id = "UiVisualDesigner"
+
+[nodes.ui_source_editor]
+component = "SourceEditor"
+control_id = "UiSourceEditor"
+props = { text = "[nodes.root]" }
+
+[nodes.animation_editor_view]
+component = "View"
+control_id = "FyroxAnimationEditorView"
+props = { view_id = "editor.animation.timeline", text = "Animation" }
+children = [{ node = "animation_timeline" }]
+
+[nodes.animation_timeline]
+component = "Timeline"
+control_id = "AnimationTimeline"
+props = { time = 1.25, duration = 4.0 }

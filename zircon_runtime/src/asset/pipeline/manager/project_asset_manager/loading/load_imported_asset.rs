@@ -56,9 +56,18 @@ impl ProjectAssetManager {
             AssetKind::AnimationStateMachine => self
                 .load_animation_state_machine_asset(id)
                 .map(ImportedAsset::AnimationStateMachine),
-            AssetKind::UiLayout => self.load_ui_layout_asset(id).map(ImportedAsset::UiLayout),
-            AssetKind::UiWidget => self.load_ui_widget_asset(id).map(ImportedAsset::UiWidget),
-            AssetKind::UiStyle => self.load_ui_style_asset(id).map(ImportedAsset::UiStyle),
+            AssetKind::UiLayout => self
+                .load_ui_v2_view_asset(id)
+                .map(ImportedAsset::UiV2View)
+                .or_else(|_| self.load_ui_layout_asset(id).map(ImportedAsset::UiLayout)),
+            AssetKind::UiWidget => self
+                .load_ui_v2_component_asset(id)
+                .map(ImportedAsset::UiV2Component)
+                .or_else(|_| self.load_ui_widget_asset(id).map(ImportedAsset::UiWidget)),
+            AssetKind::UiStyle => self
+                .load_ui_v2_style_asset(id)
+                .map(ImportedAsset::UiV2Style)
+                .or_else(|_| self.load_ui_style_asset(id).map(ImportedAsset::UiStyle)),
         }
     }
 }

@@ -7,8 +7,8 @@ use super::super::editor_ui_host::EditorUiHost;
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::UiAssetDiffSnapshot;
 use super::{
-    preview_size_for_preset, ui_asset_source_hash, UiAssetExternalConflict,
-    UiAssetStaleImportDiagnostic,
+    build_ui_asset_editor_session_from_source, preview_size_for_preset, ui_asset_source_hash,
+    UiAssetExternalConflict, UiAssetStaleImportDiagnostic,
 };
 use crate::ui::asset_editor::{UiAssetEditorRoute, UiAssetEditorSession};
 use crate::ui::workbench::view::ViewInstanceId;
@@ -343,6 +343,6 @@ fn rebuild_ui_asset_session_from_source(
     source: String,
 ) -> Result<UiAssetEditorSession, EditorError> {
     let preview_size = preview_size_for_preset(route.preview_preset);
-    UiAssetEditorSession::from_source(route, source, preview_size)
-        .map_err(|error| EditorError::UiAsset(error.to_string()))
+    build_ui_asset_editor_session_from_source(route, source, preview_size)
+        .map_err(EditorError::UiAsset)
 }

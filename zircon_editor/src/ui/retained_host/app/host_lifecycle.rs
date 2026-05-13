@@ -38,10 +38,13 @@ impl RetainedEditorHost {
 
     fn new_with_viewport(
         core: CoreHandle,
-        _runtime_client: SharedEditorRuntimeClient,
+        runtime_client: SharedEditorRuntimeClient,
         ui: UiHostWindow,
         viewport: RetainedViewportController,
     ) -> Result<Self, Box<dyn Error>> {
+        #[cfg(not(feature = "profiling"))]
+        let _ = &runtime_client;
+
         let resolver = ManagerResolver::new(core.clone());
         let asset_server = resolve_asset_manager(resolver.core())?;
         let editor_asset_server = resolve_editor_asset_manager(resolver.core())?;
@@ -90,6 +93,8 @@ impl RetainedEditorHost {
             self_handle: None,
             runtime,
             editor_manager,
+            #[cfg(feature = "profiling")]
+            runtime_client,
             module_plugin_live_host_backend: Box::new(native_plugin_live_host),
             desktop_export_reports: BTreeMap::new(),
             desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
@@ -169,6 +174,8 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn tick(&mut self) {
+        zircon_runtime::profile_frame!("editor", "retained_host_tick");
+        zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.poll_desktop_export_jobs();
 
         if let Err(error) = self.refresh_project_assets() {
@@ -201,6 +208,11 @@ impl RetainedEditorHost {
                 );
             }
             if let Some(submission) = self.runtime.render_frame_submission() {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "submit_viewport_extract"
+                );
                 if let Err(error) = self.viewport.submit_extract_with_ui(
                     submission.extract,
                     submission.ui,
@@ -221,6 +233,13 @@ impl RetainedEditorHost {
 
     pub(super) fn refresh_ui(&mut self) {
         self.recompute_if_dirty();
+    }
+
+    pub(super) fn use_committed_pointer_layout(&self) {
+        // Pointer routing must stay on the last committed bridge frames. Dirty
+        // presentation/layout state is consumed by tick/refresh instead of
+        // rebuilding the whole editor tree inside native pointer callbacks.
+        self.publish_refresh_invalidation_diagnostics();
     }
 
     pub(super) fn build_chrome(&self) -> crate::ui::workbench::snapshot::EditorChromeSnapshot {
@@ -248,6 +267,7 @@ impl RetainedEditorHost {
         if !self.presentation_dirty && !self.layout_dirty && !self.window_metrics_dirty {
             return;
         }
+        zircon_runtime::profile_scope!("editor", "retained_host", "recompute_if_dirty");
 
         let pending_reasons = self.invalidation.take_recompute_reasons();
         let recompute_reasons = if pending_reasons.is_empty() {
@@ -260,6 +280,39 @@ impl RetainedEditorHost {
         } else {
             pending_reasons
         };
+        let paint_only_reasons = recompute_reasons.intersection(
+            HostInvalidationMask::PAINT_ONLY
+                .union(HostInvalidationMask::POINTER_HOVER)
+                .union(HostInvalidationMask::VIEWPORT_IMAGE),
+        );
+        let pure_paint_only = !paint_only_reasons.is_empty()
+            && !recompute_reasons.requires_layout()
+            && !recompute_reasons.requires_presentation()
+            && !recompute_reasons.requires_window_metrics()
+            && !recompute_reasons.requires_hit_test()
+            && !recompute_reasons.requires_render();
+        if pure_paint_only {
+            self.presentation_dirty = false;
+            self.layout_dirty = false;
+            self.window_metrics_dirty = false;
+            self.publish_refresh_invalidation_diagnostics();
+            if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+                write_diagnostic_log(
+                    "editor_host_invalidation",
+                    format!(
+                        "paint_only_fast_path reasons={} legacy_dirty_flags={{layout:{},presentation:{},window_metrics:{},render:{}}} {}",
+                        recompute_reasons.summary(),
+                        self.layout_dirty,
+                        self.presentation_dirty,
+                        self.window_metrics_dirty,
+                        self.render_dirty,
+                        self.invalidation.stats_summary()
+                    ),
+                );
+            }
+            return;
+        }
+
         let slow_path_rebuild = self.invalidation.record_slow_path_rebuild();
         self.publish_refresh_invalidation_diagnostics();
         if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
@@ -282,6 +335,11 @@ impl RetainedEditorHost {
         let descriptors = self.runtime.descriptors();
         let mut chrome = self.build_chrome();
         let mut model = WorkbenchViewModel::build(&chrome);
+        if paint_only_reasons.requires_layout() {
+            // layout-affecting invalidations still require the full shell recompute below;
+            // pure paint-only reasons stay eligible for a lighter path after the shared
+            // root frames are already stable.
+        }
         let geometry = compute_workbench_shell_geometry(
             &model,
             &chrome,
@@ -368,7 +426,7 @@ impl RetainedEditorHost {
         let preset_names = self.runtime.preset_names();
         let ui_asset_panes = self.collect_ui_asset_panes();
         let animation_panes = self.collect_animation_editor_panes();
-        let runtime_diagnostics = self.editor_manager.runtime_diagnostics();
+        let runtime_diagnostics = self.runtime_diagnostics_with_profile();
         let module_plugins = self.module_plugins_pane_data(&chrome);
         let build_export = self.build_export_pane_data(&chrome);
         apply_presentation(
@@ -414,6 +472,9 @@ impl RetainedEditorHost {
         self.presentation_dirty = false;
         self.layout_dirty = false;
         self.window_metrics_dirty = false;
+        if !paint_only_reasons.is_empty() && !paint_only_reasons.requires_layout() {
+            self.render_dirty = false;
+        }
     }
 
     fn publish_refresh_invalidation_diagnostics(&self) {
@@ -749,17 +810,7 @@ impl RetainedEditorHost {
         if effects.reset_active_layout_preset {
             self.active_layout_preset = None;
         }
-        let mut invalidation = HostInvalidationMask::NONE;
-        if effects.layout_dirty {
-            invalidation.insert(HostInvalidationMask::LAYOUT);
-        }
-        if effects.render_dirty {
-            invalidation.insert(HostInvalidationMask::RENDER);
-        }
-        if effects.presentation_dirty {
-            invalidation.insert(HostInvalidationMask::PRESENTATION_DATA);
-        }
-        self.invalidate_host(invalidation);
+        self.invalidate_host(effects.dirty_domains());
         if effects.sync_asset_workspace {
             self.sync_asset_workspace();
         }
@@ -814,6 +865,10 @@ impl RetainedEditorHost {
 
     pub(super) fn mark_layout_dirty(&mut self) {
         self.invalidate_host(HostInvalidationMask::LAYOUT);
+    }
+
+    pub(super) fn mark_presentation_dirty(&mut self) {
+        self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
     }
 
     pub(super) fn mark_render_and_presentation_dirty(&mut self) {

@@ -13,7 +13,8 @@ use crate::asset::{
     AnimationStateMachineAsset, AssetId, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
     ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
     SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset, UiV2StyleAsset,
+    UiV2ViewAsset, UiWidgetAsset,
 };
 
 impl ProjectAssetManager {
@@ -172,5 +173,21 @@ impl ProjectAssetManager {
 
     pub fn load_ui_style_asset(&self, id: AssetId) -> Result<UiStyleAsset, CoreError> {
         self.load_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui style")
+    }
+
+    pub fn load_ui_v2_view_asset(&self, id: AssetId) -> Result<UiV2ViewAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<UiLayoutMarker>::new(id), "ui v2 view")
+    }
+
+    pub fn load_ui_v2_component_asset(&self, id: AssetId) -> Result<UiV2ComponentAsset, CoreError> {
+        self.load_typed(
+            id,
+            ResourceHandle::<UiWidgetMarker>::new(id),
+            "ui v2 component",
+        )
+    }
+
+    pub fn load_ui_v2_style_asset(&self, id: AssetId) -> Result<UiV2StyleAsset, CoreError> {
+        self.load_typed(id, ResourceHandle::<UiStyleMarker>::new(id), "ui v2 style")
     }
 }

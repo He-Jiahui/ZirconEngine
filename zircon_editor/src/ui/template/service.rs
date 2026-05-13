@@ -1,14 +1,13 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::{
     collect_asset_binding_report, collect_document_localization_report, UiAssetLoader,
     UiCompiledDocument, UiDocumentCompiler, UiTemplateBuildError, UiTemplateInstance,
     UiTemplateSurfaceBuilder,
 };
 use zircon_runtime_interface::ui::event_ui::UiTreeId;
-use zircon_runtime_interface::ui::surface::UiRenderExtract;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetError};
 use zircon_runtime_interface::ui::template::{UiBindingReport, UiLocalizationReport};
 
@@ -115,9 +114,5 @@ impl EditorTemplateRuntimeService {
         document: &UiCompiledDocument,
     ) -> Result<UiSurface, UiTemplateBuildError> {
         UiTemplateSurfaceBuilder::build_surface_from_compiled_document(tree_id, document)
-    }
-
-    pub fn extract_render(&self, surface: &UiSurface) -> UiRenderExtract {
-        extract_ui_render_tree(&surface.tree)
     }
 }

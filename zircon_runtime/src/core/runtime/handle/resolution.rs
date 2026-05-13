@@ -30,6 +30,7 @@ impl CoreHandle {
         service_name: &str,
         expected_kind: Option<ServiceKind>,
     ) -> Result<ServiceObject, CoreError> {
+        crate::profile_scope!("runtime", "core", "resolve_named_service");
         self.resolve_named_service_inner(service_name, expected_kind, &mut Vec::new())
     }
 

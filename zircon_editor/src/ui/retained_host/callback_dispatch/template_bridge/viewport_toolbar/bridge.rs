@@ -19,12 +19,16 @@ use super::super::projection_support::{
     binding_for_control, build_bindings_by_id, load_builtin_runtime_projection,
 };
 use super::error::BuiltinViewportToolbarTemplateBridgeError;
-use super::host_projection::build_builtin_viewport_toolbar_host_projection;
+use super::host_projection::{
+    build_builtin_viewport_toolbar_surface, project_builtin_viewport_toolbar_host_projection,
+    rebuild_builtin_viewport_toolbar_surface,
+};
 
 pub(crate) struct BuiltinViewportToolbarTemplateBridge {
     runtime: EditorUiHostRuntime,
     projection: RetainedUiProjection,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
+    surface: UiSurface,
     host_projection: RetainedUiHostProjection,
 }
 
@@ -33,15 +37,14 @@ impl BuiltinViewportToolbarTemplateBridge {
         let (runtime, projection) =
             load_builtin_runtime_projection(BUILTIN_VIEWPORT_TOOLBAR_DOCUMENT_ID)?;
         let bindings_by_id = build_bindings_by_id(&projection);
-        let host_projection = build_builtin_viewport_toolbar_host_projection(
-            &runtime,
-            &projection,
-            UiSize::new(1280.0, 28.0),
-        )?;
+        let surface = build_builtin_viewport_toolbar_surface(&runtime, UiSize::new(1280.0, 28.0))?;
+        let host_projection =
+            project_builtin_viewport_toolbar_host_projection(&runtime, &projection, &surface)?;
         Ok(Self {
             runtime,
             projection,
             bindings_by_id,
+            surface,
             host_projection,
         })
     }
@@ -50,10 +53,11 @@ impl BuiltinViewportToolbarTemplateBridge {
         &mut self,
         surface_size: UiSize,
     ) -> Result<(), BuiltinViewportToolbarTemplateBridgeError> {
-        self.host_projection = build_builtin_viewport_toolbar_host_projection(
+        rebuild_builtin_viewport_toolbar_surface(&mut self.surface, surface_size)?;
+        self.host_projection = project_builtin_viewport_toolbar_host_projection(
             &self.runtime,
             &self.projection,
-            surface_size,
+            &self.surface,
         )?;
         Ok(())
     }

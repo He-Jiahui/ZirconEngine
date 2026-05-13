@@ -1,0 +1,797 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.asset_browser"
+version = 2
+display_name = "Asset Browser"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "asset_browser_root"
+
+[nodes.toolbar_title_text]
+component = "Label"
+control_id = "AssetBrowserTitleText"
+props = { text = "Asset Browser", font_size = 12.0, font_weight = 700, overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_locate_button]
+component = "Button"
+control_id = "LocateSelectedAsset"
+props = { text = "Locate In Assets", dispatch_kind = "asset:browser" }
+layout = { width = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "AssetCommand.LocateSelectedAsset" }]
+
+[nodes.toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarTitleRow"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_title_text" }, { node = "toolbar_locate_button" }]
+
+[nodes.toolbar_subtitle_text]
+component = "Label"
+control_id = "AssetBrowserSubtitleText"
+props = { text = "Project/assets", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_subtitle_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarSubtitleRow"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_subtitle_text" }]
+
+[nodes.toolbar_search_field]
+component = "TextField"
+control_id = "SearchEdited"
+props = { placeholder = "Search", dispatch_kind = "asset:browser" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "AssetCommand.SetSearchQuery" }]
+
+[nodes.toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarSearchRow"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_search_field" }]
+
+[nodes.toolbar_kind_all_chip]
+component = "Button"
+control_id = "AssetBrowserKindAllChip"
+props = { text = "All", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value_text = "" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_texture_chip]
+component = "Button"
+control_id = "AssetBrowserKindTextureChip"
+props = { text = "Texture", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Texture" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_material_chip]
+component = "Button"
+control_id = "AssetBrowserKindMaterialChip"
+props = { text = "Material", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Material" }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_scene_chip]
+component = "Button"
+control_id = "AssetBrowserKindSceneChip"
+props = { text = "Scene", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Scene" }
+layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_model_chip]
+component = "Button"
+control_id = "AssetBrowserKindModelChip"
+props = { text = "Model", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Model" }
+layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_shader_chip]
+component = "Button"
+control_id = "AssetBrowserKindShaderChip"
+props = { text = "Shader", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "Shader" }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_primary_spacer]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_view_mode_list_button]
+component = "Button"
+control_id = "AssetBrowserViewModeListButton"
+props = { text = "List", dispatch_kind = "asset:browser", action_id = "SetViewMode", value = "list" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+
+[nodes.toolbar_view_mode_thumb_button]
+component = "Button"
+control_id = "AssetBrowserViewModeThumbButton"
+props = { text = "Thumb", dispatch_kind = "asset:browser", action_id = "SetViewMode", value = "thumbnail" }
+layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+
+[nodes.toolbar_kind_primary_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarKindPrimaryRow"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }, { node = "toolbar_kind_primary_spacer" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
+
+[nodes.toolbar_kind_physics_chip]
+component = "Button"
+control_id = "AssetBrowserKindPhysicsChip"
+props = { text = "Physics", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "PhysicsMaterial" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_skeleton_chip]
+component = "Button"
+control_id = "AssetBrowserKindSkeletonChip"
+props = { text = "Skeleton", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationSkeleton" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_clip_chip]
+component = "Button"
+control_id = "AssetBrowserKindClipChip"
+props = { text = "Clip", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationClip" }
+layout = { width = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_sequence_chip]
+component = "Button"
+control_id = "AssetBrowserKindSequenceChip"
+props = { text = "Sequence", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationSequence" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_graph_chip]
+component = "Button"
+control_id = "AssetBrowserKindGraphChip"
+props = { text = "Graph", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationGraph" }
+layout = { width = { min = 66.0, preferred = 66.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_state_chip]
+component = "Button"
+control_id = "AssetBrowserKindStateChip"
+props = { text = "State", dispatch_kind = "asset:browser", action_id = "SetKindFilter", value = "AnimationStateMachine" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_secondary_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserToolbarKindSecondaryRow"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_kind_physics_chip" }, { node = "toolbar_kind_skeleton_chip" }, { node = "toolbar_kind_clip_chip" }, { node = "toolbar_kind_sequence_chip" }, { node = "toolbar_kind_graph_chip" }, { node = "toolbar_kind_state_chip" }]
+
+[nodes.toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetBrowserToolbarPanel"
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 122.0, preferred = 122.0, max = 122.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_title_row" }, { node = "toolbar_subtitle_row" }, { node = "toolbar_search_row" }, { node = "toolbar_kind_primary_row" }, { node = "toolbar_kind_secondary_row" }]
+
+[nodes.import_left_space]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.import_label]
+component = "Label"
+control_id = "AssetBrowserImportLabel"
+props = { text = "Quick Import", text_tone = "muted", font_size = 9.0 }
+layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.import_path_field]
+component = "TextField"
+control_id = "AssetBrowserImportPathField"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.import_button]
+component = "Button"
+control_id = "ImportModel"
+props = { text = "Import", button_variant = "primary", dispatch_kind = "asset:browser" }
+layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "AssetCommand.ImportModel" }]
+
+[nodes.import_right_space]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.import_panel]
+component = "HorizontalBox"
+control_id = "AssetBrowserImportPanel"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" } }
+children = [{ node = "import_left_space" }, { node = "import_label" }, { node = "import_path_field" }, { node = "import_button" }, { node = "import_right_space" }]
+
+[nodes.sources_title_text]
+component = "Label"
+control_id = "AssetBrowserSourcesTitleText"
+props = { text = "Sources", font_size = 11.0, font_weight = 700 }
+layout = { position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.sources_subtitle_text]
+component = "Label"
+control_id = "AssetBrowserSourcesSubtitleText"
+props = { text = "Project/assets", font_size = 9.0, overflow = "elide" }
+layout = { position = { x = 12.0, y = 25.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.sources_header_panel]
+component = "Overlay"
+control_id = "AssetBrowserSourcesHeaderPanel"
+props = { surface_variant = "panel" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "sources_title_text" }, { node = "sources_subtitle_text" }]
+
+[nodes.sources_divider]
+component = "Space"
+control_id = "AssetBrowserSourcesDivider"
+props = { surface_variant = "divider" }
+layout = { position = { x = 0.0, y = 48.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.sources_row_icon]
+component = "Space"
+control_id = "AssetBrowserSourcesRowIcon"
+layout = { position = { x = 8.0, y = 7.0 }, width = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.sources_row_name_text]
+component = "Label"
+control_id = "AssetBrowserSourcesRowNameText"
+props = { text = "Assets", font_size = 11.0, overflow = "elide" }
+layout = { position = { x = 30.0, y = 6.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.sources_row_count_text]
+component = "Label"
+control_id = "AssetBrowserSourcesRowCountText"
+props = { text = "0", font_size = 10.0, text_align = "right" }
+layout = { position = { x = 236.0, y = 5.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.sources_row_panel]
+component = "Overlay"
+control_id = "AssetBrowserSourcesRowPanel"
+props = { surface_variant = "asset-tree-row", radius = 6.0 }
+layout = { clip = true, container = { kind = "Overlay" }, position = { x = 8.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "sources_row_icon" }, { node = "sources_row_name_text" }, { node = "sources_row_count_text" }]
+
+[nodes.sources_scroll_body]
+component = "Overlay"
+control_id = "AssetBrowserSourcesScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, position = { x = 0.0, y = 49.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sources_row_panel" }]
+
+[nodes.sources_panel]
+component = "Space"
+control_id = "AssetBrowserSourcesPanel"
+layout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "sources_header_panel" }, { node = "sources_divider" }, { node = "sources_scroll_body" }]
+
+[nodes.content_panel]
+component = "Space"
+control_id = "AssetBrowserContentPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details_header_title_text]
+component = "Label"
+control_id = "AssetBrowserDetailsHeaderTitleText"
+props = { text = "Details", font_size = 11.0, font_weight = 700 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_header_selection_text]
+component = "Label"
+control_id = "AssetBrowserDetailsHeaderSelectionText"
+props = { text = "No Asset Selected", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 12.0, y = 25.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_header_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsHeaderPanel"
+props = { surface_variant = "inset", text_tone = "muted" }
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "details_header_title_text" }, { node = "details_header_selection_text" }]
+
+[nodes.details_divider]
+component = "Space"
+control_id = "AssetBrowserDetailsDivider"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.details_left_gutter]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.details_preview_visual_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsPreviewVisualPanel"
+props = { surface_variant = "asset-preview-visual", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 10.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 160.0, preferred = 160.0, max = 160.0, stretch = "Fixed" } }
+
+[nodes.details_preview_name_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewNameText"
+props = { text = "No Asset Selected", font_size = 12.0, font_weight = 700, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 12.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.details_preview_locator_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewLocatorText"
+props = { text = "", text_tone = "subtle", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 32.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.details_preview_kind_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewKindText"
+props = { text = "", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 50.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.details_preview_identity_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewIdentityText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 66.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_preview_adapter_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewAdapterText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_preview_meta_path_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewMetaPathText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 98.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_preview_diagnostics_text]
+component = "Label"
+control_id = "AssetBrowserDetailsPreviewDiagnosticsText"
+props = { text = "", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 132.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.details_preview_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsPreviewPanel"
+props = { surface_variant = "asset-preview", radius = 8.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" } }
+children = [{ node = "details_preview_visual_panel" }, { node = "details_preview_name_text" }, { node = "details_preview_locator_text" }, { node = "details_preview_kind_text" }, { node = "details_preview_identity_text" }, { node = "details_preview_adapter_text" }, { node = "details_preview_meta_path_text" }, { node = "details_preview_diagnostics_text" }]
+
+[nodes.details_locator_label]
+component = "Label"
+control_id = "AssetBrowserDetailsLocatorLabel"
+props = { text = "Locator", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_locator_value]
+component = "Label"
+control_id = "AssetBrowserDetailsLocatorValue"
+props = { text = "No project locator", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 23.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.details_locator_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsLocatorPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" } }
+children = [{ node = "details_locator_label" }, { node = "details_locator_value" }]
+
+[nodes.details_type_label]
+component = "Label"
+control_id = "AssetBrowserDetailsTypeLabel"
+props = { text = "Type", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_type_value]
+component = "Label"
+control_id = "AssetBrowserDetailsTypeValue"
+props = { text = "Unknown Type", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.details_type_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsTypePanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" } }
+children = [{ node = "details_type_label" }, { node = "details_type_value" }]
+
+[nodes.details_identity_label]
+component = "Label"
+control_id = "AssetBrowserDetailsIdentityLabel"
+props = { text = "Identity", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_identity_uuid_value]
+component = "Label"
+control_id = "AssetBrowserDetailsIdentityUuidValue"
+props = { text = "No UUID", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_identity_revision_value]
+component = "Label"
+control_id = "AssetBrowserDetailsIdentityRevisionValue"
+props = { text = "Revision pending", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 37.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_identity_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsIdentityPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" } }
+children = [{ node = "details_identity_label" }, { node = "details_identity_uuid_value" }, { node = "details_identity_revision_value" }]
+
+[nodes.details_metadata_label]
+component = "Label"
+control_id = "AssetBrowserDetailsMetadataLabel"
+props = { text = "Metadata", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_metadata_meta_path_value]
+component = "Label"
+control_id = "AssetBrowserDetailsMetadataMetaPathValue"
+props = { text = "No meta path", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.details_metadata_adapter_value]
+component = "Label"
+control_id = "AssetBrowserDetailsMetadataAdapterValue"
+props = { text = "No adapter", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 38.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_metadata_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsMetadataPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+children = [{ node = "details_metadata_label" }, { node = "details_metadata_meta_path_value" }, { node = "details_metadata_adapter_value" }]
+
+[nodes.details_diagnostics_label]
+component = "Label"
+control_id = "AssetBrowserDetailsDiagnosticsLabel"
+props = { text = "Diagnostics", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.details_diagnostics_text]
+component = "Label"
+control_id = "AssetBrowserDetailsDiagnosticsText"
+props = { text = "", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 24.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details_diagnostics_panel]
+component = "Overlay"
+control_id = "AssetBrowserDetailsDiagnosticsPanel"
+props = { surface_variant = "danger", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" } }
+children = [{ node = "details_diagnostics_label" }, { node = "details_diagnostics_text" }]
+
+[nodes.details_content_panel]
+component = "VerticalBox"
+control_id = "AssetBrowserDetailsContentPanel"
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { min = 538.0, preferred = 538.0, max = 538.0, stretch = "Fixed" } }
+children = [{ node = "details_preview_panel" }, { node = "details_locator_panel" }, { node = "details_type_panel" }, { node = "details_identity_panel" }, { node = "details_metadata_panel" }, { node = "details_diagnostics_panel" }]
+
+[nodes.details_right_gutter]
+component = "Space"
+layout = { width = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.details_scroll_body]
+component = "HorizontalBox"
+control_id = "AssetBrowserDetailsScrollBody"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "details_left_gutter" }, { node = "details_content_panel" }, { node = "details_right_gutter" }]
+
+[nodes.details_panel]
+component = "VerticalBox"
+control_id = "AssetBrowserDetailsPanel"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 340.0, preferred = 340.0, max = 340.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "details_header_panel" }, { node = "details_divider" }, { node = "details_scroll_body" }]
+
+[nodes.main_panel]
+component = "HorizontalBox"
+control_id = "AssetBrowserMainPanel"
+layout = { container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sources_panel" }, { node = "content_panel" }, { node = "details_panel" }]
+
+[nodes.utility_preview_button]
+component = "Button"
+control_id = "AssetBrowserPreviewTabButton"
+props = { text = "Preview", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "preview" }
+layout = { width = { min = 78.0, preferred = 78.0, max = 78.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_references_button]
+component = "Button"
+control_id = "AssetBrowserReferencesTabButton"
+props = { text = "References", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "references" }
+layout = { width = { min = 106.0, preferred = 106.0, max = 106.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_metadata_button]
+component = "Button"
+control_id = "AssetBrowserMetadataTabButton"
+props = { text = "Metadata", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "metadata" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_plugins_button]
+component = "Button"
+control_id = "AssetBrowserPluginsTabButton"
+props = { text = "Plugins", dispatch_kind = "asset:browser", action_id = "SetUtilityTab", value = "plugins" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_tabs_spacer]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.utility_selection_locator_text]
+component = "Label"
+control_id = "AssetBrowserSelectionLocatorText"
+props = { text = "Select an asset to inspect", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { width = { min = 228.0, preferred = 228.0, max = 228.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.utility_tabs_row]
+component = "HorizontalBox"
+control_id = "AssetBrowserUtilityTabsRow"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "utility_preview_button" }, { node = "utility_references_button" }, { node = "utility_metadata_button" }, { node = "utility_plugins_button" }, { node = "utility_tabs_spacer" }, { node = "utility_selection_locator_text" }]
+
+[nodes.utility_divider]
+component = "Space"
+control_id = "AssetBrowserUtilityDivider"
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 30.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.preview_visual_panel]
+component = "Overlay"
+control_id = "AssetBrowserPreviewVisualPanel"
+props = { surface_variant = "asset-preview-visual", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 10.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 156.0, preferred = 156.0, max = 156.0, stretch = "Fixed" } }
+
+[nodes.preview_name_text]
+component = "Label"
+control_id = "AssetBrowserPreviewNameText"
+props = { text = "No Asset Selected", font_size = 12.0, font_weight = 700, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 12.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.preview_locator_text]
+component = "Label"
+control_id = "AssetBrowserPreviewLocatorText"
+props = { text = "", text_tone = "subtle", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 32.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.preview_kind_text]
+component = "Label"
+control_id = "AssetBrowserPreviewKindText"
+props = { text = "", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 50.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.preview_identity_text]
+component = "Label"
+control_id = "AssetBrowserPreviewIdentityText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 66.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_adapter_text]
+component = "Label"
+control_id = "AssetBrowserPreviewAdapterText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_meta_path_text]
+component = "Label"
+control_id = "AssetBrowserPreviewMetaPathText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 98.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_diagnostics_text]
+component = "Label"
+control_id = "AssetBrowserPreviewDiagnosticsText"
+props = { text = "", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 138.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.preview_panel]
+component = "Overlay"
+control_id = "AssetBrowserPreviewPanel"
+props = { surface_variant = "asset-preview", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "preview_visual_panel" }, { node = "preview_name_text" }, { node = "preview_locator_text" }, { node = "preview_kind_text" }, { node = "preview_identity_text" }, { node = "preview_adapter_text" }, { node = "preview_meta_path_text" }, { node = "preview_diagnostics_text" }]
+
+[nodes.reference_left_title_text]
+component = "Label"
+control_id = "AssetBrowserReferenceLeftTitleText"
+props = { text = "References", font_size = 11.0, font_weight = 600, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.reference_left_empty_text]
+component = "Label"
+control_id = "AssetBrowserReferenceLeftEmptyText"
+props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_name_text]
+component = "Label"
+control_id = "AssetBrowserReferenceLeftRowNameText"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_locator_text]
+component = "Label"
+control_id = "AssetBrowserReferenceLeftRowLocatorText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_kind_text]
+component = "Label"
+control_id = "AssetBrowserReferenceLeftRowKindText"
+props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_panel]
+component = "Overlay"
+control_id = "AssetBrowserReferenceLeftRowPanel"
+props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "reference_left_row_name_text" }, { node = "reference_left_row_locator_text" }, { node = "reference_left_row_kind_text" }]
+
+[nodes.reference_left_scroll_body]
+component = "Overlay"
+control_id = "AssetBrowserReferenceLeftScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_empty_text" }, { node = "reference_left_row_panel" }]
+
+[nodes.reference_left_panel]
+component = "Overlay"
+control_id = "AssetBrowserReferenceLeftPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_title_text" }, { node = "reference_left_scroll_body" }]
+
+[nodes.reference_right_title_text]
+component = "Label"
+control_id = "AssetBrowserReferenceRightTitleText"
+props = { text = "Used By", font_size = 11.0, font_weight = 600, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.reference_right_empty_text]
+component = "Label"
+control_id = "AssetBrowserReferenceRightEmptyText"
+props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_name_text]
+component = "Label"
+control_id = "AssetBrowserReferenceRightRowNameText"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_locator_text]
+component = "Label"
+control_id = "AssetBrowserReferenceRightRowLocatorText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_kind_text]
+component = "Label"
+control_id = "AssetBrowserReferenceRightRowKindText"
+props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_panel]
+component = "Overlay"
+control_id = "AssetBrowserReferenceRightRowPanel"
+props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "reference_right_row_name_text" }, { node = "reference_right_row_locator_text" }, { node = "reference_right_row_kind_text" }]
+
+[nodes.reference_right_scroll_body]
+component = "Overlay"
+control_id = "AssetBrowserReferenceRightScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_right_empty_text" }, { node = "reference_right_row_panel" }]
+
+[nodes.reference_right_panel]
+component = "Overlay"
+control_id = "AssetBrowserReferenceRightPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_right_title_text" }, { node = "reference_right_scroll_body" }]
+
+[nodes.references_shell]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_panel" }, { node = "reference_right_panel" }]
+
+[nodes.metadata_meta_path_label]
+component = "Label"
+control_id = "AssetBrowserMetaPathLabel"
+props = { text = "Meta Path", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.metadata_meta_path_value]
+component = "Label"
+control_id = "AssetBrowserMetaPathValue"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.metadata_meta_path_panel]
+component = "Overlay"
+control_id = "AssetBrowserMetaPathPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "metadata_meta_path_label" }, { node = "metadata_meta_path_value" }]
+
+[nodes.metadata_adapter_label]
+component = "Label"
+control_id = "AssetBrowserAdapterLabel"
+props = { text = "Adapter", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.metadata_adapter_value]
+component = "Label"
+control_id = "AssetBrowserAdapterValue"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 22.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.metadata_adapter_panel]
+component = "Overlay"
+control_id = "AssetBrowserAdapterPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "metadata_adapter_label" }, { node = "metadata_adapter_value" }]
+
+[nodes.metadata_diagnostics_label]
+component = "Label"
+control_id = "AssetBrowserDiagnosticsLabel"
+props = { text = "Diagnostics", text_tone = "muted", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.metadata_diagnostics_text]
+component = "Label"
+control_id = "AssetBrowserDiagnosticsText"
+props = { text = "No active diagnostics", font_size = 10.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 24.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.metadata_diagnostics_panel]
+component = "Overlay"
+control_id = "AssetBrowserDiagnosticsPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "metadata_diagnostics_label" }, { node = "metadata_diagnostics_text" }]
+
+[nodes.metadata_stack]
+component = "VerticalBox"
+layout = { container = { kind = "VerticalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "metadata_meta_path_panel" }, { node = "metadata_adapter_panel" }, { node = "metadata_diagnostics_panel" }]
+
+[nodes.plugins_text]
+component = "Label"
+control_id = "AssetBrowserPluginsText"
+props = { text = "Plugin utility tabs can mount here.", text_tone = "muted", font_size = 11.0, text_align = "center" }
+layout = { anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.plugins_panel]
+component = "Overlay"
+control_id = "AssetBrowserPluginsPanel"
+props = { surface_variant = "inset", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "plugins_text" }]
+
+[nodes.utility_content_panel]
+component = "Overlay"
+control_id = "AssetBrowserUtilityContentPanel"
+layout = { container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 32.0 }, width = { stretch = "Stretch" }, height = { min = 176.0, preferred = 176.0, max = 176.0, stretch = "Fixed" } }
+children = [{ node = "preview_panel" }, { node = "references_shell" }, { node = "metadata_stack" }, { node = "plugins_panel" }]
+
+[nodes.utility_panel]
+component = "Overlay"
+control_id = "AssetBrowserUtilityPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 208.0, preferred = 208.0, max = 208.0, stretch = "Fixed" } }
+children = [{ node = "utility_tabs_row" }, { node = "utility_divider" }, { node = "utility_content_panel" }]
+
+[nodes.asset_browser_root]
+component = "VerticalBox"
+control_id = "AssetBrowserRoot"
+classes = ["editor-shell", "editor-pane", "asset-browser-pane"]
+layout = { container = { kind = "VerticalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "toolbar_panel" }, { node = "import_panel" }, { node = "main_panel" }, { node = "utility_panel" }]

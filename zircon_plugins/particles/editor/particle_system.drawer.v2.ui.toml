@@ -1,0 +1,43 @@
+[asset]
+kind = "view"
+id = "particles.particle_system.drawer"
+version = 2
+display_name = "Particle System"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "particles_component_drawer_root"
+
+[nodes.particles_component_asset_row]
+component = "Space"
+control_id = "ParticlesComponentAssetRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.particles_component_playback_row]
+component = "Space"
+control_id = "ParticlesComponentPlaybackRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.particles_component_backend_row]
+component = "Space"
+control_id = "ParticlesComponentBackendRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.particles_component_seed_row]
+component = "Space"
+control_id = "ParticlesComponentSeedRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.particles_component_diagnostics_row]
+component = "Space"
+control_id = "ParticlesComponentDiagnosticsRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+
+[nodes.particles_component_drawer_root]
+component = "VerticalGroup"
+control_id = "ParticlesComponentDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particles_component_asset_row" }, { node = "particles_component_playback_row" }, { node = "particles_component_backend_row" }, { node = "particles_component_seed_row" }, { node = "particles_component_diagnostics_row" }]

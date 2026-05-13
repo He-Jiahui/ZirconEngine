@@ -1,6 +1,7 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
     import_material, import_model, import_physics_material, import_scene, import_shader,
+    import_ui_v2_asset,
 };
 #[cfg(test)]
 use super::{import_gltf, import_obj, import_sound, import_texture, import_ui_asset};
@@ -147,15 +148,15 @@ impl AssetImporter {
             .with_full_suffixes([".navigation.toml"]),
             import_authoring_asset::import_navigation_settings,
         )?;
-        self.register_optional(
-            plugin_required_descriptor(
-                "zircon.plugin_required.ui_document.ui_toml",
+        self.register_function(
+            descriptor(
+                "zircon.builtin.ui_document.v2_ui_toml",
                 AssetKind::UiLayout,
-                1,
+                2,
             )
-            .with_full_suffixes([".ui.toml"])
+            .with_full_suffixes([".v2.ui.toml"])
             .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
-            "ui document importer plugin is not installed",
+            import_ui_v2_asset::import_ui_v2_asset,
         )?;
 
         self.register_function(
@@ -334,6 +335,18 @@ impl AssetImporter {
     pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
         vec![
             FunctionAssetImporter::new(
+                plugin_fixture_descriptor(
+                    "ui_document_importer.v2_typed_toml",
+                    "ui_document_importer",
+                    AssetKind::UiLayout,
+                )
+                .with_full_suffixes([".v2.ui.toml"])
+                .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle])
+                .with_required_capabilities(["runtime.asset.importer.ui_document.v2"]),
+                import_ui_v2_asset::import_ui_v2_asset,
+            ),
+            FunctionAssetImporter::new(
+                // Legacy schema import stays test-only for migration coverage after v2 cutover.
                 plugin_fixture_descriptor(
                     "ui_document_importer.typed_toml",
                     "ui_document_importer",

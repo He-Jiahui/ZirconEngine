@@ -1,0 +1,71 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.workbench_dock_header.v2"
+version = 2
+display_name = "workbench dock header"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "dock_header_root"
+
+[nodes.dock_header_root]
+component = "Overlay"
+control_id = "DockHeaderRoot"
+classes = ["dock-header", "editor-shell"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "dock_header_bar" },
+  { node = "dock_subtitle" },
+  { node = "dock_tab_0" },
+  { node = "dock_tab_close_0" },
+  { node = "dock_tab_1" },
+  { node = "dock_tab_close_1" },
+  { node = "dock_tab_2" },
+]
+
+[nodes.dock_header_bar]
+component = "Container"
+control_id = "DockHeaderBar"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 31.0, preferred = 31.0, max = 31.0, stretch = "Fixed" } }
+
+[nodes.dock_subtitle]
+component = "Label"
+control_id = "DockSubtitle"
+props = { text = "", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -12.0, y = 9.0 }, width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_0]
+component = "Label"
+control_id = "DockTab0"
+props = { text = "Project", text_tone = "default", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 8.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_close_0]
+component = "IconButton"
+control_id = "DockTabClose0"
+props = { surface_variant = "inset", icon = "close-outline", value = "ionicons/close-outline.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
+layout = { position = { x = 76.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_1]
+component = "Label"
+control_id = "DockTab1"
+props = { text = "Assets", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 102.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_close_1]
+component = "IconButton"
+control_id = "DockTabClose1"
+props = { surface_variant = "inset", icon = "close-outline", value = "ionicons/close-outline.svg", text_tone = "muted", radius = 8.0, border_width = 0.0 }
+layout = { position = { x = 170.0, y = 8.0 }, width = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.dock_tab_2]
+component = "Label"
+control_id = "DockTab2"
+props = { text = "Hierarchy", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 196.0, y = 1.0 }, width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

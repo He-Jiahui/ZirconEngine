@@ -102,6 +102,14 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         env!("CARGO_MANIFEST_DIR"),
         "/src/ui/template_runtime/component_adapter/asset_editor.rs"
     ));
+    let pane_surface_actions = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/retained_host/app/pane_surface_actions.rs"
+    ));
+    let ui_asset_detail_routes = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/src/ui/retained_host/app/ui_asset_editor_detail_routes.rs"
+    ));
 
     assert!(
         wiring.contains("pane_surface_host.on_ui_asset_detail_event("),
@@ -126,6 +134,14 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         ui_asset_editor.contains("pub(super) fn dispatch_ui_asset_detail_event("),
         "ui asset editor host dispatch should expose a generic detail event dispatcher"
     );
+    assert!(
+        pane_surface_actions.contains("UiAssetDetailSurfaceBinding::parse(binding_id)"),
+        "pane surface edited events should route UI asset v2 inspector bindings through the generic detail dispatcher"
+    );
+    assert!(
+        pane_surface_actions.contains("self.dispatch_ui_asset_detail_event("),
+        "pane surface edited events should reuse the UI asset detail dispatcher instead of a parallel callback path"
+    );
 
     for legacy_dispatch in [
         "pub(super) fn dispatch_ui_asset_inspector_widget_action(",
@@ -145,6 +161,7 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
         "dispatch_ui_asset_component_adapter_commit(",
         "\"widget.control_id\"",
         "\"widget.text\"",
+        "widget_prop_state_target_path(",
         "\"component.root_class_policy\"",
         "\"slot.mount\"",
         "\"slot.width_preferred\"",
@@ -164,10 +181,18 @@ fn ui_asset_editor_host_genericizes_detail_event_dispatch() {
             "generic detail dispatch should route authored field commits through component adapter `{host_adapter_route}`"
         );
     }
+    for route_helper in ["\"widget.prop.\"", "\"widget.state.\""] {
+        assert!(
+            ui_asset_detail_routes.contains(route_helper),
+            "generic prop/state route helper should keep accepting `{route_helper}`"
+        );
+    }
 
     for manager_call in [
         ".set_ui_asset_editor_selected_widget_control_id(",
         ".set_ui_asset_editor_selected_widget_text_property(",
+        ".set_ui_asset_editor_selected_widget_prop_literal(",
+        ".set_ui_asset_editor_selected_widget_state_literal(",
         ".set_ui_asset_editor_selected_component_root_class_policy(",
         ".set_ui_asset_editor_selected_slot_mount(",
         ".set_ui_asset_editor_selected_slot_width_preferred(",

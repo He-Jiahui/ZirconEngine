@@ -12,8 +12,8 @@ use super::{
         UiAssetEditorDocumentReplayCommand, UiAssetEditorTreeEdit, UiAssetEditorTreeEditKind,
     },
     ui_asset_editor_session::{
-        remap_source_byte_offset, serialize_document, UiAssetEditorReplayResult,
-        UiAssetEditorSession, UiAssetEditorSessionError,
+        remap_source_byte_offset, UiAssetEditorReplayResult, UiAssetEditorSession,
+        UiAssetEditorSessionError,
     },
     undo_stack::UiAssetEditorUndoExternalEffects,
 };
@@ -181,7 +181,7 @@ impl UiAssetEditorSession {
         label: &str,
         replay: UiAssetEditorDocumentReplayBundle,
     ) -> Result<(), UiAssetEditorSessionError> {
-        let next_source = serialize_document(&document)?;
+        let next_source = self.serialize_document_for_current_schema(&document)?;
         self.apply_command(
             UiAssetEditorCommand::tree_edit_structured(edit, label, next_source)
                 .with_document_replay(replay),
@@ -218,7 +218,7 @@ impl UiAssetEditorSession {
         replay: UiAssetEditorDocumentReplayBundle,
         selected_style_rule_id: Option<String>,
     ) -> Result<(), UiAssetEditorSessionError> {
-        let next_source = serialize_document(&document)?;
+        let next_source = self.serialize_document_for_current_schema(&document)?;
         self.apply_command_with_effects_theme_and_style_rule(
             UiAssetEditorCommand::tree_edit_structured(
                 UiAssetEditorTreeEdit::generic(UiAssetEditorTreeEditKind::DocumentEdit),
@@ -253,7 +253,7 @@ impl UiAssetEditorSession {
         selection: UiDesignerSelectionModel,
     ) -> Result<(), UiAssetEditorSessionError> {
         let replay = tree_document_replay_bundle(&self.last_valid_document, &document);
-        let next_source = serialize_document(&document)?;
+        let next_source = self.serialize_document_for_current_schema(&document)?;
         self.apply_command(
             UiAssetEditorCommand::tree_edit_structured_with_selection(
                 edit,
@@ -290,7 +290,9 @@ impl UiAssetEditorSession {
         self.selected_style_rule_id = selected_style_rule_id;
         self.source_buffer.replace(source);
         self.restore_source_cursor_snapshot(&source_cursor);
-        if document_changed {
+        if document_changed
+            && self.source_schema == super::ui_asset_editor_session::UiAssetSourceSchema::Legacy
+        {
             self.apply_valid_document(replay_document)?;
             self.clear_palette_drag_state();
             return Ok(source_changed || document_changed);

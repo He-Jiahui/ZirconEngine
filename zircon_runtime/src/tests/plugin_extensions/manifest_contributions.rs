@@ -29,7 +29,7 @@ fn plugin_package_manifest_declares_runtime_and_editor_contributions() {
         .with_ui_component(UiComponentDescriptor::new(
             "weather.Ui.CloudLayerInspector",
             "weather",
-            "asset://weather/editor/cloud_layer_inspector.ui.toml",
+            "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
         ));
 
     assert_eq!(manifest.components.len(), 1);
@@ -41,7 +41,7 @@ fn plugin_package_manifest_declares_runtime_and_editor_contributions() {
     assert_eq!(manifest.ui_components.len(), 1);
     assert_eq!(
         manifest.ui_components[0].ui_document,
-        "asset://weather/editor/cloud_layer_inspector.ui.toml"
+        "asset://weather/editor/cloud_layer_inspector.v2.ui.toml"
     );
 
     let encoded = toml::to_string(&manifest).expect("manifest toml");

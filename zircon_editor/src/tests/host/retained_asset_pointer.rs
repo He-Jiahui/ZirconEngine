@@ -22,6 +22,40 @@ use zircon_runtime_interface::ui::{
 };
 
 #[test]
+fn shared_asset_pointer_bridges_skip_rebuild_for_unchanged_layout_and_state() {
+    let state = AssetListPointerState::default();
+
+    let folder_layout = AssetFolderTreePointerLayout {
+        pane_size: UiSize::new(240.0, 200.0),
+        folder_ids: vec!["res://".to_string(), "res://materials".to_string()],
+    };
+    let mut folder_bridge = AssetFolderTreePointerBridge::new();
+    assert!(folder_bridge.sync(folder_layout.clone(), state.clone()));
+    assert!(!folder_bridge.sync(folder_layout, state.clone()));
+
+    let content_layout = AssetContentListPointerLayout {
+        pane_size: UiSize::new(420.0, 220.0),
+        view_mode: AssetListViewMode::List,
+        folder_ids: vec!["res://materials".to_string()],
+        item_ids: vec!["11111111-1111-1111-1111-111111111111".to_string()],
+    };
+    let mut content_bridge = AssetContentListPointerBridge::new();
+    assert!(content_bridge.sync(content_layout.clone(), state.clone()));
+    assert!(!content_bridge.sync(content_layout, state.clone()));
+
+    let reference_layout = AssetReferenceListPointerLayout {
+        pane_size: UiSize::new(280.0, 180.0),
+        entries: vec![AssetReferenceListPointerEntry {
+            asset_uuid: "11111111-1111-1111-1111-111111111111".to_string(),
+            known_project_asset: true,
+        }],
+    };
+    let mut reference_bridge = AssetReferenceListPointerBridge::new();
+    assert!(reference_bridge.sync(reference_layout.clone(), state.clone()));
+    assert!(!reference_bridge.sync(reference_layout, state));
+}
+
+#[test]
 fn shared_asset_tree_pointer_bridge_scrolls_and_dispatches_folder_selection() {
     let _guard = env_lock().lock().unwrap();
 
@@ -246,9 +280,10 @@ fn asset_surface_controls_use_generic_template_callbacks_instead_of_legacy_busin
             .expect("host globals");
     let wiring = std::fs::read_to_string(root.join("src/ui/retained_host/app/callback_wiring.rs"))
         .expect("callback wiring");
-    let controls =
-        std::fs::read_to_string(root.join("assets/ui/editor/host/asset_surface_controls.ui.toml"))
-            .expect("asset controls asset");
+    let controls = std::fs::read_to_string(
+        root.join("assets/ui/editor/host/asset_surface_controls.v2.ui.toml"),
+    )
+    .expect("asset controls asset");
 
     for needle in ["on_asset_control_changed", "on_asset_control_clicked"] {
         assert!(globals.contains(needle), "host globals missing `{needle}`");

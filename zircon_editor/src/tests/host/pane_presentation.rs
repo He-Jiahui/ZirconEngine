@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 
 use serde_json::json;
 use zircon_runtime::core::diagnostics::{
-    RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics,
-    RuntimeRenderDiagnostics,
+    ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
+    RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::physics::{
@@ -141,7 +141,7 @@ fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
                 plugin_id: "weather".to_string(),
                 drawer_available: true,
                 drawer_ui_document: Some(
-                    "asset://weather/editor/cloud_layer.inspector.ui.toml".to_string(),
+                    "asset://weather/editor/cloud_layer.inspector.v2.ui.toml".to_string(),
                 ),
                 drawer_controller: Some("weather.editor.CloudLayerInspectorController".to_string()),
                 drawer_template_id: Some("weather.cloud_layer.inspector".to_string()),
@@ -203,6 +203,33 @@ fn animation_fixture() -> AnimationEditorPanePresentation {
 }
 
 fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
+    let profile = ProfileSnapshot {
+        active: true,
+        feature_enabled: true,
+        frames: vec![ProfileFrameSnapshot {
+            stream: "editor".to_string(),
+            name: "retained_host_tick".to_string(),
+            frame_index: 0,
+            start_us: 0,
+            duration_us: 18_000,
+            budget_ms: 16.67,
+            over_budget: true,
+        }],
+        spans: vec![ProfileSpanSnapshot {
+            id: 1,
+            parent_id: None,
+            frame_index: Some(0),
+            stream: "editor".to_string(),
+            category: "retained_host".to_string(),
+            name: "recompute_if_dirty".to_string(),
+            path: "editor/retained_host:recompute_if_dirty".to_string(),
+            start_us: 1_000,
+            duration_us: 12_000,
+            depth: 0,
+        }],
+        ..ProfileSnapshot::default()
+    };
+
     RuntimeDiagnosticsSnapshot {
         render: RuntimeRenderDiagnostics {
             available: true,
@@ -247,6 +274,7 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             error: None,
         },
         store: Default::default(),
+        profile,
     }
 }
 
@@ -483,6 +511,12 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                 assert!(payload
                     .detail_items
                     .contains(&"Hybrid GI active probes: 4".to_string()));
+                assert!(payload
+                    .detail_items
+                    .contains(&"Profiling: active (1 frames, 1 spans, 0 counters)".to_string()));
+                assert!(payload
+                    .detail_items
+                    .contains(&"Profiling over-budget frames: 1".to_string()));
                 assert_eq!(
                     payload.ui_debug_reflector_summary,
                     "UI Debug Reflector: no active surface snapshot"
@@ -613,7 +647,7 @@ fn inspector_payload_preserves_component_drawer_template_metadata() {
 
     assert_eq!(
         component.drawer_ui_document.as_deref(),
-        Some("asset://weather/editor/cloud_layer.inspector.ui.toml")
+        Some("asset://weather/editor/cloud_layer.inspector.v2.ui.toml")
     );
     assert_eq!(
         component.drawer_controller.as_deref(),

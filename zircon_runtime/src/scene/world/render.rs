@@ -21,7 +21,11 @@ impl World {
     }
 
     pub fn to_render_extract(&self) -> SceneViewportRenderPacket {
-        let request = SceneViewportExtractRequest::default();
+        let request = SceneViewportExtractRequest {
+            active_camera_override: None,
+            camera: None,
+            ..SceneViewportExtractRequest::default()
+        };
         self.build_viewport_render_packet(&request)
     }
 

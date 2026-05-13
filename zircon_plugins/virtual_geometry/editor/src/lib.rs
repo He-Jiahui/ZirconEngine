@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for VirtualGeometryEditorPlugin {
                 drawer_id: VIRTUAL_GEOMETRY_DRAWER_ID,
                 drawer_display_name: "Virtual Geometry Tools",
                 template_id: VIRTUAL_GEOMETRY_TEMPLATE_ID,
-                template_document: "plugins://virtual_geometry/editor/authoring.ui.toml",
+                template_document: "plugins://virtual_geometry/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     VIRTUAL_GEOMETRY_AUTHORING_VIEW_ID,
                     "Virtual Geometry",

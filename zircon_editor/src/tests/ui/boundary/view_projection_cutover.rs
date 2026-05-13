@@ -103,3 +103,54 @@ fn view_presentations_keep_asset_and_welcome_host_contract_dtos_at_ui_boundary_o
         );
     }
 }
+
+#[test]
+fn v2_view_projection_uses_runtime_v2_file_cache_without_editor_local_loader() {
+    let view_projection = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("ui")
+            .join("layouts")
+            .join("views")
+            .join("view_projection.rs"),
+    )
+    .expect("view projection source");
+
+    for required in [
+        "UiV2PrototypeStoreFileCache",
+        "view_v2_store_file_cache()",
+        ".load_store(",
+        "build_surface_from_compiled_document(",
+    ] {
+        assert!(
+            view_projection.contains(required),
+            "view_projection.rs should route v2 views through runtime file cache marker `{required}`"
+        );
+    }
+    for forbidden in [
+        "UiV2AssetLoader",
+        "load_toml_file",
+        "document.tokens.extend",
+        "document.stylesheets.extend",
+        "UiV2SurfaceBuilder::build_surface(",
+    ] {
+        assert!(
+            !view_projection.contains(forbidden),
+            "view_projection.rs should not keep editor-local v2 loader/cache bypass `{forbidden}`"
+        );
+    }
+
+    let asset_browser = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("assets")
+            .join("ui")
+            .join("editor")
+            .join("asset_browser.v2.ui.toml"),
+    )
+    .expect("asset browser v2 asset");
+    assert!(asset_browser.contains("res://ui/theme/editor_base.v2.ui.toml"));
+    assert!(
+        !asset_browser.contains("res://ui/theme/editor_base.ui.toml"),
+        "v2 asset browser must not import the old schema theme"
+    );
+}

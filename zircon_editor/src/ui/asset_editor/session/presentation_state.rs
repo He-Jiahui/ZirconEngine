@@ -7,7 +7,7 @@ use super::{
         build_component_contract_items, build_hierarchy_items, build_inspector_items,
         selected_hierarchy_index, selection_summary,
     },
-    inspector_fields::build_inspector_fields,
+    inspector_fields::{build_inspector_fields, build_selected_node_prop_state_items},
     inspector_semantics::{
         build_layout_semantic_group, build_slot_semantic_group,
         build_structured_layout_semantic_fields, build_structured_slot_semantic_fields,
@@ -402,7 +402,15 @@ impl UiAssetEditorSession {
         let root_class_policy = self
             .selected_component_root_class_policy()
             .map(root_class_policy_label);
+        let inspector_widget_prop_state_items =
+            build_selected_node_prop_state_items(&self.last_valid_document, &self.selection);
+        let inspector_widget_prop_state_rows = inspector_widget_prop_state_items.clone();
+        let inspector_widget_prop_state_items = inspector_widget_prop_state_items
+            .iter()
+            .map(|item| item.display.clone())
+            .collect::<Vec<_>>();
         let mut inspector_items = build_inspector_items(&reflection);
+        inspector_items.extend(inspector_widget_prop_state_items.clone());
         inspector_items.extend(build_component_contract_items(root_class_policy));
         UiAssetEditorPanePresentation {
             nodes: Vec::new(),
@@ -818,6 +826,8 @@ impl UiAssetEditorSession {
                 .map(|draft| draft.document_id.clone())
                 .unwrap_or_default(),
             inspector_can_edit_promote_draft: can_promote_to_external_widget,
+            inspector_widget_prop_state_items,
+            inspector_widget_prop_state_rows,
             palette_items: palette_entries
                 .into_iter()
                 .map(|entry| entry.label)

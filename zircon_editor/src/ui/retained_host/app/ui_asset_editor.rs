@@ -1,3 +1,4 @@
+use super::ui_asset_editor_detail_routes::widget_prop_state_target_path;
 use super::*;
 use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetPreviewPreset, UiDesignerToolMode};
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
@@ -282,7 +283,7 @@ impl RetainedEditorHost {
                 if action_id == "save" || action_id == "workspace.keep_local_and_save" {
                     self.sync_asset_workspace();
                 }
-                self.presentation_dirty = true;
+                self.mark_presentation_dirty();
             }
             Err(error) => self.set_status_line(error.to_string()),
         }
@@ -403,7 +404,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -435,7 +436,16 @@ impl RetainedEditorHost {
                 );
             }
             other => {
-                self.set_status_line(format!("Unknown UI asset widget action {other}"));
+                if let Some(target_path) = widget_prop_state_target_path(other) {
+                    self.dispatch_ui_asset_component_adapter_commit(
+                        instance_id,
+                        action_id,
+                        &target_path,
+                        value,
+                    );
+                } else {
+                    self.set_status_line(format!("Unknown UI asset widget action {other}"));
+                }
             }
         }
     }
@@ -468,7 +478,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -543,7 +553,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -600,7 +610,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -630,7 +640,7 @@ impl RetainedEditorHost {
                     self.set_status_line(status_text);
                 }
                 if result.changed || result.refresh_projection || !result.patches.is_empty() {
-                    self.presentation_dirty = true;
+                    self.mark_presentation_dirty();
                 }
             }
             Err(error) => self.set_status_line(error.to_string()),
@@ -701,7 +711,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -746,7 +756,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -788,7 +798,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -881,7 +891,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -925,7 +935,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -960,7 +970,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -979,7 +989,7 @@ impl RetainedEditorHost {
                 .editor_manager
                 .update_ui_asset_editor_source(&instance_id, value.to_string())
             {
-                Ok(()) => self.presentation_dirty = true,
+                Ok(()) => self.mark_presentation_dirty(),
                 Err(error) => self.set_status_line(error.to_string()),
             },
             "source.cursor.set" => match self
@@ -988,7 +998,7 @@ impl RetainedEditorHost {
             {
                 Ok(changed) => {
                     if changed {
-                        self.presentation_dirty = true;
+                        self.mark_presentation_dirty();
                     }
                 }
                 Err(error) => self.set_status_line(error.to_string()),
@@ -1032,7 +1042,7 @@ impl RetainedEditorHost {
                     .editor_manager
                     .update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
                 {
-                    Ok(_) => self.presentation_dirty = true,
+                    Ok(_) => self.mark_presentation_dirty(),
                     Err(error) => self.set_status_line(error.to_string()),
                 }
             }
@@ -1066,7 +1076,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1106,7 +1116,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1140,7 +1150,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1170,7 +1180,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1200,7 +1210,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1230,7 +1240,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }
@@ -1260,7 +1270,7 @@ impl RetainedEditorHost {
         };
 
         match result {
-            Ok(()) => self.presentation_dirty = true,
+            Ok(()) => self.mark_presentation_dirty(),
             Err(error) => self.set_status_line(error.to_string()),
         }
     }

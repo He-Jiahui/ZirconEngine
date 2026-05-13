@@ -1,0 +1,23 @@
+[asset]
+kind = "view"
+id = "navigation.surfaces"
+version = 2
+display_name = "Navigation Surfaces"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_surfaces_root"
+
+[nodes.navigation_surfaces_list]
+component = "Space"
+control_id = "NavigationSurfacesList"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_surfaces_root]
+component = "VerticalGroup"
+control_id = "NavigationSurfacesRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_surfaces_list" }]

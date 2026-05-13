@@ -1,0 +1,817 @@
+[asset]
+kind = "view"
+id = "editor.window.ui_component_showcase.v2"
+version = 2
+display_name = "UI Component Showcase"
+
+[root]
+node = "component_showcase_root"
+
+[imports]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[tokens]
+surface = "#1f1f1f"
+surface_panel = "#252525"
+surface_inset = "#191919"
+outline = "#3d3d3d"
+text_primary = "#f1f1f1"
+text_muted = "#a8a8a8"
+primary = "#6750a4"
+primary_text = "#ffffff"
+
+[[stylesheets]]
+id = "component_showcase_material"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+[stylesheets.rules.set.self]
+background_color = "$surface"
+foreground_color = "$text_primary"
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+[stylesheets.rules.set.self]
+background_color = "$surface_panel"
+border_color = "$outline"
+foreground_color = "$text_primary"
+radius = 8.0
+border_width = 1.0
+
+[[stylesheets.rules]]
+selector = ".showcase-section-title"
+[stylesheets.rules.set.self]
+foreground_color = "$text_primary"
+font_size = 13.0
+font_weight = 700
+
+[[stylesheets.rules]]
+selector = ".material-control"
+[stylesheets.rules.set.self]
+foreground_color = "$text_primary"
+border_color = "$outline"
+radius = 5.0
+border_width = 1.0
+
+[nodes.component_showcase_header]
+component = "Label"
+control_id = "UiComponentShowcaseHeader"
+classes = ["showcase-title"]
+props = { text = "Runtime UI Component Showcase" }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_nav_all]
+component = "Button"
+control_id = "ShowAllCategory"
+classes = ["material-control", "material-button"]
+props = { text = "All", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowAllCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.All" },
+]
+
+[nodes.component_showcase_nav_visual]
+component = "Button"
+control_id = "ShowVisualCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Visual", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowVisualCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Visual" },
+]
+
+[nodes.component_showcase_nav_feedback]
+component = "Button"
+control_id = "ShowFeedbackCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Feedback", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowFeedbackCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Feedback" },
+]
+
+[nodes.component_showcase_nav_input]
+component = "Button"
+control_id = "ShowInputCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Input", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowInputCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Input" },
+]
+
+[nodes.component_showcase_nav_numeric]
+component = "Button"
+control_id = "ShowNumericCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Numeric", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowNumericCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Numeric" },
+]
+
+[nodes.component_showcase_nav_selection]
+component = "Button"
+control_id = "ShowSelectionCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Selection", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowSelectionCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Selection" },
+]
+
+[nodes.component_showcase_nav_reference]
+component = "Button"
+control_id = "ShowReferenceCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Reference", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowReferenceCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Reference" },
+]
+
+[nodes.component_showcase_nav_data]
+component = "Button"
+control_id = "ShowDataCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Collections", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowDataCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Collections" },
+]
+
+[nodes.component_showcase_nav]
+component = "VerticalBox"
+control_id = "ComponentCategoryNav"
+classes = ["showcase-panel"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "component_showcase_nav_all" },
+  { node = "component_showcase_nav_visual" },
+  { node = "component_showcase_nav_feedback" },
+  { node = "component_showcase_nav_input" },
+  { node = "component_showcase_nav_numeric" },
+  { node = "component_showcase_nav_selection" },
+  { node = "component_showcase_nav_reference" },
+  { node = "component_showcase_nav_data" },
+]
+
+[nodes.component_showcase_visual_section_title]
+component = "Label"
+control_id = "ComponentShowcaseVisualSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Visual and Feedback", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.label_demo]
+component = "Label"
+control_id = "LabelDemo"
+props = { text = "Label, rich label, badge, icon, SVG icon and progress primitives" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.rich_label_demo]
+component = "RichLabel"
+control_id = "RichLabelDemo"
+props = { text = "RichLabel: supports emphasized inspector copy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.image_demo]
+component = "Image"
+control_id = "ImageDemo"
+classes = ["showcase-field"]
+props = { value = "ui/editor/showcase_checker.svg", image = "ui/editor/showcase_checker.svg" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.icon_demo]
+component = "Icon"
+control_id = "IconDemo"
+classes = ["showcase-field"]
+props = { value = "ionicons/options-outline.svg", icon = "options-outline" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.svg_icon_demo]
+component = "SvgIcon"
+control_id = "SvgIconDemo"
+classes = ["showcase-field"]
+props = { source = "ionicons/options-outline.svg" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.separator_demo]
+component = "Separator"
+control_id = "SeparatorDemo"
+classes = ["showcase-field"]
+props = { text = "Separator" }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.progress_demo]
+component = "ProgressBar"
+control_id = "ProgressBarDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = 0.62, indeterminate = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.spinner_demo]
+component = "Spinner"
+control_id = "SpinnerDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Spinner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.badge_demo]
+component = "Badge"
+control_id = "BadgeDemo"
+classes = ["showcase-field"]
+props = { text = "Badge / Tag" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.help_row_demo]
+component = "HelpRow"
+control_id = "HelpRowDemo"
+classes = ["showcase-field"]
+props = { text = "Help row with inline validation guidance", validation_level = "warning", validation_message = "review" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_visual_section]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "component_showcase_visual_section_title" },
+  { node = "label_demo", slot = { name = "content" } },
+  { node = "rich_label_demo", slot = { name = "content" } },
+  { node = "image_demo", slot = { name = "content" } },
+  { node = "icon_demo", slot = { name = "content" } },
+  { node = "svg_icon_demo", slot = { name = "content" } },
+  { node = "separator_demo", slot = { name = "content" } },
+  { node = "progress_demo", slot = { name = "content" } },
+  { node = "spinner_demo", slot = { name = "content" } },
+  { node = "badge_demo", slot = { name = "content" } },
+  { node = "help_row_demo", slot = { name = "content" } },
+]
+
+[nodes.component_showcase_input_section_title]
+component = "Label"
+control_id = "ComponentShowcaseInputSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Inputs and Numeric Fields", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.button_demo]
+component = "Button"
+control_id = "ButtonDemo"
+classes = ["showcase-field", "material-control", "material-button"]
+props = { text = "Button", surface_variant = "accent", button_variant = "primary", validation_level = "normal", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ButtonCommit", event = "Click", route = "UiComponentShowcase.Commit.Button" },
+]
+
+[nodes.icon_button_demo]
+component = "IconButton"
+control_id = "IconButtonDemo"
+classes = ["showcase-field", "material-control", "material-icon-button"]
+props = { text = "Icon Button", icon = "add-outline", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/IconButtonCommit", event = "Click", route = "UiComponentShowcase.Commit.IconButton" },
+]
+
+[nodes.toggle_button_demo]
+component = "ToggleButton"
+control_id = "ToggleButtonDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Toggle Button", checked = true, layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ToggleButtonChanged", event = "Toggle", route = "UiComponentShowcase.Change.ToggleButton" },
+]
+
+[nodes.checkbox_demo]
+component = "Checkbox"
+control_id = "CheckboxDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Checkbox", checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/CheckboxChanged", event = "Toggle", route = "UiComponentShowcase.Change.Checkbox" },
+]
+
+[nodes.radio_demo]
+component = "Radio"
+control_id = "RadioDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Radio", value = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/RadioChanged", event = "Change", route = "UiComponentShowcase.Change.Radio" },
+]
+
+[nodes.segmented_control_demo]
+component = "SegmentedControl"
+control_id = "SegmentedControlDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "move", options = ["select", "move", "rotate", "scale"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SegmentedControlChanged", event = "Change", route = "UiComponentShowcase.SelectOption.SegmentedControl" },
+]
+
+[nodes.text_field_demo]
+component = "InputField"
+control_id = "InputFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InputFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.InputField" },
+  { id = "UiComponentShowcase/InputFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.InputField" },
+]
+
+[nodes.text_area_demo]
+component = "TextField"
+control_id = "TextFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal", height = 34.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TextFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.TextField" },
+  { id = "UiComponentShowcase/TextFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.TextField" },
+]
+
+[nodes.number_field_demo]
+component = "NumberField"
+control_id = "NumberFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/NumberFieldDragBegin", event = "DragBegin", route = "UiComponentShowcase.BeginDrag.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.DragDelta.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldLargeDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.LargeDragDelta.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldDragEnd", event = "DragEnd", route = "UiComponentShowcase.EndDrag.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.NumberField" },
+]
+
+[nodes.range_field_demo]
+component = "RangeField"
+control_id = "RangeFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = 68.0, min = 0.0, max = 100.0, step = 1.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/RangeFieldDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.DragDelta.RangeField" },
+  { id = "UiComponentShowcase/RangeFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.RangeField" },
+  { id = "UiComponentShowcase/RangeFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.RangeField" },
+]
+
+[nodes.color_field_demo]
+component = "ColorField"
+control_id = "ColorFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "#4d89ff", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ColorFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.ColorField" },
+]
+
+[nodes.vector2_field_demo]
+component = "Vector2Field"
+control_id = "Vector2FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [12.0, 24.0], value_text = "12, 24", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector2FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector2Field" },
+]
+
+[nodes.vector3_field_demo]
+component = "Vector3Field"
+control_id = "Vector3FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [0.0, 1.0, 0.0], value_text = "0, 1, 0", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector3FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector3Field" },
+]
+
+[nodes.vector4_field_demo]
+component = "Vector4Field"
+control_id = "Vector4FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [0.0, 1.0, 0.0, 1.0], value_text = "0, 1, 0, 1", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector4FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector4Field" },
+]
+
+[nodes.component_showcase_input_section]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "component_showcase_input_section_title" },
+  { node = "button_demo", slot = { name = "content" } },
+  { node = "icon_button_demo", slot = { name = "content" } },
+  { node = "toggle_button_demo", slot = { name = "content" } },
+  { node = "checkbox_demo", slot = { name = "content" } },
+  { node = "radio_demo", slot = { name = "content" } },
+  { node = "segmented_control_demo", slot = { name = "content" } },
+  { node = "text_field_demo", slot = { name = "content" } },
+  { node = "text_area_demo", slot = { name = "content" } },
+  { node = "number_field_demo", slot = { name = "content" } },
+  { node = "range_field_demo", slot = { name = "content" } },
+  { node = "color_field_demo", slot = { name = "content" } },
+  { node = "vector2_field_demo", slot = { name = "content" } },
+  { node = "vector3_field_demo", slot = { name = "content" } },
+  { node = "vector4_field_demo", slot = { name = "content" } },
+]
+
+[nodes.component_showcase_selection_section_title]
+component = "Label"
+control_id = "ComponentShowcaseSelectionSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Selection and References", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.dropdown_demo]
+component = "Dropdown"
+control_id = "DropdownDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime", options = ["runtime", "editor", "debug"], disabled_options = ["debug"], special_options = ["runtime"], focused_options = ["editor"], hovered_options = ["editor"], pressed_options = ["runtime"], multiple = true, popup_open = true, selection_state = "multi", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/DropdownChanged", event = "Change", route = "UiComponentShowcase.SelectOption.Dropdown" },
+  { id = "UiComponentShowcase/DropdownOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.Dropdown" },
+  { id = "UiComponentShowcase/DropdownClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.Dropdown" },
+]
+
+[nodes.combo_box_demo]
+component = "ComboBox"
+control_id = "ComboBoxDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ComboBoxChanged", event = "Change", route = "UiComponentShowcase.SelectOption.ComboBox" },
+  { id = "UiComponentShowcase/ComboBoxOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.ComboBox" },
+  { id = "UiComponentShowcase/ComboBoxClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.ComboBox" },
+]
+
+[nodes.enum_field_demo]
+component = "EnumField"
+control_id = "EnumFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "RiderDocking", options = ["RiderDocking", "UnityInspector", "RuntimeOverlay"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/EnumFieldChanged", event = "Change", route = "UiComponentShowcase.SelectOption.EnumField" },
+  { id = "UiComponentShowcase/EnumFieldOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.EnumField" },
+  { id = "UiComponentShowcase/EnumFieldClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.EnumField" },
+]
+
+[nodes.flags_field_demo]
+component = "FlagsField"
+control_id = "FlagsFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = ["Selectable", "Draggable"], value_text = "Selectable, Draggable", options = ["Selectable", "Draggable", "Disabled"], multiple = true, selection_state = "flags", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/FlagsFieldChanged", event = "Change", route = "UiComponentShowcase.SelectOption.FlagsField" },
+  { id = "UiComponentShowcase/FlagsFieldOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.FlagsField" },
+  { id = "UiComponentShowcase/FlagsFieldClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.FlagsField" },
+]
+
+[nodes.search_select_demo]
+component = "SearchSelect"
+control_id = "SearchSelectDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime.ui.NumberField", query = "number", options = ["runtime.ui.NumberField", "runtime.ui.RangeField", "runtime.ui.Vector3Field"], input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SearchSelectChanged", event = "Change", route = "UiComponentShowcase.SelectOption.SearchSelect" },
+  { id = "UiComponentShowcase/SearchSelectQueryChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.SearchSelectQuery" },
+  { id = "UiComponentShowcase/SearchSelectOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.SearchSelect" },
+  { id = "UiComponentShowcase/SearchSelectClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.SearchSelect" },
+]
+
+[nodes.asset_field_demo]
+component = "AssetField"
+control_id = "AssetFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "res://textures/grid.albedo.png", validation_level = "normal", drop_hovered = true, active_drag_target = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/AssetFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldDropHovered", event = "Hover", route = "UiComponentShowcase.DropHover.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldActiveDragTarget", event = "DragBegin", route = "UiComponentShowcase.ActiveDragTarget.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.AssetField" },
+]
+
+[nodes.instance_field_demo]
+component = "InstanceField"
+control_id = "InstanceFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "scene://Root/CameraRig", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InstanceFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.InstanceField" },
+]
+
+[nodes.object_field_demo]
+component = "ObjectField"
+control_id = "ObjectFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "object://Selection/MainCamera", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ObjectFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.ObjectField" },
+]
+
+[nodes.component_showcase_selection_section]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "component_showcase_selection_section_title" },
+  { node = "dropdown_demo", slot = { name = "content" } },
+  { node = "combo_box_demo", slot = { name = "content" } },
+  { node = "enum_field_demo", slot = { name = "content" } },
+  { node = "flags_field_demo", slot = { name = "content" } },
+  { node = "search_select_demo", slot = { name = "content" } },
+  { node = "asset_field_demo", slot = { name = "content" } },
+  { node = "instance_field_demo", slot = { name = "content" } },
+  { node = "object_field_demo", slot = { name = "content" } },
+]
+
+[nodes.component_showcase_collections_section_title]
+component = "Label"
+control_id = "ComponentShowcaseCollectionsSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Collections and Inspector Structures", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.group_demo]
+component = "Group"
+control_id = "GroupDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Foldout Group", expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/GroupToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.Group" },
+]
+
+[nodes.foldout_demo]
+component = "Foldout"
+control_id = "FoldoutDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Foldout", expanded = false, validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/FoldoutToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.Foldout" },
+]
+
+[nodes.property_row_demo]
+component = "PropertyRow"
+control_id = "PropertyRowDemo"
+classes = ["showcase-field"]
+props = { text = "Property Row", value = "Label + Field" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.inspector_section_demo]
+component = "InspectorSection"
+control_id = "InspectorSectionDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Inspector Section", expanded = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InspectorSectionToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.InspectorSection" },
+]
+
+[nodes.array_field_demo]
+component = "ArrayField"
+control_id = "ArrayFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { items = ["Label", "NumberField", "AssetField"], value_text = "3 elements", element_type = "UiComponentRef", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ArrayFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldAddElement", event = "Submit", route = "UiComponentShowcase.AddElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldSetElement", event = "Submit", route = "UiComponentShowcase.SetElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldRemoveElement", event = "Submit", route = "UiComponentShowcase.RemoveElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldMoveElement", event = "DragEnd", route = "UiComponentShowcase.MoveElement.ArrayField" },
+]
+
+[nodes.map_field_demo]
+component = "MapField"
+control_id = "MapFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { entries = { speed = 1.0, visible = true }, value_text = "2 entries", key_type = "String", value_type = "UiValue", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/MapFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.MapField" },
+  { id = "UiComponentShowcase/MapFieldAddEntry", event = "Submit", route = "UiComponentShowcase.AddMapEntry.MapField" },
+  { id = "UiComponentShowcase/MapFieldSetEntry", event = "Submit", route = "UiComponentShowcase.SetMapEntry.MapField" },
+  { id = "UiComponentShowcase/MapFieldRemoveEntry", event = "Submit", route = "UiComponentShowcase.RemoveMapEntry.MapField" },
+]
+
+[nodes.list_row_demo]
+component = "ListRow"
+control_id = "ListRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ListRowClicked", event = "Click", route = "UiComponentShowcase.Select.ListRow" },
+  { id = "UiComponentShowcase/ListRowHovered", event = "Hover", route = "UiComponentShowcase.Hover.ListRow" },
+  { id = "UiComponentShowcase/ListRowPressed", event = "Press", route = "UiComponentShowcase.Press.ListRow" },
+]
+
+[nodes.table_row_demo]
+component = "TableRow"
+control_id = "TableRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Table Row", value = "row-42", selected = true, focused = true, hovered = false, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.virtual_list_demo]
+component = "VirtualList"
+control_id = "VirtualListDemo"
+classes = ["showcase-field", "material-control"]
+props = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/VirtualListScrolled", event = "Scroll", route = "UiComponentShowcase.SetVisibleRange.VirtualList" },
+]
+
+[nodes.paged_list_demo]
+component = "PagedList"
+control_id = "PagedListDemo"
+classes = ["showcase-field"]
+props = { data_source = "showcase.large_items", total_count = 10000, page_index = 0, page_size = 100, page_count = 100, items = ["Page row 0", "Page row 1", "Page row 2"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/PagedListNextPage", event = "Click", route = "UiComponentShowcase.SetPage.PagedList" },
+]
+
+[nodes.world_space_surface_demo]
+component = "WorldSpaceSurface"
+control_id = "WorldSpaceSurfaceDemo"
+classes = ["showcase-field"]
+props = { world_position = [0.0, 1.5, 3.0], world_rotation = [0.0, 180.0, 0.0], world_scale = [1.0, 1.0, 1.0], world_size = [2.0, 1.0], pixels_per_meter = 256.0, billboard = true, depth_test = true, render_order = 0, camera_target = "viewport-main" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/WorldSpaceSurfaceMoved", event = "DragEnd", route = "UiComponentShowcase.SetWorldTransform.WorldSpaceSurface" },
+  { id = "UiComponentShowcase/WorldSpaceSurfaceConfigured", event = "Submit", route = "UiComponentShowcase.SetWorldSurface.WorldSpaceSurface" },
+]
+
+[nodes.tree_row_demo]
+component = "TreeRow"
+control_id = "TreeRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Tree Row", expanded = true, tree_depth = 2, tree_indent_px = 24.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TreeRowToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.TreeRow" },
+]
+
+[nodes.context_action_menu_demo]
+component = "ContextActionMenu"
+control_id = "ContextActionMenuDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ContextActionMenuChanged", event = "Change", route = "UiComponentShowcase.SelectOption.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenAt", event = "Press", route = "UiComponentShowcase.OpenPopupAt.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.ContextActionMenu" },
+]
+
+[nodes.component_showcase_collections_section]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "component_showcase_collections_section_title" },
+  { node = "group_demo", slot = { name = "content" } },
+  { node = "foldout_demo", slot = { name = "content" } },
+  { node = "property_row_demo", slot = { name = "content" } },
+  { node = "inspector_section_demo", slot = { name = "content" } },
+  { node = "array_field_demo", slot = { name = "content" } },
+  { node = "map_field_demo", slot = { name = "content" } },
+  { node = "list_row_demo", slot = { name = "content" } },
+  { node = "table_row_demo", slot = { name = "content" } },
+  { node = "virtual_list_demo", slot = { name = "content" } },
+  { node = "paged_list_demo", slot = { name = "content" } },
+  { node = "world_space_surface_demo", slot = { name = "content" } },
+  { node = "tree_row_demo", slot = { name = "content" } },
+  { node = "context_action_menu_demo", slot = { name = "content" } },
+]
+
+[nodes.component_showcase_content]
+component = "ScrollableBox"
+control_id = "ComponentShowcaseScroll"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 }, scroll = { vertical = true } }
+children = [
+  { node = "component_showcase_visual_section" },
+  { node = "component_showcase_input_section" },
+  { node = "component_showcase_selection_section" },
+  { node = "component_showcase_collections_section" },
+]
+
+[nodes.component_showcase_state_title]
+component = "Label"
+control_id = "ComponentShowcaseStateTitle"
+classes = ["showcase-title"]
+props = { text = "Runtime State and Events" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_selected_category]
+component = "PropertyRow"
+control_id = "ComponentShowcaseSelectedCategory"
+classes = ["showcase-field"]
+props = { text = "Category", value = "All" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_last_control]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastControl"
+classes = ["showcase-field"]
+props = { text = "Last Control", value = "No component event yet" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_last_action]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastAction"
+classes = ["showcase-field"]
+props = { text = "Last Action", value = "Waiting for Runtime UI event" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_current_value]
+component = "PropertyRow"
+control_id = "ComponentShowcaseCurrentValue"
+classes = ["showcase-field"]
+props = { text = "Current Value", value = "Select or edit a control" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_validation]
+component = "PropertyRow"
+control_id = "ComponentShowcaseValidation"
+classes = ["showcase-field"]
+props = { text = "Validation", value = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_drag_payload]
+component = "PropertyRow"
+control_id = "ComponentShowcaseDragPayload"
+classes = ["showcase-field"]
+props = { text = "Drag / Drop", value = "No retained drop payload" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_event_log]
+component = "Label"
+control_id = "ComponentShowcaseEventLog"
+classes = ["showcase-muted"]
+props = { text = "Registered events: NumberField drag/commit, popup open/close, Dropdown change, Foldout toggle, Array/Map change, reference drop" }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.component_showcase_state_panel]
+component = "VerticalBox"
+control_id = "ComponentShowcaseStatePanel"
+classes = ["showcase-panel"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "component_showcase_state_title" },
+  { node = "component_showcase_selected_category" },
+  { node = "component_showcase_last_control" },
+  { node = "component_showcase_last_action" },
+  { node = "component_showcase_current_value" },
+  { node = "component_showcase_validation" },
+  { node = "component_showcase_drag_payload" },
+  { node = "component_showcase_event_log" },
+]
+
+[nodes.component_showcase_body]
+component = "HorizontalBox"
+control_id = "UiComponentShowcaseBody"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 10.0 } }
+children = [
+  { node = "component_showcase_nav", slot = { layout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" } } } },
+  { node = "component_showcase_content", slot = { layout = { width = { stretch = "Stretch" } } } },
+  { node = "component_showcase_state_panel", slot = { layout = { width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" } } } },
+]
+
+[nodes.component_showcase_root]
+component = "VerticalBox"
+control_id = "UiComponentShowcaseRoot"
+classes = ["showcase-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 10.0 } }
+children = [
+  { node = "component_showcase_header" },
+  { node = "component_showcase_body" },
+]

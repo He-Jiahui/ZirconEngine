@@ -17,7 +17,7 @@ use zircon_runtime_interface::ui::{
         UiNavigationGroup, UiNavigationGroupId, UiTabIndex,
     },
     surface::UiNavigationEventKind,
-    tree::{UiInputPolicy, UiTreeNode},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTreeNode},
 };
 
 #[test]
@@ -34,6 +34,7 @@ fn autofocus_records_initial_focus_change_and_visible_reason() {
     assert!(event.visible.visible);
     assert_eq!(event.visible.reason, UiFocusVisibleReason::Programmatic);
     assert_eq!(surface.focus.changes, vec![event]);
+    assert!(surface.component_state(id(2)).unwrap().flags.focused);
 }
 
 #[test]
@@ -41,6 +42,7 @@ fn pointer_and_navigation_focus_sources_update_visible_reason() {
     let mut surface = focus_surface();
 
     surface.focus_node(id(2)).unwrap();
+    assert!(surface.component_state(id(2)).unwrap().flags.focused);
     surface
         .dispatch_navigation_event(
             &UiNavigationDispatcher::default(),
@@ -49,6 +51,8 @@ fn pointer_and_navigation_focus_sources_update_visible_reason() {
         .unwrap();
 
     assert_eq!(surface.focus.focused, Some(id(3)));
+    assert!(!surface.component_state(id(2)).unwrap().flags.focused);
+    assert!(surface.component_state(id(3)).unwrap().flags.focused);
     assert!(surface.focus.focus_visible.visible);
     assert_eq!(
         surface.focus.focus_visible.reason,
@@ -79,6 +83,32 @@ fn pointer_and_navigation_focus_sources_update_visible_reason() {
     );
     assert_eq!(surface.focus.focused_inputs[0].route, vec![id(3), id(1)]);
     assert!(surface.focus.focused_inputs[0].accepted);
+}
+
+#[test]
+fn focus_component_state_changes_mark_render_only_dirty() {
+    let mut surface = focus_surface();
+    surface.clear_dirty_flags();
+
+    surface.focus_node(id(2)).unwrap();
+    assert_render_only_dirty(surface.dirty_flags());
+    surface.clear_dirty_flags();
+
+    surface.focus_node(id(3)).unwrap();
+    assert_render_only_dirty(surface.dirty_flags());
+    assert_eq!(
+        surface
+            .tree
+            .nodes
+            .values()
+            .filter(|node| node.dirty.render)
+            .count(),
+        2
+    );
+    surface.clear_dirty_flags();
+
+    surface.clear_focus();
+    assert_render_only_dirty(surface.dirty_flags());
 }
 
 #[test]
@@ -165,6 +195,7 @@ fn authored_focus_contract_makes_node_focusable_without_legacy_state_flag() {
 fn focus_is_cleared_when_focused_node_stops_accepting_input() {
     let mut surface = focus_surface();
     surface.focus_node(id(2)).unwrap();
+    assert!(surface.component_state(id(2)).unwrap().flags.focused);
     surface.input.input_method_owner = Some(id(2));
     surface.focus.captured = Some(id(2));
     surface.input.captured_pointer_id = Some(UiPointerId::new(7));
@@ -183,6 +214,7 @@ fn focus_is_cleared_when_focused_node_stops_accepting_input() {
     assert_eq!(surface.input.input_method_owner, None);
     assert_eq!(surface.focus.captured, None);
     assert_eq!(surface.input.captured_pointer_id, None);
+    assert!(!surface.component_state(id(2)).unwrap().flags.focused);
     assert_eq!(event.previous, Some(id(2)));
     assert_eq!(event.current, None);
     assert_eq!(event.reason, UiFocusChangeReason::Disabled);
@@ -517,6 +549,16 @@ fn input_metadata() -> UiInputEventMetadata {
         UiInputEventMetadata::new(UiInputTimestamp::from_micros(10), UiInputSequence::new(1));
     metadata.pointer_id = Some(UiPointerId::new(7));
     metadata
+}
+
+fn assert_render_only_dirty(dirty: UiDirtyFlags) {
+    assert!(dirty.render);
+    assert!(!dirty.layout);
+    assert!(!dirty.hit_test);
+    assert!(!dirty.style);
+    assert!(!dirty.text);
+    assert!(!dirty.input);
+    assert!(!dirty.visible_range);
 }
 
 fn id(value: u64) -> UiNodeId {

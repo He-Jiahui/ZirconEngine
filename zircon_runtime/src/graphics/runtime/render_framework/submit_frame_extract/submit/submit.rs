@@ -33,49 +33,59 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     extract: RenderFrameExtract,
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
+    crate::profile_scope!("runtime", "render_framework", "submit_frame_extract");
     let _operation_guard = server.operation_lock.lock().unwrap();
-    let context = match build_frame_submission_context(server, viewport, &extract, ui.as_ref()) {
-        Ok(context) => context,
-        Err(error) => {
-            fail_pending_capture_after_preflight_error(server, viewport, &error);
-            return Err(error);
+    let context = {
+        crate::profile_scope!("runtime", "render_framework", "build_submission_context");
+        match build_frame_submission_context(server, viewport, &extract, ui.as_ref()) {
+            Ok(context) => context,
+            Err(error) => {
+                fail_pending_capture_after_preflight_error(server, viewport, &error);
+                return Err(error);
+            }
         }
     };
     let mut state = server.state.lock().unwrap();
     let active_capture = begin_graphics_debugger_capture(&mut state, viewport);
-    let prepared = match prepare_runtime_submission(&mut state, viewport, &context) {
-        Ok(prepared) => prepared,
-        Err(error) => {
-            drop(finish_active_capture_and_relock(
-                server,
-                state,
-                active_capture,
-                None,
-                Some(error.to_string()),
-            ));
-            return Err(error);
+    let prepared = {
+        crate::profile_scope!("runtime", "render_framework", "prepare_runtime_submission");
+        match prepare_runtime_submission(&mut state, viewport, &context) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                drop(finish_active_capture_and_relock(
+                    server,
+                    state,
+                    active_capture,
+                    None,
+                    Some(error.to_string()),
+                ));
+                return Err(error);
+            }
         }
     };
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     let runtime_frame = build_runtime_frame(extract, ui, &context, &prepared);
     state.last_virtual_geometry_debug_snapshot =
         runtime_frame.virtual_geometry_debug_snapshot.clone();
-    let frame = match state.renderer.render_frame_with_pipeline(
-        &runtime_frame,
-        context.compiled_pipeline(),
-        resolved_history.current_history_handle(),
-    ) {
-        Ok(frame) => frame,
-        Err(error) => {
-            let error = render_framework_backend_error(error);
-            drop(finish_active_capture_and_relock(
-                server,
-                state,
-                active_capture,
-                None,
-                Some(error.to_string()),
-            ));
-            return Err(error);
+    let frame = {
+        crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
+        match state.renderer.render_frame_with_pipeline(
+            &runtime_frame,
+            context.compiled_pipeline(),
+            resolved_history.current_history_handle(),
+        ) {
+            Ok(frame) => frame,
+            Err(error) => {
+                let error = render_framework_backend_error(error);
+                drop(finish_active_capture_and_relock(
+                    server,
+                    state,
+                    active_capture,
+                    None,
+                    Some(error.to_string()),
+                ));
+                return Err(error);
+            }
         }
     };
     let frame_generation = frame.generation;
@@ -86,7 +96,10 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
         Some(frame_generation),
         None,
     );
-    let runtime_feedback = collect_runtime_feedback(&mut state.renderer, &context, &prepared);
+    let runtime_feedback = {
+        crate::profile_scope!("runtime", "render_framework", "collect_runtime_feedback");
+        collect_runtime_feedback(&mut state.renderer, &context, &prepared)
+    };
     validate_viewport_generation(&state, viewport, &context)?;
     let record = state
         .viewports
@@ -102,6 +115,11 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     );
     release_previous_history(&mut state.renderer, &record_update);
     update_stats(&mut state, &context, &record_update, frame_generation);
+    crate::profile_counter!(
+        "runtime",
+        "render_framework.last_frame_generation",
+        frame_generation
+    );
     Ok(())
 }
 

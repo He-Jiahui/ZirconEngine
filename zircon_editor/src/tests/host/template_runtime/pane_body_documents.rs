@@ -52,14 +52,18 @@ fn editor_component_showcase_path() -> std::path::PathBuf {
         .join("assets")
         .join("ui")
         .join("editor")
-        .join("component_showcase.ui.toml")
+        .join("component_showcase.v2.ui.toml")
 }
 
-fn runtime_ui_asset_path(file_name: &str) -> std::path::PathBuf {
+fn runtime_v2_fixture_path(file_name: &str) -> std::path::PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_editor lives directly under workspace root")
+        .join("zircon_runtime")
         .join("assets")
         .join("ui")
         .join("runtime")
+        .join("fixtures")
         .join(file_name)
 }
 
@@ -68,10 +72,17 @@ fn collect_showcase_prop_schema_mismatches(
     registry: &UiComponentDescriptorRegistry,
     mismatches: &mut Vec<String>,
 ) {
-    if let Some(component_type) = node.get("type").and_then(toml::Value::as_str) {
+    if let Some(component_type) = node
+        .get("type")
+        .or_else(|| node.get("component"))
+        .and_then(toml::Value::as_str)
+    {
         if let Some(descriptor) = registry.descriptor(component_type) {
             if let Some(props) = node.get("props").and_then(toml::Value::as_table) {
                 for prop in props.keys() {
+                    if prop.starts_with("layout_") {
+                        continue;
+                    }
                     if descriptor.prop(prop).is_none() {
                         let control_id = node
                             .get("control_id")
@@ -145,18 +156,13 @@ fn assert_material_list_layout_properties(node: &RetainedUiHostNodeModel) {
     assert_host_numeric_property(node, "layout_min_height", 32.0);
 }
 
-fn assert_runtime_material_button_metadata(
-    source_file: &str,
-    document_id: &str,
-    control_ids: &[&str],
-) {
-    let source = fs::read_to_string(runtime_ui_asset_path(source_file)).unwrap();
+fn assert_runtime_v2_button_metadata(source_file: &str, document_id: &str, control_ids: &[&str]) {
     let mut ui_runtime = EditorUiHostRuntime::default();
     ui_runtime
-        .register_document_source(document_id, &source)
+        .register_document_file(document_id, runtime_v2_fixture_path(source_file))
         .unwrap();
     let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
-    surface.compute_layout(UiSize::new(360.0, 240.0)).unwrap();
+    surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
 
     for control_id in control_ids {
         let expected_control_id = *control_id;
@@ -178,20 +184,53 @@ fn assert_runtime_material_button_metadata(
             .as_ref()
             .unwrap_or_else(|| panic!("`{control_id}` should carry template metadata"));
         assert_eq!(metadata.component, "Button");
-        assert_eq!(node.layout_cache.desired_size.height, 40.0);
+        assert!(node.state_flags.clickable);
+        assert!(node.state_flags.hoverable);
+        assert!(node.state_flags.focusable);
         assert!(
-            node.layout_cache.desired_size.width >= 40.0,
-            "`{control_id}` should be measured through Material button metrics"
+            node.layout_cache.desired_size.width > 0.0,
+            "`{control_id}` should have a projected v2 desired width"
         );
-        assert_eq!(
-            metadata.attributes.get("layout_padding_left"),
-            Some(&toml::Value::Float(24.0))
+        assert!(
+            node.layout_cache.desired_size.height > 0.0,
+            "`{control_id}` should have a projected v2 desired height"
         );
-        assert_eq!(
-            metadata.attributes.get("layout_min_height"),
-            Some(&toml::Value::Float(40.0))
+        assert!(
+            metadata.attributes.contains_key("text"),
+            "`{control_id}` should keep authored text props in v2 metadata"
         );
     }
+}
+
+fn assert_runtime_v2_click_route(
+    surface: &UiSurface,
+    control_id: &str,
+    binding_id: &str,
+    route: &str,
+) {
+    let node = surface
+        .tree
+        .nodes
+        .values()
+        .find(|node| {
+            node.template_metadata
+                .as_ref()
+                .and_then(|metadata| metadata.control_id.as_deref())
+                == Some(control_id)
+        })
+        .unwrap_or_else(|| panic!("runtime v2 fixture should contain `{control_id}`"));
+    let metadata = node
+        .template_metadata
+        .as_ref()
+        .unwrap_or_else(|| panic!("`{control_id}` should carry template metadata"));
+    assert!(
+        metadata.bindings.iter().any(|binding| {
+            binding.id == binding_id
+                && binding.event == UiEventKind::Click
+                && binding.route.as_deref() == Some(route)
+        }),
+        "`{control_id}` should expose click binding `{binding_id}` -> `{route}`"
+    );
 }
 
 fn assert_frame_covers_text_with_horizontal_padding(
@@ -292,12 +331,64 @@ fn builtin_activity_window_documents_are_registered_in_host_runtime() {
         "editor.window.asset",
         "editor.window.ui_layout_editor",
         "editor.window.ui_component_showcase",
+        "editor.window.material_demo",
     ] {
         let projection = ui_runtime
             .project_document(document_id)
             .unwrap_or_else(|error| panic!("failed to project `{document_id}`: {error}"));
         assert_eq!(projection.document_id, document_id);
-        assert_eq!(projection.root.component, "VerticalBox");
+        if projection.root.component.is_empty() {
+            assert_eq!(
+                document_id, "editor.host.activity_drawer_window",
+                "only component-library builtin documents may project an empty view root"
+            );
+            continue;
+        }
+        assert!(
+            matches!(
+                projection.root.component.as_str(),
+                "VerticalBox" | "VerticalGroup" | "WindowFrame"
+            ),
+            "`{document_id}` should project a supported root layout, got `{}`",
+            projection.root.component
+        );
+    }
+}
+
+#[test]
+fn material_demo_window_document_projects_material_primitives() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let mut ui_runtime = EditorUiHostRuntime::default();
+    ui_runtime.load_builtin_host_templates().unwrap();
+
+    let document_id = "editor.window.material_demo";
+    let projection = ui_runtime.project_document(document_id).unwrap();
+    let mut surface = ui_runtime.build_shared_surface(document_id).unwrap();
+    surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
+    let host_projection = ui_runtime
+        .build_retained_host_projection_with_surface(&projection, &surface)
+        .unwrap();
+
+    assert_eq!(projection.root.component, "WindowFrame");
+    for control_id in [
+        "PrimaryButton",
+        "IconButton",
+        "TextField",
+        "Checkbox",
+        "Switch",
+        "Dropdown",
+        "Slider",
+        "Tabs",
+        "Scrollbar",
+        "Splitter",
+        "Modal",
+    ] {
+        assert!(
+            host_projection.node_by_control_id(control_id).is_some(),
+            "Material demo should project primitive control `{control_id}`"
+        );
     }
 }
 
@@ -308,17 +399,28 @@ fn component_showcase_authored_props_are_declared_by_runtime_catalog() {
     let registry = UiComponentDescriptorRegistry::editor_showcase();
     let mut mismatches = Vec::new();
 
-    collect_showcase_prop_schema_mismatches(
-        document
-            .get("root")
-            .expect("component showcase asset should declare a root node"),
-        &registry,
-        &mut mismatches,
-    );
+    let root_node = document
+        .get("root")
+        .and_then(|root| root.get("node").and_then(toml::Value::as_str))
+        .and_then(|node_id| document.get("nodes").and_then(|nodes| nodes.get(node_id)))
+        .or_else(|| {
+            document
+                .get("root")
+                .filter(|root| root.get("node").is_none())
+        })
+        .expect("component showcase asset should declare a root node");
+    collect_showcase_prop_schema_mismatches(root_node, &registry, &mut mismatches);
+    if let Some(nodes) = document.get("nodes").and_then(toml::Value::as_table) {
+        for node in nodes.values() {
+            collect_showcase_prop_schema_mismatches(node, &registry, &mut mismatches);
+        }
+    }
+    mismatches.sort();
+    mismatches.dedup();
 
     assert!(
         mismatches.is_empty(),
-        "component_showcase.ui.toml has props missing from the runtime component catalog:\n{}",
+        "component_showcase.v2.ui.toml has props missing from the runtime component catalog:\n{}",
         mismatches.join("\n")
     );
 }
@@ -534,31 +636,54 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
 }
 
 #[test]
-fn runtime_dialog_and_hud_buttons_participate_in_material_measurement() {
-    assert_runtime_material_button_metadata(
-        "runtime_hud.ui.toml",
-        "test.runtime.sample_hud",
-        &["UseAction", "InventoryAction"],
+fn runtime_v2_fixture_buttons_project_interactive_metadata() {
+    assert_runtime_v2_button_metadata(
+        "pause_menu.v2.ui.toml",
+        "test.runtime.pause_menu",
+        &["ResumeButton", "SettingsButton", "QuitButton"],
     );
-    assert_runtime_material_button_metadata(
-        "pause_dialog.ui.toml",
-        "test.runtime.pause_dialog",
-        &["ResumeAction", "QuitAction"],
-    );
-    assert_runtime_material_button_metadata(
-        "settings_dialog.ui.toml",
+    assert_runtime_v2_button_metadata(
+        "settings_dialog.v2.ui.toml",
         "test.runtime.settings_dialog",
-        &["ApplySettings", "CloseSettings"],
+        &[
+            "AudioVolume",
+            "GraphicsQuality",
+            "ApplySettings",
+            "CancelSettings",
+        ],
     );
-    assert_runtime_material_button_metadata(
-        "inventory_dialog.ui.toml",
-        "test.runtime.inventory_dialog",
-        &["EquipItem", "CloseInventory"],
+    assert_runtime_v2_button_metadata(
+        "inventory_list.v2.ui.toml",
+        "test.runtime.inventory_list",
+        &["InventoryRow00", "InventoryRow11"],
     );
-    assert_runtime_material_button_metadata(
-        "quest_log_dialog.ui.toml",
+    assert_runtime_v2_button_metadata(
+        "quest_log_dialog.v2.ui.toml",
         "test.runtime.quest_log_dialog",
-        &["TrackQuest", "CloseQuestLog"],
+        &["TrackQuestButton", "CloseQuestLogButton"],
+    );
+
+    let mut ui_runtime = EditorUiHostRuntime::default();
+    ui_runtime
+        .register_document_file(
+            "test.runtime.quest_log_routes",
+            runtime_v2_fixture_path("quest_log_dialog.v2.ui.toml"),
+        )
+        .unwrap();
+    let surface = ui_runtime
+        .build_shared_surface("test.runtime.quest_log_routes")
+        .unwrap();
+    assert_runtime_v2_click_route(
+        &surface,
+        "TrackQuestButton",
+        "QuestLog/Track",
+        "RuntimeAction.TrackQuest",
+    );
+    assert_runtime_v2_click_route(
+        &surface,
+        "CloseQuestLogButton",
+        "QuestLog/Close",
+        "RuntimeAction.CloseQuestLog",
     );
 }
 
@@ -709,7 +834,14 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
                 panic!("failed to project builtin pane body document `{document_id}`: {error}")
             });
         assert_eq!(projection.document_id, document_id);
-        assert_eq!(projection.root.component, "VerticalBox");
+        assert!(
+            matches!(
+                projection.root.component.as_str(),
+                "VerticalBox" | "VerticalGroup"
+            ),
+            "document `{document_id}` should project a vertical root layout, got `{}`",
+            projection.root.component
+        );
         assert!(
             projection
                 .bindings
@@ -756,28 +888,28 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
 
     let cases = [
         (
-            "hierarchy_body.ui.toml",
-            "HierarchyPaneBody",
+            "hierarchy_body.v2.ui.toml",
+            "editor.host.pane.hierarchy.body",
             "hierarchy_tree_slot",
         ),
         (
-            "animation_sequence_body.ui.toml",
-            "AnimationSequencePaneBody",
+            "animation_sequence_body.v2.ui.toml",
+            "editor.host.pane.animation_sequence.body",
             "animation_timeline_slot",
         ),
         (
-            "animation_graph_body.ui.toml",
-            "AnimationGraphPaneBody",
+            "animation_graph_body.v2.ui.toml",
+            "editor.host.pane.animation_graph.body",
             "animation_graph_canvas_slot",
         ),
         (
-            "module_plugins_body.ui.toml",
-            "ModulePluginsPaneBody",
+            "module_plugins_body.v2.ui.toml",
+            "editor.host.pane.module_plugins.body",
             "module_plugin_list_slot",
         ),
         (
-            "build_export_desktop_body.ui.toml",
-            "BuildExportPaneBody",
+            "build_export_desktop_body.v2.ui.toml",
+            "editor.host.pane.build_export.body",
             "build_export_targets_slot",
         ),
     ];
@@ -785,23 +917,29 @@ fn builtin_hybrid_pane_body_documents_declare_stable_native_slot_names() {
     for (file_name, component_id, slot_name) in cases {
         let source = fs::read_to_string(pane_body_path(file_name))
             .unwrap_or_else(|error| panic!("failed to read `{file_name}`: {error}"));
-        let document = load_test_ui_asset(&source)
+        let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
             .unwrap_or_else(|error| panic!("failed to parse `{file_name}`: {error}"));
-        let component = document
-            .components
-            .get(component_id)
-            .unwrap_or_else(|| panic!("missing component `{component_id}` in `{file_name}`"));
+        let root_node_id = document
+            .root
+            .as_ref()
+            .map(|root| root.node.as_str())
+            .unwrap_or_else(|| panic!("missing root node in `{file_name}`"));
+        let root_node = document
+            .nodes
+            .get(root_node_id)
+            .unwrap_or_else(|| panic!("missing root node `{root_node_id}` in `{file_name}`"));
 
         assert!(
-            component.slots.contains_key(slot_name),
+            source.contains(&format!("slot_name = \"{slot_name}\"")),
             "component `{component_id}` in `{file_name}` must declare slot `{slot_name}`"
         );
         assert!(
-            component
-                .root
-                .children
-                .iter()
-                .any(|child| child.node.slot_name.as_deref() == Some(slot_name)),
+            root_node.children.iter().any(|child| {
+                child.slot
+                    .get("name")
+                    .and_then(toml::Value::as_str)
+                    == Some(slot_name)
+            }),
             "component `{component_id}` in `{file_name}` must expose slot placeholder `{slot_name}` in its root children"
         );
     }

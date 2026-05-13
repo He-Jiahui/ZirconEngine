@@ -1,0 +1,28 @@
+[asset]
+kind = "view"
+id = "navigation.bake"
+version = 2
+display_name = "Navigation Bake"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_bake_root"
+
+[nodes.navigation_bake_toolbar]
+component = "Space"
+control_id = "NavigationBakeToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, stretch = "Fixed" } }
+
+[nodes.navigation_bake_diagnostics]
+component = "Space"
+control_id = "NavigationBakeDiagnostics"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_bake_root]
+component = "VerticalGroup"
+control_id = "NavigationBakeRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_bake_toolbar" }, { node = "navigation_bake_diagnostics" }]

@@ -43,6 +43,5 @@ fn mark_layout_dirty_local(tree: &mut UiTree, node_id: UiNodeId) -> Result<(), U
     node.dirty.layout = true;
     node.dirty.hit_test = true;
     node.dirty.render = true;
-    node.state_flags.dirty = true;
     Ok(())
 }

@@ -8,6 +8,22 @@ use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::support::*;
 
+const SIMPLE_V2_UI_VIEW_ASSET: &str = r#"
+[asset]
+kind = "view"
+id = "editor.tests.asset.v2"
+version = 2
+display_name = "Test UI Asset V2"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Label"
+control_id = "Status"
+props = { text = "Ready" }
+"#;
+
 fn write_project(project_root: &std::path::Path) {
     let world = DefaultLevelManager::default()
         .create_default_level()
@@ -20,6 +36,36 @@ fn manager_for(path: &std::path::Path) -> std::sync::Arc<EditorManager> {
     runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap()
+}
+
+#[test]
+fn editor_manager_refreshes_clean_v2_ui_asset_session_from_external_file_change() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_v2_asset_hot_reload_clean");
+    let ui_asset_path =
+        unique_temp_dir("zircon_editor_v2_asset_hot_reload_clean_file").join("test.v2.ui.toml");
+    fs::create_dir_all(ui_asset_path.parent().unwrap()).unwrap();
+    fs::write(&ui_asset_path, SIMPLE_V2_UI_VIEW_ASSET).unwrap();
+
+    let manager = manager_for(&path);
+    let instance_id = manager.open_ui_asset_editor(&ui_asset_path, None).unwrap();
+
+    let changed = SIMPLE_V2_UI_VIEW_ASSET.replace("Ready", "External V2");
+    fs::write(&ui_asset_path, &changed).unwrap();
+    manager
+        .refresh_ui_asset_workspace_for_changes(vec![ui_asset_path.to_string_lossy().to_string()])
+        .expect("refresh external v2 change");
+
+    let pane = manager
+        .ui_asset_editor_pane_presentation(&instance_id)
+        .unwrap();
+    assert!(pane.source_text.contains("External V2"));
+    assert!(!pane.source_dirty);
+    assert!(!pane.has_external_conflict);
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(ui_asset_path.parent().unwrap());
 }
 
 #[test]

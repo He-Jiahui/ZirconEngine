@@ -32,3 +32,8 @@ tracing = "0.1.44"
 uuid = { version = "1.23.1", features = ["v4", "serde"] }
 wgpu = "29.0.1"
 winit = { version = "0.31.0-beta.2", default-features = false }
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = false

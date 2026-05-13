@@ -606,6 +606,48 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "View/Asset Browser",
             "editor.asset_browser",
         ),
+        (
+            "Window.PrefabEditor.Open",
+            "Open Prefab Editor Window",
+            "Window/Prefab Editor",
+            "editor.prefab_editor_window",
+        ),
+        (
+            "Window.MaterialEditor.Open",
+            "Open Material Editor",
+            "Window/Material Editor",
+            "editor.material_editor_window",
+        ),
+        (
+            "Window.MaterialDemo.Open",
+            "Open Material Demo",
+            "Window/Material Demo",
+            "editor.material_demo_window",
+        ),
+        (
+            "Window.UiAssetEditor.Open",
+            "Open UI Asset Editor",
+            "Window/UI Asset Editor",
+            "editor.ui_asset_editor_window",
+        ),
+        (
+            "Window.AnimationEditor.Open",
+            "Open Animation Editor",
+            "Window/Animation Editor",
+            "editor.animation_editor_window",
+        ),
+        (
+            "Window.AssetBrowser.Open",
+            "Open Asset Browser Window",
+            "Window/Asset Browser",
+            "editor.asset_browser_window",
+        ),
+        (
+            "Window.Diagnostics.Open",
+            "Open Diagnostics Window",
+            "Window/Diagnostics",
+            "editor.diagnostics_window",
+        ),
     ]
     .into_iter()
     .map(|(path, display_name, menu_path, descriptor_id)| {

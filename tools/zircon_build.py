@@ -30,6 +30,8 @@ ENGINE_ASSET_ROOTS = (
     Path("zircon_editor") / "assets",
     Path("zircon_runtime") / "assets",
 )
+UI_ASSET_SUFFIX = ".ui.toml"
+UI_V2_ASSET_SUFFIX = ".v2.ui.toml"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -674,10 +676,13 @@ def stage_engine_assets(config: BuildConfig) -> None:
         if not source_root.exists() or not source_root.is_dir():
             raise SystemExit(f"Engine asset root is missing: {source_root}")
         print(f"Staging assets {source_root} -> {destination_root}")
-        copy_tree_contents(source_root, destination_root, config)
+        skipped = copy_tree_contents(source_root, destination_root, config)
+        if skipped:
+            print(f"Skipped {skipped} legacy UI schema asset(s) from staged package")
 
 
-def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildConfig) -> None:
+def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildConfig) -> int:
+    skipped = 0
     for source in sorted(source_root.rglob("*")):
         relative = source.relative_to(source_root)
         destination = destination_root / relative
@@ -689,7 +694,22 @@ def copy_tree_contents(source_root: Path, destination_root: Path, config: BuildC
             continue
         if not source.is_file():
             continue
+        if should_skip_staged_engine_asset(relative):
+            skipped += 1
+            if config.dry_run:
+                print(f"DRY-RUN skip legacy UI schema asset {source}")
+            continue
         copy_asset_file(source, destination, config)
+    return skipped
+
+
+def should_skip_staged_engine_asset(relative: Path) -> bool:
+    normalized = relative.as_posix()
+    return (
+        normalized.startswith("ui/")
+        and normalized.endswith(UI_ASSET_SUFFIX)
+        and not normalized.endswith(UI_V2_ASSET_SUFFIX)
+    )
 
 
 def copy_asset_file(source: Path, destination: Path, config: BuildConfig) -> None:

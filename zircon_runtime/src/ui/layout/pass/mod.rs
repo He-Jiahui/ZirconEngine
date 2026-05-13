@@ -7,6 +7,7 @@ mod layout_tree;
 mod material;
 mod measure;
 mod slot;
+mod taffy_arrange;
 
 pub(crate) use incremental::compute_incremental_layout_tree;
 pub use layout_tree::compute_layout_tree;

@@ -35,6 +35,7 @@ pub(crate) mod style_rule_identity;
 pub(crate) mod style_state;
 pub(crate) mod theme_state;
 pub(crate) mod ui_asset_editor_session;
+pub(crate) mod v2_authoring;
 
 pub use journal::{
     UiAssetEditorCommandJournal, UiAssetEditorCommandJournalEntry,

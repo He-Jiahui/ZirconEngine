@@ -45,6 +45,7 @@ impl UiSurface {
             &mutation.node_ids,
             UiFocusChangeReason::Despawned,
         );
+        self.component_states.clear_nodes(&mutation.node_ids);
         self.add_pool_report(mutation.report.clone());
         Ok(mutation.report)
     }

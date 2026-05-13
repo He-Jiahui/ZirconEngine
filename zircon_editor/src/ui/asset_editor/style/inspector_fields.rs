@@ -1,4 +1,6 @@
-use crate::ui::asset_editor::UiDesignerSelectionModel;
+use std::collections::BTreeMap;
+
+use crate::ui::asset_editor::{UiAssetEditorWidgetPropStateItem, UiDesignerSelectionModel};
 use toml::{map::Map, Value};
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::template::{
@@ -74,6 +76,23 @@ pub(crate) fn build_inspector_fields(
     }
 }
 
+pub(crate) fn build_selected_node_prop_state_items(
+    document: &UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+) -> Vec<UiAssetEditorWidgetPropStateItem> {
+    let Some(node_id) = selection.primary_node_id.as_deref() else {
+        return Vec::new();
+    };
+    let Some(node) = document.node(node_id) else {
+        return Vec::new();
+    };
+
+    let mut rows = Vec::new();
+    collect_value_items(&mut rows, "prop", "", &node.props);
+    collect_value_items(&mut rows, "state", "", &node.params);
+    rows
+}
+
 pub(crate) fn set_selected_node_control_id(
     document: &mut UiAssetDocument,
     selection: &UiDesignerSelectionModel,
@@ -130,6 +149,30 @@ pub(crate) fn set_selected_node_text_property(
     }
     let _ = node.props.insert("text".to_string(), next);
     true
+}
+
+pub(crate) fn set_selected_node_prop_value(
+    document: &mut UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    path: &str,
+    value: Option<Value>,
+) -> bool {
+    let Some(node) = selected_node_mut(document, selection) else {
+        return false;
+    };
+    set_value_at_path(&mut node.props, path, value)
+}
+
+pub(crate) fn set_selected_node_state_value(
+    document: &mut UiAssetDocument,
+    selection: &UiDesignerSelectionModel,
+    path: &str,
+    value: Option<Value>,
+) -> bool {
+    let Some(node) = selected_node_mut(document, selection) else {
+        return false;
+    };
+    set_value_at_path(&mut node.params, path, value)
 }
 
 pub(crate) fn set_selected_node_slot_padding(
@@ -225,6 +268,166 @@ fn normalized_control_id(control_id: &str) -> Option<String> {
 fn normalized_mount(mount: &str) -> Option<String> {
     let trimmed = mount.trim();
     (!trimmed.is_empty()).then(|| trimmed.to_string())
+}
+
+fn set_value_at_path(
+    values: &mut BTreeMap<String, Value>,
+    path: &str,
+    value: Option<Value>,
+) -> bool {
+    let Some(segments) = normalized_value_path(path) else {
+        return false;
+    };
+    match value {
+        Some(value) => set_value_path_in_map(values, &segments, value),
+        None => remove_value_path_from_map(values, &segments),
+    }
+}
+
+fn normalized_value_path(path: &str) -> Option<Vec<String>> {
+    let segments = path
+        .trim()
+        .split('.')
+        .map(str::trim)
+        .map(str::to_string)
+        .collect::<Vec<_>>();
+    (!segments.is_empty()
+        && segments
+            .iter()
+            .all(|segment| !segment.is_empty() && !segment.chars().any(char::is_whitespace)))
+    .then_some(segments)
+}
+
+fn set_value_path_in_map(
+    values: &mut BTreeMap<String, Value>,
+    segments: &[String],
+    value: Value,
+) -> bool {
+    let Some((first, rest)) = segments.split_first() else {
+        return false;
+    };
+    if rest.is_empty() {
+        if values.get(first) == Some(&value) {
+            return false;
+        }
+        let _ = values.insert(first.clone(), value);
+        return true;
+    }
+
+    let entry = values
+        .entry(first.clone())
+        .or_insert_with(|| Value::Table(Map::new()));
+    if !matches!(entry, Value::Table(_)) {
+        *entry = Value::Table(Map::new());
+    }
+    let Value::Table(table) = entry else {
+        return false;
+    };
+    set_value_path_in_table(table, rest, value)
+}
+
+fn set_value_path_in_table(
+    values: &mut Map<String, Value>,
+    segments: &[String],
+    value: Value,
+) -> bool {
+    let Some((first, rest)) = segments.split_first() else {
+        return false;
+    };
+    if rest.is_empty() {
+        if values.get(first) == Some(&value) {
+            return false;
+        }
+        let _ = values.insert(first.clone(), value);
+        return true;
+    }
+
+    let entry = values
+        .entry(first.clone())
+        .or_insert_with(|| Value::Table(Map::new()));
+    if !matches!(entry, Value::Table(_)) {
+        *entry = Value::Table(Map::new());
+    }
+    let Value::Table(table) = entry else {
+        return false;
+    };
+    set_value_path_in_table(table, rest, value)
+}
+
+fn remove_value_path_from_map(values: &mut BTreeMap<String, Value>, segments: &[String]) -> bool {
+    let Some((first, rest)) = segments.split_first() else {
+        return false;
+    };
+    if rest.is_empty() {
+        return values.remove(first).is_some();
+    }
+
+    let Some(Value::Table(table)) = values.get_mut(first) else {
+        return false;
+    };
+    let removed = remove_value_path_from_table(table, rest);
+    if table.is_empty() {
+        let _ = values.remove(first);
+    }
+    removed
+}
+
+fn remove_value_path_from_table(values: &mut Map<String, Value>, segments: &[String]) -> bool {
+    let Some((first, rest)) = segments.split_first() else {
+        return false;
+    };
+    if rest.is_empty() {
+        return values.remove(first).is_some();
+    }
+
+    let Some(Value::Table(table)) = values.get_mut(first) else {
+        return false;
+    };
+    let removed = remove_value_path_from_table(table, rest);
+    if table.is_empty() {
+        let _ = values.remove(first);
+    }
+    removed
+}
+
+fn collect_value_items(
+    output: &mut Vec<UiAssetEditorWidgetPropStateItem>,
+    kind: &str,
+    parent_path: &str,
+    values: &BTreeMap<String, Value>,
+) {
+    for (key, value) in values {
+        let path = if parent_path.is_empty() {
+            key.clone()
+        } else {
+            format!("{parent_path}.{key}")
+        };
+        collect_value_item(output, kind, &path, value);
+    }
+}
+
+fn collect_value_item(
+    output: &mut Vec<UiAssetEditorWidgetPropStateItem>,
+    kind: &str,
+    path: &str,
+    value: &Value,
+) {
+    match value {
+        Value::Table(table) if !table.is_empty() => {
+            for (key, child) in table {
+                collect_value_item(output, kind, &format!("{path}.{key}"), child);
+            }
+        }
+        _ => {
+            let value = value.to_string();
+            output.push(UiAssetEditorWidgetPropStateItem {
+                kind: kind.to_string(),
+                path: path.to_string(),
+                display: format!("{kind} {path} = {value}"),
+                value,
+            });
+        }
+    }
 }
 
 fn text_property_value(node: &UiNodeDefinition) -> String {

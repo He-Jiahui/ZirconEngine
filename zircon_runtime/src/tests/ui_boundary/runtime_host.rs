@@ -149,3 +149,95 @@ fn runtime_ui_manager_dispatches_pointer_and_navigation_through_shared_surface()
         .unwrap();
     assert_eq!(navigation_result.handled_by, Some(root_node));
 }
+
+#[test]
+fn runtime_ui_manager_applies_pointer_render_dirty_to_persistent_surface() {
+    use crate::ui::dispatch::UiPointerDispatcher;
+    use std::collections::BTreeSet;
+    use zircon_runtime_interface::ui::dispatch::{UiPointerDispatchEffect, UiPointerEvent};
+    use zircon_runtime_interface::ui::layout::UiPoint;
+    use zircon_runtime_interface::ui::surface::UiPointerEventKind;
+    use zircon_runtime_interface::ui::tree::UiDirtyFlags;
+
+    let viewport_size = crate::core::math::UVec2::new(640, 360);
+    let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::PauseMenu)
+        .unwrap();
+
+    let root_node = manager.surface().tree.roots[0];
+    let mut pointer_dispatcher = UiPointerDispatcher::default();
+    pointer_dispatcher.register(root_node, UiPointerEventKind::Move, |_| {
+        UiPointerDispatchEffect::request_dirty(UiDirtyFlags {
+            render: true,
+            ..UiDirtyFlags::default()
+        })
+    });
+
+    let result = manager
+        .dispatch_pointer_event(
+            &pointer_dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(320.0, 180.0)),
+        )
+        .unwrap();
+    let report = manager.surface().last_rebuild_report;
+    let mut expected_dirty_nodes = BTreeSet::from([root_node]);
+    expected_dirty_nodes.extend(result.route.entered.iter().copied());
+
+    assert!(result.requested_dirty.render);
+    assert!(report.dirty_flags.render);
+    assert_eq!(report.dirty_node_count, expected_dirty_nodes.len());
+    assert!(report.render_rebuilt);
+    assert!(!report.layout_recomputed);
+    assert!(!report.arranged_rebuilt);
+    assert!(!report.hit_grid_rebuilt);
+    assert!(
+        !manager.surface().dirty_flags().any(),
+        "runtime manager should consume dispatch dirty domains through the persistent surface"
+    );
+}
+
+#[test]
+fn runtime_ui_manager_routes_pointer_layout_dirty_through_incremental_surface_rebuild() {
+    use crate::ui::dispatch::UiPointerDispatcher;
+    use zircon_runtime_interface::ui::dispatch::{UiPointerDispatchEffect, UiPointerEvent};
+    use zircon_runtime_interface::ui::layout::UiPoint;
+    use zircon_runtime_interface::ui::surface::UiPointerEventKind;
+    use zircon_runtime_interface::ui::tree::UiDirtyFlags;
+
+    let viewport_size = crate::core::math::UVec2::new(640, 360);
+    let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
+    manager
+        .load_builtin_fixture(crate::ui::RuntimeUiFixture::InventoryList)
+        .unwrap();
+
+    let root_node = manager.surface().tree.roots[0];
+    let mut pointer_dispatcher = UiPointerDispatcher::default();
+    pointer_dispatcher.register(root_node, UiPointerEventKind::Move, |_| {
+        UiPointerDispatchEffect::request_dirty(UiDirtyFlags {
+            layout: true,
+            hit_test: true,
+            render: true,
+            ..UiDirtyFlags::default()
+        })
+    });
+
+    let result = manager
+        .dispatch_pointer_event(
+            &pointer_dispatcher,
+            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(320.0, 180.0)),
+        )
+        .unwrap();
+    let report = manager.surface().last_rebuild_report;
+
+    assert!(result.requested_dirty.layout);
+    assert!(report.dirty_flags.layout);
+    assert!(report.layout_recomputed);
+    assert!(report.arranged_rebuilt);
+    assert!(report.hit_grid_rebuilt);
+    assert!(report.render_rebuilt);
+    assert!(
+        !manager.surface().dirty_flags().any(),
+        "layout dirty requests should be rebuilt and cleared before the next runtime frame"
+    );
+}

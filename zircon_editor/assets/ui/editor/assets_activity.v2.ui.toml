@@ -1,0 +1,460 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.assets_activity.v2"
+version = 2
+display_name = "Assets Activity"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "assets_activity_root"
+
+[nodes.toolbar_title_text]
+component = "Label"
+control_id = "AssetsActivityTitleText"
+props = { text = "Assets", font_size = 12.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_open_browser_button]
+component = "Button"
+control_id = "OpenAssetBrowser"
+props = { label = "Browser", dispatch_kind = "asset" }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "AssetCommand.OpenAssetBrowser" }]
+
+[nodes.toolbar_title_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarTitleRow"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_title_text" }, { node = "toolbar_open_browser_button" }]
+
+[nodes.toolbar_subtitle_text]
+component = "Label"
+control_id = "AssetsActivitySubtitleText"
+props = { text = "Browse project assets", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_subtitle_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarSubtitleRow"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_subtitle_text" }]
+
+[nodes.toolbar_search_field]
+component = "TextField"
+control_id = "SearchEdited"
+props = { placeholder = "Search", dispatch_kind = "asset" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "AssetCommand.SetSearchQuery" }]
+
+[nodes.toolbar_view_mode_list_button]
+component = "Button"
+control_id = "AssetsActivityViewModeListButton"
+props = { label = "List", dispatch_kind = "asset", action_id = "SetViewMode", value = "list" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+
+[nodes.toolbar_view_mode_thumb_button]
+component = "Button"
+control_id = "AssetsActivityViewModeThumbButton"
+props = { label = "Thumb", dispatch_kind = "asset", action_id = "SetViewMode", value = "thumbnail" }
+layout = { width = { min = 70.0, preferred = 70.0, max = 70.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+
+[nodes.toolbar_search_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarSearchRow"
+layout = { container = { kind = "HorizontalBox", gap = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_search_field" }, { node = "toolbar_view_mode_list_button" }, { node = "toolbar_view_mode_thumb_button" }]
+
+[nodes.toolbar_kind_all_chip]
+component = "Button"
+control_id = "AssetsActivityKindAllChip"
+props = { label = "All", dispatch_kind = "asset", action_id = "SetKindFilter", value_text = "" }
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_texture_chip]
+component = "Button"
+control_id = "AssetsActivityKindTextureChip"
+props = { label = "Tex", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Texture" }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_material_chip]
+component = "Button"
+control_id = "AssetsActivityKindMaterialChip"
+props = { label = "Mat", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Material" }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_scene_chip]
+component = "Button"
+control_id = "AssetsActivityKindSceneChip"
+props = { label = "Scn", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Scene" }
+layout = { width = { min = 42.0, preferred = 42.0, max = 42.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_model_chip]
+component = "Button"
+control_id = "AssetsActivityKindModelChip"
+props = { label = "Mesh", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Model" }
+layout = { width = { min = 50.0, preferred = 50.0, max = 50.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_shader_chip]
+component = "Button"
+control_id = "AssetsActivityKindShaderChip"
+props = { label = "Shd", dispatch_kind = "asset", action_id = "SetKindFilter", value = "Shader" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_primary_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarKindPrimaryRow"
+layout = { container = { kind = "HorizontalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_kind_all_chip" }, { node = "toolbar_kind_texture_chip" }, { node = "toolbar_kind_material_chip" }, { node = "toolbar_kind_scene_chip" }, { node = "toolbar_kind_model_chip" }, { node = "toolbar_kind_shader_chip" }]
+
+[nodes.toolbar_kind_physics_chip]
+component = "Button"
+control_id = "AssetsActivityKindPhysicsChip"
+props = { label = "Phy", dispatch_kind = "asset", action_id = "SetKindFilter", value = "PhysicsMaterial" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_skeleton_chip]
+component = "Button"
+control_id = "AssetsActivityKindSkeletonChip"
+props = { label = "Skel", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationSkeleton" }
+layout = { width = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_clip_chip]
+component = "Button"
+control_id = "AssetsActivityKindClipChip"
+props = { label = "Clip", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationClip" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_sequence_chip]
+component = "Button"
+control_id = "AssetsActivityKindSequenceChip"
+props = { label = "Seq", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationSequence" }
+layout = { width = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_graph_chip]
+component = "Button"
+control_id = "AssetsActivityKindGraphChip"
+props = { label = "Gph", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationGraph" }
+layout = { width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_state_chip]
+component = "Button"
+control_id = "AssetsActivityKindStateChip"
+props = { label = "Stat", dispatch_kind = "asset", action_id = "SetKindFilter", value = "AnimationStateMachine" }
+layout = { width = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.toolbar_kind_secondary_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityToolbarKindSecondaryRow"
+layout = { container = { kind = "HorizontalBox", gap = 3.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_kind_physics_chip" }, { node = "toolbar_kind_skeleton_chip" }, { node = "toolbar_kind_clip_chip" }, { node = "toolbar_kind_sequence_chip" }, { node = "toolbar_kind_graph_chip" }, { node = "toolbar_kind_state_chip" }]
+
+[nodes.toolbar_panel]
+component = "VerticalBox"
+control_id = "AssetsActivityToolbarPanel"
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 122.0, preferred = 122.0, max = 122.0, stretch = "Fixed" } }
+children = [{ node = "toolbar_title_row" }, { node = "toolbar_subtitle_row" }, { node = "toolbar_search_row" }, { node = "toolbar_kind_primary_row" }, { node = "toolbar_kind_secondary_row" }]
+
+[nodes.tree_title_text]
+component = "Label"
+control_id = "AssetsActivityTreeTitleText"
+props = { text = "Folders", font_size = 11.0, font_weight = 700 }
+layout = { position = { x = 12.0, y = 10.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.tree_subtitle_text]
+component = "Label"
+control_id = "AssetsActivityTreeSubtitleText"
+props = { text = "Project/assets", font_size = 9.0, overflow = "elide" }
+layout = { position = { x = 12.0, y = 25.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.tree_header_panel]
+component = "Overlay"
+control_id = "AssetsActivityTreeHeaderPanel"
+props = { surface_variant = "panel" }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+children = [{ node = "tree_title_text" }, { node = "tree_subtitle_text" }]
+
+[nodes.tree_divider]
+component = "Space"
+control_id = "AssetsActivityTreeDivider"
+props = { surface_variant = "divider" }
+layout = { position = { x = 0.0, y = 48.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.tree_row_icon]
+component = "Space"
+control_id = "AssetsActivityTreeRowIcon"
+layout = { position = { x = 8.0, y = 7.0 }, width = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.tree_row_name_text]
+component = "Label"
+control_id = "AssetsActivityTreeRowNameText"
+props = { text = "Assets", font_size = 11.0, overflow = "elide" }
+layout = { position = { x = 30.0, y = 6.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.tree_row_count_text]
+component = "Label"
+control_id = "AssetsActivityTreeRowCountText"
+props = { text = "0", font_size = 10.0, text_align = "right" }
+layout = { position = { x = 206.0, y = 5.0 }, width = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.tree_row_panel]
+component = "Overlay"
+control_id = "AssetsActivityTreeRowPanel"
+props = { surface_variant = "asset-tree-row", radius = 6.0 }
+layout = { clip = true, container = { kind = "Overlay" }, position = { x = 8.0, y = 8.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "tree_row_icon" }, { node = "tree_row_name_text" }, { node = "tree_row_count_text" }]
+
+[nodes.tree_scroll_body]
+component = "Overlay"
+control_id = "AssetsActivityTreeScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, position = { x = 0.0, y = 49.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tree_row_panel" }]
+
+[nodes.tree_panel]
+component = "Space"
+control_id = "AssetsActivityTreePanel"
+layout = { width = { min = 248.0, preferred = 248.0, max = 248.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "tree_header_panel" }, { node = "tree_divider" }, { node = "tree_scroll_body" }]
+
+[nodes.content_panel]
+component = "Space"
+control_id = "AssetsActivityContentPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.main_panel]
+component = "HorizontalBox"
+control_id = "AssetsActivityMainPanel"
+layout = { container = { kind = "HorizontalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "tree_panel" }, { node = "content_panel" }]
+
+[nodes.utility_preview_button]
+component = "Button"
+control_id = "AssetsActivityPreviewTabButton"
+props = { label = "Preview", dispatch_kind = "asset", action_id = "SetUtilityTab", value = "preview" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_references_button]
+component = "Button"
+control_id = "AssetsActivityReferencesTabButton"
+props = { label = "Refs", dispatch_kind = "asset", action_id = "SetUtilityTab", value = "references" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.utility_tabs_spacer]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.utility_selection_text]
+component = "Label"
+control_id = "AssetsActivitySelectionText"
+props = { text = "No asset selected", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { width = { min = 144.0, preferred = 144.0, max = 144.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.utility_tabs_row]
+component = "HorizontalBox"
+control_id = "AssetsActivityUtilityTabsRow"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "utility_preview_button" }, { node = "utility_references_button" }, { node = "utility_tabs_spacer" }, { node = "utility_selection_text" }]
+
+[nodes.utility_tabs_divider]
+component = "Space"
+control_id = "AssetsActivityUtilityDivider"
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 38.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.preview_visual_panel]
+component = "Overlay"
+control_id = "AssetsActivityPreviewVisualPanel"
+props = { surface_variant = "asset-preview-visual", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 10.0, y = 10.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" } }
+
+[nodes.preview_name_text]
+component = "Label"
+control_id = "AssetsActivityPreviewNameText"
+props = { text = "No Asset Selected", font_size = 12.0, font_weight = 700, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 12.0 }, width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.preview_locator_text]
+component = "Label"
+control_id = "AssetsActivityPreviewLocatorText"
+props = { text = "", text_tone = "subtle", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 32.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.preview_kind_text]
+component = "Label"
+control_id = "AssetsActivityPreviewKindText"
+props = { text = "", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 50.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.preview_identity_text]
+component = "Label"
+control_id = "AssetsActivityPreviewIdentityText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 66.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_adapter_text]
+component = "Label"
+control_id = "AssetsActivityPreviewAdapterText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 82.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_meta_path_text]
+component = "Label"
+control_id = "AssetsActivityPreviewMetaPathText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 98.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.preview_diagnostics_text]
+component = "Label"
+control_id = "AssetsActivityPreviewDiagnosticsText"
+props = { text = "", font_size = 9.0 }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 132.0, y = 90.0 }, width = { stretch = "Stretch" }, height = { min = 38.0, preferred = 38.0, max = 38.0, stretch = "Fixed" } }
+
+[nodes.preview_panel]
+component = "Overlay"
+control_id = "AssetsActivityPreviewPanel"
+props = { surface_variant = "asset-preview", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "preview_visual_panel" }, { node = "preview_name_text" }, { node = "preview_locator_text" }, { node = "preview_kind_text" }, { node = "preview_identity_text" }, { node = "preview_adapter_text" }, { node = "preview_meta_path_text" }, { node = "preview_diagnostics_text" }]
+
+[nodes.reference_left_title_text]
+component = "Label"
+control_id = "AssetsActivityReferenceLeftTitleText"
+props = { text = "References", font_size = 11.0, font_weight = 600, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.reference_left_empty_text]
+component = "Label"
+control_id = "AssetsActivityReferenceLeftEmptyText"
+props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_name_text]
+component = "Label"
+control_id = "AssetsActivityReferenceLeftRowNameText"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_locator_text]
+component = "Label"
+control_id = "AssetsActivityReferenceLeftRowLocatorText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_kind_text]
+component = "Label"
+control_id = "AssetsActivityReferenceLeftRowKindText"
+props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_left_row_panel]
+component = "Overlay"
+control_id = "AssetsActivityReferenceLeftRowPanel"
+props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "reference_left_row_name_text" }, { node = "reference_left_row_locator_text" }, { node = "reference_left_row_kind_text" }]
+
+[nodes.reference_left_scroll_body]
+component = "Overlay"
+control_id = "AssetsActivityReferenceLeftScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_empty_text" }, { node = "reference_left_row_panel" }]
+
+[nodes.reference_left_panel]
+component = "Overlay"
+control_id = "AssetsActivityReferenceLeftPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_title_text" }, { node = "reference_left_scroll_body" }]
+
+[nodes.reference_right_title_text]
+component = "Label"
+control_id = "AssetsActivityReferenceRightTitleText"
+props = { text = "Used By", font_size = 11.0, font_weight = 600, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.reference_right_empty_text]
+component = "Label"
+control_id = "AssetsActivityReferenceRightEmptyText"
+props = { text = "No direct references", text_tone = "muted", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_name_text]
+component = "Label"
+control_id = "AssetsActivityReferenceRightRowNameText"
+props = { text = "", font_size = 10.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 4.0 }, width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_locator_text]
+component = "Label"
+control_id = "AssetsActivityReferenceRightRowLocatorText"
+props = { text = "", text_tone = "muted", font_size = 9.0, overflow = "elide" }
+layout = { anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 8.0, y = 15.0 }, width = { stretch = "Stretch" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_kind_text]
+component = "Label"
+control_id = "AssetsActivityReferenceRightRowKindText"
+props = { text = "", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -8.0, y = 8.0 }, width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 9.0, preferred = 9.0, max = 9.0, stretch = "Fixed" } }
+
+[nodes.reference_right_row_panel]
+component = "Overlay"
+control_id = "AssetsActivityReferenceRightRowPanel"
+props = { surface_variant = "reference-row", radius = 6.0, border_width = 1.0 }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+children = [{ node = "reference_right_row_name_text" }, { node = "reference_right_row_locator_text" }, { node = "reference_right_row_kind_text" }]
+
+[nodes.reference_right_scroll_body]
+component = "Overlay"
+control_id = "AssetsActivityReferenceRightScrollBody"
+props = { surface_variant = "scroll-body" }
+layout = { clip = true, container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 20.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_right_empty_text" }, { node = "reference_right_row_panel" }]
+
+[nodes.reference_right_panel]
+component = "Overlay"
+control_id = "AssetsActivityReferenceRightPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_right_title_text" }, { node = "reference_right_scroll_body" }]
+
+[nodes.references_shell]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 12.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "reference_left_panel" }, { node = "reference_right_panel" }]
+
+[nodes.utility_content_panel]
+component = "Overlay"
+control_id = "AssetsActivityUtilityContentPanel"
+layout = { container = { kind = "Overlay" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 0.0, y = 48.0 }, width = { stretch = "Stretch" }, height = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" } }
+children = [{ node = "preview_panel" }, { node = "references_shell" }]
+
+[nodes.utility_panel]
+component = "Overlay"
+control_id = "AssetsActivityUtilityPanel"
+layout = { container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { min = 176.0, preferred = 176.0, max = 176.0, stretch = "Fixed" } }
+children = [{ node = "utility_tabs_row" }, { node = "utility_tabs_divider" }, { node = "utility_content_panel" }]
+
+[nodes.assets_activity_root]
+component = "VerticalBox"
+control_id = "AssetsActivityRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 10.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "toolbar_panel" }, { node = "main_panel" }, { node = "utility_panel" }]

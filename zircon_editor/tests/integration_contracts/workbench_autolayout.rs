@@ -9,7 +9,7 @@ use zircon_editor::ui::workbench::layout::{
 use zircon_editor::ui::workbench::model::WorkbenchViewModel;
 use zircon_editor::ui::workbench::snapshot::ViewContentKind;
 use zircon_editor::ui::workbench::view::ViewInstanceId;
-use zircon_runtime::ui::layout::BoxConstraints;
+use zircon_runtime_interface::ui::layout::BoxConstraints;
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {
     AxisConstraint {

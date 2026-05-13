@@ -1,4 +1,7 @@
+use std::collections::BTreeMap;
+
 use super::support::*;
+use crate::ui::template_runtime::{RetainedUiHostModel, RetainedUiHostNodeProjection};
 
 #[test]
 fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks() {
@@ -269,6 +272,68 @@ fn retained_ui_host_adapter_builds_generic_projection_from_host_model() {
     assert_eq!(status_text.kind, RetainedUiHostComponentKind::Label);
     assert_eq!(status_text.text.as_deref(), Some("Ready"));
     assert_eq!(status_text.icon, None);
+}
+
+#[test]
+fn retained_ui_host_adapter_keeps_field_labels_out_of_visible_text() {
+    let host_model = RetainedUiHostModel {
+        document_id: "field.label.contract".to_string(),
+        nodes: vec![
+            retained_host_node(
+                "InputField",
+                "NameField",
+                BTreeMap::from([
+                    ("label".to_string(), Value::String("Name".to_string())),
+                    ("placeholder".to_string(), Value::String("Name".to_string())),
+                    ("value_text".to_string(), Value::String(String::new())),
+                ]),
+            ),
+            retained_host_node(
+                "IconButton",
+                "OpenProject",
+                BTreeMap::from([
+                    ("label".to_string(), Value::String("Open".to_string())),
+                    (
+                        "icon".to_string(),
+                        Value::String("folder-open-outline".to_string()),
+                    ),
+                ]),
+            ),
+        ],
+    };
+
+    let retained_projection = RetainedUiHostAdapter::build_projection(&host_model);
+
+    let name_field = retained_projection.node_by_control_id("NameField").unwrap();
+    assert_eq!(name_field.text.as_deref(), None);
+    assert_eq!(
+        name_field.properties.get("placeholder"),
+        Some(&RetainedUiHostValue::String("Name".to_string()))
+    );
+
+    let open_project = retained_projection
+        .node_by_control_id("OpenProject")
+        .unwrap();
+    assert_eq!(open_project.text.as_deref(), Some("Open"));
+}
+
+fn retained_host_node(
+    component: &str,
+    control_id: &str,
+    attributes: BTreeMap<String, Value>,
+) -> RetainedUiHostNodeProjection {
+    RetainedUiHostNodeProjection {
+        node_id: control_id.to_string(),
+        parent_id: None,
+        component: component.to_string(),
+        control_id: Some(control_id.to_string()),
+        frame: UiFrame::default(),
+        clip_frame: None,
+        z_index: 0,
+        attributes,
+        style_tokens: BTreeMap::new(),
+        bindings: Vec::new(),
+    }
 }
 
 #[test]

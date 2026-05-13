@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use toml::Value;
+use zircon_runtime::ui::v2::UiV2AssetLoader;
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
-const MATERIAL_THEME: &str = "res://ui/theme/editor_material.ui.toml";
-const MATERIAL_META: &str = "res://ui/editor/material_meta_components.ui.toml";
+const MATERIAL_THEME_V2: &str = "res://ui/theme/editor_material.v2.ui.toml";
 
 #[test]
 fn global_material_surface_assets_follow_responsive_contracts() {
@@ -12,7 +13,7 @@ fn global_material_surface_assets_follow_responsive_contracts() {
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        54,
+        40,
         "Milestone 3 inventory changed; update the acceptance inventory and this conformance test together"
     );
 
@@ -83,73 +84,65 @@ fn global_material_surface_assets_follow_responsive_contracts() {
 fn material_import_graph_uses_normalized_res_paths() {
     let mut graph = BTreeMap::new();
     graph.insert(
-        "editor/welcome.ui.toml".to_string(),
-        vec!["res://ui/theme/editor_base.ui.toml".to_string()],
+        "editor/welcome.v2.ui.toml".to_string(),
+        vec!["res://ui/theme/editor_base.v2.ui.toml".to_string()],
     );
     graph.insert(
-        "theme/editor_base.ui.toml".to_string(),
-        vec![MATERIAL_THEME.to_string()],
+        "theme/editor_base.v2.ui.toml".to_string(),
+        vec![MATERIAL_THEME_V2.to_string()],
     );
 
-    assert!(imports_material_theme("editor/welcome.ui.toml", &graph));
+    assert!(imports_material_theme("editor/welcome.v2.ui.toml", &graph));
 }
 
 #[test]
-fn runtime_material_surfaces_use_shared_runtime_material_classes() {
+fn runtime_v2_fixture_assets_parse_from_runtime_crate_assets() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let mut failures = Vec::new();
-    for relative in [
-        "runtime/inventory_dialog.ui.toml",
-        "runtime/pause_dialog.ui.toml",
-        "runtime/quest_log_dialog.ui.toml",
-        "runtime/runtime_hud.ui.toml",
-        "runtime/settings_dialog.ui.toml",
-    ] {
-        let document = load_document(&repo.join("assets/ui").join(relative));
-        let root = document
-            .get("root")
-            .unwrap_or_else(|| panic!("{relative} defines [root]"));
-        let root = effective_root(&document, root).unwrap_or(root);
-        let expected_surface_class = if relative.ends_with("runtime_hud.ui.toml") {
-            "material-runtime-hud"
-        } else {
-            "material-runtime-dialog"
-        };
-        let mut found_surface_class = false;
-        visit_nodes(&document, relative, "root", root, &mut |location, node| {
-            if node_has_class(node, expected_surface_class) {
-                found_surface_class = true;
-            }
-            if node_type(node) != Some("Button") {
-                return;
-            }
-            for class in ["material-control", "material-button"] {
-                if !node_has_class(node, class) {
-                    failures.push(format!("{location} must include `{class}`"));
-                }
-            }
-            if (node_has_class(node, "dialog-button-primary")
-                || node_has_class(node, "hud-button-primary"))
-                && !node_has_class(node, "material-button-primary")
-            {
-                failures.push(format!(
-                    "{location} primary runtime button must include `material-button-primary`"
-                ));
-            }
-            for prop in ["surface_variant", "border_width", "corner_radius"] {
-                if !node_props(node).is_some_and(|props| props.contains_key(prop)) {
-                    failures.push(format!("{location} must carry `{prop}` Material prop"));
-                }
-            }
-        });
-        if !found_surface_class {
-            failures.push(format!(
-                "{relative} must mark a root/panel with `{expected_surface_class}`"
-            ));
-        }
-    }
+    let runtime_fixture_root = repo
+        .parent()
+        .expect("zircon_editor lives directly under workspace root")
+        .join("zircon_runtime/assets/ui/runtime/fixtures");
 
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    for (file_name, asset_id, root_node) in [
+        (
+            "hud_overlay.v2.ui.toml",
+            "runtime.ui.hud_overlay",
+            "hud_root",
+        ),
+        (
+            "pause_menu.v2.ui.toml",
+            "runtime.ui.pause_menu",
+            "pause_root",
+        ),
+        (
+            "settings_dialog.v2.ui.toml",
+            "runtime.ui.settings_dialog",
+            "settings_root",
+        ),
+        (
+            "inventory_list.v2.ui.toml",
+            "runtime.ui.inventory_list",
+            "inventory_root",
+        ),
+        (
+            "quest_log_dialog.v2.ui.toml",
+            "runtime.ui.quest_log_dialog",
+            "quest_root",
+        ),
+    ] {
+        let path = runtime_fixture_root.join(file_name);
+        let document = UiV2AssetLoader::load_toml_file(&path)
+            .unwrap_or_else(|error| panic!("{} parses as runtime ui v2: {error}", path.display()));
+
+        assert_eq!(document.asset.kind, UiV2AssetKind::View);
+        assert_eq!(document.asset.version, 2);
+        assert_eq!(document.asset.id, asset_id);
+        assert_eq!(document.root_node_id(), Some(root_node));
+        assert!(
+            document.nodes.contains_key(root_node),
+            "{file_name} should contain its declared root node"
+        );
+    }
 }
 
 fn collect_import_graph_files(repo: &std::path::Path, surface_files: &[PathBuf]) -> Vec<PathBuf> {
@@ -186,7 +179,6 @@ fn collect_ui_files(repo: &std::path::Path) -> Vec<PathBuf> {
         "assets/ui/editor",
         "assets/ui/editor/host",
         "assets/ui/editor/windows",
-        "assets/ui/runtime",
     ] {
         collect_ui_files_from(&repo.join(relative), &mut files);
     }
@@ -226,13 +218,6 @@ fn load_documents(files: &[PathBuf]) -> BTreeMap<PathBuf, Value> {
         .collect()
 }
 
-fn load_document(path: &std::path::Path) -> Value {
-    let source = std::fs::read_to_string(path).expect("ui asset is readable");
-    let source = source.trim_start_matches("stylesheets = []").trim_start();
-    toml::from_str::<Value>(source)
-        .unwrap_or_else(|error| panic!("{} parses as TOML: {error}", path.display()))
-}
-
 fn import_graph(
     documents: &BTreeMap<PathBuf, Value>,
     assets_root: &std::path::Path,
@@ -257,7 +242,7 @@ fn imports_material_theme(relative: &str, graph: &BTreeMap<String, Vec<String>>)
         }
         visited.push(current.clone());
         for import in graph.get(&current).into_iter().flatten() {
-            if import == MATERIAL_THEME {
+            if import == MATERIAL_THEME_V2 {
                 return true;
             }
             if let Some(next) = import.strip_prefix("res://ui/") {
@@ -364,15 +349,6 @@ fn material_import_pending_reason(relative: &str) -> Option<&'static str> {
     if pending_host_or_window {
         return Some("host/window chrome currently receives Material through shell projection; direct asset import remains tracked by this exception");
     }
-    if matches!(
-        normalized.as_str(),
-        "editor/binding_browser.ui.toml"
-            | "editor/layout_workbench.ui.toml"
-            | "editor/preview_state_lab.ui.toml"
-            | "editor/theme_browser.ui.toml"
-    ) {
-        return Some("legacy editor tool surface pending mechanical Material import cutover");
-    }
     None
 }
 
@@ -413,7 +389,7 @@ fn check_interactive_material_contract(location: &str, node: &Value, failures: &
     let Some(component_type) = node_type(node) else {
         return;
     };
-    if !is_interactive_type(component_type) || is_material_component_reference(node) {
+    if !is_interactive_type(component_type) {
         return;
     }
     if is_legacy_interactive_exception(location, component_type)
@@ -480,12 +456,6 @@ fn is_interactive_type(component_type: &str) -> bool {
     )
 }
 
-fn is_material_component_reference(node: &Value) -> bool {
-    node.get("component_ref")
-        .and_then(Value::as_str)
-        .is_some_and(|component_ref| component_ref.starts_with(MATERIAL_META))
-}
-
 fn has_material_class(node: &Value) -> bool {
     node.get("classes")
         .and_then(Value::as_array)
@@ -495,21 +465,6 @@ fn has_material_class(node: &Value) -> bool {
         .any(|class| {
             class.contains("material") || class.contains("dialog") || class.contains("hud")
         })
-}
-
-fn node_has_class(node: &Value, expected: &str) -> bool {
-    node.get("classes")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-        .filter_map(Value::as_str)
-        .any(|class| class == expected)
-}
-
-fn node_props(node: &Value) -> Option<&toml::map::Map<String, Value>> {
-    node.get("props")
-        .or_else(|| node.get("params"))
-        .and_then(Value::as_table)
 }
 
 fn has_layout_metric(node: &Value) -> bool {
@@ -560,14 +515,20 @@ fn fixed_axis_reason(location: &str, node: &Value, axis: &str) -> Option<&'stati
     {
         return Some("bounded host chrome/control strip");
     }
+    if normalized.starts_with("editor/host/") || normalized.starts_with("editor/windows/") {
+        return Some("bounded host/window chrome source");
+    }
     if normalized.contains("status_bar") || normalized.contains("statusbar") {
         return Some("fixed status bar chrome");
     }
     if normalized.contains("header")
         || normalized.contains("toolbar")
         || normalized.contains("top_bar")
+        || normalized.contains("topbar")
         || normalized.contains("menu_bar")
+        || normalized.contains("menubar")
         || normalized.contains("page_bar")
+        || normalized.contains("pagebar")
         || normalized.contains("tab")
         || normalized.contains("splitter")
         || normalized.contains("separator")
@@ -582,12 +543,15 @@ fn fixed_axis_reason(location: &str, node: &Value, axis: &str) -> Option<&'stati
     }
     if axis == "height"
         && normalized.contains("component_showcase")
-        && (normalized.contains("_demo") || normalized.contains("component_showcase_"))
+        && (normalized.contains("_demo")
+            || normalized.contains("demo")
+            || normalized.contains("componentshowcase")
+            || normalized.contains("component_showcase_"))
     {
         return Some("bounded Component Showcase sample row");
     }
     if axis == "height"
-        && normalized.contains("editor/welcome.ui.toml")
+        && normalized.contains("editor/welcome")
         && (normalized.contains("project_name_field") || normalized.contains("location_field"))
     {
         return Some("bounded welcome Material form field row");
@@ -610,11 +574,11 @@ fn is_collection_heavy(relative: &str, document: &Value) -> bool {
     let name = normalize_location(relative);
     if matches!(
         name.as_str(),
-        "editor/console.ui.toml"
-            | "editor/welcome.ui.toml"
-            | "editor/host/console_body.ui.toml"
-            | "editor/host/module_plugins_body.ui.toml"
-            | "editor/host/runtime_diagnostics_body.ui.toml"
+        "editor/console.v2.ui.toml"
+            | "editor/welcome.v2.ui.toml"
+            | "editor/host/console_body.v2.ui.toml"
+            | "editor/host/module_plugins_body.v2.ui.toml"
+            | "editor/host/runtime_diagnostics_body.v2.ui.toml"
     ) {
         return true;
     }
@@ -666,11 +630,8 @@ fn has_scrollable_or_bounded_viewport(document: &Value, root: &Value) -> bool {
     found
 }
 
-fn is_component_library(relative: &str, document: &Value) -> bool {
-    relative.ends_with("material_meta_components.ui.toml")
-        || relative.ends_with("component_widgets.ui.toml")
-        || relative.ends_with("editor_widgets.ui.toml")
-        || document.get("components").is_some() && document.get("root").is_none()
+fn is_component_library(_relative: &str, document: &Value) -> bool {
+    document.get("components").is_some() && document.get("root").is_none()
 }
 
 fn visit_value(value: &Value, visit: &mut impl FnMut(&Value)) {

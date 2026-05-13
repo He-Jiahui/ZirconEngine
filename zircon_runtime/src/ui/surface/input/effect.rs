@@ -303,7 +303,7 @@ fn apply_effect(
                 .get_mut(target)
                 .ok_or_else(|| format!("missing dirty target {target:?}"))?;
             merge_dirty(&mut node.dirty, *dirty);
-            node.state_flags.dirty |= dirty.any();
+            node.state_flags.dirty |= dirty.hit_test || dirty.input;
             Ok(Some(*target))
         }
         UiDispatchEffect::EmitComponentEvent { target, policy, .. } => {

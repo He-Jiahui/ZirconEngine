@@ -5,11 +5,13 @@ use super::library_path::{
     runtime_library_path_for_executable,
 };
 use super::loaded_runtime::{
-    runtime_api_field_available, runtime_api_supports_viewport_surface_present,
+    runtime_api_field_available, runtime_api_required_prefix_available,
+    runtime_api_supports_viewport_surface_present,
 };
+use zircon_runtime_interface::runtime_api::ZrRuntimeCaptureFrameFnV1;
 use zircon_runtime_interface::{
-    ZrRuntimeApiV1, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeBindViewportSurfaceRequestV1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
 };
 
 #[test]
@@ -79,20 +81,69 @@ fn runtime_api_field_availability_rejects_truncated_or_overflowing_fields() {
 }
 
 #[test]
+fn runtime_api_required_prefix_must_cover_required_capture_field() {
+    let required_size = core::mem::offset_of!(ZrRuntimeApiV1, capture_frame)
+        + core::mem::size_of::<Option<ZrRuntimeCaptureFrameFnV1>>();
+
+    assert!(runtime_api_required_prefix_available(required_size));
+    assert!(!runtime_api_required_prefix_available(required_size - 1));
+}
+
+#[test]
 fn runtime_surface_present_support_requires_all_optional_fields_in_size() {
-    let mut api = ZrRuntimeApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
-    api.bind_viewport_surface = Some(fake_bind_viewport_surface);
-    api.unbind_viewport_surface = Some(fake_unbind_viewport_surface);
-    api.present_viewport = Some(fake_present_viewport);
+    let full_size = core::mem::size_of::<ZrRuntimeApiV1>();
+    let before_bind = core::mem::offset_of!(ZrRuntimeApiV1, bind_viewport_surface);
+    let before_unbind = core::mem::offset_of!(ZrRuntimeApiV1, unbind_viewport_surface);
+    let before_present = core::mem::offset_of!(ZrRuntimeApiV1, present_viewport);
+    let bind = Some(fake_bind_viewport_surface as _);
+    let unbind = Some(fake_unbind_viewport_surface as _);
+    let present = Some(fake_present_viewport as _);
 
-    assert!(runtime_api_supports_viewport_surface_present(&api));
+    assert!(runtime_api_supports_viewport_surface_present(
+        full_size, bind, unbind, present
+    ));
+    assert!(!runtime_api_supports_viewport_surface_present(
+        before_bind,
+        bind,
+        unbind,
+        present
+    ));
+    assert!(!runtime_api_supports_viewport_surface_present(
+        before_unbind,
+        bind,
+        unbind,
+        present
+    ));
+    assert!(!runtime_api_supports_viewport_surface_present(
+        before_present,
+        bind,
+        unbind,
+        present
+    ));
+    assert!(!runtime_api_supports_viewport_surface_present(
+        full_size, bind, None, present
+    ));
+}
 
-    api.size_bytes = core::mem::offset_of!(ZrRuntimeApiV1, present_viewport);
-    assert!(!runtime_api_supports_viewport_surface_present(&api));
+#[test]
+fn runtime_api_profile_control_is_optional_after_present_prefix() {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV1>();
+    let before_profile = core::mem::offset_of!(ZrRuntimeApiV1, profile_control);
+    let api = ZrRuntimeApiV1 {
+        profile_control: Some(fake_profile_control as _),
+        ..ZrRuntimeApiV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1)
+    };
 
-    api.size_bytes = core::mem::size_of::<ZrRuntimeApiV1>();
-    api.unbind_viewport_surface = None;
-    assert!(!runtime_api_supports_viewport_surface_present(&api));
+    assert!(runtime_api_field_available(
+        full_size,
+        before_profile,
+        core::mem::size_of_val(&api.profile_control)
+    ));
+    assert!(!runtime_api_field_available(
+        before_profile,
+        before_profile,
+        core::mem::size_of_val(&api.profile_control)
+    ));
 }
 
 fn runtime_library_temp_dir(case_name: &str) -> PathBuf {
@@ -127,6 +178,14 @@ unsafe extern "C" fn fake_unbind_viewport_surface(
 unsafe extern "C" fn fake_present_viewport(
     _session: ZrRuntimeSessionHandle,
     _request: ZrRuntimeFrameRequestV1,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_profile_control(
+    _session: ZrRuntimeSessionHandle,
+    _request_json: ZrByteSlice,
+    _out_json: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
     ZrStatus::ok()
 }

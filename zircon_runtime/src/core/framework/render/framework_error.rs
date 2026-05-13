@@ -24,6 +24,8 @@ pub enum RenderFrameworkError {
         reason: String,
         missing: Vec<RenderCapabilityMismatchDetail>,
     },
+    #[error("render framework capability `{capability}` is unsupported")]
+    UnsupportedCapability { capability: String },
     #[error("render backend error: {0}")]
     Backend(String),
 }

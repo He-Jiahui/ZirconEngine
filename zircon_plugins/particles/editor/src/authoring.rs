@@ -31,7 +31,7 @@ pub(crate) fn register_particles_authoring_extensions(
             drawer_id: PARTICLES_DRAWER_ID,
             drawer_display_name: "Particles Tools",
             template_id: PARTICLES_TEMPLATE_ID,
-            template_document: "plugins://particles/editor/authoring.ui.toml",
+            template_document: "plugins://particles/editor/authoring.v2.ui.toml",
             surfaces: &[
                 EditorAuthoringSurface::new(
                     PARTICLES_AUTHORING_VIEW_ID,
@@ -57,11 +57,11 @@ fn register_particles_component_drawers(
 ) -> Result<(), EditorExtensionRegistryError> {
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         PARTICLES_PREVIEW_TEMPLATE_ID,
-        "plugins://particles/editor/preview.ui.toml",
+        "plugins://particles/editor/preview.v2.ui.toml",
     ))?;
     registry.register_component_drawer(ComponentDrawerDescriptor::new(
         PARTICLE_SYSTEM_COMPONENT_TYPE,
-        "plugins://particles/editor/particle_system.drawer.ui.toml",
+        "plugins://particles/editor/particle_system.drawer.v2.ui.toml",
         PARTICLES_COMPONENT_DRAWER_ID,
     ))?;
     Ok(())

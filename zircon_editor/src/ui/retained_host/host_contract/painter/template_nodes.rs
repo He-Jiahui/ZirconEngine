@@ -290,7 +290,9 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if node.disabled {
         return PALETTE.surface_disabled;
     }
-    if node.validation_level.as_str() == "error" {
+    if matches!(node.validation_level.as_str(), "error" | "danger")
+        || node.surface_variant.as_str() == "danger"
+    {
         return PALETTE.error_container;
     }
     if node.validation_level.as_str() == "warning" {
@@ -302,17 +304,23 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if node.selected || node.focused {
         return PALETTE.surface_selected;
     }
-    if node.button_variant.as_str() == "primary" || node.surface_variant.as_str() == "accent" {
+    if matches!(node.button_variant.as_str(), "primary" | "filled")
+        || matches!(node.surface_variant.as_str(), "accent" | "primary")
+    {
         return PALETTE.accent;
     }
     if node.hovered || node.drop_hovered || node.active_drag_target {
         return PALETTE.surface_hover;
     }
-    match node.role.as_str() {
-        _ if node.surface_variant.as_str() == "inset" => PALETTE.surface_inset,
-        _ if node.surface_variant.as_str() == "popup" => PALETTE.popup,
-        "Button" if node.surface_variant.is_empty() => PALETTE.surface_hover,
-        _ => PALETTE.surface,
+    match node.surface_variant.as_str() {
+        "inset" | "scroll-body" | "asset-tree-row" | "reference-row" => PALETTE.surface_inset,
+        "popup" => PALETTE.popup,
+        "panel" | "asset-preview" | "asset-preview-visual" => PALETTE.surface,
+        "shell" => PALETTE.shell_background,
+        _ => match node.role.as_str() {
+            "Button" if node.surface_variant.is_empty() => PALETTE.surface_hover,
+            _ => PALETTE.surface,
+        },
     }
 }
 
@@ -320,7 +328,9 @@ fn border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if node.disabled {
         return PALETTE.border_disabled;
     }
-    if node.validation_level.as_str() == "error" {
+    if matches!(node.validation_level.as_str(), "error" | "danger")
+        || node.surface_variant.as_str() == "danger"
+    {
         return PALETTE.error;
     }
     if node.validation_level.as_str() == "warning" {
@@ -339,8 +349,9 @@ fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     }
     match node.text_tone.as_str() {
         "muted" | "subtle" => PALETTE.text_muted,
-        "accent" | "primary" => PALETTE.focus_ring,
+        "accent" | "primary" | "default" => PALETTE.focus_ring,
         "warning" => PALETTE.warning,
+        "error" | "danger" => PALETTE.error,
         _ => PALETTE.text,
     }
 }

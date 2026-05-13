@@ -1,0 +1,57 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.workbench_status_bar.v2"
+version = 2
+display_name = "workbench status bar"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "workbench_status_bar_root"
+
+[nodes.workbench_status_bar_root]
+component = "Overlay"
+control_id = "WorkbenchStatusBarRoot"
+classes = ["status-bar", "editor-shell"]
+layout = { clip = false, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "workbench_status_bar_separator" },
+  { node = "workbench_status_bar_panel" },
+  { node = "status_primary_label" },
+  { node = "status_secondary_label" },
+  { node = "status_viewport_label" },
+]
+
+[nodes.workbench_status_bar_separator]
+component = "Container"
+control_id = "StatusBarSeparator"
+props = { surface_variant = "inset", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = -1.0 }, width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.workbench_status_bar_panel]
+component = "Container"
+control_id = "StatusBarPanel"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_primary_label]
+component = "Label"
+control_id = "StatusPrimaryLabel"
+props = { text = "Ready", text_tone = "subtle", font_size = 10.0, text_align = "left", overflow = "elide" }
+layout = { position = { x = 12.0, y = 4.0 }, width = { min = 240.0, preferred = 560.0, max = 960.0, stretch = "Stretch" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.status_secondary_label]
+component = "Label"
+control_id = "StatusSecondaryLabel"
+props = { text = "", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -128.0, y = 4.0 }, width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.status_viewport_label]
+component = "Label"
+control_id = "StatusViewportLabel"
+props = { text = "1280 x 720", text_tone = "muted", font_size = 10.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -14.0, y = 4.0 }, width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }

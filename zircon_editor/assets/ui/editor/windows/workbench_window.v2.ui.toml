@@ -1,0 +1,59 @@
+[asset]
+kind = "view"
+id = "editor.window.workbench"
+version = 2
+display_name = "Workbench Window"
+
+[imports]
+widgets = ["editor.host.activity_drawer_window#ActivityDrawerWindow"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "ActivityDrawerWindow"
+control_id = "WorkbenchWindowRoot"
+children = [
+  { node = "hierarchy", slot = { name = "left_top_activity" } },
+  { node = "assets", slot = { name = "left_bottom_activity" } },
+  { node = "inspector", slot = { name = "right_top_activity" } },
+  { node = "details", slot = { name = "right_bottom_activity" } },
+  { node = "console", slot = { name = "bottom_left_activity" } },
+  { node = "diagnostics", slot = { name = "bottom_right_activity" } },
+  { node = "content", slot = { name = "content" } },
+]
+
+[nodes.hierarchy]
+component = "Container"
+control_id = "WorkbenchHierarchyActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.assets]
+component = "Container"
+control_id = "WorkbenchAssetsActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.inspector]
+component = "Container"
+control_id = "WorkbenchInspectorActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.details]
+component = "Container"
+control_id = "WorkbenchDetailsActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.console]
+component = "Container"
+control_id = "WorkbenchConsoleActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.diagnostics]
+component = "Container"
+control_id = "WorkbenchDiagnosticsActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content]
+component = "Container"
+control_id = "WorkbenchDocumentContent"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

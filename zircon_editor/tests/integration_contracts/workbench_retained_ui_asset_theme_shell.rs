@@ -10,7 +10,7 @@ fn source(relative: &str) -> String {
 fn ui_asset_theme_shell_contract_is_rust_owned_and_toml_projected() {
     let ui_asset = source("src/ui/retained_host/host_contract/data/ui_asset.rs");
     let callbacks = source("src/ui/retained_host/host_contract/globals.rs");
-    let asset = source("assets/ui/editor/ui_asset_editor.ui.toml");
+    let asset = source("assets/ui/editor/ui_asset_editor.v2.ui.toml");
 
     for required in [
         "pub(crate) struct UiAssetThemeSourceData",

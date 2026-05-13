@@ -112,69 +112,16 @@ impl ProjectAssetManager {
             )));
         }
 
-        match TAsset::Marker::KIND {
-            crate::asset::AssetKind::Data => self.load_data_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::Texture => {
-                self.load_texture_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::Shader => self.load_shader_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::Material => {
-                self.load_material_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::MaterialGraph => {
-                self.load_material_graph_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::Sound => self.load_sound_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::Font => self.load_font_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::PhysicsMaterial => self
-                .load_physics_material_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::NavMesh => {
-                self.load_nav_mesh_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::NavigationSettings => self
-                .load_navigation_settings_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::Terrain => {
-                self.load_terrain_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::TerrainLayerStack => self
-                .load_terrain_layer_stack_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::TileSet => {
-                self.load_tile_set_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::TileMap => {
-                self.load_tile_map_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::Prefab => self.load_prefab_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::Scene => self.load_scene_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::Model => self.load_model_asset(id).and_then(downcast_asset),
-            crate::asset::AssetKind::AnimationSkeleton => self
-                .load_animation_skeleton_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::AnimationClip => {
-                self.load_animation_clip_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::AnimationSequence => self
-                .load_animation_sequence_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::AnimationGraph => {
-                self.load_animation_graph_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::AnimationStateMachine => self
-                .load_animation_state_machine_asset(id)
-                .and_then(downcast_asset),
-            crate::asset::AssetKind::UiLayout => {
-                self.load_ui_layout_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::UiWidget => {
-                self.load_ui_widget_asset(id).and_then(downcast_asset)
-            }
-            crate::asset::AssetKind::UiStyle => {
-                self.load_ui_style_asset(id).and_then(downcast_asset)
-            }
-        }
+        self.ensure_resident(id)?;
+        self.resource_manager()
+            .get::<TAsset::Marker, TAsset>(handle)
+            .map(|asset| asset.as_ref().clone())
+            .ok_or_else(|| {
+                asset_error_message(format!(
+                    "asset {id} was not a ready typed facade payload {}",
+                    TAsset::LABEL
+                ))
+            })
     }
 
     fn aggregate_dependency_state(
@@ -236,18 +183,4 @@ fn recursive_dependency_rank(state: &RecursiveDependencyLoadState) -> u8 {
         RecursiveDependencyLoadState::Reloading => 3,
         RecursiveDependencyLoadState::Failed => 4,
     }
-}
-
-fn downcast_asset<TAsset, TLoaded>(loaded: TLoaded) -> Result<TAsset, CoreError>
-where
-    TAsset: Asset,
-    TLoaded: crate::core::resource::ResourceData,
-{
-    let boxed: Box<dyn std::any::Any> = Box::new(loaded);
-    boxed.downcast::<TAsset>().map(|asset| *asset).map_err(|_| {
-        asset_error_message(format!(
-            "loaded {:?} asset could not be downcast to typed facade payload",
-            TAsset::Marker::KIND
-        ))
-    })
 }

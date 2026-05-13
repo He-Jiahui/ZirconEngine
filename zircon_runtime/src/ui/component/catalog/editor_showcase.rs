@@ -5,8 +5,8 @@ use toml::Value;
 
 use crate::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime_interface::ui::component::{
-    UiComponentCategory, UiComponentEventKind, UiDragPayloadKind, UiDropPolicy, UiHostCapability,
-    UiValue, UiValueKind,
+    UiComponentCategory, UiComponentDescriptorKind, UiComponentEventKind, UiComponentLayoutRole,
+    UiDragPayloadKind, UiDropPolicy, UiHostCapability, UiValue, UiValueKind,
 };
 
 use zircon_runtime_interface::ui::component::{
@@ -52,16 +52,23 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
         };
     }
 
-    let mut descriptors = Vec::with_capacity(50);
+    let mut descriptors = Vec::with_capacity(70);
     push_descriptors!(
         descriptors,
         layout_primitive("Container", "Container", "container"),
         layout_primitive("Overlay", "Overlay", "overlay"),
+        layout_primitive("ListView", "List View", "list-view"),
+        layout_primitive("FlexBox", "Flex Box", "flex-box"),
         layout_primitive("HorizontalBox", "Horizontal Box", "horizontal-box"),
+        layout_primitive("HorizontalGroup", "Horizontal Group", "horizontal-group"),
         layout_primitive("VerticalBox", "Vertical Box", "vertical-box"),
+        layout_primitive("VerticalGroup", "Vertical Group", "vertical-group"),
         layout_primitive("FlowBox", "Flow Box", "flow-box"),
         layout_primitive("GridBox", "Grid Box", "grid-box"),
+        layout_primitive("GridGroup", "Grid Group", "grid-group"),
         layout_primitive("ScrollableBox", "Scrollable Box", "scrollable-box"),
+        layout_primitive("CanvasBox", "Canvas Box", "canvas-box"),
+        layout_primitive("SizeBox", "Size Box", "size-box"),
         layout_primitive("Space", "Space", "space"),
         visual("Label", "Label", "label")
             .with_prop(text_prop())
@@ -70,6 +77,10 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .event(UiComponentEventKind::ValueChanged)
             .requires_render_capability(UiRenderCapability::Text),
         visual("RichLabel", "Rich Label", "rich-label")
+            .with_prop(text_prop())
+            .state(state_text_prop())
+            .requires_render_capability(UiRenderCapability::Text),
+        visual("Text", "Text", "text")
             .with_prop(text_prop())
             .state(state_text_prop())
             .requires_render_capability(UiRenderCapability::Text),
@@ -88,6 +99,14 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .with_prop(UiPropSchema::new("source", UiValueKind::String))
             .state(UiPropSchema::new("source", UiValueKind::String))
             .requires_render_capability(UiRenderCapability::Vector),
+        visual("Svg", "SVG", "svg")
+            .with_prop(UiPropSchema::new("source", UiValueKind::String))
+            .state(UiPropSchema::new("source", UiValueKind::String))
+            .requires_render_capability(UiRenderCapability::Vector),
+        visual("Canvas", "Canvas", "canvas")
+            .with_prop(UiPropSchema::new("commands", UiValueKind::Array))
+            .state(state_array_prop("commands"))
+            .requires_render_capability(UiRenderCapability::Vector),
         visual("Separator", "Separator", "separator")
             .with_prop(text_prop())
             .requires_render_capability(UiRenderCapability::Primitive),
@@ -97,6 +116,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
                     .default_value(UiValue::Float(0.5))
                     .range(0.0, 1.0),
             )
+            .with_prop(bool_prop("indeterminate", false))
             .with_prop(validation_level_prop())
             .state(state_float_prop("value", 0.5))
             .state(state_bool_prop("focused", false)),
@@ -137,6 +157,16 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .state(state_bool_prop("disabled", false))
             .event(UiComponentEventKind::Focus)
             .event(UiComponentEventKind::ValueChanged),
+        input("Toggle", "Toggle", "toggle")
+            .with_prop(bool_value_prop(false))
+            .with_prop(bool_prop("checked", false))
+            .with_prop(text_prop())
+            .state(state_bool_prop("value", false))
+            .state(state_bool_prop("checked", false))
+            .state(state_bool_prop("focused", false))
+            .state(state_bool_prop("disabled", false))
+            .event(UiComponentEventKind::Focus)
+            .event(UiComponentEventKind::ValueChanged),
         input("Checkbox", "Checkbox", "checkbox")
             .with_prop(bool_value_prop(false))
             .with_prop(bool_prop("checked", false))
@@ -148,6 +178,16 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .event(UiComponentEventKind::Focus)
             .event(UiComponentEventKind::ValueChanged),
         input("Radio", "Radio", "radio")
+            .with_prop(bool_value_prop(false))
+            .with_prop(bool_prop("checked", false))
+            .with_prop(text_prop())
+            .state(state_bool_prop("value", false))
+            .state(state_bool_prop("checked", false))
+            .state(state_bool_prop("focused", false))
+            .state(state_bool_prop("disabled", false))
+            .event(UiComponentEventKind::Focus)
+            .event(UiComponentEventKind::ValueChanged),
+        input("RadioField", "Radio Field", "radio-field")
             .with_prop(bool_value_prop(false))
             .with_prop(bool_prop("checked", false))
             .with_prop(text_prop())
@@ -335,6 +375,7 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .slot(UiSlotSchema::new("content").multiple(true))
             .event(UiComponentEventKind::ToggleExpanded),
         container_descriptor("Foldout", "Foldout", "foldout")
+            .descriptor_kind(UiComponentDescriptorKind::EditorOnly)
             .with_prop(expanded_prop())
             .with_prop(validation_level_prop())
             .with_prop(text_prop())
@@ -344,12 +385,15 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .state(state_bool_prop("disabled", false))
             .slot(UiSlotSchema::new("content").multiple(true))
             .event(UiComponentEventKind::ToggleExpanded),
+        popup_descriptor(),
         container_descriptor("PropertyRow", "Property Row", "property-row")
+            .descriptor_kind(UiComponentDescriptorKind::Composite)
             .with_prop(text_prop())
             .with_prop(UiPropSchema::new("value", UiValueKind::String))
             .slot(UiSlotSchema::new("label"))
             .slot(UiSlotSchema::new("field")),
         container_descriptor("InspectorSection", "Inspector Section", "inspector-section")
+            .descriptor_kind(UiComponentDescriptorKind::Composite)
             .with_prop(text_prop())
             .with_prop(expanded_prop())
             .slot(UiSlotSchema::new("content").multiple(true))
@@ -445,6 +489,8 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .state(state_bool_prop("hovered", false))
             .state(state_bool_prop("pressed", false)),
         collection("VirtualList", "Virtual List", "virtual-list")
+            .descriptor_kind(UiComponentDescriptorKind::Layout)
+            .layout_role(UiComponentLayoutRole::VirtualList)
             .with_prop(UiPropSchema::new("items", UiValueKind::Array))
             .with_prop(UiPropSchema::new("data_source", UiValueKind::String))
             .with_prop(int_prop("total_count", 0))
@@ -521,6 +567,61 @@ fn editor_showcase_descriptors() -> Vec<UiComponentDescriptor> {
             .state(state_bool_prop("hovered", false))
             .state(state_bool_prop("pressed", false))
             .event(UiComponentEventKind::ToggleExpanded),
+        editor_collection("TreeView", "Tree View", "tree-view")
+            .with_prop(UiPropSchema::new("items", UiValueKind::Array))
+            .with_prop(int_prop("selected_index", -1))
+            .with_prop(expanded_prop())
+            .slot(UiSlotSchema::new("row").multiple(true))
+            .state(state_array_prop("items"))
+            .state(state_int_prop("selected_index", -1))
+            .state(state_bool_prop("expanded", true))
+            .event(UiComponentEventKind::ValueChanged)
+            .event(UiComponentEventKind::SelectOption)
+            .event(UiComponentEventKind::ToggleExpanded),
+        editor_collection("EditableTable", "Editable Table", "editable-table")
+            .with_prop(UiPropSchema::new("rows", UiValueKind::Array))
+            .with_prop(UiPropSchema::new("columns", UiValueKind::Array))
+            .with_prop(int_prop("selected_row", -1))
+            .with_prop(int_prop("selected_column", -1))
+            .slot(UiSlotSchema::new("cell").multiple(true))
+            .state(state_array_prop("rows"))
+            .state(state_array_prop("columns"))
+            .state(state_int_prop("selected_row", -1))
+            .state(state_int_prop("selected_column", -1))
+            .events([
+                UiComponentEventKind::ValueChanged,
+                UiComponentEventKind::Commit,
+                UiComponentEventKind::SelectOption,
+                UiComponentEventKind::SetElement,
+            ]),
+        editor_collection("Table", "Table", "table")
+            .with_prop(UiPropSchema::new("rows", UiValueKind::Array))
+            .with_prop(UiPropSchema::new("columns", UiValueKind::Array))
+            .slot(UiSlotSchema::new("cell").multiple(true))
+            .state(state_array_prop("rows"))
+            .state(state_array_prop("columns"))
+            .events([
+                UiComponentEventKind::ValueChanged,
+                UiComponentEventKind::Commit,
+                UiComponentEventKind::SelectOption,
+                UiComponentEventKind::SetElement,
+            ]),
+        editor_feedback("MessageBox", "Message Box", "message-box")
+            .with_prop(UiPropSchema::new("severity", UiValueKind::String))
+            .with_prop(text_prop())
+            .with_prop(UiPropSchema::new("rich_text", UiValueKind::String))
+            .with_prop(bool_prop("open", false))
+            .with_prop(UiPropSchema::new("actions", UiValueKind::Array))
+            .state(state_string_prop("severity"))
+            .state(state_text_prop())
+            .state(state_string_prop("rich_text"))
+            .state(state_bool_prop("open", false))
+            .state(state_array_prop("actions"))
+            .events([
+                UiComponentEventKind::OpenPopup,
+                UiComponentEventKind::ClosePopup,
+                UiComponentEventKind::SelectOption,
+            ]),
         input(
             "ContextActionMenu",
             "Context Action Menu",
@@ -555,6 +656,7 @@ fn base_descriptor(
     role: &str,
 ) -> UiComponentDescriptor {
     UiComponentDescriptor::new(id, display_name, category, role)
+        .default_class(role.to_string())
         .requires_host_capability(UiHostCapability::Runtime)
         .requires_render_capability(UiRenderCapability::Primitive)
         .fallback_policy(UiWidgetFallbackPolicy::new(
@@ -590,17 +692,60 @@ fn collection(id: &str, display_name: &str, role: &str) -> UiComponentDescriptor
         .requires_render_capability(UiRenderCapability::Scroll)
 }
 
+fn editor_collection(id: &str, display_name: &str, role: &str) -> UiComponentDescriptor {
+    collection(id, display_name, role)
+        .descriptor_kind(UiComponentDescriptorKind::EditorOnly)
+        .requires_host_capability(UiHostCapability::Editor)
+}
+
+fn editor_feedback(id: &str, display_name: &str, role: &str) -> UiComponentDescriptor {
+    feedback(id, display_name, role)
+        .descriptor_kind(UiComponentDescriptorKind::EditorOnly)
+        .requires_host_capability(UiHostCapability::Editor)
+}
+
 fn container_descriptor(id: &str, display_name: &str, role: &str) -> UiComponentDescriptor {
     base_descriptor(id, display_name, UiComponentCategory::Container, role)
 }
 
 fn layout_primitive(id: &str, display_name: &str, role: &str) -> UiComponentDescriptor {
-    let descriptor =
-        container_descriptor(id, display_name, role).default_node_template(layout_template(id));
+    let descriptor = container_descriptor(id, display_name, role)
+        .descriptor_kind(UiComponentDescriptorKind::Layout)
+        .layout_role(layout_role_for(id))
+        .default_node_template(layout_template(id));
     if id == "Space" {
         descriptor
     } else {
         descriptor.slot(UiSlotSchema::new("content").multiple(true))
+    }
+}
+
+fn popup_descriptor() -> UiComponentDescriptor {
+    container_descriptor("Popup", "Popup", "popup")
+        .layout_role(UiComponentLayoutRole::Popup)
+        .with_prop(bool_prop("popup_open", false))
+        .with_prop(UiPropSchema::new("popup_anchor_x", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("popup_anchor_y", UiValueKind::Float))
+        .state(state_bool_prop("popup_open", false))
+        .state(UiPropSchema::new("popup_anchor_x", UiValueKind::Float))
+        .state(UiPropSchema::new("popup_anchor_y", UiValueKind::Float))
+        .slot(UiSlotSchema::new("content").multiple(true))
+        .events([
+            UiComponentEventKind::OpenPopup,
+            UiComponentEventKind::OpenPopupAt,
+            UiComponentEventKind::ClosePopup,
+        ])
+}
+
+fn layout_role_for(id: &str) -> UiComponentLayoutRole {
+    match id {
+        "Overlay" => UiComponentLayoutRole::Overlay,
+        "HorizontalBox" | "VerticalBox" | "HorizontalGroup" | "VerticalGroup" | "ListView"
+        | "FlexBox" | "FlowBox" | "ScrollableBox" => UiComponentLayoutRole::Flex,
+        "GridBox" | "GridGroup" => UiComponentLayoutRole::Grid,
+        "CanvasBox" => UiComponentLayoutRole::Canvas,
+        "SizeBox" => UiComponentLayoutRole::Size,
+        _ => UiComponentLayoutRole::Leaf,
     }
 }
 
@@ -610,7 +755,13 @@ fn layout_template(widget_type: &str) -> UiDefaultNodeTemplate {
         "Container" | "Overlay" | "FlowBox" | "GridBox" => {
             template.with_layout(container_layout(widget_type))
         }
+        "FlexBox" => template.with_layout(container_layout("FlowBox")),
+        "GridGroup" => template.with_layout(container_layout("GridBox")),
         "HorizontalBox" | "VerticalBox" => template.with_layout(box_layout(widget_type)),
+        "HorizontalGroup" => template.with_layout(box_layout("HorizontalBox")),
+        "VerticalGroup" | "ListView" => template.with_layout(box_layout("VerticalBox")),
+        "CanvasBox" => template.with_layout(container_layout("Free")),
+        "SizeBox" => template.with_layout(container_layout("SizeBox")),
         "ScrollableBox" => template.with_layout(scrollable_layout()),
         _ => template,
     }
@@ -661,6 +812,8 @@ fn reference(
     accepts: impl IntoIterator<Item = UiDragPayloadKind>,
 ) -> UiComponentDescriptor {
     base_descriptor(id, display_name, UiComponentCategory::Reference, role)
+        .descriptor_kind(UiComponentDescriptorKind::EditorOnly)
+        .requires_host_capability(UiHostCapability::Editor)
         .requires_host_capability(UiHostCapability::PointerInput)
         .with_prop(bool_prop("drop_hovered", false))
         .with_prop(bool_prop("active_drag_target", false))
@@ -729,6 +882,7 @@ fn input_field(id: &str, display_name: &str) -> UiComponentDescriptor {
 }
 
 fn with_palette_metadata(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
+    let descriptor = with_runtime_projection_metadata_props(descriptor);
     let template = if descriptor.default_node_template.is_empty() {
         default_template_from_descriptor(&descriptor)
     } else {
@@ -746,6 +900,35 @@ fn with_palette_metadata(descriptor: UiComponentDescriptor) -> UiComponentDescri
         template.clone(),
     );
     descriptor.default_node_template(template).palette(palette)
+}
+
+fn with_runtime_projection_metadata_props(
+    descriptor: UiComponentDescriptor,
+) -> UiComponentDescriptor {
+    descriptor
+        .with_prop(UiPropSchema::new("surface_variant", UiValueKind::String))
+        .with_prop(UiPropSchema::new("button_variant", UiValueKind::String))
+        .with_prop(UiPropSchema::new("font_size", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("font_weight", UiValueKind::Int))
+        .with_prop(UiPropSchema::new("height", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("layout_padding_left", UiValueKind::Float))
+        .with_prop(UiPropSchema::new(
+            "layout_padding_right",
+            UiValueKind::Float,
+        ))
+        .with_prop(UiPropSchema::new("layout_padding_top", UiValueKind::Float))
+        .with_prop(UiPropSchema::new(
+            "layout_padding_bottom",
+            UiValueKind::Float,
+        ))
+        .with_prop(UiPropSchema::new("layout_spacing", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("layout_min_width", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("layout_min_height", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("layout_icon_size", UiValueKind::Float))
+        .with_prop(UiPropSchema::new("input_interactive", UiValueKind::Bool))
+        .with_prop(UiPropSchema::new("input_clickable", UiValueKind::Bool))
+        .with_prop(UiPropSchema::new("input_hoverable", UiValueKind::Bool))
+        .with_prop(UiPropSchema::new("input_focusable", UiValueKind::Bool))
 }
 
 fn default_template_from_descriptor(descriptor: &UiComponentDescriptor) -> UiDefaultNodeTemplate {

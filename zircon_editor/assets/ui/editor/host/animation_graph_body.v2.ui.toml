@@ -1,0 +1,52 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.animation.graph.body"
+version = 2
+display_name = "animation graph pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "AnimationGraphPaneBodyRoot"
+classes = ["editor-pane", "animation-pane", "animation-graph-pane"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "canvas_slot" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "AnimationEditorHeaderPanel"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "mode" }, { node = "path" }, { node = "status" }, { node = "add_node" }]
+
+[nodes.mode]
+component = "Text"
+control_id = "AnimationEditorHeaderModeRow"
+props = { text = "Graph" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.path]
+component = "Text"
+control_id = "AnimationEditorHeaderPathRow"
+props = { text = "Animation graph" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status]
+component = "Text"
+control_id = "AnimationEditorHeaderStatusRow"
+props = { text = "Ready" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.add_node]
+component = "IconButton"
+control_id = "AddNode"
+props = { label = "Add Node", icon = "plus-circle-outline" }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AnimationGraphPaneBody/AddNode", event = "Click", route = "AnimationCommand.AddGraphNode" }]
+
+[nodes.canvas_slot]
+component = "CanvasBox"
+control_id = "AnimationGraphCanvasSlotPanel"
+props = { slot_name = "animation_graph_canvas_slot" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

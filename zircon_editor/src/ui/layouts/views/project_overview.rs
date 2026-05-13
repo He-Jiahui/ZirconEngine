@@ -8,9 +8,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.ui.toml";
-const PROJECT_OVERVIEW_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.ui.toml";
-const PROJECT_OVERVIEW_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.ui.toml";
+const PROJECT_OVERVIEW_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/project_overview.v2.ui.toml";
 
 pub(crate) fn project_overview_data(snapshot: &ProjectOverviewSnapshot) -> ProjectOverviewData {
     ProjectOverviewData {
@@ -70,10 +68,7 @@ pub(crate) fn project_overview_pane_data(
             build_view_template_nodes(
                 "project_overview.template_projection",
                 PROJECT_OVERVIEW_LAYOUT_ASSET_PATH,
-                &[(
-                    PROJECT_OVERVIEW_STYLE_ASSET_ID,
-                    PROJECT_OVERVIEW_STYLE_ASSET_PATH,
-                )],
+                &[],
                 size,
                 &text_overrides,
             )

@@ -1,0 +1,183 @@
+[asset]
+kind = "view"
+id = "editor.host.workbench_shell"
+version = 2
+display_name = "workbench shell"
+
+[root]
+node = "host"
+
+[nodes.host]
+component = "UiHostWindow"
+control_id = "UiHostWindowRoot"
+classes = ["editor-workbench"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "UiHostWindow/ActivateMainPage", event = "Change", route = "DockCommand.ActivateMainPage" }]
+children = [
+  { node = "scaffold" },
+  { node = "left_drawer_shell" },
+  { node = "right_drawer_shell" },
+  { node = "bottom_drawer_shell" },
+]
+
+[nodes.scaffold]
+component = "VerticalGroup"
+control_id = "WorkbenchScaffold"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "menu_bar" },
+  { node = "host_page_strip" },
+  { node = "host_page_separator" },
+  { node = "body" },
+  { node = "status_bar" },
+]
+
+[nodes.menu_bar]
+component = "UiHostToolbar"
+control_id = "WorkbenchMenuBarRoot"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "open_project" }, { node = "save_project" }, { node = "reset_layout" }]
+
+[nodes.open_project]
+component = "IconButton"
+control_id = "OpenProject"
+props = { icon = "folder-open-outline", label = "Open" }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchMenuBar/OpenProject", event = "Click", route = "MenuAction.OpenProject" }]
+
+[nodes.save_project]
+component = "IconButton"
+control_id = "SaveProject"
+props = { icon = "save-outline", label = "Save" }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchMenuBar/SaveProject", event = "Click", route = "MenuAction.SaveProject" }]
+
+[nodes.reset_layout]
+component = "IconButton"
+control_id = "ResetLayout"
+props = { icon = "grid-outline", label = "Reset Layout" }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "WorkbenchMenuBar/ResetLayout", event = "Click", route = "MenuAction.ResetLayout" }]
+
+[nodes.host_page_strip]
+component = "Container"
+control_id = "HostPageStripRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.host_page_separator]
+component = "Container"
+control_id = "HostPageStripSeparator"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.body]
+component = "HorizontalGroup"
+control_id = "WorkbenchBody"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "activity_rail" }, { node = "document_host" }]
+
+[nodes.activity_rail]
+component = "ActivityRail"
+control_id = "ActivityRailRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 44.0, preferred = 44.0, max = 44.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "project_toggle" }, { node = "hierarchy_toggle" }, { node = "console_toggle" }]
+
+[nodes.project_toggle]
+component = "IconButton"
+control_id = "ProjectToggle"
+props = { icon = "albums-outline", label = "Project" }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ActivityRail/ProjectToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+
+[nodes.hierarchy_toggle]
+component = "IconButton"
+control_id = "HierarchyToggle"
+props = { icon = "layers-outline", label = "Hierarchy" }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ActivityRail/HierarchyToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+
+[nodes.console_toggle]
+component = "IconButton"
+control_id = "ConsoleToggle"
+props = { icon = "terminal-outline", label = "Console" }
+layout = { width = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [{ id = "ActivityRail/ConsoleToggle", event = "Click", route = "DockCommand.ActivateDrawerTab" }]
+
+[nodes.document_host]
+component = "DocumentHost"
+control_id = "DocumentHostRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "document_tabs" }, { node = "pane_surface" }]
+
+[nodes.document_tabs]
+component = "DocumentTabs"
+control_id = "DocumentTabsRoot"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "DocumentTabs/ActivateTab", event = "Change", route = "DockCommand.FocusView" },
+  { id = "DocumentTabs/CloseTab", event = "Submit", route = "DockCommand.CloseView" },
+]
+
+[nodes.pane_surface]
+component = "PaneSurface"
+control_id = "PaneSurfaceRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_bar]
+component = "StatusBar"
+control_id = "StatusBarRoot"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+children = [{ node = "status_text" }]
+
+[nodes.status_text]
+component = "Label"
+control_id = "StatusText"
+props = { text = "Ready" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.left_drawer_shell]
+component = "Overlay"
+control_id = "LeftDrawerShellRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [{ node = "left_drawer_header" }, { node = "left_drawer_content" }]
+
+[nodes.left_drawer_header]
+component = "Container"
+control_id = "LeftDrawerHeaderRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.left_drawer_content]
+component = "Container"
+control_id = "LeftDrawerContentRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+
+[nodes.right_drawer_shell]
+component = "Overlay"
+control_id = "RightDrawerShellRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [{ node = "right_drawer_header" }, { node = "right_drawer_content" }]
+
+[nodes.right_drawer_header]
+component = "Container"
+control_id = "RightDrawerHeaderRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.right_drawer_content]
+component = "Container"
+control_id = "RightDrawerContentRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+
+[nodes.bottom_drawer_shell]
+component = "Overlay"
+control_id = "BottomDrawerShellRoot"
+layout = { clip = true, container = { kind = "Overlay" }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [{ node = "bottom_drawer_header" }, { node = "bottom_drawer_content" }]
+
+[nodes.bottom_drawer_header]
+component = "Container"
+control_id = "BottomDrawerHeaderRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.bottom_drawer_content]
+component = "Container"
+control_id = "BottomDrawerContentRoot"
+layout = { clip = true, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }

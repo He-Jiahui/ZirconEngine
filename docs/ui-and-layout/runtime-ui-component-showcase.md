@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
   - zircon_runtime/src/ui/component/catalog/registry.rs
+  - zircon_runtime/src/ui/v2/surface_tree/interaction.rs
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
   - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
@@ -119,17 +120,24 @@ related_code:
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/build.rs
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
-  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
-  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
+  - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 implementation_files:
@@ -137,6 +145,7 @@ implementation_files:
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/component/catalog/editor_showcase.rs
   - zircon_runtime/src/ui/component/catalog/registry.rs
+  - zircon_runtime/src/ui/v2/surface_tree/interaction.rs
   - zircon_runtime_interface/src/ui/component/category.rs
   - zircon_runtime_interface/src/ui/component/descriptor/mod.rs
   - zircon_runtime_interface/src/ui/component/descriptor/host_capability.rs
@@ -250,6 +259,7 @@ implementation_files:
   - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
   - zircon_editor/src/ui/workbench/autolayout/constraints/defaults.rs
   - zircon_editor/build.rs
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
   - zircon_editor/assets/ui/editor/component_showcase.ui.toml
   - zircon_editor/assets/ui/editor/component_widgets.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
@@ -258,13 +268,19 @@ implementation_files:
   - zircon_editor/assets/ui/editor/host/console_body.ui.toml
   - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
   - zircon_editor/assets/ui/editor/host/runtime_diagnostics_body.ui.toml
-  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
-  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
   - zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs
+  - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
+  - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
   - zircon_editor/src/tests/host/retained_window/native_viewport_image.rs
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
 plan_sources:
@@ -300,6 +316,9 @@ tests:
   - zircon_editor/src/tests/host/template_runtime/component_showcase_state.rs
   - zircon_editor/src/tests/ui/component_adapter.rs
   - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - cargo test -p zircon_editor component_showcase -- --nocapture (2026-05-11: passed, 19 passed)
+  - cargo test -p zircon_editor builtin_activity_window_documents_are_registered_in_host_runtime -- --nocapture (2026-05-11: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib component_catalog -- --nocapture (2026-05-11: passed, 43 passed)
   - zircon_editor/src/tests/host/retained_window/generic_host_boundary.rs
   - zircon_editor/src/tests/host/retained_window/native_host_contract.rs
   - zircon_editor/src/tests/host/retained_window/shell_window.rs
@@ -333,6 +352,10 @@ tests:
   - cargo test -p zircon_editor --lib showcase_demo_state_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
   - cargo test -p zircon_editor --lib component_showcase_pane_projects_runtime_component_nodes_for_template_pane --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests -- --nocapture
   - cargo test -p zircon_editor --lib component_showcase_pane_ --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
+  - cargo test -p zircon_editor --lib ui_asset_editor_runtime --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib runtime_fixture_host_tests_are_hard_cut_to_v2_paths --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib runtime_v2_fixture_buttons_project_interactive_metadata --jobs 1 -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib runtime_v2_fixture_assets_parse_from_runtime_crate_assets --jobs 1 -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib component_showcase_projection_carries_runtime_component_semantics --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
   - cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
   - cargo test -p zircon_editor --lib component_showcase_template_numeric_drag_tracks_two_axis_delta --locked --jobs 1 --target-dir D:\cargo-targets\zircon-codex-editor-check-tests
@@ -437,7 +460,11 @@ The `.ui.toml` compiler now consults `UiComponentDescriptorRegistry::editor_show
 
 ## Showcase Assets
 
-The showcase window is declared in `zircon_editor/assets/ui/editor/component_showcase.ui.toml`. It imports `component_widgets.ui.toml` for the reusable `ShowcaseSection` widget and `editor_material.ui.toml` for style tokens.
+The active builtin showcase window is now declared in `zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml`. The builtin document registry routes `editor.window.ui_component_showcase` to this v2 asset, so host projection builds it through the heap-backed v2 prototype store and flat arena compiler instead of the legacy recursive asset loader.
+
+The v2 showcase no longer imports `component_widgets.ui.toml#ShowcaseSection` or `material_meta_components.ui.toml#Material*` on the main runtime path. Section shells are authored as flat layout nodes, and Material-like controls are direct catalog nodes (`Button`, `IconButton`, `ToggleButton`, `Checkbox`, `InputField`, `TextField`, `NumberField`, `RangeField`, `ComboBox`, `Group`, `ListRow`, `TableRow`, `VirtualList`, and `ContextActionMenu`) with retained control ids and route ids preserved. Common Material measurement and interaction metadata is declared by the showcase catalog as runtime projection metadata, then authored as v2 props so retained host layout keeps the same padding, minimum size, and clickable/focusable semantics.
+
+The old `component_showcase.ui.toml` remains in the tree as legacy authoring and migration input. It is no longer the builtin runtime document authority.
 
 The window layout follows a Rider/Unity inspector shape:
 
@@ -538,7 +565,7 @@ Runtime/editor tests cover:
 
 ## Recent Validation
 
-On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, Slint-free fixture under `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml`. Focused validation passed with `cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, `cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, and `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`.
+On 2026-05-07, M4 added `RuntimeUiFixture::QuestLogDialog` as a runtime-owned, Slint-free fixture. The active source has since been hard-cut to `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`, alongside the other v2 runtime fixtures. Focused validation passed with `cargo test -p zircon_runtime --lib runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, `cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`, and `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\zircon-build\targets --message-format short --color never`.
 
 On 2026-04-30, Task 7 Runtime UI graphics fixture acceptance was added and validated under the existing `runtime-ui-integration-tests` feature. `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 1 test / 0 failed / 1195 filtered out after waiting for an artifact lock, and `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 7 tests / 0 failed.
 
@@ -1276,17 +1303,17 @@ Related code:
 - `zircon_editor/assets/ui/theme/editor_material.ui.toml`
 - `zircon_editor/assets/ui/theme/editor_base.ui.toml`
 - `zircon_editor/assets/ui/editor/material_meta_components.ui.toml`
-- `zircon_editor/assets/ui/runtime/runtime_hud.ui.toml`
-- `zircon_editor/assets/ui/runtime/pause_dialog.ui.toml`
-- `zircon_editor/assets/ui/runtime/settings_dialog.ui.toml`
-- `zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml`
-- `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
 - `zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs`
 - `zircon_editor/src/tests/host/retained_window/native_material_painter.rs`
 
-Global UI Material M4 moves the showcase Material vocabulary from a set of local component examples into a single editor/runtime theme contract. `editor_material.ui.toml` declares the shared state palette for surfaces, hover, pressed, selected, disabled, accent-soft, disabled text, warning, error, popup, track, and focus-ring roles. `editor_base.ui.toml` imports that Material theme, so legacy base-theme surfaces are no longer a separate source of normal control colors.
+Global UI Material M4 moves the showcase Material vocabulary from a set of local component examples into a single editor/runtime theme contract. `editor_material.ui.toml` declares the shared state palette for surfaces, hover, pressed, selected, disabled, accent-soft, disabled text, warning, error, popup, track, and focus-ring roles. `editor_base.ui.toml` imports that Material theme, so legacy base-theme surfaces are no longer a separate source of normal control colors. The runtime surface examples now use the runtime crate v2 fixtures as the only active source; the editor-owned `assets/ui/runtime/*.ui.toml` copies were removed during the v2 hard cut.
 
-`material_meta_components.ui.toml` now treats state metadata as part of each component root contract. Material Button, IconButton, ToggleButton, CheckboxRow, OutlinedField, ListItem, MenuItem, TabImpl, and TextEdit roots emit stable `material-*` classes plus the state props that host projection and native painting consume. Runtime HUD/dialog TOML assets use the same `material-control`, `material-button`, primary-button, surface variant, border, radius, and runtime surface classes as editor surfaces. Plain runtime Button roots therefore remain acceptable only because they carry equivalent Material metadata and still size through the shared Material measurement path.
+`material_meta_components.ui.toml` now treats state metadata as part of each component root contract. Material Button, IconButton, ToggleButton, CheckboxRow, OutlinedField, ListItem, MenuItem, TabImpl, and TextEdit roots emit stable `material-*` classes plus the state props that host projection and native painting consume. Runtime HUD/dialog v2 assets use the same `material-control`, `material-button`, primary-button, surface variant, border, radius, and runtime surface classes as editor surfaces. Plain runtime Button roots therefore remain acceptable only because they carry equivalent Material metadata and still size through the shared Material measurement path.
 
 The M4 conformance harness adds four focused asset-boundary checks: required Material palette tokens exist, every `material-*` class emitted by the meta component asset has a stylesheet rule, stateful Material components project the required state props, and all runtime HUD/dialog surfaces carry the shared runtime Material classes. The native pixel guard `native_template_painter_uses_material_state_palette_for_controls` then samples default inset, hover, pressed, selected/focus, disabled, and primary pixels through the Rust-owned template painter so the `.ui.toml` state vocabulary is proven to reach visible host output.
 
@@ -1301,13 +1328,12 @@ Validation evidence on `E:\zircon-build\targets\global-ui`:
 
 Related code:
 - `zircon_editor/src/tests/ui/boundary/runtime_ui_golden.rs`
-- `zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml`
-- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.ui.toml`
+- `zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml`
 - `zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs`
 - `zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs`
 - `zircon_editor/src/tests/host/retained_window/native_viewport_image.rs`
 
-The M4.3 semantic golden compiles the editor and runtime Quest Log `.ui.toml` assets through the same `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateSurfaceBuilder`, layout pass, and render extract path. It snapshots semantic control ids, visible text, button counts, and Click binding routes, proving the editor runtime asset and the Slint-free runtime fixture agree on the shared surface contract. The Quest Log buttons now carry the same runtime routes in both assets: `RuntimeAction.TrackQuest` and `RuntimeAction.CloseQuestLog`.
+The original M4.3 semantic golden compared editor-owned and runtime-owned Quest Log `.ui.toml` assets through the legacy loader path. The active golden is now v2-only: it loads `quest_log_dialog.v2.ui.toml` and the other runtime v2 fixtures through the v2 prototype cache/surface builder, snapshots semantic control ids, visible text, button counts, and Click binding routes, and keeps `RuntimeAction.TrackQuest` / `RuntimeAction.CloseQuestLog` on the authored v2 button events.
 
 The same validation pass closed a native painter regression in projected image authority. `TemplatePaneNodeData.preview_image` is the host-projected frame fact for plain `Image` nodes, so the native painter now uses those preview pixels before trying to reload `media_source`. Icon-like nodes still prefer source-based SVG rasterization so they can follow the target frame and Material tint state. This split keeps ordinary template images stable under editor/runtime projection while preserving crisp SVG icon scaling.
 
@@ -1342,3 +1368,19 @@ Related code:
 The editor startup overflow reported through `UiDocumentCompiler::default()` was traced to the shared Runtime UI component catalog build, not to the project overview projection that happened to trigger it. The catalog previously built all showcase descriptors inside one large `editor_showcase_descriptors` expression. Each descriptor owns nested schema, default value, palette, and default-node metadata, so debug builds could reserve a large stack frame for the monolithic constructor before registration ever reached the editor-specific caller.
 
 `UiComponentDescriptorRegistry::editor_showcase()` now keeps the cached registry path, but the uncached build constructs each descriptor through a non-inlined factory boundary before pushing it into the descriptor vector. That keeps each descriptor's temporary builder chain in its own stack frame and removes the earlier workaround that spawned a separate high-stack catalog-builder thread. The regression test exercises `build_editor_showcase_registry()` directly on a 256 KiB stack so a cached `OnceLock` hit cannot hide the constructor stack behavior.
+
+## 2026-05-13 V2 surface catalog interaction
+
+Related code:
+- `zircon_runtime/src/ui/v2/surface_tree/interaction.rs`
+- `zircon_runtime/src/ui/component/catalog/editor_showcase.rs`
+- `zircon_runtime/src/ui/tests/v2_asset.rs`
+
+The v2 surface builder now treats the formal component catalog as the default interaction source. Previously, catalog components without authored `input_*` props or explicit v2 event bindings only became interactive if their component name appeared in a small hard-coded list. That left controls such as `RangeField`, `ComboBox`, `TreeView`, `EditableTable`, and `MessageBox` passive in direct v2 runtime surfaces even though the descriptor catalog already declares their event model.
+
+`surface_tree::interaction` now reads the cached `UiComponentDescriptorRegistry::editor_showcase()` registry. Input, numeric, selection, reference, and collection descriptors receive default click/hover/focus capabilities, while container and feedback descriptors use their typed component events so `Popup`, `Foldout`, and `MessageBox` can receive input without making passive feedback widgets such as `ProgressBar` interactive. Authored `input_*` props still override the catalog default, and authored route bindings keep their existing event-specific behavior.
+
+Validation evidence:
+- `cargo test -p zircon_runtime --lib ui_v2_surface_builder_infers_interaction_from_component_catalog --jobs 1 -- --nocapture --test-threads=1`: passed with 1 test.
+- `cargo test -p zircon_runtime --lib ui_v2 --jobs 1 -- --nocapture --test-threads=1`: passed with 13 tests.
+- `cargo check -p zircon_runtime --lib --jobs 1`: passed.

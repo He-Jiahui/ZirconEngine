@@ -1,0 +1,52 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.animation.sequence.body"
+version = 2
+display_name = "animation sequence pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "AnimationSequencePaneBodyRoot"
+classes = ["editor-pane", "animation-pane", "animation-sequence-pane"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "timeline_slot" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "AnimationEditorHeaderPanel"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "mode" }, { node = "path" }, { node = "status" }, { node = "scrub" }]
+
+[nodes.mode]
+component = "Text"
+control_id = "AnimationEditorHeaderModeRow"
+props = { text = "Sequence" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.path]
+component = "Text"
+control_id = "AnimationEditorHeaderPathRow"
+props = { text = "Animation asset" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status]
+component = "Text"
+control_id = "AnimationEditorHeaderStatusRow"
+props = { text = "Ready" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 180.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.scrub]
+component = "IconButton"
+control_id = "ScrubTimeline"
+props = { label = "Scrub Timeline", icon = "play-circle-outline" }
+layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AnimationSequencePaneBody/ScrubTimeline", event = "Click", route = "AnimationCommand.ScrubTimeline" }]
+
+[nodes.timeline_slot]
+component = "Container"
+control_id = "AnimationTimelineSlotPanel"
+props = { slot_name = "animation_timeline_slot" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

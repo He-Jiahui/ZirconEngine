@@ -59,6 +59,20 @@ related_code:
   - zircon_runtime/src/ui/template/build/slot_contract.rs
   - zircon_runtime/src/ui/template/build/surface_builder.rs
   - zircon_runtime/src/ui/template/build/tree_builder.rs
+  - zircon_runtime_interface/src/ui/v2/asset.rs
+  - zircon_runtime_interface/src/ui/v2/arena.rs
+  - zircon_runtime_interface/src/ui/v2/compiled.rs
+  - zircon_runtime_interface/src/ui/v2/graph.rs
+  - zircon_runtime_interface/src/ui/v2/style.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/ui/v2/cache.rs
+  - zircon_runtime/src/ui/v2/file_cache.rs
+  - zircon_runtime/src/ui/v2/compiler.rs
+  - zircon_runtime/src/ui/v2/component_instancer.rs
+  - zircon_runtime/src/ui/v2/loader.rs
+  - zircon_runtime/src/ui/v2/style.rs
+  - zircon_runtime/src/ui/v2/surface_builder.rs
+  - zircon_runtime/src/ui/v2/surface_tree
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
@@ -90,6 +104,14 @@ related_code:
   - zircon_editor/src/ui/template_runtime/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/material_demo_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
+  - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
@@ -107,6 +129,8 @@ related_code:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
+  - zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
@@ -134,14 +158,22 @@ related_code:
   - zircon_editor/assets/ui/editor/host/module_plugins_body.ui.toml
   - zircon_editor/assets/ui/editor/host/animation_sequence_body.ui.toml
   - zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_base.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
-  - zircon_editor/assets/ui/runtime/runtime_hud.ui.toml
-  - zircon_editor/assets/ui/runtime/pause_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/settings_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/inventory_dialog.ui.toml
-  - zircon_editor/assets/ui/runtime/quest_log_dialog.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/pause_menu.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/settings_dialog.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/inventory_list.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/quest_log_dialog.v2.ui.toml
+  - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
+  - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/runtime_previews.rs
+  - zircon_editor/src/tests/ui/ui_asset_editor/support.rs
+  - zircon_editor/src/tests/host/template_runtime/pane_body_documents.rs
+  - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
+  - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/assets/ui/editor/host/animation_graph_body.ui.toml
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/host_data.rs
   - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
@@ -270,6 +302,22 @@ implementation_files:
   - zircon_runtime/src/ui/template/build/slot_contract.rs
   - zircon_runtime/src/ui/template/build/surface_builder.rs
   - zircon_runtime/src/ui/template/build/tree_builder.rs
+  - zircon_runtime_interface/src/ui/v2/asset.rs
+  - zircon_runtime_interface/src/ui/v2/arena.rs
+  - zircon_runtime_interface/src/ui/v2/compiled.rs
+  - zircon_runtime_interface/src/ui/v2/graph.rs
+  - zircon_runtime_interface/src/ui/v2/style.rs
+  - zircon_runtime_interface/src/tests/ui_v2_contracts.rs
+  - zircon_runtime/src/ui/v2/cache.rs
+  - zircon_runtime/src/ui/v2/file_cache.rs
+  - zircon_runtime/src/ui/v2/compiler.rs
+  - zircon_runtime/src/ui/v2/component_instancer.rs
+  - zircon_runtime/src/ui/v2/loader.rs
+  - zircon_runtime/src/ui/v2/style.rs
+  - zircon_runtime/src/ui/v2/surface_builder.rs
+  - zircon_runtime/src/ui/v2/surface_tree
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
   - zircon_runtime/src/ui/template/asset/compiler/cache/cache_key.rs
   - zircon_runtime/src/ui/template/asset/invalidation/fingerprint.rs
   - zircon_runtime/src/ui/template/asset/invalidation/graph.rs
@@ -302,6 +350,14 @@ implementation_files:
   - zircon_editor/src/ui/template_runtime/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/mod.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_documents.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/material_demo_view_descriptor.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/activity_window_descriptors.rs
+  - zircon_editor/src/ui/host/builtin_views/builtin_view_descriptors.rs
+  - zircon_editor/src/ui/workbench/snapshot/workbench/descriptor_content_kind.rs
+  - zircon_editor/src/ui/retained_host/app/welcome_session.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
+  - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/ui/template_runtime/builtin/template_bindings.rs
   - zircon_editor/src/ui/template_runtime/builtin/component_descriptors.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
@@ -316,6 +372,8 @@ implementation_files:
   - zircon_editor/src/tests/ui/template/repository_assets.rs
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
+  - zircon_editor/assets/ui/editor/material_demo_window.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
@@ -432,6 +490,7 @@ plan_sources:
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - .codex/plans/Zircon 运行时编辑器共享 UI 布局与事件系统架构计划.md
   - .codex/plans/Bevy Fyrox 取向的 UI 原型缓存重构方案.md
+  - .codex/plans/ZirconEngine UI 组件化与 Material 样式器重构计划.md
   - docs/superpowers/plans/2026-04-24-ui-toml-pane-template-implementation.md
   - docs/superpowers/plans/2026-04-29-ui-cutover-move-first.md
   - docs/superpowers/plans/2026-04-29-slint-fence-ui-toml-cutover.md
@@ -453,6 +512,31 @@ tests:
   - cargo test -p zircon_editor --lib material_meta_component_contracts --locked --target-dir target\codex-shared-b (2026-05-10 flat boundary rerun: passed, 6 passed; 0 failed)
   - cargo test -p zircon_editor --lib global_material_surface_assets --locked --target-dir target\codex-shared-b (2026-05-10 flat boundary rerun: passed, 3 passed; 0 failed)
   - cargo check -p zircon_editor --lib --locked --target-dir target\codex-shared-b (2026-05-10 chrome rerun: passed with two existing retained drawer warnings)
+  - cargo fmt --all (2026-05-11 UI v2 foundation rerun: passed)
+  - cargo check -p zircon_runtime_interface --lib --locked --target-dir target\codex-shared-b (2026-05-11 UI v2 foundation rerun: passed)
+  - cargo test -p zircon_runtime_interface --lib ui_v2 --locked --target-dir target\codex-shared-b (2026-05-11 UI v2 foundation rerun: passed, 1 passed)
+  - cargo check -p zircon_runtime --lib --locked --target-dir target\codex-shared-b (2026-05-11 UI v2 foundation rerun: passed)
+  - cargo test -p zircon_runtime --lib ui_v2 --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-11 UI v2 foundation rerun: passed, 8 passed)
+  - cargo test -p zircon_runtime --lib template_tree_builder --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-11 explicit-stack builder rerun: passed, 16 passed)
+  - cargo check -p zircon_editor --lib --locked --target-dir target\codex-shared-b (2026-05-11 UI v2 foundation rerun: passed)
+  - cargo test -p zircon_runtime --lib material_demo_window_compiles_and_resolves_material_dark_states --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 Material v2 state rerun: passed, 1 passed)
+  - cargo check -p zircon_editor --lib --locked --target-dir target\codex-shared-b (2026-05-12 Material demo openability rerun: passed)
+  - cargo test -q -p zircon_editor --lib material_demo --locked --target-dir target\codex-shared-b -- --test-threads=1 --nocapture (2026-05-12 Material demo openability rerun: passed, 3 passed)
+  - cargo test -q -p zircon_editor --lib builtin_activity_window_documents_are_registered_in_host_runtime --locked --target-dir target\codex-shared-b -- --test-threads=1 --nocapture (2026-05-12 Material demo openability rerun: passed, 1 passed)
+  - cargo test -q -p zircon_editor --lib workbench_window_menu_exposes_unreal_style_functional_windows --locked --target-dir target\codex-shared-b -- --test-threads=1 --nocapture (2026-05-12 Material demo openability rerun: passed, 1 passed)
+  - cargo test -q -p zircon_editor --lib editor_operation_registry_exposes_builtin_menu_operations_by_path --locked --target-dir target\codex-shared-b -- --test-threads=1 --nocapture (2026-05-12 Material demo openability rerun: passed, 1 passed)
+  - cargo test -p zircon_editor --lib retained_ui_host_adapter_keeps_field_labels_out_of_visible_text --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 retained v2 label/text rerun: passed, 1 passed)
+  - cargo test -p zircon_editor --lib inspector_surface --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 retained v2 inspector rerun: passed, 6 passed)
+  - cargo test -p zircon_editor --lib host_projection_carries_runtime_component_properties_and_routes --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 retained v2 inspector rerun: passed, 1 passed)
+  - cargo test -p zircon_editor --lib v2_view_projection_uses_runtime_v2_file_cache_without_editor_local_loader --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 v2 projection rerun: passed, 1 passed)
+  - cargo test -p zircon_editor --lib editor_v2_projection_collectors_use_explicit_stacks --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 v2 projection rerun: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib ui_v2 --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 v2 runtime rerun: passed, 9 passed)
+  - cargo check -p zircon_runtime --lib --locked --target-dir target\codex-shared-b (2026-05-12 runtime-v2 direct-surface rerun: passed)
+  - cargo test -p zircon_runtime --lib ui_v2 --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 direct-surface rerun: passed, 12 passed)
+  - cargo test -p zircon_runtime --lib runtime_ui --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed)
+  - cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed, 1 passed)
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir target\codex-shared-b (2026-05-12 runtime package validator: passed build and test)
+  - cargo test -p zircon_editor --lib --locked --target-dir target\codex-shared-b -- --test-threads=1 (2026-05-12 retained v2 broad rerun: failed, 1108 passed; 105 failed; 4 ignored; first non-cascade failures are missing animation hybrid slot anchors and stale retained v2 host-surface contract expectations)
   - cargo test -p zircon_runtime --lib ui_document_compiler_applies_reference_instance_layout_to_expanded_root --locked --jobs 1 --target-dir D:\cargo-targets\zircon-material-editor-layout-continuation --message-format short --color never
   - cargo test -p zircon_runtime_interface --lib ui_layout_geometry_slot_and_metrics_contracts_construct --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-linear-slot-sizing-contract
   - cargo test -p zircon_runtime_interface --lib ui_layout --locked --jobs 1 --target-dir E:\zircon-build\targets\ui-linear-slot-sizing-contract
@@ -691,9 +775,21 @@ The next compiler layer is now present in [`prototype_instancer.rs`](../../zirco
 
 Slot fills are still materialized as transitional `UiTemplateNode` vectors because downstream `UiTemplateSurfaceBuilder` currently consumes compiled template trees, but the traversal that expands prototype handles is no longer recursive. The style path also short-circuits style-less prototypes through an iterative inline-style pass so the deep-chain stack-safety test measures instantiation instead of style traversal. Assets with imported or local style sheets still use the existing shared style resolver shape until the style system is moved to retained prototype/instance graph state.
 
-The focused prototype tests now cover a native flat root with no imports, imported component instantiation with params, class-targeted imported styles, slot-fill layout propagation, projection into a `UiSurface`, file-cache reuse of the same `Arc<UiPrototypeStore>`, file-cache `res://` alias resolution with a transitive style import, tree-schema non-flat probing for non-hard-cut consumers, missing declared import rejection, iterative cycle validation, and a 10k-node flat native chain. The deep-chain test intentionally forgets the compiled transitional tree after measuring depth so Rust's recursive drop of the temporary `UiTemplateNode` structure is not mistaken for instancer recursion. Editor view projection has a focused flat-fixture test that resolves the runtime `quest_log_dialog.ui.toml` fixture through the shared prototype cache before converting a computed `UiSurface` into retained `ViewTemplateNodeData`, and `workbench_projection_cutover` now guards that `view_projection.rs` does not call `EditorTemplateRuntimeService`, `load_document_file`, `compile_document_with_import_maps`, or `try_load_flat_store`. The retained workbench `chrome_template_projection` suite covers the migrated activity rail, menu chrome, page chrome, dock header, and status bar assets, including SVG icon projection, close-button projection, fallback hit frames, extension menu slot projection, and `status_bar_nodes_project_text_overrides_from_flat_asset`. The focused `menu_popup` filter covers the migrated popup stencil through action SVG icons, row overflow cloning, disabled text muting, host painter popup draw paths, and the shared pointer bridge scroll/dismiss flow. The Material boundary suites now resolve `[root] node = ...`, `components.*.root = "..."`, and flat `children = [{ child = ... }]` handles through `[nodes.*]` before checking responsive, Material class, state metadata, and density contracts; this keeps boundary assertions aligned with the runtime prototype schema instead of restoring old recursive TOML expectations.
+The focused prototype tests now cover a native flat root with no imports, imported component instantiation with params, class-targeted imported styles, slot-fill layout propagation, projection into a `UiSurface`, file-cache reuse of the same `Arc<UiPrototypeStore>`, file-cache `res://` alias resolution with a transitive style import, tree-schema non-flat probing for non-hard-cut consumers, missing declared import rejection, iterative cycle validation, and a 10k-node flat native chain. The deep-chain test intentionally forgets the compiled transitional tree after measuring depth so Rust's recursive drop of the temporary `UiTemplateNode` structure is not mistaken for instancer recursion. Editor view projection and runtime preview tests now resolve runtime `.v2.ui.toml` fixtures through the v2 prototype cache before converting computed shared surfaces into retained editor data. `UiAssetEditorSession::from_v2_source(...)` plus `UiAssetPreviewHost::new_v2(...)` are the runtime preview path for UI Asset Editor; their legacy-shaped document is only an outline/label projection for current editor panes, not a runtime schema fallback. `workbench_projection_cutover` now guards that `view_projection.rs` does not call `EditorTemplateRuntimeService`, `load_document_file`, `compile_document_with_import_maps`, or `try_load_flat_store`. The retained workbench `chrome_template_projection` suite covers the migrated activity rail, menu chrome, page chrome, dock header, and status bar assets, including SVG icon projection, close-button projection, fallback hit frames, extension menu slot projection, and `status_bar_nodes_project_text_overrides_from_flat_asset`. The focused `menu_popup` filter covers the migrated popup stencil through action SVG icons, row overflow cloning, disabled text muting, host painter popup draw paths, and the shared pointer bridge scroll/dismiss flow. The Material boundary suites now resolve `[root] node = ...`, `components.*.root = "..."`, and flat `children = [{ child = ... }]` handles through `[nodes.*]` before checking responsive, Material class, state metadata, and density contracts; this keeps boundary assertions aligned with the runtime prototype schema instead of restoring old recursive TOML expectations.
 
 Current boundaries are deliberate. `zircon_editor::ui::layouts::views::view_projection` is hard-cut to the runtime-owned prototype file cache and `UiDocumentCompiler::compile_prototype_asset(...)`; non-flat pane assets now fail instead of falling through to `UiAssetDocument` recursion. The legacy `UiDocumentCompiler::expand_node(...)` and `expand_component_instance(...)` still exist for other not-yet-migrated template-runtime consumers, but they are no longer the core editor pane projection path. The next slice should move builtin host template registration onto the same store model instead of adding per-pane bypasses.
+
+## UI v2 Arena Foundation
+
+The new UI v2 foundation adds a parallel, runtime-owned flat arena path for the next hard cutover stage. Stable v2 DTOs live under `zircon_runtime_interface::ui::v2`: `UiV2AssetDocument` owns `view` / `component` / `style` assets, `UiV2NodeArena` stores compiled nodes by handle, `UiV2StyleSheet` / `UiV2StyleRule` / `UiV2StyleDeclarationBlock` own v2 style declarations, and `UiV2CompiledDocument` carries both the node arena and `UiV2ComponentGraph`. The compiled graph lets editor/runtime consumers inspect parent/child handles without reaching into a runtime-local compiled artifact.
+
+Runtime implementation lives in `zircon_runtime::ui::v2`. `UiV2AssetLoader` parses schema version 2 TOML, `UiV2PrototypeStore` holds imported component/style documents, `UiV2PrototypeStoreFileCache` resolves file-backed root assets plus transitive `res://` v2 imports into a cached store and compiled document, `UiV2ComponentInstancer` expands local and imported composite components with explicit stacks, `UiV2DocumentCompiler` validates and emits the arena/graph, `UiV2StyleResolver` applies CSS-like specificity and pseudo-state rules, and `UiV2SurfaceBuilder` projects the arena through the folder-backed `ui::v2::surface_tree` owner directly into `UiTree` one flat node at a time. Slot validation is now part of v2 component instancing: declared required slots must be present, unknown slots are rejected when a component declares slot schema, and non-`multiple` slots reject multiple fills. A default slot remains accepted for components that intentionally declare no slot schema.
+
+The v2 path avoids recursive template-node materialization on its main build/style/surface traversal. The runtime tests include 10k-deep v2 surface construction, explicit-stack source cycle rejection before instancing, style specificity with hover/pressed/focused/disabled/selected pseudo states, component slot validation, v2 file-cache reuse with transitive style imports, interface construction of v2 style/compiled graph DTOs, and a source guard that rejects `UiTemplateTreeBuilder` / `UiTemplateSurfaceBuilder` dependencies in the v2 surface projection owner. `UiTemplateTreeBuilder` also has an explicit-stack regression for the still-transitional template tree builder so old test-only recursive fixture projection does not become the stack-safety bottleneck while the v2 cutover continues.
+
+The retained-host projection layer now treats v2 field labels as metadata instead of visible typed text. `RetainedUiHostAdapter` still projects explicit `text`, and it still lets action-style nodes fall back from `label` to visible text, but that fallback is disabled when the node also carries field/value metadata such as `placeholder`, `value`, `value_text`, `options`, `items`, or `entries`. The v2 inspector surface authors those contracts directly: the root projects as `InspectorSurfaceControls` with direct retained control children, Name/Parent fields include `placeholder`, empty value metadata, `layout_min_height`, and `input_focusable`; transform fields use direct `NumberField` nodes with numeric value metadata; Apply/Delete are direct `Button` nodes with explicit text, input flags, and Delete danger tone. This keeps the v2 retained host path on shared runtime component metadata rather than restoring an editor-only Material meta-component expansion.
+
+The Material demo is now a builtin template-runtime document instead of only a runtime asset fixture. `builtin_template_documents()` maps `editor.window.material_demo` to `material_demo_window.v2.ui.toml`; `material_demo_view_descriptor()` maps `editor.material_demo_window` to that document, a retained pane template, and the same document-center open path used by other activity windows. The welcome startup demo button and Window menu route through `EditorManager::open_view(...)` / `Window.MaterialDemo.Open`, so the demo validates the real editor registry, retained host projection, menu model, and operation registry rather than a bespoke preview path. The 2026-05-12 focused rerun covered the normal builtin load path, document projection, shared surface build, retained host projection, window menu, and operation registry on `target\codex-shared-b`.
 
 ## Builtin Pane Body Projection
 
@@ -728,7 +824,7 @@ Task 8 的文档收口基于当前 hard fence 状态，而不是早期 plan 中�
 
 Rust projection owner 在本次 DTO cutover 中仍是 [`src/ui/layouts/windows/workbench_host_window`](../../zircon_editor/src/ui/layouts/windows/workbench_host_window/mod.rs)，而不是 plan 早期样例里的 `host_window` move target。`generic_host_layout_paths` 因此同时守住两件事：active `zircon_editor/ui` 无 `.slint` 源，以及当前 Rust host projection seam 继续存在，避免新代码为了“补回入口”而恢复 `ui/workbench.slint`、`temp/slint-migration/**`、generated Slint include 或 `as slint_ui` 兼容别名。
 
-Runtime 侧的 cutover 不需要 editor host 的 Slint bootstrap：[`RuntimeUiManager`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs) 从 runtime fixture `.ui.toml` 构建 owned `UiSurface`，输入事件通过 shared surface dispatch，`build_frame()` 只把 `UiRenderExtract` 交给 graphics。`render_framework_submits_all_builtin_runtime_ui_fixtures` 已覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog` 和 `InventoryList` 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。
+Runtime 侧的 cutover 不需要 editor host 的 Slint bootstrap：[`RuntimeUiManager`](../../zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs) 从 runtime fixture `.v2.ui.toml` 通过 `UiV2PrototypeStoreFileCache -> UiV2SurfaceBuilder -> ui::v2::surface_tree` 构建 owned `UiSurface`，输入事件通过 shared surface dispatch，`build_frame()` 只把 `UiRenderExtract` 交给 graphics。`runtime_ui_manager_builds_all_builtin_fixtures_into_shared_surfaces` 已覆盖 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList` 和 `QuestLogDialog` 五个 runtime fixtures；`render_framework_submits_all_builtin_runtime_ui_fixtures` 继续覆盖这些 fixture 经 `WgpuRenderFramework::submit_runtime_frame(...)` 进入 screen-space UI pass，并检查 command 与 quad/text payload stats。
 
 ## Runtime Typography Metadata
 
@@ -902,7 +998,7 @@ root = { component = "UiHostToolbar", children = [
 ] }
 ```
 
-2026-04-30 generic host catalog cutover removed the host-specific icon-button and label transitional component names from active editor host assets and adapter tests. Host-owned shells such as `UiHostWindow` and `UiHostToolbar` remain as bootstrap/container roles, while leaf visuals use shared Runtime UI names such as `IconButton` and `Label`. The editor host adapter follows the same text resolution contract as Runtime UI render extraction: a non-empty `text` prop wins, and an authored non-empty `label` remains the fallback when component schema defaults inject `text = ""`.
+2026-04-30 generic host catalog cutover removed the host-specific icon-button and label transitional component names from active editor host assets and adapter tests. Host-owned shells such as `UiHostWindow` and `UiHostToolbar` remain as bootstrap/container roles, while leaf visuals use shared Runtime UI names such as `IconButton` and `Label`. The editor host adapter follows the same text resolution contract as Runtime UI render extraction for action-style nodes: a non-empty `text` prop wins, and an authored non-empty `label` remains the fallback when component schema defaults inject `text = ""`. Field/value nodes are the exception: when `placeholder`, `value`, `value_text`, `options`, `items`, or `entries` is present, `label` stays metadata and does not populate retained visible `text`.
 
 这个结构已经满足第一阶段目标：
 
@@ -1208,7 +1304,7 @@ Post-review guard hardening 又把 `generic_host_boundary.rs` 的 source guard �
 
 2026-04-30 Runtime UI graphics fixture acceptance now submits all builtin Runtime UI fixtures through `WgpuRenderFramework::submit_runtime_frame(...)` under the `runtime-ui-integration-tests` feature, proving the shared `.ui.toml -> UiSurface -> UiRenderExtract` path reaches the screen-space UI pass for HUD, pause menu, settings dialog, and inventory list fixtures. Validation: `cargo test -p zircon_runtime --lib render_framework_submits_all_builtin_runtime_ui_fixtures --features runtime-ui-integration-tests --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 1 passed / 0 failed / 1195 filtered out, and `cargo test -p zircon_runtime --test runtime_ui_text_render_contract --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-runtime-graphics --message-format short --color never -- --test-threads=1 --nocapture` passed 7 passed / 0 failed.
 
-2026-04-30 generic host catalog leaf-name cutover moved active host leaf visuals from transitional `UiHost*` component names to shared Runtime UI `IconButton` / `Label` names. The adapter rejects legacy leaf-name aliases and now resolves visible host text the same way as `UiRenderExtract`: non-empty `text` wins, then non-empty `label` is used when schema defaults inject `text = ""`. Focused evidence on `E:\cargo-targets\zircon-ui-cutover-move-first`: `generic_host_catalog_uses_shared_runtime_component_names` passed 1 / 0, editor `template_runtime` passed 36 / 0 after the label fallback fix, runtime `ui::tests` passed 126 / 0, full editor `generic_host_boundary` passed 7 / 0, `screen_space_ui_plan` passed 4 / 0, `ui_boundary` passed 17 / 0, and `render_framework_submits_all_builtin_runtime_ui_fixtures` with `runtime-ui-integration-tests` passed 1 / 0. The broader `cargo test -p zircon_runtime --lib runtime_ui_integration --features runtime-ui-integration-tests ...` command did not reach Runtime UI assertions because active native-plugin-loader work currently fails compilation before the tests run.
+2026-04-30 generic host catalog leaf-name cutover moved active host leaf visuals from transitional `UiHost*` component names to shared Runtime UI `IconButton` / `Label` names. The adapter rejects legacy leaf-name aliases and now resolves visible host text the same way as `UiRenderExtract` for action-style nodes: non-empty `text` wins, then non-empty `label` is used when schema defaults inject `text = ""`; field/value metadata keeps labels out of visible text. Focused evidence on `E:\cargo-targets\zircon-ui-cutover-move-first`: `generic_host_catalog_uses_shared_runtime_component_names` passed 1 / 0, editor `template_runtime` passed 36 / 0 after the label fallback fix, runtime `ui::tests` passed 126 / 0, full editor `generic_host_boundary` passed 7 / 0, `screen_space_ui_plan` passed 4 / 0, `ui_boundary` passed 17 / 0, and `render_framework_submits_all_builtin_runtime_ui_fixtures` with `runtime-ui-integration-tests` passed 1 / 0. The broader `cargo test -p zircon_runtime --lib runtime_ui_integration --features runtime-ui-integration-tests ...` command did not reach Runtime UI assertions because active native-plugin-loader work currently fails compilation before the tests run.
 
 2026-04-30 host-contract helper naming cleanup completed the local conversion helper cutover that followed the root no-Slint fence. `zircon_editor/src/ui/retained_host/ui/apply_presentation.rs`, `pane_data_conversion/**`, and `template_node_conversion.rs` now use `to_host_contract_*` helper names for Rust-owned host-contract DTO projection, while the test-facing re-exports and boundary assertions also point at the new names. The cleanup did not restore active `.slint` sources, generated Slint modules, or compatibility aliases; it only removes stale local naming debt around the Rust-owned `host_contract/**` surface. Validation: `cargo check -p zircon_editor --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-cutover-move-first --message-format short --color never` passed; final `.\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -TargetDir E:\cargo-targets\zircon-ui-cutover-move-first` passed workspace build and test with `--locked` after one stale test-only `to_retained_host_scene_data` import was renamed; targeted `rustfmt --edition 2021 --check` passed; `git diff --check` reported only LF-to-CRLF warnings; and `zircon_editor/ui/**/*.slint` remained empty.
 

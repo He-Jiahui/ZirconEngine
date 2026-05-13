@@ -22,6 +22,7 @@ pub mod surface;
 pub mod template;
 pub(crate) mod text;
 pub mod tree;
+pub mod v2;
 
 #[cfg(test)]
 mod tests;

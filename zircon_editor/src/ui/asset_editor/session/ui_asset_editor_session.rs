@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::ui::asset_editor::{
     UiAssetEditorDiagnostic, UiAssetEditorRoute, UiDesignerPreviewInteractDispatch,
     UiDesignerSelectionModel, UiDesignerToolMode, UiStyleInspectorReflectionModel,
@@ -10,6 +12,7 @@ use zircon_runtime_interface::ui::template::{
     UiAssetDocument, UiAssetError, UiAssetKind, UiResourceDependency, UiResourceDiagnostic,
 };
 use zircon_runtime_interface::ui::tree::UiTreeError;
+use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2AssetKind};
 
 use super::{
     command::UiAssetEditorTreeEdit,
@@ -31,6 +34,8 @@ pub enum UiAssetEditorSessionError {
     #[error(transparent)]
     Asset(#[from] UiAssetError),
     #[error(transparent)]
+    V2Asset(#[from] UiV2AssetError),
+    #[error(transparent)]
     Build(#[from] UiTemplateBuildError),
     #[error(transparent)]
     Layout(#[from] UiTreeError),
@@ -38,6 +43,11 @@ pub enum UiAssetEditorSessionError {
     UnexpectedKind {
         expected: UiAssetKind,
         actual: UiAssetKind,
+    },
+    #[error("expected ui v2 asset kind {expected:?} but document was {actual:?}")]
+    UnexpectedV2Kind {
+        expected: UiV2AssetKind,
+        actual: UiV2AssetKind,
     },
     #[error("cannot serialize an invalid ui asset source buffer")]
     InvalidSourceBuffer,
@@ -80,9 +90,12 @@ pub struct UiAssetEditorReplayResult {
 
 pub struct UiAssetEditorSession {
     pub(super) route: UiAssetEditorRoute,
+    pub(super) source_schema: UiAssetSourceSchema,
     pub(super) source_buffer: UiAssetSourceBuffer,
     pub(super) last_valid_source_text: String,
     pub(super) last_valid_document: UiAssetDocument,
+    pub(super) last_valid_v2_document: Option<UiV2AssetDocument>,
+    pub(super) v2_compiler_imports: UiAssetV2CompilerImports,
     pub(super) last_valid_compiled: Option<UiCompiledDocument>,
     pub(super) resource_dependencies: Vec<UiResourceDependency>,
     pub(super) resource_diagnostics: Vec<UiResourceDiagnostic>,
@@ -120,6 +133,20 @@ pub struct UiAssetEditorSession {
     pub(super) selected_promote_theme_display_name: Option<String>,
     pub(super) preview_mock_state: UiAssetPreviewMockState,
     pub(super) compiler_imports: UiAssetCompilerImports,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum UiAssetSourceSchema {
+    Legacy,
+    V2,
+}
+
+/// Keeps registered v2 imports resident for authoring previews so composite
+/// prototypes can be instantiated from a heap-backed store instead of reparsed.
+#[derive(Clone, Debug, Default)]
+pub(super) struct UiAssetV2CompilerImports {
+    pub(super) widgets: BTreeMap<String, UiV2AssetDocument>,
+    pub(super) styles: BTreeMap<String, UiV2AssetDocument>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

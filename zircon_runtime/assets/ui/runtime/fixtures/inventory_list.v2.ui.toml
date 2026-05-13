@@ -1,0 +1,121 @@
+[asset]
+kind = "view"
+id = "runtime.ui.inventory_list"
+version = 2
+display_name = "Runtime Inventory List"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "inventory_root"
+
+[nodes.inventory_root]
+component = "Overlay"
+control_id = "InventoryRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [{ node = "inventory_panel" }, { node = "inventory_header" }, { node = "inventory_list" }]
+
+[nodes.inventory_panel]
+component = "Container"
+control_id = "InventoryPanel"
+props = { background = { color = "#1d2330" }, border = { color = "#7aa3d0", width = 2.0, radius = 16.0 } }
+layout = { width = { min = 540.0, preferred = 540.0, max = 540.0, stretch = "Fixed" }, height = { min = 380.0, preferred = 380.0, max = 380.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -36.0, y = 0.0 } }
+
+[nodes.inventory_header]
+component = "Container"
+control_id = "InventoryHeader"
+props = { text = "Field Inventory", background = { color = "#7a4e23" }, border = { color = "#f2d1a0", width = 1.0, radius = 12.0 }, foreground = { color = "#fff2de" } }
+layout = { width = { min = 476.0, preferred = 476.0, max = 476.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -68.0, y = -140.0 } }
+
+[nodes.inventory_list]
+component = "ScrollableBox"
+control_id = "InventoryList"
+layout = { clip = true, width = { min = 476.0, preferred = 476.0, max = 476.0, stretch = "Fixed" }, height = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -68.0, y = 22.0 }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 8.0, scrollbar_visibility = "Always", virtualization = { item_extent = 36.0, overscan = 2 } } }
+children = [
+  { node = "row_00" },
+  { node = "row_01" },
+  { node = "row_02" },
+  { node = "row_03" },
+  { node = "row_04" },
+  { node = "row_05" },
+  { node = "row_06" },
+  { node = "row_07" },
+  { node = "row_08" },
+  { node = "row_09" },
+  { node = "row_10" },
+  { node = "row_11" },
+]
+
+[nodes.row_00]
+component = "Button"
+control_id = "InventoryRow00"
+props = { text = "01  Pulse Cells x24", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_01]
+component = "Button"
+control_id = "InventoryRow01"
+props = { text = "02  Med Kit x4", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_02]
+component = "Button"
+control_id = "InventoryRow02"
+props = { text = "03  Signal Beacon", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_03]
+component = "Button"
+control_id = "InventoryRow03"
+props = { text = "04  Alloy Plate x12", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_04]
+component = "Button"
+control_id = "InventoryRow04"
+props = { text = "05  Repair Foam x3", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_05]
+component = "Button"
+control_id = "InventoryRow05"
+props = { text = "06  Cryo Charge x2", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_06]
+component = "Button"
+control_id = "InventoryRow06"
+props = { text = "07  Survey Drone", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_07]
+component = "Button"
+control_id = "InventoryRow07"
+props = { text = "08  Circuit Weave x7", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_08]
+component = "Button"
+control_id = "InventoryRow08"
+props = { text = "09  Field Rations x9", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_09]
+component = "Button"
+control_id = "InventoryRow09"
+props = { text = "10  Archive Key", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_10]
+component = "Button"
+control_id = "InventoryRow10"
+props = { text = "11  Arc Knife", background = { color = "#30465e" }, border = { color = "#96c2e6", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.row_11]
+component = "Button"
+control_id = "InventoryRow11"
+props = { text = "12  Shield Capacitor x5", background = { color = "#2c394c" }, border = { color = "#89b6d9", width = 1.0, radius = 8.0 }, foreground = { color = "#eef8ff" } }
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }

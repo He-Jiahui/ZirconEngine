@@ -1,0 +1,60 @@
+[asset]
+kind = "view"
+id = "editor.window.ui_layout_editor"
+version = 2
+display_name = "UI Layout Editor Window"
+
+[imports]
+widgets = ["editor.host.activity_drawer_window#ActivityDrawerWindow"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "ActivityDrawerWindow"
+control_id = "UILayoutEditorWindowRoot"
+props = { shell_preset = "jetbrains_shell", panel_preset = "fyrox_panel", window_model = "unreal_window_model" }
+children = [
+  { node = "palette", slot = { name = "left_top_activity" } },
+  { node = "hierarchy", slot = { name = "left_bottom_activity" } },
+  { node = "inspector", slot = { name = "right_top_activity" } },
+  { node = "style", slot = { name = "right_bottom_activity" } },
+  { node = "diagnostics", slot = { name = "bottom_left_activity" } },
+  { node = "debug", slot = { name = "bottom_right_activity" } },
+  { node = "content", slot = { name = "content" } },
+]
+
+[nodes.palette]
+component = "Container"
+control_id = "UILayoutEditorPaletteActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.hierarchy]
+component = "Container"
+control_id = "UILayoutEditorHierarchyActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.inspector]
+component = "Container"
+control_id = "UILayoutEditorInspectorActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.style]
+component = "Container"
+control_id = "UILayoutEditorStyleActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.diagnostics]
+component = "Container"
+control_id = "UILayoutEditorDiagnosticsActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.debug]
+component = "Container"
+control_id = "UILayoutEditorLayoutDebugActivity"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content]
+component = "Container"
+control_id = "UILayoutEditorContent"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

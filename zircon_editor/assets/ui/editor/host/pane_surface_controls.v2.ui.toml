@@ -1,0 +1,22 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.surface_controls"
+version = 2
+display_name = "pane surface controls"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "HorizontalGroup"
+control_id = "PaneSurfaceControlsRoot"
+classes = ["editor-surface-controls", "pane-controls"]
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+children = [{ node = "trigger_action" }]
+
+[nodes.trigger_action]
+component = "IconButton"
+control_id = "TriggerAction"
+props = { label = "Action", icon = "flash-outline" }
+layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PaneSurface/TriggerAction", event = "Click", route = "MenuAction.OpenProject" }]

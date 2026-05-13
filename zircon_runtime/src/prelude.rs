@@ -2,7 +2,8 @@
 
 pub use crate::core::diagnostics::{
     DiagnosticMeasurement, DiagnosticPath, DiagnosticSeriesSnapshot, DiagnosticStore,
-    DiagnosticStoreSnapshot, RuntimeDiagnosticsSnapshot,
+    DiagnosticStoreSnapshot, HotspotReport, ProfileCaptureConfig, ProfileCounterSnapshot,
+    ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeDiagnosticsSnapshot,
 };
 pub use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual};
 pub use crate::core::modules::{

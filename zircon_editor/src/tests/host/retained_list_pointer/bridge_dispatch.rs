@@ -55,6 +55,16 @@ fn shared_welcome_recent_pointer_bridge_scrolls_and_dispatches_remove_action() {
 }
 
 #[test]
+fn shared_welcome_recent_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state() {
+    let mut pointer_bridge = WelcomeRecentPointerBridge::new();
+    let layout = welcome_layout(8);
+    let state = WelcomeRecentPointerState::default();
+
+    assert!(pointer_bridge.sync(layout.clone(), state.clone()));
+    assert!(!pointer_bridge.sync(layout, state));
+}
+
+#[test]
 fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
     let _guard = env_lock().lock().unwrap();
 
@@ -117,6 +127,20 @@ fn shared_hierarchy_pointer_bridge_scrolls_and_dispatches_selection() {
             node_id: nodes[1].parse().unwrap(),
         })
     );
+}
+
+#[test]
+fn shared_hierarchy_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state() {
+    let mut pointer_bridge = HierarchyPointerBridge::new();
+    let layout = HierarchyPointerLayout {
+        pane_width: 260.0,
+        pane_height: 40.0,
+        node_ids: vec!["1".to_string(), "2".to_string()],
+    };
+    let state = HierarchyPointerState::default();
+
+    assert!(pointer_bridge.sync(layout.clone(), state.clone()));
+    assert!(!pointer_bridge.sync(layout, state));
 }
 
 fn welcome_layout(count: usize) -> WelcomeRecentPointerLayout {

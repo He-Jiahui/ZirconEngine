@@ -1,0 +1,55 @@
+[asset]
+kind = "view"
+id = "sound.acoustic_debug"
+version = 2
+display_name = "Acoustic Debug"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "sound_acoustic_debug_root"
+
+[nodes.sound_acoustic_toolbar]
+component = "Space"
+control_id = "SoundAcousticDebugToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.sound_listener_source_layer]
+component = "Space"
+control_id = "SoundListenerSourceConeLayer"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_volume_influence_panel]
+component = "Space"
+control_id = "SoundVolumeInfluencePanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_occlusion_ray_panel]
+component = "Space"
+control_id = "SoundOcclusionRayPanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_volume_occlusion_layer]
+component = "VerticalGroup"
+control_id = "SoundVolumeOcclusionLayer"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { min = 260.0, preferred = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_volume_influence_panel" }, { node = "sound_occlusion_ray_panel" }]
+
+[nodes.sound_acoustic_layers]
+component = "HorizontalGroup"
+control_id = "SoundAcousticDebugLayers"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_listener_source_layer" }, { node = "sound_volume_occlusion_layer" }]
+
+[nodes.sound_ir_cache_panel]
+component = "Space"
+control_id = "SoundImpulseResponseProbeCache"
+layout = { width = { stretch = "Stretch" }, height = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" } }
+
+[nodes.sound_acoustic_debug_root]
+component = "VerticalGroup"
+control_id = "SoundAcousticDebugRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_acoustic_toolbar" }, { node = "sound_acoustic_layers" }, { node = "sound_ir_cache_panel" }]

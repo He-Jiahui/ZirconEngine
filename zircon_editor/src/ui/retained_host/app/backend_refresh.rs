@@ -12,6 +12,7 @@ pub(crate) struct AssetBackendRefreshPlan {
     pub reload_default_scene: bool,
     pub mark_render_dirty: bool,
     pub mark_presentation_dirty: bool,
+    pub mark_paint_only_dirty: bool,
 }
 
 pub(crate) fn plan_asset_backend_refresh(
@@ -33,7 +34,7 @@ pub(crate) fn plan_asset_backend_refresh(
             }
             EditorAssetChangeKind::PreviewChanged => {
                 plan.sync_catalog = true;
-                plan.mark_presentation_dirty = true;
+                plan.mark_paint_only_dirty = true;
             }
             EditorAssetChangeKind::ReferenceChanged => {
                 plan.sync_catalog = true;

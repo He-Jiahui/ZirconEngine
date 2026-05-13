@@ -116,12 +116,14 @@ mod native_window_close;
 mod native_windows;
 mod pane_surface_actions;
 mod pointer_layout;
+mod profiling;
 mod reference_drop_payload;
 mod showcase_event_inputs;
 mod startup;
 #[cfg(test)]
 mod tests;
 mod ui_asset_editor;
+mod ui_asset_editor_detail_routes;
 mod viewport;
 mod viewport_image_redraw;
 mod welcome_recent_pointer;
@@ -134,7 +136,8 @@ pub(super) use helpers::{
     derive_animation_assets_from_model_source, resolve_callback_source_window_id,
     shell_region_group_key, stage_model_source, viewport_size_from_frame,
 };
-use invalidation::{HostInvalidationMask, HostInvalidationRoot};
+pub(crate) use invalidation::HostInvalidationMask;
+use invalidation::HostInvalidationRoot;
 #[cfg(test)]
 pub(crate) use native_windows::NativeFloatingWindowTarget;
 pub(crate) use native_windows::{
@@ -175,6 +178,8 @@ struct RetainedEditorHost {
     self_handle: Option<Weak<RefCell<RetainedEditorHost>>>,
     runtime: EditorEventRuntime,
     editor_manager: Arc<EditorManager>,
+    #[cfg(feature = "profiling")]
+    runtime_client: SharedEditorRuntimeClient,
     module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
     desktop_export_reports: BTreeMap<String, build_export_actions::DesktopExportExecutionSummary>,
     desktop_export_jobs: build_export_actions::DesktopExportJobQueue,

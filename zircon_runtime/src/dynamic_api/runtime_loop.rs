@@ -36,6 +36,7 @@ impl RuntimeRenderBridge {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
+        crate::profile_scope!("runtime", "render_bridge", "submit_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         self.render_framework
@@ -54,12 +55,14 @@ impl RuntimeRenderBridge {
         &mut self,
         descriptor: RenderViewportSurfaceDescriptor,
     ) -> Result<(), RenderFrameworkError> {
+        crate::profile_scope!("runtime", "render_bridge", "bind_surface");
         let viewport = self.ensure_viewport(descriptor.size)?;
         self.render_framework
             .bind_viewport_surface(viewport, descriptor)
     }
 
     pub(super) fn unbind_surface(&mut self) -> Result<(), RenderFrameworkError> {
+        crate::profile_scope!("runtime", "render_bridge", "unbind_surface");
         let Some(viewport) = self.viewport else {
             return Ok(());
         };
@@ -72,6 +75,7 @@ impl RuntimeRenderBridge {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
+        crate::profile_scope!("runtime", "render_bridge", "present_extract");
         let viewport = self.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
         self.render_framework

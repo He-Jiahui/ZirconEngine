@@ -6,7 +6,7 @@ fn source(relative: &str) -> String {
 #[test]
 fn component_showcase_structure_and_collection_state_is_rust_owned() {
     let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
-    let showcase_asset = source("assets/ui/editor/component_showcase.ui.toml");
+    let showcase_asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
 
     for required in [
         "pub(crate) struct TemplatePaneCollectionFieldData",
@@ -38,7 +38,7 @@ fn component_showcase_structure_and_collection_state_is_rust_owned() {
 #[test]
 fn component_showcase_option_menu_and_tree_state_is_rust_owned() {
     let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
-    let showcase_asset = source("assets/ui/editor/component_showcase.ui.toml");
+    let showcase_asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
 
     for required in [
         "pub(crate) struct TemplatePaneOptionData",

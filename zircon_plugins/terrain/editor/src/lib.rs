@@ -45,7 +45,7 @@ impl zircon_editor::EditorPlugin for TerrainEditorPlugin {
                 drawer_id: TERRAIN_DRAWER_ID,
                 drawer_display_name: "Terrain Tools",
                 template_id: TERRAIN_TEMPLATE_ID,
-                template_document: "plugins://terrain/editor/authoring.ui.toml",
+                template_document: "plugins://terrain/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     TERRAIN_AUTHORING_VIEW_ID,
                     "Terrain",
@@ -151,7 +151,7 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
         .with_required_capabilities([CAPABILITY])],
         component_drawers: vec![ComponentDrawerDescriptor::new(
             zircon_plugin_terrain_runtime::TERRAIN_COMPONENT_TYPE,
-            "plugins://terrain/editor/terrain_component.ui.toml",
+            "plugins://terrain/editor/terrain_component.v2.ui.toml",
             "terrain.editor.component",
         )],
         asset_creation_templates: vec![AssetCreationTemplateDescriptor::new(

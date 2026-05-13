@@ -1,0 +1,101 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.inspector.v2"
+version = 2
+display_name = "Inspector"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "inspector_root"
+
+[nodes.top_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.left_space]
+component = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.header_panel]
+component = "Space"
+control_id = "InspectorHeaderPanel"
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.header_name_gap]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.name_row]
+component = "Space"
+control_id = "InspectorNameRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.name_parent_gap]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.parent_row]
+component = "Space"
+control_id = "InspectorParentRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.parent_position_gap]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.position_row]
+component = "Space"
+control_id = "InspectorPositionRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.position_separator_gap]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.separator_row]
+component = "Space"
+control_id = "InspectorSeparatorRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.separator_actions_gap]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 4.0, preferred = 4.0, max = 4.0, stretch = "Fixed" } }
+
+[nodes.actions_row]
+component = "Space"
+control_id = "InspectorActionsRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.bottom_fill]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content_panel]
+component = "VerticalBox"
+control_id = "InspectorContentPanel"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header_panel" }, { node = "header_name_gap" }, { node = "name_row" }, { node = "name_parent_gap" }, { node = "parent_row" }, { node = "parent_position_gap" }, { node = "position_row" }, { node = "position_separator_gap" }, { node = "separator_row" }, { node = "separator_actions_gap" }, { node = "actions_row" }, { node = "bottom_fill" }]
+
+[nodes.right_space]
+component = "Space"
+layout = { width = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.content_row]
+component = "HorizontalBox"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_space" }, { node = "content_panel" }, { node = "right_space" }]
+
+[nodes.bottom_space]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { min = 10.0, preferred = 10.0, max = 10.0, stretch = "Fixed" } }
+
+[nodes.inspector_root]
+component = "VerticalBox"
+control_id = "InspectorRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_space" }, { node = "content_row" }, { node = "bottom_space" }]

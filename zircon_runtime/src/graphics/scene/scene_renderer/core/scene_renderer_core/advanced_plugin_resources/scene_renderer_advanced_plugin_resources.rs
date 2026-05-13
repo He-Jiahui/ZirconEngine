@@ -44,19 +44,6 @@ impl SceneRendererAdvancedPluginResources {
         }
     }
 
-    #[cfg(test)]
-    pub(in crate::graphics::scene::scene_renderer::core) fn new_with_virtual_geometry_for_test(
-        _device: &wgpu::Device,
-    ) -> Self {
-        Self {
-            capabilities: SceneRendererAdvancedPluginResourceCapabilities {
-                virtual_geometry: true,
-                ..SceneRendererAdvancedPluginResourceCapabilities::default()
-            },
-            runtime_prepare_collectors: Vec::new(),
-        }
-    }
-
     #[allow(dead_code)]
     pub(in crate::graphics::scene::scene_renderer::core) fn register_runtime_prepare_collector(
         &mut self,

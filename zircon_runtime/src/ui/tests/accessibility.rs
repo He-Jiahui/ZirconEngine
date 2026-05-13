@@ -1250,7 +1250,7 @@ fn accessibility_visible_excluded_target_rejects_without_component_or_property_m
 }
 
 #[test]
-fn accessibility_increment_returns_structured_unsupported_result() {
+fn accessibility_increment_and_decrement_step_slider_value() {
     let mut surface = root_surface();
     surface
         .tree
@@ -1266,6 +1266,7 @@ fn accessibility_increment_returns_structured_unsupported_result() {
                         role: UiA11yRole::Slider,
                         actions: vec![
                             UiAccessibilityAction::Increment,
+                            UiAccessibilityAction::Decrement,
                             UiAccessibilityAction::Focus,
                         ],
                         ..UiAccessibilityContract::default()
@@ -1279,13 +1280,75 @@ fn accessibility_increment_returns_structured_unsupported_result() {
         )
         .unwrap();
     surface.rebuild();
+    surface.clear_dirty_flags();
 
     let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Increment);
 
-    assert_eq!(result.reply.disposition, UiDispatchDisposition::Unhandled);
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
     assert_eq!(result.diagnostics.route_target, Some(id(2)));
-    assert!(has_note(&result, "status=unsupported"));
-    assert!(has_note(&result, "code=unsupported_role_action"));
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.adjust_value")
+    );
+    assert!(has_note(&result, "status=accepted"));
+    assert!(result.component_events.iter().any(|event| {
+        event.target == id(2)
+            && event.delivered
+            && matches!(
+                &event.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "value"
+                        && matches!(value, UiValue::Float(value) if (*value - 0.51).abs() < f64::EPSILON)
+            )
+    }));
+    let value = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap()
+        .attributes
+        .get("value")
+        .and_then(toml::Value::as_float)
+        .unwrap();
+    assert!((value - 0.51).abs() < f64::EPSILON);
+    assert!(surface.dirty_flags().render);
+    assert!(!surface.dirty_flags().layout);
+
+    surface.clear_dirty_flags();
+    let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Decrement);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.diagnostics.route_target, Some(id(2)));
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.adjust_value")
+    );
+    assert!(result.component_events.iter().any(|event| {
+        event.target == id(2)
+            && event.delivered
+            && matches!(
+                &event.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "value"
+                        && matches!(value, UiValue::Float(value) if (*value - 0.5).abs() < f64::EPSILON)
+            )
+    }));
+    let value = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap()
+        .attributes
+        .get("value")
+        .and_then(toml::Value::as_float)
+        .unwrap();
+    assert!((value - 0.5).abs() < f64::EPSILON);
+    assert!(surface.dirty_flags().render);
+    assert!(!surface.dirty_flags().layout);
 }
 
 #[test]

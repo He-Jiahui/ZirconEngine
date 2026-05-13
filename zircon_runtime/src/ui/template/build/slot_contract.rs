@@ -87,7 +87,7 @@ fn parse_canvas_placement(
 fn infer_slot_kind(parent_container: UiContainerKind) -> UiSlotKind {
     match parent_container {
         UiContainerKind::Free => UiSlotKind::Free,
-        UiContainerKind::Container => UiSlotKind::Container,
+        UiContainerKind::Container | UiContainerKind::SizeBox(_) => UiSlotKind::Container,
         UiContainerKind::Overlay => UiSlotKind::Overlay,
         UiContainerKind::Space => UiSlotKind::Free,
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => UiSlotKind::Linear,

@@ -84,9 +84,7 @@ pub(crate) fn dispatch_resize_to_group(
                 extent,
             },
         )?;
-        combined.presentation_dirty |= effects.presentation_dirty;
-        combined.layout_dirty |= effects.layout_dirty;
-        combined.render_dirty |= effects.render_dirty;
+        combined.merge_dirty_domains(effects.dirty_domains());
         combined.sync_asset_workspace |= effects.sync_asset_workspace;
         combined.refresh_asset_details |= effects.refresh_asset_details;
         combined.refresh_visible_asset_previews |= effects.refresh_visible_asset_previews;

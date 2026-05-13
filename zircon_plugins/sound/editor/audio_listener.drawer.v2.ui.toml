@@ -1,0 +1,38 @@
+[asset]
+kind = "view"
+id = "sound.audio_listener.drawer"
+version = 2
+display_name = "AudioListener"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "sound_audio_listener_drawer_root"
+
+[nodes.sound_listener_active_target_row]
+component = "Space"
+control_id = "SoundListenerActiveTargetRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.sound_listener_pose_row]
+component = "Space"
+control_id = "SoundListenerPoseRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_listener_ear_offsets_row]
+component = "Space"
+control_id = "SoundListenerEarOffsetsRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_listener_hrtf_doppler_row]
+component = "Space"
+control_id = "SoundListenerHrtfDopplerRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_audio_listener_drawer_root]
+component = "VerticalGroup"
+control_id = "SoundAudioListenerDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_listener_active_target_row" }, { node = "sound_listener_pose_row" }, { node = "sound_listener_ear_offsets_row" }, { node = "sound_listener_hrtf_doppler_row" }]

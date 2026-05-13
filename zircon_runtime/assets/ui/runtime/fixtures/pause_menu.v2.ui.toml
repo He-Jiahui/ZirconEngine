@@ -1,0 +1,60 @@
+[asset]
+kind = "view"
+id = "runtime.ui.pause_menu"
+version = 2
+display_name = "Runtime Pause Menu"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "pause_root"
+
+[nodes.pause_root]
+component = "Overlay"
+control_id = "PauseMenuRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [{ node = "scrim" }, { node = "dialog" }, { node = "title" }, { node = "resume_button" }, { node = "settings_button" }, { node = "quit_button" }, { node = "hint_label" }]
+
+[nodes.scrim]
+component = "Container"
+control_id = "PauseScrim"
+props = { background = { color = "#10141dcc" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dialog]
+component = "Container"
+control_id = "PauseDialog"
+props = { opacity = 0.96, background = { color = "#b13d3d" }, border = { color = "#f6d2a6", width = 3.0, radius = 18.0 } }
+layout = { width = { min = 420.0, preferred = 420.0, max = 420.0, stretch = "Fixed" }, height = { min = 320.0, preferred = 320.0, max = 320.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 } }
+
+[nodes.title]
+component = "Label"
+control_id = "PauseTitle"
+props = { text = "Paused", foreground = { color = "#fff4e0" } }
+layout = { width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = -114.0 } }
+
+[nodes.resume_button]
+component = "Button"
+control_id = "ResumeButton"
+props = { text = "Resume Mission", background = { color = "#272c38" }, border = { color = "#f7d58d", width = 1.0, radius = 10.0 }, foreground = { color = "#fff7ea" } }
+layout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = -32.0 } }
+
+[nodes.settings_button]
+component = "Button"
+control_id = "SettingsButton"
+props = { text = "Settings", background = { color = "#272c38" }, border = { color = "#9ab3ce", width = 1.0, radius = 10.0 }, foreground = { color = "#eef3f7" } }
+layout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 36.0 } }
+
+[nodes.quit_button]
+component = "Button"
+control_id = "QuitButton"
+props = { text = "Return To Title", background = { color = "#341f24" }, border = { color = "#ff9787", width = 1.0, radius = 10.0 }, foreground = { color = "#fff0ec" } }
+layout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 104.0 } }
+
+[nodes.hint_label]
+component = "Label"
+control_id = "PauseHint"
+props = { text = "Press Esc to close", opacity = 0.85, foreground = { color = "#f7dfc3" } }
+layout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.0 }, position = { x = 0.0, y = 188.0 } }

@@ -277,11 +277,11 @@ fn editor_ui_toml_assets_are_the_host_chrome_authority() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     for (relative, markers) in [
         (
-            "assets/ui/editor/workbench_menu_chrome.ui.toml",
+            "assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
             &["WorkbenchMenuBarRoot", "MenuSlot0", "MenuSlot5"][..],
         ),
         (
-            "assets/ui/editor/workbench_activity_rail.ui.toml",
+            "assets/ui/editor/workbench_activity_rail.v2.ui.toml",
             &[
                 "ActivityRailPanel",
                 "ActivityRailButton0",
@@ -289,11 +289,11 @@ fn editor_ui_toml_assets_are_the_host_chrome_authority() {
             ][..],
         ),
         (
-            "assets/ui/editor/workbench_status_bar.ui.toml",
+            "assets/ui/editor/workbench_status_bar.v2.ui.toml",
             &["WorkbenchStatusBar", "StatusPrimary", "ViewportLabel"][..],
         ),
         (
-            "assets/ui/editor/host/scene_viewport_toolbar.ui.toml",
+            "assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml",
             &["SceneViewportToolbarRoot", "SetTool", "FrameSelection"][..],
         ),
     ] {

@@ -78,6 +78,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/ui.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/host/mod.rs
   - zircon_editor/src/ui/host/editor_event_listener_control.rs
@@ -120,18 +121,17 @@ related_code:
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/assets_activity.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_page_chrome.ui.toml
+  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
+  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 implementation_files:
@@ -184,6 +184,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/event_bridge.rs
   - zircon_editor/src/ui/template_runtime/runtime/build_session.rs
   - zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs
+  - zircon_runtime/src/ui/v2/file_cache.rs
   - zircon_editor/src/ui/retained_host/drawer_resize.rs
   - zircon_editor/src/ui/retained_host/shell_pointer.rs
   - zircon_editor/src/ui/retained_host/tab_drag.rs
@@ -228,18 +229,17 @@ implementation_files:
   - zircon_editor/src/ui/workbench/reflection/mod.rs
   - zircon_editor/src/ui/workbench/reflection/model_build.rs
   - zircon_editor/src/ui/workbench/reflection/widget_reflector.rs
-  - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/mod.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
-  - zircon_editor/assets/ui/editor/assets_activity.ui.toml
-  - zircon_editor/assets/ui/editor/asset_browser.ui.toml
-  - zircon_editor/assets/ui/editor/component_showcase.ui.toml
-  - zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_menu_chrome.ui.toml
-  - zircon_editor/assets/ui/editor/host/workbench_page_chrome.ui.toml
+  - zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml
+  - zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/pane_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/asset_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_menu_chrome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/workbench_page_chrome.v2.ui.toml
   - zircon_editor/src/ui/retained_host/host_contract/data/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/data/panes.rs
 plan_sources:
@@ -287,7 +287,14 @@ plan_sources:
   - .codex/plans/Zircon UI 资产化 Widget Editor 与共享 Layout.md
   - .codex/plans/编辑器 .slint 去真源 Runtime UI 可用 Cutover 路线图.md
   - user: 2026-04-21 继续执行 zircon_editor UI 回迁 + 树形 TOML cutover，清理 core 中残余 UI owner
+  - user: 2026-05-12 继续 ZirconEngine UI v2 硬切，要求 builtin editor 资产走 prototype heap cache
 tests:
+  - cargo test -p zircon_runtime --lib ui_v2_file_cache_resolves_builtin_asset_id_widget_imports
+  - cargo test -p zircon_editor --lib builtin_v2_template_file_cache_is_reused_across_runtime_instances
+  - cargo test -p zircon_editor --lib critical_editor_shells_are_hard_cut_to_v2_assets
+  - cargo test -p zircon_editor --lib dual_host_parity_preserves_layout_attributes_and_routes_for_representative_documents
+  - cargo test -p zircon_editor --lib project_overview_bootstrap_layout_self_hosts_shell_sections
+  - cargo test -p zircon_editor --lib workbench_main_interface_entries_are_template_backed_and_reflected
   - cargo check -p zircon_editor --lib --locked --target-dir target\codex-editor-operation-check -q
   - cargo test -p zircon_editor editor_operation_registry_exposes_builtin_menu_operations_by_path --lib --locked --target-dir target\codex-editor-operation-check
   - cargo test -p zircon_editor editor_extension_registry_collects_plugin_windows_menus_drawers_and_operations --lib --locked --target-dir target\codex-editor-operation-check
@@ -480,11 +487,11 @@ Viewport image polling is edge-triggered from the retained host perspective. `Re
 
 ## Builtin Template Asset Authority
 
-Builtin editor host templates now enter the runtime through [`EditorUiHostRuntime::register_document_file(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs). The method compiles the referenced `ui.toml` file with recursive widget/style import resolution from crate `assets/`, so builtin host assets and future editor plugin `ui.toml` files use the same file-backed registration seam. [`load_builtin_host_templates(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/build_session.rs) no longer embeds production template strings or manually registers compiled documents behind the runtime API.
+Builtin editor host templates now enter the runtime through [`EditorUiHostRuntime::register_document_file(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/runtime_host.rs), but active editor builtin paths are `.v2.ui.toml` documents. v2 registration hydrates each root through the shared [`UiV2PrototypeStoreFileCache`](/E:/Git/ZirconEngine/zircon_runtime/src/ui/v2/file_cache.rs), which resolves transitive `res://` widget/style imports plus builtin widget imports that name an asset id such as `editor.host.activity_drawer_window#ActivityDrawerWindow`, stores prototype documents and compiled arenas on the heap, and returns `Arc` handles reused by later `EditorUiHostRuntime` instances when the source file keys have not changed. [`load_builtin_host_templates(...)`](/E:/Git/ZirconEngine/zircon_editor/src/ui/template_runtime/runtime/build_session.rs) no longer embeds production template strings, and v2 builtin host assets bypass the old recursive document and compiler caches.
 
-The asset activity and asset browser panes now expose their tree/source columns as template-owned mount nodes in [`assets_activity.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/assets_activity.ui.toml) and [`asset_browser.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/asset_browser.ui.toml). The retained host projection consumes those nodes directly instead of falling back to a legacy hard-coded `FolderTreeView`, while still routing pointer facts into the shared asset tree dispatch path.
+The asset activity and asset browser panes now expose their tree/source columns as template-owned mount nodes in [`assets_activity.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/assets_activity.v2.ui.toml) and [`asset_browser.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/asset_browser.v2.ui.toml). The retained host projection consumes those nodes directly instead of falling back to a legacy hard-coded `FolderTreeView`, while still routing pointer facts into the shared asset tree dispatch path.
 
-`TemplatePaneNodeData` is the retained host's generic retained node bridge for editor-authored `ui.toml` documents and future plugin component drawers. Runtime component projection now preserves row state that would otherwise be lost at the host boundary: `selected`, `focused`, `hovered`, `expanded`, `tree_depth`, and `tree_indent_px` all survive from document props or runtime component flags into Rust-owned host-contract template node data. The showcase runtime overlay only writes transient flags when they are active, so declarative visual state in [`component_showcase.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.ui.toml) is not erased by an inactive default `UiComponentState`; tree rows use explicit `tree_indent_px` when present and otherwise derive indentation from `tree_depth`. This matters for plugin-provided `ui.toml` drawers because custom inspectors need ListRow/TreeRow selection and hierarchy affordances to be first-class data, not hard-coded host styling.
+`TemplatePaneNodeData` is the retained host's generic retained node bridge for editor-authored UI documents and future plugin component drawers. Runtime component projection now preserves row state that would otherwise be lost at the host boundary: `selected`, `focused`, `hovered`, `expanded`, `tree_depth`, and `tree_indent_px` all survive from document props or runtime component flags into Rust-owned host-contract template node data. The showcase runtime overlay only writes transient flags when they are active, so declarative visual state in [`component_showcase.v2.ui.toml`](/E:/Git/ZirconEngine/zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml) is not erased by an inactive default `UiComponentState`; tree rows use explicit `tree_indent_px` when present and otherwise derive indentation from `tree_depth`. This matters for plugin-provided UI drawers because custom inspectors need ListRow/TreeRow selection and hierarchy affordances to be first-class data, not hard-coded host styling.
 
 Asset surface controls also use explicit generic routes for each template control. Kind chips call `root.control_changed("SetKindFilter", "...")`, view buttons call `root.control_changed("SetViewMode", "...")`, utility tabs call `root.control_changed("SetUtilityTab", "...")`, and commands such as `OpenAssetBrowser`, `LocateSelectedAsset`, and `ImportModel` call `root.control_clicked(...)`. No asset-specific business callback is exposed from the retained host shell.
 

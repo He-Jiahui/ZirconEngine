@@ -5,6 +5,7 @@ impl RetainedEditorHost {
         let Some(image) = self.viewport.poll_image() else {
             return;
         };
+        zircon_runtime::profile_scope!("editor", "retained_host", "poll_viewport_image");
         let image_updated = self
             .ui
             .global::<crate::ui::retained_host::PaneSurfaceHostContext>()

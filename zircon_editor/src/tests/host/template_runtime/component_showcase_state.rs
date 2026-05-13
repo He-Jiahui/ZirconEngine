@@ -223,6 +223,18 @@ fn showcase_demo_state_applies_projected_bindings_to_retained_values_and_log() {
             .is_some_and(|node| !node.popup_open),
         "ClosePopup should be retained and projected for ComboBoxDemo"
     );
+    let header = host_projection
+        .node_by_control_id("UiComponentShowcaseHeader")
+        .expect("showcase header should project");
+    assert!(header
+        .text
+        .as_deref()
+        .is_some_and(|text| text
+            .contains("material_dark / fyrox_panel / jetbrains_shell / unreal_window_model")));
+    assert_eq!(
+        header.properties.get("text_tone"),
+        Some(&RetainedUiHostValue::String("default".to_string()))
+    );
 
     let source = UiDragSourceMetadata::asset(
         "browser",

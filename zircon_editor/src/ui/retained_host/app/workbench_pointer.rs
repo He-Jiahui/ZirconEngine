@@ -2,7 +2,7 @@ use super::*;
 
 impl RetainedEditorHost {
     pub(super) fn activity_rail_pointer_clicked(&mut self, side: &str, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         let side = match HostActivityRailPointerSide::parse(side) {
             Ok(side) => side,
             Err(error) => {
@@ -34,7 +34,7 @@ impl RetainedEditorHost {
         point_x: f32,
         point_y: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         if tab_index < 0 {
             self.set_status_line(format!("Invalid host page tab index {tab_index}"));
             return;
@@ -66,7 +66,7 @@ impl RetainedEditorHost {
         point_x: f32,
         point_y: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         if tab_index < 0 {
             self.set_status_line(format!("Invalid document tab index {tab_index}"));
             return;
@@ -100,7 +100,7 @@ impl RetainedEditorHost {
         point_x: f32,
         point_y: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         if tab_index < 0 {
             self.set_status_line(format!("Invalid document tab close index {tab_index}"));
             return;
@@ -126,7 +126,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn floating_window_header_pointer_clicked(&mut self, x: f32, y: f32) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         let Some(window_id) = self
             .shell_pointer_bridge
             .drag_route_at(UiPoint::new(x, y))
@@ -158,7 +158,7 @@ impl RetainedEditorHost {
         point_x: f32,
         point_y: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         if tab_index < 0 {
             self.set_status_line(format!("Invalid drawer header index {tab_index}"));
             return;

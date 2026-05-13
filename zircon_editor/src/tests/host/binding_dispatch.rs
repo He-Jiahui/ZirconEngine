@@ -692,6 +692,51 @@ fn welcome_open_recent_binding_dispatches_into_typed_host_event() {
     );
 }
 
+#[test]
+fn welcome_startup_chooser_bindings_dispatch_into_typed_host_events() {
+    let workbench = EditorUiBinding::new(
+        "WelcomeSurface",
+        "OpenStartupWorkbench",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::OpenStartupWorkbench),
+    );
+    let demo = EditorUiBinding::new(
+        "WelcomeSurface",
+        "OpenStartupDemo",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::OpenStartupDemo),
+    );
+    let asset = EditorUiBinding::new(
+        "WelcomeSurface",
+        "OpenStartupAssetWindow",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::OpenStartupAssetWindow),
+    );
+    let ui_layout = EditorUiBinding::new(
+        "WelcomeSurface",
+        "OpenStartupUILayoutEditor",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::welcome_command(WelcomeCommand::OpenStartupUILayoutEditor),
+    );
+
+    assert_eq!(
+        dispatch_welcome_binding(&workbench).unwrap(),
+        WelcomeHostEvent::OpenStartupWorkbench
+    );
+    assert_eq!(
+        dispatch_welcome_binding(&demo).unwrap(),
+        WelcomeHostEvent::OpenStartupDemo
+    );
+    assert_eq!(
+        dispatch_welcome_binding(&asset).unwrap(),
+        WelcomeHostEvent::OpenStartupAssetWindow
+    );
+    assert_eq!(
+        dispatch_welcome_binding(&ui_layout).unwrap(),
+        WelcomeHostEvent::OpenStartupUILayoutEditor
+    );
+}
+
 mod support {
     use crate::ui::workbench::state::EditorState;
     use zircon_runtime::scene::components::NodeKind;

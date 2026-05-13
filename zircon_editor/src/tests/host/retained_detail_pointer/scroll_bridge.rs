@@ -35,6 +35,25 @@ fn shared_console_scroll_surface_bridge_uses_shared_scroll_state() {
 }
 
 #[test]
+fn shared_scroll_surface_bridge_skips_rebuild_for_unchanged_layout_and_state() {
+    let mut bridge =
+        ScrollSurfacePointerBridge::new("zircon.editor.console.pointer", "editor.console");
+    let layout = console_scroll_layout(
+        UiSize::new(320.0, 56.0),
+        console_content_extent(
+            "compile started\nmesh cache rebuilt\npreview extraction queued\nimport summary refreshed",
+            320.0,
+            false,
+            "",
+        ),
+    );
+    let state = ScrollSurfacePointerState::default();
+
+    assert!(bridge.sync(layout.clone(), state.clone()));
+    assert!(!bridge.sync(layout, state));
+}
+
+#[test]
 fn shared_asset_details_scroll_surface_accounts_for_diagnostics_panel() {
     let mut selection = AssetSelectionSnapshot {
         uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),

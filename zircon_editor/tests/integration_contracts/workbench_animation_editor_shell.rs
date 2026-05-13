@@ -9,7 +9,7 @@ fn source(relative: &str) -> String {
 #[test]
 fn animation_editor_shell_uses_template_nodes_and_toml_panels() {
     let panes = source("src/ui/retained_host/host_contract/data/panes.rs");
-    let asset = source("assets/ui/editor/animation_editor.ui.toml");
+    let asset = source("assets/ui/editor/animation_editor.v2.ui.toml");
 
     for required in [
         "pub(crate) struct AnimationEditorPaneData",

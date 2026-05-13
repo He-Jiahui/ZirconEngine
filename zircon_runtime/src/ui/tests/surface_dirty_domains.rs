@@ -1,13 +1,20 @@
 use crate::ui::{
-    surface::{UiSurface, UiSurfaceRebuildReport},
-    tree::UiRuntimeTreeAccessExt,
+    surface::{
+        UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface, UiSurfaceRebuildReport,
+    },
+    tree::{UiRuntimeTreeAccessExt, UiRuntimeTreeLayoutExt},
 };
 use zircon_runtime_interface::ui::{
+    component::UiValue,
+    dispatch::{
+        UiDispatchEffect, UiDispatchReply, UiInputEvent, UiKeyboardInputEvent,
+        UiKeyboardInputState, UiRedrawRequestReason,
+    },
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::{
         AxisConstraint, BoxConstraints, LayoutBoundary, StretchMode, UiContainerKind, UiSize,
     },
-    tree::{UiDirtyFlags, UiInputPolicy, UiTreeNode},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
 #[test]
@@ -262,6 +269,303 @@ fn surface_dirty_render_reuses_unchanged_commands_without_damage() {
     assert_dirty_cleared(&surface);
 }
 
+#[test]
+fn surface_dirty_render_only_metadata_does_not_trigger_hit_or_input_rebuild() {
+    let mut surface = test_surface();
+    let metadata = UiTemplateNodeMetadata {
+        component: "Button".to_string(),
+        control_id: Some("DirtyDomainButton".to_string()),
+        attributes: toml::from_str("material_tone = 'primary'").unwrap(),
+        ..Default::default()
+    };
+    surface
+        .tree
+        .node_mut(button_id())
+        .expect("button node should exist")
+        .template_metadata = Some(metadata);
+    surface.clear_dirty_flags();
+
+    let mutation = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            button_id(),
+            "material_tone",
+            UiValue::String("secondary".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(mutation.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(
+        mutation.invalidation.dirty,
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        }
+    );
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        }
+    );
+    assert!(
+        !surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .state_flags
+            .dirty
+    );
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_report_phases(
+        &surface,
+        report,
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        },
+        ExpectedPhases {
+            layout: false,
+            arranged: false,
+            hit_grid: false,
+            render: true,
+        },
+    );
+    assert_dirty_cleared(&surface);
+}
+
+#[test]
+fn surface_dirty_text_edit_visual_metadata_stays_render_only() {
+    let mut surface = test_surface();
+    let metadata = UiTemplateNodeMetadata {
+        component: "TextField".to_string(),
+        control_id: Some("DirtyDomainTextField".to_string()),
+        attributes: toml::from_str(
+            r#"
+value = "Runtime"
+caret_offset = 3
+selection_anchor = 3
+selection_focus = 3
+composition_text = ""
+"#,
+        )
+        .unwrap(),
+        ..Default::default()
+    };
+    surface
+        .tree
+        .node_mut(button_id())
+        .expect("button node should exist")
+        .template_metadata = Some(metadata);
+    surface.clear_dirty_flags();
+
+    let mutation = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            button_id(),
+            "caret_offset",
+            UiValue::Int(4),
+        ))
+        .unwrap();
+
+    assert_eq!(mutation.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(
+        mutation.invalidation.dirty,
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        }
+    );
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        }
+    );
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_report_phases(
+        &surface,
+        report,
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        },
+        ExpectedPhases {
+            layout: false,
+            arranged: false,
+            hit_grid: false,
+            render: true,
+        },
+    );
+    assert_dirty_cleared(&surface);
+}
+
+#[test]
+fn surface_dirty_render_only_dispatch_effect_does_not_trigger_hit_or_input_rebuild() {
+    let mut surface = test_surface();
+    surface.clear_dirty_flags();
+
+    let result = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled().with_effect(UiDispatchEffect::DirtyRedraw {
+            target: button_id(),
+            dirty: UiDirtyFlags {
+                render: true,
+                ..Default::default()
+            },
+            reason: UiRedrawRequestReason::Style,
+        }),
+    );
+
+    assert!(result.rejected_effects.is_empty());
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        }
+    );
+    assert!(
+        !surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .state_flags
+            .dirty
+    );
+
+    let report = surface.rebuild_dirty(root_size()).unwrap();
+
+    assert_report_phases(
+        &surface,
+        report,
+        UiDirtyFlags {
+            render: true,
+            ..Default::default()
+        },
+        ExpectedPhases {
+            layout: false,
+            arranged: false,
+            hit_grid: false,
+            render: true,
+        },
+    );
+    assert_dirty_cleared(&surface);
+}
+
+#[test]
+fn surface_dirty_route_state_mutations_keep_legacy_dirty_for_bridges() {
+    let mut surface = test_surface();
+
+    let visibility = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            button_id(),
+            "visibility",
+            UiValue::Enum("hidden".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(visibility.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(
+        surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .visibility,
+        UiVisibility::Hidden
+    );
+    assert!(
+        surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .state_flags
+            .dirty
+    );
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            hit_test: true,
+            render: true,
+            input: true,
+            ..Default::default()
+        }
+    );
+
+    surface.clear_dirty_flags();
+    let input_policy = surface
+        .mutate_property(UiPropertyMutationRequest::new(
+            button_id(),
+            "input_policy",
+            UiValue::Enum("ignore".to_string()),
+        ))
+        .unwrap();
+
+    assert_eq!(input_policy.status, UiPropertyMutationStatus::Accepted);
+    assert_eq!(
+        surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .input_policy,
+        UiInputPolicy::Ignore
+    );
+    assert!(
+        surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .state_flags
+            .dirty
+    );
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            hit_test: true,
+            render: true,
+            input: true,
+            ..Default::default()
+        }
+    );
+}
+
+#[test]
+fn surface_dirty_layout_marking_keeps_structured_domains_precise() {
+    let mut surface = test_surface();
+
+    surface.tree.mark_layout_dirty(button_id()).unwrap();
+
+    assert_eq!(
+        surface.dirty_flags(),
+        UiDirtyFlags {
+            layout: true,
+            hit_test: true,
+            render: true,
+            ..Default::default()
+        }
+    );
+    assert!(
+        !surface
+            .tree
+            .node(button_id())
+            .expect("button node should exist")
+            .state_flags
+            .dirty
+    );
+    assert!(
+        !surface
+            .tree
+            .node(root_id())
+            .expect("root node should exist")
+            .state_flags
+            .dirty
+    );
+}
+
 fn test_surface() -> UiSurface {
     let mut surface = UiSurface::new(UiTreeId::new("runtime.ui.dirty_domains"));
     surface.tree.insert_root(
@@ -414,6 +718,18 @@ fn pointer_state() -> UiStateFlags {
         checked: false,
         dirty: false,
     }
+}
+
+fn keyboard_event() -> UiInputEvent {
+    UiInputEvent::Keyboard(UiKeyboardInputEvent {
+        metadata: Default::default(),
+        state: UiKeyboardInputState::Pressed,
+        key_code: 13,
+        scan_code: None,
+        physical_key: "Enter".to_string(),
+        logical_key: "Enter".to_string(),
+        text: None,
+    })
 }
 
 fn fixed_constraint(size: f32) -> AxisConstraint {

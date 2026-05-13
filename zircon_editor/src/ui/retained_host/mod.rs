@@ -22,6 +22,7 @@ mod viewport;
 pub(crate) mod viewport_toolbar_pointer;
 pub(crate) mod welcome_recent_pointer;
 
+pub(crate) use app::HostInvalidationMask;
 pub(crate) use host_contract::*;
 
 #[cfg(test)]

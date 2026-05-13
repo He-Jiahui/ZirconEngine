@@ -10,7 +10,7 @@ fn host_side_activity_rails_use_projected_toml_template_nodes() {
         source("src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs");
     let scene_projection =
         source("src/ui/layouts/windows/workbench_host_window/scene_projection.rs");
-    let activity_asset = source("assets/ui/editor/workbench_activity_rail.ui.toml");
+    let activity_asset = source("assets/ui/editor/workbench_activity_rail.v2.ui.toml");
 
     for required in ["rail_nodes", "rail_button_frames", "rail_active_control_id"] {
         assert!(

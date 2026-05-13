@@ -18,9 +18,7 @@ use super::{
         UiAssetThemeRuleHelperAction,
     },
     theme_summary::reconcile_selected_theme_source_key,
-    ui_asset_editor_session::{
-        serialize_document, UiAssetEditorSession, UiAssetEditorSessionError,
-    },
+    ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
     undo_stack::UiAssetEditorUndoExternalEffects,
 };
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiStyleRule, UiStyleSheet};
@@ -119,7 +117,7 @@ impl UiAssetEditorSession {
             UiAssetEditorCommand::tree_edit(
                 UiAssetEditorTreeEditKind::DocumentEdit,
                 "Clone Imported Theme",
-                serialize_document(&document)?,
+                self.serialize_document_for_current_schema(&document)?,
             )
             .with_document_replay(replay),
             UiAssetEditorUndoExternalEffects::default(),

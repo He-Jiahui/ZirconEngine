@@ -1,0 +1,41 @@
+[asset]
+kind = "view"
+id = "editor.host.floating_window.source"
+version = 2
+display_name = "floating window source"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "FloatingWindowSourceRoot"
+classes = ["floating-window-source"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_bar" }, { node = "center_band" }, { node = "status_bar" }]
+
+[nodes.top_bar]
+component = "Container"
+control_id = "FloatingWindowTopBarRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.center_band]
+component = "HorizontalGroup"
+control_id = "FloatingWindowCenterBandRoot"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "rail" }, { node = "document" }]
+
+[nodes.rail]
+component = "Container"
+control_id = "FloatingWindowRailRoot"
+layout = { clip = true, width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.document]
+component = "Container"
+control_id = "FloatingWindowDocumentRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_bar]
+component = "Container"
+control_id = "FloatingWindowStatusBarRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }

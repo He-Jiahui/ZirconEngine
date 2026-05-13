@@ -1,4 +1,5 @@
 use crate::core::editor_event::{EditorEventEffect, EditorViewportEvent};
+use crate::scene::viewport::ViewportFeedback;
 use crate::ui::binding::ViewportCommand;
 use crate::EditorIntent;
 
@@ -101,31 +102,63 @@ pub(super) fn execute_viewport_event(
             .state
             .apply_viewport_command(&ViewportCommand::FrameSelection),
     };
+    let structural_viewport_change = structural_viewport_event(event);
+    let changed = structural_viewport_change
+        || feedback.camera_updated
+        || feedback.transformed_node.is_some()
+        || feedback.hovered_axis.is_some();
     Ok(ExecutionOutcome {
-        changed: matches!(
-            event,
-            EditorViewportEvent::LeftReleased
-                | EditorViewportEvent::Resized { .. }
-                | EditorViewportEvent::SetTool { .. }
-                | EditorViewportEvent::SetTransformSpace { .. }
-                | EditorViewportEvent::SetProjectionMode { .. }
-                | EditorViewportEvent::AlignView { .. }
-                | EditorViewportEvent::SetDisplayMode { .. }
-                | EditorViewportEvent::SetGridMode { .. }
-                | EditorViewportEvent::SetTranslateSnap { .. }
-                | EditorViewportEvent::SetRotateSnapDegrees { .. }
-                | EditorViewportEvent::SetScaleSnap { .. }
-                | EditorViewportEvent::SetPreviewLighting { .. }
-                | EditorViewportEvent::SetPreviewSkybox { .. }
-                | EditorViewportEvent::SetGizmosEnabled { .. }
-                | EditorViewportEvent::FrameSelection
-        ) || feedback.camera_updated
-            || feedback.transformed_node.is_some()
-            || feedback.hovered_axis.is_some(),
-        effects: vec![
-            EditorEventEffect::RenderChanged,
-            EditorEventEffect::PresentationChanged,
-            EditorEventEffect::ReflectionChanged,
-        ],
+        changed,
+        effects: viewport_effects(event, &feedback, structural_viewport_change),
     })
+}
+
+fn structural_viewport_event(event: &EditorViewportEvent) -> bool {
+    matches!(
+        event,
+        EditorViewportEvent::LeftReleased
+            | EditorViewportEvent::Resized { .. }
+            | EditorViewportEvent::SetTool { .. }
+            | EditorViewportEvent::SetTransformSpace { .. }
+            | EditorViewportEvent::SetProjectionMode { .. }
+            | EditorViewportEvent::AlignView { .. }
+            | EditorViewportEvent::SetDisplayMode { .. }
+            | EditorViewportEvent::SetGridMode { .. }
+            | EditorViewportEvent::SetTranslateSnap { .. }
+            | EditorViewportEvent::SetRotateSnapDegrees { .. }
+            | EditorViewportEvent::SetScaleSnap { .. }
+            | EditorViewportEvent::SetPreviewLighting { .. }
+            | EditorViewportEvent::SetPreviewSkybox { .. }
+            | EditorViewportEvent::SetGizmosEnabled { .. }
+            | EditorViewportEvent::FrameSelection
+    )
+}
+
+fn viewport_effects(
+    _event: &EditorViewportEvent,
+    feedback: &ViewportFeedback,
+    structural_viewport_change: bool,
+) -> Vec<EditorEventEffect> {
+    let mut effects = Vec::new();
+
+    if structural_viewport_change
+        || feedback.camera_updated
+        || feedback.transformed_node.is_some()
+        || feedback.hovered_axis.is_some()
+    {
+        effects.push(EditorEventEffect::RenderChanged);
+    }
+
+    if structural_viewport_change
+        || feedback.transformed_node.is_some()
+        || feedback.hovered_axis.is_some()
+    {
+        effects.push(EditorEventEffect::PresentationChanged);
+    }
+
+    if structural_viewport_change || feedback.transformed_node.is_some() {
+        effects.push(EditorEventEffect::ReflectionChanged);
+    }
+
+    effects
 }

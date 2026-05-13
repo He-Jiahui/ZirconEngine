@@ -8,7 +8,7 @@ use super::support::sample_activity_rail_layout;
 #[test]
 fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {
     let mut bridge = HostActivityRailPointerBridge::new();
-    bridge.sync(sample_activity_rail_layout());
+    assert!(bridge.sync(sample_activity_rail_layout()));
 
     let left = bridge
         .handle_click(HostActivityRailPointerSide::Left, UiPoint::new(15.0, 20.0))
@@ -41,7 +41,7 @@ fn shared_activity_rail_pointer_bridge_routes_left_and_right_button_hits() {
 fn shared_activity_rail_pointer_bridge_accepts_projected_global_points() {
     let mut bridge = HostActivityRailPointerBridge::new();
     let layout = sample_activity_rail_layout();
-    bridge.sync(layout.clone());
+    assert!(bridge.sync(layout.clone()));
 
     let left = bridge
         .handle_click(
@@ -61,4 +61,13 @@ fn shared_activity_rail_pointer_bridge_accepts_projected_global_points() {
             instance_id: "editor.project#1".to_string(),
         })
     );
+}
+
+#[test]
+fn shared_activity_rail_pointer_bridge_skips_rebuild_for_unchanged_layout() {
+    let mut bridge = HostActivityRailPointerBridge::new();
+    let layout = sample_activity_rail_layout();
+
+    assert!(bridge.sync(layout.clone()));
+    assert!(!bridge.sync(layout));
 }

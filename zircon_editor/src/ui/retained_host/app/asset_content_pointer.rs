@@ -20,7 +20,7 @@ impl RetainedEditorHost {
         }
         self.active_scene_drag_payload = None;
         self.active_object_drag_payload = None;
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
             self.active_asset_drag_payload = None;
@@ -96,7 +96,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
@@ -173,7 +173,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
@@ -227,7 +227,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
-        self.recompute_if_dirty();
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         let Some(snapshot) = self.asset_workspace_snapshot_for_pointer(surface_mode) else {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));

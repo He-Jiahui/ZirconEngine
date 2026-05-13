@@ -1,0 +1,66 @@
+[asset]
+kind = "view"
+id = "runtime.ui.settings_dialog"
+version = 2
+display_name = "Runtime Settings Dialog"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "settings_root"
+
+[nodes.settings_root]
+component = "Overlay"
+control_id = "SettingsRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [{ node = "scrim" }, { node = "dialog_panel" }, { node = "nav_panel" }, { node = "content_panel" }, { node = "audio_row" }, { node = "graphics_row" }, { node = "apply_button" }, { node = "cancel_button" }]
+
+[nodes.scrim]
+component = "Container"
+control_id = "SettingsScrim"
+props = { background = { color = "#0d1117cc" } }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.dialog_panel]
+component = "Container"
+control_id = "SettingsDialog"
+props = { background = { color = "#1f2933" }, border = { color = "#83b6d8", width = 2.0, radius = 16.0 } }
+layout = { width = { min = 760.0, preferred = 760.0, max = 760.0, stretch = "Fixed" }, height = { min = 460.0, preferred = 460.0, max = 460.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.5, y = 0.5 }, position = { x = 0.0, y = 0.0 } }
+
+[nodes.nav_panel]
+component = "Container"
+control_id = "SettingsNav"
+props = { text = "Graphics\nAudio\nGameplay", background = { color = "#13212e" }, border = { color = "#5aa8d8", width = 1.0, radius = 12.0 }, foreground = { color = "#e6f6ff" } }
+layout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, height = { min = 360.0, preferred = 360.0, max = 360.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 0.5 }, position = { x = -170.0, y = -12.0 } }
+
+[nodes.content_panel]
+component = "Container"
+control_id = "SettingsContent"
+props = { background = { color = "#243241" }, border = { color = "#99cce8", width = 1.0, radius = 12.0 } }
+layout = { width = { min = 420.0, preferred = 420.0, max = 420.0, stretch = "Fixed" }, height = { min = 360.0, preferred = 360.0, max = 360.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.5 }, position = { x = -130.0, y = -12.0 } }
+
+[nodes.audio_row]
+component = "Button"
+control_id = "AudioVolume"
+props = { text = "Master Volume    78%", background = { color = "#31465c" }, border = { color = "#a7d4f0", width = 1.0, radius = 10.0 }, foreground = { color = "#f3fbff" } }
+layout = { width = { min = 360.0, preferred = 360.0, max = 360.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.0 }, position = { x = -100.0, y = -130.0 } }
+
+[nodes.graphics_row]
+component = "Button"
+control_id = "GraphicsQuality"
+props = { text = "Graphics Quality    Epic", background = { color = "#31465c" }, border = { color = "#a7d4f0", width = 1.0, radius = 10.0 }, foreground = { color = "#f3fbff" } }
+layout = { width = { min = 360.0, preferred = 360.0, max = 360.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 0.0, y = 0.0 }, position = { x = -100.0, y = -56.0 } }
+
+[nodes.apply_button]
+component = "Button"
+control_id = "ApplySettings"
+props = { text = "Apply", background = { color = "#2f5d34" }, border = { color = "#c7ebb0", width = 1.0, radius = 10.0 }, foreground = { color = "#f6fff0" } }
+layout = { width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 278.0, y = 194.0 } }
+
+[nodes.cancel_button]
+component = "Button"
+control_id = "CancelSettings"
+props = { text = "Cancel", background = { color = "#3e3030" }, border = { color = "#f0c7c7", width = 1.0, radius = 10.0 }, foreground = { color = "#fff3f3" } }
+layout = { width = { min = 168.0, preferred = 168.0, max = 168.0, stretch = "Fixed" }, height = { min = 46.0, preferred = 46.0, max = 46.0, stretch = "Fixed" }, anchor = { x = 0.5, y = 0.5 }, pivot = { x = 1.0, y = 1.0 }, position = { x = 94.0, y = 194.0 } }

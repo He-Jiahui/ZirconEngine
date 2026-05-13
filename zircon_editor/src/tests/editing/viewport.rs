@@ -59,6 +59,28 @@ fn viewport_overlay_pointer_router_prefers_handle_axis_over_renderable_candidate
 }
 
 #[test]
+fn viewport_overlay_pointer_router_skips_rebuild_for_unchanged_layout() {
+    let viewport = UVec2::new(1280, 720);
+    let camera = test_camera();
+    let layout = ViewportPointerLayout {
+        viewport,
+        camera: camera.clone(),
+        handles: Vec::new(),
+        scene_gizmos: Vec::new(),
+        renderables: vec![ViewportRenderablePickCandidate {
+            owner: 13,
+            position: Vec3::new(-0.75, 0.1, 0.0),
+            radius_world: 1.0,
+        }],
+    };
+
+    let mut router = ViewportOverlayPointerRouter::new();
+
+    assert!(router.sync(layout.clone()));
+    assert!(!router.sync(layout));
+}
+
+#[test]
 fn viewport_overlay_pointer_router_prefers_scene_gizmo_over_renderable_candidate() {
     let viewport = UVec2::new(1280, 720);
     let camera = test_camera();

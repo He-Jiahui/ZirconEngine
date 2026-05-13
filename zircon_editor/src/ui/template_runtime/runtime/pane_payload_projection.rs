@@ -1,10 +1,12 @@
+use std::collections::BTreeMap;
+
 use toml::{Table, Value};
 
 use crate::ui::layouts::windows::workbench_host_window::{PaneBodyPresentation, PanePayload};
 use crate::ui::template::{
     EditorTemplateAdapter, EditorTemplateRegistry, EditorTemplateRuntimeService,
 };
-use crate::ui::template_runtime::RetainedUiProjection;
+use crate::ui::template_runtime::{RetainedUiNodeProjection, RetainedUiProjection};
 use zircon_runtime_interface::ui::template::UiTemplateNode;
 
 use super::{projection::project_instance, runtime_host::EditorUiHostRuntimeError};
@@ -24,47 +26,60 @@ pub(super) fn project_pane_body(
 }
 
 fn inject_pane_body_attributes(root: &mut UiTemplateNode, body: &PaneBodyPresentation) {
-    root.attributes.insert(
+    root.attributes.extend(pane_body_attributes(body));
+}
+
+pub(super) fn inject_pane_projection_attributes(
+    root: &mut RetainedUiNodeProjection,
+    body: &PaneBodyPresentation,
+) {
+    root.attributes.extend(pane_body_attributes(body));
+}
+
+fn pane_body_attributes(body: &PaneBodyPresentation) -> BTreeMap<String, Value> {
+    let mut attributes = BTreeMap::new();
+    attributes.insert(
         "pane_document_id".to_string(),
         Value::String(body.document_id.clone()),
     );
-    root.attributes.insert(
+    attributes.insert(
         "pane_payload_kind".to_string(),
         Value::String(format!("{:?}", body.payload_kind)),
     );
-    root.attributes.insert(
+    attributes.insert(
         "pane_route_namespace".to_string(),
         Value::String(format!("{:?}", body.route_namespace)),
     );
-    root.attributes.insert(
+    attributes.insert(
         "pane_interaction_mode".to_string(),
         Value::String(format!("{:?}", body.interaction_mode)),
     );
-    inject_payload_attributes(root, &body.payload);
+    inject_payload_attributes(&mut attributes, &body.payload);
+    attributes
 }
 
-fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
+fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: &PanePayload) {
     match payload {
         PanePayload::ConsoleV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_status_text".to_string(),
                 Value::String(payload.status_text.clone()),
             );
         }
         PanePayload::InspectorV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_node_id".to_string(),
                 Value::Integer(i64::try_from(payload.node_id).unwrap_or(i64::MAX)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_name".to_string(),
                 Value::String(payload.name.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_parent".to_string(),
                 Value::String(payload.parent.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_translation".to_string(),
                 Value::Array(
                     payload
@@ -75,29 +90,29 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
                         .collect(),
                 ),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_translation_x".to_string(),
                 Value::String(payload.translation[0].clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_translation_y".to_string(),
                 Value::String(payload.translation[1].clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_translation_z".to_string(),
                 Value::String(payload.translation[2].clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_delete_enabled".to_string(),
                 Value::Boolean(payload.delete_enabled),
             );
         }
         PanePayload::HierarchyV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_node_count".to_string(),
                 Value::Integer(i64::try_from(payload.nodes.len()).unwrap_or(i64::MAX)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_nodes".to_string(),
                 Value::Array(
                     payload
@@ -120,125 +135,125 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
             );
         }
         PanePayload::AnimationSequenceV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_mode".to_string(),
                 Value::String(payload.mode.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_asset_path".to_string(),
                 Value::String(payload.asset_path.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_status".to_string(),
                 Value::String(payload.status.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_selection".to_string(),
                 Value::String(payload.selection.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_current_frame".to_string(),
                 Value::Integer(i64::from(payload.current_frame)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_timeline_start_frame".to_string(),
                 Value::Integer(i64::from(payload.timeline_start_frame)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_timeline_end_frame".to_string(),
                 Value::Integer(i64::from(payload.timeline_end_frame)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_playback_label".to_string(),
                 Value::String(payload.playback_label.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_track_items".to_string(),
                 string_array(&payload.track_items),
             );
         }
         PanePayload::AnimationGraphV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_mode".to_string(),
                 Value::String(payload.mode.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_asset_path".to_string(),
                 Value::String(payload.asset_path.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_status".to_string(),
                 Value::String(payload.status.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_selection".to_string(),
                 Value::String(payload.selection.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_parameter_items".to_string(),
                 string_array(&payload.parameter_items),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_node_items".to_string(),
                 string_array(&payload.node_items),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_state_items".to_string(),
                 string_array(&payload.state_items),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_transition_items".to_string(),
                 string_array(&payload.transition_items),
             );
         }
         PanePayload::RuntimeDiagnosticsV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_summary".to_string(),
                 Value::String(payload.summary.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_render_status".to_string(),
                 Value::String(payload.render_status.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_physics_status".to_string(),
                 Value::String(payload.physics_status.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_animation_status".to_string(),
                 Value::String(payload.animation_status.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_detail_items".to_string(),
                 string_array(&payload.detail_items),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_ui_debug_reflector_summary".to_string(),
                 Value::String(payload.ui_debug_reflector_summary.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_ui_debug_reflector_nodes".to_string(),
                 string_array(&payload.ui_debug_reflector_nodes),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_ui_debug_reflector_details".to_string(),
                 string_array(&payload.ui_debug_reflector_details),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_ui_debug_reflector_export_status".to_string(),
                 Value::String(payload.ui_debug_reflector_export_status.clone()),
             );
         }
         PanePayload::ModulePluginsV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_diagnostics".to_string(),
                 Value::String(payload.diagnostics.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_plugin_count".to_string(),
                 Value::Integer(i64::try_from(payload.plugins.len()).unwrap_or(i64::MAX)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_plugins".to_string(),
                 Value::Array(
                     payload
@@ -299,15 +314,15 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
             );
         }
         PanePayload::BuildExportV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_diagnostics".to_string(),
                 Value::String(payload.diagnostics.clone()),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_target_count".to_string(),
                 Value::Integer(i64::try_from(payload.targets.len()).unwrap_or(i64::MAX)),
             );
-            root.attributes.insert(
+            attributes.insert(
                 "payload_targets".to_string(),
                 Value::Array(
                     payload
@@ -345,7 +360,7 @@ fn inject_payload_attributes(root: &mut UiTemplateNode, payload: &PanePayload) {
             );
         }
         PanePayload::UiComponentShowcaseV1(payload) => {
-            root.attributes.insert(
+            attributes.insert(
                 "payload_state_summary".to_string(),
                 Value::String(payload.state_summary.clone()),
             );
@@ -385,6 +400,30 @@ fn append_hybrid_slot_anchor(root: &mut UiTemplateNode, body: &PaneBodyPresentat
         control_id: Some(control_id.to_string()),
         attributes,
         ..Default::default()
+    });
+}
+
+pub(super) fn append_hybrid_slot_anchor_projection(
+    root: &mut RetainedUiNodeProjection,
+    body: &PaneBodyPresentation,
+) {
+    let Some((control_id, slot_name)) = hybrid_slot_anchor(body) else {
+        return;
+    };
+
+    let mut attributes = pane_body_attributes(body);
+    attributes.insert(
+        "slot_name".to_string(),
+        Value::String(slot_name.to_string()),
+    );
+
+    root.children.push(RetainedUiNodeProjection {
+        component: "HybridSlotAnchor".to_string(),
+        control_id: Some(control_id.to_string()),
+        attributes,
+        style_tokens: BTreeMap::new(),
+        binding_ids: Vec::new(),
+        children: Vec::new(),
     });
 }
 

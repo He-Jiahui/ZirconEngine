@@ -7,10 +7,15 @@ impl WelcomeRecentPointerBridge {
         &mut self,
         layout: WelcomeRecentPointerLayout,
         state: WelcomeRecentPointerState,
-    ) {
+    ) -> bool {
+        if self.layout == layout && self.state == state {
+            return false;
+        }
+
         self.layout = layout;
         self.state = state;
         self.clamp_scroll_offset();
         self.rebuild_surface();
+        true
     }
 }

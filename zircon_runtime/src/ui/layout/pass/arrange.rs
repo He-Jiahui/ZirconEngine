@@ -13,6 +13,7 @@ use super::child_frame::{free_child_frame, linear_child_frame, scrollable_child_
 use super::clip::resolve_clip_frame;
 use super::measure::measure_wrap_content_size_for_width;
 use super::slot::{ordered_children_for_container, slot_for_container_child, slot_padding};
+use super::taffy_arrange::try_arrange_taffy_owned_children;
 
 pub(crate) fn arrange_node(
     tree: &mut UiTree,
@@ -64,33 +65,42 @@ pub(crate) fn arrange_node(
                 hide_subtree_layout(tree, child_id)?;
             }
         }
+        UiContainerKind::SizeBox(config) => {
+            arrange_size_box_children(tree, node_id, &children, frame, next_clip, config)?;
+        }
         UiContainerKind::HorizontalBox(config) => {
-            arrange_linear_children(
-                tree,
-                node_id,
-                &children,
-                frame,
-                next_clip,
-                UiAxis::Horizontal,
-                config.gap,
-            )?;
+            if !try_arrange_taffy_owned_children(tree, node_id, &children, frame, next_clip)? {
+                arrange_linear_children(
+                    tree,
+                    node_id,
+                    &children,
+                    frame,
+                    next_clip,
+                    UiAxis::Horizontal,
+                    config.gap,
+                )?;
+            }
         }
         UiContainerKind::VerticalBox(config) => {
-            arrange_linear_children(
-                tree,
-                node_id,
-                &children,
-                frame,
-                next_clip,
-                UiAxis::Vertical,
-                config.gap,
-            )?;
+            if !try_arrange_taffy_owned_children(tree, node_id, &children, frame, next_clip)? {
+                arrange_linear_children(
+                    tree,
+                    node_id,
+                    &children,
+                    frame,
+                    next_clip,
+                    UiAxis::Vertical,
+                    config.gap,
+                )?;
+            }
         }
         UiContainerKind::ScrollableBox(config) => {
             arrange_scrollable_children(tree, node_id, &children, frame, next_clip, config)?;
         }
         UiContainerKind::WrapBox(config) => {
-            arrange_wrap_children(tree, node_id, &children, frame, next_clip, config)?;
+            if !try_arrange_taffy_owned_children(tree, node_id, &children, frame, next_clip)? {
+                arrange_wrap_children(tree, node_id, &children, frame, next_clip, config)?;
+            }
 
             let content_size = wrap_content_size(tree, node_id, &children, config, frame.width)?;
             let node = tree
@@ -99,7 +109,9 @@ pub(crate) fn arrange_node(
             node.layout_cache.content_size = content_size;
         }
         UiContainerKind::GridBox(config) => {
-            arrange_grid_children(tree, node_id, &children, frame, next_clip, config)?;
+            if !try_arrange_taffy_owned_children(tree, node_id, &children, frame, next_clip)? {
+                arrange_grid_children(tree, node_id, &children, frame, next_clip, config)?;
+            }
         }
     }
 
@@ -111,6 +123,61 @@ pub(crate) fn arrange_node(
     }
 
     Ok(())
+}
+
+fn arrange_size_box_children(
+    tree: &mut UiTree,
+    parent_id: UiNodeId,
+    children: &[UiNodeId],
+    frame: UiFrame,
+    inherited_clip: Option<UiFrame>,
+    config: zircon_runtime_interface::ui::layout::UiSizeBoxConfig,
+) -> Result<(), UiTreeError> {
+    let container = UiContainerKind::SizeBox(config);
+    let content_frame = size_box_content_frame(frame, config.aspect_ratio);
+    let children = ordered_children_for_container(tree, parent_id, children, container);
+    for child_id in children {
+        let child_frame = {
+            let slot = slot_for_container_child(tree, parent_id, child_id, container);
+            free_child_frame(tree, child_id, content_frame, slot)?
+        };
+        arrange_node(tree, child_id, child_frame, inherited_clip)?;
+    }
+    Ok(())
+}
+
+fn size_box_content_frame(frame: UiFrame, aspect_ratio: f32) -> UiFrame {
+    let Some(aspect_ratio) = normalized_aspect_ratio(aspect_ratio) else {
+        return frame;
+    };
+    if frame.width <= 0.0 || frame.height <= 0.0 {
+        return frame;
+    }
+
+    let height_from_width = frame.width / aspect_ratio;
+    if height_from_width <= frame.height {
+        return UiFrame::new(
+            frame.x,
+            frame.y + (frame.height - height_from_width) * 0.5,
+            frame.width,
+            height_from_width,
+        );
+    }
+
+    let width_from_height = frame.height * aspect_ratio;
+    UiFrame::new(
+        frame.x + (frame.width - width_from_height) * 0.5,
+        frame.y,
+        width_from_height,
+        frame.height,
+    )
+}
+
+fn normalized_aspect_ratio(aspect_ratio: f32) -> Option<f32> {
+    aspect_ratio
+        .is_finite()
+        .then_some(aspect_ratio)
+        .filter(|ratio| *ratio > 0.0)
 }
 
 fn wrap_content_size(

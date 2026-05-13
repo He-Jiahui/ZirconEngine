@@ -1,0 +1,102 @@
+[asset]
+kind = "component"
+id = "editor.host.activity_drawer_window"
+version = 2
+display_name = "activity drawer window"
+
+[components.ActivityDrawerWindow]
+root = "root"
+
+[components.ActivityDrawerWindow.slots.left_top_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.left_bottom_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.right_top_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.right_bottom_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.bottom_left_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.bottom_right_activity]
+multiple = true
+
+[components.ActivityDrawerWindow.slots.content]
+multiple = true
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowRoot"
+classes = ["activity-drawer-window"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "center_band" }, { node = "bottom_band" }]
+
+[nodes.center_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowCenterBand"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_column" }, { node = "content_slot" }, { node = "right_column" }]
+
+[nodes.left_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowLeftColumn"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 240.0, preferred = 280.0, max = 420.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_top_slot" }, { node = "left_bottom_slot" }]
+
+[nodes.left_top_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowLeftTopSlot"
+props = { name = "left_top_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.left_bottom_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowLeftBottomSlot"
+props = { name = "left_bottom_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.content_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowContentSlot"
+props = { name = "content" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_column]
+component = "VerticalGroup"
+control_id = "ActivityDrawerWindowRightColumn"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { min = 240.0, preferred = 300.0, max = 460.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "right_top_slot" }, { node = "right_bottom_slot" }]
+
+[nodes.right_top_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowRightTopSlot"
+props = { name = "right_top_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_bottom_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowRightBottomSlot"
+props = { name = "right_bottom_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.bottom_band]
+component = "HorizontalGroup"
+control_id = "ActivityDrawerWindowBottomBand"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 170.0, preferred = 220.0, max = 320.0, stretch = "Fixed" } }
+children = [{ node = "bottom_left_slot" }, { node = "bottom_right_slot" }]
+
+[nodes.bottom_left_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowBottomLeftSlot"
+props = { name = "bottom_left_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.bottom_right_slot]
+component = "Slot"
+control_id = "ActivityDrawerWindowBottomRightSlot"
+props = { name = "bottom_right_activity" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

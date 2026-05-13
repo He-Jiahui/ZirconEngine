@@ -13,12 +13,12 @@ use super::{
     HostWindowSurfaceMetricsData, TabData,
 };
 
-const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.ui.toml";
-const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.ui.toml";
-const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.ui.toml";
-const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.ui.toml";
-const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.ui.toml";
-const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.ui.toml";
+const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
+const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.v2.ui.toml";
+const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.v2.ui.toml";
+const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.v2.ui.toml";
+const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.v2.ui.toml";
+const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.v2.ui.toml";
 
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 pub(super) const MENU_SLOT_COUNT: usize = 7;
@@ -458,6 +458,7 @@ fn indexed_row_step(row_templates: &BTreeMap<usize, ViewTemplateNodeData>, fallb
 pub(super) fn page_chrome_nodes(
     tabs: &ModelRc<TabData>,
     project_path: &SharedString,
+    shell_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -483,6 +484,19 @@ pub(super) fn page_chrome_nodes(
     if tab_chrome_needs_fallback(&nodes, PAGE_BAR_CONTROL_ID, PAGE_TAB_PREFIX, tabs) {
         return fallback_page_chrome_nodes(tabs, project_path, width, height);
     }
+    if shell_preset_id.as_str() == "jetbrains_shell" {
+        return model_rc(
+            (0..nodes.row_count())
+                .filter_map(|row| nodes.row_data(row))
+                .map(|mut node| {
+                    if node.control_id == PAGE_PROJECT_PATH_CONTROL_ID {
+                        node.text_tone = "muted".into();
+                    }
+                    node
+                })
+                .collect(),
+        );
+    }
     nodes
 }
 
@@ -503,6 +517,7 @@ pub(super) fn page_project_path_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> 
 
 pub(super) fn activity_rail_nodes(
     tabs: &ModelRc<TabData>,
+    shell_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -515,6 +530,7 @@ pub(super) fn activity_rail_nodes(
             &BTreeMap::new(),
         ),
         tabs,
+        shell_preset_id,
     ))
 }
 
@@ -535,6 +551,7 @@ pub(super) fn activity_rail_active_control_id(tabs: &ModelRc<TabData>) -> Shared
 fn expand_activity_rail_button_nodes(
     raw_nodes: Vec<ViewTemplateNodeData>,
     tabs: &ModelRc<TabData>,
+    shell_preset_id: &SharedString,
 ) -> Vec<ViewTemplateNodeData> {
     let mut output_nodes = Vec::new();
     let mut button_templates = BTreeMap::new();
@@ -586,6 +603,9 @@ fn expand_activity_rail_button_nodes(
             if tab.active {
                 icon_node.text_tone = "default".into();
                 icon_node.font_weight = 700;
+            } else if shell_preset_id.as_str() == "jetbrains_shell" {
+                icon_node.text_tone = "subtle".into();
+                icon_node.font_weight = 600;
             } else {
                 icon_node.text_tone = "muted".into();
                 icon_node.font_weight = 600;
@@ -641,6 +661,7 @@ fn normalized_chrome_icon_key(value: &str) -> Option<String> {
 
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -657,12 +678,26 @@ pub(super) fn side_dock_header_nodes(
     if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
         return fallback_dock_header_nodes(tabs, &"".into(), width, height);
     }
+    if panel_preset_id.as_str() == "fyrox_panel" {
+        return model_rc(
+            (0..nodes.row_count())
+                .filter_map(|row| nodes.row_data(row))
+                .map(|mut node| {
+                    if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
+                        node.text_tone = "muted".into();
+                    }
+                    node
+                })
+                .collect(),
+        );
+    }
     nodes
 }
 
 pub(super) fn document_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     subtitle: &SharedString,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -680,11 +715,27 @@ pub(super) fn document_dock_header_nodes(
     if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
         return fallback_dock_header_nodes(tabs, subtitle, width, height);
     }
+    if panel_preset_id.as_str() == "fyrox_panel" {
+        return model_rc(
+            (0..nodes.row_count())
+                .filter_map(|row| nodes.row_data(row))
+                .map(|mut node| {
+                    if node.control_id == DOCK_SUBTITLE_CONTROL_ID {
+                        node.text_tone = "muted".into();
+                    } else if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
+                        node.text_tone = "muted".into();
+                    }
+                    node
+                })
+                .collect(),
+        );
+    }
     nodes
 }
 
 pub(super) fn bottom_dock_header_nodes(
     tabs: &ModelRc<TabData>,
+    panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -700,6 +751,19 @@ pub(super) fn bottom_dock_header_nodes(
     );
     if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
         return fallback_dock_header_nodes(tabs, &"".into(), width, height);
+    }
+    if panel_preset_id.as_str() == "fyrox_panel" {
+        return model_rc(
+            (0..nodes.row_count())
+                .filter_map(|row| nodes.row_data(row))
+                .map(|mut node| {
+                    if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
+                        node.text_tone = "muted".into();
+                    }
+                    node
+                })
+                .collect(),
+        );
     }
     nodes
 }
@@ -746,6 +810,7 @@ pub(super) fn status_bar_nodes(
     status_primary: &SharedString,
     status_secondary: &SharedString,
     viewport_label: &SharedString,
+    skin_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
@@ -763,14 +828,28 @@ pub(super) fn status_bar_nodes(
         viewport_label.to_string(),
     );
 
-    template_nodes(
+    let nodes = template_nodes(
         "host.status.bar",
         STATUS_BAR_ASSET,
         width,
         height,
         &text_overrides,
         &[],
-    )
+    );
+    if skin_id.as_str() == "material_dark" {
+        return model_rc(
+            (0..nodes.row_count())
+                .filter_map(|row| nodes.row_data(row))
+                .map(|mut node| {
+                    if node.control_id == STATUS_PRIMARY_CONTROL_ID {
+                        node.text_tone = "default".into();
+                    }
+                    node
+                })
+                .collect(),
+        );
+    }
+    nodes
 }
 
 fn tab_template_nodes(
@@ -1184,7 +1263,8 @@ mod tests {
     fn dock_header_nodes_hide_close_controls_for_non_closeable_tabs() {
         let tabs = model_rc(vec![test_tab("Welcome", true, false)]);
 
-        let nodes = document_dock_header_nodes(&tabs, &"".into(), 800.0, 31.0);
+        let nodes =
+            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 800.0, 31.0);
 
         assert!(
             maybe_node(&nodes, "DockTab0").is_some(),
@@ -1204,7 +1284,8 @@ mod tests {
     fn dock_header_nodes_keep_close_controls_for_closeable_tabs() {
         let tabs = model_rc(vec![test_tab("Scene", true, true)]);
 
-        let nodes = document_dock_header_nodes(&tabs, &"".into(), 800.0, 31.0);
+        let nodes =
+            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 800.0, 31.0);
 
         assert!(
             maybe_node(&nodes, "DockTabClose0").is_some(),
@@ -1342,7 +1423,7 @@ mod tests {
             test_tab_with_icon("Hierarchy", "hierarchy", false, false),
         ]);
 
-        let nodes = activity_rail_nodes(&tabs, 34.0, 96.0);
+        let nodes = activity_rail_nodes(&tabs, &"jetbrains_shell".into(), 34.0, 96.0);
         let project_button = node(&nodes, "ActivityRailButton0");
         let project_icon = node(&nodes, "ActivityRailButtonIcon0");
         let hierarchy_icon = node(&nodes, "ActivityRailButtonIcon1");
@@ -1369,7 +1450,13 @@ mod tests {
             test_tab_with_icon("Assets", "asset-browser", false, true),
         ]);
 
-        let page_nodes = page_chrome_nodes(&tabs, &"Demo".into(), 640.0, 64.0);
+        let page_nodes = page_chrome_nodes(
+            &tabs,
+            &"Demo".into(),
+            &"jetbrains_shell".into(),
+            640.0,
+            64.0,
+        );
         let page_scene = node(&page_nodes, "PageTab0");
         let page_assets = node(&page_nodes, "PageTab1");
 
@@ -1382,7 +1469,8 @@ mod tests {
         assert!(!page_assets.selected);
         assert_eq!(page_assets.text_tone.as_str(), "subtle");
 
-        let dock_nodes = document_dock_header_nodes(&tabs, &"".into(), 640.0, 40.0);
+        let dock_nodes =
+            document_dock_header_nodes(&tabs, &"".into(), &"fyrox_panel".into(), 640.0, 40.0);
         let dock_scene = node(&dock_nodes, "DockTab0");
         let dock_close = node(&dock_nodes, "DockTabClose0");
 
@@ -1402,6 +1490,7 @@ mod tests {
             &"Runtime ready".into(),
             &"2 warnings".into(),
             &"1920 x 1080".into(),
+            &"material_dark".into(),
             800.0,
             22.0,
         );

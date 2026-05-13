@@ -453,9 +453,11 @@ const REQUIRED_VISUAL_DENSITY_TOKEN_ALIASES: &[(&str, &str)] = &[
 #[test]
 fn material_theme_declares_m2_role_tokens_and_styles_material_classes() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let material_theme = load_document(&repo.join("assets/ui/theme/editor_material.ui.toml"));
-    let material_meta =
-        load_document(&repo.join("assets/ui/editor/material_meta_components.ui.toml"));
+    let material_theme = load_document(&legacy_ui_fixture(&repo, "theme/editor_material.ui.toml"));
+    let material_meta = load_document(&legacy_ui_fixture(
+        &repo,
+        "editor/material_meta_components.ui.toml",
+    ));
     let tokens = material_theme
         .get("tokens")
         .and_then(Value::as_table)
@@ -617,14 +619,16 @@ fn material_meta_components_carry_shared_style_defaults_on_root_nodes() {
 #[test]
 fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let material_meta =
-        load_document(&repo.join("assets/ui/editor/material_meta_components.ui.toml"));
+    let material_meta = load_document(&legacy_ui_fixture(
+        &repo,
+        "editor/material_meta_components.ui.toml",
+    ));
     let activity_rail =
-        load_document(&repo.join("assets/ui/editor/workbench_activity_rail.ui.toml"));
+        load_document(&repo.join("assets/ui/editor/workbench_activity_rail.v2.ui.toml"));
     let workbench_shell =
-        load_document(&repo.join("assets/ui/editor/host/workbench_shell.ui.toml"));
+        load_document(&repo.join("assets/ui/editor/host/workbench_shell.v2.ui.toml"));
     let inspector_controls =
-        load_document(&repo.join("assets/ui/editor/host/inspector_surface_controls.ui.toml"));
+        load_document(&repo.join("assets/ui/editor/host/inspector_surface_controls.v2.ui.toml"));
     let tokens = material_meta
         .get("tokens")
         .and_then(Value::as_table)
@@ -652,20 +656,13 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
 
     assert_number_at(
         &workbench_shell,
-        &[
-            "components",
-            "ActivityRail",
-            "root",
-            "layout",
-            "width",
-            "preferred",
-        ],
+        &["nodes", "activity_rail", "layout", "width", "preferred"],
         44.0,
         &mut failures,
     );
     assert_child_controls_max_square(
         &workbench_shell,
-        &["components", "ActivityRail", "root"],
+        &["nodes", "activity_rail"],
         "IconButton",
         32.0,
         &mut failures,
@@ -679,17 +676,23 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
         &mut failures,
     );
     assert_child_controls_max_square(&activity_rail, &["root"], "Icon", 18.0, &mut failures);
-    assert_child_controls_max_height(
+    assert_number_at(
         &workbench_shell,
-        &["components", "MenuBar", "root"],
-        "IconButton",
+        &["nodes", "menu_bar", "layout", "height", "preferred"],
         24.0,
         &mut failures,
     );
     assert_child_controls_max_height(
         &inspector_controls,
-        &["components", "InspectorSurfaceControls", "root"],
-        "reference",
+        &["root"],
+        "InputField",
+        28.0,
+        &mut failures,
+    );
+    assert_child_controls_max_height(
+        &inspector_controls,
+        &["root"],
+        "NumberField",
         28.0,
         &mut failures,
     );
@@ -699,7 +702,10 @@ fn editor_visual_density_contracts_keep_icons_and_chrome_professional_scale() {
 
 fn material_meta_document() -> Value {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    load_document(&repo.join("assets/ui/editor/material_meta_components.ui.toml"))
+    load_document(&legacy_ui_fixture(
+        &repo,
+        "editor/material_meta_components.ui.toml",
+    ))
 }
 
 fn material_components(document: &Value) -> &toml::map::Map<String, Value> {
@@ -728,6 +734,10 @@ fn load_document(path: &std::path::Path) -> Value {
     let source = std::fs::read_to_string(path).expect("ui asset is readable");
     let source = source.trim_start_matches("stylesheets = []").trim_start();
     toml::from_str(source).expect("ui asset parses as toml")
+}
+
+fn legacy_ui_fixture(repo: &std::path::Path, relative: &str) -> PathBuf {
+    repo.join("src/tests/fixtures/ui_legacy").join(relative)
 }
 
 fn stylesheet_selectors(document: &Value) -> Vec<String> {
@@ -937,6 +947,7 @@ fn value_as_number(value: &Value) -> Option<f64> {
 
 fn node_type(node: &Value) -> Option<&str> {
     node.get("type")
+        .or_else(|| node.get("component"))
         .or_else(|| node.get("kind"))
         .and_then(Value::as_str)
 }

@@ -1,0 +1,33 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.console.body"
+version = 2
+display_name = "console pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "ConsolePaneBodyRoot"
+classes = ["editor-pane", "console-pane", "panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "body" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "ConsoleHeader"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "focus" }]
+
+[nodes.focus]
+component = "IconButton"
+control_id = "FocusConsole"
+props = { label = "Focus Console", icon = "terminal-outline" }
+layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ConsolePaneBody/FocusConsole", event = "Click", route = "DockCommand.FocusView" }]
+
+[nodes.body]
+component = "Container"
+control_id = "ConsoleBodySection"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }

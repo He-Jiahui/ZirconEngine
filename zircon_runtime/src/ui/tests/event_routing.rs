@@ -25,7 +25,7 @@ use zircon_runtime_interface::ui::{
         UiVirtualPointerPosition,
     },
     template::UiBindingRef,
-    tree::{UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
 };
 
 #[test]
@@ -179,7 +179,6 @@ fn pointer_dispatch_result_reports_same_target_hover_as_idle_diagnostic() {
 #[test]
 fn repeated_same_target_mouse_moves_do_not_dirty_or_rebuild_surface() {
     let mut surface = button_surface();
-    let initial_rebuild = surface.last_rebuild_report;
 
     let first = surface
         .dispatch_pointer_event(
@@ -191,6 +190,13 @@ fn repeated_same_target_mouse_moves_do_not_dirty_or_rebuild_surface() {
         first.requested_damage,
         vec![UiFrame::new(10.0, 10.0, 80.0, 30.0)]
     );
+    assert_render_only_dirty(surface.dirty_flags());
+    let first_hover_rebuild = surface.rebuild_dirty(UiSize::new(160.0, 100.0)).unwrap();
+    assert!(first_hover_rebuild.render_rebuilt);
+    assert!(!first_hover_rebuild.layout_recomputed);
+    assert!(!first_hover_rebuild.arranged_rebuilt);
+    assert!(!first_hover_rebuild.hit_grid_rebuilt);
+    let steady_rebuild = surface.last_rebuild_report;
 
     for offset in 0..100 {
         let point = UiPoint::new(21.0 + (offset % 8) as f32, 21.0);
@@ -203,9 +209,158 @@ fn repeated_same_target_mouse_moves_do_not_dirty_or_rebuild_surface() {
         assert!(result.diagnostics.ignored_same_target_hover);
         assert!(result.requested_damage.is_empty());
         assert!(result.component_events.is_empty());
-        assert_eq!(surface.last_rebuild_report, initial_rebuild);
+        assert_eq!(surface.last_rebuild_report, steady_rebuild);
         assert!(!surface.dirty_flags().any());
     }
+}
+
+#[test]
+fn pointer_dispatch_syncs_pressed_state_as_render_only_dirty() {
+    let mut surface = button_surface();
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert!(
+        surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .state_flags
+            .pressed
+    );
+    assert_render_only_dirty(surface.dirty_flags());
+
+    let rebuild = surface.rebuild_dirty(UiSize::new(160.0, 100.0)).unwrap();
+    assert_eq!(rebuild.dirty_node_count, 1);
+    assert!(rebuild.render_rebuilt);
+    assert!(!rebuild.layout_recomputed);
+    assert!(!rebuild.arranged_rebuilt);
+    assert!(!rebuild.hit_grid_rebuilt);
+    assert!(!surface.dirty_flags().any());
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Up, UiPoint::new(20.0, 20.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert!(
+        !surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .state_flags
+            .pressed
+    );
+    assert_render_only_dirty(surface.dirty_flags());
+}
+
+#[test]
+fn pointer_dispatch_clears_previous_pressed_state_when_primary_press_moves_target() {
+    let mut surface = two_button_surface(None, None);
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+    surface.clear_dirty_flags();
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 60.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    assert!(
+        !surface
+            .tree
+            .node(UiNodeId::new(2))
+            .unwrap()
+            .state_flags
+            .pressed
+    );
+    assert!(
+        surface
+            .tree
+            .node(UiNodeId::new(3))
+            .unwrap()
+            .state_flags
+            .pressed
+    );
+    assert_render_only_dirty(surface.dirty_flags());
+    assert_eq!(
+        surface
+            .tree
+            .nodes
+            .values()
+            .filter(|node| node.dirty.render)
+            .count(),
+        2
+    );
+}
+
+#[test]
+fn pointer_dispatch_reduces_hover_focus_and_press_into_component_state_store() {
+    let mut surface = two_button_surface(None, None);
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(20.0, 20.0)),
+        )
+        .unwrap();
+
+    let first_state = surface.component_state(UiNodeId::new(2)).unwrap();
+    assert!(first_state.flags.hovered);
+    assert!(!first_state.flags.focused);
+    assert!(!first_state.flags.pressed);
+    assert_render_only_dirty(surface.dirty_flags());
+    surface.clear_dirty_flags();
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 20.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    let first_state = surface.component_state(UiNodeId::new(2)).unwrap();
+    assert!(first_state.flags.hovered);
+    assert!(first_state.flags.focused);
+    assert!(first_state.flags.pressed);
+    surface.clear_dirty_flags();
+
+    surface
+        .dispatch_pointer_event(
+            &crate::ui::dispatch::UiPointerDispatcher::default(),
+            UiPointerEvent::new(UiPointerEventKind::Down, UiPoint::new(20.0, 60.0))
+                .with_button(UiPointerButton::Primary),
+        )
+        .unwrap();
+
+    let first_state = surface.component_state(UiNodeId::new(2)).unwrap();
+    let second_state = surface.component_state(UiNodeId::new(3)).unwrap();
+    assert!(!first_state.flags.hovered);
+    assert!(!first_state.flags.focused);
+    assert!(!first_state.flags.pressed);
+    assert!(second_state.flags.hovered);
+    assert!(second_state.flags.focused);
+    assert!(second_state.flags.pressed);
+    assert_render_only_dirty(surface.dirty_flags());
 }
 
 #[test]
@@ -1356,6 +1511,16 @@ fn pointer_state() -> UiStateFlags {
         checked: false,
         dirty: false,
     }
+}
+
+fn assert_render_only_dirty(dirty: UiDirtyFlags) {
+    assert!(dirty.render);
+    assert!(!dirty.layout);
+    assert!(!dirty.hit_test);
+    assert!(!dirty.style);
+    assert!(!dirty.text);
+    assert!(!dirty.input);
+    assert!(!dirty.visible_range);
 }
 
 fn stretch_constraint(min: f32, preferred: f32, priority: i32, weight: f32) -> AxisConstraint {

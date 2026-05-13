@@ -1,0 +1,28 @@
+[asset]
+kind = "view"
+id = "navigation.agents_areas"
+version = 2
+display_name = "Navigation Agents And Areas"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_agents_areas_root"
+
+[nodes.navigation_agent_settings]
+component = "Space"
+control_id = "NavigationAgentSettings"
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 120.0, stretch = "Fixed" } }
+
+[nodes.navigation_area_settings]
+component = "Space"
+control_id = "NavigationAreaSettings"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_agents_areas_root]
+component = "VerticalGroup"
+control_id = "NavigationAgentsAreasRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_agent_settings" }, { node = "navigation_area_settings" }]

@@ -1,7 +1,7 @@
 use super::support::{
-    open_preview_session, UI_ASSET_EDITOR_RUNTIME_DIALOG_TOML, UI_ASSET_EDITOR_RUNTIME_HUD_TOML,
-    UI_ASSET_EDITOR_RUNTIME_INVENTORY_TOML, UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_TOML,
-    UI_ASSET_EDITOR_RUNTIME_SETTINGS_TOML,
+    open_v2_preview_session, UI_ASSET_EDITOR_RUNTIME_DIALOG_V2_TOML,
+    UI_ASSET_EDITOR_RUNTIME_HUD_V2_TOML, UI_ASSET_EDITOR_RUNTIME_INVENTORY_V2_TOML,
+    UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_V2_TOML, UI_ASSET_EDITOR_RUNTIME_SETTINGS_V2_TOML,
 };
 
 fn assert_runtime_preview_session(
@@ -10,7 +10,7 @@ fn assert_runtime_preview_session(
     hierarchy_fragment: &str,
     canvas_label: &str,
 ) {
-    let session = open_preview_session(route_id, source);
+    let session = open_v2_preview_session(route_id, source);
 
     assert!(session.diagnostics().is_empty());
     let pane = session.pane_presentation();
@@ -28,49 +28,49 @@ fn assert_runtime_preview_session(
 #[test]
 fn ui_asset_editor_runtime_hud_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/runtime_hud.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_HUD_TOML,
-        "hud_root [VerticalBox]",
-        "RuntimeHudRoot",
+        "res://ui/runtime/fixtures/hud_overlay.v2.ui.toml",
+        UI_ASSET_EDITOR_RUNTIME_HUD_V2_TOML,
+        "hud_root [Overlay]",
+        "HealthPanel",
     );
 }
 
 #[test]
 fn ui_asset_editor_runtime_pause_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/pause_dialog.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_DIALOG_TOML,
-        "pause_dialog_root [Overlay]",
-        "PauseDialogRoot",
+        "res://ui/runtime/fixtures/pause_menu.v2.ui.toml",
+        UI_ASSET_EDITOR_RUNTIME_DIALOG_V2_TOML,
+        "pause_root [Overlay]",
+        "PauseDialog",
     );
 }
 
 #[test]
 fn ui_asset_editor_runtime_settings_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/settings_dialog.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_SETTINGS_TOML,
-        "settings_dialog_root [Overlay]",
-        "SettingsDialogRoot",
+        "res://ui/runtime/fixtures/settings_dialog.v2.ui.toml",
+        UI_ASSET_EDITOR_RUNTIME_SETTINGS_V2_TOML,
+        "settings_root [Overlay]",
+        "SettingsDialog",
     );
 }
 
 #[test]
 fn ui_asset_editor_runtime_inventory_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/inventory_dialog.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_INVENTORY_TOML,
-        "inventory_dialog_root [Overlay]",
-        "InventoryDialogRoot",
+        "res://ui/runtime/fixtures/inventory_list.v2.ui.toml",
+        UI_ASSET_EDITOR_RUNTIME_INVENTORY_V2_TOML,
+        "inventory_root [Overlay]",
+        "InventoryPanel",
     );
 }
 
 #[test]
 fn ui_asset_editor_runtime_quest_log_dialog_asset_opens_as_shared_runtime_preview_session() {
     assert_runtime_preview_session(
-        "res://ui/runtime/quest_log_dialog.ui.toml",
-        UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_TOML,
-        "quest_log_dialog_root [Overlay]",
-        "QuestLogDialogRoot",
+        "res://ui/runtime/fixtures/quest_log_dialog.v2.ui.toml",
+        UI_ASSET_EDITOR_RUNTIME_QUEST_LOG_V2_TOML,
+        "quest_root [Overlay]",
+        "QuestLogDialog",
     );
 }

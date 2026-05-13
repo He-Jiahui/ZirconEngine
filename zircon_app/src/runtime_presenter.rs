@@ -41,6 +41,7 @@ impl SoftbufferRuntimePresenter {
         &mut self,
         frame: &RuntimeFrame,
     ) -> Result<(), softbuffer::SoftBufferError> {
+        zircon_runtime::profile_scope!("app", "runtime_presenter", "present");
         let frame_size = ZrRuntimeViewportSizeV1::new(frame.width().max(1), frame.height().max(1));
         if self.size != frame_size {
             self.resize(frame_size)?;
@@ -50,18 +51,22 @@ impl SoftbufferRuntimePresenter {
         let mut buffer = self.surface.buffer_mut()?;
         buffer.fill(0);
         let pixel_count = (frame_size.width as usize) * (frame_size.height as usize);
-        for (pixel, rgba) in buffer
-            .iter_mut()
-            .take(pixel_count)
-            .zip(frame.rgba().chunks_exact(4))
         {
-            let red = rgba[0] as u32;
-            let green = rgba[1] as u32;
-            let blue = rgba[2] as u32;
-            *pixel = (red << 16) | (green << 8) | blue;
+            zircon_runtime::profile_scope!("app", "runtime_presenter", "copy_rgba");
+            for (pixel, rgba) in buffer
+                .iter_mut()
+                .take(pixel_count)
+                .zip(frame.rgba().chunks_exact(4))
+            {
+                let red = rgba[0] as u32;
+                let green = rgba[1] as u32;
+                let blue = rgba[2] as u32;
+                *pixel = (red << 16) | (green << 8) | blue;
+            }
         }
 
         window.pre_present_notify();
+        zircon_runtime::profile_scope!("app", "runtime_presenter", "softbuffer_present");
         buffer.present()
     }
 }

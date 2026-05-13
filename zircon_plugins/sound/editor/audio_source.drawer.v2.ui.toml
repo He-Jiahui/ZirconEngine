@@ -1,0 +1,53 @@
+[asset]
+kind = "view"
+id = "sound.audio_source.drawer"
+version = 2
+display_name = "AudioSource"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "sound_audio_source_drawer_root"
+
+[nodes.sound_source_input_row]
+component = "Space"
+control_id = "SoundSourceInputRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.sound_source_output_row]
+component = "Space"
+control_id = "SoundSourceOutputTrackRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.sound_source_gain_playback_row]
+component = "Space"
+control_id = "SoundSourceGainPlaybackRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.sound_source_spatial_row]
+component = "Space"
+control_id = "SoundSourceSpatialRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_source_cone_doppler_row]
+component = "Space"
+control_id = "SoundSourceConeDopplerRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_source_sends_row]
+component = "Space"
+control_id = "SoundSourceSendsRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_source_parameter_bindings_row]
+component = "Space"
+control_id = "SoundSourceParameterBindingsRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_audio_source_drawer_root]
+component = "VerticalGroup"
+control_id = "SoundAudioSourceDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_source_input_row" }, { node = "sound_source_output_row" }, { node = "sound_source_gain_playback_row" }, { node = "sound_source_spatial_row" }, { node = "sound_source_cone_doppler_row" }, { node = "sound_source_sends_row" }, { node = "sound_source_parameter_bindings_row" }]

@@ -9,10 +9,6 @@ use zircon_runtime_interface::ui::component::{UiComponentAdapterResult, UiValue}
 
 const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
 const UI_ASSET_EDITOR_SHELL_DOCUMENT_ID: &str = "editor.ui_asset_editor";
-const UI_ASSET_EDITOR_SHELL_TOML: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/ui_asset_editor.ui.toml"
-));
 const WORKBENCH_WINDOW_DOCUMENT_ID: &str = "editor.window.workbench";
 
 #[test]
@@ -23,9 +19,10 @@ fn dual_host_parity_preserves_layout_attributes_and_routes_for_representative_do
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
     runtime
-        .register_document_source(
+        .register_template_document_file(
             UI_ASSET_EDITOR_SHELL_DOCUMENT_ID,
-            UI_ASSET_EDITOR_SHELL_TOML,
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("assets/ui/editor/ui_asset_editor.v2.ui.toml"),
         )
         .unwrap();
 
@@ -299,7 +296,7 @@ fn is_showcase_state_overlay_key(entry: &str) -> bool {
     let Some((path_and_key, _value)) = entry.split_once('=') else {
         return false;
     };
-    let Some((_path, key)) = path_and_key.rsplit_once('.') else {
+    let Some((path, key)) = path_and_key.rsplit_once('.') else {
         return false;
     };
     matches!(
@@ -310,7 +307,14 @@ fn is_showcase_state_overlay_key(entry: &str) -> bool {
             | "validation_level"
             | "validation_message"
             | "collection_items"
-    )
+            | "value"
+            | "checked"
+            | "drop_source_summary"
+    ) || matches!(key, "text" | "text_tone")
+        && matches!(
+            path,
+            "v2/UiComponentShowcaseHeader" | "v2/ComponentShowcaseEventLog"
+        )
 }
 
 fn assert_sets_equal(left: &BTreeSet<String>, right: &BTreeSet<String>, context: &str) {

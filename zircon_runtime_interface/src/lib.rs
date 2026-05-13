@@ -5,6 +5,7 @@ pub mod handles;
 pub mod manifest;
 pub mod math;
 pub mod plugin_api;
+pub mod profiling;
 pub mod reflect;
 pub mod resource;
 pub mod runtime_api;
@@ -17,6 +18,15 @@ pub use handles::{ZrRuntimePluginHandle, ZrRuntimeSessionHandle, ZrRuntimeViewpo
 pub use manifest::{ZrPluginModuleDescriptorV1, ZrPluginModuleKind, ZrRuntimeTargetMode};
 pub use plugin_api::{
     ZrPluginApiV1, ZrPluginEntryFnV1, ZrPluginEntryReportV1, ZR_PLUGIN_ENTRY_SYMBOL_V1,
+};
+pub use profiling::{
+    HotspotEntry, HotspotReport, ProfileCaptureConfig, ProfileControlCommand,
+    ProfileControlRequest, ProfileControlResponse, ProfileCounterSnapshot, ProfileFrameSnapshot,
+    ProfileSnapshot, ProfileSpanSnapshot, ZrRuntimeProfileControlFnV1,
+    PROFILE_DEFAULT_FRAME_BUDGET_MS, PROFILE_DEFAULT_MAX_COUNTERS, PROFILE_DEFAULT_MAX_FRAMES,
+    PROFILE_DEFAULT_MAX_SPANS, PROFILE_DEFAULT_OUTPUT_ROOT, PROFILE_DEFAULT_SESSION_ID,
+    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
+    PROFILE_TIMELINE_PERFETTO_FILE,
 };
 pub use runtime_api::{
     ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV1,

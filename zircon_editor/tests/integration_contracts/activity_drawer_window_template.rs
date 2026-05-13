@@ -1,23 +1,19 @@
 use std::fs;
 use std::path::PathBuf;
 
-use zircon_runtime::ui::template::UiAssetDocument;
+use zircon_runtime::ui::v2::UiV2AssetLoader;
 
 fn activity_drawer_window_source() -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("assets/ui/editor/host/activity_drawer_window.ui.toml");
-    fs::read_to_string(path).expect("activity_drawer_window.ui.toml should be readable")
+        .join("assets/ui/editor/host/activity_drawer_window.v2.ui.toml");
+    fs::read_to_string(path).expect("activity_drawer_window.v2.ui.toml should be readable")
 }
 
 #[test]
 fn activity_drawer_window_declares_neutral_drawer_slots() {
     let source = activity_drawer_window_source();
-    let document: UiAssetDocument =
-        toml::from_str(&source).expect("activity drawer window asset should parse");
-
-    document
-        .validate_tree_authority()
-        .expect("activity drawer window asset should validate");
+    let document = UiV2AssetLoader::load_toml_str(&source)
+        .expect("activity drawer window v2 asset should parse");
 
     let component = document
         .components
@@ -38,7 +34,7 @@ fn activity_drawer_window_declares_neutral_drawer_slots() {
             "ActivityDrawerWindow should expose {slot} slot"
         );
         assert!(
-            source.contains(&format!("slot_name = \"{slot}\"")),
+            source.contains(&format!("name = \"{slot}\"")),
             "ActivityDrawerWindow tree should include {slot} slot node"
         );
     }

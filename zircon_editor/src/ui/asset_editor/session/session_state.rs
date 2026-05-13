@@ -26,6 +26,13 @@ pub(super) fn ensure_asset_kind(
 pub(super) fn default_selection(document: &UiAssetDocument) -> UiDesignerSelectionModel {
     document
         .root_node_id()
+        .or_else(|| {
+            document
+                .components
+                .values()
+                .next()
+                .map(|component| component.root.node_id.as_str())
+        })
         .map(|root_id| selection_for_node(document, root_id))
         .unwrap_or_default()
 }

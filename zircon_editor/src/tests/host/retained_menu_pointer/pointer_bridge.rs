@@ -3,7 +3,7 @@ use super::support::*;
 #[test]
 fn shared_menu_pointer_bridge_opens_and_closes_top_level_menu_from_shared_hit_test() {
     let mut bridge = HostMenuPointerBridge::new();
-    bridge.sync(default_menu_layout(), HostMenuPointerState::default());
+    assert!(bridge.sync(default_menu_layout(), HostMenuPointerState::default()));
 
     let opened = bridge.handle_click(UiPoint::new(20.0, 12.0)).unwrap();
     assert_eq!(opened.route, Some(HostMenuPointerRoute::MenuButton(0)));
@@ -19,6 +19,16 @@ fn shared_menu_pointer_bridge_opens_and_closes_top_level_menu_from_shared_hit_te
     assert_eq!(closed.state.hovered_menu_index, None);
     assert_eq!(closed.state.hovered_item_index, None);
     assert_eq!(closed.action_id, None);
+}
+
+#[test]
+fn shared_menu_pointer_bridge_skips_rebuild_for_unchanged_layout_and_state() {
+    let mut bridge = HostMenuPointerBridge::new();
+    let layout = default_menu_layout();
+    let state = HostMenuPointerState::default();
+
+    assert!(bridge.sync(layout.clone(), state.clone()));
+    assert!(!bridge.sync(layout, state));
 }
 
 #[test]

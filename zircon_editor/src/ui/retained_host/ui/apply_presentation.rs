@@ -123,6 +123,7 @@ pub(crate) fn apply_presentation(
         &presentation.status_primary,
         chrome.inspector.is_some(),
         &chrome.project_overview,
+        chrome,
     );
     let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
     let host_welcome_pane =
@@ -131,6 +132,7 @@ pub(crate) fn apply_presentation(
         &presentation.host_surface_data,
         &presentation.host_shell,
         &chrome.project_overview,
+        chrome,
     );
     let current_host_presentation = ui.get_host_presentation();
     let host_presentation = HostWindowPresentationData {
@@ -610,8 +612,9 @@ fn to_host_contract_runtime_diagnostics_pane(
 
 fn to_host_contract_ui_asset_pane(
     data: crate::ui::asset_editor::UiAssetEditorPanePresentation,
+    instance_id: &str,
 ) -> host_contract::UiAssetEditorPaneData {
-    pane_data_conversion::to_host_contract_ui_asset_pane(data)
+    pane_data_conversion::to_host_contract_ui_asset_pane(data, instance_id)
 }
 
 fn to_host_contract_pane(
@@ -621,6 +624,7 @@ fn to_host_contract_pane(
     welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::PaneData {
     let pane_kind = data.kind.to_string();
+    let pane_id = data.id.to_string();
     let has_hierarchy_payload =
         pane_kind == "Hierarchy" || data.native_body.hierarchy.nodes.row_count() > 0;
     let has_inspector_payload =
@@ -769,7 +773,7 @@ fn to_host_contract_pane(
         module_plugins,
         build_export,
         ui_asset: if has_ui_asset_payload {
-            to_host_contract_ui_asset_pane(data.native_body.ui_asset)
+            to_host_contract_ui_asset_pane(data.native_body.ui_asset, &pane_id)
         } else {
             host_contract::UiAssetEditorPaneData::default()
         },
@@ -840,6 +844,10 @@ fn to_host_contract_host_shell(
         redo_enabled: shell.redo_enabled,
         preset_names: shell.preset_names.clone(),
         active_preset_name: shell.active_preset_name.clone(),
+        skin_id: shell.skin_id.clone(),
+        panel_preset_id: shell.panel_preset_id.clone(),
+        shell_preset_id: shell.shell_preset_id.clone(),
+        window_model_preset_id: shell.window_model_preset_id.clone(),
         shell_min_width_px: shell.shell_min_width_px,
         shell_min_height_px: shell.shell_min_height_px,
         native_floating_window_mode: shell.native_floating_window_mode,

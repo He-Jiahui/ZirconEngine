@@ -74,6 +74,7 @@ impl SoftbufferHostPresenter {
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> Result<HostRefreshDiagnostics, softbuffer::SoftBufferError> {
+        zircon_runtime::profile_scope!("editor", "host_presenter", "present");
         let size = current_window_size(self.surface.window().as_ref());
         if self.size != size {
             self.resize(size)?;
@@ -88,7 +89,10 @@ impl SoftbufferHostPresenter {
             invalidation,
             size,
         );
-        let outcome = self.repaint_backbuffer(&planned.presentation, planned.damage, size);
+        let outcome = {
+            zircon_runtime::profile_scope!("editor", "host_presenter", "repaint_backbuffer");
+            self.repaint_backbuffer(&planned.presentation, planned.damage, size)
+        };
         debug_assert_eq!(
             planned.diagnostics.painted_pixel_count,
             self.diagnostics
@@ -131,9 +135,13 @@ impl SoftbufferHostPresenter {
             .expect("presenter repaint path always creates a backbuffer");
         let window = self.surface.window().clone();
         let mut buffer = self.surface.buffer_mut()?;
-        copy_rgba_to_softbuffer(frame, &mut *buffer, outcome.damage.as_ref(), size);
+        {
+            zircon_runtime::profile_scope!("editor", "host_presenter", "copy_rgba_to_softbuffer");
+            copy_rgba_to_softbuffer(frame, &mut *buffer, outcome.damage.as_ref(), size);
+        }
 
         window.pre_present_notify();
+        zircon_runtime::profile_scope!("editor", "host_presenter", "softbuffer_present");
         let result = if let Some(damage) = softbuffer_damage_rect(outcome.damage.as_ref(), size) {
             buffer.present_with_damage(&[damage])
         } else {

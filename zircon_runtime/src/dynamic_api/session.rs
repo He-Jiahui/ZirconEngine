@@ -12,7 +12,7 @@ use zircon_runtime_interface::{
         },
         event_ui::{UiNodeId, UiTreeId},
     },
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
+    ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
     ZrRuntimeFrameV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
@@ -23,14 +23,13 @@ use zircon_runtime_interface::{
     ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
     ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
     ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
 };
 
 use crate::core::framework::input::{InputButton, InputEvent, InputManager};
 use crate::core::framework::render::{
-    CapturedFrame, RenderFrameExtract, RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor,
+    CapturedFrame, RenderFrameExtract, RenderViewportSurfaceDescriptor,
 };
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
@@ -40,9 +39,11 @@ use crate::{runtime_modules_for_target, RuntimeTargetMode};
 
 use super::camera_controller::RuntimeCameraController;
 use super::frame::{
-    encode_accessibility_tree, encode_frame, write_accessibility_tree, write_frame,
+    encode_accessibility_tree, encode_frame, encode_profile_response, write_accessibility_tree,
+    write_frame, write_profile_response,
 };
 use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
+use super::surface::render_surface_descriptor;
 
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
 
@@ -98,6 +99,7 @@ pub(super) unsafe extern "C" fn handle_event(
     handle: ZrRuntimeSessionHandle,
     event: ZrRuntimeEventV1,
 ) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "handle_event");
     if event.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return unsupported_version();
     }
@@ -109,6 +111,8 @@ pub(super) unsafe extern "C" fn capture_frame(
     request: ZrRuntimeFrameRequestV1,
     out_frame: *mut ZrRuntimeFrameV1,
 ) -> ZrStatus {
+    crate::profile_frame!("runtime", "capture_frame");
+    crate::profile_scope!("runtime", "dynamic_api", "capture_frame");
     if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return unsupported_version();
     }
@@ -126,6 +130,7 @@ pub(super) unsafe extern "C" fn capture_accessibility_tree(
     request: ZrRuntimeAccessibilityTreeRequestV1,
     out_tree: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "capture_accessibility_tree");
     if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return unsupported_version();
     }
@@ -151,6 +156,7 @@ pub(super) unsafe extern "C" fn bind_viewport_surface(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeBindViewportSurfaceRequestV1,
 ) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "bind_viewport_surface");
     if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return unsupported_version();
     }
@@ -160,7 +166,7 @@ pub(super) unsafe extern "C" fn bind_viewport_surface(
     if request.viewport != DEFAULT_VIEWPORT {
         return not_found(b"runtime viewport not found");
     }
-    let descriptor = match viewport_surface_descriptor(request) {
+    let descriptor = match render_surface_descriptor(request) {
         Ok(descriptor) => descriptor,
         Err(status) => return status,
     };
@@ -176,6 +182,7 @@ pub(super) unsafe extern "C" fn unbind_viewport_surface(
     handle: ZrRuntimeSessionHandle,
     viewport: ZrRuntimeViewportHandle,
 ) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "unbind_viewport_surface");
     if viewport != DEFAULT_VIEWPORT {
         return not_found(b"runtime viewport not found");
     }
@@ -189,6 +196,8 @@ pub(super) unsafe extern "C" fn present_viewport(
     handle: ZrRuntimeSessionHandle,
     request: ZrRuntimeFrameRequestV1,
 ) -> ZrStatus {
+    crate::profile_frame!("runtime", "present_viewport");
+    crate::profile_scope!("runtime", "dynamic_api", "present_viewport");
     if request.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
         return unsupported_version();
     }
@@ -198,6 +207,30 @@ pub(super) unsafe extern "C" fn present_viewport(
     with_session(handle, |session| match session.present_viewport(request) {
         Ok(()) => ZrStatus::ok(),
         Err(error) => error_status(error),
+    })
+}
+
+pub(super) unsafe extern "C" fn profile_control(
+    handle: ZrRuntimeSessionHandle,
+    request_json: ZrByteSlice,
+    out_json: *mut ZrOwnedByteBuffer,
+) -> ZrStatus {
+    if out_json.is_null() {
+        return write_profile_response(out_json, ZrOwnedByteBuffer::empty());
+    }
+    if request_json.is_empty() {
+        return invalid_argument(b"missing profile control request");
+    }
+    let request =
+        match serde_json::from_slice::<ProfileControlRequest>(unsafe { request_json.as_slice() }) {
+            Ok(request) => request,
+            Err(_) => return invalid_argument(b"invalid profile control request"),
+        };
+    with_session(handle, |_session| {
+        match encode_profile_response(&crate::core::diagnostics::profiling::control(request)) {
+            Ok(buffer) => write_profile_response(out_json, buffer),
+            Err(error) => error_status(error.to_string()),
+        }
     })
 }
 
@@ -552,30 +585,6 @@ fn dynamic_preview_accessibility_snapshot() -> UiAccessibilityTreeSnapshot {
                 .to_string(),
         }],
     }
-}
-
-fn viewport_surface_descriptor(
-    request: ZrRuntimeBindViewportSurfaceRequestV1,
-) -> Result<RenderViewportSurfaceDescriptor, ZrStatus> {
-    let size = UVec2::new(request.size.width.max(1), request.size.height.max(1));
-    let target = match request.target.kind {
-        ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1 => {
-            if request.target.window_handle == 0 {
-                return Err(invalid_argument(b"invalid runtime native window handle"));
-            }
-            RenderNativeSurfaceTarget::Win32 {
-                hwnd: request.target.window_handle,
-                hinstance: (request.target.display_handle != 0)
-                    .then_some(request.target.display_handle),
-            }
-        }
-        _ => {
-            return Err(invalid_argument(
-                b"unsupported runtime native surface target",
-            ))
-        }
-    };
-    Ok(RenderViewportSurfaceDescriptor::new(size, target))
 }
 
 fn unsupported_version() -> ZrStatus {

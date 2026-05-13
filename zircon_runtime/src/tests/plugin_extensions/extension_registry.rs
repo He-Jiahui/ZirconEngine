@@ -54,7 +54,7 @@ fn runtime_extension_registry_collects_plugin_manager_and_component_contribution
     let ui_component = UiComponentDescriptor::new(
         "weather.Ui.CloudLayerInspector",
         "weather",
-        "asset://weather/editor/cloud_layer_inspector.ui.toml",
+        "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
     );
 
     registry
@@ -985,7 +985,7 @@ impl RuntimePlugin for ManifestDeclaredRuntimePlugin {
             .with_ui_component(UiComponentDescriptor::new(
                 "weather.Ui.CloudLayerInspector",
                 "weather",
-                "asset://weather/editor/cloud_layer_inspector.ui.toml",
+                "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
             ))
             .with_asset_importer(
                 AssetImporterDescriptor::new(
@@ -1236,7 +1236,7 @@ fn runtime_extension_registry_rejects_duplicate_component_and_ui_component_ids()
     let ui_component = UiComponentDescriptor::new(
         "weather.Ui.CloudLayerInspector",
         "weather",
-        "asset://weather/editor/cloud_layer_inspector.ui.toml",
+        "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
     );
 
     registry
@@ -1274,7 +1274,7 @@ fn runtime_extension_registry_rejects_ui_component_ids_without_plugin_prefix() {
     let invalid_component = UiComponentDescriptor::new(
         "cloud.Ui.CloudLayerInspector",
         "weather",
-        "asset://weather/editor/cloud_layer_inspector.ui.toml",
+        "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
     );
 
     let error = registry
@@ -1283,6 +1283,23 @@ fn runtime_extension_registry_rejects_ui_component_ids_without_plugin_prefix() {
     assert!(error.to_string().contains(
         "ui component cloud.Ui.CloudLayerInspector must be prefixed by plugin id weather"
     ));
+}
+
+#[test]
+fn runtime_extension_registry_rejects_legacy_ui_component_documents() {
+    let mut registry = RuntimeExtensionRegistry::default();
+    let invalid_component = UiComponentDescriptor::new(
+        "weather.Ui.CloudLayerInspector",
+        "weather",
+        "asset://weather/editor/cloud_layer_inspector.ui.toml",
+    );
+
+    let error = registry
+        .register_ui_component(invalid_component)
+        .unwrap_err();
+    assert!(error
+        .to_string()
+        .contains("must reference a .v2.ui.toml asset"));
 }
 
 #[test]
@@ -1328,7 +1345,7 @@ fn runtime_extension_registry_installs_ui_components_into_runtime_registry() {
     let component = UiComponentDescriptor::new(
         "weather.Ui.CloudLayerInspector",
         "weather",
-        "asset://weather/editor/cloud_layer_inspector.ui.toml",
+        "asset://weather/editor/cloud_layer_inspector.v2.ui.toml",
     );
     extensions
         .register_ui_component(component)
@@ -1350,7 +1367,7 @@ fn runtime_extension_registry_installs_ui_components_into_runtime_registry() {
         .contains(&UiSlotSchema::new("content").multiple(true)));
     assert!(descriptor.default_props.contains(&(
         "ui_document".to_string(),
-        UiValue::String("asset://weather/editor/cloud_layer_inspector.ui.toml".to_string())
+        UiValue::String("asset://weather/editor/cloud_layer_inspector.v2.ui.toml".to_string())
     )));
 
     let duplicate = extensions

@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for AnimationEditorPlugin {
                 drawer_id: ANIMATION_DRAWER_ID,
                 drawer_display_name: "Animation Tools",
                 template_id: ANIMATION_TEMPLATE_ID,
-                template_document: "plugins://animation/editor/authoring.ui.toml",
+                template_document: "plugins://animation/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     ANIMATION_AUTHORING_VIEW_ID,
                     "Animation",

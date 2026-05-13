@@ -201,6 +201,14 @@ pub(crate) struct UiAssetInspectorBindingData {
 }
 
 #[derive(Clone, Default)]
+pub(crate) struct UiAssetInspectorWidgetPropStateData {
+    pub kind: SharedString,
+    pub path: SharedString,
+    pub value: SharedString,
+    pub display: SharedString,
+}
+
+#[derive(Clone, Default)]
 pub(crate) struct UiAssetInspectorWidgetData {
     pub selected_node_id: SharedString,
     pub parent_node_id: SharedString,
@@ -217,6 +225,8 @@ pub(crate) struct UiAssetInspectorWidgetData {
     pub promote_component_name: SharedString,
     pub promote_document_id: SharedString,
     pub can_edit_promote_draft: bool,
+    pub prop_state_rows: ModelRc<UiAssetInspectorWidgetPropStateData>,
+    pub prop_state_items: ModelRc<SharedString>,
     pub items: ModelRc<SharedString>,
 }
 

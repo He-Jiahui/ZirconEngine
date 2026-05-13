@@ -1,0 +1,40 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.build_export_desktop.body"
+version = 2
+display_name = "desktop build export pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "BuildExportPaneBodyRoot"
+classes = ["editor-pane", "build-export-pane"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "summary" }, { node = "targets_slot" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "BuildExportHeader"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "focus" }]
+
+[nodes.focus]
+component = "IconButton"
+control_id = "FocusBuildExport"
+props = { label = "Focus Export", icon = "download-outline" }
+layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "BuildExportPaneBody/FocusBuildExport", event = "Click", route = "DockCommand.FocusView" }]
+
+[nodes.summary]
+component = "Text"
+control_id = "BuildExportSummary"
+props = { text = "Desktop export plans" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.targets_slot]
+component = "Container"
+control_id = "BuildExportTargetsPanel"
+props = { slot_name = "build_export_targets_slot" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }

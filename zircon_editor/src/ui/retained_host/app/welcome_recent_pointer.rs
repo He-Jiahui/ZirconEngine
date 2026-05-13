@@ -8,6 +8,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.use_committed_pointer_layout();
         self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
             width,
             height,
@@ -33,6 +34,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn welcome_recent_pointer_moved(&mut self, x: f32, y: f32, width: f32, height: f32) {
+        self.use_committed_pointer_layout();
         self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
             width,
             height,
@@ -61,6 +63,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.use_committed_pointer_layout();
         self.welcome_recent_pointer_size = self.resolve_callback_surface_size_for_kind(
             width,
             height,

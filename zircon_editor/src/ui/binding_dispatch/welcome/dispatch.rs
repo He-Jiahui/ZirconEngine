@@ -25,5 +25,11 @@ pub fn dispatch_welcome_binding(
         WelcomeCommand::RemoveRecentProject { path } => {
             Ok(WelcomeHostEvent::RemoveRecentProject { path: path.clone() })
         }
+        WelcomeCommand::OpenStartupWorkbench => Ok(WelcomeHostEvent::OpenStartupWorkbench),
+        WelcomeCommand::OpenStartupDemo => Ok(WelcomeHostEvent::OpenStartupDemo),
+        WelcomeCommand::OpenStartupAssetWindow => Ok(WelcomeHostEvent::OpenStartupAssetWindow),
+        WelcomeCommand::OpenStartupUILayoutEditor => {
+            Ok(WelcomeHostEvent::OpenStartupUILayoutEditor)
+        }
     }
 }

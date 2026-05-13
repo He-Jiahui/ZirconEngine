@@ -6,7 +6,7 @@ use crate::core::framework::render::{
 use crate::core::math::UVec2;
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
 use crate::ui::surface::UiSurface;
-use crate::ui::template::{UiAssetLoader, UiDocumentCompiler, UiTemplateSurfaceBuilder};
+use crate::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder};
 use zircon_runtime_interface::ui::tree::UiTreeError;
 use zircon_runtime_interface::ui::{
     dispatch::{UiNavigationDispatchResult, UiPointerDispatchResult, UiPointerEvent},
@@ -21,7 +21,7 @@ use super::runtime_ui_manager_error::RuntimeUiManagerError;
 
 pub(crate) struct RuntimeUiManager {
     viewport_size: UVec2,
-    compiler: UiDocumentCompiler,
+    fixture_cache: UiV2PrototypeStoreFileCache,
     surface: UiSurface,
     active_fixture: Option<RuntimeUiFixture>,
 }
@@ -30,7 +30,7 @@ impl RuntimeUiManager {
     pub(crate) fn new(viewport_size: UVec2) -> Self {
         Self {
             viewport_size: UVec2::new(viewport_size.x.max(1), viewport_size.y.max(1)),
-            compiler: UiDocumentCompiler::default(),
+            fixture_cache: UiV2PrototypeStoreFileCache::new(),
             surface: UiSurface::new(UiTreeId::new("runtime.ui.empty")),
             active_fixture: None,
         }
@@ -40,16 +40,15 @@ impl RuntimeUiManager {
         &mut self,
         fixture: RuntimeUiFixture,
     ) -> Result<(), RuntimeUiManagerError> {
-        let document = UiAssetLoader::load_toml_file(fixture.asset_path())?;
-        let compiled = self.compiler.compile(&document)?;
-        let mut surface = UiTemplateSurfaceBuilder::build_surface_from_compiled_document(
+        let outcome = self
+            .fixture_cache
+            .load_store(std::iter::once(fixture.asset_path()))?;
+        let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
             UiTreeId::new(fixture.asset_id()),
-            &compiled,
+            outcome.root_document.as_ref(),
+            outcome.compiled.as_ref(),
         )?;
-        surface.compute_layout(UiSize::new(
-            self.viewport_size.x as f32,
-            self.viewport_size.y as f32,
-        ))?;
+        surface.compute_layout(self.root_size())?;
 
         self.surface = surface;
         self.active_fixture = Some(fixture);
@@ -65,7 +64,10 @@ impl RuntimeUiManager {
         dispatcher: &UiPointerDispatcher,
         event: UiPointerEvent,
     ) -> Result<UiPointerDispatchResult, UiTreeError> {
-        self.surface.dispatch_pointer_event(dispatcher, event)
+        let result = self.surface.dispatch_pointer_event(dispatcher, event)?;
+        self.surface.apply_pointer_dispatch_dirty(&result)?;
+        self.rebuild_dirty_surface()?;
+        Ok(result)
     }
 
     pub(crate) fn dispatch_navigation_event(
@@ -73,7 +75,9 @@ impl RuntimeUiManager {
         dispatcher: &UiNavigationDispatcher,
         kind: UiNavigationEventKind,
     ) -> Result<UiNavigationDispatchResult, UiTreeError> {
-        self.surface.dispatch_navigation_event(dispatcher, kind)
+        let result = self.surface.dispatch_navigation_event(dispatcher, kind)?;
+        self.rebuild_dirty_surface()?;
+        Ok(result)
     }
 
     pub(crate) fn build_frame(&self) -> PublicRuntimeFrame {
@@ -90,6 +94,17 @@ impl RuntimeUiManager {
 
     pub(crate) fn active_fixture(&self) -> Option<RuntimeUiFixture> {
         self.active_fixture
+    }
+
+    fn rebuild_dirty_surface(&mut self) -> Result<(), UiTreeError> {
+        if self.surface.dirty_flags().any() {
+            self.surface.rebuild_dirty(self.root_size())?;
+        }
+        Ok(())
+    }
+
+    fn root_size(&self) -> UiSize {
+        UiSize::new(self.viewport_size.x as f32, self.viewport_size.y as f32)
     }
 }
 

@@ -5,16 +5,24 @@ related_code:
   - zircon_runtime/src/ui/mod.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
-  - zircon_runtime/assets/ui/runtime/fixtures
+  - zircon_runtime/src/ui/v2/file_cache.rs
+  - zircon_runtime/src/ui/v2/surface_builder.rs
+  - zircon_runtime/src/ui/v2/surface_tree
+  - zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml
 implementation_files:
   - zircon_runtime/src/lib.rs
   - zircon_runtime/src/graphics/mod.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_fixture.rs
   - zircon_runtime/src/ui/runtime_ui/runtime_ui_manager.rs
+  - zircon_runtime/src/ui/v2/file_cache.rs
+  - zircon_runtime/src/ui/v2/surface_builder.rs
+  - zircon_runtime/src/ui/v2/surface_tree
   - zircon_runtime/src/tests/graphics_surface/mod.rs
   - zircon_runtime/src/tests/ui_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
+  - zircon_runtime/src/ui/tests/boundary.rs
+  - zircon_runtime/src/ui/tests/v2_asset.rs
 plan_sources:
   - user: 2026-04-20 implement the workspace hard cutover and standardize the result
   - .codex/plans/ZirconEngine 全仓结构硬切换与规范固化计划.md
@@ -24,6 +32,11 @@ tests:
   - zircon_runtime/src/tests/ui_boundary/runtime_host.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/graphics/tests/boundary.rs
+  - cargo check -p zircon_runtime --lib --locked --target-dir target\codex-shared-b (2026-05-12 runtime-v2 direct-surface rerun: passed)
+  - cargo test -p zircon_runtime --lib ui_v2 --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 direct-surface rerun: passed, 12 passed)
+  - cargo test -p zircon_runtime --lib runtime_ui --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed)
+  - cargo test -p zircon_runtime --lib production_ui_entry_assets_live_under_crate_assets_not_src --locked --target-dir target\codex-shared-b -- --nocapture (2026-05-12 runtime-v2 fixture rerun: passed, 1 passed)
+  - .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime -TargetDir target\codex-shared-b (2026-05-12 runtime package validator: passed build and test)
 doc_type: module-detail
 ---
 
@@ -41,9 +54,10 @@ This document captures the runtime-side structure rules introduced by the worksp
 
 ## Runtime UI Asset Rules
 
-- Production runtime `.ui.toml` resources live under `zircon_runtime/assets/ui/runtime/fixtures/`.
+- Production runtime UI resources live under `zircon_runtime/assets/ui/runtime/fixtures/*.v2.ui.toml`.
 - Runtime code must load fixture assets from crate `assets/`, not from `src/`.
-- Any old `src/.../fixtures` path or compatibility branch is migration debt.
+- Runtime fixture loading must use the v2 prototype file cache, `UiV2SurfaceBuilder`, and direct `ui::v2::surface_tree` arena projection; `UiAssetLoader`, `UiDocumentCompiler`, `UiTemplateTreeBuilder`, and `UiTemplateSurfaceBuilder` are not the runtime fixture main path anymore.
+- Any old `src/.../fixtures` path, non-v2 fixture filename, or compatibility branch is migration debt.
 
 ## Test Tree Rules
 

@@ -24,11 +24,11 @@ impl RuntimeUiFixture {
 
     pub(crate) fn relative_asset_path(self) -> &'static Path {
         match self {
-            Self::HudOverlay => Path::new("ui/runtime/fixtures/hud_overlay.ui.toml"),
-            Self::PauseMenu => Path::new("ui/runtime/fixtures/pause_menu.ui.toml"),
-            Self::SettingsDialog => Path::new("ui/runtime/fixtures/settings_dialog.ui.toml"),
-            Self::InventoryList => Path::new("ui/runtime/fixtures/inventory_list.ui.toml"),
-            Self::QuestLogDialog => Path::new("ui/runtime/fixtures/quest_log_dialog.ui.toml"),
+            Self::HudOverlay => Path::new("ui/runtime/fixtures/hud_overlay.v2.ui.toml"),
+            Self::PauseMenu => Path::new("ui/runtime/fixtures/pause_menu.v2.ui.toml"),
+            Self::SettingsDialog => Path::new("ui/runtime/fixtures/settings_dialog.v2.ui.toml"),
+            Self::InventoryList => Path::new("ui/runtime/fixtures/inventory_list.v2.ui.toml"),
+            Self::QuestLogDialog => Path::new("ui/runtime/fixtures/quest_log_dialog.v2.ui.toml"),
         }
     }
 

@@ -45,6 +45,15 @@ pub(in crate::asset::pipeline::manager) fn register_project_resource(
         ImportedAsset::UiStyle(asset) => {
             resource_manager.register_ready(metadata, asset);
         }
+        ImportedAsset::UiV2View(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::UiV2Component(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
+        ImportedAsset::UiV2Style(asset) => {
+            resource_manager.register_ready(metadata, asset);
+        }
         ImportedAsset::PhysicsMaterial(asset) => {
             resource_manager.register_ready(metadata, asset);
         }

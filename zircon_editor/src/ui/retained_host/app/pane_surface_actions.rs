@@ -53,6 +53,18 @@ impl RetainedEditorHost {
         value: &str,
     ) {
         self.focus_callback_source_window();
+        if let Some(binding) = UiAssetDetailSurfaceBinding::parse(binding_id) {
+            self.dispatch_ui_asset_detail_event(
+                &binding.instance_id,
+                &binding.detail_id,
+                &binding.action_id,
+                binding.item_index,
+                value,
+                "",
+            );
+            return;
+        }
+
         let Some(binding) = self.pane_surface_bridge.binding_by_id(binding_id).cloned() else {
             let result = callback_dispatch::dispatch_builtin_template_binding_with_arguments(
                 &self.runtime,
@@ -248,5 +260,41 @@ impl RetainedEditorHost {
             page_index: (page_index + 1).min(page_count - 1),
             page_size,
         }
+    }
+}
+
+struct UiAssetDetailSurfaceBinding {
+    instance_id: String,
+    detail_id: String,
+    action_id: String,
+    item_index: i32,
+}
+
+impl UiAssetDetailSurfaceBinding {
+    const PREFIX: &'static str = "ui_asset_detail";
+
+    fn parse(binding_id: &str) -> Option<Self> {
+        let mut parts = binding_id.split('|');
+        let prefix = parts.next()?;
+        if prefix != Self::PREFIX {
+            return None;
+        }
+        let instance_id = parts.next()?.to_string();
+        let detail_id = parts.next()?.to_string();
+        let action_id = parts.next()?.to_string();
+        let item_index = parts.next()?.parse().ok()?;
+        if parts.next().is_some()
+            || instance_id.is_empty()
+            || detail_id.is_empty()
+            || action_id.is_empty()
+        {
+            return None;
+        }
+        Some(Self {
+            instance_id,
+            detail_id,
+            action_id,
+            item_index,
+        })
     }
 }

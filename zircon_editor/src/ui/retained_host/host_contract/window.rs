@@ -288,7 +288,16 @@ impl UiHostWindow {
                 pane_host.invoke_component_showcase_control_edited(control_id, target_id, value)
             }
             "inspector" => pane_host.invoke_inspector_control_changed(control_id, value),
-            "asset" => pane_host.invoke_asset_control_changed("activity".into(), control_id, value),
+            kind if asset_dispatch_source(kind).is_some() => pane_host
+                .invoke_asset_control_changed(
+                    asset_dispatch_source(kind).unwrap_or("activity").into(),
+                    control_id,
+                    value,
+                ),
+            "commit_only" if target_id == focus.edit_target_id() => {
+                return text_input_focus_redraw(&focus);
+            }
+            "commit_only" => pane_host.invoke_surface_control_edited(control_id, target_id, value),
             _ if !focus.edit_action_id.is_empty() => {
                 pane_host.invoke_surface_control_edited(control_id, target_id, value)
             }
@@ -488,6 +497,13 @@ fn host_presentation_from_state(state: &HostContractState) -> HostWindowPresenta
     presentation.text_input_focus = state.text_input_focus.clone();
     presentation.viewport_image = state.viewport_image.clone();
     presentation
+}
+
+fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
+    if dispatch_kind == "asset" {
+        return Some("activity");
+    }
+    dispatch_kind.strip_prefix("asset:")
 }
 
 fn text_input_focus_redraw(focus: &HostTextInputFocusData) -> NativePointerDispatchResult {

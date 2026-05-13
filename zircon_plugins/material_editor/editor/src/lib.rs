@@ -51,7 +51,7 @@ impl zircon_editor::EditorPlugin for MaterialEditorPlugin {
                 drawer_id: MATERIAL_EDITOR_DRAWER_ID,
                 drawer_display_name: "Material Editor",
                 template_id: MATERIAL_EDITOR_TEMPLATE_ID,
-                template_document: "plugins://material_editor/editor/graph.ui.toml",
+                template_document: "plugins://material_editor/editor/graph.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     MATERIAL_EDITOR_VIEW_ID,
                     "Material Editor",

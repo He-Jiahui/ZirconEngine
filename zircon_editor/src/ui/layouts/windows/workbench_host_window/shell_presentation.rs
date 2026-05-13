@@ -79,6 +79,8 @@ impl ShellPresentation {
                 .map(SharedString::from)
                 .collect(),
         );
+        let design_stack =
+            crate::ui::workbench::preset::EditorUiDesignStack::material_fyrox_jetbrains_unreal();
 
         Self {
             host_surface_data: HostWindowSurfaceData {
@@ -168,6 +170,10 @@ impl ShellPresentation {
                 redo_enabled: chrome.can_redo,
                 preset_names,
                 active_preset_name: active_preset_name.unwrap_or_default().into(),
+                skin_id: design_stack.skin_id.into(),
+                panel_preset_id: design_stack.panel_preset_id.into(),
+                shell_preset_id: design_stack.shell_preset_id.into(),
+                window_model_preset_id: design_stack.window_model_preset_id.into(),
                 shell_min_width_px: geometry.window_min_width,
                 shell_min_height_px: geometry.window_min_height,
                 native_floating_window_mode: false,

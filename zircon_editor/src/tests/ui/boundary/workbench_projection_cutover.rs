@@ -75,27 +75,24 @@ fn retained_host_import_blocks(source: &str) -> Vec<String> {
 #[test]
 fn workbench_main_interface_entries_are_template_backed_and_reflected() {
     let shared_chrome_assets = [
-        "/assets/ui/editor/workbench_menu_chrome.ui.toml",
-        "/assets/ui/editor/workbench_menu_popup.ui.toml",
-        "/assets/ui/editor/workbench_page_chrome.ui.toml",
-        "/assets/ui/editor/workbench_dock_header.ui.toml",
-        "/assets/ui/editor/workbench_status_bar.ui.toml",
-        "/assets/ui/editor/workbench_activity_rail.ui.toml",
+        "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
+        "/assets/ui/editor/workbench_menu_popup.v2.ui.toml",
+        "/assets/ui/editor/workbench_page_chrome.v2.ui.toml",
+        "/assets/ui/editor/workbench_dock_header.v2.ui.toml",
+        "/assets/ui/editor/workbench_status_bar.v2.ui.toml",
+        "/assets/ui/editor/workbench_activity_rail.v2.ui.toml",
     ];
     for asset in shared_chrome_assets {
         assert_asset_exists(asset);
     }
 
     for asset in [
-        "assets/ui/editor/host/editor_main_frame.ui.toml",
-        "assets/ui/editor/host/workbench_shell.ui.toml",
-        "assets/ui/editor/host/workbench_drawer_source.ui.toml",
-        "assets/ui/editor/host/floating_window_source.ui.toml",
-        "assets/ui/editor/host/workbench_document_dock_header.ui.toml",
-        "assets/ui/editor/host/workbench_side_dock_header.ui.toml",
-        "assets/ui/editor/host/workbench_bottom_dock_header.ui.toml",
-        "assets/ui/editor/host/scene_viewport_toolbar.ui.toml",
-        "assets/ui/editor/host/pane_surface_controls.ui.toml",
+        "assets/ui/editor/host/editor_main_frame.v2.ui.toml",
+        "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+        "assets/ui/editor/host/workbench_drawer_source.v2.ui.toml",
+        "assets/ui/editor/host/floating_window_source.v2.ui.toml",
+        "assets/ui/editor/host/scene_viewport_toolbar.v2.ui.toml",
+        "assets/ui/editor/host/pane_surface_controls.v2.ui.toml",
     ] {
         assert_asset_exists(asset);
     }
@@ -110,6 +107,17 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
     ]);
     for asset in shared_chrome_assets {
         assert_contains("chrome_template_projection.rs", &chrome_projection, asset);
+    }
+    for forbidden in [
+        "workbench_document_dock_header.ui.toml",
+        "workbench_side_dock_header.ui.toml",
+        "workbench_bottom_dock_header.ui.toml",
+    ] {
+        assert_does_not_contain(
+            "chrome_template_projection.rs",
+            &chrome_projection,
+            forbidden,
+        );
     }
     for required in [
         "build_view_template_nodes(",
@@ -214,13 +222,14 @@ fn workbench_main_interface_entries_are_template_backed_and_reflected() {
 }
 
 #[test]
-fn view_template_projection_is_hard_cut_to_shared_prototype_store() {
+fn view_template_projection_is_hard_cut_to_v2_prototype_store() {
     let view_projection = source_file(&["src", "ui", "layouts", "views", "view_projection.rs"]);
 
     for required in [
-        "UiPrototypeStoreFileCache",
-        ".load_flat_store(",
-        "compile_prototype_asset(",
+        "UiV2PrototypeStoreFileCache",
+        ".load_store(",
+        "UiV2SurfaceBuilder::build_surface_from_compiled_document",
+        "LegacyAssetPath",
     ] {
         assert_contains("view_projection.rs", &view_projection, required);
     }
@@ -229,6 +238,10 @@ fn view_template_projection_is_hard_cut_to_shared_prototype_store() {
         "load_document_file",
         "compile_document_with_import_maps",
         "try_load_flat_store",
+        "UiPrototypeStoreFileCache",
+        "UiDocumentCompiler",
+        "UiTemplateSurfaceBuilder",
+        "compile_prototype_asset(",
     ] {
         assert_does_not_contain("view_projection.rs", &view_projection, forbidden);
     }

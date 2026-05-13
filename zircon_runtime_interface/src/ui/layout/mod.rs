@@ -24,7 +24,8 @@ pub use linear_sizing::{UiLinearSlotSizeRule, UiLinearSlotSizing};
 pub use metrics::{UiFlowDirection, UiLayoutMetrics};
 pub use scroll::{
     UiAxis, UiContainerKind, UiGridBoxConfig, UiLinearBoxConfig, UiScrollState,
-    UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig, UiWrapBoxConfig,
+    UiScrollableBoxConfig, UiScrollbarVisibility, UiSizeBoxConfig, UiVirtualListConfig,
+    UiWrapBoxConfig,
 };
 pub use slot::{
     UiAlignment, UiAlignment2D, UiCanvasSlotPlacement, UiGridSlotPlacement, UiMargin, UiSlot,

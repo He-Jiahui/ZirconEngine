@@ -14,7 +14,7 @@ use crate::ui::workbench::model::WorkbenchViewModel;
 use zircon_runtime_interface::ui::layout::{UiPoint, UiSize};
 
 #[test]
-fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_dispatcher() {
+fn shared_activity_rail_pointer_click_dispatches_left_top_toggle_through_runtime_dispatcher() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_activity_rail_pointer_project_toggle");
@@ -23,28 +23,35 @@ fn shared_activity_rail_pointer_click_dispatches_project_toggle_through_runtime_
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
     let mut pointer_bridge = HostActivityRailPointerBridge::new();
-    pointer_bridge.sync(build_host_activity_rail_pointer_layout(
+    let pointer_layout = build_host_activity_rail_pointer_layout(
         &model,
         &WorkbenchChromeMetrics::default(),
         Some(&template_bridge.root_shell_frames()),
-    ));
+    );
+    let left_top_index = pointer_layout
+        .left_tabs
+        .iter()
+        .position(|tab| tab.slot == "left_top")
+        .expect("left-top drawer tab should exist in left activity rail");
+    let left_top_instance_id = pointer_layout.left_tabs[left_top_index].instance_id.clone();
+    pointer_bridge.sync(pointer_layout.clone());
 
     let dispatched = dispatch_shared_activity_rail_pointer_click(
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
         HostActivityRailPointerSide::Left,
-        UiPoint::new(15.0, 20.0),
+        UiPoint::new(15.0, 20.0 + left_top_index as f32 * 36.0),
     )
-    .expect("shared activity rail route should dispatch project drawer toggle");
+    .expect("shared activity rail route should dispatch left-top drawer toggle");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostActivityRailPointerRoute::Button {
             side: HostActivityRailPointerSide::Left,
-            item_index: 0,
+            item_index: left_top_index,
             slot: "left_top".to_string(),
-            instance_id: "editor.project#1".to_string(),
+            instance_id: left_top_instance_id,
         })
     );
     let effects = dispatched

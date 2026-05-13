@@ -1,0 +1,76 @@
+[asset]
+kind = "view"
+id = "sound.mixer_console"
+version = 2
+display_name = "Sound Mixer"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "sound_mixer_root"
+
+[nodes.sound_mixer_preset_picker]
+component = "Space"
+control_id = "SoundMixerPresetPicker"
+layout = { width = { min = 220.0, preferred = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_mixer_transport_controls]
+component = "Space"
+control_id = "SoundMixerTransportControls"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_mixer_toolbar]
+component = "HorizontalGroup"
+control_id = "SoundMixerToolbar"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+children = [{ node = "sound_mixer_preset_picker" }, { node = "sound_mixer_transport_controls" }]
+
+[nodes.sound_track_strip]
+component = "Space"
+control_id = "SoundTrackMeterStrip"
+layout = { width = { min = 260.0, preferred = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_send_matrix]
+component = "Space"
+control_id = "SoundSendMatrix"
+layout = { width = { min = 220.0, preferred = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_effect_chain]
+component = "Space"
+control_id = "SoundEffectChain"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.sound_sidechain_picker]
+component = "Space"
+control_id = "SoundSidechainSourcePicker"
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+
+[nodes.sound_effect_rack]
+component = "VerticalGroup"
+control_id = "SoundEffectRack"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_effect_chain" }, { node = "sound_sidechain_picker" }]
+
+[nodes.sound_mixer_content]
+component = "HorizontalGroup"
+control_id = "SoundMixerContent"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_track_strip" }, { node = "sound_send_matrix" }, { node = "sound_effect_rack" }]
+
+[nodes.sound_automation_lane]
+component = "Space"
+control_id = "SoundAutomationLane"
+layout = { width = { stretch = "Stretch" }, height = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" } }
+
+[nodes.sound_dynamic_event_registry]
+component = "Space"
+control_id = "SoundDynamicEventRegistry"
+layout = { width = { stretch = "Stretch" }, height = { min = 48.0, preferred = 48.0, max = 48.0, stretch = "Fixed" } }
+
+[nodes.sound_mixer_root]
+component = "VerticalGroup"
+control_id = "SoundMixerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_mixer_toolbar" }, { node = "sound_mixer_content" }, { node = "sound_automation_lane" }, { node = "sound_dynamic_event_registry" }]

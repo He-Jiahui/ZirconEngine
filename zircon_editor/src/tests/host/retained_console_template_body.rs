@@ -123,6 +123,7 @@ fn console_template_body_projection_replaces_legacy_console_nodes_for_retained_c
         .expect("console body section node");
     assert!(body_section.frame.width > 0.0);
     assert!(body_section.frame.height > 0.0);
+    assert_eq!(projected.status_text, "Console ready");
     assert!(!nodes
         .iter()
         .any(|node| node.control_id == "ConsoleTextPanel"));

@@ -1,0 +1,220 @@
+[asset]
+kind = "view"
+id = "editor.demo.material_primitives"
+version = 2
+display_name = "Material Primitive Demo"
+
+[imports]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[tokens]
+"surface.window" = "#121212"
+"surface.panel" = "#1e1e1e"
+"surface.raised" = "#242424"
+"text.primary" = "#ffffff"
+"text.secondary" = "rgba(255,255,255,0.70)"
+"action.hover" = "rgba(255,255,255,0.08)"
+"action.pressed" = "rgba(255,255,255,0.12)"
+"action.selected" = "rgba(255,255,255,0.16)"
+"action.disabled" = "rgba(255,255,255,0.30)"
+"focus.ring" = "#90caf9"
+"palette.primary.main" = "#90caf9"
+"palette.warning.main" = "#ffa726"
+"palette.error.main" = "#f44336"
+
+[root]
+node = "window"
+
+[nodes.window]
+component = "WindowFrame"
+control_id = "MaterialPrimitiveDemoWindow"
+classes = ["material_dark", "material-demo-window"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "content" }]
+
+[nodes.content]
+component = "VerticalGroup"
+control_id = "MaterialPrimitiveDemoContent"
+classes = ["material-panel"]
+children = [
+  { node = "toolbar" },
+  { node = "form_panel" },
+  { node = "selection_panel" },
+  { node = "feedback_panel" },
+]
+
+[nodes.toolbar]
+component = "HorizontalGroup"
+control_id = "MaterialPrimitiveToolbar"
+classes = ["material-toolbar"]
+children = [
+  { node = "primary_button" },
+  { node = "icon_button" },
+  { node = "menu" },
+  { node = "tooltip" },
+]
+
+[nodes.primary_button]
+component = "Button"
+control_id = "PrimaryButton"
+classes = ["material-control", "primary"]
+props = { text = "Apply", density = "compact" }
+state = { hovered = true, focused = true }
+
+[nodes.icon_button]
+component = "IconButton"
+control_id = "IconButton"
+classes = ["material-control"]
+props = { icon = "save-outline", text = "Save", density = "compact" }
+state = { pressed = true }
+
+[nodes.menu]
+component = "Menu"
+control_id = "Menu"
+classes = ["material-control"]
+props = { text = "Create" }
+
+[nodes.tooltip]
+component = "Tooltip"
+control_id = "Tooltip"
+classes = ["material-control"]
+props = { text = "Hover help" }
+
+[nodes.form_panel]
+component = "Panel"
+control_id = "FormPanel"
+classes = ["material-panel"]
+children = [
+  { node = "text_field" },
+  { node = "checkbox" },
+  { node = "switch" },
+]
+
+[nodes.text_field]
+component = "TextField"
+control_id = "TextField"
+classes = ["material-control"]
+props = { text = "PlayerName", density = "compact" }
+state = { warning = true }
+
+[nodes.checkbox]
+component = "Checkbox"
+control_id = "Checkbox"
+classes = ["material-control"]
+props = { checked = true, text = "Visible", density = "compact" }
+state = { selected = true }
+
+[nodes.switch]
+component = "Switch"
+control_id = "Switch"
+classes = ["material-control"]
+props = { checked = false, text = "Cast shadows", density = "compact" }
+state = { disabled = true }
+
+[nodes.selection_panel]
+component = "HorizontalGroup"
+control_id = "SelectionPanel"
+classes = ["material-panel"]
+children = [
+  { node = "dropdown" },
+  { node = "slider" },
+  { node = "tabs" },
+]
+
+[nodes.dropdown]
+component = "Dropdown"
+control_id = "Dropdown"
+classes = ["material-control"]
+props = { value_text = "Shaded", options = ["Shaded", "Wireframe"], density = "compact" }
+
+[nodes.slider]
+component = "Slider"
+control_id = "Slider"
+classes = ["material-control"]
+props = { value = 0.64, density = "compact" }
+
+[nodes.tabs]
+component = "Tabs"
+control_id = "Tabs"
+classes = ["material-control"]
+props = { value_text = "Scene" }
+state = { selected = true }
+
+[nodes.feedback_panel]
+component = "HorizontalGroup"
+control_id = "FeedbackPanel"
+classes = ["material-panel"]
+children = [
+  { node = "scrollbar" },
+  { node = "splitter" },
+  { node = "modal" },
+]
+
+[nodes.scrollbar]
+component = "Scrollbar"
+control_id = "Scrollbar"
+classes = ["material-control"]
+props = { value = 0.25, density = "compact" }
+
+[nodes.splitter]
+component = "Splitter"
+control_id = "Splitter"
+classes = ["material-control"]
+props = { value = 0.5, density = "compact" }
+
+[nodes.modal]
+component = "Modal"
+control_id = "Modal"
+classes = ["material-control"]
+props = { open = false, density = "compact" }
+state = { error = true }
+
+[[stylesheets]]
+id = "material_demo"
+
+[[stylesheets.rules]]
+selector = ".material-demo-window"
+[stylesheets.rules.set.self]
+background = "$surface.window"
+fg = "$text.primary"
+
+[[stylesheets.rules]]
+selector = ".material-panel"
+[stylesheets.rules.set.self]
+background = "$surface.panel"
+fg = "$text.secondary"
+
+[[stylesheets.rules]]
+selector = ".material-control:hover"
+[stylesheets.rules.set.self]
+background = "$action.hover"
+
+[[stylesheets.rules]]
+selector = ".material-control:selected"
+[stylesheets.rules.set.self]
+background = "$action.selected"
+
+[[stylesheets.rules]]
+selector = ".material-control:pressed"
+[stylesheets.rules.set.self]
+background = "$action.pressed"
+
+[[stylesheets.rules]]
+selector = ".material-control:disabled"
+[stylesheets.rules.set.self]
+fg = "$action.disabled"
+
+[[stylesheets.rules]]
+selector = "#PrimaryButton:focused"
+[stylesheets.rules.set.self]
+outline = "$focus.ring"
+
+[[stylesheets.rules]]
+selector = ".material-control:warning"
+[stylesheets.rules.set.self]
+fg = "$palette.warning.main"
+
+[[stylesheets.rules]]
+selector = ".material-control:error"
+[stylesheets.rules.set.self]
+fg = "$palette.error.main"

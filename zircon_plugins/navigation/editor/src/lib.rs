@@ -68,7 +68,7 @@ impl zircon_editor::EditorPlugin for NavigationEditorPlugin {
                 drawer_id: NAVIGATION_DRAWER_ID,
                 drawer_display_name: "Navigation Tools",
                 template_id: NAVIGATION_TEMPLATE_ID,
-                template_document: "plugins://navigation/editor/surfaces.ui.toml",
+                template_document: "plugins://navigation/editor/surfaces.v2.ui.toml",
                 surfaces: &[
                     EditorAuthoringSurface::new(
                         NAVIGATION_AUTHORING_VIEW_ID,
@@ -112,23 +112,23 @@ fn register_navigation_templates(
     for (id, document) in [
         (
             NAVIGATION_AGENTS_TEMPLATE_ID,
-            "plugins://navigation/editor/agents_areas.ui.toml",
+            "plugins://navigation/editor/agents_areas.v2.ui.toml",
         ),
         (
             NAVIGATION_BAKE_TEMPLATE_ID,
-            "plugins://navigation/editor/bake.ui.toml",
+            "plugins://navigation/editor/bake.v2.ui.toml",
         ),
         (
             NAVIGATION_DEBUG_TEMPLATE_ID,
-            "plugins://navigation/editor/debug_gizmos.ui.toml",
+            "plugins://navigation/editor/debug_gizmos.v2.ui.toml",
         ),
         (
             NAVIGATION_ASSET_TEMPLATE_ID,
-            "plugins://navigation/editor/navmesh_asset.ui.toml",
+            "plugins://navigation/editor/navmesh_asset.v2.ui.toml",
         ),
         (
             NAVIGATION_SETTINGS_ASSET_TEMPLATE_ID,
-            "plugins://navigation/editor/navigation_settings_asset.ui.toml",
+            "plugins://navigation/editor/navigation_settings_asset.v2.ui.toml",
         ),
     ] {
         registry.register_ui_template(EditorUiTemplateDescriptor::new(id, document))?;
@@ -144,27 +144,27 @@ fn register_navigation_component_drawers(
     for (component_type, document, controller) in [
         (
             NAV_MESH_SURFACE_COMPONENT_TYPE,
-            "plugins://navigation/editor/navmesh_surface.drawer.ui.toml",
+            "plugins://navigation/editor/navmesh_surface.drawer.v2.ui.toml",
             NAV_MESH_SURFACE_DRAWER_ID,
         ),
         (
             NAV_MESH_MODIFIER_COMPONENT_TYPE,
-            "plugins://navigation/editor/navmesh_modifier.drawer.ui.toml",
+            "plugins://navigation/editor/navmesh_modifier.drawer.v2.ui.toml",
             NAV_MESH_MODIFIER_DRAWER_ID,
         ),
         (
             NAV_MESH_AGENT_COMPONENT_TYPE,
-            "plugins://navigation/editor/navmesh_agent.drawer.ui.toml",
+            "plugins://navigation/editor/navmesh_agent.drawer.v2.ui.toml",
             NAV_MESH_AGENT_DRAWER_ID,
         ),
         (
             NAV_MESH_OBSTACLE_COMPONENT_TYPE,
-            "plugins://navigation/editor/navmesh_obstacle.drawer.ui.toml",
+            "plugins://navigation/editor/navmesh_obstacle.drawer.v2.ui.toml",
             NAV_MESH_OBSTACLE_DRAWER_ID,
         ),
         (
             NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
-            "plugins://navigation/editor/navmesh_offmesh_link.drawer.ui.toml",
+            "plugins://navigation/editor/navmesh_offmesh_link.drawer.v2.ui.toml",
             NAV_MESH_OFF_MESH_LINK_DRAWER_ID,
         ),
     ] {
@@ -415,17 +415,17 @@ mod tests {
 
     fn navigation_editor_documents() -> &'static [&'static str] {
         &[
-            "surfaces.ui.toml",
-            "agents_areas.ui.toml",
-            "bake.ui.toml",
-            "debug_gizmos.ui.toml",
-            "navmesh_asset.ui.toml",
-            "navigation_settings_asset.ui.toml",
-            "navmesh_surface.drawer.ui.toml",
-            "navmesh_modifier.drawer.ui.toml",
-            "navmesh_agent.drawer.ui.toml",
-            "navmesh_obstacle.drawer.ui.toml",
-            "navmesh_offmesh_link.drawer.ui.toml",
+            "surfaces.v2.ui.toml",
+            "agents_areas.v2.ui.toml",
+            "bake.v2.ui.toml",
+            "debug_gizmos.v2.ui.toml",
+            "navmesh_asset.v2.ui.toml",
+            "navigation_settings_asset.v2.ui.toml",
+            "navmesh_surface.drawer.v2.ui.toml",
+            "navmesh_modifier.drawer.v2.ui.toml",
+            "navmesh_agent.drawer.v2.ui.toml",
+            "navmesh_obstacle.drawer.v2.ui.toml",
+            "navmesh_offmesh_link.drawer.v2.ui.toml",
         ]
     }
 }

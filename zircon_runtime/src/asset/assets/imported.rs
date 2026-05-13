@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset, AnimationSkeletonAsset,
-    AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset, MaterialGraphAsset,
-    ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset, PrefabAsset,
-    SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset, TextureAsset,
-    TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    ui_v2_asset_references, AnimationClipAsset, AnimationGraphAsset, AnimationSequenceAsset,
+    AnimationSkeletonAsset, AnimationStateMachineAsset, DataAsset, FontAsset, MaterialAsset,
+    MaterialGraphAsset, ModelAsset, NavMeshAsset, NavigationSettingsAsset, PhysicsMaterialAsset,
+    PrefabAsset, SceneAsset, ShaderAsset, SoundAsset, TerrainAsset, TerrainLayerStackAsset,
+    TextureAsset, TileMapAsset, TileSetAsset, UiLayoutAsset, UiStyleAsset, UiV2ComponentAsset,
+    UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use crate::asset::AssetReference;
 
@@ -36,6 +37,9 @@ pub enum ImportedAsset {
     UiLayout(UiLayoutAsset),
     UiWidget(UiWidgetAsset),
     UiStyle(UiStyleAsset),
+    UiV2View(UiV2ViewAsset),
+    UiV2Component(UiV2ComponentAsset),
+    UiV2Style(UiV2StyleAsset),
 }
 
 impl ImportedAsset {
@@ -52,6 +56,9 @@ impl ImportedAsset {
             Self::TileSet(asset) => asset.direct_references(),
             Self::TileMap(asset) => asset.direct_references(),
             Self::Prefab(asset) => asset.direct_references(),
+            Self::UiV2View(asset) => ui_v2_asset_references(&asset.document),
+            Self::UiV2Component(asset) => ui_v2_asset_references(&asset.document),
+            Self::UiV2Style(asset) => ui_v2_asset_references(&asset.document),
             _ => Vec::new(),
         }
     }
@@ -84,5 +91,8 @@ pub fn asset_kind_for_imported_asset(imported: &ImportedAsset) -> crate::asset::
         ImportedAsset::UiLayout(_) => crate::asset::AssetKind::UiLayout,
         ImportedAsset::UiWidget(_) => crate::asset::AssetKind::UiWidget,
         ImportedAsset::UiStyle(_) => crate::asset::AssetKind::UiStyle,
+        ImportedAsset::UiV2View(_) => crate::asset::AssetKind::UiLayout,
+        ImportedAsset::UiV2Component(_) => crate::asset::AssetKind::UiWidget,
+        ImportedAsset::UiV2Style(_) => crate::asset::AssetKind::UiStyle,
     }
 }

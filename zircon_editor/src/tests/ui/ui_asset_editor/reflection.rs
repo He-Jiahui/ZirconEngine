@@ -9,7 +9,7 @@ use zircon_runtime_interface::ui::template::UiAssetKind;
 #[test]
 fn ui_asset_editor_reflection_model_tracks_source_selection_and_style_state() {
     let route = UiAssetEditorRoute::new(
-        "asset://ui/editor/ui_asset_editor.ui.toml",
+        "asset://ui/editor/ui_asset_editor.v2.ui.toml",
         UiAssetKind::Layout,
         UiAssetEditorMode::Design,
     );
@@ -77,6 +77,6 @@ fn ui_asset_editor_bootstrap_route_points_to_shared_layout_asset() {
     assert_eq!(route.asset_id, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID);
     assert_eq!(
         UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
-        "editor.ui_asset_editor"
+        "editor.ui_asset_editor.projection.v2"
     );
 }

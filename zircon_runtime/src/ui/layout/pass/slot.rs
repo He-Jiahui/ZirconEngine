@@ -55,7 +55,7 @@ pub(super) fn slot_padding(slot: Option<&UiSlot>) -> UiMargin {
 fn slot_kind_for_container(container: UiContainerKind) -> Option<UiSlotKind> {
     match container {
         UiContainerKind::Free => Some(UiSlotKind::Free),
-        UiContainerKind::Container => Some(UiSlotKind::Container),
+        UiContainerKind::Container | UiContainerKind::SizeBox(_) => Some(UiSlotKind::Container),
         UiContainerKind::Overlay => Some(UiSlotKind::Overlay),
         UiContainerKind::Space => None,
         UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {

@@ -185,15 +185,15 @@ fn register_export_report_templates(
     for (id, document) in [
         (
             SOURCE_TEMPLATE_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/source_template_report.ui.toml",
+            "asset://editor_build_export_desktop/editor/source_template_report.v2.ui.toml",
         ),
         (
             LIBRARY_EMBED_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/library_embed_report.ui.toml",
+            "asset://editor_build_export_desktop/editor/library_embed_report.v2.ui.toml",
         ),
         (
             NATIVE_DYNAMIC_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/native_dynamic_report.ui.toml",
+            "asset://editor_build_export_desktop/editor/native_dynamic_report.v2.ui.toml",
         ),
     ] {
         registry.register_ui_template(EditorUiTemplateDescriptor::new(id, document))?;
@@ -231,7 +231,7 @@ fn register_export_profile_authoring(
     registry.register_component_drawer(
         ComponentDrawerDescriptor::new(
             EXPORT_PROFILE_COMPONENT,
-            "asset://editor_build_export_desktop/editor/export_profile_drawer.ui.toml",
+            "asset://editor_build_export_desktop/editor/export_profile_drawer.v2.ui.toml",
             "editor.build_export_desktop.ExportProfileController",
         )
         .with_binding("BuildExport.Desktop.GeneratePlan")

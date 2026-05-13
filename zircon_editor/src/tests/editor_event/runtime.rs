@@ -47,6 +47,13 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
         ("Runtime.PlayMode.Enter", "Play/Enter Play Mode"),
         ("Runtime.PlayMode.Exit", "Play/Exit Play Mode"),
         ("Window.DebugObservatory.Open", "Window/Debug Observatory"),
+        ("Window.PrefabEditor.Open", "Window/Prefab Editor"),
+        ("Window.MaterialEditor.Open", "Window/Material Editor"),
+        ("Window.MaterialDemo.Open", "Window/Material Demo"),
+        ("Window.UiAssetEditor.Open", "Window/UI Asset Editor"),
+        ("Window.AnimationEditor.Open", "Window/Animation Editor"),
+        ("Window.AssetBrowser.Open", "Window/Asset Browser"),
+        ("Window.Diagnostics.Open", "Window/Diagnostics"),
         ("View.PluginManager.Open", "View/Plugin Manager"),
         ("View.BuildExport.Open", "View/Desktop Export"),
         ("Inspector.Field.ApplyBatch", "Inspector/Apply Changes"),
@@ -146,14 +153,14 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
     registry
         .register_component_drawer(ComponentDrawerDescriptor::new(
             "weather.Component.CloudLayer",
-            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
             "weather.editor.CloudLayerInspectorController",
         ))
         .unwrap();
     registry
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
-            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
         ))
         .unwrap();
     registry.register_operation(operation.clone()).unwrap();
@@ -1989,14 +1996,14 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
     extension
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
-            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
         ))
         .unwrap();
     extension
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -2016,7 +2023,7 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         .expect("component drawer registered");
     assert_eq!(
         drawer.ui_document(),
-        "asset://weather/editor/cloud_layer.inspector.ui.toml"
+        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml"
     );
     assert_eq!(
         drawer.controller(),
@@ -2035,7 +2042,7 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         .expect("ui template registered");
     assert_eq!(
         template.ui_document(),
-        "asset://weather/editor/cloud_layer.inspector.ui.toml"
+        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml"
     );
 }
 
@@ -2083,7 +2090,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -2109,7 +2116,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
     assert!(component.drawer_available);
     assert_eq!(
         component.drawer_ui_document.as_deref(),
-        Some("asset://weather/editor/cloud_layer.inspector.ui.toml")
+        Some("asset://weather/editor/cloud_layer.inspector.v2.ui.toml")
     );
     assert_eq!(
         component.drawer_controller.as_deref(),
@@ -2171,7 +2178,7 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.CloudLayer.Refresh"),
@@ -2416,7 +2423,7 @@ fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.CloudLayer.Refresh"),
@@ -2443,7 +2450,7 @@ fn editor_extension_registry_rejects_invalid_component_drawer_operation_bindings
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.Refresh"),
@@ -2465,7 +2472,7 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id(" weather.cloud_layer.inspector"),
@@ -2475,6 +2482,43 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
     assert_eq!(
         error.to_string(),
         "editor component drawer template id ` weather.cloud_layer.inspector` is invalid"
+    );
+}
+
+#[test]
+fn editor_extension_registry_rejects_legacy_ui_template_documents() {
+    use crate::core::editor_extension::{EditorExtensionRegistry, EditorUiTemplateDescriptor};
+
+    let mut extension = EditorExtensionRegistry::default();
+    let error = extension
+        .register_ui_template(EditorUiTemplateDescriptor::new(
+            "weather.cloud_layer.inspector",
+            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .v2.ui.toml asset"
+    );
+}
+
+#[test]
+fn editor_extension_registry_rejects_legacy_component_drawer_documents() {
+    use crate::core::editor_extension::{ComponentDrawerDescriptor, EditorExtensionRegistry};
+
+    let mut extension = EditorExtensionRegistry::default();
+    let error = extension
+        .register_component_drawer(ComponentDrawerDescriptor::new(
+            "weather.Component.CloudLayer",
+            "asset://weather/editor/cloud_layer.inspector.ui.toml",
+            "weather.editor.CloudLayerInspectorController",
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error.to_string(),
+        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .v2.ui.toml asset"
     );
 }
 
@@ -2907,26 +2951,25 @@ fn asset_import_binding_normalizes_to_runtime_host_request() {
 }
 
 #[test]
-fn asset_open_event_opens_ui_asset_editor_for_ui_toml_source() {
+fn asset_open_event_opens_ui_asset_editor_for_v2_ui_toml_source() {
     let _guard = env_lock().lock().unwrap();
 
     let runtime = EventRuntimeHarness::new("zircon_editor_event_ui_asset_open");
-    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_ui_asset_open.ui.toml");
+    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_ui_asset_open.v2.ui.toml");
     fs::write(
         &ui_asset_path,
         r#"
 [asset]
-kind = "layout"
+kind = "view"
 id = "editor.tests.runtime_ui_asset"
-version = 1
+version = 2
 display_name = "Runtime UI Asset"
 
 [root]
 node = "root"
 
 [nodes.root]
-kind = "native"
-type = "Label"
+component = "Label"
 props = { text = "Runtime" }
 "#,
     )
@@ -2954,6 +2997,66 @@ props = { text = "Runtime" }
         .current_view_instances()
         .into_iter()
         .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
+
+    let _ = fs::remove_file(ui_asset_path);
+}
+
+#[test]
+fn asset_open_event_does_not_open_ui_asset_editor_for_legacy_ui_toml_source() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_legacy_ui_asset_open");
+    let ui_asset_path =
+        std::env::temp_dir().join("zircon_editor_event_legacy_ui_asset_open.ui.toml");
+    fs::write(
+        &ui_asset_path,
+        r#"
+[asset]
+kind = "layout"
+id = "editor.tests.legacy_runtime_ui_asset"
+version = 1
+display_name = "Legacy Runtime UI Asset"
+
+[root]
+node = "root"
+
+[nodes.root]
+kind = "native"
+type = "Label"
+props = { text = "Legacy" }
+"#,
+    )
+    .unwrap();
+
+    let record = runtime
+        .runtime
+        .dispatch_event(
+            EditorEventSource::Headless,
+            EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+                asset_path: ui_asset_path.to_string_lossy().into_owned(),
+            }),
+        )
+        .expect("legacy ui asset event should stay a generic open request");
+
+    assert_eq!(
+        record.event,
+        EditorEvent::Asset(EditorAssetEvent::OpenAsset {
+            asset_path: ui_asset_path.to_string_lossy().into_owned(),
+        })
+    );
+    assert!(!record.effects.contains(&EditorEventEffect::LayoutChanged));
+    assert!(!runtime
+        .runtime
+        .current_view_instances()
+        .into_iter()
+        .any(|instance| instance.descriptor_id == ViewDescriptorId::new("editor.ui_asset")));
+    assert_eq!(
+        runtime.runtime.editor_snapshot().status_line,
+        format!(
+            "Open asset requested for {}",
+            ui_asset_path.to_string_lossy()
+        )
+    );
 
     let _ = fs::remove_file(ui_asset_path);
 }
@@ -3043,22 +3146,22 @@ fn workbench_menu_open_ui_asset_opens_ui_asset_editor_for_shared_asset() {
     let _guard = env_lock().lock().unwrap();
 
     let runtime = EventRuntimeHarness::new("zircon_editor_event_menu_open_ui_asset");
-    let ui_asset_path = std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.ui.toml");
+    let ui_asset_path =
+        std::env::temp_dir().join("zircon_editor_event_menu_open_ui_asset.v2.ui.toml");
     fs::write(
         &ui_asset_path,
         r#"
 [asset]
-kind = "layout"
+kind = "view"
 id = "editor.tests.menu_ui_asset"
-version = 1
+version = 2
 display_name = "Menu UI Asset"
 
 [root]
 node = "root"
 
 [nodes.root]
-kind = "native"
-type = "Label"
+component = "Label"
 props = { text = "Menu" }
 "#,
     )

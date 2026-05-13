@@ -13,11 +13,11 @@ fn production_ui_entry_assets_live_under_crate_assets_not_src() {
     );
 
     for relative in [
-        "hud_overlay.ui.toml",
-        "pause_menu.ui.toml",
-        "settings_dialog.ui.toml",
-        "inventory_list.ui.toml",
-        "quest_log_dialog.ui.toml",
+        "hud_overlay.v2.ui.toml",
+        "pause_menu.v2.ui.toml",
+        "settings_dialog.v2.ui.toml",
+        "inventory_list.v2.ui.toml",
+        "quest_log_dialog.v2.ui.toml",
     ] {
         assert!(
             runtime_assets.join(relative).exists(),
@@ -40,6 +40,35 @@ fn production_ui_entry_assets_live_under_crate_assets_not_src() {
             lingering
         );
     }
+}
+
+#[test]
+fn runtime_ui_asset_root_contains_only_v2_ui_toml_entries() {
+    let runtime_ui_assets = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("assets")
+        .join("ui");
+    let ui_toml_files = collect_ui_toml_files(&runtime_ui_assets);
+    let legacy_files = ui_toml_files
+        .iter()
+        .filter(|path| {
+            !path
+                .file_name()
+                .is_some_and(|name| name.to_string_lossy().ends_with(".v2.ui.toml"))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    assert!(
+        legacy_files.is_empty(),
+        "runtime production UI asset roots must be v2-only; found legacy files {:?}",
+        legacy_files
+    );
+    assert!(
+        ui_toml_files.iter().any(|path| path
+            .file_name()
+            .is_some_and(|name| name.to_string_lossy().ends_with(".v2.ui.toml"))),
+        "runtime UI asset root should contain at least one v2 ui document"
+    );
 }
 
 #[test]

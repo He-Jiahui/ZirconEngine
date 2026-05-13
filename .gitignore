@@ -76,6 +76,9 @@ dkms.conf
 
 /.cursor
 /.opencode
+/.claude
+
+CLAUDE.md
 
 .cache/
 

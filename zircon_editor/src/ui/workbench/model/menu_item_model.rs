@@ -89,6 +89,13 @@ fn builtin_view_operation_path(descriptor_id: &str) -> Option<&'static str> {
         "editor.build_export_desktop" => Some("View.BuildExport.Open"),
         "editor.prefab" => Some("View.Prefab.Open"),
         "editor.asset_browser" => Some("View.AssetBrowser.Open"),
+        "editor.prefab_editor_window" => Some("Window.PrefabEditor.Open"),
+        "editor.material_editor_window" => Some("Window.MaterialEditor.Open"),
+        "editor.material_demo_window" => Some("Window.MaterialDemo.Open"),
+        "editor.ui_asset_editor_window" => Some("Window.UiAssetEditor.Open"),
+        "editor.animation_editor_window" => Some("Window.AnimationEditor.Open"),
+        "editor.asset_browser_window" => Some("Window.AssetBrowser.Open"),
+        "editor.diagnostics_window" => Some("Window.Diagnostics.Open"),
         _ => None,
     }
 }

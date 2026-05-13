@@ -218,6 +218,20 @@ impl UiComponentShowcaseDemoState {
             if state_panel::project_state_panel_node(self, control_id, &mut node.attributes) {
                 continue;
             }
+            if control_id == "UiComponentShowcaseHeader" {
+                node.attributes.insert(
+                    "text".to_string(),
+                    TomlValue::String(
+                        "Runtime UI Component Showcase · material_dark / fyrox_panel / jetbrains_shell / unreal_window_model"
+                            .to_string(),
+                    ),
+                );
+                node.attributes.insert(
+                    "text_tone".to_string(),
+                    TomlValue::String("default".to_string()),
+                );
+                continue;
+            }
             if control_id == "ComponentShowcaseEventLog" {
                 if let Some(text) = self.event_log_text() {
                     node.attributes

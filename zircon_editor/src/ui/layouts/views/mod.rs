@@ -27,7 +27,10 @@ pub(crate) use view_data::{
     RecentProjectData, SceneViewportChromeData, WelcomePaneData, WelcomePresentation,
 };
 pub(crate) use view_data::{ViewTemplateFrameData, ViewTemplateNodeData};
-pub(crate) use view_projection::{build_view_template_nodes, resolve_visual_assets};
+pub(crate) use view_projection::{
+    build_view_template_nodes, preferred_binding_id, resolve_commit_action_id,
+    resolve_component_role, resolve_edit_action_id, resolve_node_value_text, resolve_visual_assets,
+};
 pub(crate) use viewport_chrome::{blank_viewport_chrome, scene_viewport_chrome};
 pub(crate) use welcome::welcome_pane_nodes;
 pub(crate) use welcome_presentation::welcome_presentation;

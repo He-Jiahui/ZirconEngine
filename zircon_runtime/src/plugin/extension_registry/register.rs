@@ -180,6 +180,12 @@ impl RuntimeExtensionRegistry {
                 descriptor.component_id, descriptor.plugin_id
             )));
         }
+        if !descriptor.ui_document.ends_with(".v2.ui.toml") {
+            return Err(RuntimeExtensionRegistryError::InvalidUiComponent(format!(
+                "ui component {} document `{}` must reference a .v2.ui.toml asset",
+                descriptor.component_id, descriptor.ui_document
+            )));
+        }
         if self
             .ui_components
             .iter()

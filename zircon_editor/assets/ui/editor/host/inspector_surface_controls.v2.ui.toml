@@ -1,0 +1,64 @@
+[asset]
+kind = "view"
+id = "editor.host.inspector.surface_controls"
+version = 2
+display_name = "inspector surface controls"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "InspectorSurfaceControls"
+control_id = "InspectorSurfaceControls"
+classes = ["editor-surface-controls", "inspector-controls"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "name" }, { node = "parent" }, { node = "position_x" }, { node = "position_y" }, { node = "position_z" }, { node = "apply" }, { node = "delete" }]
+
+[nodes.name]
+component = "InputField"
+control_id = "NameField"
+props = { label = "Name", value = "", placeholder = "Name", value_text = "", layout_min_height = 28.0, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "InspectorView/NameField", event = "Change", route = "DraftCommand.SetInspectorField" }]
+
+[nodes.parent]
+component = "InputField"
+control_id = "ParentField"
+props = { label = "Parent", value = "", placeholder = "Parent", value_text = "", layout_min_height = 28.0, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "InspectorView/ParentField", event = "Change", route = "DraftCommand.SetInspectorField" }]
+
+[nodes.position_x]
+component = "NumberField"
+control_id = "PositionXField"
+props = { label = "X", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "InspectorView/PositionXField", event = "Change", route = "DraftCommand.SetInspectorField" }]
+
+[nodes.position_y]
+component = "NumberField"
+control_id = "PositionYField"
+props = { label = "Y", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "InspectorView/PositionYField", event = "Change", route = "DraftCommand.SetInspectorField" }]
+
+[nodes.position_z]
+component = "NumberField"
+control_id = "PositionZField"
+props = { label = "Z", value = 0.0, value_text = "0", min = -100000.0, max = 100000.0, step = 0.1, large_step = 1.0, layout_min_height = 28.0, input_clickable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [{ id = "InspectorView/PositionZField", event = "Change", route = "DraftCommand.SetInspectorField" }]
+
+[nodes.apply]
+component = "Button"
+control_id = "ApplyBatchButton"
+props = { label = "Apply", text = "Apply", button_variant = "primary", layout_min_height = 28.0, input_clickable = true, input_focusable = true }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "InspectorView/ApplyBatchButton", event = "Click", route = "InspectorFieldBatch" }]
+
+[nodes.delete]
+component = "Button"
+control_id = "DeleteSelected"
+props = { label = "Delete", text = "Delete", text_tone = "danger", button_variant = "danger", layout_min_height = 28.0, input_clickable = true, input_focusable = true }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "InspectorView/DeleteSelected", event = "Click", route = "MenuAction.DeleteSelected" }]

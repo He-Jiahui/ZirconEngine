@@ -184,6 +184,7 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             error: None,
         },
         store: Default::default(),
+        profile: Default::default(),
     }
 }
 
@@ -407,6 +408,40 @@ fn editor_ui_host_runtime_exposes_hybrid_slot_anchors_in_host_projection() {
                 .node("root")
                 .and_then(|root| root.attributes.get("pane_route_namespace")),
             Some(&Value::String(body.route_namespace.to_string()))
+        );
+    }
+}
+
+#[test]
+fn editor_ui_host_runtime_preserves_hybrid_slot_anchors_in_surface_host_projection() {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let chrome = chrome_fixture();
+    let animation = animation_fixture();
+    let context = PanePayloadBuildContext::new(&chrome).with_animation_pane(&animation);
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+
+    for (descriptor_id, control_id) in [
+        ("editor.animation_sequence", "AnimationTimelineSlotAnchor"),
+        ("editor.animation_graph", "AnimationGraphCanvasSlotAnchor"),
+    ] {
+        let body = build_pane_body_presentation(&pane_body_spec(descriptor_id), &context);
+        let projection = runtime.project_pane_body(&body).unwrap();
+        let mut surface = runtime.build_shared_surface(&body.document_id).unwrap();
+        surface
+            .compute_layout(zircon_runtime_interface::ui::layout::UiSize::new(
+                520.0, 300.0,
+            ))
+            .unwrap();
+        let host_model = runtime
+            .build_host_model_with_surface(&projection, &surface)
+            .unwrap();
+
+        assert!(
+            host_model.node_by_control_id(control_id).is_some(),
+            "surface-backed host projection should preserve `{control_id}`"
         );
     }
 }

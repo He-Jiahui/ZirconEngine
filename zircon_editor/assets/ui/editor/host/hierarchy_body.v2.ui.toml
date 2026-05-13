@@ -1,0 +1,33 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.hierarchy.body"
+version = 2
+display_name = "hierarchy pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "HierarchyPaneBodyRoot"
+classes = ["editor-pane", "hierarchy-pane", "panel"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "tree_slot" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "HierarchyHeader"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "select_root" }]
+
+[nodes.select_root]
+component = "IconButton"
+control_id = "SelectRoot"
+props = { label = "Select Root", icon = "layers-outline" }
+layout = { width = { min = 120.0, preferred = 120.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "SelectionCommand.SelectSceneNode" }]
+
+[nodes.tree_slot]
+component = "Container"
+control_id = "HierarchyListPanel"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

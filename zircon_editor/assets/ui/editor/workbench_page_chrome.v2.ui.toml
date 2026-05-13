@@ -1,0 +1,57 @@
+stylesheets = []
+
+[asset]
+kind = "view"
+id = "editor.workbench_page_chrome.v2"
+version = 2
+display_name = "workbench page chrome"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "workbench_page_chrome_root"
+
+[nodes.workbench_page_chrome_root]
+component = "Overlay"
+control_id = "WorkbenchPageChromeRoot"
+classes = ["page-chrome", "editor-shell"]
+layout = { clip = true, container = { kind = "Overlay" }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "workbench_page_bar" },
+  { node = "workbench_page_project_path" },
+  { node = "workbench_page_tab_0" },
+  { node = "workbench_page_tab_1" },
+  { node = "workbench_page_tab_2" },
+]
+
+[nodes.workbench_page_bar]
+component = "Container"
+control_id = "WorkbenchPageBar"
+props = { surface_variant = "panel", radius = 0.0, border_width = 0.0 }
+layout = { position = { x = 0.0, y = 26.0 }, width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.workbench_page_project_path]
+component = "Label"
+control_id = "PageProjectPath"
+props = { text = "No project open", text_tone = "muted", font_size = 9.0, text_align = "right", overflow = "elide" }
+layout = { anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -12.0, y = 35.0 }, width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { min = 14.0, preferred = 14.0, max = 14.0, stretch = "Fixed" } }
+
+[nodes.workbench_page_tab_0]
+component = "Label"
+control_id = "PageTab0"
+props = { text = "Workbench", text_tone = "default", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 8.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.workbench_page_tab_1]
+component = "Label"
+control_id = "PageTab1"
+props = { text = "Asset", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 120.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.workbench_page_tab_2]
+component = "Label"
+control_id = "PageTab2"
+props = { text = "UI", text_tone = "subtle", font_size = 11.0, text_align = "center", overflow = "elide" }
+layout = { position = { x = 232.0, y = 27.0 }, width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }

@@ -36,8 +36,8 @@ pub(crate) fn to_host_contract_template_node(
         control_id: data.control_id.clone(),
         role: data.role.clone(),
         text: data.text.clone(),
-        component_role: "".into(),
-        value_text: "".into(),
+        component_role: data.component_role.clone(),
+        value_text: data.value_text.clone(),
         value_number: 0.0,
         value_percent: 0.0,
         value_color: crate::ui::retained_host::primitives::Color::from_argb_u8(0, 0, 0, 0),
@@ -105,12 +105,12 @@ pub(crate) fn to_host_contract_template_node(
         disabled: data.disabled,
         dispatch_kind: data.dispatch_kind.clone(),
         action_id: data.action_id.clone(),
-        binding_id: "".into(),
+        binding_id: data.binding_id.clone(),
         begin_drag_action_id: "".into(),
         drag_action_id: "".into(),
         end_drag_action_id: "".into(),
-        commit_action_id: "".into(),
-        edit_action_id: "".into(),
+        commit_action_id: data.commit_action_id.clone(),
+        edit_action_id: data.edit_action_id.clone(),
         surface_variant: data.surface_variant.clone(),
         text_tone: data.text_tone.clone(),
         button_variant: data.button_variant.clone(),
@@ -136,13 +136,35 @@ pub(crate) fn to_host_contract_template_nodes(
     map_model_rc(data, |node| to_host_contract_template_node(&node))
 }
 
-pub(crate) fn to_host_contract_template_nodes_owned(
-    items: Vec<ViewTemplateNodeData>,
-) -> ModelRc<host_contract::TemplatePaneNodeData> {
-    model_rc(
-        items
-            .into_iter()
-            .map(to_host_contract_template_node_owned)
-            .collect(),
-    )
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn view_template_node_conversion_preserves_v2_interaction_metadata() {
+        let data = ViewTemplateNodeData {
+            node_id: "asset/search".into(),
+            control_id: "SearchEdited".into(),
+            role: "InputField".into(),
+            component_role: "input-field".into(),
+            value_text: "albedo".into(),
+            dispatch_kind: "asset".into(),
+            binding_id: "AssetSurface/SearchEdited".into(),
+            edit_action_id: "AssetSurface/SearchEdited".into(),
+            commit_action_id: "AssetSurface/SearchCommitted".into(),
+            ..ViewTemplateNodeData::default()
+        };
+
+        let node = to_host_contract_template_node(&data);
+
+        assert_eq!(node.component_role.as_str(), "input-field");
+        assert_eq!(node.value_text.as_str(), "albedo");
+        assert_eq!(node.dispatch_kind.as_str(), "asset");
+        assert_eq!(node.binding_id.as_str(), "AssetSurface/SearchEdited");
+        assert_eq!(node.edit_action_id.as_str(), "AssetSurface/SearchEdited");
+        assert_eq!(
+            node.commit_action_id.as_str(),
+            "AssetSurface/SearchCommitted"
+        );
+    }
 }

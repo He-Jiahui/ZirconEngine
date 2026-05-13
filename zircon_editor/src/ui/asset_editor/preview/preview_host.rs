@@ -1,5 +1,7 @@
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiCompiledDocument;
+use zircon_runtime::ui::v2::{UiV2CompiledDocument, UiV2SurfaceBuilder};
+use zircon_runtime_interface::ui::v2::UiV2AssetDocument;
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiSize};
 
 use crate::ui::asset_editor::session::UiAssetEditorSessionError;
@@ -20,6 +22,23 @@ impl UiAssetPreviewHost {
         let template_service = EditorTemplateRuntimeService;
         let mut surface = template_service.build_surface_from_compiled_document(
             UiTreeId::new(format!("ui_asset.preview.{asset_id}")),
+            compiled,
+        )?;
+        surface.compute_layout(preview_size)?;
+        Ok(Self {
+            preview_size,
+            surface,
+        })
+    }
+
+    pub fn new_v2(
+        preview_size: UiSize,
+        document: &UiV2AssetDocument,
+        compiled: &UiV2CompiledDocument,
+    ) -> Result<Self, UiAssetEditorSessionError> {
+        let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+            UiTreeId::new(format!("ui_asset.preview.v2.{}", document.asset.id)),
+            document,
             compiled,
         )?;
         surface.compute_layout(preview_size)?;

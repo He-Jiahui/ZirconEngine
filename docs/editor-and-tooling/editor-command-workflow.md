@@ -13,6 +13,7 @@ related_code:
   - zircon_editor/src/ui/retained_host/callback_dispatch/common/dispatch.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/workbench/menu_action.rs
   - zircon_editor/src/ui/workbench/model/menu_item_model.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
   - zircon_editor/src/ui/workbench/model/mod.rs
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/world/property_access/write.rs
@@ -23,6 +24,7 @@ related_code:
   - zircon_editor/src/core/host/manager.rs
   - zircon_editor/src/core/editor_event/host_adapter.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
+  - zircon_editor/src/ui/host/builtin_views/activity_windows/functional_window_view_descriptors.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_state_snapshot_build.rs
   - zircon_editor/src/ui/workbench/snapshot/data/inspector_snapshot.rs
@@ -47,6 +49,7 @@ implementation_files:
   - zircon_editor/src/core/editor_extension.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/host/editor_event_runtime_reflection.rs
+  - zircon_editor/src/ui/workbench/model/menu/window_menu.rs
   - zircon_editor/src/ui/template_runtime/component_adapter/component_drawer.rs
   - zircon_editor/src/ui/workbench/project/mod.rs
   - zircon_editor/src/ui/workbench/snapshot/mod.rs
@@ -80,10 +83,14 @@ tests:
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe builtin_viewport_toolbar_play_buttons_dispatch_menu_play_mode_operations --nocapture (passed)
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe menu_action_dispatches_through_runtime_and_sets_scene_dirty_effects --nocapture (passed)
   - 2026-05-03: E:\cargo-targets\zircon-editor-gap-check\debug\deps\zircon_editor-adc4066aa751f075.exe editor_operation_registry_exposes_builtin_menu_operations_by_path --nocapture (passed)
+  - cargo test -p zircon_editor --lib workbench_window_menu_exposes_unreal_style_functional_windows --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
+  - cargo test -p zircon_editor --lib editor_operation_registry_exposes_builtin_menu_operations_by_path --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
   - pending: cargo test -p zircon_editor inspector_payload_preserves_component_drawer_template_metadata --locked --jobs 1
   - pending: cargo test -p zircon_editor editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_component --locked --jobs 1
   - pending: cargo test -p zircon_editor editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled --locked --jobs 1
   - 2026-05-04: cargo test -p zircon_editor component_drawer_adapter_accepts_safe_action_events_beyond_press --locked --jobs 1 --target-dir target-codex-editor-check --message-format short --color never (passed; existing warnings only)
+  - 2026-05-13: RUSTFLAGS="-C linker=rust-lld" cargo test -p zircon_editor --lib editor_extension_registry_rejects_legacy_ui_template_documents --jobs 1 (passed, 1 passed)
+  - 2026-05-13: RUSTFLAGS="-C linker=rust-lld" cargo test -p zircon_editor --lib editor_extension_registry_rejects_legacy_component_drawer_documents --jobs 1 (passed, 1 passed)
 doc_type: module-detail
 ---
 
@@ -141,7 +148,7 @@ doc_type: module-detail
 
 ### Component Drawer Template Projection
 
-插件贡献的 `ComponentDrawerDescriptor` now carries the component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The live editor runtime filters these descriptors through the current capability snapshot before lookup and before `EditorState::snapshot_with_component_drawers(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
+插件贡献的 `ComponentDrawerDescriptor` now carries the component type, UI document, controller, optional template id, optional data root, and validated operation bindings as descriptor metadata. The UI document must be a `.v2.ui.toml` asset; the registry rejects legacy `.ui.toml` drawer and template documents before they can enter Inspector projection. The live editor runtime filters these descriptors through the current capability snapshot before lookup and before `EditorState::snapshot_with_component_drawers(...)` builds Inspector data, so disabled plugin capabilities cannot surface custom Inspector controls.
 
 Inspector snapshots and pane payloads preserve Component Drawer template metadata separately from generic dynamic component properties. When a runtime component schema and an enabled drawer descriptor are both present, the snapshot carries the drawer UI document, controller, template id, data root, and operation binding ids into the pane payload. The retained host-contract projection annotates the component header with the template id and UI document so the host can route the row as a custom drawer surface. When the plugin schema or enabled drawer descriptor is unavailable, `drawer_available` remains false, property rows stay disabled, and the warning diagnostic protects serialized component data until the plugin reloads or the required editor capability is enabled.
 
@@ -156,6 +163,8 @@ Component Drawer template execution is host-mediated rather than native plugin U
 5. 真正修改场景的 operation 继续进入 `EditorState::apply_intent` 和 `EditorCommand`；播放模式和窗口打开这类不可撤销命令则停在 editor event/runtime 边界处理副作用
 
 这条路径让插件菜单、内置 View 菜单、Scene toolbar 播放按钮和后续插件贡献的 toolbar 命令不再各自解析字符串。
+
+Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一条 operation 路径。Workbench `Window` 菜单把 Prefab、Material、UI Asset、Animation、Asset Browser 和 Diagnostics 映射到 `editor.*_window` descriptor，并注册 `Window.PrefabEditor.Open`、`Window.MaterialEditor.Open`、`Window.UiAssetEditor.Open`、`Window.AnimationEditor.Open`、`Window.AssetBrowser.Open`、`Window.Diagnostics.Open`。这些 operation 不直接修改 runtime scene；它们是 editor authoring shell 的窗口打开入口。
 
 ### 普通命令
 

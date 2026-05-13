@@ -41,6 +41,10 @@ tests:
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short (passed from zircon_plugins workspace with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout; 8 sound tests passed)
   - cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-independent-plugin-physics --color never
   - 2026-05-03: cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-lib-importer-contract --message-format short --color never (passed with existing runtime warnings after re-exporting PluginPackageKind, preserving feature diagnostics, and restoring external feature export helpers)
+  - cargo test -p zircon_runtime --lib runtime_extension_registry_rejects_legacy_ui_component_documents --jobs 1 --target-dir target\codex-ui-v2-guard (2026-05-13: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib runtime_extension_registry_installs_ui_components_into_runtime_registry --jobs 1 --target-dir target\codex-ui-v2-guard (2026-05-13: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib plugin_package_manifest_declares_runtime_and_editor_contributions --jobs 1 --target-dir target\codex-ui-v2-guard (2026-05-13: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib importer_registry_rejects_non_fixture_legacy_ui_toml_importer_registration --jobs 1 --target-dir target\codex-ui-v2-guard (2026-05-13: passed, 1 passed)
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
 doc_type: module-detail
@@ -69,6 +73,10 @@ These fields are generic because sound is not the only plugin that needs optiona
 
 `RuntimeExtensionRegistry` mirrors options, event catalogs, manifest-declared components, UI components, and asset importer descriptors during linked plugin registration so runtime/editor hosts can discover them alongside modules, managers, render features, pass executors, and runtime providers. If a plugin has already registered a real importer backend with the same importer id, the manifest descriptor is treated as the public descriptor for that backend and the registration report does not add the diagnostic-only placeholder.
 
+Runtime UI component manifest entries are v2-only on the production path. The registry still accepts the lightweight `{ component_id, plugin_id, ui_document }` shape, but `register_ui_component(...)` now rejects documents that do not end in `.v2.ui.toml`. This keeps plugin component metadata from reintroducing recursive `.ui.toml` prototypes after the UI v2 cutover.
+
+Asset importer manifest entries are v2-only for UI documents as well. `AssetImporterRegistry` rejects any non-fixture importer descriptor whose full suffix is `.ui.toml`, so stale package manifests cannot reinstall the recursive `UiAssetDocument` importer even when they declare an otherwise valid asset importer contribution. The only surviving `.ui.toml` matcher is the exact unit-test migration fixture used to verify old-schema migration metadata.
+
 Package manifests and feature manifests expose the same `with_default_packaging(...)` builder shape. That lets standalone plugin packages, such as editor-only export plugins, override the package-level default export strategy without reaching into the public struct fields or relying on feature-bundle builders by mistake.
 
 `PluginPackageKind` is part of the top-level `crate::plugin` public surface. Native plugin load
@@ -89,6 +97,8 @@ desktop export plan.
 - Duplicate option keys and event namespaces are rejected by the runtime extension registry.
 - Asset importer descriptors must declare at least one source extension or full suffix before they can be registered as diagnostic-only manifest declarations.
 - Duplicate importer ids and duplicate importer matchers at the same priority are rejected by the asset importer registry.
+- Asset importer descriptors cannot register `.ui.toml`; UI document importers must target `.v2.ui.toml` on the production path.
+- UI component descriptors must reference `.v2.ui.toml` documents; legacy `.ui.toml` is reserved for migration and fixture tests.
 - Existing plugin manifests continue to deserialize because the new fields use serde defaults.
 - This layer does not resolve dependency graphs yet; it only records declared dependency metadata for package/catalog consumers.
 

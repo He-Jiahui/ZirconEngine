@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimeFrameV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1,
+    ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeFrameV1,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
 /// Editor-owned handle to a dynamically loaded runtime session.
@@ -16,6 +16,13 @@ pub trait EditorRuntimeClient {
         viewport: ZrRuntimeViewportHandle,
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<ZrRuntimeFrameV1, String>;
+
+    fn profile_control(
+        &self,
+        _request: &ProfileControlRequest,
+    ) -> Result<Option<ProfileControlResponse>, String> {
+        Ok(None)
+    }
 }
 
 pub type SharedEditorRuntimeClient = Arc<dyn EditorRuntimeClient>;

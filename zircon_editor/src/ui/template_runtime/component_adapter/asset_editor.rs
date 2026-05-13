@@ -60,6 +60,18 @@ pub(crate) fn apply_asset_editor_component_envelope(
                 .set_ui_asset_editor_selected_widget_control_id(&instance_id, literal.clone()),
             "widget.text" => manager
                 .set_ui_asset_editor_selected_widget_text_property(&instance_id, literal.clone()),
+            path if path.starts_with("widget.prop.") => manager
+                .set_ui_asset_editor_selected_widget_prop_literal(
+                    &instance_id,
+                    path.trim_start_matches("widget.prop."),
+                    literal.clone(),
+                ),
+            path if path.starts_with("widget.state.") => manager
+                .set_ui_asset_editor_selected_widget_state_literal(
+                    &instance_id,
+                    path.trim_start_matches("widget.state."),
+                    literal.clone(),
+                ),
             "component.root_class_policy" => manager
                 .set_ui_asset_editor_selected_component_root_class_policy(
                     &instance_id,

@@ -59,15 +59,15 @@ fn active_editor_ui_tree_contains_no_retained_sources() {
 fn editor_ui_toml_assets_replace_former_workbench_source_roles() {
     let root = editor_root();
     for required in [
-        "assets/ui/editor/host/workbench_shell.ui.toml",
-        "assets/ui/editor/workbench_menu_chrome.ui.toml",
-        "assets/ui/editor/workbench_page_chrome.ui.toml",
-        "assets/ui/editor/workbench_dock_header.ui.toml",
-        "assets/ui/editor/workbench_activity_rail.ui.toml",
-        "assets/ui/editor/workbench_status_bar.ui.toml",
-        "assets/ui/editor/welcome.ui.toml",
-        "assets/ui/editor/ui_asset_editor.ui.toml",
-        "assets/ui/editor/component_showcase.ui.toml",
+        "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+        "assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
+        "assets/ui/editor/workbench_page_chrome.v2.ui.toml",
+        "assets/ui/editor/workbench_dock_header.v2.ui.toml",
+        "assets/ui/editor/workbench_activity_rail.v2.ui.toml",
+        "assets/ui/editor/workbench_status_bar.v2.ui.toml",
+        "assets/ui/editor/welcome.v2.ui.toml",
+        "assets/ui/editor/ui_asset_editor.v2.ui.toml",
+        "assets/ui/editor/component_showcase.v2.ui.toml",
     ] {
         assert!(
             root.join(required).exists(),

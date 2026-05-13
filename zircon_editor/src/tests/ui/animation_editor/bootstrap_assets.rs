@@ -1,15 +1,15 @@
 use crate::ui::layouts::views::animation_editor_pane_nodes;
-use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const ANIMATION_EDITOR_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/animation_editor.ui.toml"
+    "/assets/ui/editor/animation_editor.v2.ui.toml"
 ));
 
 #[test]
 fn animation_editor_bootstrap_layout_self_hosts_shell_sections() {
-    let layout = crate::tests::support::load_test_ui_asset(ANIMATION_EDITOR_LAYOUT_TOML)
+    let layout = UiV2AssetLoader::load_toml_str(ANIMATION_EDITOR_LAYOUT_TOML)
         .expect("animation editor layout");
 
     for required_node in [
@@ -32,7 +32,7 @@ fn animation_editor_bootstrap_layout_self_hosts_shell_sections() {
         "state_machine_transitions_panel",
     ] {
         assert!(
-            layout.contains_node(required_node),
+            layout.nodes.contains_key(required_node),
             "animation editor bootstrap layout should include `{required_node}`"
         );
     }

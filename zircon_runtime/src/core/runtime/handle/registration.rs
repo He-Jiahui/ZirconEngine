@@ -9,6 +9,7 @@ use super::CoreHandle;
 
 impl CoreHandle {
     pub fn register_module(&self, descriptor: ModuleDescriptor) -> Result<(), CoreError> {
+        crate::profile_scope!("runtime", "core", "register_module");
         let module_name = descriptor.name.clone();
         let mut modules = self.inner.modules.lock().unwrap();
         if modules.contains_key(&module_name) {

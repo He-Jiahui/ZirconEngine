@@ -1,0 +1,42 @@
+[asset]
+kind = "view"
+id = "runtime.ui.hud_overlay"
+version = 2
+display_name = "Runtime HUD Overlay"
+
+[imports]
+widgets = []
+styles = []
+
+[root]
+node = "hud_root"
+
+[nodes.hud_root]
+component = "Overlay"
+control_id = "HudRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "Overlay" } }
+children = [{ node = "health_panel" }, { node = "quest_label" }, { node = "weapon_icon" }, { node = "ammo_panel" }]
+
+[nodes.health_panel]
+component = "Container"
+control_id = "HealthPanel"
+props = { text = "HP 87 / 100", background = { color = "#8e2f2f" }, border = { color = "#f4c37d", width = 2.0, radius = 12.0 }, foreground = { color = "#fff4de" } }
+layout = { width = { min = 240.0, preferred = 240.0, max = 240.0, stretch = "Fixed" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, anchor = { x = 0.0, y = 0.0 }, pivot = { x = 0.0, y = 0.0 }, position = { x = 24.0, y = 24.0 } }
+
+[nodes.quest_label]
+component = "Label"
+control_id = "QuestLabel"
+props = { text = "Reach the relay before sunrise", opacity = 0.95, foreground = { color = "#f7f1d0" } }
+layout = { width = { min = 260.0, preferred = 260.0, max = 260.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 0.0 }, pivot = { x = 1.0, y = 0.0 }, position = { x = -28.0, y = 28.0 } }
+
+[nodes.weapon_icon]
+component = "Icon"
+control_id = "WeaponIcon"
+props = { icon = "pulse-rifle", foreground = { color = "#d8eefc" } }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -28.0, y = -28.0 } }
+
+[nodes.ammo_panel]
+component = "Container"
+control_id = "AmmoPanel"
+props = { text = "24 / 120", background = { color = "#20384b" }, border = { color = "#6dc5ff", width = 1.0, radius = 10.0 }, foreground = { color = "#e6f5ff" } }
+layout = { width = { min = 180.0, preferred = 180.0, max = 180.0, stretch = "Fixed" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" }, anchor = { x = 1.0, y = 1.0 }, pivot = { x = 1.0, y = 1.0 }, position = { x = -96.0, y = -30.0 } }

@@ -148,6 +148,7 @@ pub(super) fn rebuild_builtin_host_drawer_source_surface_with_anchors(
     Ok(())
 }
 
+#[cfg(test)]
 pub(super) fn rebuild_builtin_host_drawer_source_surface(
     surface: &mut UiSurface,
     shell_size: UiSize,

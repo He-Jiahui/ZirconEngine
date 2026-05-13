@@ -97,7 +97,7 @@ Validation: `cargo test -p zircon_editor asset_window_template`
 
 **Files:**
 - Create: `zircon_editor/assets/ui/editor/windows/ui_layout_editor_window.ui.toml`
-- Reuse: `zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml`
+- Reuse: `zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml`
 - Test: `zircon_editor/tests/ui_layout_editor_window_template.rs`
 
 - [ ] Add a failing test that verifies `UILayoutEditorWindow` references `ActivityDrawerWindow` and mounts UI editor content.

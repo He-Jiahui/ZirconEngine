@@ -8,10 +8,7 @@ use super::super::ProjectAssetManager;
 use crate::asset::{AssetId, AssetUri};
 
 impl ProjectAssetManager {
-    pub(in crate::asset::pipeline::manager::project_asset_manager::loading) fn ensure_resident(
-        &self,
-        id: AssetId,
-    ) -> Result<(), CoreError> {
+    pub(crate) fn ensure_resident(&self, id: AssetId) -> Result<(), CoreError> {
         if self.resource_manager().get_untyped(id).is_some() {
             return Ok(());
         }

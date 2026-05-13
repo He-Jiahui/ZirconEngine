@@ -31,6 +31,65 @@ fn dynamic_api_export_returns_versioned_function_table() {
     assert!(api.bind_viewport_surface.is_some());
     assert!(api.unbind_viewport_surface.is_some());
     assert!(api.present_viewport.is_some());
+    assert!(api.profile_control.is_some());
+}
+
+#[test]
+fn profile_control_rejects_invalid_json_before_session_lookup() {
+    let api = runtime_api();
+    let profile_control = api.profile_control.expect("profile_control");
+    let bytes = b"not-json";
+    let mut output = ZrOwnedByteBuffer::empty();
+
+    let status = unsafe {
+        profile_control(
+            ZrRuntimeSessionHandle::new(99_999),
+            ZrByteSlice {
+                data: bytes.as_ptr(),
+                len: bytes.len(),
+            },
+            &mut output,
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "invalid profile control request");
+    assert!(output.is_empty());
+}
+
+#[test]
+fn profile_control_snapshot_returns_serialized_response() {
+    let api = runtime_api();
+    let profile_control = api.profile_control.expect("profile_control");
+    let session = create_test_session(api);
+    let request = zircon_runtime_interface::ProfileControlRequest {
+        command: zircon_runtime_interface::ProfileControlCommand::Snapshot,
+        config: None,
+    };
+    let bytes = serde_json::to_vec(&request).unwrap();
+    let mut output = ZrOwnedByteBuffer::empty();
+
+    let status = unsafe {
+        profile_control(
+            session,
+            ZrByteSlice {
+                data: bytes.as_ptr(),
+                len: bytes.len(),
+            },
+            &mut output,
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::Ok);
+    let response_bytes =
+        unsafe { core::slice::from_raw_parts(output.data as *const u8, output.len) };
+    let response: zircon_runtime_interface::ProfileControlResponse =
+        serde_json::from_slice(response_bytes).unwrap();
+    assert_eq!(response.status, "ok");
+    assert!(response.snapshot.is_some());
+
+    free_profile_output(output);
+    destroy_test_session(api, session);
 }
 
 #[test]
@@ -72,6 +131,22 @@ fn bind_viewport_surface_rejects_wrong_abi_before_session_lookup() {
 }
 
 #[test]
+fn bind_viewport_surface_rejects_wrong_target_abi_before_session_lookup() {
+    let api = runtime_api();
+    let bind = api.bind_viewport_surface.expect("bind_viewport_surface");
+    let request = ZrRuntimeBindViewportSurfaceRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1 + 1, 1, 0),
+    );
+
+    let status = unsafe { bind(ZrRuntimeSessionHandle::new(99_999), request) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::UnsupportedVersion);
+}
+
+#[test]
 fn bind_viewport_surface_rejects_unknown_viewport_before_session_lookup() {
     let api = runtime_api();
     let bind = api.bind_viewport_surface.expect("bind_viewport_surface");
@@ -86,6 +161,23 @@ fn bind_viewport_surface_rejects_unknown_viewport_before_session_lookup() {
 
     assert_eq!(status.status_code(), ZrStatusCode::NotFound);
     assert_eq!(status_message(status), "runtime viewport not found");
+}
+
+#[test]
+fn bind_viewport_surface_with_valid_descriptor_rejects_invalid_session() {
+    let api = runtime_api();
+    let bind = api.bind_viewport_surface.expect("bind_viewport_surface");
+    let request = ZrRuntimeBindViewportSurfaceRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+        ZrRuntimeNativeSurfaceTargetV1::win32(ZIRCON_RUNTIME_ABI_VERSION_V1, 1, 0),
+    );
+
+    let status = unsafe { bind(ZrRuntimeSessionHandle::new(99_999), request) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::NotFound);
+    assert_eq!(status_message(status), "runtime session not found");
 }
 
 #[test]
@@ -106,6 +198,43 @@ fn bind_viewport_surface_rejects_unsupported_surface_target_before_session_looku
         status_message(status),
         "unsupported runtime native surface target"
     );
+}
+
+#[test]
+fn capture_frame_rejects_wrong_abi_before_session_lookup() {
+    let api = runtime_api();
+    let capture_frame = api.capture_frame.expect("capture_frame");
+    let request = ZrRuntimeFrameRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1 + 1,
+        ZrRuntimeViewportHandle::new(1),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+    );
+    let mut output = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+
+    let status =
+        unsafe { capture_frame(ZrRuntimeSessionHandle::new(99_999), request, &mut output) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::UnsupportedVersion);
+    assert!(output.is_empty());
+}
+
+#[test]
+fn capture_frame_rejects_unknown_viewport_before_session_lookup() {
+    let api = runtime_api();
+    let capture_frame = api.capture_frame.expect("capture_frame");
+    let request = ZrRuntimeFrameRequestV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(44),
+        ZrRuntimeViewportSizeV1::new(64, 48),
+    );
+    let mut output = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+
+    let status =
+        unsafe { capture_frame(ZrRuntimeSessionHandle::new(99_999), request, &mut output) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::NotFound);
+    assert_eq!(status_message(status), "runtime viewport not found");
+    assert!(output.is_empty());
 }
 
 #[test]
@@ -377,6 +506,12 @@ fn status_message(status: ZrStatus) -> String {
 
 fn free_output(output: ZrOwnedByteBuffer) {
     let free = output.free.expect("free accessibility output");
+    let status = unsafe { free(output) };
+    assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
+}
+
+fn free_profile_output(output: ZrOwnedByteBuffer) {
+    let free = output.free.expect("free profile output");
     let status = unsafe { free(output) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
 }

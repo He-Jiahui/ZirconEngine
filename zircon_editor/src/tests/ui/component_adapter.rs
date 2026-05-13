@@ -56,7 +56,7 @@ fn component_drawer_press_envelope(
     operation_path: &str,
 ) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
         "RefreshButton",
         UiComponentBindingTarget::new("component_drawer", operation_path)
             .with_subject(component_type),
@@ -71,7 +71,7 @@ fn component_drawer_action_envelope(
     event: UiComponentEvent,
 ) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "asset://weather/editor/cloud_layer.inspector.ui.toml",
+        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
         "DrawerAction",
         UiComponentBindingTarget::new("component_drawer", operation_path)
             .with_subject(component_type),
@@ -213,7 +213,7 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -275,7 +275,7 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Scene.Node.CreateCube"),
@@ -578,6 +578,86 @@ fn asset_editor_component_adapter_updates_selected_widget_text() {
         .ui_asset_editor_pane_presentation(&instance_id)
         .expect("ui asset editor presentation should refresh");
     assert_eq!(presentation.inspector_text_prop, "Confirm");
+
+    let _ = fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn asset_editor_component_adapter_updates_selected_widget_props_and_state_literals() {
+    let _guard = env_lock().lock().unwrap();
+    let harness = EventRuntimeHarness::new("zircon_ui_asset_component_props_state_adapter");
+    let manager = harness
+        .core
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .expect("editor manager should be registered");
+    let temp_dir = unique_asset_adapter_temp_dir("selected_widget_props_state");
+    fs::create_dir_all(&temp_dir).expect("asset adapter temp dir should be created");
+    let asset_path = temp_dir.join("asset-editor-props-state-adapter.ui.toml");
+    write_text_file(&asset_path, ASSET_EDITOR_ADAPTER_LAYOUT);
+
+    let instance_id = manager
+        .open_ui_asset_editor(&asset_path, None)
+        .expect("ui asset editor should open");
+    manager
+        .select_ui_asset_editor_hierarchy_index(&instance_id, 1)
+        .expect("child widget should be selected");
+
+    let prop_envelope = UiComponentEventEnvelope::new(
+        "ui_asset.widget_prop",
+        "WidgetVariantField",
+        UiComponentBindingTarget::asset_editor(instance_id.0.clone(), "widget.prop.variant"),
+        UiComponentEvent::Commit {
+            property: "value".to_string(),
+            value: UiValue::String("primary".to_string()),
+        },
+    )
+    .with_component_id("TextField");
+    let state_envelope = UiComponentEventEnvelope::new(
+        "ui_asset.widget_state",
+        "WidgetExpandedField",
+        UiComponentBindingTarget::asset_editor(instance_id.0.clone(), "widget.state.expanded"),
+        UiComponentEvent::Commit {
+            property: "value".to_string(),
+            value: UiValue::Bool(true),
+        },
+    )
+    .with_component_id("Toggle");
+
+    assert!(
+        harness
+            .runtime
+            .dispatch_ui_component_adapter_event(&prop_envelope)
+            .expect("asset editor adapter event should mutate selected widget prop")
+            .changed
+    );
+    assert!(
+        harness
+            .runtime
+            .dispatch_ui_component_adapter_event(&state_envelope)
+            .expect("asset editor adapter event should mutate selected widget state")
+            .changed
+    );
+
+    let source = manager
+        .save_ui_asset_editor(&instance_id)
+        .expect("save ui asset editor");
+    let document =
+        crate::tests::support::load_test_ui_asset(&source).expect("parse saved ui asset document");
+    let selected_node = &document.root.as_ref().unwrap().children[0].node;
+    assert_eq!(
+        selected_node
+            .props
+            .get("variant")
+            .and_then(toml::Value::as_str),
+        Some("primary")
+    );
+    assert_eq!(
+        selected_node
+            .params
+            .get("expanded")
+            .and_then(toml::Value::as_bool),
+        Some(true)
+    );
 
     let _ = fs::remove_dir_all(temp_dir);
 }

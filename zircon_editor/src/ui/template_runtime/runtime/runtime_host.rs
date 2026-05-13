@@ -1,3 +1,6 @@
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, OnceLock};
+
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::control::EditorUiControlService;
 use crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation;
@@ -8,9 +11,13 @@ use crate::ui::template::{
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime::ui::template::UiTemplateBuildError;
+use zircon_runtime::ui::v2::{
+    UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder,
+};
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     template::{UiAssetDocument, UiAssetError},
+    v2::{UiV2AssetDocument, UiV2AssetError},
 };
 
 use crate::ui::template_runtime::{
@@ -25,7 +32,9 @@ use super::{
         load_builtin_host_templates,
     },
     pane_payload_projection::project_pane_body,
-    projection::{build_host_model, build_host_model_with_surface, project_document},
+    projection::{
+        build_host_model, build_host_model_with_surface, project_document, project_v2_document,
+    },
 };
 
 #[derive(Debug, Error, PartialEq)]
@@ -34,6 +43,8 @@ pub enum EditorUiHostRuntimeError {
     Template(#[from] EditorTemplateError),
     #[error(transparent)]
     UiAsset(#[from] UiAssetError),
+    #[error(transparent)]
+    UiV2Asset(#[from] UiV2AssetError),
     #[error(transparent)]
     UiTemplateBuild(#[from] UiTemplateBuildError),
     #[error("retained host projection is missing binding {binding_id}")]
@@ -48,8 +59,15 @@ pub struct EditorUiHostRuntime {
     pub(super) template_registry: EditorTemplateRegistry,
     pub(super) template_adapter: EditorTemplateAdapter,
     pub(super) template_service: EditorTemplateRuntimeService,
+    pub(super) v2_documents: BTreeMap<String, EditorUiHostV2Document>,
     pub(super) builtin_host_templates_loaded: bool,
     showcase_demo_state: UiComponentShowcaseDemoState,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct EditorUiHostV2Document {
+    pub(super) document: Arc<UiV2AssetDocument>,
+    pub(super) compiled: Arc<UiV2CompiledDocument>,
 }
 
 impl EditorUiHostRuntime {
@@ -101,6 +119,10 @@ impl EditorUiHostRuntime {
         document_id: impl Into<String>,
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
+        let document_id = document_id.into();
+        if is_v2_document_path(path.as_ref()) {
+            return self.register_v2_document_file(document_id, path);
+        }
         let compiled = compile_template_document_file(&self.template_service, path.as_ref())?;
         self.template_service
             .register_compiled_document(&mut self.template_registry, document_id, compiled)
@@ -146,6 +168,13 @@ impl EditorUiHostRuntime {
         &self,
         document_id: &str,
     ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
+        if let Some(document) = self.v2_documents.get(document_id) {
+            return project_v2_document(
+                document_id,
+                document.compiled.as_ref(),
+                &self.template_adapter,
+            );
+        }
         project_document(
             &self.template_service,
             &self.template_registry,
@@ -158,6 +187,22 @@ impl EditorUiHostRuntime {
         &self,
         body: &PaneBodyPresentation,
     ) -> Result<RetainedUiProjection, EditorUiHostRuntimeError> {
+        if let Some(document) = self.v2_documents.get(&body.document_id) {
+            let mut projection = project_v2_document(
+                &body.document_id,
+                document.compiled.as_ref(),
+                &self.template_adapter,
+            )?;
+            super::pane_payload_projection::inject_pane_projection_attributes(
+                &mut projection.root,
+                body,
+            );
+            super::pane_payload_projection::append_hybrid_slot_anchor_projection(
+                &mut projection.root,
+                body,
+            );
+            return Ok(projection);
+        }
         project_pane_body(
             &self.template_service,
             &self.template_registry,
@@ -205,6 +250,14 @@ impl EditorUiHostRuntime {
         &self,
         document_id: &str,
     ) -> Result<UiSurface, EditorUiHostRuntimeError> {
+        if let Some(document) = self.v2_documents.get(document_id) {
+            return UiV2SurfaceBuilder::build_surface_from_compiled_document(
+                UiTreeId::new(format!("template.v2.{document_id}")),
+                document.document.as_ref(),
+                document.compiled.as_ref(),
+            )
+            .map_err(EditorUiHostRuntimeError::from);
+        }
         let instance = self
             .template_service
             .instantiate(&self.template_registry, document_id)
@@ -230,4 +283,53 @@ impl EditorUiHostRuntime {
         let host_model = self.build_host_model_with_surface(projection, surface)?;
         Ok(RetainedUiHostAdapter::build_projection(&host_model))
     }
+}
+
+impl EditorUiHostRuntime {
+    fn register_v2_document_file(
+        &mut self,
+        document_id: impl Into<String>,
+        path: impl AsRef<std::path::Path>,
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        let document_id = document_id.into();
+        let outcome = v2_template_file_cache()
+            .lock()
+            .expect("v2 template file cache mutex should not be poisoned")
+            .load_store(std::iter::once(path.as_ref().to_path_buf()))?;
+        self.v2_documents.insert(
+            document_id,
+            EditorUiHostV2Document {
+                document: outcome.root_document,
+                compiled: outcome.compiled,
+            },
+        );
+        Ok(())
+    }
+}
+
+fn v2_template_file_cache() -> &'static Mutex<UiV2PrototypeStoreFileCache> {
+    static CACHE: OnceLock<Mutex<UiV2PrototypeStoreFileCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(UiV2PrototypeStoreFileCache::new()))
+}
+
+#[cfg(test)]
+pub(super) fn clear_v2_template_file_cache_for_tests() {
+    v2_template_file_cache()
+        .lock()
+        .expect("v2 template file cache mutex should not be poisoned")
+        .clear();
+}
+
+#[cfg(test)]
+pub(super) fn v2_template_file_cache_len_for_tests() -> usize {
+    v2_template_file_cache()
+        .lock()
+        .expect("v2 template file cache mutex should not be poisoned")
+        .len()
+}
+
+fn is_v2_document_path(path: &std::path::Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(".v2.ui.toml"))
 }

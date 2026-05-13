@@ -38,6 +38,7 @@ related_code:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/projection.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/ui.rs
@@ -90,6 +91,7 @@ implementation_files:
   - zircon_editor/src/scene/viewport/controller/mod.rs
   - zircon_editor/src/scene/viewport/handles/mod.rs
   - zircon_editor/src/scene/viewport/pointer/mod.rs
+  - zircon_editor/src/scene/viewport/pointer/overlay_router/viewport_overlay_pointer_router_sync.rs
   - zircon_editor/src/scene/viewport/projection.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/ui.rs
@@ -132,6 +134,7 @@ tests:
   - cargo test -p zircon_editor --lib editing::state -- --nocapture
   - cargo test -p zircon_editor --lib scene_document_pane_projects_viewport_toolbar_state -- --nocapture
   - cargo test -p zircon_editor --lib typed_viewport_command_dispatch_updates_render_packet_without_pointer_bridge -- --nocapture
+  - cargo test -p zircon_editor --lib viewport_overlay_pointer_router_skips_rebuild_for_unchanged_layout -- --nocapture (2026-05-11)
   - cargo check -p zircon_editor --lib --locked --target-dir target/codex-shared-b
   - cargo test -p zircon_editor --lib --no-run --locked --target-dir target/codex-shared-b
   - cargo test -p zircon_editor --lib viewport --locked --target-dir target/codex-shared-b
@@ -206,6 +209,8 @@ doc_type: module-detail
 继续收尾到 `zircon_scene` 自身之后，`SceneGizmoKind`、`OverlayWireShape`、`RenderFrameExtract`、`RenderWorldSnapshotHandle` 这批 crate-local tests 先前还在通过 `zircon_scene` 根级入口取值的 render 类型也已经切到 `zircon_framework::render`；`zircon_scene/src/lib.rs` 不再保留这组 framework-owned render re-export。
 
 `ViewportCommand` 不再只有 pointer 输入；toolbar、右上角方向、显示切换、snap、preview、Gizmos 开关都走同一套 typed payload。
+
+Viewport pointer routing now keeps the local overlay hit surface persistent across identical syncs. `ViewportOverlayPointerRouter::sync(...)` returns `false` and preserves the current `UiSurface` when the projected `ViewportPointerLayout` did not change, and rebuilds only when viewport size, camera, handles, scene gizmos, or renderable candidates differ. This keeps hover/down routing from re-instancing the shared pointer tree on frames where editor projection only re-submits the same overlay packet.
 
 ### Scene Packet Layout
 

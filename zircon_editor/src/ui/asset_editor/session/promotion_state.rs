@@ -19,9 +19,7 @@ use super::{
     },
     theme_state::theme_document_replay_bundle,
     tree_editing::extract_selected_node_to_component as tree_extract_selected_node_to_component,
-    ui_asset_editor_session::{
-        serialize_document, UiAssetEditorSession, UiAssetEditorSessionError,
-    },
+    ui_asset_editor_session::{UiAssetEditorSession, UiAssetEditorSessionError},
     undo_stack::{UiAssetEditorExternalEffect, UiAssetEditorUndoExternalEffects},
 };
 use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
@@ -290,7 +288,7 @@ impl UiAssetEditorSession {
                     document_id: widget_document_id.to_string(),
                 },
                 "Promote To External Widget",
-                serialize_document(&document)?,
+                self.serialize_document_for_current_schema(&document)?,
                 selection,
             )
             .with_document_replay(replay),
@@ -336,7 +334,7 @@ impl UiAssetEditorSession {
             UiAssetEditorCommand::tree_edit(
                 UiAssetEditorTreeEditKind::DocumentEdit,
                 "Promote Local Theme",
-                serialize_document(&document)?,
+                self.serialize_document_for_current_schema(&document)?,
             )
             .with_document_replay(replay),
             UiAssetEditorUndoExternalEffects {

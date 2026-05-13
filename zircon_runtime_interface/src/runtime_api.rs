@@ -1,5 +1,6 @@
 use crate::buffer::{ZrByteSlice, ZrOwnedByteBuffer};
 use crate::handles::{ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
+pub use crate::profiling::ZrRuntimeProfileControlFnV1;
 use crate::status::ZrStatus;
 
 pub const ZR_RUNTIME_GET_API_SYMBOL_V1: &[u8] = b"zircon_runtime_get_api_v1\0";
@@ -98,6 +99,7 @@ pub struct ZrRuntimeApiV1 {
     pub bind_viewport_surface: Option<ZrRuntimeBindViewportSurfaceFnV1>,
     pub unbind_viewport_surface: Option<ZrRuntimeUnbindViewportSurfaceFnV1>,
     pub present_viewport: Option<ZrRuntimePresentViewportFnV1>,
+    pub profile_control: Option<ZrRuntimeProfileControlFnV1>,
 }
 
 impl ZrRuntimeApiV1 {
@@ -113,6 +115,7 @@ impl ZrRuntimeApiV1 {
             bind_viewport_surface: None,
             unbind_viewport_surface: None,
             present_viewport: None,
+            profile_control: None,
         }
     }
 }

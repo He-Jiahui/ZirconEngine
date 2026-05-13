@@ -21,8 +21,8 @@ fn shared_viewport_pointer_bridge_maps_secondary_button_to_right_pressed_event()
         record.event,
         EditorEvent::Viewport(EditorViewportEvent::RightPressed { x: 24.0, y: 32.0 })
     );
-    assert!(effects.presentation_dirty);
-    assert!(effects.render_dirty);
+    assert!(!effects.presentation_dirty);
+    assert!(!effects.render_dirty);
 }
 
 #[test]
@@ -73,6 +73,30 @@ fn shared_viewport_pointer_bridge_keeps_move_and_up_routed_to_captured_viewport(
 }
 
 #[test]
+fn shared_viewport_pointer_move_without_feedback_stays_dirty_domain_idle() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_shared_pointer_idle_move");
+    let mut bridge = SharedViewportPointerBridge::new(UiFrame::new(0.0, 0.0, 100.0, 100.0));
+
+    let effects = dispatch_viewport_pointer_event(
+        &harness.runtime,
+        &mut bridge,
+        UiPointerEvent::new(UiPointerEventKind::Move, UiPoint::new(24.0, 32.0)),
+    )
+    .unwrap();
+
+    let journal = harness.runtime.journal();
+    let record = journal.records().last().unwrap();
+    assert_eq!(
+        record.event,
+        EditorEvent::Viewport(EditorViewportEvent::PointerMoved { x: 24.0, y: 32.0 })
+    );
+    assert!(!effects.presentation_dirty);
+    assert!(!effects.render_dirty);
+}
+
+#[test]
 fn shared_viewport_pointer_bridge_maps_scroll_to_viewport_scrolled_event() {
     let _guard = env_lock().lock().unwrap();
 
@@ -93,7 +117,7 @@ fn shared_viewport_pointer_bridge_maps_scroll_to_viewport_scrolled_event() {
         record.event,
         EditorEvent::Viewport(EditorViewportEvent::Scrolled { delta: -48.0 })
     );
-    assert!(effects.presentation_dirty);
+    assert!(!effects.presentation_dirty);
     assert!(effects.render_dirty);
 }
 

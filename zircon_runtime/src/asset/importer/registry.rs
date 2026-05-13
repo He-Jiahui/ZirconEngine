@@ -15,6 +15,8 @@ pub enum AssetImporterRegistryError {
     DuplicateImporterId(String),
     #[error("duplicate importer matcher {matcher} at priority {priority}")]
     DuplicateMatcher { matcher: String, priority: i32 },
+    #[error("asset importer {0} cannot register legacy .ui.toml; UI assets must use .v2.ui.toml")]
+    LegacyUiTomlImporter(String),
     #[error("asset importer {0} must declare at least one source extension or full suffix")]
     MissingMatcher(String),
 }
@@ -161,7 +163,32 @@ fn validate_descriptor(
             descriptor.id.clone(),
         ));
     }
+    if descriptor
+        .full_suffixes
+        .iter()
+        .any(|suffix| normalize_full_suffix(suffix) == ".ui.toml")
+        && !legacy_ui_toml_importer_allowed_for_tests(descriptor)
+    {
+        return Err(AssetImporterRegistryError::LegacyUiTomlImporter(
+            descriptor.id.clone(),
+        ));
+    }
     Ok(())
+}
+
+#[cfg(test)]
+fn legacy_ui_toml_importer_allowed_for_tests(descriptor: &AssetImporterDescriptor) -> bool {
+    descriptor.id == "ui_document_importer.typed_toml"
+        && descriptor.plugin_id == "ui_document_importer"
+        && descriptor
+            .required_capabilities
+            .iter()
+            .any(|capability| capability == "runtime.asset.importer.ui_document")
+}
+
+#[cfg(not(test))]
+fn legacy_ui_toml_importer_allowed_for_tests(_descriptor: &AssetImporterDescriptor) -> bool {
+    false
 }
 
 fn matcher_keys(descriptor: &AssetImporterDescriptor) -> impl Iterator<Item = String> + '_ {

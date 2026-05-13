@@ -2,7 +2,7 @@ use crate::ui::layout::{
     UiContainerKind, UiLayoutEngineBackend, UiLayoutEngineCapability, UiLayoutEngineFallbackReason,
     UiLayoutEngineFamily, UiLayoutEngineRequest, UiLayoutEngineSelection,
     UiLayoutEngineSelectionReport, UiLayoutEngineSupport, UiLinearBoxConfig, UiScrollableBoxConfig,
-    UiVirtualListConfig,
+    UiSizeBoxConfig, UiVirtualListConfig,
 };
 
 fn round_trip<T>(value: &T) -> T
@@ -34,6 +34,10 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
     let grid =
         UiLayoutEngineRequest::from_container_kind(UiContainerKind::GridBox(Default::default()));
     let overlay = UiLayoutEngineRequest::from_container_kind(UiContainerKind::Overlay);
+    let size_box =
+        UiLayoutEngineRequest::from_container_kind(UiContainerKind::SizeBox(UiSizeBoxConfig {
+            aspect_ratio: 1.0,
+        }));
     let scrollable = UiLayoutEngineRequest::from_container_kind(UiContainerKind::ScrollableBox(
         UiScrollableBoxConfig {
             virtualization: Some(UiVirtualListConfig {
@@ -47,6 +51,8 @@ fn ui_layout_engine_request_maps_current_container_contracts_to_engine_families(
     assert_eq!(horizontal.family, UiLayoutEngineFamily::Flex);
     assert_eq!(grid.family, UiLayoutEngineFamily::Grid);
     assert_eq!(overlay.family, UiLayoutEngineFamily::Overlay);
+    assert_eq!(size_box.family, UiLayoutEngineFamily::Container);
+    assert!(size_box.requires_zircon_semantics());
     assert_eq!(scrollable.family, UiLayoutEngineFamily::VirtualizedList);
     assert!(scrollable.requires_zircon_semantics());
     assert_eq!(round_trip(&scrollable), scrollable);

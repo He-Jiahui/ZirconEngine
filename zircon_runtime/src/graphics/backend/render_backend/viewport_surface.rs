@@ -97,6 +97,7 @@ impl RenderBackend {
         })
     }
 
+    #[cfg(target_os = "windows")]
     fn create_surface(
         &self,
         target: RenderNativeSurfaceTarget,
@@ -118,6 +119,18 @@ impl RenderBackend {
                 // unsafe raw-handle target instead of a borrowed winit window object.
                 unsafe { self.instance.create_surface_unsafe(target) }.map_err(Into::into)
             }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn create_surface(
+        &self,
+        target: RenderNativeSurfaceTarget,
+    ) -> Result<wgpu::Surface<'static>, GraphicsError> {
+        match target {
+            RenderNativeSurfaceTarget::Win32 { .. } => Err(GraphicsError::SurfaceStatus(
+                "win32 viewport surfaces are only supported on windows",
+            )),
         }
     }
 }
@@ -260,11 +273,16 @@ fn configure_surface(
     device: &wgpu::Device,
     size: UVec2,
 ) -> Result<wgpu::SurfaceConfiguration, GraphicsError> {
-    let size = UVec2::new(size.x.max(1), size.y.max(1));
+    let size = clamp_surface_size(size);
     let caps = surface.get_capabilities(adapter);
     let Some(format) = choose_surface_format(&caps.formats) else {
         return Err(GraphicsError::SurfaceStatus(
             "surface has no compatible formats",
+        ));
+    };
+    let Some(present_mode) = choose_present_mode(&caps.present_modes) else {
+        return Err(GraphicsError::SurfaceStatus(
+            "surface has no compatible present modes",
         ));
     };
     let config = wgpu::SurfaceConfiguration {
@@ -272,7 +290,7 @@ fn configure_surface(
         format,
         width: size.x,
         height: size.y,
-        present_mode: choose_present_mode(&caps.present_modes),
+        present_mode,
         desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
         alpha_mode: caps
             .alpha_modes
@@ -297,12 +315,18 @@ fn choose_surface_format(formats: &[wgpu::TextureFormat]) -> Option<wgpu::Textur
     .or_else(|| formats.first().copied())
 }
 
-fn choose_present_mode(present_modes: &[wgpu::PresentMode]) -> wgpu::PresentMode {
+fn choose_present_mode(present_modes: &[wgpu::PresentMode]) -> Option<wgpu::PresentMode> {
     if present_modes.contains(&wgpu::PresentMode::AutoVsync) {
-        wgpu::PresentMode::AutoVsync
+        Some(wgpu::PresentMode::AutoVsync)
+    } else if present_modes.contains(&wgpu::PresentMode::Fifo) {
+        Some(wgpu::PresentMode::Fifo)
     } else {
-        wgpu::PresentMode::Fifo
+        present_modes.first().copied()
     }
+}
+
+fn clamp_surface_size(size: UVec2) -> UVec2 {
+    UVec2::new(size.x.max(1), size.y.max(1))
 }
 
 fn required_nonzero_isize(value: u64, error: &'static str) -> Result<NonZeroIsize, GraphicsError> {
@@ -316,4 +340,50 @@ fn optional_nonzero_isize(value: Option<u64>) -> Result<Option<NonZeroIsize>, Gr
     value
         .map(|value| required_nonzero_isize(value, "invalid win32 hinstance"))
         .transpose()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{choose_present_mode, choose_surface_format, clamp_surface_size};
+    use crate::core::math::UVec2;
+
+    #[test]
+    fn graphics_surface_backend_clamps_zero_descriptor_size() {
+        assert_eq!(clamp_surface_size(UVec2::new(0, 0)), UVec2::new(1, 1));
+        assert_eq!(clamp_surface_size(UVec2::new(640, 0)), UVec2::new(640, 1));
+        assert_eq!(clamp_surface_size(UVec2::new(0, 480)), UVec2::new(1, 480));
+    }
+
+    #[test]
+    fn graphics_surface_backend_prefers_supported_srgb_format() {
+        assert_eq!(
+            choose_surface_format(&[
+                wgpu::TextureFormat::Rgba16Float,
+                wgpu::TextureFormat::Bgra8UnormSrgb,
+            ]),
+            Some(wgpu::TextureFormat::Bgra8UnormSrgb)
+        );
+        assert_eq!(
+            choose_surface_format(&[wgpu::TextureFormat::Rgba16Float]),
+            Some(wgpu::TextureFormat::Rgba16Float)
+        );
+        assert_eq!(choose_surface_format(&[]), None);
+    }
+
+    #[test]
+    fn graphics_surface_backend_chooses_advertised_present_mode() {
+        assert_eq!(
+            choose_present_mode(&[wgpu::PresentMode::Fifo]),
+            Some(wgpu::PresentMode::Fifo)
+        );
+        assert_eq!(
+            choose_present_mode(&[wgpu::PresentMode::Mailbox, wgpu::PresentMode::AutoVsync]),
+            Some(wgpu::PresentMode::AutoVsync)
+        );
+        assert_eq!(
+            choose_present_mode(&[wgpu::PresentMode::Mailbox]),
+            Some(wgpu::PresentMode::Mailbox)
+        );
+        assert_eq!(choose_present_mode(&[]), None);
+    }
 }

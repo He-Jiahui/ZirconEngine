@@ -17,6 +17,7 @@ mod pane_option_projection;
 mod pane_ui_asset_conversion;
 mod pane_value_conversion;
 mod runtime_diagnostics;
+mod ui_asset_detail_fields;
 
 pub(crate) use self::build_export::to_host_contract_build_export_pane_from_host_pane;
 pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_host_pane;
@@ -422,7 +423,17 @@ fn inspector_field_nodes(
             height: panel_height,
         },
     );
-    panel.surface_variant = "inspector-fields".into();
+    panel.surface_variant = if field_disabled {
+        "inset".into()
+    } else {
+        "inspector-fields".into()
+    };
+    panel.text_tone = if field_disabled {
+        "muted".into()
+    } else {
+        "default".into()
+    };
+    panel.selected = !field_disabled;
     nodes.push(panel);
 
     nodes.push(inspector_text_field_node(
@@ -524,6 +535,7 @@ fn inspector_field_nodes(
         diagnostic.value_text = fields.info.clone().into();
         diagnostic.validation_level = "warning".into();
         diagnostic.validation_message = message.into();
+        diagnostic.surface_variant = "inset".into();
         diagnostic.text_tone = "warning".into();
         diagnostic.disabled = true;
         nodes.push(diagnostic);
@@ -608,10 +620,17 @@ fn inspector_plugin_component_nodes(
             },
         );
         header.text_tone = if component.drawer_available {
-            "strong".into()
+            "default".into()
         } else {
             "warning".into()
         };
+        header.surface_variant = if component.drawer_available {
+            "panel".into()
+        } else {
+            "inset".into()
+        };
+        header.selected = component.drawer_available;
+        header.focused = component.drawer_available;
         if let Some(template_id) = &component.drawer_template_id {
             header.value_text = template_id.clone().into();
         }
@@ -637,6 +656,7 @@ fn inspector_plugin_component_nodes(
             diagnostic_node.value_text = diagnostic.clone().into();
             diagnostic_node.validation_level = "warning".into();
             diagnostic_node.validation_message = diagnostic.clone().into();
+            diagnostic_node.surface_variant = "inset".into();
             diagnostic_node.text_tone = "warning".into();
             diagnostic_node.disabled = true;
             nodes.push(diagnostic_node);
@@ -785,7 +805,16 @@ fn inspector_text_field_node(
     node.edit_action_id = edit_action_id.to_string().into();
     node.commit_action_id = "InspectorView/ApplyBatchButton".into();
     node.disabled = disabled;
-    node.surface_variant = "inspector-field".into();
+    node.surface_variant = if disabled {
+        "inset".into()
+    } else {
+        "inspector-field".into()
+    };
+    node.text_tone = if disabled {
+        "muted".into()
+    } else {
+        "default".into()
+    };
     node.corner_radius = 4.0;
     node.border_width = 1.0;
     node
@@ -844,6 +873,18 @@ fn inspector_action_button_node(
     node.dispatch_kind = dispatch_kind.into();
     node.action_id = action_id.to_string().into();
     node.button_variant = "secondary".into();
+    node.surface_variant = if disabled {
+        "inset".into()
+    } else {
+        "panel".into()
+    };
+    node.text_tone = if disabled {
+        "muted".into()
+    } else {
+        "default".into()
+    };
+    node.selected = !disabled;
+    node.focused = !disabled;
     node.disabled = disabled;
     node
 }
@@ -890,7 +931,12 @@ fn hierarchy_template_projection(
         return None;
     };
 
-    let nodes = project_pane_template_nodes(&presentation.body, content_size)?;
+    let mut nodes = project_pane_template_nodes(&presentation.body, content_size)?;
+    apply_hierarchy_template_state(
+        &mut nodes,
+        !payload.nodes.is_empty(),
+        payload.nodes.iter().any(|node| node.selected),
+    );
     Some(host_contract::HierarchyPaneData {
         nodes: model_rc(nodes),
         hierarchy_nodes: model_rc(
@@ -906,6 +952,50 @@ fn hierarchy_template_projection(
                 .collect(),
         ),
     })
+}
+
+fn apply_hierarchy_template_state(
+    nodes: &mut [host_contract::TemplatePaneNodeData],
+    has_nodes: bool,
+    has_selection: bool,
+) {
+    if let Some(panel) = nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_str() == "HierarchyListPanel")
+    {
+        panel.selected = has_selection;
+        panel.focused = has_selection;
+        panel.surface_variant = if has_selection {
+            "panel".into()
+        } else {
+            "inset".into()
+        };
+        panel.text_tone = if has_selection {
+            "default".into()
+        } else {
+            "muted".into()
+        };
+        panel.disabled = !has_nodes;
+    }
+
+    if let Some(select_root) = nodes
+        .iter_mut()
+        .find(|node| node.control_id.as_str() == "SelectRoot")
+    {
+        select_root.selected = has_selection;
+        select_root.focused = has_selection;
+        select_root.surface_variant = if has_selection {
+            "panel".into()
+        } else {
+            "inset".into()
+        };
+        select_root.text_tone = if has_nodes {
+            "default".into()
+        } else {
+            "muted".into()
+        };
+        select_root.disabled = !has_nodes;
+    }
 }
 
 fn animation_template_projection(
@@ -986,6 +1076,8 @@ mod inspector_pane_tests {
             name.commit_action_id.as_str(),
             "InspectorView/ApplyBatchButton"
         );
+        assert_eq!(name.surface_variant.as_str(), "inspector-field");
+        assert_eq!(name.text_tone.as_str(), "default");
         assert!(!name.disabled);
 
         let position_x = find_node(&data.nodes, "PositionXField");
@@ -995,14 +1087,22 @@ mod inspector_pane_tests {
             position_x.edit_action_id.as_str(),
             "InspectorView/PositionXField"
         );
+        assert_eq!(position_x.surface_variant.as_str(), "inspector-field");
+        assert_eq!(position_x.text_tone.as_str(), "default");
 
         let apply = find_node(&data.nodes, "ApplyBatchButton");
         assert_eq!(apply.role.as_str(), "Button");
         assert_eq!(apply.action_id.as_str(), "InspectorView/ApplyBatchButton");
+        assert_eq!(apply.surface_variant.as_str(), "panel");
+        assert_eq!(apply.text_tone.as_str(), "default");
+        assert!(apply.selected);
         assert!(!apply.disabled);
 
         let delete = find_node(&data.nodes, "DeleteSelected");
         assert_eq!(delete.action_id.as_str(), "InspectorView/DeleteSelected");
+        assert_eq!(delete.surface_variant.as_str(), "panel");
+        assert_eq!(delete.text_tone.as_str(), "default");
+        assert!(delete.selected);
         assert!(!delete.disabled);
     }
 
@@ -1018,12 +1118,61 @@ mod inspector_pane_tests {
 
         let fallback = find_node(&data.nodes, "InspectorPluginComponentFallback");
         assert_eq!(fallback.role.as_str(), "Diagnostic");
+        assert_eq!(fallback.surface_variant.as_str(), "inset");
+        assert_eq!(fallback.text_tone.as_str(), "warning");
         assert_eq!(fallback.validation_level.as_str(), "warning");
         assert!(fallback
             .validation_message
             .as_str()
             .contains("serialized component data stays protected"));
         assert!(fallback.disabled);
+    }
+
+    #[test]
+    fn inspector_pane_disables_fields_and_actions_when_selection_is_empty() {
+        let mut pane = inspector_pane_fixture("no selection");
+        pane.native_body.inspector.delete_enabled = false;
+        pane.native_body.inspector.inspector_name = "".into();
+        pane.native_body.inspector.inspector_parent = "".into();
+        pane.native_body.inspector.inspector_x = "".into();
+        pane.native_body.inspector.inspector_y = "".into();
+        pane.native_body.inspector.inspector_z = "".into();
+
+        let data = to_host_contract_inspector_pane_from_host_pane(
+            &pane,
+            PaneContentSize::new(360.0, 240.0),
+        );
+
+        let panel = find_node(&data.nodes, "InspectorEditableFieldsPanel");
+        assert_eq!(panel.surface_variant.as_str(), "inset");
+        assert_eq!(panel.text_tone.as_str(), "muted");
+        assert!(!panel.selected);
+
+        let name = find_node(&data.nodes, "NameField");
+        assert!(name.disabled);
+        assert_eq!(name.surface_variant.as_str(), "inset");
+        assert_eq!(name.text_tone.as_str(), "muted");
+
+        let position_x = find_node(&data.nodes, "PositionXField");
+        assert!(position_x.disabled);
+        assert_eq!(position_x.surface_variant.as_str(), "inset");
+        assert_eq!(position_x.text_tone.as_str(), "muted");
+
+        let apply = find_node(&data.nodes, "ApplyBatchButton");
+        assert!(apply.disabled);
+        assert_eq!(apply.surface_variant.as_str(), "inset");
+        assert_eq!(apply.text_tone.as_str(), "muted");
+        assert!(!apply.selected);
+
+        let delete = find_node(&data.nodes, "DeleteSelected");
+        assert!(delete.disabled);
+        assert_eq!(delete.surface_variant.as_str(), "inset");
+        assert_eq!(delete.text_tone.as_str(), "muted");
+        assert!(!delete.selected);
+
+        let empty = find_node(&data.nodes, "InspectorEmptySelectionHint");
+        assert_eq!(empty.text.as_str(), "No scene entity selected");
+        assert_eq!(empty.text_tone.as_str(), "muted");
     }
 
     #[test]
@@ -1070,6 +1219,14 @@ mod inspector_pane_tests {
             PaneContentSize::new(360.0, 320.0),
         );
 
+        let available_header = find_node(
+            &data.nodes,
+            "PluginComponentHeader:weather.Component.CloudLayer",
+        );
+        assert_eq!(available_header.surface_variant.as_str(), "panel");
+        assert_eq!(available_header.text_tone.as_str(), "default");
+        assert!(available_header.selected);
+
         let coverage = find_node(
             &data.nodes,
             "DynamicComponentField:weather.Component.CloudLayer.coverage",
@@ -1080,13 +1237,33 @@ mod inspector_pane_tests {
             coverage.edit_action_id.as_str(),
             "InspectorView/DynamicComponentField:weather.Component.CloudLayer.coverage"
         );
+        assert_eq!(coverage.surface_variant.as_str(), "inspector-field");
+        assert_eq!(coverage.text_tone.as_str(), "default");
         assert!(!coverage.disabled);
+
+        let degraded_header = find_node(
+            &data.nodes,
+            "PluginComponentHeader:particles.Component.Emitter",
+        );
+        assert_eq!(degraded_header.surface_variant.as_str(), "inset");
+        assert_eq!(degraded_header.text_tone.as_str(), "warning");
+        assert!(!degraded_header.selected);
+
+        let degraded_diagnostic = find_node(
+            &data.nodes,
+            "PluginComponentDiagnostic:particles.Component.Emitter",
+        );
+        assert_eq!(degraded_diagnostic.surface_variant.as_str(), "inset");
+        assert_eq!(degraded_diagnostic.text_tone.as_str(), "warning");
+        assert!(degraded_diagnostic.disabled);
 
         let degraded = find_node(
             &data.nodes,
             "DynamicComponentField:particles.Component.Emitter.rate",
         );
         assert!(degraded.disabled);
+        assert_eq!(degraded.surface_variant.as_str(), "inset");
+        assert_eq!(degraded.text_tone.as_str(), "muted");
         assert_eq!(degraded.validation_level.as_str(), "warning");
         assert!(degraded
             .validation_message
@@ -1148,7 +1325,16 @@ fn project_pane_template_nodes(
 ) -> Option<Vec<host_contract::TemplatePaneNodeData>> {
     let runtime = builtin_host_runtime()?;
     let projection = runtime.project_pane_body(body).ok()?;
-    let host_model = runtime.build_host_model(&projection).ok()?;
+    let mut surface = runtime.build_shared_surface(&body.document_id).ok()?;
+    surface
+        .compute_layout(UiSize::new(
+            content_size.width.max(0.0),
+            content_size.height.max(0.0),
+        ))
+        .ok()?;
+    let host_model = runtime
+        .build_host_model_with_surface(&projection, &surface)
+        .ok()?;
 
     Some(
         host_model

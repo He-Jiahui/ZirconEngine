@@ -2,6 +2,7 @@ pub(super) mod activity_view_descriptors;
 mod assets_view_descriptor;
 mod build_export_view_descriptor;
 mod console_view_descriptor;
+mod functional_panel_view_descriptors;
 mod game_view_descriptor;
 mod hierarchy_view_descriptor;
 mod inspector_view_descriptor;

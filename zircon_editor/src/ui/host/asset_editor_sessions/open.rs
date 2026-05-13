@@ -3,13 +3,13 @@ use std::path::Path;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
-use crate::ui::asset_editor::{UiAssetEditorMode, UiAssetEditorRoute, UiAssetEditorSession};
+use crate::ui::asset_editor::UiAssetEditorMode;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewInstanceId};
 
 use super::super::project_access::normalize_ui_asset_asset_id;
 use super::{
-    parse_ui_asset_document_source, preview_size_for_preset, UiAssetWorkspaceEntry,
-    UI_ASSET_EDITOR_DESCRIPTOR_ID,
+    build_ui_asset_editor_session_from_source, preview_size_for_preset,
+    ui_asset_editor_route_from_source, UiAssetWorkspaceEntry, UI_ASSET_EDITOR_DESCRIPTOR_ID,
 };
 
 impl EditorUiHost {
@@ -30,13 +30,12 @@ impl EditorUiHost {
         let source_path = self.resolve_ui_asset_path(&asset_id)?;
         let source = fs::read_to_string(&source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        let document = parse_ui_asset_document_source(&source)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-        let route =
-            UiAssetEditorRoute::new(asset_id, document.asset.kind, mode.unwrap_or_default());
+        let route = ui_asset_editor_route_from_source(asset_id, &source, mode.unwrap_or_default())
+            .map_err(EditorError::UiAsset)?;
         let preview_size = preview_size_for_preset(route.preview_preset);
-        let session = UiAssetEditorSession::from_source(route, source.clone(), preview_size)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let session =
+            build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)
+                .map_err(EditorError::UiAsset)?;
         let instance_id =
             self.open_view(ViewDescriptorId::new(UI_ASSET_EDITOR_DESCRIPTOR_ID), None)?;
         self.lock_ui_asset_sessions().insert(

@@ -3,9 +3,9 @@ use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_particles_runtime::PARTICLE_SYSTEM_COMPONENT_TYPE;
 
 const CPU_SPRITE_TEMPLATE: &str = include_str!("../../templates/cpu_sprite_system.toml");
-const AUTHORING_UI_TEMPLATE: &str = include_str!("../authoring.ui.toml");
-const PREVIEW_UI_TEMPLATE: &str = include_str!("../preview.ui.toml");
-const COMPONENT_DRAWER_UI_TEMPLATE: &str = include_str!("../particle_system.drawer.ui.toml");
+const AUTHORING_UI_TEMPLATE: &str = include_str!("../authoring.v2.ui.toml");
+const PREVIEW_UI_TEMPLATE: &str = include_str!("../preview.v2.ui.toml");
+const COMPONENT_DRAWER_UI_TEMPLATE: &str = include_str!("../particle_system.drawer.v2.ui.toml");
 
 fn operation(path: &str) -> EditorOperationPath {
     EditorOperationPath::parse(path).expect("valid particles test operation path")
@@ -198,7 +198,8 @@ fn assert_cpu_sprite_template_shape(template: &str) {
 fn assert_ui_template_shape(template: &str, id: &str, root: &str, controls: &[&str]) {
     assert!(template.contains("[asset]"));
     assert!(template.contains(&format!("id = \"{id}\"")));
-    assert!(template.contains("kind = \"layout\""));
+    assert!(template.contains("kind = \"view\""));
+    assert!(template.contains("version = 2"));
     assert!(template.contains(&format!("control_id = \"{root}\"")));
     for control in controls {
         assert!(

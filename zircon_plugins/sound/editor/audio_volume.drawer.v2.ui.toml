@@ -1,0 +1,38 @@
+[asset]
+kind = "view"
+id = "sound.audio_volume.drawer"
+version = 2
+display_name = "AudioVolume"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "sound_audio_volume_drawer_root"
+
+[nodes.sound_volume_shape_priority_row]
+component = "Space"
+control_id = "SoundVolumeShapePriorityRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_volume_gain_filter_row]
+component = "Space"
+control_id = "SoundVolumeGainFilterRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_volume_reverb_convolution_row]
+component = "Space"
+control_id = "SoundVolumeReverbConvolutionRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 52.0, preferred = 52.0, max = 52.0, stretch = "Fixed" } }
+
+[nodes.sound_volume_crossfade_row]
+component = "Space"
+control_id = "SoundVolumeCrossfadeRow"
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.sound_audio_volume_drawer_root]
+component = "VerticalGroup"
+control_id = "SoundAudioVolumeDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "sound_volume_shape_priority_row" }, { node = "sound_volume_gain_filter_row" }, { node = "sound_volume_reverb_convolution_row" }, { node = "sound_volume_crossfade_row" }]

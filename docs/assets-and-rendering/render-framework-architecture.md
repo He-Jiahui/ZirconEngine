@@ -4,6 +4,8 @@ related_code:
   - zircon_runtime/src/core/framework/render/profile.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/framework_error.rs
+  - zircon_runtime/src/core/framework/render/surface.rs
+  - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/config.rs
@@ -11,7 +13,17 @@ related_code:
   - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/render_backend_new_offscreen.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
+  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
+  - zircon_runtime/src/dynamic_api/surface.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/graphics_debugger_state.rs
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/environment.rs
   - zircon_runtime/src/graphics/runtime/render_framework/graphics_debugger_capture/request_graphics_debugger_capture.rs
@@ -554,6 +566,8 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
   - zircon_runtime/src/core/framework/render/framework_error.rs
+  - zircon_runtime/src/core/framework/render/surface.rs
+  - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime/src/graphics/debug_markers.rs
   - zircon_runtime/src/graphics/backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/config.rs
@@ -561,7 +575,17 @@ implementation_files:
   - zircon_runtime/src/graphics/backend/render_backend/mod.rs
   - zircon_runtime/src/graphics/backend/render_backend/render_backend_new_offscreen.rs
   - zircon_runtime/src/graphics/backend/render_backend/read_texture_rgba.rs
+  - zircon_runtime/src/graphics/backend/render_backend/viewport_surface.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_capture.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_surface/viewport_surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/viewport_record/surface.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/record_submission/record_present.rs
+  - zircon_runtime/src/dynamic_api/surface.rs
+  - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/window_surface.rs
+  - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/register.rs
@@ -1008,6 +1032,7 @@ plan_sources:
   - user: 2026-05-04 clear editor/runtime export build render compile blocker
   - docs/superpowers/specs/2026-05-03-particles-full-render-graph-refactor-design.md
   - docs/superpowers/plans/2026-05-03-particles-full-render-graph-refactor.md
+  - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 tests:
   - "M0 docs acceptance only: no runtime tests required by plan"
@@ -1038,6 +1063,15 @@ tests:
   - zircon_graphics/src/tests/hybrid_gi_runtime.rs
   - zircon_graphics/src/tests/hybrid_gi_gpu.rs
   - zircon_runtime/src/graphics/tests/hybrid_gi_gpu.rs
+  - zircon_runtime/src/graphics/tests/surface_targets.rs
+  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_app/src/entry/runtime_library/tests.rs
+  - zircon_app/src/entry/tests/mod.rs
+  - cargo test -p zircon_runtime --locked --verbose graphics_surface
+  - cargo test -p zircon_runtime --locked --verbose dynamic_api
+  - cargo test -p zircon_runtime --locked --verbose render_debugger
+  - cargo test -p zircon_app --locked --verbose runtime_entry
+  - cargo check -p zircon_app --locked
   - zircon_runtime/src/graphics/runtime_prepare_collector.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/prepared_runtime_submission.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
@@ -1207,6 +1241,16 @@ M3A adds neutral asset-product contracts under `zircon_runtime::core::framework:
 Shader assets now select runtime WGSL by preferring non-empty emitted `wgsl_source`, then raw `source` only when the source language is WGSL. Because M3A does not add shader import syntax, shader dependencies and pipeline layout descriptors are explicit serialized asset fields projected into `RenderShaderDependency` and `RenderShaderPipelineLayoutDescriptor`.
 
 Material assets now expose StandardMaterial and ColorMaterial descriptors, shader plus texture dependency sets, alpha-mask cutoff validation, readiness reports, and fallback policy. Resolver-aware readiness reports unresolved shader/texture references as validation errors plus fallback usage records, while existing renderer fallback behavior remains minimally compatible. This milestone deliberately stops at asset readiness: Core2d/Core3d phases, sprite rendering, anti-aliasing, Solari, and VG/HGI deep integration remain later product milestones.
+
+## 2026-05-12 Runtime Window Surface Present
+
+Runtime preview now has two viewport target modes at the framework boundary. `OffscreenReadback` is the existing capture path: runtime renders into the offscreen product target, `capture_frame()` finishes the frame through `finish_viewport_frame()`, `read_texture_rgba()` copies final color into CPU memory, and `zircon_app` presents those pixels through `SoftbufferRuntimePresenter`. This mode remains required for unsupported native surfaces, headless/test use, and editor viewport import until editor GPU embedding has its own milestone.
+
+`WindowSurface` is the runtime-preview window path. `zircon_app` owns the winit window and extracts a C-safe `ZrRuntimeNativeSurfaceTargetV1`; `zircon_runtime_interface` carries the optional bind/unbind/present function table entries; `zircon_runtime::dynamic_api::surface` converts the ABI request into `RenderViewportSurfaceDescriptor`; and `zircon_runtime::graphics` binds a viewport-owned WGPU surface under `viewport_surface`. Redraw then uses `present_frame_extract` to run the normal extract, pipeline, runtime-prepare, history, overlay, and UI submission path, blit the offscreen final color into the acquired swapchain texture, and call `SurfaceTexture::present()` after `zircon-present-blit-pass` without CPU readback.
+
+The app does not link wgpu or own renderer objects. It enables native present only when the loaded runtime exposes all optional surface ABI functions inside the reported table size and the current window yields a supported native descriptor. If binding or presenting fails, the app unbinds best-effort, records `runtime_surface_present_failed`, creates the softbuffer presenter on demand, and falls back to `capture_frame()` in the same redraw branch. The runtime graphics detail lives in [Window Swapchain Present](../zircon_runtime/graphics/window-swapchain-present.md), and the app-host switch is documented in [Runtime Surface Present](../zircon_app/runtime-surface-present.md).
+
+Runtime closeout validation for this surface-present slice reached broad runtime green after unrelated lower-layer blockers were repaired: `cargo test -p zircon_runtime --locked --verbose` passed, including `1268 passed; 0 failed` in the runtime lib target. The full workspace validator build also passed, but workspace test closeout currently stops in `zircon_editor --lib` retained template projection where an `InputField` label is projected into host `text`; that editor/template blocker is outside the runtime surface target contract.
 
 ## 2026-05-01 GI/VG Plugin Hard Cutover
 
@@ -2291,6 +2335,7 @@ render-server façade 当前也开始把这条前处理链与 runtime host 的�
 
 当前已验证通过的内容：
 
+- Runtime preview `WindowSurface` present contract: `cargo test -p zircon_runtime_interface --locked --verbose`, focused runtime `graphics_surface` / `dynamic_api` / `render_debugger` tests, and `cargo test -p zircon_app --locked --verbose` passed for the surface-present lane. Broad `cargo test -p zircon_runtime --locked --verbose` currently fails outside this lane on the UI `TreeView.expanded` schema entry and native-plugin loader `zircon_plugins/Cargo.lock` drift; manual RenderDoc swapchain-present capture remains pending.
 - `zircon_rhi` 描述符与 capability 基线
 - `zircon_rhi_wgpu` 的 capability fallback
 - `zircon_render_graph` 的排序与 cycle rejection

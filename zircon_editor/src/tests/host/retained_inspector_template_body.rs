@@ -158,9 +158,10 @@ fn inspector_template_body_projection_replaces_legacy_inspector_view_data_for_re
             )
         });
     assert_eq!(apply_draft.text.as_str(), "Apply Draft");
+    assert_eq!(apply_draft.button_variant.as_str(), "secondary");
     assert_eq!(
         (apply_draft.frame.width, apply_draft.frame.height),
-        (106.0, 27.2),
+        (106.0, 27.0),
         "projected ApplyDraft frame should include text intrinsic size plus runtime button padding"
     );
     assert!(!nodes

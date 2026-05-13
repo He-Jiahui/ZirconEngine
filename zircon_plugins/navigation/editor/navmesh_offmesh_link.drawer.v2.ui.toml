@@ -1,0 +1,23 @@
+[asset]
+kind = "view"
+id = "navigation.navmesh_offmesh_link.drawer"
+version = 2
+display_name = "NavMeshOffMeshLink"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "navigation_navmesh_offmesh_link_drawer_root"
+
+[nodes.navigation_navmesh_offmesh_link_fields]
+component = "Space"
+control_id = "NavigationNavMeshOffMeshLinkFields"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.navigation_navmesh_offmesh_link_drawer_root]
+component = "VerticalGroup"
+control_id = "NavigationNavMeshOffMeshLinkDrawerRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "navigation_navmesh_offmesh_link_fields" }]

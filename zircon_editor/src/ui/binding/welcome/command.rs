@@ -8,4 +8,8 @@ pub enum WelcomeCommand {
     OpenExistingProject,
     OpenRecentProject { path: String },
     RemoveRecentProject { path: String },
+    OpenStartupWorkbench,
+    OpenStartupDemo,
+    OpenStartupAssetWindow,
+    OpenStartupUILayoutEditor,
 }

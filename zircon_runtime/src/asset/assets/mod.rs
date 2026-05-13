@@ -55,5 +55,6 @@ pub use shader::{ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset, Shad
 pub use sound::SoundAsset;
 pub use texture::{TextureAsset, TexturePayload};
 pub use ui::{
-    ui_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    ui_asset_references, ui_v2_asset_references, UiAssetDocumentError, UiLayoutAsset, UiStyleAsset,
+    UiV2AssetDocumentError, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };

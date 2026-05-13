@@ -8,4 +8,5 @@ mod render_debugger_and_history;
 mod render_framework_bridge;
 mod render_product_submit;
 mod scene_overlay;
+mod surface_targets;
 mod visibility;

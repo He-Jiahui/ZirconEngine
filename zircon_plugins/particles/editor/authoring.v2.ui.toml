@@ -1,0 +1,55 @@
+[asset]
+kind = "view"
+id = "particles.authoring"
+version = 2
+display_name = "Particles Authoring"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "particles_authoring_root"
+
+[nodes.particles_authoring_toolbar]
+component = "Space"
+control_id = "ParticlesAuthoringToolbar"
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.particles_emitter_list]
+component = "Space"
+control_id = "ParticlesEmitterList"
+layout = { width = { min = 220.0, preferred = 260.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.particles_module_stack]
+component = "Space"
+control_id = "ParticlesModuleStack"
+layout = { width = { min = 260.0, preferred = 320.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.particles_curve_editor]
+component = "Space"
+control_id = "ParticlesCurveEditor"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.particles_diagnostics_panel]
+component = "Space"
+control_id = "ParticlesDiagnosticsPanel"
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+
+[nodes.particles_curve_editor_column]
+component = "VerticalGroup"
+control_id = "ParticlesCurveEditorColumn"
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particles_curve_editor" }, { node = "particles_diagnostics_panel" }]
+
+[nodes.particles_authoring_content]
+component = "HorizontalGroup"
+control_id = "ParticlesAuthoringContent"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particles_emitter_list" }, { node = "particles_module_stack" }, { node = "particles_curve_editor_column" }]
+
+[nodes.particles_authoring_root]
+component = "VerticalGroup"
+control_id = "ParticlesAuthoringRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particles_authoring_toolbar" }, { node = "particles_authoring_content" }]

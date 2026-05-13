@@ -32,18 +32,16 @@ pub trait RenderFramework: Send + Sync {
         _viewport: RenderViewportHandle,
         _descriptor: RenderViewportSurfaceDescriptor,
     ) -> Result<(), RenderFrameworkError> {
-        Err(RenderFrameworkError::Backend(
-            "viewport surface presentation is unsupported".to_string(),
-        ))
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport surface present".to_string(),
+        })
     }
 
     fn unbind_viewport_surface(
         &self,
         _viewport: RenderViewportHandle,
     ) -> Result<(), RenderFrameworkError> {
-        Err(RenderFrameworkError::Backend(
-            "viewport surface presentation is unsupported".to_string(),
-        ))
+        Ok(())
     }
 
     fn present_frame_extract(
@@ -51,9 +49,9 @@ pub trait RenderFramework: Send + Sync {
         _viewport: RenderViewportHandle,
         _extract: RenderFrameExtract,
     ) -> Result<(), RenderFrameworkError> {
-        Err(RenderFrameworkError::Backend(
-            "viewport surface presentation is unsupported".to_string(),
-        ))
+        Err(RenderFrameworkError::UnsupportedCapability {
+            capability: "viewport surface present".to_string(),
+        })
     }
 
     fn set_pipeline_asset(

@@ -168,5 +168,25 @@ fn detail_items(diagnostics: &RuntimeDiagnosticsSnapshot) -> Vec<String> {
     if let Some(error) = diagnostics.animation.error.as_ref() {
         items.push(format!("Animation error: {error}"));
     }
+    if diagnostics.profile.feature_enabled {
+        let state = if diagnostics.profile.active {
+            "active"
+        } else {
+            "inactive"
+        };
+        items.push(format!(
+            "Profiling: {state} ({} frames, {} spans, {} counters)",
+            diagnostics.profile.frames.len(),
+            diagnostics.profile.spans.len(),
+            diagnostics.profile.counters.len()
+        ));
+        let over_budget = diagnostics
+            .profile
+            .frames
+            .iter()
+            .filter(|frame| frame.over_budget)
+            .count();
+        items.push(format!("Profiling over-budget frames: {over_budget}"));
+    }
     items
 }

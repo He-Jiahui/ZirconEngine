@@ -240,6 +240,24 @@ fn render_framework_stats_expose_virtual_geometry_instance_ranges_and_debug_stat
         "expected stats to mirror the same visible-entity submit gate as the renderer-owned cull-input snapshot"
     );
 
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("vg-stats-cleared")
+                .with_virtual_geometry(false)
+                .with_hybrid_global_illumination(false)
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false)
+                .with_bloom(false)
+                .with_color_grading(false)
+                .with_reflection_probes(false)
+                .with_baked_lighting(false)
+                .with_particle_rendering(false)
+                .with_async_compute(false),
+        )
+        .expect("quality profile should disable virtual geometry for the reset assertion");
+
     let mut cleared_extract = world.to_render_frame_extract();
     cleared_extract.apply_viewport_size(viewport_size);
     server

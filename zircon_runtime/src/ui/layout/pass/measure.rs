@@ -103,6 +103,10 @@ fn measure_content_size(
             measure_stacked_content_size(tree, node_id, container, child_desired)
         }
         UiContainerKind::Space => UiSize::default(),
+        UiContainerKind::SizeBox(config) => measure_size_box_content_size(
+            measure_stacked_content_size(tree, node_id, container, child_desired),
+            config.aspect_ratio,
+        ),
         UiContainerKind::HorizontalBox(config) => measure_linear_content_size(
             tree,
             node_id,
@@ -131,6 +135,36 @@ fn measure_content_size(
     };
 
     measure_material_content(metadata, content_size).unwrap_or(content_size)
+}
+
+fn measure_size_box_content_size(content_size: UiSize, aspect_ratio: f32) -> UiSize {
+    let Some(aspect_ratio) = normalized_aspect_ratio(aspect_ratio) else {
+        return content_size;
+    };
+
+    if content_size.width <= 0.0 && content_size.height <= 0.0 {
+        return content_size;
+    }
+    if content_size.width <= 0.0 {
+        return UiSize::new(content_size.height * aspect_ratio, content_size.height);
+    }
+    if content_size.height <= 0.0 {
+        return UiSize::new(content_size.width, content_size.width / aspect_ratio);
+    }
+
+    let current_ratio = content_size.width / content_size.height;
+    if current_ratio > aspect_ratio {
+        UiSize::new(content_size.width, content_size.width / aspect_ratio)
+    } else {
+        UiSize::new(content_size.height * aspect_ratio, content_size.height)
+    }
+}
+
+fn normalized_aspect_ratio(aspect_ratio: f32) -> Option<f32> {
+    aspect_ratio
+        .is_finite()
+        .then_some(aspect_ratio)
+        .filter(|ratio| *ratio > 0.0)
 }
 
 fn measure_leaf_content_size(metadata: Option<&UiTemplateNodeMetadata>) -> UiSize {

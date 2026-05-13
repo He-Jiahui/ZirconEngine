@@ -20,6 +20,14 @@ impl WelcomeCommand {
                 UiBindingCall::new("WelcomeCommand.RemoveRecentProject")
                     .with_argument(UiBindingValue::string(path))
             }
+            Self::OpenStartupWorkbench => UiBindingCall::new("WelcomeCommand.OpenStartupWorkbench"),
+            Self::OpenStartupDemo => UiBindingCall::new("WelcomeCommand.OpenStartupDemo"),
+            Self::OpenStartupAssetWindow => {
+                UiBindingCall::new("WelcomeCommand.OpenStartupAssetWindow")
+            }
+            Self::OpenStartupUILayoutEditor => {
+                UiBindingCall::new("WelcomeCommand.OpenStartupUILayoutEditor")
+            }
         }
     }
 
@@ -39,6 +47,10 @@ impl WelcomeCommand {
             "WelcomeCommand.RemoveRecentProject" => Self::RemoveRecentProject {
                 path: required_string_argument(&call, 0, "WelcomeCommand.RemoveRecentProject")?,
             },
+            "WelcomeCommand.OpenStartupWorkbench" => Self::OpenStartupWorkbench,
+            "WelcomeCommand.OpenStartupDemo" => Self::OpenStartupDemo,
+            "WelcomeCommand.OpenStartupAssetWindow" => Self::OpenStartupAssetWindow,
+            "WelcomeCommand.OpenStartupUILayoutEditor" => Self::OpenStartupUILayoutEditor,
             _ => return Ok(None),
         };
         Ok(Some(command))

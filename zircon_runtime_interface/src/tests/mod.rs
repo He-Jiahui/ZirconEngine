@@ -9,4 +9,6 @@ mod resource_contracts;
 mod ui_contract_spine;
 mod ui_geometry_metrics;
 mod ui_layout;
+mod ui_skin_contracts;
+mod ui_v2_contracts;
 mod window_input_contracts;

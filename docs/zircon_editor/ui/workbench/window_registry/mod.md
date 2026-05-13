@@ -1,5 +1,7 @@
 ---
 related_code:
+  - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
   - zircon_editor/src/ui/workbench/window_registry/mod.rs
   - zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs
   - zircon_editor/src/ui/workbench/window_registry/window_instance.rs
@@ -9,6 +11,8 @@ related_code:
   - zircon_editor/src/ui/workbench/window_registry/drawer_binding.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_dock_position.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
+  - zircon_editor/src/ui/workbench/preset/default_layout.rs
+  - zircon_editor/src/ui/workbench/preset/default_registry.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/layout/workbench_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
@@ -28,6 +32,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/app/native_window_close.rs
   - zircon_editor/src/ui/retained_host/app/close_prompt.rs
 implementation_files:
+  - zircon_editor/src/ui/host/builtin_layout/builtin_shell_view_instances.rs
+  - zircon_editor/src/ui/host/builtin_layout/hybrid_layout.rs
   - zircon_editor/src/ui/workbench/window_registry/mod.rs
   - zircon_editor/src/ui/workbench/window_registry/editor_window_registry.rs
   - zircon_editor/src/ui/workbench/window_registry/window_instance.rs
@@ -37,6 +43,8 @@ implementation_files:
   - zircon_editor/src/ui/workbench/window_registry/drawer_binding.rs
   - zircon_editor/src/ui/workbench/window_registry/drawer_dock_position.rs
   - zircon_editor/src/ui/workbench/window_registry/menu_overflow_mode.rs
+  - zircon_editor/src/ui/workbench/preset/default_layout.rs
+  - zircon_editor/src/ui/workbench/preset/default_registry.rs
   - zircon_editor/src/ui/workbench/layout/activity_window_layout.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot.rs
   - zircon_editor/src/ui/workbench/snapshot/data/editor_chrome_snapshot_build.rs
@@ -44,9 +52,12 @@ implementation_files:
   - zircon_editor/src/ui/host/workspace_state.rs
 plan_sources:
   - user: 2026-05-06 Drawer/Window/Menu Slate 化推进计划，要求抽屉实例、含抽屉 window、普通 window 由 editor 内单例 registry 管理
+  - user: 2026-05-11 Implement Material + Fyrox + JetBrains + Unreal editor UI plan
   - .codex/plans/Material UI + .ui.toml 全链路 UI 系统推进计划.md
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
+  - .codex/plans/Zircon Editor UI Material  Fyrox  JetBrains  Unreal.md
 tests:
+  - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
   - zircon_editor/src/tests/workbench/registry/window_registry.rs
   - zircon_editor/src/ui/retained_host/app/tests/close_prompt.rs
   - zircon_editor/src/tests/host/retained_callback_dispatch/layout/tab_drop.rs
@@ -64,6 +75,10 @@ tests:
   - cargo check -p zircon_editor --lib --tests --locked --jobs 1 --target-dir F:\cargo-targets\zircon-m4-menu-overflow --message-format short --color never
   - cargo test -p zircon_editor --lib menu_overflow_preference --locked --jobs 1 --target-dir F:\cargo-targets\zircon-m4-menu-overflow --message-format short --color never -- --nocapture --test-threads=1
   - cargo test -p zircon_editor --lib window_registry --locked --jobs 1 --target-dir F:\cargo-targets\zircon-m4-menu-overflow --message-format short --color never -- --nocapture --test-threads=1
+  - cargo test -p zircon_editor --lib default_layout --locked --target-dir target/codex-editor-ui-shell (2026-05-11: passed, 5 passed)
+  - cargo test -p zircon_editor --lib default_registry --locked --target-dir target/codex-editor-ui-shell (2026-05-11: passed, 2 passed)
+  - cargo test -p zircon_editor --lib applying_project_workspace_preserves_builtin_shell_drawers --locked --target-dir target/codex-shared-b (2026-05-11: passed, 1 passed)
+  - cargo test -p zircon_editor --lib bootstrap_and_startup --locked --target-dir target/codex-shared-b (2026-05-11: passed, 10 passed)
 doc_type: module-detail
 ---
 
@@ -90,3 +105,11 @@ Runtime mutation still flows through layout commands. `SetDrawerMode`, `SetDrawe
 Drawer detach is modeled as a real layout operation, not a painter-only overlay. The drag bridge emits a detach route when a tab is released outside any dock target; repeated detaches into the same floating page id append to that floating tab stack. The native close flow then queries the same floating workspace to build dirty close prompts, so `Discard` can close every tab in the detached drawer window and `Cancel` leaves both the registry and layout untouched.
 
 This registry is a data-layer contract for the Slate-like host model. It is intentionally not a painter, not a hit-test table, and not a `.ui.toml` parser. The host still routes UI through `UiSurfaceFrame`, projected chrome frames, and the native pointer bridges; the registry only answers which windows and drawer views exist, which one is active, and whether a drawer can legally attach to a target window.
+
+## Preset Projection
+
+The Material/Fyrox/JetBrains/Unreal preset now has an additive registry projection in `zircon_editor::ui::workbench::preset::default_registry`. It builds window-scoped `ViewInstance` ids for every preset view and calls `EditorWindowRegistry::sync_from_layout(...)` against the preset's default `WorkbenchLayout`.
+
+This matters because multiple functional windows can legitimately contain an `editor.inspector` view. The workbench inspector remains `editor.inspector#1`; the Material Editor inspector becomes `editor.inspector#material_editor`, and other feature-editor instances follow the same window-scoped pattern. The registry can therefore answer drawer ownership and selected drawer queries without one functional editor overwriting another editor's drawer metadata.
+
+The builtin startup layout now uses the same preset layout as its source before host bootstrap syncs the registry. That means the workbench registry observes Hierarchy plus Asset Browser in the left drawer, Inspector on the right, Console/Runtime Diagnostics/Build Export on the bottom, and Module Plugins in the lower-left drawer. The lower-left Module Plugins drawer keeps its tab list but starts collapsed because `JetBrainsShellPreset` owns drawer startup modes. The legacy `editor.project#1` drawer seed is no longer part of the default shell instance set, so registry assertions and host bootstrap tests should use `editor.hierarchy#1` and `editor.assets#1` as the left-drawer baseline.

@@ -1,0 +1,37 @@
+[asset]
+kind = "view"
+id = "editor.host.editor_main_frame"
+version = 2
+display_name = "editor main frame"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "EditorMainFrameRoot"
+classes = ["editor-main-frame"]
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "task_bar_slot" },
+  { node = "window_tab_strip_slot" },
+  { node = "active_window_host_slot" },
+]
+
+[nodes.task_bar_slot]
+component = "Slot"
+control_id = "EditorMainFrameTaskBarSlot"
+props = { name = "task_bar" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.window_tab_strip_slot]
+component = "Slot"
+control_id = "EditorMainFrameWindowTabStripSlot"
+props = { name = "window_tab_strip" }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.active_window_host_slot]
+component = "Slot"
+control_id = "EditorMainFrameActiveWindowHostSlot"
+props = { name = "active_window_host" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

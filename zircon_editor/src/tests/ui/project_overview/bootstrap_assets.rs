@@ -1,18 +1,14 @@
 use crate::ui::layouts::views::project_overview_pane_data;
 use crate::ui::workbench::snapshot::ProjectOverviewSnapshot;
-use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const PROJECT_OVERVIEW_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/project_overview.ui.toml"
+    "/assets/ui/editor/project_overview.v2.ui.toml"
 ));
 
 #[test]
 fn project_overview_bootstrap_layout_self_hosts_shell_sections() {
-    let layout = crate::tests::support::load_test_ui_asset(PROJECT_OVERVIEW_LAYOUT_TOML)
-        .expect("project overview layout");
-
     for required_node in [
         "project_overview_root",
         "outer_panel",
@@ -22,7 +18,7 @@ fn project_overview_bootstrap_layout_self_hosts_shell_sections() {
         "catalog_panel",
     ] {
         assert!(
-            layout.contains_node(required_node),
+            PROJECT_OVERVIEW_LAYOUT_TOML.contains(required_node),
             "project overview bootstrap layout should include `{required_node}`"
         );
     }

@@ -10,9 +10,14 @@ use crate::scene::viewport::pointer::{
 use super::ViewportOverlayPointerRouter;
 
 impl ViewportOverlayPointerRouter {
-    pub(crate) fn sync(&mut self, layout: ViewportPointerLayout) {
+    pub(crate) fn sync(&mut self, layout: ViewportPointerLayout) -> bool {
+        if self.layout == layout {
+            return false;
+        }
+
         self.layout = layout;
         self.rebuild_surface();
+        true
     }
 
     pub(crate) fn sync_scene(
@@ -23,13 +28,13 @@ impl ViewportOverlayPointerRouter {
         camera: &ViewportCameraSnapshot,
         viewport: UVec2,
         handles: Vec<HandleOverlayExtract>,
-    ) {
+    ) -> bool {
         self.sync(ViewportPointerLayout {
             viewport,
             camera: camera.clone(),
             handles,
             scene_gizmos: scene_gizmo_candidates(scene, selected, settings, camera),
             renderables: renderable_candidates(scene),
-        });
+        })
     }
 }

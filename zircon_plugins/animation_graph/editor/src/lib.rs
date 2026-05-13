@@ -50,7 +50,7 @@ impl zircon_editor::EditorPlugin for AnimationGraphEditorPlugin {
                 drawer_id: ANIMATION_GRAPH_DRAWER_ID,
                 drawer_display_name: "Animation Graph",
                 template_id: ANIMATION_GRAPH_TEMPLATE_ID,
-                template_document: "plugins://animation_graph/editor/authoring.ui.toml",
+                template_document: "plugins://animation_graph/editor/authoring.v2.ui.toml",
                 surfaces: &[EditorAuthoringSurface::new(
                     ANIMATION_GRAPH_VIEW_ID,
                     "Animation Graph",
@@ -173,12 +173,12 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
         component_drawers: vec![
             ComponentDrawerDescriptor::new(
                 "animation.Component.GraphPlayer",
-                "plugins://animation_graph/editor/graph_player.ui.toml",
+                "plugins://animation_graph/editor/graph_player.v2.ui.toml",
                 "animation_graph.editor.graph_player",
             ),
             ComponentDrawerDescriptor::new(
                 "animation.Component.StateMachinePlayer",
-                "plugins://animation_graph/editor/state_machine_player.ui.toml",
+                "plugins://animation_graph/editor/state_machine_player.v2.ui.toml",
                 "animation_graph.editor.state_machine_player",
             ),
         ],

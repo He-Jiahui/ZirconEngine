@@ -1,0 +1,205 @@
+[asset]
+kind = "view"
+id = "editor.demo.layout_shell"
+version = 2
+display_name = "Layout and Shell Demo"
+
+[imports]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[root]
+node = "dock_host"
+
+[nodes.dock_host]
+component = "DockHost"
+control_id = "LayoutDemoDockHost"
+classes = ["material_dark", "jetbrains-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "main_window" },
+  { node = "detached_material_floating_window" },
+]
+
+[nodes.main_window]
+component = "Window"
+control_id = "MainWorkbenchWindow"
+classes = ["unreal-window", "workbench-window"]
+props = { text = "Workbench" }
+children = [{ node = "workbench_shell" }]
+
+[nodes.workbench_shell]
+component = "WorkbenchShell"
+control_id = "WorkbenchShell"
+classes = ["jetbrains-shell"]
+children = [
+  { node = "left_drawer" },
+  { node = "document_node" },
+  { node = "bottom_drawer" },
+]
+
+[nodes.left_drawer]
+component = "Drawer"
+control_id = "LeftToolDrawer"
+classes = ["side-drawer"]
+children = [{ node = "hierarchy_view" }, { node = "asset_browser_view" }]
+
+[nodes.hierarchy_view]
+component = "View"
+control_id = "HierarchyView"
+classes = ["fyrox-panel"]
+props = { text = "Hierarchy" }
+children = [{ node = "tree_view" }]
+
+[nodes.tree_view]
+component = "TreeView"
+control_id = "HierarchyTree"
+classes = ["fyrox-tree"]
+props = { density = "compact" }
+
+[nodes.asset_browser_view]
+component = "View"
+control_id = "AssetBrowserView"
+classes = ["fyrox-panel"]
+props = { text = "Asset Browser" }
+children = [{ node = "asset_browser_layout" }]
+
+[nodes.asset_browser_layout]
+component = "GridGroup"
+control_id = "AssetBrowserGrid"
+classes = ["fyrox-asset-browser"]
+children = [{ node = "asset_list" }, { node = "asset_preview" }]
+
+[nodes.asset_list]
+component = "VirtualList"
+control_id = "AssetVirtualList"
+classes = ["fyrox-asset-list"]
+
+[nodes.asset_preview]
+component = "Panel"
+control_id = "AssetPreview"
+classes = ["material-panel"]
+
+[nodes.document_node]
+component = "DocumentNode"
+control_id = "DocumentNode"
+props = { node_kind = "tabs" }
+children = [{ node = "document_tab_stack" }]
+
+[nodes.document_tab_stack]
+component = "TabStack"
+control_id = "DocumentTabStack"
+props = { active_tab = "editor.scene#1" }
+classes = ["document-area"]
+children = [{ node = "document_area" }]
+
+[nodes.document_area]
+component = "FlexGroup"
+control_id = "DocumentArea"
+classes = ["document-area"]
+children = [{ node = "scene_view" }, { node = "game_view" }]
+
+[nodes.scene_view]
+component = "View"
+control_id = "SceneView"
+classes = ["fyrox-scene-view"]
+props = { text = "Scene" }
+children = [{ node = "scene_toolbar" }, { node = "scene_viewport" }]
+
+[nodes.scene_toolbar]
+component = "HorizontalGroup"
+control_id = "SceneToolbar"
+classes = ["material-toolbar"]
+children = [{ node = "play_tab" }, { node = "move_tool_tab" }]
+
+[nodes.play_tab]
+component = "ViewTab"
+control_id = "SceneTab"
+props = { text = "Scene" }
+
+[nodes.move_tool_tab]
+component = "ViewTab"
+control_id = "MoveToolTab"
+props = { text = "Move" }
+
+[nodes.scene_viewport]
+component = "Overlay"
+control_id = "SceneViewport"
+classes = ["scene-viewport"]
+children = [{ node = "scene_overlay" }]
+
+[nodes.scene_overlay]
+component = "Composite"
+control_id = "SceneOverlay"
+classes = ["gizmo-overlay"]
+
+[nodes.game_view]
+component = "View"
+control_id = "GameView"
+classes = ["game-view"]
+props = { text = "Game" }
+
+[nodes.bottom_drawer]
+component = "Drawer"
+control_id = "BottomDrawer"
+classes = ["bottom-drawer"]
+children = [{ node = "console_view" }, { node = "plugin_manager_view" }]
+
+[nodes.console_view]
+component = "View"
+control_id = "ConsoleView"
+classes = ["fyrox-console"]
+props = { text = "Console" }
+children = [{ node = "console_list" }]
+
+[nodes.console_list]
+component = "ListView"
+control_id = "ConsoleList"
+classes = ["console-list"]
+
+[nodes.plugin_manager_view]
+component = "View"
+control_id = "PluginManagerView"
+classes = ["fyrox-plugin-manager"]
+props = { text = "Plugins" }
+children = [{ node = "plugin_grid" }]
+
+[nodes.plugin_grid]
+component = "PropertyGrid"
+control_id = "PluginPropertyGrid"
+classes = ["plugin-grid"]
+children = [{ node = "plugin_section" }]
+
+[nodes.plugin_section]
+component = "InspectorSection"
+control_id = "PluginSection"
+classes = ["inspector-section"]
+
+[nodes.detached_material_floating_window]
+component = "FloatingWindow"
+control_id = "DetachedMaterialFloatingWindow"
+props = { window_id = "floating:material_editor", focused_view = "editor.material.graph#material_editor" }
+children = [{ node = "detached_material_window" }]
+
+[nodes.detached_material_window]
+component = "Window"
+control_id = "DetachedMaterialEditor"
+classes = ["unreal-window", "asset-editor-window"]
+props = { text = "Material Editor" }
+children = [{ node = "material_editor_frame" }]
+
+[nodes.material_editor_frame]
+component = "WindowFrame"
+control_id = "MaterialEditorFrame"
+classes = ["material-window-frame"]
+children = [{ node = "material_editor_content" }]
+
+[nodes.material_editor_content]
+component = "VerticalGroup"
+control_id = "MaterialEditorContent"
+classes = ["material-panel"]
+children = [{ node = "material_slot" }]
+
+[nodes.material_slot]
+component = "Slot"
+control_id = "MaterialGraphSlot"
+props = { name = "content" }

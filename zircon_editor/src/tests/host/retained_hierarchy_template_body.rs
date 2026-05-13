@@ -139,14 +139,32 @@ fn hierarchy_template_body_projects_hybrid_slot_and_payload_nodes_for_retained_c
     assert!(
         nodes
             .iter()
-            .any(|node| node.control_id == "HierarchyTreeSlotAnchor"),
+            .any(|node| node.control_id == "HierarchyListPanel"),
         "projected controls: {:?}",
         nodes
             .iter()
             .map(|node| node.control_id.to_string())
             .collect::<Vec<_>>()
     );
-    assert!(nodes.iter().any(|node| node.control_id == "SelectRoot"));
+    let select_root = nodes
+        .iter()
+        .find(|node| node.control_id == "SelectRoot")
+        .expect("select root node");
+    assert_eq!(select_root.role.to_string(), "IconButton");
+    assert!(select_root.selected);
+    assert_eq!(select_root.surface_variant.as_str(), "panel");
+    assert_eq!(select_root.text_tone.as_str(), "default");
+    assert!(!select_root.disabled);
+
+    let list_panel = nodes
+        .iter()
+        .find(|node| node.control_id == "HierarchyListPanel")
+        .expect("list panel node");
+    assert_eq!(list_panel.role.to_string(), "Container");
+    assert!(list_panel.selected);
+    assert_eq!(list_panel.surface_variant.as_str(), "panel");
+    assert_eq!(list_panel.text_tone.as_str(), "default");
+    assert!(!list_panel.disabled);
 
     let hierarchy_nodes = (0..projected.hierarchy_nodes.row_count())
         .filter_map(|row| projected.hierarchy_nodes.row_data(row))

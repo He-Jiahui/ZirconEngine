@@ -10,7 +10,8 @@ use zircon_runtime_interface::ui::{
     layout::{
         AxisConstraint, StretchMode, UiAlignment, UiAxis, UiContainerKind, UiFrame,
         UiLinearBoxConfig, UiLinearSlotSizeRule, UiScrollState, UiScrollableBoxConfig,
-        UiScrollbarVisibility, UiSize, UiSlotKind, UiVirtualListConfig, UiVirtualListWindow,
+        UiScrollbarVisibility, UiSize, UiSizeBoxConfig, UiSlotKind, UiVirtualListConfig,
+        UiVirtualListWindow,
     },
     template::UiTemplateError,
     tree::UiInputPolicy,
@@ -572,6 +573,19 @@ fn template_tree_builder_maps_layout_contract_attributes_into_shared_runtime_nod
         })
     );
     assert!(asset_list.clip_to_bounds);
+}
+
+#[test]
+fn template_tree_builder_parses_size_box_container_contract() {
+    let tree = tree_from_root_toml(root_with_inline_node(
+        r#"{ component = "SizeBox", control_id = "PreviewFit", attributes = { layout = { container = { kind = "SizeBox", aspect_ratio = 2.0 } } }, children = [{ component = "Image", control_id = "PreviewImage" }] }"#,
+    ));
+    let root = only_root_node(&tree);
+
+    assert_eq!(
+        root.container,
+        UiContainerKind::SizeBox(UiSizeBoxConfig { aspect_ratio: 2.0 })
+    );
 }
 
 #[test]

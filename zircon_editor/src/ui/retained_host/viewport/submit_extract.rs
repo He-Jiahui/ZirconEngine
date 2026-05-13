@@ -12,6 +12,7 @@ impl RetainedViewportController {
         ui: Option<UiRenderExtract>,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
+        zircon_runtime::profile_scope!("editor", "viewport", "submit_extract_with_ui");
         let mut shared = self.lock_shared();
         let viewport = shared.ensure_viewport(size)?;
         extract.apply_viewport_size(size);
@@ -29,6 +30,7 @@ impl RetainedViewportController {
         mut extract: RenderFrameExtract,
         size: UVec2,
     ) -> Result<(), RenderFrameworkError> {
+        zircon_runtime::profile_scope!("editor", "viewport", "submit_extract");
         let mut shared = self.lock_shared();
         let viewport = shared.ensure_viewport(size)?;
         extract.apply_viewport_size(size);

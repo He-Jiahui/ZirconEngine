@@ -26,6 +26,18 @@ fn ui_asset_editor_session_projects_structured_widget_inspector_fields() {
     assert_eq!(pane.inspector_widget_label, "Button");
     assert_eq!(pane.inspector_control_id, "SaveButton");
     assert_eq!(pane.inspector_text_prop, "Save");
+    assert!(pane
+        .inspector_items
+        .iter()
+        .any(|item| item == "prop text = \"Save\""));
+    assert!(pane
+        .inspector_widget_prop_state_items
+        .iter()
+        .any(|item| item == "prop text = \"Save\""));
+    assert!(pane
+        .inspector_widget_prop_state_rows
+        .iter()
+        .any(|item| { item.kind == "prop" && item.path == "text" && item.value == "\"Save\"" }));
     assert!(pane.inspector_can_edit_control_id);
     assert!(pane.inspector_can_edit_text_prop);
 }
@@ -53,10 +65,32 @@ fn ui_asset_editor_session_updates_selected_widget_inspector_fields() {
     assert!(session
         .set_selected_widget_text_property("Confirm")
         .expect("set selected text property"));
+    assert!(session
+        .set_selected_widget_state_literal("expanded", "true")
+        .expect("set selected state literal"));
 
     let updated = session.pane_presentation();
     assert_eq!(updated.inspector_control_id, "ConfirmButton");
     assert_eq!(updated.inspector_text_prop, "Confirm");
+    assert!(updated
+        .inspector_items
+        .iter()
+        .any(|item| item == "prop text = \"Confirm\""));
+    assert!(updated
+        .inspector_items
+        .iter()
+        .any(|item| item == "state expanded = true"));
+    assert_eq!(
+        updated.inspector_widget_prop_state_items,
+        vec![
+            "prop text = \"Confirm\"".to_string(),
+            "state expanded = true".to_string()
+        ]
+    );
+    assert!(updated
+        .inspector_widget_prop_state_rows
+        .iter()
+        .any(|item| item.kind == "state" && item.path == "expanded" && item.value == "true"));
 
     let document = crate::tests::support::load_test_ui_asset(session.source_buffer().text())
         .expect("document");
@@ -65,6 +99,10 @@ fn ui_asset_editor_session_updates_selected_widget_inspector_fields() {
     assert_eq!(
         button.props.get("text").and_then(toml::Value::as_str),
         Some("Confirm")
+    );
+    assert_eq!(
+        button.params.get("expanded").and_then(toml::Value::as_bool),
+        Some(true)
     );
     assert!(preview_has_control_id(
         session.preview_host().surface(),

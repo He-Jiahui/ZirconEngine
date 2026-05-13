@@ -2,7 +2,7 @@ use zircon_runtime_interface::{ZrHostApiV1, ZrRuntimeApiV1, ZIRCON_RUNTIME_ABI_V
 
 use super::session::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
-    destroy_session, handle_event, present_viewport, unbind_viewport_surface,
+    destroy_session, handle_event, present_viewport, profile_control, unbind_viewport_surface,
 };
 
 static RUNTIME_API_V1: ZrRuntimeApiV1 = ZrRuntimeApiV1 {
@@ -16,12 +16,16 @@ static RUNTIME_API_V1: ZrRuntimeApiV1 = ZrRuntimeApiV1 {
     bind_viewport_surface: Some(bind_viewport_surface),
     unbind_viewport_surface: Some(unbind_viewport_surface),
     present_viewport: Some(present_viewport),
+    profile_control: Some(profile_control),
 };
 
 #[no_mangle]
 pub unsafe extern "C" fn zircon_runtime_get_api_v1(
     host: *const ZrHostApiV1,
 ) -> *const ZrRuntimeApiV1 {
+    #[cfg(feature = "profiling-tracy")]
+    let _ = crate::core::diagnostics::profiling::initialize_tracy_sink();
+
     if !host.is_null() {
         let host = unsafe { &*host };
         if host.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {

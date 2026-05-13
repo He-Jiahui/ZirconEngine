@@ -157,6 +157,32 @@ impl RetainedEditorHost {
         }
     }
 
+    fn open_startup_view(&mut self, descriptor_id: &str, status: &str) {
+        match self
+            .editor_manager
+            .dismiss_welcome_page()
+            .map_err(|error| error.to_string())
+            .and_then(|_| {
+                self.editor_manager
+                    .open_view(
+                        crate::ui::workbench::view::ViewDescriptorId::new(descriptor_id),
+                        None,
+                    )
+                    .map_err(|error| error.to_string())
+            }) {
+            Ok(_) => {
+                self.runtime.set_session_mode(EditorSessionMode::Project);
+                self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+                self.set_status_line(status.to_string());
+            }
+            Err(error) => {
+                self.startup_session.status_message = error.clone();
+                self.refresh_welcome_snapshot();
+                self.set_status_line(error);
+            }
+        }
+    }
+
     pub(super) fn handle_welcome_surface_event(&mut self, event: WelcomeHostEvent) {
         match event {
             WelcomeHostEvent::SetProjectName { value } => {
@@ -172,6 +198,30 @@ impl RetainedEditorHost {
             }
             WelcomeHostEvent::RemoveRecentProject { path } => {
                 self.remove_recent_project(path.as_str());
+            }
+            WelcomeHostEvent::OpenStartupWorkbench => {
+                let _ = self.editor_manager.dismiss_welcome_page();
+                self.runtime.set_session_mode(EditorSessionMode::Project);
+                self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+                self.set_status_line("Opened default workbench".to_string());
+            }
+            WelcomeHostEvent::OpenStartupDemo => {
+                self.open_startup_view(
+                    "editor.material_demo_window",
+                    "Opened Material demo window",
+                );
+            }
+            WelcomeHostEvent::OpenStartupAssetWindow => {
+                self.open_startup_view(
+                    "editor.asset_browser_window",
+                    "Opened asset browser window",
+                );
+            }
+            WelcomeHostEvent::OpenStartupUILayoutEditor => {
+                self.open_startup_view(
+                    "editor.ui_asset_editor_window",
+                    "Opened UI layout editor window",
+                );
             }
         }
     }

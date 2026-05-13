@@ -105,7 +105,7 @@ pub fn mutate_tree_property(
                     node.state_flags.visible,
                 );
                 node.visibility = next;
-                mark_dirty(node, dirty);
+                mark_state_dirty(node, dirty);
                 UiPropertyMutationReport::accepted(&request, dirty)
             }
             None => UiPropertyMutationReport::rejected(
@@ -129,7 +129,7 @@ pub fn mutate_tree_property(
             Some(next) if node.input_policy == next => UiPropertyMutationReport::unchanged(&request),
             Some(next) => {
                 node.input_policy = next;
-                mark_dirty(node, input_dirty());
+                mark_state_dirty(node, input_dirty());
                 UiPropertyMutationReport::accepted(&request, input_dirty())
             }
             None => UiPropertyMutationReport::rejected(
@@ -149,7 +149,8 @@ pub fn mutate_tree_property(
                 UiPropertyMutationReport::unchanged(&request)
             } else {
                 metadata.attributes.insert(property.to_string(), next);
-                let dirty = metadata_attribute_dirty(property, request.value.kind());
+                let dirty =
+                    metadata_attribute_dirty(metadata.component.as_str(), property, request.value.kind());
                 mark_dirty(node, dirty);
                 UiPropertyMutationReport::accepted(&request, dirty)
             }
@@ -184,7 +185,7 @@ fn mutate_node_state_bool(
 ) -> UiPropertyMutationReport {
     let report = mutate_state_bool(request, field(node), dirty);
     if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-        mark_dirty(node, dirty);
+        mark_state_dirty(node, dirty);
     }
     report
 }
@@ -238,7 +239,16 @@ fn mark_dirty(node: &mut zircon_runtime_interface::ui::tree::UiTreeNode, dirty: 
     node.dirty.text |= dirty.text;
     node.dirty.input |= dirty.input;
     node.dirty.visible_range |= dirty.visible_range;
-    node.state_flags.dirty = true;
+}
+
+fn mark_state_dirty(
+    node: &mut zircon_runtime_interface::ui::tree::UiTreeNode,
+    dirty: UiDirtyFlags,
+) {
+    mark_dirty(node, dirty);
+    if dirty.hit_test || dirty.input {
+        node.state_flags.dirty = true;
+    }
 }
 
 fn visibility_dirty(visibility: UiVisibility) -> UiDirtyFlags {
@@ -278,8 +288,13 @@ fn render_dirty() -> UiDirtyFlags {
     }
 }
 
-fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyFlags {
+fn metadata_attribute_dirty(
+    component: &str,
+    property: &str,
+    value_kind: UiValueKind,
+) -> UiDirtyFlags {
     match property {
+        "value" if is_render_only_numeric_value_component(component) => render_dirty(),
         "text" | "label" | "value" | "value_text" | "font_size" | "line_height" => UiDirtyFlags {
             layout: true,
             render: true,
@@ -292,11 +307,7 @@ fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyF
         | "composition_start"
         | "composition_end"
         | "composition_text"
-        | "composition_restore_text" => UiDirtyFlags {
-            render: true,
-            text: true,
-            ..UiDirtyFlags::default()
-        },
+        | "composition_restore_text" => render_dirty(),
         _ if is_layout_metadata_attribute(property) => UiDirtyFlags {
             layout: true,
             hit_test: true,
@@ -314,6 +325,10 @@ fn metadata_attribute_dirty(property: &str, value_kind: UiValueKind) -> UiDirtyF
         }
         _ => render_dirty(),
     }
+}
+
+fn is_render_only_numeric_value_component(component: &str) -> bool {
+    matches!(component, "RangeField" | "Slider" | "ProgressBar")
 }
 
 fn is_layout_metadata_attribute(property: &str) -> bool {

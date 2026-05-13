@@ -4,6 +4,7 @@ use winit::application::ApplicationHandler;
 use winit::event::{ButtonSource, ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::ActiveEventLoop;
 use winit::window::{Window, WindowAttributes, WindowId};
+use zircon_runtime::diagnostic_log::{write_log, write_warn};
 use zircon_runtime_interface::{
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeViewportSizeV1,
     ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
@@ -16,6 +17,7 @@ use crate::runtime_presenter::SoftbufferRuntimePresenter;
 
 impl ApplicationHandler for RuntimeEntryApp {
     fn can_create_surfaces(&mut self, event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "can_create_surfaces");
         if self.window.is_some() {
             return;
         }
@@ -34,10 +36,16 @@ impl ApplicationHandler for RuntimeEntryApp {
         let viewport_size = ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
         self.window = Some(window.clone());
         self.viewport_size = viewport_size;
-        self.surface_present_enabled = self.bind_window_surface(window.as_ref()).unwrap_or(false);
         if self.resize_viewport(viewport_size).is_err() {
             event_loop.exit();
             return;
+        }
+        match self.bind_window_surface(window.as_ref()) {
+            Ok(true) => self.enable_surface_present(),
+            Ok(false) => self.fallback_surface_present(),
+            Err(_) => {
+                self.fail_surface_present();
+            }
         }
         if !self.surface_present_enabled && !self.ensure_fallback_presenter(event_loop) {
             return;
@@ -50,27 +58,27 @@ impl ApplicationHandler for RuntimeEntryApp {
         _window_id: WindowId,
         event: WindowEvent,
     ) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "window_event");
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::SurfaceResized(size) => {
                 let viewport_size =
                     ZrRuntimeViewportSizeV1::new(size.width.max(1), size.height.max(1));
+                if self.resize_viewport(viewport_size).is_err() {
+                    event_loop.exit();
+                    return;
+                }
+                if self.surface_present_enabled && !self.surface_present_failed {
+                    match self.bind_current_window_surface() {
+                        Ok(true) => self.enable_surface_present(),
+                        Ok(false) => self.fail_surface_present(),
+                        Err(_) => self.fail_surface_present(),
+                    }
+                }
                 if let Some(presenter) = self.presenter.as_mut() {
                     if presenter.resize(viewport_size).is_err() {
                         event_loop.exit();
                     }
-                }
-                if self.surface_present_enabled {
-                    self.viewport_size = viewport_size;
-                    match self.bind_current_window_surface() {
-                        Ok(true) => {}
-                        Ok(false) | Err(_) => {
-                            self.disable_surface_present();
-                        }
-                    }
-                }
-                if self.resize_viewport(viewport_size).is_err() {
-                    event_loop.exit();
                 }
             }
             WindowEvent::PointerMoved { position, .. } => {
@@ -119,17 +127,19 @@ impl ApplicationHandler for RuntimeEntryApp {
                 }
             }
             WindowEvent::RedrawRequested => {
-                if self.surface_present_enabled {
+                zircon_runtime::profile_frame!("app", "runtime_redraw");
+                zircon_runtime::profile_scope!("app", "runtime_entry", "redraw_requested");
+                if self.surface_present_enabled && !self.surface_present_failed {
                     match self
                         .session
                         .present_viewport(self.viewport, self.viewport_size)
                     {
                         Ok(true) => return,
                         Ok(false) => {
-                            self.disable_surface_present();
+                            self.fail_surface_present();
                         }
                         Err(_) => {
-                            self.disable_surface_present();
+                            self.fail_surface_present();
                         }
                     }
                 }
@@ -157,6 +167,7 @@ impl ApplicationHandler for RuntimeEntryApp {
     }
 
     fn about_to_wait(&mut self, _event_loop: &dyn ActiveEventLoop) {
+        zircon_runtime::profile_scope!("app", "runtime_entry", "about_to_wait");
         if let Some(window) = self.window.as_ref() {
             window.request_redraw();
         }
@@ -181,16 +192,16 @@ fn button_state(state: ElementState) -> Option<u32> {
 
 impl RuntimeEntryApp {
     fn bind_current_window_surface(
-        &self,
+        &mut self,
     ) -> Result<bool, crate::entry::runtime_library::RuntimeLibraryError> {
-        let Some(window) = self.window.as_ref() else {
+        let Some(window) = self.window.clone() else {
             return Ok(false);
         };
         self.bind_window_surface(window.as_ref())
     }
 
     fn bind_window_surface(
-        &self,
+        &mut self,
         window: &dyn Window,
     ) -> Result<bool, crate::entry::runtime_library::RuntimeLibraryError> {
         if !self.session.supports_viewport_surface_present() {
@@ -199,6 +210,7 @@ impl RuntimeEntryApp {
         let Some(target) = runtime_native_surface_target(window) else {
             return Ok(false);
         };
+        self.surface_present_attempted = true;
         self.session
             .bind_viewport_surface(ZrRuntimeBindViewportSurfaceRequestV1::new(
                 ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -209,10 +221,31 @@ impl RuntimeEntryApp {
     }
 
     fn disable_surface_present(&mut self) {
-        if self.surface_present_enabled {
+        if self.surface_present_enabled || self.surface_present_attempted {
             let _ = self.session.unbind_viewport_surface(self.viewport);
         }
         self.surface_present_enabled = false;
+        self.surface_present_attempted = false;
+    }
+
+    fn enable_surface_present(&mut self) {
+        self.surface_present_enabled = true;
+        self.surface_present_failed = false;
+        write_log("runtime_surface_present", "runtime_surface_present_enabled");
+    }
+
+    fn fallback_surface_present(&mut self) {
+        self.disable_surface_present();
+        write_log(
+            "runtime_surface_present",
+            "runtime_surface_present_fallback",
+        );
+    }
+
+    fn fail_surface_present(&mut self) {
+        self.surface_present_failed = true;
+        write_warn("runtime_surface_present", "runtime_surface_present_failed");
+        self.fallback_surface_present();
     }
 
     fn ensure_fallback_presenter(&mut self, event_loop: &dyn ActiveEventLoop) -> bool {
@@ -232,5 +265,11 @@ impl RuntimeEntryApp {
                 false
             }
         }
+    }
+}
+
+impl Drop for RuntimeEntryApp {
+    fn drop(&mut self) {
+        self.disable_surface_present();
     }
 }

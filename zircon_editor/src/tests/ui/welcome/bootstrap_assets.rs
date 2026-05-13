@@ -1,16 +1,15 @@
 use crate::ui::layouts::views::welcome_pane_nodes;
-use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use zircon_runtime::ui::v2::UiV2AssetLoader;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const WELCOME_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/welcome.ui.toml"
+    "/assets/ui/editor/welcome.v2.ui.toml"
 ));
 
 #[test]
 fn welcome_bootstrap_layout_self_hosts_shell_sections() {
-    let layout =
-        crate::tests::support::load_test_ui_asset(WELCOME_LAYOUT_TOML).expect("welcome layout");
+    let layout = UiV2AssetLoader::load_toml_str(WELCOME_LAYOUT_TOML).expect("welcome layout");
 
     for required_node in [
         "welcome_root",
@@ -29,7 +28,7 @@ fn welcome_bootstrap_layout_self_hosts_shell_sections() {
         "actions_row",
     ] {
         assert!(
-            layout.contains_node(required_node),
+            layout.nodes.contains_key(required_node),
             "welcome bootstrap layout should include `{required_node}`"
         );
     }

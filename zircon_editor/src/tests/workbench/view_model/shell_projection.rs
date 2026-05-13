@@ -129,6 +129,77 @@ fn workbench_view_model_projects_menu_strip_drawers_and_status() {
 }
 
 #[test]
+fn workbench_window_menu_exposes_unreal_style_functional_windows() {
+    let model = WorkbenchViewModel::build(&sample_workbench_chrome());
+    let window_menu = model
+        .menu_bar
+        .menus
+        .iter()
+        .find(|menu| menu.label == "Window")
+        .expect("window menu");
+
+    for (label, descriptor_id, operation_path) in [
+        (
+            "Prefab Editor",
+            "editor.prefab_editor_window",
+            "Window.PrefabEditor.Open",
+        ),
+        (
+            "Material Editor",
+            "editor.material_editor_window",
+            "Window.MaterialEditor.Open",
+        ),
+        (
+            "Material Demo",
+            "editor.material_demo_window",
+            "Window.MaterialDemo.Open",
+        ),
+        (
+            "UI Asset Editor",
+            "editor.ui_asset_editor_window",
+            "Window.UiAssetEditor.Open",
+        ),
+        (
+            "Animation Editor",
+            "editor.animation_editor_window",
+            "Window.AnimationEditor.Open",
+        ),
+        (
+            "Asset Browser",
+            "editor.asset_browser_window",
+            "Window.AssetBrowser.Open",
+        ),
+        (
+            "Diagnostics",
+            "editor.diagnostics_window",
+            "Window.Diagnostics.Open",
+        ),
+    ] {
+        let item = window_menu
+            .items
+            .iter()
+            .find(|item| item.label == label)
+            .unwrap_or_else(|| panic!("missing `{label}` window menu item"));
+        assert_eq!(
+            item.action,
+            Some(MenuAction::OpenView(EventViewDescriptorId::new(
+                descriptor_id
+            )))
+        );
+        assert_eq!(
+            item.operation_path.as_ref().map(|path| path.as_str()),
+            Some(operation_path)
+        );
+        assert_eq!(
+            item.binding.native_binding(),
+            format!(
+                r#"WorkbenchMenuBar/OpenView.{descriptor_id}:onClick(MenuAction("OpenView.{descriptor_id}"))"#
+            )
+        );
+    }
+}
+
+#[test]
 fn workbench_view_model_freezes_drawers_for_exclusive_page() {
     let chrome = sample_exclusive_chrome();
 

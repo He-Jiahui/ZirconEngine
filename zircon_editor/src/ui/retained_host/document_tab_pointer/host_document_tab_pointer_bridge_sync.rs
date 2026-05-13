@@ -4,7 +4,11 @@ use super::{
 };
 
 impl HostDocumentTabPointerBridge {
-    pub(crate) fn sync(&mut self, layout: HostDocumentTabPointerLayout) {
+    pub(crate) fn sync(&mut self, layout: HostDocumentTabPointerLayout) -> bool {
+        if self.layout == layout {
+            return false;
+        }
+
         self.layout = layout;
         self.measured_frames = self
             .layout
@@ -13,5 +17,6 @@ impl HostDocumentTabPointerBridge {
             .map(|surface| (surface.key.clone(), vec![None; surface.items.len()]))
             .collect();
         self.rebuild_surface();
+        true
     }
 }

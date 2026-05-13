@@ -7,7 +7,7 @@ use zircon_runtime_interface::ui::layout::UiPoint;
 #[test]
 fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test() {
     let mut bridge = ViewportToolbarPointerBridge::new();
-    bridge.sync(build_viewport_toolbar_pointer_layout(["scene.main"]));
+    assert!(bridge.sync(build_viewport_toolbar_pointer_layout(["scene.main"])));
 
     let route = bridge
         .handle_click(
@@ -45,4 +45,13 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
             surface_key: "scene.main".to_string(),
         })
     );
+}
+
+#[test]
+fn shared_viewport_toolbar_pointer_bridge_skips_rebuild_for_unchanged_layout() {
+    let mut bridge = ViewportToolbarPointerBridge::new();
+    let layout = build_viewport_toolbar_pointer_layout(["scene.main"]);
+
+    assert!(bridge.sync(layout.clone()));
+    assert!(!bridge.sync(layout));
 }

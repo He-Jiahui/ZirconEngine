@@ -48,7 +48,7 @@ impl zircon_editor::EditorPlugin for SoundEditorPlugin {
                 drawer_id: SOUND_DRAWER_ID,
                 drawer_display_name: "Sound Mixer",
                 template_id: SOUND_TEMPLATE_ID,
-                template_document: "plugins://sound/editor/mixer_console.ui.toml",
+                template_document: "plugins://sound/editor/mixer_console.v2.ui.toml",
                 surfaces: &[
                     EditorAuthoringSurface::new(
                         SOUND_AUTHORING_VIEW_ID,
@@ -77,7 +77,7 @@ fn register_sound_component_drawers(
 
     registry.register_ui_template(EditorUiTemplateDescriptor::new(
         SOUND_ACOUSTIC_DEBUG_TEMPLATE_ID,
-        "plugins://sound/editor/acoustic_debug.ui.toml",
+        "plugins://sound/editor/acoustic_debug.v2.ui.toml",
     ))?;
     registry
         .register_component_drawer(authoring_bindings::sound_audio_source_drawer_descriptor())?;

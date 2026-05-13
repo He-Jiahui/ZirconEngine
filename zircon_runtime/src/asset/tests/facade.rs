@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::asset::{
     AlphaMode, AssetEvent, AssetLoadState, AssetReference, AssetUri, Assets, Handle, MaterialAsset,
     ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset, ShaderEntryPointAsset,
-    ShaderSourceLanguage, TextureAsset, TexturePayload,
+    ShaderSourceLanguage, TextureAsset, TexturePayload, UiLayoutAsset, UiV2ViewAsset,
 };
 use crate::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind, ResourceManager, ResourceRecord,
@@ -349,6 +349,33 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
 }
 
 #[test]
+fn project_asset_manager_load_accepts_v2_ui_payload_under_ui_layout_kind() {
+    let manager = ProjectAssetManager::default();
+    let resource_manager = manager.resource_manager();
+    let ui_record = record("res://ui/panel.v2.ui.toml", ResourceKind::UiLayout);
+    let ui_locator = ui_record.primary_locator.clone();
+    let ui_id = ui_record.id;
+    resource_manager.register_ready(ui_record, ui_v2_view_asset());
+
+    let handle = manager
+        .load::<UiV2ViewAsset>(&ui_locator)
+        .expect("typed v2 ui view load");
+
+    assert_eq!(handle.id(), ui_id);
+    assert_eq!(
+        manager
+            .assets::<UiV2ViewAsset>()
+            .get(handle)
+            .unwrap()
+            .document
+            .asset
+            .id,
+        "runtime.ui.panel"
+    );
+    assert!(manager.load::<UiLayoutAsset>(&ui_locator).is_err());
+}
+
+#[test]
 fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
     let manager = ProjectAssetManager::default();
     let resource_manager = manager.resource_manager();
@@ -402,6 +429,26 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         RecursiveDependencyLoadState::Failed,
         "failed dependencies take precedence over unloaded dependencies"
     );
+}
+
+fn ui_v2_view_asset() -> UiV2ViewAsset {
+    UiV2ViewAsset::from_toml_str(
+        r#"
+[asset]
+kind = "view"
+id = "runtime.ui.panel"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Text"
+control_id = "PanelRoot"
+props = { text = "Panel" }
+"#,
+    )
+    .expect("valid ui v2 view asset")
 }
 
 #[test]

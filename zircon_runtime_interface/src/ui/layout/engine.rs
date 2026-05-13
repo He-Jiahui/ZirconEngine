@@ -115,7 +115,9 @@ impl UiLayoutEngineRequest {
     pub const fn from_container_kind(container: UiContainerKind) -> Self {
         let family = match container {
             UiContainerKind::Free => UiLayoutEngineFamily::Free,
-            UiContainerKind::Container | UiContainerKind::Space => UiLayoutEngineFamily::Container,
+            UiContainerKind::Container | UiContainerKind::Space | UiContainerKind::SizeBox(_) => {
+                UiLayoutEngineFamily::Container
+            }
             UiContainerKind::Overlay => UiLayoutEngineFamily::Overlay,
             UiContainerKind::HorizontalBox(_) | UiContainerKind::VerticalBox(_) => {
                 UiLayoutEngineFamily::Flex

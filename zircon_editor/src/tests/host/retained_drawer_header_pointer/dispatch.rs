@@ -21,37 +21,52 @@ fn shared_drawer_header_pointer_click_dispatches_drawer_toggle_through_runtime_d
     let chrome = harness.runtime.chrome_snapshot();
     let model = WorkbenchViewModel::build(&chrome);
     let metrics = WorkbenchChromeMetrics::default();
+    let left_top_key = "left";
     let mut template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
         .expect("builtin workbench template bridge should build");
     template_bridge
         .recompute_layout_with_workbench_model(UiSize::new(1280.0, 720.0), &model, &metrics)
         .expect("builtin workbench template bridge should project drawer headers");
     let mut pointer_bridge = HostDrawerHeaderPointerBridge::new();
-    pointer_bridge.sync(build_host_drawer_header_pointer_layout(
+    let pointer_layout = build_host_drawer_header_pointer_layout(
         &model,
         &metrics,
         Some(&template_bridge.root_shell_frames()),
-    ));
+    );
+    let left_top = pointer_layout
+        .surfaces
+        .iter()
+        .find(|surface| surface.key == left_top_key)
+        .and_then(|surface| {
+            surface
+                .items
+                .iter()
+                .enumerate()
+                .find(|(_, item)| item.slot == "left_top")
+        })
+        .map(|(index, item)| (index, item.instance_id.clone()))
+        .expect("left top drawer header item should be projected");
+    pointer_bridge.sync(pointer_layout);
 
     let dispatched = dispatch_shared_drawer_header_pointer_click(
         &harness.runtime,
         &template_bridge,
         &mut pointer_bridge,
-        "left",
-        0,
+        left_top_key,
+        left_top.0,
         6.0,
         96.0,
-        UiPoint::new(24.0, 12.0),
+        UiPoint::new(24.0 + left_top.0 as f32 * 112.0, 12.0),
     )
     .expect("shared drawer header route should dispatch drawer toggle");
 
     assert_eq!(
         dispatched.pointer.route,
         Some(HostDrawerHeaderPointerRoute::Tab {
-            surface_key: "left".to_string(),
-            item_index: 0,
+            surface_key: left_top_key.to_string(),
+            item_index: left_top.0,
             slot: "left_top".to_string(),
-            instance_id: "editor.project#1".to_string(),
+            instance_id: left_top.1,
         })
     );
     let effects = dispatched

@@ -8,9 +8,11 @@ use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
 use super::error::BuiltinHostDrawerSourceTemplateBridgeError;
+#[cfg(test)]
+use super::layout::rebuild_builtin_host_drawer_source_surface;
 use super::layout::{
     build_builtin_host_drawer_source_surface, default_drawer_layout_inputs,
-    drawer_layout_inputs_from_workbench_model, rebuild_builtin_host_drawer_source_surface,
+    drawer_layout_inputs_from_workbench_model,
     rebuild_builtin_host_drawer_source_surface_with_anchors, BuiltinHostDrawerLayoutAnchors,
 };
 use super::source_frames::{source_frames_from_surface, BuiltinHostDrawerSourceFrames};

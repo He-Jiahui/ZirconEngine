@@ -11,19 +11,11 @@ use crate::ui::activity::ActivityWindowDescriptor;
 
 pub const UI_ASSET_EDITOR_WINDOW_ID: &str = "editor.ui_asset";
 pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID: &str =
-    "res://ui/editor/ui_asset_editor.ui.toml";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID: &str = "editor.ui_asset_editor";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID: &str =
-    "res://ui/editor/editor_widgets.ui.toml";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorHeaderShell";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbar";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorToolbarButton";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE: &str =
-    "res://ui/editor/editor_widgets.ui.toml#EditorSectionCard";
-pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str = "res://ui/theme/editor_base.ui.toml";
+    "res://ui/editor/ui_asset_editor.v2.ui.toml";
+pub const UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID: &str =
+    "editor.ui_asset_editor.projection.v2";
+pub const UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID: &str =
+    "res://ui/theme/editor_material.v2.ui.toml";
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum UiAssetEditorMode {

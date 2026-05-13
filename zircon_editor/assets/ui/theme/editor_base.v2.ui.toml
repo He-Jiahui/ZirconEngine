@@ -1,0 +1,98 @@
+[asset]
+kind = "style"
+id = "ui.theme.editor_base"
+version = 2
+display_name = "Editor Base"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[tokens]
+accent = "#4d89ff"
+panel_bg = "#20252d"
+shell_bg = "#171a20"
+surface_bg = "#242b35"
+surface_inset = "#171c24"
+surface_hover = "#2c3542"
+surface_selected = "#365382"
+border = "#424c5c"
+text = "#eef3ff"
+text_muted = "#9aa6b6"
+text_subtle = "#8595aa"
+warning = "#d8a24d"
+danger = "#d96b63"
+title = "$text"
+
+[components]
+
+[[stylesheets]]
+id = "editor_base"
+
+[[stylesheets.rules]]
+selector = ".editor-shell"
+set = { self = { background = { color = "$shell_bg" }, foreground = { color = "$text" } } }
+
+[[stylesheets.rules]]
+selector = ".editor-workbench"
+set = { self = { background = { color = "$shell_bg" }, foreground = { color = "$text" } } }
+
+[[stylesheets.rules]]
+selector = ".editor-pane"
+set = { self = { background = { color = "$surface_bg" }, foreground = { color = "$text" }, border = { color = "$border", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".panel"
+set = { self = { background = { color = "$panel_bg" }, foreground = { color = "$text" }, border = { color = "$border", width = 1.0, radius = 8.0 } } }
+
+[[stylesheets.rules]]
+selector = ".inset"
+set = { self = { background = { color = "$surface_inset" }, foreground = { color = "$text" }, border = { color = "$border", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".section-title"
+set = { self = { foreground = { color = "$title" } } }
+
+[[stylesheets.rules]]
+selector = ".text-muted"
+set = { self = { foreground = { color = "$text_muted" } } }
+
+[[stylesheets.rules]]
+selector = ".text-subtle"
+set = { self = { foreground = { color = "$text_subtle" } } }
+
+[[stylesheets.rules]]
+selector = ".status-bar"
+set = { self = { background = { color = "$surface_hover" }, foreground = { color = "$text" } } }
+
+[[stylesheets.rules]]
+selector = ".activity-rail"
+set = { self = { background = { color = "$panel_bg" }, border = { color = "$border", width = 0.0, radius = 0.0 } } }
+
+[[stylesheets.rules]]
+selector = ".chrome-selected"
+set = { self = { background = { color = "$surface_selected" }, foreground = { color = "$text" }, border = { color = "$accent", width = 1.0, radius = 6.0 } } }
+
+[[stylesheets.rules]]
+selector = ".chrome-subtle"
+set = { self = { foreground = { color = "$text_subtle" } } }
+
+[[stylesheets.rules]]
+selector = ".chrome-muted"
+set = { self = { foreground = { color = "$text_muted" } } }
+
+[[stylesheets.rules]]
+selector = "Button.primary"
+set = { self = { background = { color = "$accent" }, foreground = { color = "$text" }, border = { color = "$accent", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = "Button.secondary"
+set = { self = { background = { color = "$surface_bg" }, foreground = { color = "$text" }, border = { color = "$border", width = 1.0, radius = 5.0 } } }
+
+[[stylesheets.rules]]
+selector = ".toolbar > Button.toolbar-primary"
+set = { self = { background = { color = "$accent" } } }
+
+[[stylesheets.rules]]
+selector = "#DesignerLabel"
+set = { self = { text = "Canvas Preview" } }

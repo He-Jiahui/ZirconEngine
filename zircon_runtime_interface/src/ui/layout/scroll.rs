@@ -59,12 +59,18 @@ pub struct UiGridBoxConfig {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct UiSizeBoxConfig {
+    pub aspect_ratio: f32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum UiContainerKind {
     #[default]
     Free,
     Container,
     Overlay,
     Space,
+    SizeBox(UiSizeBoxConfig),
     HorizontalBox(UiLinearBoxConfig),
     VerticalBox(UiLinearBoxConfig),
     ScrollableBox(UiScrollableBoxConfig),
@@ -86,6 +92,7 @@ impl UiContainerKind {
             self,
             Self::HorizontalBox(_)
                 | Self::VerticalBox(_)
+                | Self::SizeBox(_)
                 | Self::ScrollableBox(_)
                 | Self::WrapBox(_)
                 | Self::GridBox(_)

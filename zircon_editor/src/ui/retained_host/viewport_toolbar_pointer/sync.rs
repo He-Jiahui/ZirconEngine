@@ -4,7 +4,11 @@ use super::viewport_toolbar_pointer_bridge::ViewportToolbarPointerBridge;
 use super::viewport_toolbar_pointer_layout::ViewportToolbarPointerLayout;
 
 impl ViewportToolbarPointerBridge {
-    pub(crate) fn sync(&mut self, layout: ViewportToolbarPointerLayout) {
+    pub(crate) fn sync(&mut self, layout: ViewportToolbarPointerLayout) -> bool {
+        if self.layout == layout {
+            return false;
+        }
+
         self.layout = layout;
         let valid_surface_keys = self
             .layout
@@ -15,5 +19,6 @@ impl ViewportToolbarPointerBridge {
         self.active_controls
             .retain(|surface_key, _| valid_surface_keys.contains(surface_key));
         self.rebuild_surface();
+        true
     }
 }

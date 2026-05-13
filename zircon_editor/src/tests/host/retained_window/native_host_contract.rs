@@ -362,6 +362,190 @@ fn native_host_generic_template_text_field_routes_builtin_change_binding() {
 }
 
 #[test]
+fn native_host_asset_template_search_field_routes_asset_change_callback() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: assets_pane_with_nodes(vec![TemplatePaneNodeData {
+            dispatch_kind: "asset".into(),
+            binding_id: "AssetSurface/SearchEdited".into(),
+            ..template_input_node(
+                "SearchEdited",
+                "cube",
+                "AssetSurface/SearchEdited",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )
+        }]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_asset_control_changed(move |source, control_id, value| {
+                edits.borrow_mut().push((
+                    source.to_string(),
+                    control_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    let focus_result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+    let input_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 14.0, 160.0, 24.0);
+
+    assert!(focus_result.request_redraw());
+    assert!(insert_result.request_redraw());
+    assert!(!insert_result.requires_frame_update());
+    assert_eq!(insert_result.damage_region(), Some(input_frame));
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [(
+            "activity".to_string(),
+            "SearchEdited".to_string(),
+            "cubeX".to_string()
+        )],
+        "v2 asset search fields should keep their asset dispatch kind through retained projection and native text focus"
+    );
+}
+
+#[test]
+fn native_host_asset_template_buttons_route_browser_change_callback() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: assets_pane_with_nodes(vec![TemplatePaneNodeData {
+            dispatch_kind: "asset:browser".into(),
+            action_id: "SetViewMode".into(),
+            binding_id: "AssetSurface/SetViewMode".into(),
+            value_text: "thumbnail".into(),
+            ..template_node(
+                "AssetBrowserViewModeThumbButton",
+                "Button",
+                "Thumb",
+                12.0,
+                14.0,
+                90.0,
+                24.0,
+            )
+        }]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let changes = Rc::new(RefCell::new(Vec::new()));
+    {
+        let changes = changes.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_asset_control_changed(move |source, control_id, value| {
+                changes.borrow_mut().push((
+                    source.to_string(),
+                    control_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    let result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+
+    assert!(result.request_redraw());
+    assert_eq!(
+        changes.borrow().as_slice(),
+        [(
+            "browser".to_string(),
+            "SetViewMode".to_string(),
+            "thumbnail".to_string()
+        )],
+        "v2 asset browser buttons should route static value patches through the generic asset callback"
+    );
+}
+
+#[test]
+fn native_host_asset_browser_search_field_routes_browser_change_callback() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: asset_browser_pane_with_nodes(vec![TemplatePaneNodeData {
+            dispatch_kind: "asset:browser".into(),
+            binding_id: "AssetSurface/SearchEdited".into(),
+            ..template_input_node(
+                "SearchEdited",
+                "mat",
+                "AssetSurface/SearchEdited",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )
+        }]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_asset_control_changed(move |source, control_id, value| {
+                edits.borrow_mut().push((
+                    source.to_string(),
+                    control_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+
+    assert!(insert_result.request_redraw());
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [(
+            "browser".to_string(),
+            "SearchEdited".to_string(),
+            "matX".to_string()
+        )],
+        "v2 asset browser text fields should keep browser source through native focus edits"
+    );
+}
+
+#[test]
 fn native_host_generic_template_text_field_routes_commit_binding_on_enter() {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.window().set_size(PhysicalSize::new(360, 220));
@@ -425,6 +609,83 @@ fn native_host_generic_template_text_field_routes_commit_binding_on_enter() {
             )
         ],
         "Enter should dispatch the focused text field commit binding instead of reusing the edit binding"
+    );
+}
+
+#[test]
+fn native_host_commit_only_template_text_field_redraws_locally_until_enter() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![template_input_node_commit_only(
+                "NameField",
+                "Draft Cube",
+                "InspectorView/NameFieldDraft",
+                "InspectorView/ApplyBatchButton",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let edits = Rc::new(RefCell::new(Vec::new()));
+    {
+        let edits = edits.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_edited(move |control_id, binding_id, value| {
+                edits.borrow_mut().push((
+                    control_id.to_string(),
+                    binding_id.to_string(),
+                    value.to_string(),
+                ));
+            });
+    }
+
+    ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let insert_result = ui.dispatch_native_text_input_for_test("X");
+    let input_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 14.0, 160.0, 24.0);
+
+    assert!(insert_result.request_redraw());
+    assert!(!insert_result.requires_frame_update());
+    assert_eq!(insert_result.damage_region(), Some(input_frame));
+    assert_eq!(
+        ui.get_host_presentation()
+            .text_input_focus
+            .value_text
+            .as_str(),
+        "Draft CubeX"
+    );
+    assert!(
+        edits.borrow().is_empty(),
+        "commit-only fields should keep keystrokes local instead of dispatching asset patches"
+    );
+
+    let commit_result = ui.dispatch_native_enter_for_test();
+
+    assert!(commit_result.request_redraw());
+    assert_eq!(
+        edits.borrow().as_slice(),
+        [(
+            "NameField".to_string(),
+            "InspectorView/ApplyBatchButton".to_string(),
+            "Draft CubeX".to_string()
+        )],
+        "commit-only fields should dispatch only the explicit commit binding on Enter"
     );
 }
 
@@ -1542,6 +1803,28 @@ fn pane_with_nodes(kind: &str, nodes: Vec<TemplatePaneNodeData>) -> PaneData {
     pane
 }
 
+fn assets_pane_with_nodes(nodes: Vec<TemplatePaneNodeData>) -> PaneData {
+    let mut pane = PaneData {
+        kind: "Assets".into(),
+        title: "Assets".into(),
+        ..PaneData::default()
+    };
+    pane.assets_activity.nodes = model_rc(nodes);
+    pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
+    pane
+}
+
+fn asset_browser_pane_with_nodes(nodes: Vec<TemplatePaneNodeData>) -> PaneData {
+    let mut pane = PaneData {
+        kind: "AssetBrowser".into(),
+        title: "Asset Browser".into(),
+        ..PaneData::default()
+    };
+    pane.asset_browser.nodes = model_rc(nodes);
+    pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
+    pane
+}
+
 fn welcome_pane_with_nodes(nodes: Vec<TemplatePaneNodeData>) -> PaneData {
     let mut pane = PaneData {
         kind: "Welcome".into(),
@@ -1780,6 +2063,23 @@ fn template_input_node_with_commit(
     height: f32,
 ) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
+        commit_action_id: commit_action_id.into(),
+        ..template_input_node(control_id, value_text, edit_action_id, x, y, width, height)
+    }
+}
+
+fn template_input_node_commit_only(
+    control_id: &str,
+    value_text: &str,
+    edit_action_id: &str,
+    commit_action_id: &str,
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        dispatch_kind: "commit_only".into(),
         commit_action_id: commit_action_id.into(),
         ..template_input_node(control_id, value_text, edit_action_id, x, y, width, height)
     }

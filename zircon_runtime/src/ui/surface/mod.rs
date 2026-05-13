@@ -1,4 +1,5 @@
 mod arranged;
+mod component_state;
 mod diagnostics;
 mod focus;
 mod frame_hit_test;
@@ -15,6 +16,7 @@ pub(crate) use arranged::{
     arranged_bubble_route, arranged_effective_input_policy, build_arranged_tree,
     is_arranged_child_hit_path_visible, is_arranged_render_visible,
 };
+pub use component_state::UiSurfaceComponentStateStore;
 pub use diagnostics::{
     debug_surface_frame, debug_surface_frame_for_pick, debug_surface_frame_for_selection,
     debug_surface_frame_with_options,

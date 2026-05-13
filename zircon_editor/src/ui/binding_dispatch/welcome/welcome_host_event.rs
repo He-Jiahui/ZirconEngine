@@ -8,4 +8,8 @@ pub enum WelcomeHostEvent {
     OpenExistingProject,
     OpenRecentProject { path: String },
     RemoveRecentProject { path: String },
+    OpenStartupWorkbench,
+    OpenStartupDemo,
+    OpenStartupAssetWindow,
+    OpenStartupUILayoutEditor,
 }

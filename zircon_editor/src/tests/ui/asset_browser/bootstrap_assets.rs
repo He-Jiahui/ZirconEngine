@@ -1,16 +1,17 @@
 use crate::ui::layouts::views::asset_browser_pane_nodes;
-use zircon_runtime::ui::template::UiAssetDocumentRuntimeExt;
+use crate::ui::workbench::snapshot::{AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot};
+use zircon_runtime::ui::v2::UiV2AssetLoader;
+use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
 
 const ASSET_BROWSER_LAYOUT_TOML: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/assets/ui/editor/asset_browser.ui.toml"
+    "/assets/ui/editor/asset_browser.v2.ui.toml"
 ));
 
 #[test]
 fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
-    let layout =
-        crate::tests::support::load_test_ui_asset(ASSET_BROWSER_LAYOUT_TOML).expect("asset layout");
+    let layout = UiV2AssetLoader::load_toml_str(ASSET_BROWSER_LAYOUT_TOML).expect("asset layout");
 
     for required_node in [
         "asset_browser_root",
@@ -105,7 +106,7 @@ fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
         "reference_right_panel",
     ] {
         assert!(
-            layout.contains_node(required_node),
+            layout.nodes.contains_key(required_node),
             "asset browser bootstrap layout should include `{required_node}`"
         );
     }
@@ -113,7 +114,18 @@ fn asset_browser_bootstrap_layout_self_hosts_shell_sections() {
 
 #[test]
 fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
-    let pane = asset_browser_pane_nodes(UiSize::new(1280.0, 820.0));
+    let pane = asset_browser_pane_nodes(
+        &AssetWorkspaceSnapshot {
+            view_mode: AssetViewMode::Thumbnail,
+            utility_tab: AssetUtilityTab::Metadata,
+            kind_filter: Some(ResourceKind::Material),
+            search_query: "mat".to_string(),
+            selected_folder_id: Some("res://materials".to_string()),
+            selected_asset_uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
+            ..AssetWorkspaceSnapshot::default()
+        },
+        UiSize::new(1280.0, 820.0),
+    );
     let nodes = (0..pane.row_count())
         .filter_map(|row| pane.row_data(row))
         .collect::<Vec<_>>();
@@ -194,6 +206,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AssetBrowserDetailsHeaderTitleText")
         .expect("details title node");
+    let details_header = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserDetailsHeaderPanel")
+        .expect("details header node");
     let details_scroll_body = nodes
         .iter()
         .find(|node| node.control_id == "AssetBrowserDetailsScrollBody")
@@ -258,6 +274,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AssetBrowserReferenceLeftScrollBody")
         .expect("left references body node");
+    let reference_left_row = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserReferenceLeftRowPanel")
+        .expect("left references row node");
     let reference_right = nodes
         .iter()
         .find(|node| node.control_id == "AssetBrowserReferenceRightPanel")
@@ -266,6 +286,10 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AssetBrowserReferenceRightTitleText")
         .expect("right references title node");
+    let reference_right_row = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserReferenceRightRowPanel")
+        .expect("right references row node");
     let meta_path_panel = nodes
         .iter()
         .find(|node| node.control_id == "AssetBrowserMetaPathPanel")
@@ -278,6 +302,18 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
         .iter()
         .find(|node| node.control_id == "AssetBrowserPluginsPanel")
         .expect("plugins panel node");
+    let thumb_mode = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserViewModeThumbButton")
+        .expect("thumb mode node");
+    let metadata_tab = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserMetadataTabButton")
+        .expect("metadata tab node");
+    let material_chip = nodes
+        .iter()
+        .find(|node| node.control_id == "AssetBrowserKindMaterialChip")
+        .expect("material chip node");
 
     assert_eq!(title.text.to_string(), "Asset Browser");
     assert_eq!(sources_title.text.to_string(), "Sources");
@@ -289,18 +325,39 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     );
     assert_eq!(locate.role.to_string(), "Button");
     assert_eq!(locate.text.to_string(), "Locate In Assets");
+    assert_eq!(locate.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(
+        locate.binding_id.to_string(),
+        "AssetSurface/LocateSelectedAsset"
+    );
     assert_eq!(subtitle.text.to_string(), "Project/assets");
-    assert_eq!(search.role.to_string(), "Mount");
+    assert_eq!(search.role.to_string(), "InputField");
+    assert_eq!(search.component_role.to_string(), "input-field");
+    assert_eq!(search.text.to_string(), "mat");
+    assert_eq!(search.value_text.to_string(), "mat");
+    assert_eq!(search.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(search.binding_id.to_string(), "AssetSurface/SearchEdited");
+    assert_eq!(
+        search.edit_action_id.to_string(),
+        "AssetSurface/SearchEdited"
+    );
+    assert_eq!(search.commit_action_id.to_string(), "");
     assert_eq!(import_label.text.to_string(), "Quick Import");
     assert_eq!(import_button.role.to_string(), "Button");
     assert_eq!(import_button.button_variant.to_string(), "primary");
+    assert_eq!(import_button.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(
+        import_button.binding_id.to_string(),
+        "AssetSurface/ImportModel"
+    );
     assert_eq!(details_title.text.to_string(), "Details");
+    assert!(details_header.selected);
     assert_eq!(details_preview.role.to_string(), "Panel");
     assert_eq!(details_preview.surface_variant.to_string(), "asset-preview");
     assert_eq!(details_locator.role.to_string(), "Panel");
     assert_eq!(details_locator.surface_variant.to_string(), "inset");
     assert_eq!(details_diagnostics.role.to_string(), "Panel");
-    assert_eq!(details_diagnostics.surface_variant.to_string(), "danger");
+    assert_eq!(details_diagnostics.surface_variant.to_string(), "inset");
     assert_eq!(
         utility_selection.text.to_string(),
         "Select an asset to inspect"
@@ -315,6 +372,7 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(preview_name.text.to_string(), "No Asset Selected");
     assert_eq!(reference_left_title.text.to_string(), "References");
     assert_eq!(reference_left_body.role.to_string(), "Panel");
+    assert!(!reference_left_row.selected);
     assert_eq!(
         reference_left_body.surface_variant.to_string(),
         "scroll-body"
@@ -325,6 +383,39 @@ fn asset_browser_projection_maps_bootstrap_asset_into_mount_nodes() {
     assert_eq!(diagnostics_text.text.to_string(), "No active diagnostics");
     assert_eq!(plugins_panel.role.to_string(), "Panel");
     assert_eq!(plugins_panel.surface_variant.to_string(), "inset");
+    assert!(thumb_mode.selected);
+    assert_eq!(thumb_mode.surface_variant.to_string(), "inset");
+    assert_eq!(thumb_mode.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(thumb_mode.action_id.to_string(), "SetViewMode");
+    assert_eq!(
+        thumb_mode.binding_id.to_string(),
+        "AssetSurface/SetViewMode"
+    );
+    assert_eq!(thumb_mode.value_text.to_string(), "thumbnail");
+    assert!(metadata_tab.selected);
+    assert_eq!(metadata_tab.surface_variant.to_string(), "inset");
+    assert_eq!(metadata_tab.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(metadata_tab.action_id.to_string(), "SetUtilityTab");
+    assert_eq!(
+        metadata_tab.binding_id.to_string(),
+        "AssetSurface/SetUtilityTab"
+    );
+    assert_eq!(metadata_tab.value_text.to_string(), "metadata");
+    assert!(material_chip.selected);
+    assert!(!reference_left.selected);
+    assert!(!reference_right.selected);
+    assert!(!reference_left_row.selected);
+    assert!(!reference_right_row.selected);
+    assert!(meta_path_panel.selected);
+    assert!(plugins_panel.focused == false || !plugins_panel.selected);
+    assert_eq!(material_chip.surface_variant.to_string(), "inset");
+    assert_eq!(material_chip.dispatch_kind.to_string(), "asset:browser");
+    assert_eq!(material_chip.action_id.to_string(), "SetKindFilter");
+    assert_eq!(
+        material_chip.binding_id.to_string(),
+        "AssetSurface/SetKindFilter"
+    );
+    assert_eq!(material_chip.value_text.to_string(), "Material");
     assert!(import_panel.frame.y >= toolbar.frame.y + toolbar.frame.height);
     assert!(main.frame.y >= import_panel.frame.y + import_panel.frame.height);
     assert!(sources.frame.x >= main.frame.x);

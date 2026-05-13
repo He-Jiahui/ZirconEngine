@@ -135,8 +135,8 @@ related_code:
   - zircon_editor/src/tests/ui/ui_asset_editor/binding_semantics.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
-  - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
+  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
 implementation_files:
   - zircon_runtime/src/ui/template/mod.rs
   - zircon_runtime/src/ui/template/asset/mod.rs
@@ -265,8 +265,8 @@ implementation_files:
   - zircon_editor/src/tests/editing/ui_asset/runtime_report_productization.rs
   - zircon_editor/src/tests/ui/ui_asset_editor/resource_dependency_view.rs
   - zircon_editor/tests/integration_contracts/workbench_retained_ui_asset_authoring_shell.rs
-  - zircon_editor/assets/ui/editor/ui_asset_editor.ui.toml
-  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.ui.toml
+  - zircon_editor/assets/ui/editor/ui_asset_editor.v2.ui.toml
+  - zircon_runtime/assets/ui/runtime/fixtures/hud_overlay.v2.ui.toml
 plan_sources:
   - user: 2026-04-20 目前zircon_editor有两套ui相关代码 一套在core里面需要迁移回ui
   - user: 2026-04-20 要求加载入口不允许放入src

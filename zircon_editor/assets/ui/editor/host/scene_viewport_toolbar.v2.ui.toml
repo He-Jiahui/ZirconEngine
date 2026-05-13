@@ -1,0 +1,155 @@
+[asset]
+kind = "view"
+id = "editor.host.scene.viewport_toolbar"
+version = 2
+display_name = "scene viewport toolbar"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "SceneViewportToolbar"
+control_id = "SceneViewportToolbarRoot"
+classes = ["viewport-toolbar"]
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [
+  { node = "left_group" },
+  { node = "fill" },
+  { node = "right_group" },
+]
+
+[nodes.left_group]
+component = "HorizontalGroup"
+control_id = "SceneViewportToolbarLeftGroup"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [
+  { node = "set_tool" },
+  { node = "set_transform_space" },
+  { node = "set_display_mode" },
+  { node = "set_grid_mode" },
+  { node = "set_translate_snap" },
+  { node = "set_rotate_snap" },
+  { node = "set_scale_snap" },
+  { node = "set_preview_lighting" },
+  { node = "set_preview_skybox" },
+  { node = "set_gizmos" },
+  { node = "frame_selection" },
+  { node = "enter_play" },
+  { node = "exit_play" },
+]
+
+[nodes.fill]
+component = "Space"
+control_id = "SceneViewportToolbarFill"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_group]
+component = "HorizontalGroup"
+control_id = "SceneViewportToolbarRightGroup"
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { min = 160.0, preferred = 180.0, max = 240.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "set_projection_mode" }, { node = "align_view" }]
+
+[nodes.set_tool]
+component = "IconButton"
+control_id = "SetTool"
+props = { label = "Tool", icon = "move-outline" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetTool", event = "Change", route = "ViewportCommand.SetTool" }]
+
+[nodes.set_transform_space]
+component = "IconButton"
+control_id = "SetTransformSpace"
+props = { label = "Space", icon = "resize-outline" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetTransformSpace", event = "Change", route = "ViewportCommand.SetTransformSpace" }]
+
+[nodes.set_display_mode]
+component = "IconButton"
+control_id = "SetDisplayMode"
+props = { label = "Display", icon = "eye-outline" }
+layout = { width = { min = 74.0, preferred = 74.0, max = 74.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetDisplayMode", event = "Change", route = "ViewportCommand.SetDisplayMode" }]
+
+[nodes.set_grid_mode]
+component = "IconButton"
+control_id = "SetGridMode"
+props = { label = "Grid", icon = "grid-outline" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetGridMode", event = "Change", route = "ViewportCommand.SetGridMode" }]
+
+[nodes.set_translate_snap]
+component = "IconButton"
+control_id = "SetTranslateSnap"
+props = { label = "Move", icon = "magnet-outline" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetTranslateSnap", event = "Change", route = "ViewportCommand.SetTranslateSnap" }]
+
+[nodes.set_rotate_snap]
+component = "IconButton"
+control_id = "SetRotateSnapDegrees"
+props = { label = "Rotate", icon = "sync-outline" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetRotateSnapDegrees", event = "Change", route = "ViewportCommand.SetRotateSnapDegrees" }]
+
+[nodes.set_scale_snap]
+component = "IconButton"
+control_id = "SetScaleSnap"
+props = { label = "Scale", icon = "expand-outline" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetScaleSnap", event = "Change", route = "ViewportCommand.SetScaleSnap" }]
+
+[nodes.set_preview_lighting]
+component = "IconButton"
+control_id = "SetPreviewLighting"
+props = { label = "Light", icon = "sunny-outline" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetPreviewLighting", event = "Change", route = "ViewportCommand.SetPreviewLighting" }]
+
+[nodes.set_preview_skybox]
+component = "IconButton"
+control_id = "SetPreviewSkybox"
+props = { label = "Sky", icon = "cloud-outline" }
+layout = { width = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetPreviewSkybox", event = "Change", route = "ViewportCommand.SetPreviewSkybox" }]
+
+[nodes.set_gizmos]
+component = "IconButton"
+control_id = "SetGizmosEnabled"
+props = { label = "Gizmo", icon = "construct-outline" }
+layout = { width = { min = 66.0, preferred = 66.0, max = 66.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetGizmosEnabled", event = "Change", route = "ViewportCommand.SetGizmosEnabled" }]
+
+[nodes.frame_selection]
+component = "IconButton"
+control_id = "FrameSelection"
+props = { label = "Frame", icon = "scan-outline" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/FrameSelection", event = "Click", route = "ViewportCommand.FrameSelection" }]
+
+[nodes.enter_play]
+component = "IconButton"
+control_id = "EnterPlayMode"
+props = { label = "Play", icon = "play-outline" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/EnterPlayMode", event = "Click", route = "MenuAction.EnterPlayMode" }]
+
+[nodes.exit_play]
+component = "IconButton"
+control_id = "ExitPlayMode"
+props = { label = "Stop", icon = "stop-outline" }
+layout = { width = { min = 58.0, preferred = 58.0, max = 58.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/ExitPlayMode", event = "Click", route = "MenuAction.ExitPlayMode" }]
+
+[nodes.set_projection_mode]
+component = "IconButton"
+control_id = "SetProjectionMode"
+props = { label = "Camera", icon = "camera-outline" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/SetProjectionMode", event = "Change", route = "ViewportCommand.SetProjectionMode" }]
+
+[nodes.align_view]
+component = "IconButton"
+control_id = "AlignView"
+props = { label = "Align", icon = "navigate-outline" }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "ViewportToolbar/AlignView", event = "Change", route = "ViewportCommand.AlignView" }]

@@ -38,6 +38,7 @@ pub(crate) fn build_host_scene_data(
     status_primary: &SharedString,
     delete_enabled: bool,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
 ) -> HostWindowSceneData {
     let resolved_preset_name = if host_shell.active_preset_name.is_empty() {
         SharedString::from(DEFAULT_PRESET_NAME)
@@ -65,6 +66,7 @@ pub(crate) fn build_host_scene_data(
     let page_template_nodes = page_chrome_nodes(
         &host_surface_data.host_tabs,
         &host_shell.project_path,
+        &host_shell.shell_preset_id,
         shell_width,
         metrics.top_bar_height_px + 1.0 + metrics.host_bar_height_px,
     );
@@ -84,6 +86,7 @@ pub(crate) fn build_host_scene_data(
             status_primary,
             &host_shell.status_secondary,
             &host_shell.viewport_label,
+            &host_shell.skin_id,
             host_layout.status_bar_frame.width,
             host_layout.status_bar_frame.height,
         ),
@@ -124,14 +127,17 @@ pub(crate) fn build_host_scene_data(
         &host_surface_data.floating_windows,
         metrics.document_header_height_px,
         project_overview,
+        chrome,
     );
     let left_header_nodes = side_dock_header_nodes(
         &host_surface_data.left_tabs,
+        &host_shell.panel_preset_id,
         orchestration.left_panel_width_px,
         metrics.panel_header_height_px,
     );
     let left_rail_nodes = activity_rail_nodes(
         &host_surface_data.left_tabs,
+        &host_shell.shell_preset_id,
         orchestration.left_rail_width_px,
         host_layout.left_region_frame.height,
     );
@@ -161,6 +167,7 @@ pub(crate) fn build_host_scene_data(
             orchestration.left_panel_width_px,
             left_content_height,
             project_overview,
+            chrome,
         ),
         rail_width_px: orchestration.left_rail_width_px,
         panel_width_px: orchestration.left_panel_width_px,
@@ -169,6 +176,7 @@ pub(crate) fn build_host_scene_data(
     let document_header_nodes = document_dock_header_nodes(
         &host_surface_data.document_tabs,
         &host_surface_data.document_pane.subtitle,
+        &host_shell.panel_preset_id,
         host_layout.document_region_frame.width,
         metrics.document_header_height_px,
     );
@@ -192,16 +200,19 @@ pub(crate) fn build_host_scene_data(
             host_layout.document_region_frame.width,
             document_content_height,
             project_overview,
+            chrome,
         ),
         header_height_px: metrics.document_header_height_px,
     };
     let right_header_nodes = side_dock_header_nodes(
         &host_surface_data.right_tabs,
+        &host_shell.panel_preset_id,
         orchestration.right_panel_width_px,
         metrics.panel_header_height_px,
     );
     let right_rail_nodes = activity_rail_nodes(
         &host_surface_data.right_tabs,
+        &host_shell.shell_preset_id,
         orchestration.right_rail_width_px,
         host_layout.right_region_frame.height,
     );
@@ -231,6 +242,7 @@ pub(crate) fn build_host_scene_data(
             orchestration.right_panel_width_px,
             right_content_height,
             project_overview,
+            chrome,
         ),
         rail_width_px: orchestration.right_rail_width_px,
         panel_width_px: orchestration.right_panel_width_px,
@@ -238,6 +250,7 @@ pub(crate) fn build_host_scene_data(
     };
     let bottom_header_nodes = bottom_dock_header_nodes(
         &host_surface_data.bottom_tabs,
+        &host_shell.panel_preset_id,
         host_layout.bottom_region_frame.width,
         metrics.panel_header_height_px,
     );
@@ -260,6 +273,7 @@ pub(crate) fn build_host_scene_data(
             host_layout.bottom_region_frame.width,
             bottom_content_height,
             project_overview,
+            chrome,
         ),
         expanded: host_shell.bottom_expanded,
         header_height_px: metrics.panel_header_height_px,
@@ -429,6 +443,7 @@ pub(crate) fn build_native_floating_surface_data(
     host_surface_data: &HostWindowSurfaceData,
     host_shell: &HostWindowShellData,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
 ) -> HostNativeFloatingWindowSurfaceData {
     let metrics =
         surface_metrics_from_chrome_assets(host_shell.native_window_bounds.width.max(0.0));
@@ -437,6 +452,7 @@ pub(crate) fn build_native_floating_surface_data(
             &host_surface_data.floating_windows,
             metrics.document_header_height_px,
             project_overview,
+            chrome,
         ),
         native_floating_window_id: host_shell.native_floating_window_id.clone(),
         native_window_bounds: host_shell.native_window_bounds.clone(),
@@ -516,64 +532,90 @@ fn pane_with_host_owned_shell_layouts(
     width: f32,
     height: f32,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
 ) -> PaneData {
     pane = pane_with_ui_asset_nodes(pane, width, height);
-    pane = pane_with_hierarchy_projection(pane, width, height);
-    pane = pane_with_inspector_projection(pane, width, height);
-    pane = pane_with_console_projection(pane, width, height);
-    pane = pane_with_assets_activity_projection(pane, width, height);
-    pane = pane_with_asset_browser_projection(pane, width, height);
+    pane = pane_with_hierarchy_projection(pane, width, height, chrome);
+    pane = pane_with_inspector_projection(pane, width, height, chrome);
+    pane = pane_with_console_projection(pane, width, height, chrome);
+    pane = pane_with_assets_activity_projection(pane, width, height, &chrome.asset_activity);
+    pane = pane_with_asset_browser_projection(pane, width, height, &chrome.asset_browser);
     pane = pane_with_project_overview_projection(pane, width, height, project_overview);
     pane_with_animation_projection(pane, width, height)
 }
 
-fn pane_with_hierarchy_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+fn pane_with_hierarchy_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+) -> PaneData {
     if pane.kind.as_str() != "Hierarchy" {
         return pane;
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.hierarchy.nodes = hierarchy_pane_nodes(size);
+    pane.native_body.hierarchy.nodes = hierarchy_pane_nodes(&chrome.scene_entries, size);
     pane
 }
 
-fn pane_with_inspector_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+fn pane_with_inspector_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+) -> PaneData {
     if pane.kind.as_str() != "Inspector" {
         return pane;
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.inspector.nodes = inspector_pane_nodes(size);
+    pane.native_body.inspector.nodes = inspector_pane_nodes(chrome.inspector.as_ref(), size);
     pane
 }
 
-fn pane_with_console_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+fn pane_with_console_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
+) -> PaneData {
     if pane.kind.as_str() != "Console" {
         return pane;
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.console.nodes = console_pane_nodes(size);
+    pane.native_body.console.nodes = console_pane_nodes(&chrome.status_line, size);
     pane
 }
 
-fn pane_with_assets_activity_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+fn pane_with_assets_activity_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    asset_browser: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
+) -> PaneData {
     if pane.kind.as_str() != "Assets" {
         return pane;
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.assets_activity = assets_activity_pane_data(size);
+    pane.native_body.assets_activity = assets_activity_pane_data(asset_browser, size);
     pane
 }
 
-fn pane_with_asset_browser_projection(mut pane: PaneData, width: f32, height: f32) -> PaneData {
+fn pane_with_asset_browser_projection(
+    mut pane: PaneData,
+    width: f32,
+    height: f32,
+    asset_browser: &crate::ui::workbench::snapshot::AssetWorkspaceSnapshot,
+) -> PaneData {
     if pane.kind.as_str() != "AssetBrowser" {
         return pane;
     }
 
     let size = UiSize::new(width.max(0.0), height.max(0.0));
-    pane.native_body.asset_browser.nodes = asset_browser_pane_nodes(size);
+    pane.native_body.asset_browser.nodes = asset_browser_pane_nodes(asset_browser, size);
     pane
 }
 
@@ -608,6 +650,7 @@ fn floating_windows_with_pane_shell_layouts(
     floating_windows: &crate::ui::retained_host::primitives::ModelRc<FloatingWindowData>,
     header_height_px: f32,
     project_overview: &crate::ui::workbench::snapshot::ProjectOverviewSnapshot,
+    chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
 ) -> crate::ui::retained_host::primitives::ModelRc<FloatingWindowData> {
     model_rc(
         (0..floating_windows.row_count())
@@ -629,6 +672,7 @@ fn floating_windows_with_pane_shell_layouts(
                     window.frame.width,
                     content_height,
                     project_overview,
+                    chrome,
                 );
                 window
             })

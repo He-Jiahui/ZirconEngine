@@ -31,8 +31,8 @@ impl ScrollSurfaceHostState {
         self.size.width > 0.0 && self.size.height > 0.0
     }
 
-    pub(crate) fn sync(&mut self, layout: ScrollSurfacePointerLayout) {
-        self.bridge.sync(layout, self.state.clone());
+    pub(crate) fn sync(&mut self, layout: ScrollSurfacePointerLayout) -> bool {
+        self.bridge.sync(layout, self.state.clone())
     }
 
     pub(crate) fn handle_scroll(&mut self, point: UiPoint, delta: f32) -> Result<(), String> {

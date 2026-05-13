@@ -1,37 +1,30 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
-    surface::UiSurface,
-    template::{UiCompiledDocument, UiTemplateBuildError},
+    surface::{extract_ui_render_tree, UiSurface},
+    v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
 };
 use zircon_runtime_interface::ui::{
     event_ui::UiTreeId,
     layout::UiSize,
     surface::{UiRenderCommandKind, UiTextAlign},
-    template::UiAssetError,
     tree::{UiTemplateNodeMetadata, UiTreeError},
+    v2::{UiV2AssetDocument, UiV2AssetError},
 };
 
 use crate::ui::layouts::views::{
-    resolve_visual_assets, ViewTemplateFrameData, ViewTemplateNodeData,
-};
-use crate::ui::template::EditorTemplateRuntimeService;
-
-use super::contract::{
-    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
+    preferred_binding_id, resolve_commit_action_id, resolve_component_role, resolve_edit_action_id,
+    resolve_node_value_text, resolve_visual_assets, ViewTemplateFrameData, ViewTemplateNodeData,
 };
 
-const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.ui.toml";
-const UI_ASSET_EDITOR_WIDGET_ASSET_PATH: &str = "/assets/ui/editor/editor_widgets.ui.toml";
-const UI_ASSET_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_base.ui.toml";
+const UI_ASSET_EDITOR_LAYOUT_ASSET_PATH: &str = "/assets/ui/editor/ui_asset_editor.v2.ui.toml";
+const UI_ASSET_EDITOR_STYLE_ASSET_PATH: &str = "/assets/ui/theme/editor_material.v2.ui.toml";
 
 const CENTER_COLUMN_CONTROL_ID: &str = "CenterColumn";
 const DESIGNER_PANEL_CONTROL_ID: &str = "DesignerPanel";
@@ -52,9 +45,7 @@ pub(crate) struct UiAssetEditorNodeProjection {
 #[derive(Debug, Error)]
 enum UiAssetEditorNodeProjectionError {
     #[error(transparent)]
-    Asset(#[from] UiAssetError),
-    #[error(transparent)]
-    Build(#[from] UiTemplateBuildError),
+    V2Asset(#[from] UiV2AssetError),
     #[error(transparent)]
     Layout(#[from] UiTreeError),
 }
@@ -82,7 +73,7 @@ static NODE_PROJECTION_SESSION: OnceLock<Mutex<NodeProjectionSession>> = OnceLoc
 
 #[derive(Default)]
 struct NodeProjectionSession {
-    compiled: Option<UiCompiledDocument>,
+    document: Option<NodeProjectionDocument>,
     surface: Option<UiSurface>,
     size: Option<UiSize>,
 }
@@ -92,19 +83,19 @@ impl NodeProjectionSession {
         &mut self,
         size: UiSize,
     ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
-        let template_service = EditorTemplateRuntimeService;
-        if self.compiled.is_none() {
-            self.compiled = Some(load_compiled_node_projection_document(&template_service)?);
+        if self.document.is_none() {
+            self.document = Some(load_node_projection_document()?);
         }
 
         if self.surface.is_none() {
-            let compiled = self
-                .compiled
+            let document = self
+                .document
                 .as_ref()
-                .expect("compiled projection document should be initialized");
-            let mut surface = template_service.build_surface_from_compiled_document(
+                .expect("v2 projection document should be initialized");
+            let mut surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
                 UiTreeId::new("ui_asset_editor.node_projection".to_string()),
-                compiled,
+                document.root_document.as_ref(),
+                document.compiled.as_ref(),
             )?;
             surface.compute_layout(size)?;
             self.surface = Some(surface);
@@ -118,7 +109,6 @@ impl NodeProjectionSession {
         }
 
         project_ui_asset_editor_nodes(
-            &template_service,
             self.surface
                 .as_ref()
                 .expect("projection surface should be initialized"),
@@ -126,31 +116,31 @@ impl NodeProjectionSession {
     }
 }
 
-fn load_compiled_node_projection_document(
-    template_service: &EditorTemplateRuntimeService,
-) -> Result<UiCompiledDocument, UiAssetEditorNodeProjectionError> {
-    let layout =
-        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH))?;
-    let widget =
-        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_WIDGET_ASSET_PATH))?;
-    let style =
-        template_service.load_document_file(asset_path(UI_ASSET_EDITOR_STYLE_ASSET_PATH))?;
-    let mut widget_imports = BTreeMap::new();
-    let mut style_imports = BTreeMap::new();
+#[derive(Clone)]
+struct NodeProjectionDocument {
+    root_document: Arc<UiV2AssetDocument>,
+    compiled: Arc<UiV2CompiledDocument>,
+}
 
-    for reference in [
-        UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
-        UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
-    ] {
-        widget_imports.insert(reference.to_string(), widget.clone());
-    }
-    style_imports.insert(UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID.to_string(), style);
+fn load_node_projection_document(
+) -> Result<NodeProjectionDocument, UiAssetEditorNodeProjectionError> {
+    let outcome = node_projection_v2_store_file_cache()
+        .lock()
+        .expect("ui asset editor v2 projection cache mutex should not be poisoned")
+        .load_store([
+            asset_path(UI_ASSET_EDITOR_LAYOUT_ASSET_PATH),
+            asset_path(UI_ASSET_EDITOR_STYLE_ASSET_PATH),
+        ])?;
 
-    Ok(template_service.compile_document_with_import_maps(
-        &layout,
-        &widget_imports,
-        &style_imports,
-    )?)
+    Ok(NodeProjectionDocument {
+        root_document: outcome.root_document,
+        compiled: outcome.compiled,
+    })
+}
+
+fn node_projection_v2_store_file_cache() -> &'static Mutex<UiV2PrototypeStoreFileCache> {
+    static CACHE: OnceLock<Mutex<UiV2PrototypeStoreFileCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(UiV2PrototypeStoreFileCache::new()))
 }
 
 fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
@@ -164,11 +154,10 @@ fn mark_surface_roots_layout_dirty(surface: &mut UiSurface) {
 }
 
 fn project_ui_asset_editor_nodes(
-    template_service: &EditorTemplateRuntimeService,
     surface: &UiSurface,
 ) -> Result<UiAssetEditorNodeProjection, UiAssetEditorNodeProjectionError> {
     let mut render_info_by_node = BTreeMap::new();
-    for command in template_service.extract_render(surface).list.commands {
+    for command in extract_ui_render_tree(&surface.tree).list.commands {
         let entry = render_info_by_node
             .entry(command.node_id)
             .or_insert(TemplateRenderInfo {
@@ -195,23 +184,32 @@ fn project_ui_asset_editor_nodes(
             let metadata = node.template_metadata.as_ref()?;
             let control_id = metadata.control_id.clone()?;
             let render_info = render_info_by_node.get(&node.node_id);
+            let text = render_info
+                .and_then(|info| info.text.clone())
+                .unwrap_or_default();
+            let component_role = resolve_component_role(&metadata.component);
+            let binding_id = preferred_binding_id(metadata, None).unwrap_or_default();
+            let edit_action_id = resolve_edit_action_id(metadata, component_role, &binding_id);
+            let commit_action_id = resolve_commit_action_id(metadata);
+            let value_text = resolve_node_value_text(metadata, &text, component_role);
             let visual_assets = resolve_visual_assets(metadata);
 
             Some(ViewTemplateNodeData {
                 node_id: SharedString::from(node.node_path.0.clone()),
                 control_id: SharedString::from(control_id),
                 role: SharedString::from(resolve_role(&metadata.component, render_info, metadata)),
-                text: SharedString::from(
-                    render_info
-                        .and_then(|info| info.text.clone())
-                        .unwrap_or_default(),
-                ),
+                text: SharedString::from(text),
+                component_role: SharedString::from(component_role),
+                value_text: SharedString::from(value_text),
                 dispatch_kind: string_attribute(metadata, "dispatch_kind")
                     .unwrap_or_default()
                     .into(),
                 action_id: string_attribute(metadata, "action_id")
                     .unwrap_or_default()
                     .into(),
+                binding_id: SharedString::from(binding_id),
+                edit_action_id: SharedString::from(edit_action_id),
+                commit_action_id: SharedString::from(commit_action_id),
                 surface_variant: string_attribute(metadata, "surface_variant")
                     .unwrap_or_default()
                     .into(),
@@ -303,7 +301,15 @@ fn resolve_role(
 ) -> &'static str {
     match component {
         "Button" => "Button",
-        "Label" => "Label",
+        "Label" | "Text" => "Label",
+        "InputField" | "TextField" => "InputField",
+        "NumberField" => "InputField",
+        "RangeField" => "RangeField",
+        "Toggle" | "Checkbox" | "Radio" | "RadioField" => "Toggle",
+        "ComboBox" | "Dropdown" | "EnumField" | "FlagsField" | "SearchSelect" => "ComboBox",
+        "TreeView" | "TreeRow" => "TreeView",
+        "EditableTable" | "Table" => "Table",
+        "AssetField" | "ObjectField" | "InstanceField" => "InputField",
         "Icon" => "Icon",
         "IconButton" => "IconButton",
         "SvgIcon" => "SvgIcon",

@@ -9,6 +9,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         self.console_scroll_surface
             .set_size(self.resolve_callback_surface_size_for_kind(
@@ -38,6 +39,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         self.inspector_scroll_surface
             .set_size(self.resolve_callback_surface_size_for_kind(
@@ -66,6 +68,7 @@ impl RetainedEditorHost {
         width: f32,
         height: f32,
     ) {
+        self.use_committed_pointer_layout();
         self.focus_callback_source_window();
         self.browser_asset_details_scroll_surface.set_size(
             self.resolve_callback_surface_size_for_kind(

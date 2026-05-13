@@ -52,6 +52,15 @@ impl UiSurface {
         self.navigation.navigation_root = Some(node_id);
         self.navigation.focus_visible = visible.visible;
 
+        if let Some(previous_id) = previous.filter(|previous_id| *previous_id != node_id) {
+            if self.component_states.set_focused(previous_id, false) {
+                mark_component_focus_render_dirty(self, previous_id);
+            }
+        }
+        if self.component_states.set_focused(node_id, true) {
+            mark_component_focus_render_dirty(self, node_id);
+        }
+
         if previous == Some(node_id) {
             return Ok(None);
         }
@@ -84,6 +93,9 @@ impl UiSurface {
         self.focus.focus_visible = visible;
         self.navigation.navigation_root = None;
         self.navigation.focus_visible = false;
+        if self.component_states.set_focused(previous, false) {
+            mark_component_focus_render_dirty(self, previous);
+        }
         let event = UiFocusChangeEvent {
             previous: Some(previous),
             current: None,
@@ -285,4 +297,8 @@ fn clear_focus_visible_reason(reason: UiFocusChangeReason) -> UiFocusVisibleReas
         | UiFocusChangeReason::Autofocus
         | UiFocusChangeReason::Clear => UiFocusVisibleReason::Programmatic,
     }
+}
+
+fn mark_component_focus_render_dirty(surface: &mut UiSurface, node_id: UiNodeId) {
+    let _ = surface.mark_component_state_render_dirty(node_id);
 }

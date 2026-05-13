@@ -1,10 +1,12 @@
 ---
 related_code:
   - zircon_runtime/src/ui/surface/property_mutation.rs
+  - zircon_runtime/src/ui/surface/input/effect.rs
   - zircon_runtime/src/ui/surface/reflection_snapshot.rs
   - zircon_runtime/src/ui/surface/surface.rs
   - zircon_runtime_interface/src/ui/event_ui/reflection.rs
   - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
 implementation_files:
   - zircon_runtime/src/ui/surface/property_mutation.rs
   - zircon_runtime/src/ui/surface/surface.rs
@@ -14,10 +16,14 @@ plan_sources:
   - user: 2026-05-06 continue UI lifecycle reflection reflector milestone
 tests:
   - zircon_runtime/src/ui/tests/shared_core.rs
+  - zircon_runtime/src/ui/tests/surface_dirty_domains.rs
   - cargo test -p zircon_runtime --lib shared_core --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - cargo test -p zircon_runtime --lib event_routing --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - cargo test -p zircon_runtime --lib component_catalog --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
   - cargo check -p zircon_runtime --lib --locked --target-dir E:\zircon-build\targets\ui-lifecycle-reflection
+  - cargo test -p zircon_runtime --lib surface_dirty_text_edit_visual_metadata_stays_render_only --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 1 passed)
+  - cargo test -p zircon_runtime --lib surface_dirty_domains --jobs 1 -- --nocapture --test-threads=1 (2026-05-13: passed, 10 passed)
+  - cargo check -p zircon_runtime --lib --jobs 1 (2026-05-13: passed)
 doc_type: module-detail
 ---
 
@@ -46,14 +52,17 @@ Unknown property names fall through to `template_metadata.attributes`. This keep
 
 ## Dirty Contract
 
-Every accepted mutation marks the touched node dirty through `UiDirtyFlags` and sets the legacy `state_flags.dirty` compatibility bit. The dirty flag is part of the returned report so callers can explain why a Widget Reflector edit requires layout, hit-test, render, text, or input refresh.
+Every accepted mutation marks the touched node dirty through `UiDirtyFlags`. The returned report carries the same structured dirty reason so callers can explain why a Widget Reflector edit requires layout, hit-test, render, text, or input refresh.
+
+The legacy `state_flags.dirty` compatibility bit is now reserved for state changes that affect hit-test or input routing. Render-only changes must not set it, because `UiSurface::dirty_flags()` still treats that legacy bit as a conservative hit-test/input/render invalidation. This keeps paint-only state, Material metadata, and dispatch redraw effects on the render-only rebuild path instead of rebuilding the arranged tree or hit grid.
 
 The current dirty mapping is intentionally conservative:
 
 - `Collapsed` visibility marks layout, hit-test, render, and input dirty.
 - Other visibility and input-affecting state marks hit-test, render, and input dirty.
 - `pressed` and `checked` mark render dirty.
-- text-like metadata marks layout, render, and text dirty.
+- text-like value metadata marks layout, render, and text dirty.
+- text edit visual metadata such as caret, selection, and composition ranges marks render dirty only; the edited `value` property is the field that drives text layout and measurement.
 - size/spacing metadata marks layout, hit-test, and render dirty.
 - Material-style `layout_*` metadata marks layout, hit-test, and render dirty so retained layout metrics and reflected invalidation reasons stay aligned.
 - other metadata marks render dirty.

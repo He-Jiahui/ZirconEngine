@@ -545,7 +545,9 @@ fn dispatch_template_node_primary_press(
 ) {
     match hit.dispatch_kind.as_str() {
         "inspector" => pane_host.invoke_inspector_control_clicked(hit.control_id),
-        "asset" => pane_host.invoke_asset_control_clicked("activity".into(), hit.control_id),
+        kind if asset_dispatch_source(kind).is_some() => {
+            dispatch_asset_template_node_primary_press(pane_host, hit)
+        }
         "welcome" => pane_host.invoke_welcome_control_clicked(action_or_control_id(&hit)),
         "welcome_text" => {}
         "showcase" => {
@@ -556,6 +558,35 @@ fn dispatch_template_node_primary_press(
         }
         _ => pane_host.invoke_surface_control_clicked(hit.control_id, hit.action_id),
     }
+}
+
+fn dispatch_asset_template_node_primary_press(
+    pane_host: &PaneSurfaceHostContext<'_>,
+    hit: TemplateNodePointerHit,
+) {
+    let source: SharedString = asset_dispatch_source(hit.dispatch_kind.as_str())
+        .unwrap_or("activity")
+        .into();
+    let control_id = action_or_control_id(&hit);
+    if is_asset_change_control(control_id.as_str()) {
+        pane_host.invoke_asset_control_changed(source, control_id, hit.value_text);
+    } else {
+        pane_host.invoke_asset_control_clicked(source, control_id);
+    }
+}
+
+fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
+    if dispatch_kind == "asset" {
+        return Some("activity");
+    }
+    dispatch_kind.strip_prefix("asset:")
+}
+
+fn is_asset_change_control(control_id: &str) -> bool {
+    matches!(
+        control_id,
+        "SearchEdited" | "SetKindFilter" | "SetViewMode" | "SetUtilityTab"
+    )
 }
 
 fn action_or_control_id(hit: &TemplateNodePointerHit) -> SharedString {

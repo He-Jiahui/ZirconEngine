@@ -1,49 +1,49 @@
 use crate::ui::retained_host::HostInvalidationDiagnostics;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) struct HostInvalidationMask(u16);
+pub(crate) struct HostInvalidationMask(u16);
 
 impl HostInvalidationMask {
-    pub(super) const NONE: Self = Self(0);
-    pub(super) const LAYOUT: Self = Self(1 << 0);
-    pub(super) const TREE_STRUCTURE: Self = Self(1 << 1);
-    pub(super) const PRESENTATION_DATA: Self = Self(1 << 2);
-    pub(super) const PAINT_ONLY: Self = Self(1 << 3);
-    pub(super) const POINTER_HOVER: Self = Self(1 << 4);
-    pub(super) const VIEWPORT_IMAGE: Self = Self(1 << 5);
-    pub(super) const HIT_TEST: Self = Self(1 << 6);
-    pub(super) const WINDOW_METRICS: Self = Self(1 << 7);
-    pub(super) const RENDER: Self = Self(1 << 8);
+    pub(crate) const NONE: Self = Self(0);
+    pub(crate) const LAYOUT: Self = Self(1 << 0);
+    pub(crate) const TREE_STRUCTURE: Self = Self(1 << 1);
+    pub(crate) const PRESENTATION_DATA: Self = Self(1 << 2);
+    pub(crate) const PAINT_ONLY: Self = Self(1 << 3);
+    pub(crate) const POINTER_HOVER: Self = Self(1 << 4);
+    pub(crate) const VIEWPORT_IMAGE: Self = Self(1 << 5);
+    pub(crate) const HIT_TEST: Self = Self(1 << 6);
+    pub(crate) const WINDOW_METRICS: Self = Self(1 << 7);
+    pub(crate) const RENDER: Self = Self(1 << 8);
 
-    pub(super) const fn union(self, other: Self) -> Self {
+    pub(crate) const fn union(self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
-    pub(super) const fn intersection(self, other: Self) -> Self {
+    pub(crate) const fn intersection(self, other: Self) -> Self {
         Self(self.0 & other.0)
     }
 
-    pub(super) fn insert(&mut self, other: Self) {
+    pub(crate) fn insert(&mut self, other: Self) {
         self.0 |= other.0;
     }
 
-    pub(super) fn remove(&mut self, other: Self) {
+    pub(crate) fn remove(&mut self, other: Self) {
         self.0 &= !other.0;
     }
 
-    pub(super) const fn is_empty(self) -> bool {
+    pub(crate) const fn is_empty(self) -> bool {
         self.0 == 0
     }
 
-    pub(super) const fn contains(self, other: Self) -> bool {
+    pub(crate) const fn contains(self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
 
-    pub(super) const fn intersects(self, other: Self) -> bool {
+    pub(crate) const fn intersects(self, other: Self) -> bool {
         self.0 & other.0 != 0
     }
 
-    pub(super) const fn requires_layout(self) -> bool {
+    pub(crate) const fn requires_layout(self) -> bool {
         self.intersects(
             Self::LAYOUT
                 .union(Self::TREE_STRUCTURE)
@@ -51,30 +51,30 @@ impl HostInvalidationMask {
         )
     }
 
-    pub(super) const fn requires_presentation(self) -> bool {
+    pub(crate) const fn requires_presentation(self) -> bool {
         self.requires_layout() || self.intersects(Self::PRESENTATION_DATA)
     }
 
-    pub(super) const fn requires_render(self) -> bool {
+    pub(crate) const fn requires_render(self) -> bool {
         self.intersects(Self::RENDER)
     }
 
-    pub(super) const fn requires_window_metrics(self) -> bool {
+    pub(crate) const fn requires_window_metrics(self) -> bool {
         self.intersects(Self::WINDOW_METRICS)
     }
 
-    pub(super) const fn requires_hit_test(self) -> bool {
+    pub(crate) const fn requires_hit_test(self) -> bool {
         self.intersects(Self::HIT_TEST)
     }
 
-    pub(super) const fn requires_host_recompute(self) -> bool {
+    pub(crate) const fn requires_host_recompute(self) -> bool {
         self.requires_layout()
             || self.requires_presentation()
             || self.requires_render()
             || self.requires_hit_test()
     }
 
-    pub(super) fn from_dirty_flags(
+    pub(crate) fn from_dirty_flags(
         layout_dirty: bool,
         presentation_dirty: bool,
         window_metrics_dirty: bool,
@@ -96,7 +96,7 @@ impl HostInvalidationMask {
         mask
     }
 
-    pub(super) fn summary(self) -> String {
+    pub(crate) fn summary(self) -> String {
         if self.is_empty() {
             return "none".to_string();
         }
@@ -309,5 +309,22 @@ mod tests {
         assert_eq!(diagnostics.slow_path_rebuild_count, 1);
         assert_eq!(diagnostics.render_rebuild_count, 1);
         assert_eq!(diagnostics.paint_only_request_count, 1);
+    }
+
+    #[test]
+    fn host_invalidation_paint_only_does_not_request_layout_or_presentation_recompute() {
+        let mut root = HostInvalidationRoot::default();
+        root.invalidate(
+            HostInvalidationMask::PAINT_ONLY
+                .union(HostInvalidationMask::POINTER_HOVER)
+                .union(HostInvalidationMask::VIEWPORT_IMAGE),
+        );
+
+        let diagnostics = root.diagnostics_snapshot();
+        assert_eq!(diagnostics.paint_only_request_count, 1);
+        assert_eq!(root.layout_requests, 0);
+        assert_eq!(root.presentation_requests, 0);
+        assert_eq!(root.render_requests, 0);
+        assert!(root.take_recompute_reasons().is_empty());
     }
 }

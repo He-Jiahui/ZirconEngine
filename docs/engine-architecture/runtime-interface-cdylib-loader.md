@@ -98,6 +98,7 @@ tests:
   - cargo fmt --all --check
   - cargo test -p zircon_runtime_interface --locked --verbose
   - cargo test -p zircon_app --locked --verbose
+  - cargo test -p zircon_app --locked --verbose (2026-05-11 blocker rerun: passed once after Cargo generated unrelated `taffy` lock entries; final clean-lock rerun is blocked before compile by the unrelated `zircon_runtime/Cargo.toml` / `Cargo.lock` mismatch)
 doc_type: module-detail
 ---
 
@@ -149,7 +150,7 @@ The ABI boundary receives only `ZrRuntimeEventV1` values for viewport resize, po
 
 `RuntimeEntryApp` now owns only the window, optional softbuffer presenter, dynamic runtime session wrapper, viewport handle, and current viewport size. Winit events are converted to interface events and sent to runtime. Redraw requests prefer the optional runtime surface-present ABI only when `bind_viewport_surface`, `unbind_viewport_surface`, and `present_viewport` are all inside the advertised table size and non-null. Otherwise, redraw falls back to `capture_frame` and blits the returned RGBA bytes through softbuffer.
 
-The appended surface-present ABI fields remain optional within ABI v1. `LoadedRuntime` gates every appended field by `ZrRuntimeApiV1::size_bytes` before returning a function pointer, so an older v1 table falls back cleanly instead of reading past the producer's advertised table. `RuntimeEntryApp` binds native Win32 surface metadata before the resize event when the coherent surface path is available, rebinds before later resize events, and unbinds before falling back if a previously enabled surface-present path stops presenting.
+The appended surface-present ABI fields remain optional within ABI v1. `LoadedRuntime` stores the raw runtime table pointer plus the advertised `size_bytes`, validates that the required prefix reaches `capture_frame`, and reads every function pointer through offset-gated accessors. It does not expose a full-width `ZrRuntimeApiV1` reference to callers, so older v1 tables that end before appended fields can fall back cleanly instead of being materialized as the current struct layout. `RuntimeEntryApp` binds native Win32 surface metadata before the resize event when the coherent surface path is available, rebinds before later resize events, unbinds before falling back if a previously enabled surface-present path stops presenting, and best-effort unbinds during `Drop` before the window and softbuffer presenter fields are destroyed. The 2026-05-11 blocker rerun reached `40 passed; 0 failed` after Cargo generated unrelated `taffy` lock entries; those generated lock entries were removed to preserve the active UI lane, so the final clean-lock `--locked` rerun is blocked before compile by the unrelated manifest/lock mismatch. `cargo fmt --all --check` also remains blocked by unrelated active UI formatting drift under `zircon_runtime/src/ui`.
 
 ## Validation
 

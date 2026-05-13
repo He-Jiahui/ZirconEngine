@@ -5,6 +5,7 @@ mod exports;
 mod frame;
 mod runtime_loop;
 mod session;
+mod surface;
 
 pub use exports::zircon_runtime_get_api_v1;
 

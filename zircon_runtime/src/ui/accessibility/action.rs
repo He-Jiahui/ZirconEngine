@@ -55,9 +55,10 @@ pub(crate) fn dispatch_accessibility_action(
         UiAccessibilityAction::SetValue => {
             dispatch_set_value(surface, &request, &snapshot_node, result)
         }
-        UiAccessibilityAction::Increment
-        | UiAccessibilityAction::Decrement
-        | UiAccessibilityAction::ScrollTo => unsupported_role_action(
+        UiAccessibilityAction::Increment | UiAccessibilityAction::Decrement => {
+            dispatch_adjust_value(surface, &request, &snapshot_node, result)
+        }
+        UiAccessibilityAction::ScrollTo => unsupported_role_action(
             result,
             target,
             "generic accessibility action behavior is not available for this role",
@@ -69,6 +70,69 @@ pub(crate) fn dispatch_accessibility_action(
             "unsupported_role_action",
             "accessibility dismiss requires popup id",
             "accessibility dismiss requires popup id",
+        ),
+    }
+}
+
+fn dispatch_adjust_value(
+    surface: &mut UiSurface,
+    request: &zircon_runtime_interface::ui::accessibility::UiAccessibilityActionRequest,
+    snapshot_node: &UiAccessibilityNode,
+    result: UiInputDispatchResult,
+) -> UiInputDispatchResult {
+    let target = request.target;
+    if !snapshot_node.actions.contains(&request.action) {
+        return unsupported_role_action(result, target, "target does not expose adjust action");
+    }
+    if snapshot_node.role != UiA11yRole::Slider {
+        return unsupported_role_action(result, target, "adjust value requires slider role");
+    }
+    let direction = match request.action {
+        UiAccessibilityAction::Increment => 1.0,
+        UiAccessibilityAction::Decrement => -1.0,
+        _ => unreachable!("dispatch_adjust_value only handles increment/decrement"),
+    };
+    match surface.mutate_default_range_step_value(target, direction) {
+        Ok(Some((report, value)))
+            if matches!(
+                report.status,
+                UiPropertyMutationStatus::Accepted | UiPropertyMutationStatus::Unchanged
+            ) =>
+        {
+            let mut result = finish_handled(result, target, "accessibility.adjust_value");
+            result.diagnostics.notes.push(format!(
+                "accessibility_property_changed:{}:{:?}",
+                report.property, report.invalidation.dirty
+            ));
+            if matches!(report.status, UiPropertyMutationStatus::Accepted) {
+                result.component_events.push(UiComponentEventReport {
+                    target,
+                    event: UiComponentEvent::ValueChanged {
+                        property: report.property,
+                        value: UiValue::Float(value),
+                    },
+                    delivered: true,
+                });
+            }
+            result
+        }
+        Ok(Some((report, _value))) => finish_unhandled(
+            result,
+            Some(target),
+            UiAccessibilityActionStatus::Rejected,
+            "mutation_rejected",
+            report
+                .message
+                .as_deref()
+                .unwrap_or("adjust value mutation was rejected"),
+        ),
+        Ok(None) => unsupported_role_action(result, target, "target has no range value contract"),
+        Err(error) => finish_unhandled(
+            result,
+            Some(target),
+            UiAccessibilityActionStatus::Rejected,
+            "mutation_error",
+            &format!("adjust value mutation failed: {error}"),
         ),
     }
 }

@@ -4,11 +4,14 @@ use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
 use crate::ui::asset_editor::{
     UiAssetEditorMode, UiAssetEditorPanePresentation, UiAssetEditorReflectionModel,
-    UiAssetEditorRoute, UiAssetEditorSession, UiAssetEditorShellState,
+    UiAssetEditorRoute, UiAssetEditorShellState,
 };
 use crate::ui::workbench::view::{ViewInstance, ViewInstanceId};
 
-use super::{parse_ui_asset_document_source, preview_size_for_preset, UiAssetWorkspaceEntry};
+use super::{
+    build_ui_asset_editor_session_from_source, preview_size_for_preset,
+    ui_asset_editor_route_from_source, UiAssetWorkspaceEntry,
+};
 
 impl EditorUiHost {
     pub fn ui_asset_editor_reflection(
@@ -108,9 +111,8 @@ impl EditorUiHost {
                 let source_path = self.resolve_ui_asset_path(asset_id)?;
                 let source = fs::read_to_string(&source_path)
                     .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-                let document = parse_ui_asset_document_source(&source)
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?;
-                UiAssetEditorRoute::new(asset_id, document.asset.kind, UiAssetEditorMode::Design)
+                ui_asset_editor_route_from_source(asset_id, &source, UiAssetEditorMode::Design)
+                    .map_err(EditorError::UiAsset)?
             } else {
                 return Err(EditorError::UiAsset(format!(
                     "invalid ui asset route for {}",
@@ -121,8 +123,9 @@ impl EditorUiHost {
         let source = fs::read_to_string(&source_path)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         let preview_size = preview_size_for_preset(route.preview_preset);
-        let session = UiAssetEditorSession::from_source(route, source.clone(), preview_size)
-            .map_err(|error| EditorError::UiAsset(error.to_string()))?;
+        let session =
+            build_ui_asset_editor_session_from_source(route, source.clone(), preview_size)
+                .map_err(EditorError::UiAsset)?;
         self.lock_ui_asset_sessions().insert(
             instance.instance_id.clone(),
             UiAssetWorkspaceEntry::new(source_path, source, session),

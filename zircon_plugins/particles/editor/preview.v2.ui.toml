@@ -1,0 +1,33 @@
+[asset]
+kind = "view"
+id = "particles.preview"
+version = 2
+display_name = "Particle Preview"
+
+[imports]
+styles = ["res://ui/theme/editor_base.v2.ui.toml"]
+
+[root]
+node = "particles_preview_root"
+
+[nodes.particles_preview_viewport]
+component = "Space"
+control_id = "ParticlesPreviewViewport"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.particles_preview_transport]
+component = "Space"
+control_id = "ParticlesPreviewTransport"
+layout = { width = { stretch = "Stretch" }, height = { min = 36.0, preferred = 36.0, max = 36.0, stretch = "Fixed" } }
+
+[nodes.particles_preview_stats]
+component = "Space"
+control_id = "ParticlesPreviewStats"
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.particles_preview_root]
+component = "VerticalGroup"
+control_id = "ParticlesPreviewRoot"
+classes = ["editor-shell"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "particles_preview_viewport" }, { node = "particles_preview_transport" }, { node = "particles_preview_stats" }]

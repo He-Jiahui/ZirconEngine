@@ -12,6 +12,8 @@ impl RuntimeEntryApp {
             window: None,
             presenter: None,
             surface_present_enabled: false,
+            surface_present_failed: false,
+            surface_present_attempted: false,
             session,
             viewport: ZrRuntimeViewportHandle::new(1),
             viewport_size: ZrRuntimeViewportSizeV1::new(1280, 720),

@@ -29,17 +29,13 @@ pub use contract::{
     UiDesignerPreviewInteractDispatch, UiDesignerSelectionModel, UiDesignerToolMode,
     UiMatchedStyleRuleReflection, UiStyleInspectorReflectionModel,
     UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_LAYOUT_DOCUMENT_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_ASSET_ID,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_BUTTON_REFERENCE,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_HEADER_SHELL_REFERENCE,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_SECTION_CARD_REFERENCE,
-    UI_ASSET_EDITOR_BOOTSTRAP_WIDGET_TOOLBAR_REFERENCE, UI_ASSET_EDITOR_WINDOW_ID,
+    UI_ASSET_EDITOR_BOOTSTRAP_STYLE_ASSET_ID, UI_ASSET_EDITOR_WINDOW_ID,
 };
 pub use diagnostics::{UiAssetEditorDiagnostic, UiAssetEditorDiagnosticSeverity};
 pub(crate) use node_projection::ui_asset_editor_node_projection;
 pub use presentation::{
     UiAssetEditorPanePresentation, UiAssetEditorPreviewCanvasNode,
-    UiAssetEditorPreviewCanvasSlotTarget,
+    UiAssetEditorPreviewCanvasSlotTarget, UiAssetEditorWidgetPropStateItem,
 };
 pub use preview::UiAssetPreviewHost;
 pub use replay_workspace::{UiAssetEditorReplayWorkspace, UiAssetEditorReplayWorkspaceResult};

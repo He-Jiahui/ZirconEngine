@@ -169,6 +169,26 @@ impl EditorManager {
             .set_ui_asset_editor_selected_widget_text_property(instance_id, text)
     }
 
+    pub fn set_ui_asset_editor_selected_widget_prop_literal(
+        &self,
+        instance_id: &ViewInstanceId,
+        path: impl AsRef<str>,
+        literal: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_selected_widget_prop_literal(instance_id, path, literal)
+    }
+
+    pub fn set_ui_asset_editor_selected_widget_state_literal(
+        &self,
+        instance_id: &ViewInstanceId,
+        path: impl AsRef<str>,
+        literal: impl AsRef<str>,
+    ) -> Result<bool, EditorError> {
+        self.host
+            .set_ui_asset_editor_selected_widget_state_literal(instance_id, path, literal)
+    }
+
     pub fn set_ui_asset_editor_selected_component_root_class_policy(
         &self,
         instance_id: &ViewInstanceId,

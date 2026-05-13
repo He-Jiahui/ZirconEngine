@@ -6,7 +6,7 @@ fn source(relative: &str) -> String {
 #[test]
 fn component_showcase_reference_wells_are_projected_into_rust_template_nodes() {
     let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
-    let showcase_asset = source("assets/ui/editor/component_showcase.ui.toml");
+    let showcase_asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
 
     for required in [
         "pub accepted_drag_payloads: SharedString",

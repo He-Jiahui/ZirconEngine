@@ -6,6 +6,7 @@ pub mod event;
 pub mod fixture;
 pub mod layout;
 pub mod model;
+pub mod preset;
 pub mod project;
 pub mod reflection;
 pub mod snapshot;

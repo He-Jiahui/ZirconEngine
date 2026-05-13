@@ -33,23 +33,23 @@ fn workbench_shell_contract_is_rust_owned_and_asset_projected() {
 fn workbench_shell_assets_replace_deleted_shell_sources() {
     for (relative, markers) in [
         (
-            "assets/ui/editor/host/workbench_shell.ui.toml",
-            &["UiHostWindow", "root_menu_bar_0"] as &[_],
+            "assets/ui/editor/host/workbench_shell.v2.ui.toml",
+            &["UiHostWindowRoot", "WorkbenchBody"] as &[_],
         ),
         (
-            "assets/ui/editor/workbench_menu_chrome.ui.toml",
+            "assets/ui/editor/workbench_menu_chrome.v2.ui.toml",
             &["WorkbenchMenuBarRoot", "MenuSlot0"],
         ),
         (
-            "assets/ui/editor/workbench_menu_popup.ui.toml",
+            "assets/ui/editor/workbench_menu_popup.v2.ui.toml",
             &["WorkbenchMenuPopupRoot", "WorkbenchMenuPopupPanel"],
         ),
         (
-            "assets/ui/editor/workbench_activity_rail.ui.toml",
+            "assets/ui/editor/workbench_activity_rail.v2.ui.toml",
             &["ActivityRailPanel", "ActivityRailButton0"],
         ),
         (
-            "assets/ui/editor/workbench_status_bar.ui.toml",
+            "assets/ui/editor/workbench_status_bar.v2.ui.toml",
             &["WorkbenchStatusBarRoot", "StatusViewportLabel"],
         ),
     ] {

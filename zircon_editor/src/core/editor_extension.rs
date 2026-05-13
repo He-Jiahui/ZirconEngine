@@ -70,7 +70,7 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: ComponentDrawerDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
-        validate_component_drawer_bindings(&descriptor)?;
+        validate_component_drawer(&descriptor)?;
         insert_unique(
             &mut self.component_drawers,
             descriptor.component_type.clone(),
@@ -83,6 +83,7 @@ impl EditorExtensionRegistry {
         &mut self,
         descriptor: EditorUiTemplateDescriptor,
     ) -> Result<(), EditorExtensionRegistryError> {
+        validate_v2_ui_document("ui template document", descriptor.ui_document())?;
         insert_unique(
             &mut self.ui_templates,
             descriptor.id.clone(),
@@ -543,9 +544,10 @@ impl ComponentDrawerDescriptor {
     }
 }
 
-fn validate_component_drawer_bindings(
+fn validate_component_drawer(
     descriptor: &ComponentDrawerDescriptor,
 ) -> Result<(), EditorExtensionRegistryError> {
+    validate_v2_ui_document("component drawer document", descriptor.ui_document())?;
     if let Some(template_id) = descriptor.template_id() {
         validate_contribution_id("component drawer template", template_id)?;
     }
@@ -555,6 +557,22 @@ fn validate_component_drawer_bindings(
     for binding in descriptor.bindings() {
         EditorOperationPath::parse(binding.clone())
             .map_err(EditorExtensionRegistryError::Operation)?;
+    }
+    Ok(())
+}
+
+fn validate_v2_ui_document(
+    kind: &'static str,
+    document: &str,
+) -> Result<(), EditorExtensionRegistryError> {
+    if document.trim().is_empty()
+        || document.trim() != document
+        || !document.ends_with(".v2.ui.toml")
+    {
+        return Err(EditorExtensionRegistryError::InvalidUiDocument {
+            kind,
+            document: document.to_string(),
+        });
     }
     Ok(())
 }
@@ -802,8 +820,18 @@ impl AssetEditorDescriptor {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorExtensionRegistryError {
-    DuplicateContribution { kind: &'static str, id: String },
-    InvalidContributionId { kind: &'static str, id: String },
+    DuplicateContribution {
+        kind: &'static str,
+        id: String,
+    },
+    InvalidContributionId {
+        kind: &'static str,
+        id: String,
+    },
+    InvalidUiDocument {
+        kind: &'static str,
+        document: String,
+    },
     InvalidAssetImporterExtensions(String),
     InvalidMenuPath(String),
     Operation(EditorOperationRegistryError),
@@ -819,6 +847,10 @@ impl fmt::Display for EditorExtensionRegistryError {
             Self::InvalidContributionId { kind, id } => {
                 write!(formatter, "editor {kind} id `{id}` is invalid")
             }
+            Self::InvalidUiDocument { kind, document } => write!(
+                formatter,
+                "editor {kind} `{document}` must reference a .v2.ui.toml asset"
+            ),
             Self::InvalidAssetImporterExtensions(id) => {
                 write!(
                     formatter,

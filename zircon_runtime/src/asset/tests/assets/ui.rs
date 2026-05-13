@@ -1,12 +1,14 @@
 use std::fs;
 
-use crate::asset::assets::ui_asset_references;
+use crate::asset::assets::{ui_asset_references, ui_v2_asset_references};
 use crate::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::{
-    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiLayoutAsset, UiStyleAsset, UiWidgetAsset,
+    AssetImporter, AssetKind, AssetUri, ImportedAsset, UiLayoutAsset, UiStyleAsset,
+    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset, UiWidgetAsset,
 };
 use zircon_runtime_interface::ui::template::UiAssetKind;
+use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 const LAYOUT_UI_TOML: &str = r#"
 [asset]
@@ -140,6 +142,60 @@ selector = "Label"
 set = { self = { background_image = "res://textures/theme-bg.png" } }
 "#;
 
+const V2_VIEW_UI_TOML: &str = r#"
+[asset]
+kind = "view"
+id = "runtime.ui.panel"
+version = 2
+display_name = "Runtime Panel"
+
+[imports]
+widgets = ["res://ui/common/button.v2.ui.toml#ToolbarButton"]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+resources = [
+  { kind = "font", uri = "res://fonts/inter.font.toml", fallback = { mode = "placeholder", uri = "res://fonts/system.ttf" } },
+]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Text"
+control_id = "PanelRoot"
+props = { text = "Panel" }
+"#;
+
+const V2_COMPONENT_UI_TOML: &str = r#"
+[asset]
+kind = "component"
+id = "runtime.ui.components"
+version = 2
+display_name = "Runtime Components"
+
+[nodes.button_root]
+component = "Button"
+control_id = "ToolbarButtonRoot"
+props = { text = "Action" }
+
+[components.ToolbarButton]
+root = "button_root"
+"#;
+
+const V2_STYLE_UI_TOML: &str = r##"
+[asset]
+kind = "style"
+id = "runtime.ui.material"
+version = 2
+display_name = "Runtime Material"
+
+[[stylesheets]]
+id = "runtime_material"
+
+[[stylesheets.rules]]
+selector = "Text"
+set = { foreground = { color = "#ffffff" } }
+"##;
+
 #[test]
 fn ui_asset_wrappers_parse_and_validate_kind() {
     let layout = UiLayoutAsset::from_toml_str(LAYOUT_UI_TOML).unwrap();
@@ -150,6 +206,18 @@ fn ui_asset_wrappers_parse_and_validate_kind() {
     assert_eq!(widget.document.asset.kind, UiAssetKind::Widget);
     assert_eq!(style.document.asset.kind, UiAssetKind::Style);
     assert!(UiLayoutAsset::from_toml_str(WIDGET_UI_TOML).is_err());
+}
+
+#[test]
+fn ui_v2_asset_wrappers_parse_and_validate_kind() {
+    let view = UiV2ViewAsset::from_toml_str(V2_VIEW_UI_TOML).unwrap();
+    let component = UiV2ComponentAsset::from_toml_str(V2_COMPONENT_UI_TOML).unwrap();
+    let style = UiV2StyleAsset::from_toml_str(V2_STYLE_UI_TOML).unwrap();
+
+    assert_eq!(view.document.asset.kind, UiV2AssetKind::View);
+    assert_eq!(component.document.asset.kind, UiV2AssetKind::Component);
+    assert_eq!(style.document.asset.kind, UiV2AssetKind::Style);
+    assert!(UiV2ViewAsset::from_toml_str(V2_COMPONENT_UI_TOML).is_err());
 }
 
 #[test]
@@ -197,6 +265,27 @@ fn ui_asset_direct_references_deduplicate_imported_and_resource_locators() {
             .filter(|locator| locator.as_str() == "res://ui/common/button.ui.toml")
             .count(),
         1
+    );
+}
+
+#[test]
+fn ui_v2_asset_direct_references_include_imports_and_resources() {
+    let view = UiV2ViewAsset::from_toml_str(V2_VIEW_UI_TOML).unwrap();
+    let mut references = ui_v2_asset_references(&view.document)
+        .into_iter()
+        .map(|reference| reference.locator.to_string())
+        .collect::<Vec<_>>();
+
+    references.sort();
+
+    assert_eq!(
+        references,
+        vec![
+            "res://fonts/inter.font.toml",
+            "res://fonts/system.ttf",
+            "res://ui/common/button.v2.ui.toml",
+            "res://ui/theme/editor_material.v2.ui.toml",
+        ]
     );
 }
 
@@ -255,6 +344,60 @@ fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml() {
 }
 
 #[test]
+fn importer_decodes_ui_v2_view_component_and_style_assets_from_v2_ui_toml() {
+    let root = unique_temp_project_root("ui_v2_asset_import");
+    fs::create_dir_all(&root).unwrap();
+    let view_path = root.join("panel.v2.ui.toml");
+    let component_path = root.join("button.v2.ui.toml");
+    let style_path = root.join("theme.v2.ui.toml");
+    fs::write(&view_path, V2_VIEW_UI_TOML).unwrap();
+    fs::write(&component_path, V2_COMPONENT_UI_TOML).unwrap();
+    fs::write(&style_path, V2_STYLE_UI_TOML).unwrap();
+
+    let importer = AssetImporter::default();
+
+    let view = importer
+        .import_from_source(
+            &view_path,
+            &AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap(),
+        )
+        .unwrap();
+    let component = importer
+        .import_from_source(
+            &component_path,
+            &AssetUri::parse("res://ui/button.v2.ui.toml").unwrap(),
+        )
+        .unwrap();
+    let style = importer
+        .import_from_source(
+            &style_path,
+            &AssetUri::parse("res://ui/theme.v2.ui.toml").unwrap(),
+        )
+        .unwrap();
+
+    match view {
+        ImportedAsset::UiV2View(asset) => {
+            assert_eq!(asset.document.asset.id, "runtime.ui.panel");
+        }
+        other => panic!("unexpected v2 view import: {other:?}"),
+    }
+    match component {
+        ImportedAsset::UiV2Component(asset) => {
+            assert!(asset.document.components.contains_key("ToolbarButton"));
+        }
+        other => panic!("unexpected v2 component import: {other:?}"),
+    }
+    match style {
+        ImportedAsset::UiV2Style(asset) => {
+            assert_eq!(asset.document.stylesheets.len(), 1);
+        }
+        other => panic!("unexpected v2 style import: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
 fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
     let root = unique_temp_project_root("ui_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
@@ -304,6 +447,58 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
             assert_eq!(asset.document.asset.id, "editor.ui_asset_editor");
         }
         other => panic!("unexpected project layout asset: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_scans_ui_v2_assets_and_restores_v2_payloads() {
+    let root = unique_temp_project_root("ui_v2_asset_project");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "UiV2Sandbox",
+        AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let ui_dir = paths.assets_root().join("ui");
+    fs::create_dir_all(&ui_dir).unwrap();
+    fs::write(ui_dir.join("panel.v2.ui.toml"), V2_VIEW_UI_TOML).unwrap();
+    fs::write(ui_dir.join("button.v2.ui.toml"), V2_COMPONENT_UI_TOML).unwrap();
+    fs::write(ui_dir.join("theme.v2.ui.toml"), V2_STYLE_UI_TOML).unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    let view = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap())
+        .unwrap();
+    let component = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://ui/button.v2.ui.toml").unwrap())
+        .unwrap();
+    let style = manager
+        .registry()
+        .get_by_locator(&AssetUri::parse("res://ui/theme.v2.ui.toml").unwrap())
+        .unwrap();
+
+    assert_eq!(view.kind, AssetKind::UiLayout);
+    assert_eq!(component.kind, AssetKind::UiWidget);
+    assert_eq!(style.kind, AssetKind::UiStyle);
+
+    match manager
+        .load_artifact(&AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap())
+        .unwrap()
+    {
+        ImportedAsset::UiV2View(asset) => {
+            assert_eq!(asset.document.root_node_id(), Some("root"));
+        }
+        other => panic!("unexpected project v2 view asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);

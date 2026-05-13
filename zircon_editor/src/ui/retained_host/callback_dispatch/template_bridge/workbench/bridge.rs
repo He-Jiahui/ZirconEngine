@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
     binding::{UiBindingValue, UiEventKind},
     layout::{UiFrame, UiSize},
@@ -22,7 +23,10 @@ use super::super::workbench_drawer_source::{
     BuiltinHostDrawerLayoutAnchors, BuiltinHostDrawerSourceTemplateBridge,
 };
 use super::error::BuiltinHostWindowTemplateBridgeError;
-use super::host_projection::build_builtin_host_window_projection;
+use super::host_projection::{
+    build_builtin_host_window_surface, project_builtin_host_window_projection,
+    rebuild_builtin_host_window_surface,
+};
 use super::root_shell_frames::BuiltinHostRootShellFrames;
 
 const HOST_BODY_CONTROL_ID: &str = "WorkbenchBody";
@@ -41,6 +45,7 @@ pub(crate) struct BuiltinHostWindowTemplateBridge {
     runtime: EditorUiHostRuntime,
     projection: RetainedUiProjection,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
+    host_surface: UiSurface,
     host_projection: RetainedUiHostProjection,
     drawer_source_bridge: BuiltinHostDrawerSourceTemplateBridge,
 }
@@ -50,14 +55,16 @@ impl BuiltinHostWindowTemplateBridge {
         let (runtime, projection) =
             load_builtin_runtime_projection(BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
         let bindings_by_id = build_bindings_by_id(&projection);
+        let host_surface = build_builtin_host_window_surface(&runtime, shell_size)?;
         let host_projection =
-            build_builtin_host_window_projection(&runtime, &projection, shell_size)?;
+            project_builtin_host_window_projection(&runtime, &projection, &host_surface)?;
         let drawer_source_bridge = BuiltinHostDrawerSourceTemplateBridge::new(shell_size)?;
 
         Ok(Self {
             runtime,
             projection,
             bindings_by_id,
+            host_surface,
             host_projection,
             drawer_source_bridge,
         })
@@ -68,8 +75,12 @@ impl BuiltinHostWindowTemplateBridge {
         &mut self,
         shell_size: UiSize,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.host_projection =
-            build_builtin_host_window_projection(&self.runtime, &self.projection, shell_size)?;
+        rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
+        self.host_projection = project_builtin_host_window_projection(
+            &self.runtime,
+            &self.projection,
+            &self.host_surface,
+        )?;
         self.drawer_source_bridge.recompute_layout(shell_size)?;
         Ok(())
     }
@@ -80,8 +91,12 @@ impl BuiltinHostWindowTemplateBridge {
         model: &WorkbenchViewModel,
         metrics: &WorkbenchChromeMetrics,
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
-        self.host_projection =
-            build_builtin_host_window_projection(&self.runtime, &self.projection, shell_size)?;
+        rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
+        self.host_projection = project_builtin_host_window_projection(
+            &self.runtime,
+            &self.projection,
+            &self.host_surface,
+        )?;
         let anchors = BuiltinHostDrawerLayoutAnchors::from_root_frames(
             shell_size,
             self.host_projection

@@ -13,7 +13,7 @@ use super::constants::WINDOW_MENU_INDEX;
 use super::menu_item_spec::MenuItemSpec;
 use super::HostMenuPointerLayout;
 
-const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.ui.toml";
+const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 const MENU_BUTTON_COUNT: usize = 7;
 

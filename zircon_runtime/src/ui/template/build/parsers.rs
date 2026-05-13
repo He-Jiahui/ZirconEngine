@@ -2,8 +2,8 @@ use toml::Value;
 
 use zircon_runtime_interface::ui::layout::{
     AxisConstraint, LayoutBoundary, StretchMode, UiAxis, UiContainerKind, UiGridBoxConfig,
-    UiLinearBoxConfig, UiScrollableBoxConfig, UiScrollbarVisibility, UiVirtualListConfig,
-    UiWrapBoxConfig,
+    UiLinearBoxConfig, UiScrollableBoxConfig, UiScrollbarVisibility, UiSizeBoxConfig,
+    UiVirtualListConfig, UiWrapBoxConfig,
 };
 use zircon_runtime_interface::ui::tree::UiInputPolicy;
 
@@ -75,12 +75,19 @@ pub(super) fn parse_container(
         "Container" => UiContainerKind::Container,
         "Overlay" => UiContainerKind::Overlay,
         "Space" => UiContainerKind::Space,
-        "HorizontalBox" => UiContainerKind::HorizontalBox(UiLinearBoxConfig {
+        "SizeBox" => UiContainerKind::SizeBox(UiSizeBoxConfig {
+            aspect_ratio: parse_f32(table.get("aspect_ratio"))
+                .or_else(|| parse_f32(table.get("ratio")))
+                .unwrap_or(0.0),
+        }),
+        "HorizontalBox" | "HorizontalGroup" => UiContainerKind::HorizontalBox(UiLinearBoxConfig {
             gap: parse_f32(table.get("gap")).unwrap_or(0.0),
         }),
-        "VerticalBox" => UiContainerKind::VerticalBox(UiLinearBoxConfig {
-            gap: parse_f32(table.get("gap")).unwrap_or(0.0),
-        }),
+        "VerticalBox" | "VerticalGroup" | "ListView" => {
+            UiContainerKind::VerticalBox(UiLinearBoxConfig {
+                gap: parse_f32(table.get("gap")).unwrap_or(0.0),
+            })
+        }
         "ScrollableBox" => UiContainerKind::ScrollableBox(UiScrollableBoxConfig {
             axis: parse_axis(table.get("axis"), node_path, "container.axis")?.unwrap_or_default(),
             gap: parse_f32(table.get("gap")).unwrap_or(0.0),
@@ -97,7 +104,7 @@ pub(super) fn parse_container(
             vertical_gap: parse_f32(table.get("vertical_gap")).unwrap_or(0.0),
             item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
         }),
-        "FlowBox" => UiContainerKind::WrapBox(UiWrapBoxConfig {
+        "FlowBox" | "FlexBox" => UiContainerKind::WrapBox(UiWrapBoxConfig {
             horizontal_gap: parse_f32(table.get("horizontal_gap"))
                 .or_else(|| parse_f32(table.get("gap")))
                 .unwrap_or(0.0),
@@ -106,7 +113,7 @@ pub(super) fn parse_container(
                 .unwrap_or(0.0),
             item_min_width: parse_f32(table.get("item_min_width")).unwrap_or(0.0),
         }),
-        "GridBox" => UiContainerKind::GridBox(UiGridBoxConfig {
+        "GridBox" | "GridGroup" => UiContainerKind::GridBox(UiGridBoxConfig {
             columns: parse_usize(table.get("columns"), node_path, "container.columns")?
                 .unwrap_or(1),
             rows: parse_usize(table.get("rows"), node_path, "container.rows")?.unwrap_or(1),

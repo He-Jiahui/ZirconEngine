@@ -23,7 +23,7 @@ use zircon_runtime_interface::ui::{
 #[test]
 fn shared_document_tab_pointer_bridge_routes_document_and_floating_tab_targets() {
     let mut bridge = HostDocumentTabPointerBridge::new();
-    bridge.sync(sample_document_tab_layout());
+    assert!(bridge.sync(sample_document_tab_layout()));
 
     let document = bridge
         .handle_activate_click("document", 1, 110.0, 120.0, UiPoint::new(132.0, 14.0))
@@ -48,6 +48,15 @@ fn shared_document_tab_pointer_bridge_routes_document_and_floating_tab_targets()
             instance_id: "editor.preview#1".to_string(),
         })
     );
+}
+
+#[test]
+fn shared_document_tab_pointer_bridge_skips_rebuild_for_unchanged_layout() {
+    let mut bridge = HostDocumentTabPointerBridge::new();
+    let layout = sample_document_tab_layout();
+
+    assert!(bridge.sync(layout.clone()));
+    assert!(!bridge.sync(layout));
 }
 
 #[test]

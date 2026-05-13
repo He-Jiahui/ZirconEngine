@@ -1,0 +1,149 @@
+[asset]
+kind = "view"
+id = "editor.host.workbench_drawer_source"
+version = 2
+display_name = "workbench drawer source"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "WorkbenchDrawerSource"
+control_id = "WorkbenchDrawerSourceRoot"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "top_bar" }, { node = "body_column" }, { node = "status_bar" }]
+
+[nodes.top_bar]
+component = "Container"
+control_id = "WorkbenchDrawerTopBarRoot"
+layout = { width = { stretch = "Stretch" }, height = { min = 59.0, preferred = 59.0, max = 59.0, stretch = "Fixed" } }
+
+[nodes.body_column]
+component = "VerticalGroup"
+control_id = "WorkbenchDrawerBodyColumnRoot"
+layout = { container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "center_row" }, { node = "bottom_outer_separator" }, { node = "bottom_shell" }]
+
+[nodes.center_row]
+component = "HorizontalGroup"
+control_id = "WorkbenchDrawerCenterRowRoot"
+layout = { container = { kind = "HorizontalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_shell" }, { node = "document_root" }, { node = "right_shell" }]
+
+[nodes.document_root]
+component = "Container"
+control_id = "WorkbenchDrawerDocumentRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.left_shell]
+component = "HorizontalGroup"
+control_id = "LeftDrawerShellRoot"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_rail" }, { node = "left_panel" }]
+
+[nodes.left_rail]
+component = "Container"
+control_id = "LeftDrawerRailRoot"
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.left_panel]
+component = "HorizontalGroup"
+control_id = "LeftDrawerPanelRoot"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_separator" }, { node = "left_column" }]
+
+[nodes.left_separator]
+component = "Container"
+control_id = "LeftDrawerSeparatorRoot"
+layout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.left_column]
+component = "VerticalGroup"
+control_id = "LeftDrawerPanelColumnRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "left_header" }, { node = "left_content" }]
+
+[nodes.left_header]
+component = "Container"
+control_id = "LeftDrawerHeaderRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.left_content]
+component = "Container"
+control_id = "LeftDrawerContentRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_shell]
+component = "HorizontalGroup"
+control_id = "RightDrawerShellRoot"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "right_panel" }, { node = "right_rail" }]
+
+[nodes.right_panel]
+component = "HorizontalGroup"
+control_id = "RightDrawerPanelRoot"
+layout = { clip = true, container = { kind = "HorizontalBox", gap = 0.0 }, width = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+children = [{ node = "right_column" }, { node = "right_separator" }]
+
+[nodes.right_column]
+component = "VerticalGroup"
+control_id = "RightDrawerPanelColumnRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "right_header" }, { node = "right_content" }]
+
+[nodes.right_header]
+component = "Container"
+control_id = "RightDrawerHeaderRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.right_content]
+component = "Container"
+control_id = "RightDrawerContentRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.right_separator]
+component = "Container"
+control_id = "RightDrawerSeparatorRoot"
+layout = { width = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.right_rail]
+component = "Container"
+control_id = "RightDrawerRailRoot"
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.bottom_outer_separator]
+component = "Container"
+control_id = "BottomDrawerOuterSeparatorRoot"
+layout = { width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+
+[nodes.bottom_shell]
+component = "VerticalGroup"
+control_id = "BottomDrawerShellRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [{ node = "bottom_header" }, { node = "bottom_panel" }]
+
+[nodes.bottom_header]
+component = "Container"
+control_id = "BottomDrawerHeaderRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { min = 25.0, preferred = 25.0, max = 25.0, stretch = "Fixed" } }
+
+[nodes.bottom_panel]
+component = "VerticalGroup"
+control_id = "BottomDrawerPanelRoot"
+layout = { clip = true, container = { kind = "VerticalBox", gap = 0.0 }, width = { stretch = "Stretch" }, height = { min = 0.0, preferred = 0.0, max = 0.0, stretch = "Fixed" } }
+children = [{ node = "bottom_separator" }, { node = "bottom_content" }]
+
+[nodes.bottom_separator]
+component = "Container"
+control_id = "BottomDrawerSeparatorRoot"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.bottom_content]
+component = "Container"
+control_id = "BottomDrawerContentRoot"
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.status_bar]
+component = "Container"
+control_id = "WorkbenchDrawerStatusBarRoot"
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }

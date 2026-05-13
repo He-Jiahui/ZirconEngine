@@ -475,16 +475,40 @@ fn runtime_api_table_records_size_and_version() {
 
     assert_eq!(api.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV1>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV1>(), 80);
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV1>(), 88);
     assert!(api.create_session.is_none());
     assert!(api.capture_frame.is_none());
     assert!(api.bind_viewport_surface.is_none());
     assert!(api.unbind_viewport_surface.is_none());
     assert!(api.present_viewport.is_none());
+    assert!(api.profile_control.is_none());
     assert_eq!(
         core::mem::offset_of!(ZrRuntimeApiV1, bind_viewport_surface),
         core::mem::offset_of!(ZrRuntimeApiV1, capture_accessibility_tree)
             + core::mem::size_of::<Option<crate::ZrRuntimeCaptureAccessibilityTreeFnV1>>()
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV1, profile_control),
+        core::mem::offset_of!(ZrRuntimeApiV1, present_viewport)
+            + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
+    );
+}
+
+#[test]
+fn profiling_dtos_serialize_optional_abi_control_contract() {
+    let request = crate::ProfileControlRequest {
+        command: crate::ProfileControlCommand::Snapshot,
+        config: None,
+    };
+    let encoded = serde_json::to_string(&request).unwrap();
+    let decoded: crate::ProfileControlRequest = serde_json::from_str(&encoded).unwrap();
+    let config = crate::ProfileCaptureConfig::default().normalized();
+
+    assert_eq!(decoded.command, crate::ProfileControlCommand::Snapshot);
+    assert_eq!(config.session_id, crate::PROFILE_DEFAULT_SESSION_ID);
+    assert_eq!(
+        config.frame_budget_ms,
+        crate::PROFILE_DEFAULT_FRAME_BUDGET_MS
     );
 }
 

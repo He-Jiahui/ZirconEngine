@@ -1,0 +1,96 @@
+[asset]
+kind = "view"
+id = "editor.host.asset.surface_controls"
+version = 2
+display_name = "asset surface controls"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "HorizontalGroup"
+control_id = "AssetSurfaceControls"
+classes = ["editor-surface-controls", "asset-surface-controls"]
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [
+  { node = "select_folder" },
+  { node = "select_item" },
+  { node = "search" },
+  { node = "kind_filter" },
+  { node = "view_mode" },
+  { node = "utility_tab" },
+  { node = "activate_reference" },
+  { node = "open_browser" },
+  { node = "locate_asset" },
+  { node = "import_model" },
+]
+
+[nodes.select_folder]
+component = "IconButton"
+control_id = "SelectFolder"
+props = { label = "Folder", icon = "folder-outline" }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SelectFolder", event = "Change", route = "AssetCommand.SelectFolder" }]
+
+[nodes.select_item]
+component = "IconButton"
+control_id = "SelectItem"
+props = { label = "Asset", icon = "cube-outline" }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SelectItem", event = "Change", route = "AssetCommand.SelectItem" }]
+
+[nodes.search]
+component = "InputField"
+control_id = "SearchEdited"
+props = { placeholder = "Search", value_text = "" }
+layout = { width = { min = 120.0, preferred = 180.0, max = 280.0, stretch = "Stretch" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SearchEdited", event = "Change", route = "AssetCommand.SetSearchQuery" }]
+
+[nodes.kind_filter]
+component = "ComboBox"
+control_id = "SetKindFilter"
+props = { label = "Kind", options = ["all", "scene", "mesh", "material", "ui"] }
+layout = { width = { min = 92.0, preferred = 92.0, max = 120.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetKindFilter", event = "Change", route = "AssetCommand.SetKindFilter" }]
+
+[nodes.view_mode]
+component = "IconButton"
+control_id = "SetViewMode"
+props = { label = "View", icon = "list-outline" }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetViewMode", event = "Change", route = "AssetCommand.SetViewMode" }]
+
+[nodes.utility_tab]
+component = "IconButton"
+control_id = "SetUtilityTab"
+props = { label = "Tools", icon = "options-outline" }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/SetUtilityTab", event = "Change", route = "AssetCommand.SetUtilityTab" }]
+
+[nodes.activate_reference]
+component = "IconButton"
+control_id = "ActivateReference"
+props = { label = "Use", icon = "link-outline" }
+layout = { width = { min = 62.0, preferred = 62.0, max = 62.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/ActivateReference", event = "Click", route = "AssetCommand.ActivateReference" }]
+
+[nodes.open_browser]
+component = "IconButton"
+control_id = "OpenAssetBrowser"
+props = { label = "Browser", icon = "albums-outline" }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/OpenAssetBrowser", event = "Click", route = "AssetCommand.OpenAssetBrowser" }]
+
+[nodes.locate_asset]
+component = "IconButton"
+control_id = "LocateSelectedAsset"
+props = { label = "Locate", icon = "locate-outline" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/LocateSelectedAsset", event = "Click", route = "AssetCommand.LocateSelectedAsset" }]
+
+[nodes.import_model]
+component = "IconButton"
+control_id = "ImportModel"
+props = { label = "Import", icon = "cloud-upload-outline" }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "AssetSurface/ImportModel", event = "Click", route = "AssetCommand.ImportModel" }]

@@ -41,7 +41,10 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
         | ImportedAsset::TerrainLayerStack(_)
         | ImportedAsset::TileSet(_)
         | ImportedAsset::TileMap(_)
-        | ImportedAsset::Prefab(_) => {
+        | ImportedAsset::Prefab(_)
+        | ImportedAsset::UiV2View(_)
+        | ImportedAsset::UiV2Component(_)
+        | ImportedAsset::UiV2Style(_) => {
             references.extend(imported.direct_references());
         }
         ImportedAsset::UiLayout(asset) => {

@@ -122,9 +122,9 @@ fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_f
         root_frames.left_drawer_content_frame,
         Some(UiFrame::new(
             body_frame.x + 35.0,
-            body_frame.y + 26.0,
+            body_frame.y + 25.0,
             277.0,
-            expected_center_height - 26.0,
+            expected_center_height - 25.0,
         ))
     );
     assert_eq!(
@@ -149,9 +149,9 @@ fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_f
         root_frames.right_drawer_content_frame,
         Some(UiFrame::new(
             body_frame.x + body_frame.width - 308.0,
-            body_frame.y + 26.0,
+            body_frame.y + 25.0,
             273.0,
-            expected_center_height - 26.0,
+            expected_center_height - 25.0,
         ))
     );
     assert_eq!(

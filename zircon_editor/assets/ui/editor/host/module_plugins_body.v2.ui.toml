@@ -1,0 +1,40 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.module_plugins.body"
+version = 2
+display_name = "module plugins pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "ModulePluginsPaneBodyRoot"
+classes = ["editor-pane", "module-plugins-pane"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot" }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "ModulePluginsHeader"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "focus" }]
+
+[nodes.focus]
+component = "IconButton"
+control_id = "FocusModulePlugins"
+props = { label = "Focus Plugins", icon = "extension-outline" }
+layout = { width = { min = 128.0, preferred = 128.0, max = 128.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "ModulePluginsPaneBody/FocusModulePlugins", event = "Click", route = "DockCommand.FocusView" }]
+
+[nodes.summary]
+component = "Text"
+control_id = "ModulePluginsSummary"
+props = { text = "Project plugins" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.plugin_list_slot]
+component = "Container"
+control_id = "ModulePluginListPanel"
+props = { slot_name = "module_plugin_list_slot" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
