@@ -7,6 +7,7 @@ use crate::ui::workbench::project::EditorProjectDocument;
 pub struct EditorStartupSessionDocument {
     pub mode: EditorSessionMode,
     pub project: Option<EditorProjectDocument>,
+    pub open_builtin_view: Option<String>,
     pub recent_projects: Vec<RecentProjectEntry>,
     pub draft: NewProjectDraft,
     pub status_message: String,

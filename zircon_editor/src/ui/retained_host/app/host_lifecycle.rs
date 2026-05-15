@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;
 use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::floating_window_projection::{
@@ -7,23 +8,47 @@ use crate::ui::retained_host::floating_window_projection::{
     resolve_floating_window_projection_shared_source, FloatingWindowProjectionBundle,
 };
 use crate::ui::retained_host::root_shell_projection::resolve_root_viewport_content_frame;
+use crate::ui::retained_host::ui_perf::{
+    enter_ui_perf_scenario, record_current_ui_perf_counter, time_ui_perf_scenario, UiPerfCounter,
+    UiPerfScenario,
+};
 use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
+
+fn record_ui_dirty_mask(mask: HostInvalidationMask) {
+    if mask.requires_layout() {
+        record_current_ui_perf_counter(UiPerfCounter::DirtyLayout, 1.0);
+    }
+    if mask.requires_presentation() {
+        record_current_ui_perf_counter(UiPerfCounter::DirtyPresentation, 1.0);
+    }
+    if mask.requires_render() {
+        record_current_ui_perf_counter(UiPerfCounter::DirtyRender, 1.0);
+    }
+    if mask.intersects(
+        HostInvalidationMask::PAINT_ONLY
+            .union(HostInvalidationMask::POINTER_HOVER)
+            .union(HostInvalidationMask::VIEWPORT_IMAGE),
+    ) {
+        record_current_ui_perf_counter(UiPerfCounter::DirtyPaintOnly, 1.0);
+    }
+}
 
 impl RetainedEditorHost {
     pub(super) fn new(
         core: CoreHandle,
         runtime_client: SharedEditorRuntimeClient,
         ui: UiHostWindow,
+        startup_request: Option<EditorGuiStartupRequest>,
     ) -> Result<Self, Box<dyn Error>> {
-        Self::new_with_viewport(
-            core.clone(),
-            runtime_client,
-            ui,
-            RetainedViewportController::new(core)?,
-        )
+        zircon_runtime::profile_scope!("editor", "retained_host", "new");
+        let viewport = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_viewport_controller");
+            RetainedViewportController::new(core.clone())?
+        };
+        Self::new_with_viewport(core, runtime_client, ui, viewport, startup_request)
     }
 
     #[cfg(test)]
@@ -33,6 +58,7 @@ impl RetainedEditorHost {
             Arc::new(crate::ui::host::DetachedEditorRuntimeClient),
             ui,
             RetainedViewportController::new_test_stub(),
+            None,
         )
     }
 
@@ -41,134 +67,246 @@ impl RetainedEditorHost {
         runtime_client: SharedEditorRuntimeClient,
         ui: UiHostWindow,
         viewport: RetainedViewportController,
+        startup_request: Option<EditorGuiStartupRequest>,
     ) -> Result<Self, Box<dyn Error>> {
+        zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
         #[cfg(not(feature = "profiling"))]
         let _ = &runtime_client;
 
         let resolver = ManagerResolver::new(core.clone());
-        let asset_server = resolve_asset_manager(resolver.core())?;
-        let editor_asset_server = resolve_editor_asset_manager(resolver.core())?;
-        let resource_server = resolver.resource()?;
-        let editor_manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
-        let asset_change_events = asset_server.subscribe_asset_changes();
-        let editor_asset_change_events = editor_asset_server.subscribe_editor_asset_changes();
-        let resource_change_events = resource_server.subscribe_resource_changes();
+        let asset_server = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_asset_manager");
+            resolve_asset_manager(resolver.core())?
+        };
+        let editor_asset_server = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_resolve_editor_asset_manager"
+            );
+            resolve_editor_asset_manager(resolver.core())?
+        };
+        let resource_server = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_resolve_resource_manager"
+            );
+            resolver.resource()?
+        };
+        let editor_manager = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_editor_manager");
+            core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?
+        };
+        let asset_change_events = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_subscribe_asset_changes"
+            );
+            asset_server.subscribe_asset_changes()
+        };
+        let editor_asset_change_events = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_subscribe_editor_asset_changes"
+            );
+            editor_asset_server.subscribe_editor_asset_changes()
+        };
+        let resource_change_events = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_subscribe_resource_changes"
+            );
+            resource_server.subscribe_resource_changes()
+        };
 
         let viewport_size = UVec2::new(1280, 720);
-        let startup_session = editor_manager.resolve_startup_session()?;
-        let state =
-            resolve_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?;
-        let bootstrap = ui.get_host_window_bootstrap();
+        let startup_session = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_resolve_startup_session"
+            );
+            resolve_editor_startup_session(&editor_manager, startup_request)?
+        };
+        let state = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_resolve_startup_state");
+            resolve_startup_state(editor_manager.as_ref(), &startup_session, viewport_size)?
+        };
+        let bootstrap = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_read_window_bootstrap");
+            ui.get_host_window_bootstrap()
+        };
         let shell_size = ShellSizePx::new(
             bootstrap.shell_frame.width.max(1.0),
             bootstrap.shell_frame.height.max(1.0),
         );
-        let template_bridge = callback_dispatch::BuiltinHostWindowTemplateBridge::new(
-            UiSize::new(shell_size.width, shell_size.height),
-        )?;
-        let floating_window_source_bridge =
-            callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge::new(UiSize::new(
-                shell_size.width,
-                shell_size.height,
-            ))?;
-        let viewport_toolbar_bridge =
-            callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()?;
-        let asset_surface_bridge = callback_dispatch::BuiltinAssetSurfaceTemplateBridge::new()?;
-        let welcome_surface_bridge = callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge::new()?;
-        let inspector_surface_bridge =
-            callback_dispatch::BuiltinInspectorSurfaceTemplateBridge::new()?;
-        let pane_surface_bridge = callback_dispatch::BuiltinPaneSurfaceTemplateBridge::new()?;
-        let mut component_showcase_runtime = EditorUiHostRuntime::default();
-        component_showcase_runtime.load_builtin_host_templates()?;
+        let builtin_template_runtime = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_load_shared_builtin_templates"
+            );
+            Arc::new(callback_dispatch::load_startup_builtin_template_runtime()?)
+        };
+        let template_bridge = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_template_bridge");
+            callback_dispatch::BuiltinHostWindowTemplateBridge::new_with_runtime(
+                builtin_template_runtime.clone(),
+                UiSize::new(shell_size.width, shell_size.height),
+            )?
+        };
+        let floating_window_source_bridge = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_floating_window_source_bridge"
+            );
+            callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge::new_with_runtime(
+                builtin_template_runtime.as_ref(),
+                UiSize::new(shell_size.width, shell_size.height),
+            )?
+        };
+        let viewport_toolbar_bridge = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_viewport_toolbar_bridge"
+            );
+            callback_dispatch::BuiltinViewportToolbarTemplateBridge::new_with_runtime(
+                builtin_template_runtime.clone(),
+            )?
+        };
+        let inspector_surface_bridge = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_inspector_surface_bridge"
+            );
+            callback_dispatch::BuiltinInspectorSurfaceTemplateBridge::new_with_runtime(
+                builtin_template_runtime.as_ref(),
+            )?
+        };
+        let pane_surface_bridge = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_pane_surface_bridge");
+            callback_dispatch::BuiltinPaneSurfaceTemplateBridge::new_with_runtime(
+                builtin_template_runtime.as_ref(),
+            )?
+        };
+        let component_showcase_runtime = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_component_runtime");
+            EditorUiHostRuntime::default()
+        };
+        let native_plugin_live_host = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "new_native_plugin_live_host"
+            );
+            Arc::new(zircon_runtime::plugin::NativePluginLiveHost::default())
+        };
+        let runtime = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_editor_event_runtime");
+            EditorEventRuntime::new(state, editor_manager.clone())
+        };
+        {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_set_play_mode_backend");
+            runtime.set_runtime_play_mode_backend(Arc::new(
+                NativePluginEditorRuntimePlayModeBackend::new(native_plugin_live_host.clone()),
+            ));
+        }
 
-        let native_plugin_live_host =
-            Arc::new(zircon_runtime::plugin::NativePluginLiveHost::default());
-        let runtime = EditorEventRuntime::new(state, editor_manager.clone());
-        runtime.set_runtime_play_mode_backend(Arc::new(
-            NativePluginEditorRuntimePlayModeBackend::new(native_plugin_live_host.clone()),
-        ));
-
-        let mut host = Self {
-            ui,
-            self_handle: None,
-            runtime,
-            editor_manager,
-            #[cfg(feature = "profiling")]
-            runtime_client,
-            module_plugin_live_host_backend: Box::new(native_plugin_live_host),
-            desktop_export_reports: BTreeMap::new(),
-            desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
-            desktop_export_output_overrides: BTreeMap::new(),
-            viewport,
-            asset_server,
-            editor_asset_server,
-            resource_server,
-            asset_change_events,
-            editor_asset_change_events,
-            resource_change_events,
-            startup_session,
-            viewport_size,
-            viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge::new(
-                UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32),
-            ),
-            template_bridge,
-            floating_window_source_bridge,
-            viewport_toolbar_bridge,
-            viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge::new(),
-            asset_surface_bridge,
-            welcome_surface_bridge,
-            inspector_surface_bridge,
-            pane_surface_bridge,
-            component_showcase_runtime,
-            shell_pointer_bridge: HostShellPointerBridge::new(),
-            activity_rail_pointer_bridge: HostActivityRailPointerBridge::new(),
-            host_page_pointer_bridge: HostPagePointerBridge::new(),
-            document_tab_pointer_bridge: HostDocumentTabPointerBridge::new(),
-            drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge::new(),
-            menu_pointer_bridge: HostMenuPointerBridge::new(),
-            menu_pointer_state: HostMenuPointerState::default(),
-            menu_pointer_layout: HostMenuPointerLayout::default(),
-            welcome_recent_pointer_bridge: WelcomeRecentPointerBridge::new(),
-            welcome_recent_pointer_state: WelcomeRecentPointerState::default(),
-            welcome_recent_pointer_size: UiSize::new(0.0, 0.0),
-            hierarchy_pointer_bridge: HierarchyPointerBridge::new(),
-            hierarchy_pointer_state: HierarchyPointerState::default(),
-            hierarchy_pointer_size: UiSize::new(0.0, 0.0),
-            console_scroll_surface: ScrollSurfaceHostState::new(
-                "zircon.editor.console.pointer",
-                "editor.console",
-            ),
-            inspector_scroll_surface: ScrollSurfaceHostState::new(
-                "zircon.editor.inspector.pointer",
-                "editor.inspector",
-            ),
-            browser_asset_details_scroll_surface: ScrollSurfaceHostState::new(
-                "zircon.editor.asset_details.pointer",
-                "editor.asset_details",
-            ),
-            activity_asset_pointer: AssetSurfacePointerState::new(),
-            browser_asset_pointer: AssetSurfacePointerState::new(),
-            active_asset_drag_payload: None,
-            active_scene_drag_payload: None,
-            active_object_drag_payload: None,
-            native_window_presenters: NativeWindowPresenterStore::default(),
-            floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
-            callback_source_window: None,
-            last_focused_callback_window: None,
-            active_layout_preset: None,
-            shell_size,
-            chrome_metrics: WorkbenchChromeMetrics::default(),
-            shell_geometry: None,
-            transient_region_preferred: BTreeMap::new(),
-            active_drawer_resize: None,
-            pending_close_prompt: None,
-            invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
-            presentation_dirty: true,
-            layout_dirty: true,
-            window_metrics_dirty: true,
-            render_dirty: true,
+        let mut host = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "new_construct_host_state");
+            Self {
+                ui,
+                self_handle: None,
+                runtime,
+                editor_manager,
+                #[cfg(feature = "profiling")]
+                runtime_client,
+                module_plugin_live_host_backend: Box::new(native_plugin_live_host),
+                desktop_export_reports: BTreeMap::new(),
+                desktop_export_jobs: build_export_actions::DesktopExportJobQueue::default(),
+                desktop_export_output_overrides: BTreeMap::new(),
+                viewport,
+                asset_server,
+                editor_asset_server,
+                resource_server,
+                asset_change_events,
+                editor_asset_change_events,
+                resource_change_events,
+                startup_session,
+                viewport_size,
+                viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge::new(
+                    UiFrame::new(0.0, 0.0, viewport_size.x as f32, viewport_size.y as f32),
+                ),
+                builtin_template_runtime,
+                template_bridge,
+                floating_window_source_bridge,
+                viewport_toolbar_bridge,
+                viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge::new(),
+                asset_surface_bridge: None,
+                welcome_surface_bridge: None,
+                inspector_surface_bridge,
+                pane_surface_bridge,
+                component_showcase_runtime,
+                component_showcase_runtime_loaded: false,
+                shell_pointer_bridge: HostShellPointerBridge::new(),
+                activity_rail_pointer_bridge: HostActivityRailPointerBridge::new(),
+                host_page_pointer_bridge: HostPagePointerBridge::new(),
+                document_tab_pointer_bridge: HostDocumentTabPointerBridge::new(),
+                drawer_header_pointer_bridge: HostDrawerHeaderPointerBridge::new(),
+                menu_pointer_bridge: HostMenuPointerBridge::new(),
+                menu_pointer_state: HostMenuPointerState::default(),
+                menu_pointer_layout: HostMenuPointerLayout::default(),
+                welcome_recent_pointer_bridge: WelcomeRecentPointerBridge::new(),
+                welcome_recent_pointer_state: WelcomeRecentPointerState::default(),
+                welcome_recent_pointer_size: UiSize::new(0.0, 0.0),
+                hierarchy_pointer_bridge: HierarchyPointerBridge::new(),
+                hierarchy_pointer_state: HierarchyPointerState::default(),
+                hierarchy_pointer_size: UiSize::new(0.0, 0.0),
+                console_scroll_surface: ScrollSurfaceHostState::new(
+                    "zircon.editor.console.pointer",
+                    "editor.console",
+                ),
+                inspector_scroll_surface: ScrollSurfaceHostState::new(
+                    "zircon.editor.inspector.pointer",
+                    "editor.inspector",
+                ),
+                browser_asset_details_scroll_surface: ScrollSurfaceHostState::new(
+                    "zircon.editor.asset_details.pointer",
+                    "editor.asset_details",
+                ),
+                activity_asset_pointer: AssetSurfacePointerState::new(),
+                browser_asset_pointer: AssetSurfacePointerState::new(),
+                active_asset_drag_payload: None,
+                active_scene_drag_payload: None,
+                active_object_drag_payload: None,
+                native_window_presenters: NativeWindowPresenterStore::default(),
+                floating_window_projection_bundle: FloatingWindowProjectionBundle::default(),
+                callback_source_window: None,
+                last_focused_callback_window: None,
+                active_layout_preset: None,
+                shell_size,
+                chrome_metrics: WorkbenchChromeMetrics::default(),
+                shell_geometry: None,
+                transient_region_preferred: BTreeMap::new(),
+                active_drawer_resize: None,
+                pending_close_prompt: None,
+                presentation_cache: HostPresentationCache::default(),
+                invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
+                presentation_dirty: true,
+                layout_dirty: true,
+                window_metrics_dirty: true,
+                render_dirty: true,
+            }
         };
         host.sync_asset_workspace();
+        host.drain_initial_asset_refresh_events();
         host.publish_refresh_invalidation_diagnostics();
         Ok(host)
     }
@@ -178,8 +316,12 @@ impl RetainedEditorHost {
         zircon_runtime::profile_scope!("editor", "retained_host", "tick");
         self.poll_desktop_export_jobs();
 
-        if let Err(error) = self.refresh_project_assets() {
-            self.set_status_line(error);
+        {
+            let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);
+            let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::AssetRefresh);
+            if let Err(error) = self.refresh_project_assets() {
+                self.set_status_line(error);
+            }
         }
 
         self.sync_shell_size();
@@ -195,6 +337,7 @@ impl RetainedEditorHost {
                 pending_render
             };
             let render_rebuild = self.invalidation.record_render_rebuild();
+            record_current_ui_perf_counter(UiPerfCounter::RenderPathCount, 1.0);
             self.publish_refresh_invalidation_diagnostics();
             if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
                 write_diagnostic_log(
@@ -207,24 +350,42 @@ impl RetainedEditorHost {
                     ),
                 );
             }
+            let mut keep_render_dirty = false;
             if let Some(submission) = self.runtime.render_frame_submission() {
                 zircon_runtime::profile_scope!(
                     "editor",
                     "retained_host",
                     "submit_viewport_extract"
                 );
-                if let Err(error) = self.viewport.submit_extract_with_ui(
+                match self.viewport.submit_extract_with_ui(
                     submission.extract,
                     submission.ui,
                     self.viewport_size,
                 ) {
-                    self.set_status_line(format!("Viewport submit failed: {error}"));
+                    Ok(true) => {}
+                    Ok(false) => {
+                        keep_render_dirty = true;
+                    }
+                    Err(error) => {
+                        self.set_status_line(format!("Viewport submit failed: {error}"));
+                    }
                 }
             }
-            self.render_dirty = false;
+            self.render_dirty = keep_render_dirty;
+            if keep_render_dirty {
+                // Lazy viewport backend startup completes off-thread; queue a
+                // non-reentrant frame update so the next redraw can submit the
+                // extract once the backend is ready.
+                let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
+                self.ui.request_frame_update_region(frame);
+            }
         }
 
-        self.poll_viewport_image_for_native_host();
+        {
+            let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::ViewportImage);
+            let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::ViewportImage);
+            self.poll_viewport_image_for_native_host();
+        }
         if let Some(error) = self.viewport.take_error() {
             self.set_status_line(error);
             self.recompute_if_dirty();
@@ -243,6 +404,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn build_chrome(&self) -> crate::ui::workbench::snapshot::EditorChromeSnapshot {
+        record_current_ui_perf_counter(UiPerfCounter::ChromeSnapshotCount, 1.0);
         self.runtime.chrome_snapshot()
     }
 
@@ -292,6 +454,7 @@ impl RetainedEditorHost {
             && !recompute_reasons.requires_hit_test()
             && !recompute_reasons.requires_render();
         if pure_paint_only {
+            record_current_ui_perf_counter(UiPerfCounter::ChromeCommandPatchCount, 1.0);
             self.presentation_dirty = false;
             self.layout_dirty = false;
             self.window_metrics_dirty = false;
@@ -314,6 +477,8 @@ impl RetainedEditorHost {
         }
 
         let slow_path_rebuild = self.invalidation.record_slow_path_rebuild();
+        record_current_ui_perf_counter(UiPerfCounter::SlowPathRebuildCount, 1.0);
+        record_current_ui_perf_counter(UiPerfCounter::ChromeCommandFullRebuildCount, 1.0);
         self.publish_refresh_invalidation_diagnostics();
         if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
             write_diagnostic_log(
@@ -331,59 +496,121 @@ impl RetainedEditorHost {
             );
         }
 
-        let layout = self.runtime.current_layout();
-        let descriptors = self.runtime.descriptors();
-        let mut chrome = self.build_chrome();
-        let mut model = WorkbenchViewModel::build(&chrome);
+        let layout = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "recompute_read_layout");
+            self.runtime.current_layout()
+        };
+        let descriptors = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "recompute_read_descriptors");
+            self.runtime.descriptors()
+        };
+        let mut chrome = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "recompute_build_chrome");
+            self.build_chrome()
+        };
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_update_presentation_cache"
+            );
+            self.presentation_cache.update_from_chrome(&chrome);
+        }
+        record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
+        let mut model = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_build_workbench_model"
+            );
+            WorkbenchViewModel::build(&chrome)
+        };
         if paint_only_reasons.requires_layout() {
             // layout-affecting invalidations still require the full shell recompute below;
             // pure paint-only reasons stay eligible for a lighter path after the shared
             // root frames are already stable.
         }
-        let geometry = compute_workbench_shell_geometry(
-            &model,
-            &chrome,
-            &layout,
-            &descriptors,
-            self.shell_size,
-            &self.chrome_metrics,
-            if self.transient_region_preferred.is_empty() {
-                None
-            } else {
-                Some(&self.transient_region_preferred)
-            },
-        );
-        let _ = self.template_bridge.recompute_layout_with_workbench_model(
-            UiSize::new(self.shell_size.width, self.shell_size.height),
-            &model,
-            &self.chrome_metrics,
-        );
-        let _ = self
-            .floating_window_source_bridge
-            .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));
+        let geometry = {
+            zircon_runtime::profile_scope!("editor", "retained_host", "recompute_shell_geometry");
+            compute_workbench_shell_geometry(
+                &model,
+                &chrome,
+                &layout,
+                &descriptors,
+                self.shell_size,
+                &self.chrome_metrics,
+                if self.transient_region_preferred.is_empty() {
+                    None
+                } else {
+                    Some(&self.transient_region_preferred)
+                },
+            )
+        };
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_root_template_bridge"
+            );
+            let _ = self.template_bridge.recompute_layout_with_workbench_model(
+                UiSize::new(self.shell_size.width, self.shell_size.height),
+                &model,
+                &self.chrome_metrics,
+            );
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_floating_source_bridge"
+            );
+            let _ = self
+                .floating_window_source_bridge
+                .recompute_layout(UiSize::new(self.shell_size.width, self.shell_size.height));
+        }
         let root_shell_frames = self.template_bridge.root_shell_frames();
         let floating_window_shared_source = resolve_floating_window_projection_shared_source(
             &self.floating_window_source_bridge.source_frames(),
         );
-        for (window_index, window) in model.floating_windows.iter().enumerate() {
-            let frame = resolve_floating_window_projection_base_outer_frame(
-                window,
-                window_index,
-                floating_window_shared_source,
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_sync_floating_bounds"
             );
-            self.editor_manager.sync_native_window_projection_bounds(
-                &window.window_id,
-                [frame.x, frame.y, frame.width, frame.height],
-            );
+            for (window_index, window) in model.floating_windows.iter().enumerate() {
+                let frame = resolve_floating_window_projection_base_outer_frame(
+                    window,
+                    window_index,
+                    floating_window_shared_source,
+                );
+                self.editor_manager.sync_native_window_projection_bounds(
+                    &window.window_id,
+                    [frame.x, frame.y, frame.width, frame.height],
+                );
+            }
         }
-        let native_window_hosts = self.editor_manager.native_window_hosts();
-        let floating_window_projection_bundle =
+        let native_window_hosts = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_native_window_hosts"
+            );
+            self.editor_manager.native_window_hosts()
+        };
+        let floating_window_projection_bundle = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_floating_projection_bundle"
+            );
             build_floating_window_projection_bundle_with_shared_source(
                 &model,
                 floating_window_shared_source,
                 &self.chrome_metrics,
                 &native_window_hosts,
-            );
+            )
+        };
         let viewport_content_frame = resolve_root_viewport_content_frame(
             Some(&root_shell_frames),
             active_document_shows_viewport_toolbar(&model),
@@ -391,82 +618,206 @@ impl RetainedEditorHost {
 
         if let Some(next_viewport_size) = viewport_size_from_frame(viewport_content_frame) {
             if next_viewport_size != self.viewport_size {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "recompute_viewport_resize"
+                );
                 self.viewport_size = next_viewport_size;
-                self.apply_dispatch_result(callback_dispatch::dispatch_viewport_event(
-                    &self.runtime,
-                    EditorViewportEvent::Resized {
-                        width: self.viewport_size.x,
-                        height: self.viewport_size.y,
-                    },
-                ));
+                self.apply_viewport_resize_effects_in_active_recompute(
+                    callback_dispatch::dispatch_viewport_event(
+                        &self.runtime,
+                        EditorViewportEvent::Resized {
+                            width: self.viewport_size.x,
+                            height: self.viewport_size.y,
+                        },
+                    ),
+                );
                 chrome = self.build_chrome();
+                self.presentation_cache.update_from_chrome(&chrome);
+                record_current_ui_perf_counter(UiPerfCounter::WorkbenchModelBuildCount, 1.0);
                 model = WorkbenchViewModel::build(&chrome);
             }
         }
-        self.viewport_pointer_bridge
-            .update_viewport_frame(UiFrame::new(
-                0.0,
-                0.0,
-                viewport_content_frame.width.max(0.0),
-                viewport_content_frame.height.max(0.0),
-            ));
-        self.shell_pointer_bridge
-            .update_layout_with_root_shell_frames(
-                self.shell_size,
-                model.drawer_ring.visible,
-                &model.floating_windows,
-                Some(&root_shell_frames),
-                Some(&floating_window_projection_bundle),
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_pointer_bridge_layouts"
             );
-        self.sync_activity_rail_pointer_layout(&model);
-        self.sync_host_page_pointer_layout(&model);
-        self.sync_document_tab_pointer_layout(&model, &floating_window_projection_bundle);
-        self.sync_drawer_header_pointer_layout(&model);
+            self.viewport_pointer_bridge
+                .update_viewport_frame(UiFrame::new(
+                    0.0,
+                    0.0,
+                    viewport_content_frame.width.max(0.0),
+                    viewport_content_frame.height.max(0.0),
+                ));
+            self.shell_pointer_bridge
+                .update_layout_with_root_shell_frames(
+                    self.shell_size,
+                    model.drawer_ring.visible,
+                    &model.floating_windows,
+                    Some(&root_shell_frames),
+                    Some(&floating_window_projection_bundle),
+                );
+            self.sync_activity_rail_pointer_layout(&model);
+            self.sync_host_page_pointer_layout(&model);
+            self.sync_document_tab_pointer_layout(&model, &floating_window_projection_bundle);
+            self.sync_drawer_header_pointer_layout(&model);
+        }
 
-        let preset_names = self.runtime.preset_names();
-        let ui_asset_panes = self.collect_ui_asset_panes();
-        let animation_panes = self.collect_animation_editor_panes();
-        let runtime_diagnostics = self.runtime_diagnostics_with_profile();
-        let module_plugins = self.module_plugins_pane_data(&chrome);
-        let build_export = self.build_export_pane_data(&chrome);
-        apply_presentation(
-            &self.ui,
-            &model,
-            &chrome,
-            &geometry,
-            &preset_names,
-            self.active_layout_preset.as_deref(),
-            &ui_asset_panes,
-            &animation_panes,
-            Some(&runtime_diagnostics),
-            &module_plugins,
-            &build_export,
-            Some(&root_shell_frames),
-            &floating_window_projection_bundle,
-            Some(&self.component_showcase_runtime),
-        );
-        attach_viewport_toolbar_surface_frames_to_ui(&self.ui, &mut self.viewport_toolbar_bridge);
-        let world_space_ui_surfaces =
-            crate::ui::retained_host::build_world_space_ui_surface_submissions_from_host_scene(
-                &self.ui.get_host_presentation().host_scene_data,
+        let (
+            preset_names,
+            ui_asset_panes,
+            animation_panes,
+            runtime_diagnostics,
+            module_plugins,
+            build_export,
+        ) = {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_collect_pane_payloads"
             );
-        self.viewport
-            .submit_world_space_ui_surfaces(world_space_ui_surfaces);
-        self.sync_native_window_presenters(
-            &model,
-            &chrome,
-            &geometry,
-            &preset_names,
-            &ui_asset_panes,
-            &animation_panes,
-            &runtime_diagnostics,
-            &floating_window_projection_bundle,
-        );
-        self.sync_menu_pointer_layout(&model, &chrome, &preset_names);
-        self.sync_welcome_recent_pointer_layout(&chrome.welcome);
-        self.sync_hierarchy_pointer_layout(&chrome.scene_entries);
-        self.sync_detail_pointer_layouts(&chrome);
-        self.sync_asset_pointer_layouts(&chrome);
+            let preset_names = {
+                zircon_runtime::profile_scope!("editor", "retained_host", "collect_preset_names");
+                self.runtime.preset_names()
+            };
+            let ui_asset_panes = {
+                zircon_runtime::profile_scope!("editor", "retained_host", "collect_ui_asset_panes");
+                self.collect_ui_asset_panes()
+            };
+            let animation_panes = {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "collect_animation_panes"
+                );
+                self.collect_animation_editor_panes()
+            };
+            let runtime_diagnostics = {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "collect_runtime_diagnostics"
+                );
+                if runtime_diagnostics_visibility::should_collect_runtime_diagnostics(&model) {
+                    self.runtime_diagnostics_with_profile()
+                } else {
+                    zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot::default()
+                }
+            };
+            let module_plugins = {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "collect_module_plugins_pane"
+                );
+                if pane_payload_visibility::should_collect_payload_for_kind(
+                    &model,
+                    ViewContentKind::ModulePlugins,
+                ) {
+                    self.module_plugins_pane_data(&chrome)
+                } else {
+                    crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData::default()
+                }
+            };
+            let build_export = {
+                zircon_runtime::profile_scope!(
+                    "editor",
+                    "retained_host",
+                    "collect_build_export_pane"
+                );
+                if pane_payload_visibility::should_collect_payload_for_kind(
+                    &model,
+                    ViewContentKind::BuildExport,
+                ) {
+                    self.build_export_pane_data(&chrome)
+                } else {
+                    crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData::default()
+                }
+            };
+            (
+                preset_names,
+                ui_asset_panes,
+                animation_panes,
+                runtime_diagnostics,
+                module_plugins,
+                build_export,
+            )
+        };
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_apply_presentation"
+            );
+            let has_component_showcase_runtime =
+                self.prepare_component_showcase_runtime_for_presentation(&model);
+            let pane_template_runtime = if has_component_showcase_runtime {
+                &self.component_showcase_runtime
+            } else {
+                self.builtin_template_runtime.as_ref()
+            };
+            apply_presentation(
+                &self.ui,
+                &model,
+                &chrome,
+                &geometry,
+                &preset_names,
+                self.active_layout_preset.as_deref(),
+                &ui_asset_panes,
+                &animation_panes,
+                Some(&runtime_diagnostics),
+                &module_plugins,
+                &build_export,
+                Some(&root_shell_frames),
+                &floating_window_projection_bundle,
+                Some(pane_template_runtime),
+            );
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_viewport_surfaces"
+            );
+            attach_viewport_toolbar_surface_frames_to_ui(
+                &self.ui,
+                &mut self.viewport_toolbar_bridge,
+            );
+            let world_space_ui_surfaces =
+                crate::ui::retained_host::build_world_space_ui_surface_submissions_from_host_scene(
+                    &self.ui.get_host_presentation().host_scene_data,
+                );
+            self.viewport
+                .submit_world_space_ui_surfaces(world_space_ui_surfaces);
+        }
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "retained_host",
+                "recompute_native_window_presenters"
+            );
+            self.sync_native_window_presenters(
+                &model,
+                &chrome,
+                &geometry,
+                &preset_names,
+                &ui_asset_panes,
+                &animation_panes,
+                &runtime_diagnostics,
+                &floating_window_projection_bundle,
+            );
+        }
+        {
+            zircon_runtime::profile_scope!("editor", "retained_host", "recompute_pointer_surfaces");
+            self.sync_menu_pointer_layout(&model, &chrome, &preset_names);
+            self.sync_welcome_recent_pointer_layout();
+            self.sync_hierarchy_pointer_layout(&chrome.scene_entries);
+            self.sync_detail_pointer_layouts(&chrome);
+            self.sync_asset_pointer_layouts(&chrome);
+        }
         self.floating_window_projection_bundle = floating_window_projection_bundle;
         self.shell_geometry = Some(geometry);
         self.presentation_dirty = false;
@@ -811,6 +1162,34 @@ impl RetainedEditorHost {
             self.active_layout_preset = None;
         }
         self.invalidate_host(effects.dirty_domains());
+        self.apply_dispatch_side_effects(&effects);
+    }
+
+    fn apply_viewport_resize_effects_in_active_recompute(
+        &mut self,
+        result: Result<UiHostEventEffects, String>,
+    ) {
+        match result {
+            Ok(effects) => {
+                // The active recompute immediately rebuilds chrome/model after
+                // viewport resize, so only the render-domain part should carry
+                // into the next tick.
+                if let Some(name) = effects.active_layout_preset_name.clone() {
+                    self.active_layout_preset = Some(name);
+                }
+                if effects.reset_active_layout_preset {
+                    self.active_layout_preset = None;
+                }
+                let mut dirty_domains = effects.dirty_domains();
+                dirty_domains.remove(HostInvalidationMask::PRESENTATION_DATA);
+                self.invalidate_host(dirty_domains);
+                self.apply_dispatch_side_effects(&effects);
+            }
+            Err(error) => self.set_status_line(error),
+        }
+    }
+
+    fn apply_dispatch_side_effects(&mut self, effects: &UiHostEventEffects) {
         if effects.sync_asset_workspace {
             self.sync_asset_workspace();
         }
@@ -842,6 +1221,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn invalidate_host(&mut self, mask: HostInvalidationMask) {
+        record_ui_dirty_mask(mask);
         self.invalidation.invalidate(mask);
         if mask.requires_window_metrics() {
             self.window_metrics_dirty = true;
@@ -858,8 +1238,9 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn record_paint_only_invalidation(&mut self, mask: HostInvalidationMask) {
-        self.invalidation
-            .invalidate(mask.union(HostInvalidationMask::PAINT_ONLY));
+        let mask = mask.union(HostInvalidationMask::PAINT_ONLY);
+        record_ui_dirty_mask(mask);
+        self.invalidation.invalidate(mask);
         self.publish_refresh_invalidation_diagnostics();
     }
 
@@ -891,12 +1272,44 @@ impl RetainedEditorHost {
         runtime_diagnostics: &zircon_runtime::core::diagnostics::RuntimeDiagnosticsSnapshot,
         floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     ) {
-        let module_plugins = self.module_plugins_pane_data(chrome);
-        let build_export = self.build_export_pane_data(chrome);
         let targets =
             collect_native_floating_window_targets(model, floating_window_projection_bundle);
+        if targets.is_empty() {
+            if let Err(error) =
+                self.native_window_presenters
+                    .sync_targets(&targets, |_, _| {}, |_, _| {})
+            {
+                self.set_status_line(format!("Native window sync failed: {error}"));
+            }
+            return;
+        }
+
+        let module_plugins = if pane_payload_visibility::should_collect_payload_for_kind(
+            model,
+            ViewContentKind::ModulePlugins,
+        ) {
+            self.module_plugins_pane_data(chrome)
+        } else {
+            crate::ui::layouts::windows::workbench_host_window::ModulePluginsPaneViewData::default()
+        };
+        let build_export = if pane_payload_visibility::should_collect_payload_for_kind(
+            model,
+            ViewContentKind::BuildExport,
+        ) {
+            self.build_export_pane_data(chrome)
+        } else {
+            crate::ui::layouts::windows::workbench_host_window::BuildExportPaneViewData::default()
+        };
+        let has_component_showcase_runtime =
+            self.prepare_component_showcase_runtime_for_presentation(model);
+        let pane_template_runtime = if has_component_showcase_runtime {
+            &self.component_showcase_runtime
+        } else {
+            self.builtin_template_runtime.as_ref()
+        };
         let active_preset_name = self.active_layout_preset.as_deref();
         let host_handle = self.self_handle.as_ref().and_then(Weak::upgrade);
+        let viewport_toolbar_bridge = &mut self.viewport_toolbar_bridge;
         if let Err(error) = self.native_window_presenters.sync_targets(
             &targets,
             |ui, target| {
@@ -929,18 +1342,29 @@ impl RetainedEditorHost {
                     &build_export,
                     None,
                     floating_window_projection_bundle,
-                    Some(&self.component_showcase_runtime),
+                    Some(pane_template_runtime),
                 );
-                if let Ok(mut viewport_toolbar_bridge) =
-                    callback_dispatch::BuiltinViewportToolbarTemplateBridge::new()
-                {
-                    attach_viewport_toolbar_surface_frames_to_ui(ui, &mut viewport_toolbar_bridge);
-                }
+                attach_viewport_toolbar_surface_frames_to_ui(ui, viewport_toolbar_bridge);
                 configure_native_floating_window_presentation(ui, target);
             },
         ) {
             self.set_status_line(format!("Native window sync failed: {error}"));
         }
+    }
+}
+
+fn resolve_editor_startup_session(
+    editor_manager: &EditorManager,
+    startup_request: Option<EditorGuiStartupRequest>,
+) -> Result<EditorStartupSessionDocument, crate::ui::host::EditorError> {
+    match startup_request {
+        Some(EditorGuiStartupRequest::OpenProject { project_path }) => {
+            editor_manager.open_project_and_remember(project_path)
+        }
+        Some(EditorGuiStartupRequest::CreateProject(draft)) => {
+            editor_manager.create_project_and_open(draft)
+        }
+        None => editor_manager.resolve_startup_session(),
     }
 }
 

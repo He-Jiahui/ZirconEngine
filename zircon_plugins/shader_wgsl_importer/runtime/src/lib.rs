@@ -135,6 +135,8 @@ pub fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, A
             source: source.clone(),
             wgsl_source: source,
             entry_points,
+            dependencies: Vec::new(),
+            pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
     ))

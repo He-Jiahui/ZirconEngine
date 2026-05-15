@@ -145,47 +145,53 @@ id = "main"
 }
 
 #[test]
-fn importer_registry_routes_v2_ui_toml_to_v2_document_backend() {
-    let root = unique_temp_project_root("v2_ui_toml_registry");
+fn importer_registry_routes_zui_to_component_backend() {
+    let root = unique_temp_project_root("zui_registry");
     fs::create_dir_all(&root).unwrap();
-    let path = root.join("hud_overlay.v2.ui.toml");
-    fs::write(&path, minimal_v2_ui_view_toml()).unwrap();
+    let path = root.join("hud_overlay.zui");
+    fs::write(&path, minimal_zui_component_toml()).unwrap();
 
     let default_descriptor = AssetImporter::default()
         .registry()
         .descriptor_for_source(&path)
         .unwrap();
-    assert_eq!(
-        default_descriptor.id,
-        "zircon.builtin.ui_document.v2_ui_toml"
-    );
+    assert_eq!(default_descriptor.id, "zircon.builtin.ui_component.zui");
     assert_eq!(default_descriptor.importer_version, 2);
-    assert_eq!(default_descriptor.full_suffixes, vec![".v2.ui.toml"]);
+    assert_eq!(default_descriptor.full_suffixes, vec![".zui"]);
     let default_imported = AssetImporter::default()
-        .import_from_source(
-            &path,
-            &AssetUri::parse("res://ui/hud_overlay.v2.ui.toml").unwrap(),
-        )
+        .import_from_source(&path, &AssetUri::parse("res://ui/hud_overlay.zui").unwrap())
         .unwrap();
-    assert!(matches!(default_imported, ImportedAsset::UiV2View(_)));
+    assert!(matches!(default_imported, ImportedAsset::UiV2Component(_)));
 
     let fixture_importer = importer_with_first_wave_plugin_fixtures();
     let fixture_descriptor = fixture_importer
         .registry()
         .descriptor_for_source(&path)
         .unwrap();
-    assert_eq!(fixture_descriptor.id, "ui_document_importer.v2_typed_toml");
-    assert_eq!(fixture_descriptor.full_suffixes, vec![".v2.ui.toml"]);
+    assert_eq!(fixture_descriptor.id, "ui_document_importer.zui_component");
+    assert_eq!(fixture_descriptor.full_suffixes, vec![".zui"]);
 
     let imported = fixture_importer
-        .import_from_source(
-            &path,
-            &AssetUri::parse("res://ui/hud_overlay.v2.ui.toml").unwrap(),
-        )
+        .import_from_source(&path, &AssetUri::parse("res://ui/hud_overlay.zui").unwrap())
         .unwrap();
-    assert!(matches!(imported, ImportedAsset::UiV2View(_)));
+    assert!(matches!(imported, ImportedAsset::UiV2Component(_)));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_default_rejects_legacy_v2_ui_toml_without_migration_fixture_backend() {
+    let error = AssetImporter::default()
+        .registry()
+        .descriptor_for_source(Path::new("legacy.v2.ui.toml"))
+        .unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("legacy UI v2 suffix `.v2.ui.toml` has no registered importer"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -223,6 +229,29 @@ fn importer_registry_rejects_non_fixture_legacy_ui_toml_importer_registration() 
     assert_eq!(
         error,
         AssetImporterRegistryError::LegacyUiTomlImporter("third_party.legacy_ui".to_string())
+    );
+}
+
+#[test]
+fn importer_registry_rejects_non_fixture_legacy_v2_ui_toml_importer_registration() {
+    let mut registry = AssetImporterRegistry::default();
+
+    let error = registry
+        .register(FunctionAssetImporter::new(
+            AssetImporterDescriptor::new(
+                "third_party.v2_ui",
+                "third_party",
+                crate::asset::AssetKind::UiLayout,
+                2,
+            )
+            .with_full_suffixes([".v2.ui.toml"]),
+            |context| test_data_outcome(context, "legacy-v2"),
+        ))
+        .unwrap_err();
+
+    assert_eq!(
+        error,
+        AssetImporterRegistryError::LegacyV2UiTomlImporter("third_party.v2_ui".to_string())
     );
 }
 
@@ -620,16 +649,16 @@ control_id = "LegacyRoot"
 "#
 }
 
-fn minimal_v2_ui_view_toml() -> &'static str {
+fn minimal_zui_component_toml() -> &'static str {
     r#"
 [asset]
-kind = "view"
+kind = "component"
 id = "runtime.ui.hud_overlay"
 version = 2
 display_name = "Runtime HUD Overlay"
 
-[root]
-node = "root"
+[components.HudOverlay]
+root = "root"
 
 [nodes.root]
 component = "Text"

@@ -95,13 +95,13 @@ fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_f
         compact_bottom_height_limit((body_frame.height - metrics.separator_thickness).max(0.0))
             .map(|limit| requested_bottom_height.min(limit))
             .unwrap_or(requested_bottom_height);
-    let expected_bottom_height = round_to_centipixel(expected_bottom_height);
-    let expected_center_height = round_to_centipixel(
+    let expected_bottom_height = round_to_layout_pixel(expected_bottom_height);
+    let expected_center_height = round_to_layout_pixel(
         body_frame.height - expected_bottom_height - metrics.separator_thickness,
     );
     let expected_bottom_y =
-        round_to_centipixel(body_frame.y + body_frame.height - expected_bottom_height);
-    let expected_bottom_content_height = round_to_centipixel(
+        round_to_layout_pixel(body_frame.y + body_frame.height - expected_bottom_height);
+    let expected_bottom_content_height = round_to_layout_pixel(
         (expected_bottom_height - metrics.panel_header_height - metrics.separator_thickness)
             .max(0.0),
     );
@@ -183,6 +183,6 @@ fn builtin_host_window_template_bridge_exports_visible_drawer_shell_and_header_f
     );
 }
 
-fn round_to_centipixel(value: f32) -> f32 {
-    (value * 100.0).round() / 100.0
+fn round_to_layout_pixel(value: f32) -> f32 {
+    value.round()
 }

@@ -10,6 +10,7 @@ pub type ZrRuntimeProfileControlFnV1 =
 pub const PROFILE_TIMELINE_NATIVE_FILE: &str = "timeline.zrtrace.json";
 pub const PROFILE_TIMELINE_PERFETTO_FILE: &str = "timeline.perfetto.json";
 pub const PROFILE_HOTSPOTS_FILE: &str = "hotspots.json";
+pub const PROFILE_UI_HOTSPOTS_FILE: &str = "ui_hotspots.json";
 pub const PROFILE_SUMMARY_FILE: &str = "summary.md";
 pub const PROFILE_DEFAULT_OUTPUT_ROOT: &str = "target/zircon-profiles";
 pub const PROFILE_DEFAULT_SESSION_ID: &str = "local";
@@ -167,6 +168,100 @@ pub struct HotspotEntry {
     pub over_budget_count: u64,
 }
 
+/// UI-specific counter aggregation used to detect retained-host slow paths.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct UiHotspotReport {
+    pub session_id: String,
+    pub frame_budget_ms: f64,
+    pub generated_from_counter_count: usize,
+    pub scenarios: Vec<UiScenarioHotspot>,
+    pub alerts: Vec<UiHotspotAlert>,
+}
+
+impl Default for UiHotspotReport {
+    fn default() -> Self {
+        Self {
+            session_id: PROFILE_DEFAULT_SESSION_ID.to_string(),
+            frame_budget_ms: PROFILE_DEFAULT_FRAME_BUDGET_MS,
+            generated_from_counter_count: 0,
+            scenarios: Vec::new(),
+            alerts: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiScenarioHotspot {
+    pub scenario: String,
+    pub frame_count: u64,
+    pub frame_p95_us: u64,
+    pub frame_max_us: u64,
+    pub slow_path_rebuild_count: u64,
+    pub render_path_count: u64,
+    pub presentation_rebuild_count: u64,
+    pub full_paint_count: u64,
+    pub region_paint_count: u64,
+    pub painted_pixels: u64,
+    pub redraw_full_frame_count: u64,
+    pub redraw_region_count: u64,
+    pub dirty_layout_count: u64,
+    pub dirty_presentation_count: u64,
+    pub dirty_render_count: u64,
+    pub dirty_paint_only_count: u64,
+    pub chrome_snapshot_count: u64,
+    pub workbench_model_build_count: u64,
+    pub chrome_command_full_rebuild_count: u64,
+    pub chrome_command_patch_count: u64,
+    pub software_fallback_present_count: u64,
+    pub gpu_upload_bytes: u64,
+    pub gpu_draw_calls: u64,
+    pub gpu_visible_commands: u64,
+    pub gpu_visible_draw_items: u64,
+    pub gpu_batch_layers: u64,
+    pub gpu_batch_dependencies: u64,
+}
+
+impl UiScenarioHotspot {
+    pub fn empty(scenario: impl Into<String>) -> Self {
+        Self {
+            scenario: scenario.into(),
+            frame_count: 0,
+            frame_p95_us: 0,
+            frame_max_us: 0,
+            slow_path_rebuild_count: 0,
+            render_path_count: 0,
+            presentation_rebuild_count: 0,
+            full_paint_count: 0,
+            region_paint_count: 0,
+            painted_pixels: 0,
+            redraw_full_frame_count: 0,
+            redraw_region_count: 0,
+            dirty_layout_count: 0,
+            dirty_presentation_count: 0,
+            dirty_render_count: 0,
+            dirty_paint_only_count: 0,
+            chrome_snapshot_count: 0,
+            workbench_model_build_count: 0,
+            chrome_command_full_rebuild_count: 0,
+            chrome_command_patch_count: 0,
+            software_fallback_present_count: 0,
+            gpu_upload_bytes: 0,
+            gpu_draw_calls: 0,
+            gpu_visible_commands: 0,
+            gpu_visible_draw_items: 0,
+            gpu_batch_layers: 0,
+            gpu_batch_dependencies: 0,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiHotspotAlert {
+    pub scenario: String,
+    pub rule: String,
+    pub message: String,
+}
+
 /// JSON command carried through `ZrRuntimeProfileControlFnV1`.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -194,6 +289,8 @@ pub struct ProfileControlResponse {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub hotspot_report: Option<HotspotReport>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ui_hotspot_report: Option<UiHotspotReport>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub export_dir: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub files: Vec<String>,
@@ -206,6 +303,7 @@ impl ProfileControlResponse {
             message: message.into(),
             snapshot: None,
             hotspot_report: None,
+            ui_hotspot_report: None,
             export_dir: None,
             files: Vec::new(),
         }
@@ -217,6 +315,7 @@ impl ProfileControlResponse {
             message: message.into(),
             snapshot: None,
             hotspot_report: None,
+            ui_hotspot_report: None,
             export_dir: None,
             files: Vec::new(),
         }

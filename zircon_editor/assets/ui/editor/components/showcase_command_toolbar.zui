@@ -1,0 +1,65 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_command_toolbar.zui"
+version = 2
+display_name = "Showcase Command Toolbar"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseCommandToolbar]
+root = "toolbar_root"
+default_classes = ["unreal-panel"]
+
+[nodes.toolbar_label]
+component = "Label"
+control_id = "ComponentShowcaseToolbarLabel"
+classes = ["showcase-muted"]
+props = { text = "Component Gallery", font_size = 11.0 }
+layout = { width = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_compile]
+component = "Button"
+control_id = "ComponentShowcaseCompileButton"
+classes = ["material-control", "material-button", "unreal-command"]
+props = { text = "Compile", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 5.0, layout_padding_bottom = 5.0, layout_spacing = 6.0, layout_min_width = 68.0, layout_min_height = 26.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.toolbar_preview]
+component = "Button"
+control_id = "ComponentShowcasePreviewButton"
+classes = ["material-control", "material-button", "unreal-command"]
+props = { text = "Preview", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 5.0, layout_padding_bottom = 5.0, layout_spacing = 6.0, layout_min_width = 68.0, layout_min_height = 26.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.toolbar_reset]
+component = "Button"
+control_id = "ComponentShowcaseResetButton"
+classes = ["material-control", "material-button", "unreal-command"]
+props = { text = "Reset", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 5.0, layout_padding_bottom = 5.0, layout_spacing = 6.0, layout_min_width = 60.0, layout_min_height = 26.0, layout_icon_size = 14.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.toolbar_fill]
+component = "Space"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.toolbar_runtime_badge]
+component = "Badge"
+control_id = "ComponentShowcaseRuntimeBadge"
+classes = ["showcase-field", "unreal-accent"]
+props = { text = ".zui prototypes", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 4.0, layout_padding_bottom = 4.0 }
+layout = { width = { min = 118.0, preferred = 118.0, max = 118.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.toolbar_root]
+component = "HorizontalBox"
+control_id = "ShowcaseCommandToolbarRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "toolbar_label" },
+  { node = "toolbar_compile" },
+  { node = "toolbar_preview" },
+  { node = "toolbar_reset" },
+  { node = "toolbar_fill" },
+  { node = "toolbar_runtime_badge" },
+]

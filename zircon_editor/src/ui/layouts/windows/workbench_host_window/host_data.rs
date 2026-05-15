@@ -97,6 +97,7 @@ pub(crate) struct PaneNativeBodyData {
     pub assets_activity: AssetsActivityPaneViewData,
     pub asset_browser: AssetBrowserPaneViewData,
     pub project_overview: ProjectOverviewPaneViewData,
+    pub performance_timeline: PerformanceTimelinePaneViewData,
     pub module_plugins: ModulePluginsPaneViewData,
     pub build_export: BuildExportPaneViewData,
     pub ui_asset: UiAssetEditorPanePresentation,
@@ -161,6 +162,59 @@ pub(crate) struct AssetBrowserPaneViewData {
 #[derive(Clone, Default)]
 pub(crate) struct ProjectOverviewPaneViewData {
     pub nodes: ModelRc<ViewTemplateNodeData>,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PerformanceTimelinePaneViewData {
+    pub frame_rows: ModelRc<PerformanceTimelineFrameRowViewData>,
+    pub span_rows: ModelRc<PerformanceTimelineSpanRowViewData>,
+    pub hotspot_rows: ModelRc<PerformanceTimelineHotspotRowViewData>,
+    pub capture_controls: ModelRc<PerformanceTimelineCaptureControlViewData>,
+    pub summary: SharedString,
+    pub session_label: SharedString,
+    pub output_label: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PerformanceTimelineFrameRowViewData {
+    pub stream: SharedString,
+    pub name: SharedString,
+    pub frame_index: u64,
+    pub duration_label: SharedString,
+    pub budget_label: SharedString,
+    pub budget_usage_label: SharedString,
+    pub duration_ratio: f32,
+    pub bar_fill_ratio: f32,
+    pub budget_marker_ratio: f32,
+    pub over_budget: bool,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PerformanceTimelineSpanRowViewData {
+    pub stream: SharedString,
+    pub category: SharedString,
+    pub name: SharedString,
+    pub path: SharedString,
+    pub duration_label: SharedString,
+    pub depth: u16,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PerformanceTimelineHotspotRowViewData {
+    pub stream: SharedString,
+    pub category: SharedString,
+    pub name: SharedString,
+    pub path: SharedString,
+    pub total_label: SharedString,
+    pub average_label: SharedString,
+    pub count_label: SharedString,
+}
+
+#[derive(Clone, Default)]
+pub(crate) struct PerformanceTimelineCaptureControlViewData {
+    pub label: SharedString,
+    pub action_id: SharedString,
+    pub enabled: bool,
 }
 
 #[derive(Clone, Default)]

@@ -1,10 +1,12 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
     import_material, import_model, import_physics_material, import_scene, import_shader,
-    import_ui_v2_asset,
+    import_ui_zui_asset,
 };
 #[cfg(test)]
-use super::{import_gltf, import_obj, import_sound, import_texture, import_ui_asset};
+use super::{
+    import_gltf, import_obj, import_sound, import_texture, import_ui_asset, import_ui_v2_asset,
+};
 use crate::asset::{
     AssetImportError, AssetImporterDescriptor, AssetImporterRegistry, AssetKind,
     DiagnosticOnlyAssetImporter, FunctionAssetImporter,
@@ -149,14 +151,9 @@ impl AssetImporter {
             import_authoring_asset::import_navigation_settings,
         )?;
         self.register_function(
-            descriptor(
-                "zircon.builtin.ui_document.v2_ui_toml",
-                AssetKind::UiLayout,
-                2,
-            )
-            .with_full_suffixes([".v2.ui.toml"])
-            .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle]),
-            import_ui_v2_asset::import_ui_v2_asset,
+            descriptor("zircon.builtin.ui_component.zui", AssetKind::UiWidget, 2)
+                .with_full_suffixes([".zui"]),
+            import_ui_zui_asset::import_ui_zui_asset,
         )?;
 
         self.register_function(
@@ -334,6 +331,16 @@ impl AssetImporter {
     #[cfg(test)]
     pub(crate) fn first_wave_plugin_fixture_importers_for_test() -> Vec<FunctionAssetImporter> {
         vec![
+            FunctionAssetImporter::new(
+                plugin_fixture_descriptor(
+                    "ui_document_importer.zui_component",
+                    "ui_document_importer",
+                    AssetKind::UiWidget,
+                )
+                .with_full_suffixes([".zui"])
+                .with_required_capabilities(["runtime.asset.importer.ui_document"]),
+                import_ui_zui_asset::import_ui_zui_asset,
+            ),
             FunctionAssetImporter::new(
                 plugin_fixture_descriptor(
                     "ui_document_importer.v2_typed_toml",

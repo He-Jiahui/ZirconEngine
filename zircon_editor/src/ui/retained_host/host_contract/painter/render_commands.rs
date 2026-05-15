@@ -10,7 +10,10 @@ use zircon_runtime_interface::ui::{
 use super::super::data::FrameRect;
 use super::frame::HostRgbaFrame;
 use super::geometry::{inset, is_visible_frame};
-use super::primitives::{draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped};
+use super::primitives::{
+    draw_border_clipped, draw_rect_clipped, draw_rgba_image_clipped_with_resource_key,
+    draw_rounded_border_clipped, draw_rounded_rect_clipped,
+};
 use super::text::draw_text_with_size_and_style;
 use super::theme::PALETTE;
 use super::visual_assets::{
@@ -39,6 +42,7 @@ pub(super) struct HostPaintCommand {
     foreground_color: Option<[u8; 4]>,
     border_color: Option<[u8; 4]>,
     border_width: f32,
+    corner_radius: f32,
     text: Option<String>,
     font_size: f32,
     line_height: f32,
@@ -56,6 +60,7 @@ impl HostPaintCommand {
         background_color: Option<[u8; 4]>,
         border_color: Option<[u8; 4]>,
         border_width: f32,
+        corner_radius: f32,
         opacity: f32,
     ) -> Self {
         Self {
@@ -67,6 +72,7 @@ impl HostPaintCommand {
             foreground_color: None,
             border_color,
             border_width,
+            corner_radius,
             text: None,
             font_size: 12.0,
             line_height: 14.0,
@@ -97,6 +103,7 @@ impl HostPaintCommand {
             foreground_color: Some(foreground_color),
             border_color: None,
             border_width: 0.0,
+            corner_radius: 0.0,
             text: Some(text),
             font_size,
             line_height,
@@ -117,6 +124,7 @@ impl HostPaintCommand {
             foreground_color: None,
             border_color: None,
             border_width: 0.0,
+            corner_radius: 0.0,
             text: None,
             font_size: 12.0,
             line_height: 14.0,
@@ -143,6 +151,7 @@ impl HostPaintCommand {
             foreground_color: None,
             border_color: Some(FALLBACK_IMAGE_BORDER),
             border_width: 1.0,
+            corner_radius: 0.0,
             text: None,
             font_size: 12.0,
             line_height: 14.0,
@@ -157,6 +166,7 @@ impl HostPaintCommand {
         frame: FrameRect,
         clip_frame: Option<FrameRect>,
         z_index: i32,
+        resource_key: String,
         image_width: u32,
         image_height: u32,
         rgba: Vec<u8>,
@@ -171,12 +181,14 @@ impl HostPaintCommand {
             foreground_color: None,
             border_color: None,
             border_width: 0.0,
+            corner_radius: 0.0,
             text: None,
             font_size: 12.0,
             line_height: 14.0,
             text_style: UiTextRunPaintStyle::default(),
             image_key: None,
             image_pixels: Some(HostPaintImagePixels {
+                resource_key,
                 width: image_width,
                 height: image_height,
                 rgba,
@@ -190,12 +202,21 @@ pub(super) fn draw_host_paint_commands(
     frame: &mut HostRgbaFrame,
     commands: &[HostPaintCommand],
 ) -> bool {
-    let mut ordered = commands.iter().enumerate().collect::<Vec<_>>();
-    ordered.sort_by_key(|(index, command)| (command.z_index, *index));
+    let mut ordered = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_collect_order");
+        commands.iter().enumerate().collect::<Vec<_>>()
+    };
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_sort");
+        ordered.sort_by_key(|(index, command)| (command.z_index, *index));
+    }
 
     let mut drew_any = false;
-    for (_, command) in ordered {
-        drew_any |= draw_host_paint_command(frame, command);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "paint_commands_draw_ordered");
+        for (_, command) in ordered {
+            drew_any |= draw_host_paint_command(frame, command);
+        }
     }
     drew_any
 }
@@ -230,9 +251,18 @@ fn draw_host_paint_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand
 
     match command.kind {
         HostPaintCommandKind::Group => false,
-        HostPaintCommandKind::Quad => draw_quad_command(frame, command),
-        HostPaintCommandKind::Text => draw_text_command(frame, command),
-        HostPaintCommandKind::Image => draw_image_command(frame, command),
+        HostPaintCommandKind::Quad => {
+            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_quad");
+            draw_quad_command(frame, command)
+        }
+        HostPaintCommandKind::Text => {
+            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_text");
+            draw_text_command(frame, command)
+        }
+        HostPaintCommandKind::Image => {
+            zircon_runtime::profile_scope!("editor", "host_painter", "paint_command_image");
+            draw_image_command(frame, command)
+        }
     }
 }
 
@@ -243,7 +273,17 @@ fn draw_quad_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
         .background_color
         .map(|color| color_with_opacity(color, command.opacity))
     {
-        draw_rect_clipped(frame, command.frame.clone(), clip, color);
+        if command.corner_radius > 0.0 {
+            draw_rounded_rect_clipped(
+                frame,
+                command.frame.clone(),
+                clip,
+                color,
+                command.corner_radius,
+            );
+        } else {
+            draw_rect_clipped(frame, command.frame.clone(), clip, color);
+        }
         drew_any = true;
     }
     if command.border_width > 0.0 {
@@ -251,7 +291,18 @@ fn draw_quad_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> b
             .border_color
             .map(|color| color_with_opacity(color, command.opacity))
         {
-            draw_border_width(frame, &command.frame, clip, color, command.border_width);
+            if command.corner_radius > 0.0 {
+                draw_rounded_border_clipped(
+                    frame,
+                    command.frame.clone(),
+                    clip,
+                    color,
+                    command.border_width,
+                    command.corner_radius,
+                );
+            } else {
+                draw_border_width(frame, &command.frame, clip, color, command.border_width);
+            }
             drew_any = true;
         }
     }
@@ -288,10 +339,11 @@ fn draw_image_command(frame: &mut HostRgbaFrame, command: &HostPaintCommand) -> 
         } else {
             image.rgba.as_slice()
         };
-        if draw_rgba_image_clipped(
+        if draw_rgba_image_clipped_with_resource_key(
             frame,
             command.frame.clone(),
             command.clip_frame.as_ref(),
+            &image.resource_key,
             image.width,
             image.height,
             source,
@@ -393,6 +445,7 @@ fn push_runtime_paint_element(
                     background_color,
                     border_color,
                     border_width,
+                    command.style.corner_radius.max(0.0),
                     element.effects.opacity,
                 ));
             }
@@ -511,6 +564,7 @@ fn push_text_decorations(
             Some(color),
             None,
             0.0,
+            0.0,
             opacity,
         ));
     }
@@ -535,6 +589,7 @@ fn push_image_resource_command(
                     frame,
                     clip_frame,
                     z_index,
+                    image.resource_key,
                     image.width,
                     image.height,
                     image.rgba,

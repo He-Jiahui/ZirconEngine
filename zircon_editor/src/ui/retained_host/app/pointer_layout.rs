@@ -101,10 +101,31 @@ impl RetainedEditorHost {
             ));
     }
 
-    pub(super) fn sync_welcome_recent_pointer_layout(
-        &mut self,
-        welcome: &crate::ui::workbench::startup::WelcomePaneSnapshot,
-    ) {
+    pub(super) fn sync_welcome_recent_pointer_layout(&mut self) {
+        let pane_size = self
+            .resolve_welcome_recent_pointer_size()
+            .unwrap_or(self.welcome_recent_pointer_size);
+        if pane_size.width <= 0.0 || pane_size.height <= 0.0 {
+            self.apply_welcome_recent_pointer_state_to_ui();
+            return;
+        }
+        self.welcome_recent_pointer_size = pane_size;
+        let recent_project_paths = self
+            .presentation_cache
+            .welcome_recent_project_paths()
+            .to_vec();
+
+        self.welcome_recent_pointer_bridge.sync(
+            WelcomeRecentPointerLayout {
+                pane_size,
+                recent_project_paths,
+            },
+            self.welcome_recent_pointer_state.clone(),
+        );
+        self.apply_welcome_recent_pointer_state_to_ui();
+    }
+
+    pub(super) fn sync_welcome_recent_pointer_size(&mut self) {
         let pane_size = self
             .resolve_welcome_recent_pointer_size()
             .unwrap_or(self.welcome_recent_pointer_size);
@@ -114,17 +135,8 @@ impl RetainedEditorHost {
         }
         self.welcome_recent_pointer_size = pane_size;
 
-        self.welcome_recent_pointer_bridge.sync(
-            WelcomeRecentPointerLayout {
-                pane_size,
-                recent_project_paths: welcome
-                    .recent_projects
-                    .iter()
-                    .map(|recent| recent.path.clone())
-                    .collect(),
-            },
-            self.welcome_recent_pointer_state.clone(),
-        );
+        self.welcome_recent_pointer_bridge
+            .sync_pane_size(pane_size, self.welcome_recent_pointer_state.clone());
         self.apply_welcome_recent_pointer_state_to_ui();
     }
 
@@ -198,24 +210,22 @@ impl RetainedEditorHost {
         &mut self,
         chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
     ) {
-        self.sync_console_pointer_layout(chrome);
+        self.sync_console_pointer_layout();
         self.sync_inspector_pointer_layout();
         self.sync_browser_asset_details_pointer_layout(&chrome.asset_browser);
     }
 
-    pub(super) fn sync_console_pointer_layout(
-        &mut self,
-        chrome: &crate::ui::workbench::snapshot::EditorChromeSnapshot,
-    ) {
+    pub(super) fn sync_console_pointer_layout(&mut self) {
         if !self.console_scroll_surface.has_size() {
             self.apply_console_pointer_state_to_ui();
             return;
         }
 
         let size = self.console_scroll_surface.size();
+        let status_line = self.presentation_cache.console_status_line();
         self.console_scroll_surface.sync(console_scroll_layout(
             size,
-            console_content_extent(chrome.status_line.as_str(), size.width, false, ""),
+            console_content_extent(status_line, size.width, false, ""),
         ));
         self.apply_console_pointer_state_to_ui();
     }

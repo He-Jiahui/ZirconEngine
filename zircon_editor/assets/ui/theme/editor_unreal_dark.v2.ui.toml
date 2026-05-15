@@ -1,0 +1,85 @@
+[asset]
+kind = "style"
+id = "ui.theme.editor_unreal_dark"
+version = 2
+display_name = "Editor Unreal Dark"
+
+[imports]
+widgets = []
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[tokens]
+unreal_shell = "#101214"
+unreal_panel = "#181a1e"
+unreal_panel_raised = "#202329"
+unreal_inset = "#0c0e10"
+unreal_border = "#343941"
+unreal_border_soft = "#292d33"
+unreal_text = "#e7eaf0"
+unreal_text_muted = "#a8afb8"
+unreal_accent = "#d89a3a"
+unreal_accent_soft = "#6b4b21"
+surface = "$unreal_shell"
+surface_panel = "$unreal_panel"
+surface_inset = "$unreal_inset"
+outline = "$unreal_border"
+text_primary = "$unreal_text"
+text_muted = "$unreal_text_muted"
+primary = "$unreal_accent"
+primary_text = "#101214"
+material_surface = "$unreal_panel"
+material_surface_inset = "$unreal_inset"
+material_surface_hover = "$unreal_panel_raised"
+material_surface_pressed = "#252a31"
+material_surface_selected = "#2d3a4b"
+material_accent = "$unreal_accent"
+material_accent_soft = "$unreal_accent_soft"
+material_border = "$unreal_border"
+material_text = "$unreal_text"
+material_text_muted = "$unreal_text_muted"
+material_focus_ring = "#e0b15a"
+material_radius_control = 3.0
+material_radius_surface = 4.0
+material_radius_small = 2.0
+material_font_size_body = 12.0
+material_font_size_meta = 11.0
+material_font_size_title = 14.0
+
+[[stylesheets]]
+id = "editor_unreal_dark"
+
+[[stylesheets.rules]]
+selector = ".showcase-shell"
+set = { self = { background = { color = "$unreal_shell" }, foreground = { color = "$unreal_text" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-panel"
+set = { self = { background = { color = "$unreal_panel" }, foreground = { color = "$unreal_text" }, border = { color = "$unreal_border", width = 1.0, radius = 4.0 } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-title"
+set = { self = { foreground = { color = "$unreal_text" }, font = { size = "$material_font_size_title" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-section-title"
+set = { self = { foreground = { color = "$unreal_text" }, font = { size = "$material_font_size_body" } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-toolbar"
+set = { self = { background = { color = "$unreal_panel" }, border = { color = "$unreal_border", width = 1.0, radius = 3.0 } } }
+
+[[stylesheets.rules]]
+selector = ".showcase-bottom-log"
+set = { self = { background = { color = "$unreal_inset" }, foreground = { color = "$unreal_text_muted" }, border = { color = "$unreal_border_soft", width = 1.0, radius = 3.0 } } }
+
+[[stylesheets.rules]]
+selector = ".unreal-panel"
+set = { self = { background = { color = "$unreal_panel" }, foreground = { color = "$unreal_text" }, border = { color = "$unreal_border", width = 1.0, radius = 4.0 } } }
+
+[[stylesheets.rules]]
+selector = ".unreal-command"
+set = { self = { background = { color = "$unreal_panel_raised" }, foreground = { color = "$unreal_text" }, border = { color = "$unreal_border", width = 1.0, radius = 3.0 } } }
+
+[[stylesheets.rules]]
+selector = ".unreal-accent"
+set = { self = { background = { color = "$unreal_accent" }, foreground = { color = "$primary_text" }, border = { color = "$unreal_accent", width = 1.0, radius = 3.0 } } }

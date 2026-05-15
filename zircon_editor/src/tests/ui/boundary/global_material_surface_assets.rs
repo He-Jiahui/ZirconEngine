@@ -13,7 +13,7 @@ fn global_material_surface_assets_follow_responsive_contracts() {
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        40,
+        41,
         "Milestone 3 inventory changed; update the acceptance inventory and this conformance test together"
     );
 
@@ -578,6 +578,7 @@ fn is_collection_heavy(relative: &str, document: &Value) -> bool {
             | "editor/welcome.v2.ui.toml"
             | "editor/host/console_body.v2.ui.toml"
             | "editor/host/module_plugins_body.v2.ui.toml"
+            | "editor/host/performance_timeline_body.v2.ui.toml"
             | "editor/host/runtime_diagnostics_body.v2.ui.toml"
     ) {
         return true;

@@ -12,7 +12,7 @@ component = "VerticalGroup"
 control_id = "ModulePluginsPaneBodyRoot"
 classes = ["editor-pane", "module-plugins-pane"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot" }]
+children = [{ node = "header" }, { node = "summary" }, { node = "plugin_list_slot", slot = { name = "module_plugin_list_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"

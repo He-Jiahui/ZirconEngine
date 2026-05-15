@@ -1,5 +1,4 @@
 use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
-use crate::ui::workbench::autolayout::compact_bottom_height_limit;
 use crate::ui::workbench::autolayout::compact_side_width_limit;
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::autolayout::ShellRegionId;
@@ -247,11 +246,8 @@ fn resolve_root_layout_frames(
             .unwrap_or_default(),
         ShellRegionId::Right,
     );
-    let bottom = compact_shared_bottom_frame(
-        shared_root_body_frame(shared_root_frames),
-        shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Bottom)
-            .unwrap_or_default(),
-    );
+    let bottom = shared_visible_drawer_shell_frame(shared_root_frames, ShellRegionId::Bottom)
+        .unwrap_or_default();
     let document = shared_document_region_frame(shared_root_frames).unwrap_or_default();
     let left_visible = frame_is_visible(left);
     let right_visible = frame_is_visible(right);
@@ -306,29 +302,6 @@ fn compact_shared_side_frame(
         }
         ShellRegionId::Bottom | ShellRegionId::Document => frame,
     }
-}
-
-fn compact_shared_bottom_frame(body: Option<ShellFrame>, bottom: ShellFrame) -> ShellFrame {
-    if !frame_is_visible(bottom) {
-        return bottom;
-    }
-
-    let Some(body) = body.filter(|frame| frame_is_visible(*frame)) else {
-        return bottom;
-    };
-    let metrics = WorkbenchChromeMetrics::default();
-    let available_height = (body.height - metrics.separator_thickness.max(0.0)).max(0.0);
-    let Some(limit) = compact_bottom_height_limit(available_height) else {
-        return bottom;
-    };
-
-    let height = bottom.height.min(limit);
-    ShellFrame::new(
-        bottom.x,
-        body.y + body.height - height,
-        bottom.width,
-        height,
-    )
 }
 
 fn activity_rail_frame_from_region(

@@ -7,6 +7,7 @@ impl Default for EditorStartupSessionDocument {
         Self {
             mode: EditorSessionMode::Welcome,
             project: None,
+            open_builtin_view: None,
             recent_projects: Vec::new(),
             draft: NewProjectDraft::renderable_empty_default(),
             status_message: "Open an existing project or create a renderable empty project."

@@ -89,3 +89,4 @@ winit = { workspace = true, default-features = false, optional = true }
 libloading = "0.9.0"
 zstd = "0.13.3"
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }
+zircon_runtime_reflection_macros = { path = "reflection_macros" }

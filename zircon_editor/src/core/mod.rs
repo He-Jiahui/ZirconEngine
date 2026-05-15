@@ -7,3 +7,4 @@ pub mod editor_extension;
 pub mod editor_operation;
 pub mod editor_plugin;
 pub mod editor_plugin_sdk;
+pub mod gui_startup_request;

@@ -22,7 +22,7 @@ use crate::ui::layout::compute_virtual_list_window;
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
 use crate::ui::v2::{
     UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreFileCache,
-    UiV2StyleResolver, UiV2SurfaceBuilder,
+    UiV2StyleResolver, UiV2SurfaceBuilder, UiZuiAssetLoader,
 };
 
 #[test]
@@ -66,6 +66,213 @@ text = "Project"
         compiled.arena.node(root_handle).unwrap().component,
         "VerticalGroup"
     );
+}
+
+#[test]
+fn ui_zui_loader_accepts_single_component_asset() {
+    let document = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/primary_toolbar.zui"
+version = 2
+
+[components.PrimaryToolbar]
+root = "root"
+
+[nodes.root]
+component = "HorizontalGroup"
+classes = ["toolbar"]
+
+[[nodes.root.children]]
+node = "run_button"
+
+[nodes.run_button]
+component = "Button"
+control_id = "RunButton"
+
+[nodes.run_button.props]
+text = "Run"
+"#,
+    )
+    .unwrap();
+
+    assert_eq!(document.asset.kind, UiV2AssetKind::Component);
+    assert!(document.root.is_none());
+    assert_eq!(document.components.len(), 1);
+    assert!(document.components.contains_key("PrimaryToolbar"));
+    assert!(document.nodes.contains_key("root"));
+}
+
+#[test]
+fn ui_zui_loader_rejects_view_assets() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "view"
+id = "asset://ui/editor/workbench.zui"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_view_root_on_component_assets() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/invalid_root.zui"
+version = 2
+
+[root]
+node = "root"
+
+[components.InvalidRoot]
+root = "root"
+
+[nodes.root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("[root]")
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_multiple_components() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/invalid_multiple.zui"
+version = 2
+
+[components.LeftPanel]
+root = "left_root"
+
+[components.RightPanel]
+root = "right_root"
+
+[nodes.left_root]
+component = "Container"
+
+[nodes.right_root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("exactly one component")
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_missing_component() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/invalid_missing_component.zui"
+version = 2
+
+[nodes.root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("exactly one component")
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_empty_component_root() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/invalid_empty_root.zui"
+version = 2
+
+[components.EmptyRoot]
+root = ""
+
+[nodes.root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("non-empty root node")
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_missing_component_root_node() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "component"
+id = "asset://ui/editor/invalid_missing_root_node.zui"
+version = 2
+
+[components.MissingRoot]
+root = "missing"
+
+[nodes.root]
+component = "Container"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::MissingNode { node_id, .. } if node_id == "missing"
+    ));
+}
+
+#[test]
+fn ui_zui_loader_rejects_style_assets() {
+    let error = UiZuiAssetLoader::load_zui_str(
+        r#"
+[asset]
+kind = "style"
+id = "asset://ui/editor/theme.zui"
+version = 2
+
+[[stylesheets]]
+id = "editor_theme"
+"#,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
+    ));
 }
 
 #[test]
@@ -1960,7 +2167,7 @@ fn ui_v2_file_cache_resolves_builtin_asset_id_widget_imports() {
     let temp_dir = v2_cache_temp_dir("asset_id_widget_imports");
     let assets_root = temp_dir.join("assets");
     let window_path = assets_root.join("ui/editor/windows/workbench_window.v2.ui.toml");
-    let component_path = assets_root.join("ui/editor/host/activity_drawer_window.v2.ui.toml");
+    let component_path = assets_root.join("ui/editor/host/activity_drawer_window.zui");
     std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
     std::fs::create_dir_all(component_path.parent().unwrap()).unwrap();
     std::fs::write(
@@ -2010,7 +2217,7 @@ control_id = "ActivityDrawerWindowRoot"
         .is_some());
     assert!(outcome
         .store
-        .get("res://ui/editor/host/activity_drawer_window.v2.ui.toml")
+        .get("res://ui/editor/host/activity_drawer_window.zui")
         .is_some());
     let root = outcome
         .compiled
@@ -2020,6 +2227,131 @@ control_id = "ActivityDrawerWindowRoot"
         .expect("expanded root");
     assert_eq!(root.component, "VerticalGroup");
     assert_eq!(root.control_id.as_deref(), Some("WorkbenchWindow"));
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn ui_v2_file_cache_applies_zui_profile_for_uppercase_extension() {
+    let temp_dir = v2_cache_temp_dir("uppercase_zui_profile");
+    let assets_root = temp_dir.join("assets");
+    let component_path = assets_root.join("ui/editor/Invalid.ZUI");
+    std::fs::create_dir_all(component_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &component_path,
+        r##"
+[asset]
+kind = "view"
+id = "editor.invalid.uppercase_zui"
+version = 2
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "Container"
+"##,
+    )
+    .unwrap();
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+
+    let error = cache.load_store(vec![component_path]).unwrap_err();
+
+    assert!(matches!(
+        error,
+        UiV2AssetError::InvalidDocument { detail, .. } if detail.contains("asset.kind")
+    ));
+
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
+
+#[test]
+fn ui_v2_file_cache_prefers_zui_asset_id_over_legacy_v2_document() {
+    let temp_dir = v2_cache_temp_dir("asset_id_prefers_zui");
+    let assets_root = temp_dir.join("assets");
+    let window_path = assets_root.join("ui/editor/window.v2.ui.toml");
+    let legacy_component_path = assets_root.join("ui/legacy/shared_component.v2.ui.toml");
+    let zui_component_path = assets_root.join("ui/components/shared_component.zui");
+    std::fs::create_dir_all(window_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(legacy_component_path.parent().unwrap()).unwrap();
+    std::fs::create_dir_all(zui_component_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &window_path,
+        r##"
+[asset]
+kind = "view"
+id = "editor.window.prefers_zui"
+version = 2
+
+[imports]
+widgets = ["editor.shared.component#SharedComponent"]
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "SharedComponent"
+control_id = "WindowRoot"
+"##,
+    )
+    .unwrap();
+    std::fs::write(
+        &legacy_component_path,
+        r##"
+[asset]
+kind = "component"
+id = "editor.shared.component"
+version = 2
+
+[components.SharedComponent]
+root = "legacy_root"
+
+[nodes.legacy_root]
+component = "Label"
+control_id = "LegacyComponentRoot"
+props = { text = "Legacy" }
+"##,
+    )
+    .unwrap();
+    std::fs::write(
+        &zui_component_path,
+        r##"
+[asset]
+kind = "component"
+id = "editor.shared.component"
+version = 2
+
+[components.SharedComponent]
+root = "zui_root"
+
+[nodes.zui_root]
+component = "Button"
+control_id = "ZuiComponentRoot"
+props = { text = "Zui" }
+"##,
+    )
+    .unwrap();
+    let mut cache = UiV2PrototypeStoreFileCache::new();
+
+    let outcome = cache.load_store(vec![window_path]).unwrap();
+
+    assert!(outcome
+        .store
+        .get("res://ui/components/shared_component.zui")
+        .is_some());
+    assert!(outcome
+        .store
+        .get("res://ui/legacy/shared_component.v2.ui.toml")
+        .is_none());
+    let root = outcome
+        .compiled
+        .arena
+        .root
+        .and_then(|handle| outcome.compiled.arena.node(handle))
+        .expect("expanded root");
+    assert_eq!(root.component, "Button");
+    assert_eq!(root.control_id.as_deref(), Some("WindowRoot"));
+    assert_eq!(root.props.get("text").and_then(Value::as_str), Some("Zui"));
 
     let _ = std::fs::remove_dir_all(temp_dir);
 }

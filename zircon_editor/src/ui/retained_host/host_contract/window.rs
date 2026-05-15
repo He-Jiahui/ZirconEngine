@@ -3,7 +3,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::ui::retained_host::primitives::{
-    CloseRequestResponse, PhysicalPosition, PhysicalSize, PlatformError,
+    CloseRequestResponse, ModelRc, PhysicalPosition, PhysicalSize, PlatformError, SharedString,
+    VecModel,
 };
 use winit::application::ApplicationHandler;
 use winit::event::{
@@ -19,7 +20,8 @@ use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::data::{
     FrameRect, HostClosePromptData, HostMenuStateData, HostPaneInteractionStateData,
-    HostTextInputFocusData, HostWindowBootstrapData, HostWindowPresentationData,
+    HostTextInputFocusData, HostWindowBootstrapData, HostWindowPresentationData, PaneData,
+    TemplatePaneNodeData,
 };
 use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
 use super::globals::{
@@ -30,8 +32,11 @@ use super::native_pointer::{
     NativePointerButtonState,
 };
 use super::painter::{paint_host_frame, HostRgbaFrame};
-use super::presenter::SoftbufferHostPresenter;
+use super::presenter::{create_host_chrome_presenter, HostChromePresenter, HostPresenterBackend};
 use super::redraw::{HostRedrawRequest, NativePointerDispatchResult};
+use crate::ui::retained_host::ui_perf::{
+    enter_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+};
 
 const DEFAULT_HOST_WINDOW_WIDTH: u32 = 1280;
 const DEFAULT_HOST_WINDOW_HEIGHT: u32 = 720;
@@ -77,6 +82,14 @@ impl UiHostWindow {
         }
     }
 
+    fn close_requested_response(&self) -> CloseRequestResponse {
+        let callback = self.state.borrow().close_requested.clone();
+        callback
+            .as_ref()
+            .map(|callback| callback())
+            .unwrap_or(CloseRequestResponse::HideWindow)
+    }
+
     pub(crate) fn global<T>(&self) -> T
     where
         T: HostContractGlobal,
@@ -87,6 +100,7 @@ impl UiHostWindow {
     pub(crate) fn set_host_presentation(&self, presentation: HostWindowPresentationData) {
         let mut state = self.state.borrow_mut();
         state.presentation_rebuild_count = state.presentation_rebuild_count.saturating_add(1);
+        record_current_ui_perf_counter(UiPerfCounter::PresentationRebuildCount, 1.0);
         if state.presentation_rebuild_count <= 8
             || state.presentation_rebuild_count.is_power_of_two()
         {
@@ -164,6 +178,25 @@ impl UiHostWindow {
         self.state.borrow().pane_interaction_state.clone()
     }
 
+    pub(crate) fn set_hovered_template_node_for_pointer_move(
+        &self,
+        control_id: SharedString,
+        frame: FrameRect,
+    ) {
+        let mut state = self.state.borrow_mut();
+        state.pane_interaction_state.hovered_template_control_id = control_id;
+        state.pane_interaction_state.hovered_template_frame = frame;
+    }
+
+    pub(crate) fn clear_hovered_template_node_for_pointer_move(&self) {
+        let mut state = self.state.borrow_mut();
+        state
+            .pane_interaction_state
+            .hovered_template_control_id
+            .clear();
+        state.pane_interaction_state.hovered_template_frame = FrameRect::default();
+    }
+
     pub(crate) fn get_host_window_bootstrap(&self) -> HostWindowBootstrapData {
         let state = self.state.borrow();
         HostWindowBootstrapData {
@@ -188,6 +221,15 @@ impl UiHostWindow {
 
     pub(crate) fn request_redraw_region(&self, frame: FrameRect) {
         self.queue_external_redraw(HostRedrawRequest::region(frame));
+    }
+
+    pub(crate) fn request_frame_update_region(&self, frame: FrameRect) {
+        let redraw = HostRedrawRequest::region_with_frame_update(frame);
+        if redraw.request_redraw() {
+            self.queue_external_redraw(redraw);
+        } else {
+            self.queue_external_redraw(HostRedrawRequest::full_frame());
+        }
     }
 
     pub(crate) fn text_input_focus_active(&self) -> bool {
@@ -496,7 +538,89 @@ fn host_presentation_from_state(state: &HostContractState) -> HostWindowPresenta
     presentation.pane_interaction_state = state.pane_interaction_state.clone();
     presentation.text_input_focus = state.text_input_focus.clone();
     presentation.viewport_image = state.viewport_image.clone();
+    apply_template_hover_to_presentation(&mut presentation, &state.pane_interaction_state);
     presentation
+}
+
+fn apply_template_hover_to_presentation(
+    presentation: &mut HostWindowPresentationData,
+    interaction: &HostPaneInteractionStateData,
+) {
+    if interaction.hovered_template_control_id.is_empty() {
+        return;
+    }
+    let hovered = &interaction.hovered_template_control_id;
+    apply_template_hover_to_pane(
+        &mut presentation.host_scene_data.document_dock.pane,
+        hovered,
+    );
+    apply_template_hover_to_pane(&mut presentation.host_scene_data.left_dock.pane, hovered);
+    apply_template_hover_to_pane(&mut presentation.host_scene_data.right_dock.pane, hovered);
+    apply_template_hover_to_pane(&mut presentation.host_scene_data.bottom_dock.pane, hovered);
+
+    let mut floating_changed = false;
+    let floating_windows: Vec<_> = (0..presentation
+        .host_scene_data
+        .floating_layer
+        .floating_windows
+        .row_count())
+        .filter_map(|row| {
+            presentation
+                .host_scene_data
+                .floating_layer
+                .floating_windows
+                .row_data(row)
+        })
+        .map(|mut window| {
+            floating_changed |= apply_template_hover_to_pane(&mut window.active_pane, hovered);
+            window
+        })
+        .collect();
+    if floating_changed {
+        presentation.host_scene_data.floating_layer.floating_windows =
+            ModelRc::from(Rc::new(VecModel::from(floating_windows)));
+    }
+}
+
+fn apply_template_hover_to_pane(pane: &mut PaneData, hovered: &SharedString) -> bool {
+    let nodes = match pane.kind.as_str() {
+        "Hierarchy" => &mut pane.hierarchy.nodes,
+        "Inspector" => &mut pane.inspector.nodes,
+        "Console" => &mut pane.console.nodes,
+        "Assets" => &mut pane.assets_activity.nodes,
+        "AssetBrowser" => &mut pane.asset_browser.nodes,
+        "Welcome" => &mut pane.welcome.nodes,
+        "Project" | "UiComponentShowcase" => &mut pane.project_overview.nodes,
+        "RuntimeDiagnostics" => &mut pane.runtime_diagnostics.nodes,
+        "PerformanceTimeline" => &mut pane.performance_timeline.nodes,
+        "ModulePlugins" => &mut pane.module_plugins.nodes,
+        "BuildExport" => &mut pane.build_export.nodes,
+        "UiAssetEditor" => &mut pane.ui_asset.nodes,
+        "AnimationSequenceEditor" | "AnimationGraphEditor" => &mut pane.animation.nodes,
+        _ => return false,
+    };
+    apply_template_hover_to_nodes(nodes, hovered)
+}
+
+fn apply_template_hover_to_nodes(
+    nodes: &mut ModelRc<TemplatePaneNodeData>,
+    hovered: &SharedString,
+) -> bool {
+    let mut changed = false;
+    let values: Vec<_> = (0..nodes.row_count())
+        .filter_map(|row| nodes.row_data(row))
+        .map(|mut node| {
+            if node.control_id.as_str() == hovered.as_str() && !node.hovered {
+                node.hovered = true;
+                changed = true;
+            }
+            node
+        })
+        .collect();
+    if changed {
+        *nodes = ModelRc::from(Rc::new(VecModel::from(values)));
+    }
+    changed
 }
 
 fn asset_dispatch_source(dispatch_kind: &str) -> Option<&str> {
@@ -518,7 +642,7 @@ fn text_input_focus_redraw(focus: &HostTextInputFocusData) -> NativePointerDispa
 struct UiHostWindowEventLoop {
     host: UiHostWindow,
     window: Option<Arc<dyn Window>>,
-    presenter: Option<SoftbufferHostPresenter>,
+    presenter: Option<Box<dyn HostChromePresenter>>,
     last_pointer_position: Option<(f32, f32)>,
     pending_redraw: HostRedrawRequest,
     ime_allowed: bool,
@@ -531,7 +655,10 @@ impl UiHostWindowEventLoop {
             window: None,
             presenter: None,
             last_pointer_position: None,
-            pending_redraw: HostRedrawRequest::Full { frame_update: true },
+            pending_redraw: HostRedrawRequest::full_frame_for_scenario(
+                UiPerfScenario::Startup,
+                true,
+            ),
             ime_allowed: false,
         }
     }
@@ -609,21 +736,55 @@ impl ApplicationHandler for UiHostWindowEventLoop {
             }
         };
         self.sync_host_window_state(window.as_ref());
-        let presenter = match SoftbufferHostPresenter::new(window.clone()) {
-            Ok(presenter) => presenter,
-            Err(_) => {
-                write_error(
-                    "editor_host_window",
-                    "failed to create softbuffer presenter",
-                );
-                event_loop.exit();
-                return;
-            }
-        };
+        let presenter_backend = HostPresenterBackend::default_native();
+        let (presenter_backend, presenter) =
+            match create_host_chrome_presenter(presenter_backend, window.clone()) {
+                Ok(presenter) => (presenter_backend, presenter),
+                Err(error) if presenter_backend.is_gpu() => {
+                    write_error(
+                        "editor_host_window",
+                        format!(
+                            "failed to create {} presenter, falling back to softbuffer: {error}",
+                            presenter_backend.label()
+                        ),
+                    );
+                    let fallback_backend = HostPresenterBackend::fallback();
+                    match create_host_chrome_presenter(fallback_backend, window.clone()) {
+                        Ok(presenter) => (fallback_backend, presenter),
+                        Err(error) => {
+                            write_error(
+                                "editor_host_window",
+                                format!(
+                                    "failed to create {} presenter: {error}",
+                                    fallback_backend.label()
+                                ),
+                            );
+                            event_loop.exit();
+                            return;
+                        }
+                    }
+                }
+                Err(error) => {
+                    write_error(
+                        "editor_host_window",
+                        format!(
+                            "failed to create {} presenter: {error}",
+                            presenter_backend.label()
+                        ),
+                    );
+                    event_loop.exit();
+                    return;
+                }
+            };
         if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
             write_diagnostic_log(
                 "editor_host_window",
-                format!("created native window size={}x{}", size.width, size.height),
+                format!(
+                    "created native window size={}x{} presenter_backend={}",
+                    size.width,
+                    size.height,
+                    presenter_backend.label()
+                ),
             );
         }
         window.request_redraw();
@@ -639,14 +800,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
     ) {
         match event {
             WindowEvent::CloseRequested => {
-                let response = self
-                    .host
-                    .state
-                    .borrow()
-                    .close_requested
-                    .as_ref()
-                    .map(|callback| callback())
-                    .unwrap_or(CloseRequestResponse::HideWindow);
+                let response = self.host.close_requested_response();
                 if matches!(response, CloseRequestResponse::HideWindow) {
                     self.host.state.borrow_mut().window_visible = false;
                     event_loop.exit();
@@ -656,16 +810,19 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 self.host
                     .window()
                     .set_size(PhysicalSize::new(size.width, size.height));
-                self.queue_redraw(HostRedrawRequest::Full { frame_update: true });
+                self.queue_redraw(HostRedrawRequest::full_frame_for_scenario(
+                    UiPerfScenario::Startup,
+                    true,
+                ));
                 if let Some(window) = self.window.as_ref() {
                     window.request_redraw();
                 }
                 if let Some(presenter) = self.presenter.as_mut() {
-                    if presenter.resize((size.width, size.height)).is_err() {
+                    if let Err(error) = presenter.resize((size.width, size.height)) {
                         write_error(
                             "editor_host_window",
                             format!(
-                                "presenter resize failed size={}x{}",
+                                "presenter resize failed size={}x{}: {error}",
                                 size.width, size.height
                             ),
                         );
@@ -728,6 +885,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 if !redraw.request_redraw() {
                     return;
                 }
+                let _scenario = enter_ui_perf_scenario(redraw.scenario());
                 if redraw.requires_frame_update() {
                     self.host.request_frame_update();
                 }
@@ -742,8 +900,11 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                         Ok(diagnostics) => {
                             self.host.set_host_refresh_diagnostics_overlay(diagnostics)
                         }
-                        Err(_) => {
-                            write_error("editor_host_window", "presenter present failed");
+                        Err(error) => {
+                            write_error(
+                                "editor_host_window",
+                                format!("presenter present failed: {error}"),
+                            );
                             event_loop.exit();
                         }
                     }
@@ -864,5 +1025,46 @@ mod tests {
         assert!(overlay.contains("slow 2"));
         assert!(overlay.contains("render 3"));
         assert!(overlay.contains("paint-only 4"));
+    }
+
+    #[test]
+    fn close_requested_callback_can_mutate_host_state_without_reentrant_borrow() {
+        let host = UiHostWindow::new().expect("host window should construct for state test");
+        let callback_host = host.clone_strong();
+        host.window().on_close_requested(move || {
+            callback_host.set_host_refresh_invalidation_diagnostics(HostInvalidationDiagnostics {
+                slow_path_rebuild_count: 1,
+                render_rebuild_count: 2,
+                paint_only_request_count: 3,
+            });
+            CloseRequestResponse::HideWindow
+        });
+
+        assert_eq!(
+            host.close_requested_response(),
+            CloseRequestResponse::HideWindow
+        );
+        let diagnostics = host.refresh_invalidation_diagnostics();
+        assert_eq!(diagnostics.slow_path_rebuild_count, 1);
+        assert_eq!(diagnostics.render_rebuild_count, 2);
+        assert_eq!(diagnostics.paint_only_request_count, 3);
+    }
+
+    #[test]
+    fn frame_update_region_queues_external_redraw_with_frame_update() {
+        let host = UiHostWindow::new().expect("host window should construct for redraw test");
+        let frame = FrameRect {
+            x: 12.0,
+            y: 24.0,
+            width: 128.0,
+            height: 72.0,
+        };
+
+        host.request_frame_update_region(frame.clone());
+
+        let redraw = host.take_external_redraw();
+        assert!(redraw.request_redraw());
+        assert!(redraw.requires_frame_update());
+        assert_eq!(redraw.damage_region(), Some(&frame));
     }
 }

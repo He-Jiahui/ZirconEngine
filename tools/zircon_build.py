@@ -21,7 +21,7 @@ except ModuleNotFoundError:  # pragma: no cover - exercised only on old Python.
     raise
 
 
-TARGETS = ("editor", "runtime", "plugins")
+TARGETS = ("hub", "editor", "runtime", "plugins")
 MODES = ("debug", "release")
 PLUGIN_CARRIERS = ("all", "native_dynamic", "rlib_static")
 ENGINE_DIR_NAME = "ZirconEngine"
@@ -116,10 +116,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Build staged ZirconEngine editor/runtime/plugin artifacts.",
+        description="Build staged ZirconEngine hub/editor/runtime/plugin artifacts.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  python tools/zircon_build.py --targets hub,editor,runtime --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets editor,runtime --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\\zircon-build --mode debug
   python tools/zircon_build.py --targets plugins --plugins all --plugin-carrier native_dynamic --out E:\\zircon-build --mode release
@@ -132,7 +133,7 @@ Plugin carrier boundary:
     parser.add_argument(
         "--targets",
         "--target",
-        help="Comma-separated build targets: editor,runtime,plugins.",
+        help="Comma-separated build targets: hub,editor,runtime,plugins.",
     )
     parser.add_argument("--out", "--output", help="Build output directory.")
     parser.add_argument("--mode", choices=MODES, help="Cargo profile mode.")
@@ -235,9 +236,9 @@ def prompt_targets() -> tuple[str, ...]:
     print("Select build targets:")
     for index, target in enumerate(TARGETS, start=1):
         print(f"  {index}) {target}")
-    raw = input("Targets (comma numbers or names, default editor,runtime): ").strip()
+    raw = input("Targets (comma numbers or names, default hub,editor,runtime): ").strip()
     if not raw:
-        return ("editor", "runtime")
+        return ("hub", "editor", "runtime")
     return parse_targets(resolve_number_tokens(raw, TARGETS))
 
 
@@ -445,6 +446,9 @@ def build(config: BuildConfig) -> None:
         config.engine_root.mkdir(parents=True, exist_ok=True)
         config.targets_root.mkdir(parents=True, exist_ok=True)
 
+    if "hub" in config.targets:
+        build_hub(config)
+
     runtime_staged = False
     if "runtime" in config.targets:
         build_runtime(config, runtime_feature="target-client", include_preview=True)
@@ -459,6 +463,25 @@ def build(config: BuildConfig) -> None:
     if "plugins" in config.targets:
         ensure_plugin_base_artifacts(config)
         build_plugins(config)
+
+
+def build_hub(config: BuildConfig) -> None:
+    target_dir = config.targets_root / "hub"
+    run_cargo(
+        config,
+        [
+            "build",
+            "-p",
+            "zircon_hub",
+            "--bin",
+            "zircon_hub",
+            "--target-dir",
+            str(target_dir),
+        ],
+    )
+    if config.dry_run:
+        return
+    copy_artifact(config, target_dir, platform_executable_name("zircon_hub"))
 
 
 def build_runtime(

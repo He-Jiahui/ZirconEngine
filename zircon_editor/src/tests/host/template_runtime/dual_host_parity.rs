@@ -303,12 +303,20 @@ fn is_showcase_state_overlay_key(entry: &str) -> bool {
         key,
         "selected"
             | "selection_state"
+            | "expanded"
             | "value_text"
             | "validation_level"
             | "validation_message"
             | "collection_items"
             | "value"
             | "checked"
+            | "focused"
+            | "hovered"
+            | "pressed"
+            | "dragging"
+            | "drop_hovered"
+            | "active_drag_target"
+            | "popup_open"
             | "drop_source_summary"
     ) || matches!(key, "text" | "text_tone")
         && matches!(

@@ -54,6 +54,7 @@ fn pane_template_nodes(pane: &PaneData) -> Option<&ModelRc<TemplatePaneNodeData>
         "Welcome" => Some(&pane.welcome.nodes),
         "Project" | "UiComponentShowcase" => Some(&pane.project_overview.nodes),
         "RuntimeDiagnostics" => Some(&pane.runtime_diagnostics.nodes),
+        "PerformanceTimeline" => Some(&pane.performance_timeline.nodes),
         "ModulePlugins" => Some(&pane.module_plugins.nodes),
         "BuildExport" => Some(&pane.build_export.nodes),
         "UiAssetEditor" => Some(&pane.ui_asset.nodes),
@@ -132,7 +133,7 @@ fn template_nodes_surface_frame(
             control_id: Some(node.control_id.to_string()),
             ..Default::default()
         };
-        let tree_node = UiTreeNode::new(
+        let mut tree_node = UiTreeNode::new(
             UiNodeId::new(row as u64 + 2),
             UiNodePath::new(format!("template_nodes/{}", node.node_id)),
         )
@@ -154,9 +155,21 @@ fn template_nodes_surface_frame(
         })
         .with_input_policy(UiInputPolicy::Receive)
         .with_template_metadata(metadata);
+        tree_node.layout_cache.clip_frame = template_node_clip_frame(&node);
         let _ = surface.tree.insert_child(UiNodeId::new(1), tree_node);
     }
 
     surface.rebuild();
     surface.surface_frame()
+}
+
+fn template_node_clip_frame(node: &TemplatePaneNodeData) -> Option<UiFrame> {
+    node.has_clip_frame.then(|| {
+        UiFrame::new(
+            node.clip_frame.x,
+            node.clip_frame.y,
+            node.clip_frame.width,
+            node.clip_frame.height,
+        )
+    })
 }

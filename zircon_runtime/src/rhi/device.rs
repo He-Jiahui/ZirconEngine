@@ -87,6 +87,13 @@ pub enum RhiError {
     UnknownShaderModule(u64),
     #[error("pipeline `{0}` does not exist")]
     UnknownPipeline(u64),
+    #[error("render surface is unavailable: {0}")]
+    SurfaceUnavailable(String),
+    #[error("invalid surface descriptor `{label:?}`: {reason}")]
+    InvalidSurfaceDescriptor {
+        label: Option<String>,
+        reason: String,
+    },
     #[error("fence `{0}` was not issued by this device")]
     UnknownFence(u64),
     #[error("invalid buffer descriptor `{label:?}`: {reason}")]

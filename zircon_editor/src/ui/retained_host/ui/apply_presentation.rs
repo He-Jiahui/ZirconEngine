@@ -46,117 +46,171 @@ pub(crate) fn apply_presentation(
     floating_window_projection_bundle: &FloatingWindowProjectionBundle,
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
 ) {
-    let presentation = ShellPresentation::from_state(
-        model,
-        chrome,
-        geometry,
-        preset_names,
-        active_preset_name,
-        ui_asset_panes,
-        animation_panes,
-        runtime_diagnostics,
-        module_plugins,
-        build_export,
-        floating_window_projection_bundle,
-    );
+    let presentation = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_shell_presentation_from_state"
+        );
+        ShellPresentation::from_state(
+            model,
+            chrome,
+            geometry,
+            preset_names,
+            active_preset_name,
+            ui_asset_panes,
+            animation_panes,
+            runtime_diagnostics,
+            module_plugins,
+            build_export,
+            floating_window_projection_bundle,
+        )
+    };
     let document_pane_shows_viewport_toolbar =
         presentation.host_surface_data.document_pane.show_toolbar;
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
 
-    pane_surface_host.set_recent_projects(to_host_contract_recent_projects(
-        &presentation.welcome.recent_projects,
-    ));
-    pane_surface_host.set_project_overview(to_host_contract_project_overview(
-        &presentation.project_overview,
-    ));
-    pane_surface_host.set_activity_asset_tree_folders(to_host_contract_asset_folders(
-        &presentation.activity.tree_folders,
-    ));
-    pane_surface_host.set_activity_asset_content_folders(to_host_contract_asset_folders(
-        &presentation.activity.content_folders,
-    ));
-    pane_surface_host.set_activity_asset_content_items(to_host_contract_asset_items(
-        &presentation.activity.content_items,
-    ));
-    pane_surface_host.set_activity_asset_selection(to_host_contract_asset_selection(
-        &presentation.activity.selection,
-    ));
-    pane_surface_host.set_activity_asset_references(to_host_contract_asset_references(
-        &presentation.activity.references,
-    ));
-    pane_surface_host.set_activity_asset_used_by(to_host_contract_asset_references(
-        &presentation.activity.used_by,
-    ));
-    pane_surface_host.set_activity_asset_search_query(presentation.activity.search_query);
-    pane_surface_host.set_activity_asset_kind_filter(presentation.activity.kind_filter);
-    pane_surface_host.set_activity_asset_view_mode(presentation.activity.view_mode);
-    pane_surface_host.set_activity_asset_utility_tab(presentation.activity.utility_tab);
-    pane_surface_host.set_browser_asset_tree_folders(to_host_contract_asset_folders(
-        &presentation.browser.tree_folders,
-    ));
-    pane_surface_host.set_browser_asset_content_folders(to_host_contract_asset_folders(
-        &presentation.browser.content_folders,
-    ));
-    pane_surface_host.set_browser_asset_content_items(to_host_contract_asset_items(
-        &presentation.browser.content_items,
-    ));
-    pane_surface_host.set_browser_asset_selection(to_host_contract_asset_selection(
-        &presentation.browser.selection,
-    ));
-    pane_surface_host.set_browser_asset_references(to_host_contract_asset_references(
-        &presentation.browser.references,
-    ));
-    pane_surface_host.set_browser_asset_used_by(to_host_contract_asset_references(
-        &presentation.browser.used_by,
-    ));
-    pane_surface_host.set_browser_asset_search_query(presentation.browser.search_query);
-    pane_surface_host.set_browser_asset_kind_filter(presentation.browser.kind_filter);
-    pane_surface_host.set_browser_asset_view_mode(presentation.browser.view_mode);
-    pane_surface_host.set_browser_asset_utility_tab(presentation.browser.utility_tab);
+    {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_pane_surface_globals");
+        pane_surface_host.set_recent_projects(to_host_contract_recent_projects(
+            &presentation.welcome.recent_projects,
+        ));
+        pane_surface_host.set_project_overview(to_host_contract_project_overview(
+            &presentation.project_overview,
+        ));
+        pane_surface_host.set_activity_asset_tree_folders(to_host_contract_asset_folders(
+            &presentation.activity.tree_folders,
+        ));
+        pane_surface_host.set_activity_asset_content_folders(to_host_contract_asset_folders(
+            &presentation.activity.content_folders,
+        ));
+        pane_surface_host.set_activity_asset_content_items(to_host_contract_asset_items(
+            &presentation.activity.content_items,
+        ));
+        pane_surface_host.set_activity_asset_selection(to_host_contract_asset_selection(
+            &presentation.activity.selection,
+        ));
+        pane_surface_host.set_activity_asset_references(to_host_contract_asset_references(
+            &presentation.activity.references,
+        ));
+        pane_surface_host.set_activity_asset_used_by(to_host_contract_asset_references(
+            &presentation.activity.used_by,
+        ));
+        pane_surface_host.set_activity_asset_search_query(presentation.activity.search_query);
+        pane_surface_host.set_activity_asset_kind_filter(presentation.activity.kind_filter);
+        pane_surface_host.set_activity_asset_view_mode(presentation.activity.view_mode);
+        pane_surface_host.set_activity_asset_utility_tab(presentation.activity.utility_tab);
+        pane_surface_host.set_browser_asset_tree_folders(to_host_contract_asset_folders(
+            &presentation.browser.tree_folders,
+        ));
+        pane_surface_host.set_browser_asset_content_folders(to_host_contract_asset_folders(
+            &presentation.browser.content_folders,
+        ));
+        pane_surface_host.set_browser_asset_content_items(to_host_contract_asset_items(
+            &presentation.browser.content_items,
+        ));
+        pane_surface_host.set_browser_asset_selection(to_host_contract_asset_selection(
+            &presentation.browser.selection,
+        ));
+        pane_surface_host.set_browser_asset_references(to_host_contract_asset_references(
+            &presentation.browser.references,
+        ));
+        pane_surface_host.set_browser_asset_used_by(to_host_contract_asset_references(
+            &presentation.browser.used_by,
+        ));
+        pane_surface_host.set_browser_asset_search_query(presentation.browser.search_query);
+        pane_surface_host.set_browser_asset_kind_filter(presentation.browser.kind_filter);
+        pane_surface_host.set_browser_asset_view_mode(presentation.browser.view_mode);
+        pane_surface_host.set_browser_asset_utility_tab(presentation.browser.utility_tab);
+    }
 
-    let host_layout = host_window_layout(shared_root_frames, document_pane_shows_viewport_toolbar);
-    let host_scene_data = build_host_scene_data(
-        &model.menu_bar,
-        &presentation.host_surface_data,
-        &presentation.host_shell,
-        &host_layout,
-        &presentation.status_primary,
-        chrome.inspector.is_some(),
-        &chrome.project_overview,
-        chrome,
-    );
-    let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
-    let host_welcome_pane =
-        to_host_contract_welcome_pane(&welcome_pane, &presentation.welcome.recent_projects);
-    let native_floating_surface_data = build_native_floating_surface_data(
-        &presentation.host_surface_data,
-        &presentation.host_shell,
-        &chrome.project_overview,
-        chrome,
-    );
-    let current_host_presentation = ui.get_host_presentation();
-    let host_presentation = HostWindowPresentationData {
-        host_scene_data: to_host_contract_host_scene_data_with_runtime(
+    let host_layout = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_host_window_layout");
+        host_window_layout(shared_root_frames, document_pane_shows_viewport_toolbar)
+    };
+    let host_scene_data = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_host_scene_data");
+        build_host_scene_data(
+            &model.menu_bar,
+            &presentation.host_surface_data,
+            &presentation.host_shell,
+            &host_layout,
+            &presentation.status_primary,
+            chrome.inspector.is_some(),
+            &chrome.project_overview,
+            chrome,
+        )
+    };
+    let host_welcome_pane = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_build_welcome_pane");
+        let welcome_pane = project_welcome_pane(&presentation.welcome.pane, &host_scene_data);
+        to_host_contract_welcome_pane(&welcome_pane, &presentation.welcome.recent_projects)
+    };
+    let native_floating_surface_data = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_build_native_floating_surface_data"
+        );
+        build_native_floating_surface_data(
+            &presentation.host_surface_data,
+            &presentation.host_shell,
+            &chrome.project_overview,
+            chrome,
+        )
+    };
+    let current_host_presentation = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_get_current_presentation");
+        ui.get_host_presentation()
+    };
+    let host_scene_data = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_scene_data");
+        to_host_contract_host_scene_data_with_runtime(
             &host_scene_data,
             component_showcase_runtime,
             Some(&presentation.welcome),
-        ),
-        native_floating_surface_data: to_host_contract_native_floating_surface_data_with_runtime(
+        )
+    };
+    let native_floating_surface_data = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "apply_convert_native_floating_surface_data"
+        );
+        to_host_contract_native_floating_surface_data_with_runtime(
             &native_floating_surface_data,
             component_showcase_runtime,
             Some(&presentation.welcome),
-        ),
-        host_shell: to_host_contract_host_shell(&presentation.host_shell),
-        host_layout: to_host_contract_host_window_layout(&host_layout),
+        )
+    };
+    let host_shell = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_shell");
+        to_host_contract_host_shell(&presentation.host_shell)
+    };
+    let host_layout = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_convert_host_layout");
+        to_host_contract_host_window_layout(&host_layout)
+    };
+    let host_presentation = HostWindowPresentationData {
+        host_scene_data,
+        native_floating_surface_data,
+        host_shell,
+        host_layout,
         menu_state: current_host_presentation.menu_state,
         close_prompt: current_host_presentation.close_prompt,
         pane_interaction_state: current_host_presentation.pane_interaction_state,
         text_input_focus: current_host_presentation.text_input_focus,
         viewport_image: current_host_presentation.viewport_image,
     };
-    ui.set_host_presentation(host_presentation);
-    pane_surface_host.set_welcome_pane(host_welcome_pane);
-    pane_surface_host.set_mesh_import_path(presentation.mesh_import_path);
+    {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_host_presentation");
+        ui.set_host_presentation(host_presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_tail_globals");
+        pane_surface_host.set_welcome_pane(host_welcome_pane);
+        pane_surface_host.set_mesh_import_path(presentation.mesh_import_path);
+    }
 }
 
 fn host_window_layout(
@@ -552,8 +606,16 @@ fn to_host_contract_scene_viewport_chrome(
 fn to_host_contract_animation_editor_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::AnimationEditorPaneData {
-    pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane(data, pane_size)
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_animation_editor_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
 }
 
 fn to_host_contract_assets_activity_pane(
@@ -565,22 +627,46 @@ fn to_host_contract_assets_activity_pane(
 fn to_host_contract_hierarchy_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::HierarchyPaneData {
-    pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane(data, pane_size)
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
 }
 
 fn to_host_contract_inspector_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::InspectorPaneData {
-    pane_data_conversion::to_host_contract_inspector_pane_from_host_pane(data, pane_size)
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_inspector_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_inspector_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
 }
 
 fn to_host_contract_console_pane(
     data: &host_window::PaneData,
     pane_size: host_window::PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> host_contract::ConsolePaneData {
-    pane_data_conversion::to_host_contract_console_pane_from_host_pane(data, pane_size)
+    runtime.map_or_else(
+        || pane_data_conversion::to_host_contract_console_pane_from_host_pane(data, pane_size),
+        |runtime| {
+            pane_data_conversion::to_host_contract_console_pane_from_host_pane_with_runtime(
+                data, pane_size, runtime,
+            )
+        },
+    )
 }
 
 fn to_host_contract_project_overview_pane(
@@ -608,6 +694,13 @@ fn to_host_contract_runtime_diagnostics_pane(
     pane_size: host_window::PaneContentSize,
 ) -> host_contract::RuntimeDiagnosticsPaneData {
     pane_data_conversion::to_host_contract_runtime_diagnostics_pane_from_host_pane(data, pane_size)
+}
+
+fn to_host_contract_performance_timeline_pane(
+    data: &host_window::PaneData,
+    pane_size: host_window::PaneContentSize,
+) -> host_contract::PerformanceTimelinePaneData {
+    pane_data_conversion::to_host_contract_performance_timeline_pane_from_host_pane(data, pane_size)
 }
 
 fn to_host_contract_ui_asset_pane(
@@ -651,6 +744,13 @@ fn to_host_contract_pane(
                 host_window::PanePayload::RuntimeDiagnosticsV1(_)
             )
         });
+    let has_performance_timeline_payload = pane_kind == "PerformanceTimeline"
+        || data.pane_presentation.as_ref().is_some_and(|presentation| {
+            matches!(
+                &presentation.body.payload,
+                host_window::PanePayload::PerformanceTimelineV1(_)
+            )
+        });
     let has_module_plugins_payload = pane_kind == "ModulePlugins"
         || data.pane_presentation.as_ref().is_some_and(|presentation| {
             matches!(
@@ -673,6 +773,7 @@ fn to_host_contract_pane(
         "AnimationSequenceEditor" | "AnimationGraphEditor"
     ) || data.native_body.animation.nodes.row_count() > 0;
     let welcome_pane = if pane_kind == "Welcome" {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_welcome");
         welcome.map_or_else(host_contract::WelcomePaneData::default, |welcome| {
             let pane = project_welcome_pane_for_size(&welcome.pane, pane_size);
             to_host_contract_welcome_pane(&pane, &welcome.recent_projects)
@@ -681,41 +782,67 @@ fn to_host_contract_pane(
         host_contract::WelcomePaneData::default()
     };
     let hierarchy = if has_hierarchy_payload {
-        to_host_contract_hierarchy_pane(&data, pane_size)
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_hierarchy");
+        to_host_contract_hierarchy_pane(&data, pane_size, component_showcase_runtime)
     } else {
         host_contract::HierarchyPaneData::default()
     };
     let inspector = if has_inspector_payload {
-        to_host_contract_inspector_pane(&data, pane_size)
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_inspector");
+        to_host_contract_inspector_pane(&data, pane_size, component_showcase_runtime)
     } else {
         host_contract::InspectorPaneData::default()
     };
     let console = if has_console_payload {
-        to_host_contract_console_pane(&data, pane_size)
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_console");
+        to_host_contract_console_pane(&data, pane_size, component_showcase_runtime)
     } else {
         host_contract::ConsolePaneData::default()
     };
     let animation = if has_animation_payload {
-        to_host_contract_animation_editor_pane(&data, pane_size)
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_animation");
+        to_host_contract_animation_editor_pane(&data, pane_size, component_showcase_runtime)
     } else {
         host_contract::AnimationEditorPaneData::default()
     };
     let module_plugins = if has_module_plugins_payload {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_module_plugins");
         to_host_contract_module_plugins_pane(&data, pane_size)
     } else {
         host_contract::ModulePluginsPaneData::default()
     };
     let runtime_diagnostics = if has_runtime_diagnostics_payload {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "convert_pane_runtime_diagnostics"
+        );
         to_host_contract_runtime_diagnostics_pane(&data, pane_size)
     } else {
         host_contract::RuntimeDiagnosticsPaneData::default()
     };
+    let performance_timeline = if has_performance_timeline_payload {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "convert_pane_performance_timeline"
+        );
+        to_host_contract_performance_timeline_pane(&data, pane_size)
+    } else {
+        host_contract::PerformanceTimelinePaneData::default()
+    };
     let build_export = if has_build_export_payload {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_build_export");
         to_host_contract_build_export_pane(&data, pane_size)
     } else {
         host_contract::BuildExportPaneData::default()
     };
     let project_overview = if has_component_showcase_payload {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "retained_host",
+            "convert_pane_component_showcase"
+        );
         component_showcase_runtime.map_or_else(
             || {
                 pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
@@ -729,6 +856,7 @@ fn to_host_contract_pane(
             },
         )
     } else if has_project_overview_payload {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_pane_project");
         to_host_contract_project_overview_pane(data.native_body.project_overview.clone())
     } else {
         host_contract::ProjectOverviewPaneData::default()
@@ -770,6 +898,7 @@ fn to_host_contract_pane(
         ),
         project_overview,
         runtime_diagnostics,
+        performance_timeline,
         module_plugins,
         build_export,
         ui_asset: if has_ui_asset_payload {
@@ -1127,40 +1256,73 @@ fn to_host_contract_host_scene_data_with_runtime(
     component_showcase_runtime: Option<&EditorUiHostRuntime>,
     welcome: Option<&view_data::WelcomePresentation>,
 ) -> host_contract::HostWindowSceneData {
+    let layout = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_layout");
+        to_host_contract_host_window_layout(&scene.layout)
+    };
+    let metrics = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_metrics");
+        to_host_contract_metrics(&scene.metrics)
+    };
+    let orchestration = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_orchestration");
+        to_host_contract_orchestration(&scene.orchestration)
+    };
+    let menu_chrome = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_menu_chrome");
+        to_host_contract_menu_chrome(&scene.menu_chrome)
+    };
+    let page_chrome = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_page_chrome");
+        to_host_contract_page_chrome(&scene.page_chrome)
+    };
+    let status_bar = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_status_bar");
+        to_host_contract_status_bar(&scene.status_bar)
+    };
+    let resize_layer = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_resize_layer");
+        to_host_contract_resize_layer(&scene.resize_layer)
+    };
+    let drag_overlay = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_drag_overlay");
+        to_host_contract_drag_overlay(&scene.drag_overlay)
+    };
+    let left_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_left_dock");
+        to_host_contract_side_dock(&scene.left_dock, component_showcase_runtime, welcome)
+    };
+    let document_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_document_dock");
+        to_host_contract_document_dock(&scene.document_dock, component_showcase_runtime, welcome)
+    };
+    let right_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_right_dock");
+        to_host_contract_side_dock(&scene.right_dock, component_showcase_runtime, welcome)
+    };
+    let bottom_dock = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_bottom_dock");
+        to_host_contract_bottom_dock(&scene.bottom_dock, component_showcase_runtime, welcome)
+    };
+    let floating_layer = {
+        zircon_runtime::profile_scope!("editor", "retained_host", "convert_scene_floating_layer");
+        to_host_contract_floating_layer(&scene.floating_layer, component_showcase_runtime, welcome)
+    };
+
     host_contract::HostWindowSceneData {
-        layout: to_host_contract_host_window_layout(&scene.layout),
-        metrics: to_host_contract_metrics(&scene.metrics),
-        orchestration: to_host_contract_orchestration(&scene.orchestration),
-        menu_chrome: to_host_contract_menu_chrome(&scene.menu_chrome),
-        page_chrome: to_host_contract_page_chrome(&scene.page_chrome),
-        status_bar: to_host_contract_status_bar(&scene.status_bar),
-        resize_layer: to_host_contract_resize_layer(&scene.resize_layer),
-        drag_overlay: to_host_contract_drag_overlay(&scene.drag_overlay),
-        left_dock: to_host_contract_side_dock(
-            &scene.left_dock,
-            component_showcase_runtime,
-            welcome,
-        ),
-        document_dock: to_host_contract_document_dock(
-            &scene.document_dock,
-            component_showcase_runtime,
-            welcome,
-        ),
-        right_dock: to_host_contract_side_dock(
-            &scene.right_dock,
-            component_showcase_runtime,
-            welcome,
-        ),
-        bottom_dock: to_host_contract_bottom_dock(
-            &scene.bottom_dock,
-            component_showcase_runtime,
-            welcome,
-        ),
-        floating_layer: to_host_contract_floating_layer(
-            &scene.floating_layer,
-            component_showcase_runtime,
-            welcome,
-        ),
+        layout,
+        metrics,
+        orchestration,
+        menu_chrome,
+        page_chrome,
+        status_bar,
+        resize_layer,
+        drag_overlay,
+        left_dock,
+        document_dock,
+        right_dock,
+        bottom_dock,
+        floating_layer,
     }
 }
 

@@ -15,10 +15,16 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        let welcome = self.runtime.chrome_snapshot().welcome;
-        self.sync_welcome_recent_pointer_layout(&welcome);
+        self.sync_welcome_recent_pointer_layout();
+        if !self.ensure_welcome_surface_bridge() {
+            return;
+        }
+        let Some(welcome_surface_bridge) = self.welcome_surface_bridge.as_ref() else {
+            self.set_status_line("Welcome UI controls are not available");
+            return;
+        };
         match callback_dispatch::dispatch_shared_welcome_recent_pointer_click(
-            &self.welcome_surface_bridge,
+            welcome_surface_bridge,
             &mut self.welcome_recent_pointer_bridge,
             UiPoint::new(x, y),
         ) {
@@ -41,8 +47,7 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        let welcome = self.runtime.chrome_snapshot().welcome;
-        self.sync_welcome_recent_pointer_layout(&welcome);
+        self.sync_welcome_recent_pointer_size();
         match self
             .welcome_recent_pointer_bridge
             .handle_move(UiPoint::new(x, y))
@@ -70,8 +75,7 @@ impl RetainedEditorHost {
             self.welcome_recent_pointer_size,
             ViewContentKind::Welcome,
         );
-        let welcome = self.runtime.chrome_snapshot().welcome;
-        self.sync_welcome_recent_pointer_layout(&welcome);
+        self.sync_welcome_recent_pointer_size();
         match self
             .welcome_recent_pointer_bridge
             .handle_scroll(UiPoint::new(x, y), delta)

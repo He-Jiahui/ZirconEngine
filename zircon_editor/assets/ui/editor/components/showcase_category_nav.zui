@@ -1,0 +1,108 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_category_nav.zui"
+version = 2
+display_name = "Showcase Category Navigation"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseCategoryNav]
+root = "category_nav_root"
+default_classes = ["showcase-panel"]
+
+[nodes.nav_all]
+component = "Button"
+control_id = "ShowAllCategory"
+classes = ["material-control", "material-button"]
+props = { text = "All", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowAllCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.All" },
+]
+
+[nodes.nav_visual]
+component = "Button"
+control_id = "ShowVisualCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Visual", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowVisualCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Visual" },
+]
+
+[nodes.nav_feedback]
+component = "Button"
+control_id = "ShowFeedbackCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Feedback", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowFeedbackCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Feedback" },
+]
+
+[nodes.nav_input]
+component = "Button"
+control_id = "ShowInputCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Input", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowInputCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Input" },
+]
+
+[nodes.nav_numeric]
+component = "Button"
+control_id = "ShowNumericCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Numeric", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowNumericCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Numeric" },
+]
+
+[nodes.nav_selection]
+component = "Button"
+control_id = "ShowSelectionCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Selection", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowSelectionCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Selection" },
+]
+
+[nodes.nav_reference]
+component = "Button"
+control_id = "ShowReferenceCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Reference", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowReferenceCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Reference" },
+]
+
+[nodes.nav_collections]
+component = "Button"
+control_id = "ShowDataCategory"
+classes = ["material-control", "material-button"]
+props = { text = "Collections", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ShowDataCategory", event = "Click", route = "UiComponentShowcase.SelectCategory.Collections" },
+]
+
+[nodes.category_nav_root]
+component = "VerticalBox"
+control_id = "ComponentCategoryNav"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "nav_all" },
+  { node = "nav_visual" },
+  { node = "nav_feedback" },
+  { node = "nav_input" },
+  { node = "nav_numeric" },
+  { node = "nav_selection" },
+  { node = "nav_reference" },
+  { node = "nav_collections" },
+]

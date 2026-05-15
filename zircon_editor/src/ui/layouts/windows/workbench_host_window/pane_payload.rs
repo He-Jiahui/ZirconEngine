@@ -8,6 +8,7 @@ pub enum PanePayload {
     AnimationSequenceV1(AnimationSequencePanePayload),
     AnimationGraphV1(AnimationGraphPanePayload),
     RuntimeDiagnosticsV1(RuntimeDiagnosticsPanePayload),
+    PerformanceTimelineV1(PerformanceTimelinePanePayload),
     ModulePluginsV1(ModulePluginsPanePayload),
     BuildExportV1(BuildExportPanePayload),
     UiComponentShowcaseV1(UiComponentShowcasePanePayload),
@@ -104,6 +105,59 @@ pub struct RuntimeDiagnosticsPanePayload {
     pub ui_debug_reflector_export_status: String,
     pub ui_debug_reflector_overlay_primitives: Vec<UiDebugOverlayPrimitive>,
     pub ui_debug_reflector_has_active_snapshot: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PerformanceTimelinePanePayload {
+    pub summary: String,
+    pub session_label: String,
+    pub output_label: String,
+    pub frame_rows: Vec<PerformanceTimelineFrameRowPayload>,
+    pub span_summary_rows: Vec<PerformanceTimelineSpanRowPayload>,
+    pub hotspot_rows: Vec<PerformanceTimelineHotspotRowPayload>,
+    pub capture_controls: Vec<PerformanceTimelineCaptureControlPayload>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PerformanceTimelineFrameRowPayload {
+    pub stream: String,
+    pub name: String,
+    pub frame_index: u64,
+    pub duration_label: String,
+    pub budget_label: String,
+    pub budget_usage_label: String,
+    pub duration_ratio: f32,
+    pub bar_fill_ratio: f32,
+    pub budget_marker_ratio: f32,
+    pub over_budget: bool,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PerformanceTimelineSpanRowPayload {
+    pub stream: String,
+    pub category: String,
+    pub name: String,
+    pub path: String,
+    pub duration_label: String,
+    pub depth: u16,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PerformanceTimelineHotspotRowPayload {
+    pub stream: String,
+    pub category: String,
+    pub name: String,
+    pub path: String,
+    pub total_label: String,
+    pub average_label: String,
+    pub count_label: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PerformanceTimelineCaptureControlPayload {
+    pub label: String,
+    pub action_id: String,
+    pub enabled: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

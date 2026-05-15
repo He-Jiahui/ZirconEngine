@@ -45,7 +45,7 @@ impl zircon_editor::EditorPlugin for TimelineSequenceEditorPlugin {
                 drawer_id: TIMELINE_SEQUENCE_DRAWER_ID,
                 drawer_display_name: "Timeline Sequence",
                 template_id: TIMELINE_SEQUENCE_TEMPLATE_ID,
-                template_document: "plugins://timeline_sequence/editor/authoring.v2.ui.toml",
+                template_document: "plugins://timeline_sequence/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     TIMELINE_SEQUENCE_VIEW_ID,
                     "Timeline Sequence",

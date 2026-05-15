@@ -1,0 +1,51 @@
+import { MutedText, Panel, PillButton } from "shared.slint";
+
+export component PlaceholderPage inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> action-label: "Open Editor";
+    callback primary-action();
+
+    background: #11151a;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 28px;
+        padding-right: 28px;
+        padding-top: 184px;
+        padding-bottom: 28px;
+        spacing: 18px;
+
+        Panel {
+            height: 240px;
+            VerticalLayout {
+                padding: 24px;
+                spacing: 12px;
+                Text {
+                    text: root.title;
+                    color: #f3f6f9;
+                    font-size: 24px;
+                    font-weight: 900;
+                }
+                MutedText {
+                    text: root.subtitle;
+                }
+                MutedText {
+                    text: "This section is wired into the Hub shell and reserved for the next feature slice.";
+                }
+                Rectangle { vertical-stretch: 1; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    PillButton {
+                        text: root.action-label;
+                        icon: ">";
+                        clicked => {
+                            root.primary-action();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -22,13 +22,21 @@ pub(crate) struct BuiltinHostDrawerSourceTemplateBridge {
 }
 
 impl BuiltinHostDrawerSourceTemplateBridge {
+    #[cfg(test)]
     pub(crate) fn new(
         shell_size: UiSize,
     ) -> Result<Self, BuiltinHostDrawerSourceTemplateBridgeError> {
         let mut runtime = EditorUiHostRuntime::default();
         runtime.load_builtin_host_templates()?;
+        Self::new_with_runtime(&runtime, shell_size)
+    }
+
+    pub(crate) fn new_with_runtime(
+        runtime: &EditorUiHostRuntime,
+        shell_size: UiSize,
+    ) -> Result<Self, BuiltinHostDrawerSourceTemplateBridgeError> {
         let surface = build_builtin_host_drawer_source_surface(
-            &runtime,
+            runtime,
             shell_size,
             default_drawer_layout_inputs(),
             WorkbenchChromeMetrics::default(),

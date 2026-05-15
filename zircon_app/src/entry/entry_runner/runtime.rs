@@ -31,11 +31,23 @@ impl EntryRunner {
         );
         #[cfg(feature = "profiling-tracy")]
         let _ = zircon_runtime::core::diagnostics::profiling::initialize_tracy_sink();
+        #[cfg(feature = "profiling")]
+        let profile_capture =
+            zircon_runtime::core::diagnostics::profiling::start_capture_from_env("runtime");
         let runtime = LoadedRuntime::load_default()?;
         let session = RuntimeSession::create(runtime)?;
         let event_loop = EventLoop::new()?;
         let app = RuntimeEntryApp::new(session);
-        event_loop.run_app(app)?;
+        let result = event_loop.run_app(app);
+        #[cfg(feature = "profiling")]
+        if profile_capture.is_some() {
+            match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env() {
+                Some(Ok(report)) => eprintln!("profile report exported: {}", report.export_dir),
+                Some(Err(error)) => eprintln!("profile report export failed: {error}"),
+                None => {}
+            }
+        }
+        result?;
         Ok(())
     }
 }

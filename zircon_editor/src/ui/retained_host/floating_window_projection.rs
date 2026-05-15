@@ -148,6 +148,7 @@ pub(crate) fn resolve_floating_window_projection_base_outer_frame(
     .unwrap_or_else(|| valid_requested_frame(window.requested_frame).unwrap_or_default())
 }
 
+#[cfg(test)]
 pub(crate) fn resolve_floating_window_projection_content_frame(
     window: &FloatingWindowModel,
     window_index: usize,

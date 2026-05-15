@@ -9,7 +9,6 @@ use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{binding::UiEventKind, layout::UiSize};
 
-use crate::tests::support::load_test_ui_asset;
 use crate::ui::binding::EditorUiBindingPayload;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
@@ -441,6 +440,17 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .build_retained_host_projection_with_surface(&projection, &surface)
         .unwrap();
 
+    for control_id in [
+        "ComponentShowcaseCommandToolbar",
+        "ComponentShowcaseBottomLog",
+        "ComponentShowcaseRuntimeBadge",
+    ] {
+        assert!(
+            host_projection.node_by_control_id(control_id).is_some(),
+            "component showcase should project imported .zui component control `{control_id}`"
+        );
+    }
+
     let material_button = host_projection
         .node_by_control_id("ButtonDemo")
         .expect("component showcase should project ButtonDemo through the Material meta component");
@@ -794,6 +804,12 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
         ),
         (
+            "editor.performance_timeline",
+            "pane.performance.timeline.body",
+            "PerformanceTimelinePaneBody",
+            "PerformanceTimelinePaneBody/RefreshSnapshot",
+        ),
+        (
             "editor.module_plugins",
             "pane.module_plugins.body",
             "ModulePluginsPaneBody",
@@ -853,15 +869,51 @@ fn builtin_pane_body_documents_match_descriptor_ids_and_runtime_registration() {
 }
 
 #[test]
+fn performance_timeline_body_exposes_capture_export_and_summary_sections() {
+    let source = fs::read_to_string(pane_body_path("performance_timeline_body.v2.ui.toml"))
+        .expect("performance timeline pane body asset should be readable");
+    let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
+        .expect("performance timeline pane body asset should parse");
+    let root_node_id = document
+        .root
+        .as_ref()
+        .map(|root| root.node.as_str())
+        .expect("performance timeline body should declare a root node");
+    let root_node = document
+        .nodes
+        .get(root_node_id)
+        .expect("performance timeline root node should exist");
+
+    for control_id in [
+        "PerformanceTimelineSummary",
+        "PerformanceTimelineCaptureControls",
+        "PerformanceTimelineFrameList",
+        "PerformanceTimelineSpanSummary",
+        "PerformanceTimelineHotspots",
+    ] {
+        assert!(
+            document
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "performance timeline body should expose `{control_id}`"
+        );
+    }
+    assert!(
+        root_node.children.iter().any(|child| {
+            child.slot.get("name").and_then(toml::Value::as_str)
+                == Some("performance_timeline_frame_list")
+        }),
+        "performance timeline body should declare the frame-list native slot"
+    );
+}
+
+#[test]
 fn runtime_diagnostics_body_exposes_ui_debug_reflector_section() {
-    let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.ui.toml"))
+    let source = fs::read_to_string(pane_body_path("runtime_diagnostics_body.v2.ui.toml"))
         .expect("runtime diagnostics pane body asset should be readable");
-    let document =
-        load_test_ui_asset(&source).expect("runtime diagnostics pane body asset should parse");
-    let component = document
-        .components
-        .get("RuntimeDiagnosticsPaneBody")
-        .expect("runtime diagnostics component should exist");
+    let document = zircon_runtime::ui::v2::UiV2AssetLoader::load_toml_str(&source)
+        .expect("runtime diagnostics pane body asset should parse");
 
     for control_id in [
         "UiDebugReflectorSummary",
@@ -870,11 +922,10 @@ fn runtime_diagnostics_body_exposes_ui_debug_reflector_section() {
         "UiDebugReflectorNodeList",
     ] {
         assert!(
-            component
-                .root
-                .children
-                .iter()
-                .any(|child| child.node.control_id.as_deref() == Some(control_id)),
+            document
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
             "runtime diagnostics body should expose `{control_id}`"
         );
     }
@@ -982,6 +1033,11 @@ fn builtin_pane_body_bindings_stay_in_expected_command_namespaces() {
         (
             "pane.runtime.diagnostics.body",
             "RuntimeDiagnosticsPaneBody/FocusDiagnostics",
+            "DockCommand",
+        ),
+        (
+            "pane.performance.timeline.body",
+            "PerformanceTimelinePaneBody/RefreshSnapshot",
             "DockCommand",
         ),
         (

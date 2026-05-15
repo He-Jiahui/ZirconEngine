@@ -3,10 +3,21 @@ fn source(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
+fn component_showcase_reference_contract_source() -> String {
+    [
+        "assets/ui/editor/component_showcase.v2.ui.toml",
+        "assets/ui/editor/components/showcase_selection_section.zui",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+
 #[test]
 fn component_showcase_reference_wells_are_projected_into_rust_template_nodes() {
     let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
-    let showcase_asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
+    let showcase_asset = component_showcase_reference_contract_source();
 
     for required in [
         "pub accepted_drag_payloads: SharedString",

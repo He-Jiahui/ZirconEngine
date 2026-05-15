@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::Arc};
 
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
@@ -16,8 +16,10 @@ use crate::ui::template_runtime::{
 use crate::ui::workbench::autolayout::WorkbenchChromeMetrics;
 use crate::ui::workbench::model::WorkbenchViewModel;
 
+#[cfg(test)]
+use super::super::projection_support::load_builtin_runtime;
 use super::super::projection_support::{
-    binding_for_control, build_bindings_by_id, load_builtin_runtime_projection,
+    binding_for_control, build_bindings_by_id, project_builtin_document_with_runtime,
 };
 use super::super::workbench_drawer_source::{
     BuiltinHostDrawerLayoutAnchors, BuiltinHostDrawerSourceTemplateBridge,
@@ -42,7 +44,7 @@ const BOTTOM_DRAWER_HEADER_CONTROL_ID: &str = "BottomDrawerHeaderRoot";
 const BOTTOM_DRAWER_CONTENT_CONTROL_ID: &str = "BottomDrawerContentRoot";
 
 pub(crate) struct BuiltinHostWindowTemplateBridge {
-    runtime: EditorUiHostRuntime,
+    runtime: Arc<EditorUiHostRuntime>,
     projection: RetainedUiProjection,
     bindings_by_id: BTreeMap<String, EditorUiBinding>,
     host_surface: UiSurface,
@@ -51,14 +53,24 @@ pub(crate) struct BuiltinHostWindowTemplateBridge {
 }
 
 impl BuiltinHostWindowTemplateBridge {
+    #[cfg(test)]
     pub(crate) fn new(shell_size: UiSize) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
-        let (runtime, projection) =
-            load_builtin_runtime_projection(BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
+        let runtime = Arc::new(load_builtin_runtime()?);
+        Self::new_with_runtime(runtime, shell_size)
+    }
+
+    pub(crate) fn new_with_runtime(
+        runtime: Arc<EditorUiHostRuntime>,
+        shell_size: UiSize,
+    ) -> Result<Self, BuiltinHostWindowTemplateBridgeError> {
+        let projection =
+            project_builtin_document_with_runtime(&runtime, BUILTIN_UI_HOST_WINDOW_DOCUMENT_ID)?;
         let bindings_by_id = build_bindings_by_id(&projection);
-        let host_surface = build_builtin_host_window_surface(&runtime, shell_size)?;
+        let host_surface = build_builtin_host_window_surface(runtime.as_ref(), shell_size)?;
         let host_projection =
-            project_builtin_host_window_projection(&runtime, &projection, &host_surface)?;
-        let drawer_source_bridge = BuiltinHostDrawerSourceTemplateBridge::new(shell_size)?;
+            project_builtin_host_window_projection(runtime.as_ref(), &projection, &host_surface)?;
+        let drawer_source_bridge =
+            BuiltinHostDrawerSourceTemplateBridge::new_with_runtime(runtime.as_ref(), shell_size)?;
 
         Ok(Self {
             runtime,
@@ -77,7 +89,7 @@ impl BuiltinHostWindowTemplateBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
         self.host_projection = project_builtin_host_window_projection(
-            &self.runtime,
+            self.runtime.as_ref(),
             &self.projection,
             &self.host_surface,
         )?;
@@ -93,7 +105,7 @@ impl BuiltinHostWindowTemplateBridge {
     ) -> Result<(), BuiltinHostWindowTemplateBridgeError> {
         rebuild_builtin_host_window_surface(&mut self.host_surface, shell_size)?;
         self.host_projection = project_builtin_host_window_projection(
-            &self.runtime,
+            self.runtime.as_ref(),
             &self.projection,
             &self.host_surface,
         )?;

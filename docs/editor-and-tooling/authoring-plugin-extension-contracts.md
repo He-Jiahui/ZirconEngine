@@ -5,6 +5,24 @@ related_code:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
+  - zircon_plugins/animation/editor/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/hybrid_gi/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/navigation/editor/src/lib.rs
+  - zircon_plugins/net/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/virtual_geometry/editor/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/assets/authoring.rs
   - zircon_runtime/src/asset/assets/imported.rs
@@ -25,6 +43,24 @@ implementation_files:
   - zircon_editor/src/core/editor_operation.rs
   - zircon_editor/src/core/editor_plugin.rs
   - zircon_plugins/editor_support/src/lib.rs
+  - zircon_plugins/animation/editor/src/lib.rs
+  - zircon_plugins/animation_graph/editor/src/lib.rs
+  - zircon_plugins/editor_build_export_desktop/editor/src/lib.rs
+  - zircon_plugins/hybrid_gi/editor/src/lib.rs
+  - zircon_plugins/material_editor/editor/src/lib.rs
+  - zircon_plugins/navigation/editor/src/lib.rs
+  - zircon_plugins/net/editor/src/lib.rs
+  - zircon_plugins/particles/editor/src/authoring.rs
+  - zircon_plugins/physics/editor/src/lib.rs
+  - zircon_plugins/plugin_sdk_examples/editor/src/lib.rs
+  - zircon_plugins/prefab_tools/editor/src/lib.rs
+  - zircon_plugins/sound/editor/src/authoring_bindings.rs
+  - zircon_plugins/sound/editor/src/lib.rs
+  - zircon_plugins/terrain/editor/src/lib.rs
+  - zircon_plugins/texture/editor/src/lib.rs
+  - zircon_plugins/tilemap_2d/editor/src/lib.rs
+  - zircon_plugins/timeline_sequence/editor/src/lib.rs
+  - zircon_plugins/virtual_geometry/editor/src/lib.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_plugins/terrain/runtime/src/lib.rs
   - zircon_plugins/terrain/editor/src/lib.rs
@@ -45,7 +81,11 @@ implementation_files:
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/assets/scene.rs
   - zircon_runtime_interface/src/resource/marker.rs
+plan_sources:
+  - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
 tests:
+  - cargo test -p zircon_editor --lib zui --locked (2026-05-14 editor authoring `.zui` suffix validation: planned for milestone testing stage)
+  - cargo check -p zircon_editor --lib --locked (2026-05-14 editor authoring `.zui` suffix validation: planned for milestone testing stage)
   - cargo check -p zircon_runtime_interface --lib --locked --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --message-format short --color never
   - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_terrain_runtime -p zircon_plugin_tilemap_2d_runtime -p zircon_plugin_prefab_tools_runtime --locked --message-format short --color never
@@ -108,7 +148,7 @@ Unreal 参照用于拆分生命周期和编辑器表面：Landscape 负责 heigh
 
 `zircon_plugins/editor_support` 的 `EditorAuthoringContributionBatch` 是插件包使用的批量注册入口。每个 editor crate 先注册一个基础 authoring surface，再通过 batch 注册 operation、menu item、importer、asset editor、component drawer、template、tool mode、graph editor、palette 或 timeline track。batch 测试固定了 menu item、payload schema 和所有 authoring descriptor family 会在一次注册中进入同一个 registry。
 
-Authoring UI document references are v2-only on the production extension path. `EditorUiTemplateDescriptor` and `ComponentDrawerDescriptor` must reference `.v2.ui.toml` assets; the registry rejects stale `.ui.toml` paths. Plugin packages that ship editor surfaces should therefore package v2 flat graph documents and use `UiV2ViewAsset`/`UiV2ComponentAsset`/`UiV2StyleAsset` import payloads. The split `ui_document_importer` package manifest and runtime registration now expose only `ui_document_importer.v2_typed_toml`; the legacy serialized `.ui.json`, `.zui`, and `.uidoc` importers have been removed from production packaging. Legacy `.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
+Authoring UI document references are `.zui`-only on the production extension path. `EditorUiTemplateDescriptor` and `ComponentDrawerDescriptor` must reference `.zui` component assets; the registry rejects stale `.ui.toml` and `.v2.ui.toml` paths. Plugin packages that ship editor surfaces should package single-component `.zui` documents backed by `UiV2ComponentAsset` payloads. The split `ui_document_importer` package manifest and runtime registration now expose only `ui_document_importer.zui_component`; the legacy serialized `.ui.json` and `.uidoc` importers plus the old mixed-kind `.v2.ui.toml` importer have been removed from production packaging. Legacy `.ui.toml` and `.v2.ui.toml` authoring documents are reserved for migration and fixture tests, not for new plugin registrations.
 
 `EditorOperationDescriptor` 现在有可选 `payload_schema_id`，用于把命令 ID、菜单路径和操作参数 DTO 版本连起来。六个 Authoring editor crate 的用户可触发 operation 都同时声明：
 

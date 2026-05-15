@@ -7,11 +7,16 @@ mod tests {
 
     use super::super::{
         backend::MockVmBackend, module_descriptor, BuiltinVmBackendFamily, CapabilitySet,
-        HostRegistry, HotReloadCoordinator, PluginHostDriver, UnavailableVmBackend, VmBackend,
-        VmBackendFamily, VmError, VmPluginHostContext, VmPluginInstance, VmPluginManager,
-        VmPluginManifest, VmPluginPackage, VmPluginPackageSource, VmPluginSlotLifecycle,
-        VmPluginSlotRecord, PLUGIN_HOST_DRIVER_NAME, SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME,
-        VM_PLUGIN_RUNTIME_NAME,
+        HostExportFunction, HostExportRegistry, HostRegistry, HotReloadCoordinator,
+        PluginHostDriver, UnavailableVmBackend, VmBackend, VmBackendFamily, VmError,
+        VmPluginHostContext, VmPluginInstance, VmPluginManager, VmPluginManifest, VmPluginPackage,
+        VmPluginPackageSource, VmPluginSlotLifecycle, VmPluginSlotRecord, PLUGIN_HOST_DRIVER_NAME,
+        SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
+    };
+    use crate::core::framework::script::{
+        ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor, ScriptHostParameterDescriptor,
+        ScriptHostPrototypeKind, ScriptHostTypeDescriptor, ScriptHostTypeRef, ScriptHostValue,
+        ScriptHostValueKind, ZirconScriptType,
     };
     use crate::core::{CoreRuntime, PluginContext};
 
@@ -185,6 +190,221 @@ mod tests {
     }
 
     #[test]
+    fn host_export_registry_validates_descriptors_and_dispatches_callbacks() {
+        let registry = HostRegistry::default();
+        let exports = HostExportRegistry::new(registry.clone());
+        let descriptor = ScriptHostModuleDescriptor::new("test.host", "0.1.0")
+            .with_capability("test.add")
+            .with_function(
+                ScriptHostFunctionDescriptor::new("add", 2, 2, ScriptHostValueKind::Int)
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "left",
+                        ScriptHostValueKind::Int,
+                    ))
+                    .with_parameter(ScriptHostParameterDescriptor::new(
+                        "right",
+                        ScriptHostValueKind::Int,
+                    ))
+                    .with_required_capability("test.add"),
+            );
+        let handle = exports
+            .register_module(
+                descriptor,
+                [HostExportFunction::new("add", |context| {
+                    let left = match context.arguments[0] {
+                        ScriptHostValue::Int(value) => value,
+                        _ => 0,
+                    };
+                    let right = match context.arguments[1] {
+                        ScriptHostValue::Int(value) => value,
+                        _ => 0,
+                    };
+                    Ok(ScriptHostValue::Int(left + right))
+                })],
+            )
+            .unwrap();
+
+        assert!(registry.is_valid(handle));
+        assert_eq!(exports.modules().len(), 1);
+        let granted = CapabilitySet::default().with("test.add");
+        let value = exports
+            .call_with_capabilities(
+                "test.host",
+                "add",
+                vec![ScriptHostValue::Int(2), ScriptHostValue::Int(5)],
+                &granted,
+            )
+            .unwrap();
+        assert_eq!(value, ScriptHostValue::Int(7));
+    }
+
+    #[test]
+    fn host_export_registry_preserves_precise_type_refs_for_zr_vm_registration() {
+        let exports = HostExportRegistry::default();
+        let descriptor = ScriptHostModuleDescriptor::new("test.types", "0.1.0")
+            .with_type(
+                ScriptHostTypeDescriptor::new("Vec3", ScriptHostValueKind::Float)
+                    .with_type_ref(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3"))
+                    .with_prototype_kind(ScriptHostPrototypeKind::Struct)
+                    .allow_value_construction(true),
+            )
+            .with_function(
+                ScriptHostFunctionDescriptor::new("identity", 1, 1, ScriptHostValueKind::Float)
+                    .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3"))
+                    .with_parameter(
+                        ScriptHostParameterDescriptor::new("value", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3")),
+                    ),
+            );
+
+        exports
+            .register_module(
+                descriptor,
+                [HostExportFunction::new("identity", |context| {
+                    Ok(context.arguments[0].clone())
+                })],
+            )
+            .unwrap();
+
+        let module = exports.module("test.types").unwrap();
+        assert_eq!(module.descriptor.types[0].type_ref.type_name, "Vec3");
+        assert_eq!(module.descriptor.types[0].prototype_kind, ScriptHostPrototypeKind::Struct);
+        assert!(module.descriptor.types[0].allow_value_construction);
+        assert_eq!(module.descriptor.functions[0].return_type.type_name, "Vec3");
+        assert_eq!(module.descriptor.functions[0].parameters[0].type_ref.type_name, "Vec3");
+    }
+
+    #[test]
+    fn host_export_registry_rejects_duplicates_invalid_callbacks_and_missing_capabilities() {
+        let exports = HostExportRegistry::default();
+        let descriptor = ScriptHostModuleDescriptor::new("test.host", "0.1.0")
+            .with_capability("test.read")
+            .with_function(
+                ScriptHostFunctionDescriptor::new("read", 0, 0, ScriptHostValueKind::Null)
+                    .with_required_capability("test.read"),
+            );
+
+        exports
+            .register_module(
+                descriptor.clone(),
+                [HostExportFunction::new("read", |_| {
+                    Ok(ScriptHostValue::Null)
+                })],
+            )
+            .unwrap();
+        assert!(matches!(
+            exports.register_module(
+                descriptor.clone(),
+                [HostExportFunction::new("read", |_| Ok(ScriptHostValue::Null))]
+            ),
+            Err(VmError::Operation(message)) if message.contains("already registered")
+        ));
+        assert!(matches!(
+            HostExportRegistry::default().register_module(
+                descriptor.clone(),
+                [HostExportFunction::new("unknown", |_| Ok(ScriptHostValue::Null))]
+            ),
+            Err(VmError::Operation(message)) if message.contains("callback missing")
+        ));
+        assert!(matches!(
+            exports.call_with_capabilities("test.host", "read", Vec::new(), &CapabilitySet::default()),
+            Err(VmError::Operation(message)) if message.contains("missing capability")
+        ));
+        let mismatched = ScriptHostModuleDescriptor::new("test.mismatch", "0.1.0")
+            .with_function(
+                ScriptHostFunctionDescriptor::new("bad", 0, 0, ScriptHostValueKind::Int)
+                    .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::String, "string")),
+            );
+        assert!(matches!(
+            HostExportRegistry::default().register_module(
+                mismatched,
+                [HostExportFunction::new("bad", |_| Ok(ScriptHostValue::Null))]
+            ),
+            Err(VmError::Operation(message)) if message.contains("value kind mismatch")
+        ));
+    }
+
+    #[test]
+    fn rust_reflection_macros_generate_type_function_and_module_descriptors() {
+        #[derive(crate::ZirconScriptType)]
+        #[zircon_script(
+            name = "TestVec3",
+            value_kind = ScriptHostValueKind::Float,
+            prototype = ScriptHostPrototypeKind::Struct,
+            allow_value_construction = true,
+            documentation = "test vector"
+        )]
+        #[allow(dead_code)]
+        struct TestVec3 {
+            #[zircon_script(type_name = "float", documentation = "x axis")]
+            x: f64,
+            #[zircon_script(type_name = "float")]
+            y: f64,
+            #[zircon_script(type_name = "float")]
+            z: f64,
+        }
+
+        let type_descriptor = TestVec3::script_host_type_descriptor();
+        assert_eq!(type_descriptor.name, "TestVec3");
+        assert_eq!(type_descriptor.type_ref.type_name, "TestVec3");
+        assert_eq!(type_descriptor.fields[0].type_ref.type_name, "float");
+        assert_eq!(type_descriptor.fields[0].documentation.as_deref(), Some("x axis"));
+        assert!(type_descriptor.allow_value_construction);
+
+        #[crate::zircon_host_module(
+            name = "test.macro.math",
+            version = "0.1.0",
+            capability = "test.math",
+            documentation = "macro math"
+        )]
+        mod macro_math {
+            use super::*;
+
+            #[derive(crate::ZirconScriptType)]
+            #[zircon_script(
+                name = "Point",
+                value_kind = ScriptHostValueKind::Float,
+                allow_value_construction = true
+            )]
+            #[allow(dead_code)]
+            struct Point {
+                #[zircon_script(type_name = "float")]
+                x: f64,
+            }
+
+            #[crate::zircon_host_function(
+                name = "double",
+                return_type_name = "float",
+                capability = "test.math",
+                documentation = "double input"
+            )]
+            fn double(value: f64) -> f64 {
+                value * 2.0
+            }
+        }
+
+        let descriptor = macro_math::macro_math_host_module_descriptor();
+        assert_eq!(descriptor.name, "test.macro.math");
+        assert_eq!(descriptor.capabilities, vec!["test.math".to_string()]);
+        assert_eq!(descriptor.types[0].name, "Point");
+        assert_eq!(descriptor.functions[0].name, "double");
+        assert_eq!(descriptor.functions[0].parameters[0].type_ref.type_name, "f64");
+        assert_eq!(descriptor.functions[0].return_type.type_name, "float");
+
+        let exports = HostExportRegistry::default();
+        macro_math::register_macro_math_host_module(&exports).unwrap();
+        let value = exports
+            .call_with_capabilities(
+                "test.macro.math",
+                "double",
+                vec![ScriptHostValue::Float(2.5)],
+                &CapabilitySet::default().with("test.math"),
+            )
+            .unwrap();
+        assert_eq!(value, ScriptHostValue::Float(5.0));
+    }
+
+    #[test]
     fn builtin_backend_family_accepts_qualified_and_legacy_backend_names() {
         let registry = super::super::VmBackendRegistry::new();
         registry.register_family(Arc::new(BuiltinVmBackendFamily));
@@ -203,6 +423,7 @@ mod tests {
             package_root: Some(package_root.clone()),
             manifest_path: Some(package_root.join("plugin.toml")),
             bytecode_path: Some(package_root.join("plugin.bin")),
+            zr_vm_project_path: None,
         };
         let package = test_package("sample", "0.1.0");
         let host = test_host_context(
@@ -263,6 +484,7 @@ mod tests {
             discovered.source.bytecode_path.as_deref(),
             Some(fixture.bytecode_path.as_path())
         );
+        assert!(discovered.source.zr_vm_project_path.is_none());
 
         let slot = manager.load_discovered_package(discovered).unwrap();
         let loaded = manager.slot(slot).unwrap();
@@ -349,6 +571,11 @@ mod tests {
 
         let capability = driver.registry().register_capability("RenderingManager");
         assert!(plugin.host_registry().is_valid(capability));
+        assert!(driver.host_exports().module("zr.zircon.math").is_some());
+        assert!(plugin
+            .host_exports()
+            .module("zr.zircon.foundation")
+            .is_some());
         assert_eq!(
             plugin.base_plugin_context().plugin_name,
             VM_PLUGIN_RUNTIME_NAME
@@ -391,6 +618,7 @@ mod tests {
             record.source.bytecode_path.as_deref(),
             Some(fixture.bytecode_path.as_path())
         );
+        assert!(record.source.zr_vm_project_path.is_none());
 
         let observed = observations.lock().unwrap().clone();
         assert_eq!(observed.len(), 2);
@@ -412,6 +640,41 @@ mod tests {
             assert_eq!(host.package_source, record.source);
             assert_eq!(host.capabilities, record.manifest.capabilities);
         }
+    }
+
+    #[test]
+    fn vm_plugin_discovery_supports_zr_vm_project_packages_without_bytecode() {
+        let fixture = ZrVmProjectFixture::new("sample_zr", "0.1.0");
+        let manager = VmPluginManager::with_builtin_backends(HostRegistry::default());
+        let packages = manager.discover_packages(&fixture.root).unwrap();
+
+        assert_eq!(packages.len(), 1);
+        let discovered = &packages[0];
+        assert_eq!(discovered.backend_name, "zr_vm:project");
+        assert!(discovered.package.bytecode.is_empty());
+        assert_eq!(
+            discovered.source.zr_vm_project_path.as_deref(),
+            Some(fixture.project_path.as_path())
+        );
+        assert_eq!(
+            discovered
+                .package
+                .zr_vm_project
+                .as_ref()
+                .unwrap()
+                .entry_module,
+            "main"
+        );
+        assert_eq!(
+            discovered
+                .package
+                .zr_vm_project
+                .as_ref()
+                .unwrap()
+                .project_path,
+            fixture.project_path
+        );
+        assert!(discovered.source.bytecode_path.is_none());
     }
 
     #[test]
@@ -487,6 +750,8 @@ mod tests {
             "backend/mock_vm_backend.rs",
             "backend/vm_error.rs",
             "host/mod.rs",
+            "host/builtin_host_modules.rs",
+            "host/host_export_registry.rs",
             "host/host_registry.rs",
             "host/plugin_host_driver.rs",
             "host/constants.rs",
@@ -520,6 +785,7 @@ mod tests {
                 entry: "main".to_string(),
                 capabilities: CapabilitySet::default().with("render"),
             },
+            zr_vm_project: None,
             bytecode: vec![1, 2, 3],
         }
     }
@@ -556,6 +822,7 @@ mod tests {
             backend_selector: backend_selector.to_string(),
             package_source: source,
             host_registry: HostRegistry::default(),
+            host_exports: HostExportRegistry::default(),
             slot_lifecycle: Arc::new(NoopSlotLifecycle),
         }
     }
@@ -599,6 +866,43 @@ mod tests {
     }
 
     impl Drop for PluginFixture {
+        fn drop(&mut self) {
+            let _ = remove_dir_all_if_exists(&self.root);
+        }
+    }
+
+    struct ZrVmProjectFixture {
+        root: PathBuf,
+        project_path: PathBuf,
+    }
+
+    impl ZrVmProjectFixture {
+        fn new(name: &str, version: &str) -> Self {
+            let nonce = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let root = std::env::temp_dir().join(format!("zircon-zr-vm-project-fixture-{nonce}"));
+            let package_root = root.join(name);
+            let project_root = package_root.join("script");
+            fs::create_dir_all(project_root.join("src")).unwrap();
+            let manifest_path = package_root.join("plugin.toml");
+            let project_path = project_root.join("plugin.zrp");
+            fs::write(&project_path, "name = \"sample_zr\"\n").unwrap();
+            fs::write(project_root.join("src").join("main.zr"), "return 1;\n").unwrap();
+            fs::write(
+                &manifest_path,
+                format!(
+                    "name = \"{name}\"\nversion = \"{version}\"\nentry = \"main\"\nbackend = \"zr_vm:project\"\n\n[capabilities]\ncapabilities = [\"foundation.time\"]\n\n[zr_vm]\nproject = \"script/plugin.zrp\"\nentry_module = \"main\"\nexecution_mode = \"binary\"\n"
+                ),
+            )
+            .unwrap();
+
+            Self { root, project_path }
+        }
+    }
+
+    impl Drop for ZrVmProjectFixture {
         fn drop(&mut self) {
             let _ = remove_dir_all_if_exists(&self.root);
         }

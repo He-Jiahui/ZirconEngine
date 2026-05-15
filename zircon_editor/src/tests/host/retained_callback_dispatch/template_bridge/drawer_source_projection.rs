@@ -31,10 +31,10 @@ fn builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames
     let bottom_height = compact_bottom_height_limit(bottom_available_height)
         .map(|limit| requested_bottom_height.min(limit))
         .unwrap_or(requested_bottom_height);
-    let bottom_height = round_to_centipixel(bottom_height);
-    let bottom_y = round_to_centipixel(720.0 - 24.0 - bottom_height);
-    let center_height = round_to_centipixel(bottom_y - 59.0 - 1.0);
-    let bottom_content_height = round_to_centipixel((bottom_height - 26.0).max(0.0));
+    let bottom_height = round_to_layout_pixel(bottom_height);
+    let bottom_y = round_to_layout_pixel(720.0 - 24.0 - bottom_height);
+    let center_height = round_to_layout_pixel(bottom_y - 59.0 - 1.0);
+    let bottom_content_height = round_to_layout_pixel((bottom_height - 26.0).max(0.0));
     assert_eq!(
         frames.left_drawer_shell_frame,
         Some(UiFrame::new(0.0, 59.0, 312.0, center_height))
@@ -45,7 +45,7 @@ fn builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames
     );
     assert_eq!(
         frames.left_drawer_content_frame,
-        Some(UiFrame::new(35.0, 85.0, 277.0, center_height - 26.0))
+        Some(UiFrame::new(35.0, 84.0, 277.0, center_height - 25.0))
     );
     assert_eq!(
         frames.right_drawer_shell_frame,
@@ -57,7 +57,7 @@ fn builtin_workbench_drawer_source_template_bridge_exports_visible_drawer_frames
     );
     assert_eq!(
         frames.right_drawer_content_frame,
-        Some(UiFrame::new(972.0, 85.0, 273.0, center_height - 26.0))
+        Some(UiFrame::new(972.0, 84.0, 273.0, center_height - 25.0))
     );
     assert_eq!(
         frames.bottom_drawer_shell_frame,
@@ -106,6 +106,6 @@ fn builtin_workbench_drawer_source_template_bridge_reuses_surface_across_layout_
     assert!(rebuild.render_command_reused_count > 0);
 }
 
-fn round_to_centipixel(value: f32) -> f32 {
-    (value * 100.0).round() / 100.0
+fn round_to_layout_pixel(value: f32) -> f32 {
+    value.round()
 }

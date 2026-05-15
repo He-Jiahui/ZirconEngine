@@ -2,6 +2,29 @@ use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
+fn builtin_welcome_surface_minimal_bridge_dispatches_without_startup_runtime() {
+    let _guard = env_lock().lock().unwrap();
+
+    let bridge = BuiltinWelcomeSurfaceTemplateBridge::new_minimal().unwrap();
+
+    let event = dispatch_builtin_welcome_surface_control(
+        &bridge,
+        "OpenRecentProject",
+        UiEventKind::Click,
+        vec![UiBindingValue::string("E:/Projects/Sandbox")],
+    )
+    .expect("welcome open recent control should resolve through minimal template bridge")
+    .unwrap();
+
+    assert_eq!(
+        event,
+        WelcomeHostEvent::OpenRecentProject {
+            path: "E:/Projects/Sandbox".to_string(),
+        }
+    );
+}
+
+#[test]
 fn builtin_welcome_surface_open_recent_dispatches_dynamic_host_event_from_template() {
     let _guard = env_lock().lock().unwrap();
 

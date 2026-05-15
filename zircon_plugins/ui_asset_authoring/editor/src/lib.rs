@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for UiAssetAuthoringEditorPlugin {
                 drawer_id: UI_ASSET_DRAWER_ID,
                 drawer_display_name: "UI Asset Tools",
                 template_id: UI_ASSET_TEMPLATE_ID,
-                template_document: "pane.ui_asset_authoring.body",
+                template_document: "plugins://ui_asset_authoring/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     UI_ASSET_VIEW_ID,
                     "UI Asset",

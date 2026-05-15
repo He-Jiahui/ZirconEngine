@@ -1,11 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{btree_map::Entry, BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::UNIX_EPOCH;
 
 use zircon_runtime_interface::ui::v2::{UiV2AssetDocument, UiV2AssetError, UiV2CompiledDocument};
 
-use super::{UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder};
+use super::{
+    UiV2AssetLoader, UiV2DocumentCompiler, UiV2PrototypeStore, UiV2PrototypeStoreBuilder,
+    UiZuiAssetLoader,
+};
 
 #[derive(Clone, Debug)]
 pub struct UiV2PrototypeStoreLoadOutcome {
@@ -162,7 +165,7 @@ fn collect_v2_sources(paths: &[PathBuf]) -> Result<Vec<UiV2FileSource>, UiV2Asse
     while index < queue.len() {
         let path = queue[index].clone();
         index += 1;
-        let document = UiV2AssetLoader::load_toml_file(&path)?;
+        let document = load_ui_v2_source_file(&path)?;
         for reference in v2_import_references(&document) {
             if let Some(import_path) = resolve_resource_reference_path(&path, &reference)
                 .or_else(|| resolve_asset_id_reference_path(&path, &reference, &mut asset_id_index))
@@ -286,24 +289,50 @@ fn build_v2_asset_id_index(source_path: &Path) -> BTreeMap<String, PathBuf> {
     while let Some(path) = stack.pop() {
         if path.is_dir() {
             if let Ok(entries) = std::fs::read_dir(&path) {
-                for entry in entries.flatten() {
-                    stack.push(entry.path());
-                }
+                let mut entries = entries
+                    .flatten()
+                    .map(|entry| entry.path())
+                    .collect::<Vec<_>>();
+                entries.sort();
+                stack.extend(entries);
             }
             continue;
         }
-        if !path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .is_some_and(|name| name.ends_with(".v2.ui.toml"))
-        {
+        if !is_ui_v2_source_path(&path) {
             continue;
         }
-        if let Ok(document) = UiV2AssetLoader::load_toml_file(&path) {
-            index.entry(document.asset.id).or_insert(path);
+        if let Ok(document) = load_ui_v2_source_file(&path) {
+            match index.entry(document.asset.id) {
+                Entry::Vacant(entry) => {
+                    entry.insert(path);
+                }
+                Entry::Occupied(mut entry) => {
+                    if should_replace_v2_asset_id_index_path(entry.get(), &path) {
+                        entry.insert(path);
+                    }
+                }
+            }
         }
     }
     index
+}
+
+fn should_replace_v2_asset_id_index_path(existing: &Path, candidate: &Path) -> bool {
+    let existing_priority = v2_asset_id_index_path_priority(existing);
+    let candidate_priority = v2_asset_id_index_path_priority(candidate);
+    candidate_priority > existing_priority
+        || (candidate_priority == existing_priority
+            && candidate.to_string_lossy() < existing.to_string_lossy())
+}
+
+fn v2_asset_id_index_path_priority(path: &Path) -> u8 {
+    if is_zui_source_path(path) {
+        return 2;
+    }
+    if is_v2_toml_source_path(path) {
+        return 1;
+    }
+    0
 }
 
 fn resource_alias_for_path(path: &Path) -> Option<String> {
@@ -319,4 +348,30 @@ fn resource_alias_for_path(path: &Path) -> Option<String> {
 fn asset_root_for_path(path: &Path) -> Option<&Path> {
     path.ancestors()
         .find(|ancestor| ancestor.file_name().and_then(|name| name.to_str()) == Some("assets"))
+}
+
+fn load_ui_v2_source_file(path: &Path) -> Result<UiV2AssetDocument, UiV2AssetError> {
+    if is_zui_source_path(path) {
+        return UiZuiAssetLoader::load_zui_file(path);
+    }
+    UiV2AssetLoader::load_toml_file(path)
+}
+
+fn is_ui_v2_source_path(path: &Path) -> bool {
+    lower_file_name(path)
+        .is_some_and(|name| name.ends_with(".zui") || name.ends_with(".v2.ui.toml"))
+}
+
+fn is_zui_source_path(path: &Path) -> bool {
+    lower_file_name(path).is_some_and(|name| name.ends_with(".zui"))
+}
+
+fn is_v2_toml_source_path(path: &Path) -> bool {
+    lower_file_name(path).is_some_and(|name| name.ends_with(".v2.ui.toml"))
+}
+
+fn lower_file_name(path: &Path) -> Option<String> {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(str::to_ascii_lowercase)
 }

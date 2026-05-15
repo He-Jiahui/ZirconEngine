@@ -11,7 +11,7 @@ pub use cache::{UiV2PrototypeStore, UiV2PrototypeStoreBuilder};
 pub use compiler::UiV2DocumentCompiler;
 pub use component_instancer::UiV2ComponentInstancer;
 pub use file_cache::{UiV2PrototypeStoreFileCache, UiV2PrototypeStoreLoadOutcome};
-pub use loader::UiV2AssetLoader;
+pub use loader::{UiV2AssetLoader, UiZuiAssetLoader};
 pub(crate) use style::UiV2RuntimeStyleIndex;
 pub use style::UiV2StyleResolver;
 pub use surface_builder::UiV2SurfaceBuilder;

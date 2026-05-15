@@ -35,9 +35,9 @@ pub(crate) fn with_builtin_required_capabilities(descriptor: ViewDescriptor) -> 
         | "editor.material_demo_window"
         | "editor.ui.designer"
         | "editor.ui.source" => Some(EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING),
-        "editor.runtime_diagnostics" | "editor.debug_observatory" => {
-            Some(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
-        }
+        "editor.runtime_diagnostics"
+        | "editor.performance_timeline"
+        | "editor.debug_observatory" => Some(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS),
         "editor.diagnostics_window" => Some(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS),
         "editor.animation_editor_window" => Some(EDITOR_SUBSYSTEM_ANIMATION_AUTHORING),
         "editor.ui_asset_editor_window" => Some(EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING),

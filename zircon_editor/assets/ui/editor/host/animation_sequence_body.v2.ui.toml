@@ -12,7 +12,7 @@ component = "VerticalGroup"
 control_id = "AnimationSequencePaneBodyRoot"
 classes = ["editor-pane", "animation-pane", "animation-sequence-pane"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "timeline_slot" }]
+children = [{ node = "header" }, { node = "timeline_slot", slot = { name = "animation_timeline_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"

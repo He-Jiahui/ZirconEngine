@@ -19,6 +19,10 @@ impl RetainedEditorHost {
             self.dispatch_build_export_action(action_id);
             return;
         }
+        if control_id == profiling::PERFORMANCE_TIMELINE_ACTION_CONTROL_ID {
+            self.dispatch_performance_timeline_action(action_id);
+            return;
+        }
         let Some(result) = callback_dispatch::dispatch_builtin_pane_surface_control(
             &self.runtime,
             &self.pane_surface_bridge,
@@ -163,6 +167,11 @@ impl RetainedEditorHost {
         action_id: &str,
         input: UiComponentShowcaseDemoEventInput,
     ) {
+        if let Err(error) = self.ensure_component_showcase_runtime_loaded() {
+            self.set_status_line(error);
+            return;
+        }
+
         let binding = self
             .component_showcase_runtime
             .project_document(SHOWCASE_DOCUMENT_ID)

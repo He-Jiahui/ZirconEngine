@@ -1,11 +1,18 @@
-use zircon_runtime::core::manager::resolve_render_framework;
+use std::sync::{Arc, Mutex};
+
 use zircon_runtime::core::{CoreError, CoreHandle};
 
 use super::retained_viewport_controller::RetainedViewportController;
+use super::viewport_state::ViewportState;
 
 impl RetainedViewportController {
     pub(crate) fn new(core: CoreHandle) -> Result<Self, CoreError> {
-        let render_framework = resolve_render_framework(&core)?;
-        Ok(Self::new_with_framework(render_framework))
+        zircon_runtime::profile_scope!("editor", "viewport", "controller_new");
+        Ok({
+            zircon_runtime::profile_scope!("editor", "viewport", "controller_build_lazy_state");
+            Self {
+                shared: Arc::new(Mutex::new(ViewportState::lazy(core))),
+            }
+        })
     }
 }

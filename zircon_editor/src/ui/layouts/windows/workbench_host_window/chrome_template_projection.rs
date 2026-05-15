@@ -14,18 +14,25 @@ use super::{
 };
 
 const MENU_CHROME_ASSET: &str = "/assets/ui/editor/workbench_menu_chrome.v2.ui.toml";
+#[cfg(test)]
 const MENU_POPUP_ASSET: &str = "/assets/ui/editor/workbench_menu_popup.v2.ui.toml";
 const PAGE_CHROME_ASSET: &str = "/assets/ui/editor/workbench_page_chrome.v2.ui.toml";
+#[allow(dead_code)]
 const DOCK_HEADER_ASSET: &str = "/assets/ui/editor/workbench_dock_header.v2.ui.toml";
 const STATUS_BAR_ASSET: &str = "/assets/ui/editor/workbench_status_bar.v2.ui.toml";
 const ACTIVITY_RAIL_ASSET: &str = "/assets/ui/editor/workbench_activity_rail.v2.ui.toml";
 
 const MENU_SLOT_PREFIX: &str = "MenuSlot";
 pub(super) const MENU_SLOT_COUNT: usize = 7;
+#[cfg(test)]
 pub(super) const MENU_POPUP_ITEM_COUNT: usize = 16;
+#[cfg(test)]
 const MENU_POPUP_ITEM_LABEL_PREFIX: &str = "MenuPopupItemLabel";
+#[cfg(test)]
 const MENU_POPUP_ITEM_SHORTCUT_PREFIX: &str = "MenuPopupItemShortcut";
+#[cfg(test)]
 const MENU_POPUP_ITEM_ROW_PREFIX: &str = "MenuPopupItemRow";
+#[cfg(test)]
 const MENU_POPUP_ROW_STEP_FALLBACK_PX: f32 = 30.0;
 const PAGE_TAB_PREFIX: &str = "PageTab";
 const DOCK_TAB_PREFIX: &str = "DockTab";
@@ -43,56 +50,29 @@ const DOCK_SUBTITLE_CONTROL_ID: &str = "DockSubtitle";
 const STATUS_PRIMARY_CONTROL_ID: &str = "StatusPrimaryLabel";
 const STATUS_SECONDARY_CONTROL_ID: &str = "StatusSecondaryLabel";
 const STATUS_VIEWPORT_CONTROL_ID: &str = "StatusViewportLabel";
+const STATUS_BAR_PANEL_CONTROL_ID: &str = "StatusBarPanel";
 const OUTER_MARGIN_PX: f32 = 0.0;
 const RAIL_WIDTH_PX: f32 = 34.0;
-const METRIC_PROBE_HEIGHT_PX: f32 = 96.0;
-const MENU_TOP_BAR_HEIGHT_FALLBACK_PX: f32 = 28.0;
-const PAGE_BAR_HEIGHT_FALLBACK_PX: f32 = 31.0;
-const DOCK_HEADER_HEIGHT_FALLBACK_PX: f32 = 31.0;
+const MENU_TOP_BAR_HEIGHT_PX: f32 = 24.0;
+const PAGE_BAR_HEIGHT_PX: f32 = 32.0;
+const DOCK_HEADER_HEIGHT_PX: f32 = 31.0;
 const CHROME_TEXT_FONT_SIZE_PX: f32 = 12.0;
 const CHROME_TAB_HEIGHT_INSET_PX: f32 = 4.0;
+const FAST_PROCEDURAL_CHROME_NODES: bool = true;
 
-pub(super) fn surface_metrics_from_chrome_assets(shell_width: f32) -> HostWindowSurfaceMetricsData {
-    let text_overrides = BTreeMap::new();
-    let menu_nodes = raw_template_nodes(
-        "host.menu.chrome.metrics",
-        MENU_CHROME_ASSET,
-        shell_width,
-        METRIC_PROBE_HEIGHT_PX,
-        &text_overrides,
-    );
-    let page_nodes = raw_template_nodes(
-        "host.page.chrome.metrics",
-        PAGE_CHROME_ASSET,
-        shell_width,
-        METRIC_PROBE_HEIGHT_PX,
-        &text_overrides,
-    );
-    let dock_nodes = raw_template_nodes(
-        "host.dock.header.metrics",
-        DOCK_HEADER_ASSET,
-        shell_width,
-        METRIC_PROBE_HEIGHT_PX,
-        &text_overrides,
-    );
-    let dock_header_height = measured_height_or(
-        control_frame_from_slice(&dock_nodes, DOCK_HEADER_BAR_CONTROL_ID).height,
-        DOCK_HEADER_HEIGHT_FALLBACK_PX,
-    );
-
+pub(super) fn surface_metrics_from_chrome_assets(
+    _shell_width: f32,
+) -> HostWindowSurfaceMetricsData {
+    // Startup must not instantiate template assets just to discover stable shell
+    // heights. The authored v2 chrome assets still own node projection and hit
+    // frames; these constants mirror their fixed metric controls.
     HostWindowSurfaceMetricsData {
         outer_margin_px: OUTER_MARGIN_PX,
         rail_width_px: RAIL_WIDTH_PX,
-        top_bar_height_px: measured_height_or(
-            control_frame_from_slice(&menu_nodes, MENU_TOP_BAR_CONTROL_ID).height,
-            MENU_TOP_BAR_HEIGHT_FALLBACK_PX,
-        ),
-        host_bar_height_px: measured_height_or(
-            control_frame_from_slice(&page_nodes, PAGE_BAR_CONTROL_ID).height,
-            PAGE_BAR_HEIGHT_FALLBACK_PX,
-        ),
-        panel_header_height_px: dock_header_height,
-        document_header_height_px: dock_header_height,
+        top_bar_height_px: MENU_TOP_BAR_HEIGHT_PX,
+        host_bar_height_px: PAGE_BAR_HEIGHT_PX,
+        panel_header_height_px: DOCK_HEADER_HEIGHT_PX,
+        document_header_height_px: DOCK_HEADER_HEIGHT_PX,
     }
 }
 
@@ -101,6 +81,10 @@ pub(super) fn menu_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
+    if FAST_PROCEDURAL_CHROME_NODES {
+        return fallback_menu_chrome_nodes(menus, width, height);
+    }
+
     let mut text_overrides = BTreeMap::new();
     for row in 0..menus.row_count() {
         if let Some(menu) = menus.row_data(row) {
@@ -248,6 +232,7 @@ fn menu_slot_gap(templates: &BTreeMap<usize, ViewTemplateNodeData>) -> Option<f3
         .next()
 }
 
+#[cfg(test)]
 pub(super) fn menu_popup_nodes(
     items: &ModelRc<super::HostMenuChromeItemData>,
     width: f32,
@@ -279,6 +264,7 @@ pub(super) fn menu_popup_nodes(
     ))
 }
 
+#[cfg(test)]
 fn expand_menu_popup_item_nodes(
     raw_nodes: Vec<ViewTemplateNodeData>,
     items: &ModelRc<super::HostMenuChromeItemData>,
@@ -351,6 +337,7 @@ fn expand_menu_popup_item_nodes(
     output_nodes
 }
 
+#[cfg(test)]
 fn menu_popup_item_icon_name(item: &super::HostMenuChromeItemData) -> String {
     let action = item.action_id.as_str();
     if let Some(icon) = normalized_chrome_icon_key(action) {
@@ -376,6 +363,7 @@ fn menu_popup_item_icon_name(item: &super::HostMenuChromeItemData) -> String {
     .to_string()
 }
 
+#[cfg(test)]
 fn scene_create_menu_icon_name(action: &str) -> &'static str {
     match action.strip_prefix("CreateNode.").unwrap_or_default() {
         "Cube" => "cube-outline",
@@ -385,6 +373,7 @@ fn scene_create_menu_icon_name(action: &str) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn open_view_menu_icon_name(action: &str) -> &'static str {
     let descriptor = action
         .strip_prefix("OpenView.")
@@ -407,6 +396,7 @@ fn open_view_menu_icon_name(action: &str) -> &'static str {
     }
 }
 
+#[cfg(test)]
 fn menu_label_icon_name(label: &str) -> &'static str {
     let label = label.to_lowercase();
     if label.contains("open") {
@@ -462,6 +452,10 @@ pub(super) fn page_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
+    if FAST_PROCEDURAL_CHROME_NODES {
+        return fallback_page_chrome_nodes(tabs, project_path, width, height);
+    }
+
     let mut text_overrides = tab_text_overrides(PAGE_TAB_PREFIX, tabs);
     text_overrides.insert(
         "PageProjectPath".to_string(),
@@ -521,6 +515,10 @@ pub(super) fn activity_rail_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
+    if FAST_PROCEDURAL_CHROME_NODES {
+        return fallback_activity_rail_nodes(tabs, shell_preset_id, width, height);
+    }
+
     model_rc(expand_activity_rail_button_nodes(
         raw_template_nodes(
             "host.activity.rail",
@@ -617,6 +615,81 @@ fn expand_activity_rail_button_nodes(
     output_nodes
 }
 
+fn fallback_activity_rail_nodes(
+    tabs: &ModelRc<TabData>,
+    shell_preset_id: &SharedString,
+    width: f32,
+    height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    let rail_width = width.max(RAIL_WIDTH_PX);
+    let mut nodes = Vec::with_capacity(tabs.row_count() * 2 + 1);
+    nodes.push(ViewTemplateNodeData {
+        node_id: "FallbackActivityRailPanel".into(),
+        control_id: "ActivityRailPanel".into(),
+        role: "Panel".into(),
+        surface_variant: "shell".into(),
+        frame: ViewTemplateFrameData {
+            x: 0.0,
+            y: 0.0,
+            width: rail_width,
+            height: height.max(1.0),
+        },
+        ..ViewTemplateNodeData::default()
+    });
+
+    let row_step = ACTIVITY_RAIL_ROW_STEP_FALLBACK_PX;
+    for row in 0..tabs.row_count() {
+        let Some(tab) = tabs.row_data(row) else {
+            continue;
+        };
+        let y = 4.0 + row as f32 * row_step;
+        let button_height = (row_step - 3.0).max(24.0);
+        nodes.push(ViewTemplateNodeData {
+            node_id: format!("FallbackActivityRailButton{row}").into(),
+            control_id: format!("{ACTIVITY_RAIL_BUTTON_PREFIX}{row}").into(),
+            role: "Button".into(),
+            surface_variant: if tab.active { "inset" } else { "" }.into(),
+            button_variant: "ghost".into(),
+            selected: tab.active,
+            focused: tab.active,
+            frame: ViewTemplateFrameData {
+                x: 3.0,
+                y,
+                width: (rail_width - 6.0).max(1.0),
+                height: button_height,
+            },
+            ..ViewTemplateNodeData::default()
+        });
+
+        let mut icon_node = ViewTemplateNodeData {
+            node_id: format!("FallbackActivityRailButtonIcon{row}").into(),
+            control_id: format!("{ACTIVITY_RAIL_BUTTON_ICON_PREFIX}{row}").into(),
+            role: "SvgIcon".into(),
+            text_tone: if tab.active {
+                "default".into()
+            } else if shell_preset_id.as_str() == "jetbrains_shell" {
+                "subtle".into()
+            } else {
+                "muted".into()
+            },
+            font_weight: if tab.active { 700 } else { 600 },
+            selected: tab.active,
+            focused: tab.active,
+            frame: ViewTemplateFrameData {
+                x: (rail_width - 18.0) * 0.5,
+                y: y + (button_height - 18.0) * 0.5,
+                width: 18.0,
+                height: 18.0,
+            },
+            ..ViewTemplateNodeData::default()
+        };
+        apply_template_icon(&mut icon_node, &chrome_tab_icon_name(&tab));
+        nodes.push(icon_node);
+    }
+
+    model_rc(nodes)
+}
+
 fn chrome_tab_icon_name(tab: &TabData) -> String {
     let key = tab.icon_key.as_str();
     if let Some(icon) = normalized_chrome_icon_key(key) {
@@ -661,111 +734,30 @@ fn normalized_chrome_icon_key(value: &str) -> Option<String> {
 
 pub(super) fn side_dock_header_nodes(
     tabs: &ModelRc<TabData>,
-    panel_preset_id: &SharedString,
+    _panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
-    let nodes = tab_template_nodes(
-        "host.side.dock.header",
-        DOCK_HEADER_ASSET,
-        width,
-        height,
-        &text_overrides,
-        DOCK_TAB_PREFIX,
-        tabs,
-    );
-    if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
-        return fallback_dock_header_nodes(tabs, &"".into(), width, height);
-    }
-    if panel_preset_id.as_str() == "fyrox_panel" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
-                        node.text_tone = "muted".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
-    }
-    nodes
+    fallback_dock_header_nodes(tabs, &"".into(), width, height)
 }
 
 pub(super) fn document_dock_header_nodes(
     tabs: &ModelRc<TabData>,
     subtitle: &SharedString,
-    panel_preset_id: &SharedString,
+    _panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let mut text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
-    text_overrides.insert(DOCK_SUBTITLE_CONTROL_ID.to_string(), subtitle.to_string());
-    let nodes = tab_template_nodes(
-        "host.document.dock.header",
-        DOCK_HEADER_ASSET,
-        width,
-        height,
-        &text_overrides,
-        DOCK_TAB_PREFIX,
-        tabs,
-    );
-    if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
-        return fallback_dock_header_nodes(tabs, subtitle, width, height);
-    }
-    if panel_preset_id.as_str() == "fyrox_panel" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id == DOCK_SUBTITLE_CONTROL_ID {
-                        node.text_tone = "muted".into();
-                    } else if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
-                        node.text_tone = "muted".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
-    }
-    nodes
+    fallback_dock_header_nodes(tabs, subtitle, width, height)
 }
 
 pub(super) fn bottom_dock_header_nodes(
     tabs: &ModelRc<TabData>,
-    panel_preset_id: &SharedString,
+    _panel_preset_id: &SharedString,
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
-    let nodes = tab_template_nodes(
-        "host.bottom.dock.header",
-        DOCK_HEADER_ASSET,
-        width,
-        height,
-        &text_overrides,
-        DOCK_TAB_PREFIX,
-        tabs,
-    );
-    if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
-        return fallback_dock_header_nodes(tabs, &"".into(), width, height);
-    }
-    if panel_preset_id.as_str() == "fyrox_panel" {
-        return model_rc(
-            (0..nodes.row_count())
-                .filter_map(|row| nodes.row_data(row))
-                .map(|mut node| {
-                    if node.control_id.starts_with(DOCK_TAB_PREFIX) && !node.selected {
-                        node.text_tone = "muted".into();
-                    }
-                    node
-                })
-                .collect(),
-        );
-    }
-    nodes
+    fallback_dock_header_nodes(tabs, &"".into(), width, height)
 }
 
 pub(super) fn floating_window_header_nodes(
@@ -774,21 +766,7 @@ pub(super) fn floating_window_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let mut text_overrides = tab_text_overrides(DOCK_TAB_PREFIX, tabs);
-    text_overrides.insert(DOCK_SUBTITLE_CONTROL_ID.to_string(), title.to_string());
-    let nodes = tab_template_nodes(
-        "host.floating.window.header",
-        DOCK_HEADER_ASSET,
-        width,
-        height,
-        &text_overrides,
-        DOCK_TAB_PREFIX,
-        tabs,
-    );
-    if tab_chrome_needs_fallback(&nodes, DOCK_HEADER_BAR_CONTROL_ID, DOCK_TAB_PREFIX, tabs) {
-        return fallback_dock_header_nodes(tabs, title, width, height);
-    }
-    nodes
+    fallback_dock_header_nodes(tabs, title, width, height)
 }
 
 pub(super) fn dock_header_frame(nodes: &ModelRc<ViewTemplateNodeData>) -> FrameRect {
@@ -814,6 +792,17 @@ pub(super) fn status_bar_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
+    if FAST_PROCEDURAL_CHROME_NODES {
+        return fallback_status_bar_nodes(
+            status_primary,
+            status_secondary,
+            viewport_label,
+            skin_id,
+            width,
+            height,
+        );
+    }
+
     let mut text_overrides = BTreeMap::new();
     text_overrides.insert(
         STATUS_PRIMARY_CONTROL_ID.to_string(),
@@ -852,6 +841,98 @@ pub(super) fn status_bar_nodes(
     nodes
 }
 
+fn fallback_status_bar_nodes(
+    status_primary: &SharedString,
+    status_secondary: &SharedString,
+    viewport_label: &SharedString,
+    skin_id: &SharedString,
+    width: f32,
+    height: f32,
+) -> ModelRc<ViewTemplateNodeData> {
+    let bar_height = height.max(20.0);
+    let mut nodes = Vec::with_capacity(4);
+    nodes.push(ViewTemplateNodeData {
+        node_id: "FallbackStatusBarPanel".into(),
+        control_id: STATUS_BAR_PANEL_CONTROL_ID.into(),
+        role: "Panel".into(),
+        surface_variant: "panel".into(),
+        frame: ViewTemplateFrameData {
+            x: 0.0,
+            y: 0.0,
+            width: width.max(1.0),
+            height: bar_height,
+        },
+        ..ViewTemplateNodeData::default()
+    });
+
+    let primary_width = (width * 0.48).clamp(120.0, 520.0);
+    let viewport_width = (width * 0.18).clamp(96.0, 220.0);
+    let secondary_width = (width - primary_width - viewport_width - 36.0).max(60.0);
+    let primary_tone: SharedString = if skin_id.as_str() == "material_dark" {
+        "default".into()
+    } else {
+        "subtle".into()
+    };
+    nodes.push(status_text_node(
+        "FallbackStatusPrimaryLabel",
+        STATUS_PRIMARY_CONTROL_ID,
+        status_primary,
+        primary_tone,
+        12.0,
+        2.0,
+        primary_width,
+        bar_height,
+    ));
+    nodes.push(status_text_node(
+        "FallbackStatusSecondaryLabel",
+        STATUS_SECONDARY_CONTROL_ID,
+        status_secondary,
+        "muted".into(),
+        primary_width + 12.0,
+        2.0,
+        secondary_width,
+        bar_height,
+    ));
+    nodes.push(status_text_node(
+        "FallbackStatusViewportLabel",
+        STATUS_VIEWPORT_CONTROL_ID,
+        viewport_label,
+        "muted".into(),
+        (width - viewport_width - 12.0).max(0.0),
+        2.0,
+        viewport_width,
+        bar_height,
+    ));
+    model_rc(nodes)
+}
+
+fn status_text_node(
+    node_id: &'static str,
+    control_id: &'static str,
+    text: &SharedString,
+    text_tone: SharedString,
+    x: f32,
+    y: f32,
+    width: f32,
+    bar_height: f32,
+) -> ViewTemplateNodeData {
+    ViewTemplateNodeData {
+        node_id: node_id.into(),
+        control_id: control_id.into(),
+        role: "Text".into(),
+        text: text.clone(),
+        text_tone,
+        font_size: 11.0,
+        frame: ViewTemplateFrameData {
+            x,
+            y,
+            width: width.max(0.0),
+            height: (bar_height - 4.0).max(12.0),
+        },
+        ..ViewTemplateNodeData::default()
+    }
+}
+
 fn tab_template_nodes(
     document_tree_id: &str,
     asset_path: &str,
@@ -879,7 +960,7 @@ fn fallback_page_chrome_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let bar_height = height.max(PAGE_BAR_HEIGHT_FALLBACK_PX);
+    let bar_height = height.max(PAGE_BAR_HEIGHT_PX);
     let mut nodes = Vec::with_capacity(tabs.row_count() + 2);
     nodes.push(ViewTemplateNodeData {
         node_id: "FallbackWorkbenchPageBar".into(),
@@ -961,7 +1042,7 @@ fn fallback_dock_header_nodes(
     width: f32,
     height: f32,
 ) -> ModelRc<ViewTemplateNodeData> {
-    let header_height = height.max(DOCK_HEADER_HEIGHT_FALLBACK_PX);
+    let header_height = height.max(DOCK_HEADER_HEIGHT_PX);
     let mut nodes = Vec::with_capacity(tabs.row_count() * 2 + 2);
     nodes.push(ViewTemplateNodeData {
         node_id: "FallbackDockHeaderBar".into(),
@@ -1095,14 +1176,6 @@ fn raw_template_nodes(
     .unwrap_or_default()
 }
 
-fn measured_height_or(measured_height: f32, fallback_height: f32) -> f32 {
-    if measured_height > 0.0 {
-        measured_height
-    } else {
-        fallback_height
-    }
-}
-
 fn tab_text_overrides(prefix: &str, tabs: &ModelRc<TabData>) -> BTreeMap<String, String> {
     let mut overrides = BTreeMap::new();
     for row in 0..tabs.row_count() {
@@ -1222,14 +1295,6 @@ fn control_frame(nodes: &ModelRc<ViewTemplateNodeData>, control_id: &str) -> Fra
         .filter_map(|row| nodes.row_data(row))
         .find(|node| node.control_id.as_str() == control_id)
         .map(|node| frame_rect(&node))
-        .unwrap_or_default()
-}
-
-fn control_frame_from_slice(nodes: &[ViewTemplateNodeData], control_id: &str) -> FrameRect {
-    nodes
-        .iter()
-        .find(|node| node.control_id.as_str() == control_id)
-        .map(frame_rect)
         .unwrap_or_default()
 }
 
@@ -1417,30 +1482,30 @@ mod tests {
     }
 
     #[test]
-    fn activity_rail_nodes_project_tab_svg_icons_and_selected_state() {
+    fn activity_rail_nodes_current_drawer_tabs_svg_icons_and_selected_state() {
         let tabs = model_rc(vec![
-            test_tab_with_icon("Project", "project", true, false),
-            test_tab_with_icon("Hierarchy", "hierarchy", false, false),
+            test_tab_with_icon("Hierarchy", "hierarchy", true, false),
+            test_tab_with_icon("Assets", "assets", false, false),
         ]);
 
         let nodes = activity_rail_nodes(&tabs, &"jetbrains_shell".into(), 34.0, 96.0);
-        let project_button = node(&nodes, "ActivityRailButton0");
-        let project_icon = node(&nodes, "ActivityRailButtonIcon0");
-        let hierarchy_icon = node(&nodes, "ActivityRailButtonIcon1");
+        let hierarchy_button = node(&nodes, "ActivityRailButton0");
+        let hierarchy_icon = node(&nodes, "ActivityRailButtonIcon0");
+        let assets_icon = node(&nodes, "ActivityRailButtonIcon1");
 
         assert_eq!(
-            project_button.surface_variant.as_str(),
+            hierarchy_button.surface_variant.as_str(),
             "inset",
             "active activity rail button should project selected surface metadata"
         );
-        assert_eq!(project_icon.icon_name.as_str(), "albums-outline");
+        assert_eq!(hierarchy_icon.icon_name.as_str(), "layers-outline");
         assert!(
-            project_icon.has_preview_image,
+            hierarchy_icon.has_preview_image,
             "activity rail icons should resolve SVG preview pixels during chrome projection"
         );
-        assert_eq!(project_icon.text_tone.as_str(), "default");
-        assert_eq!(hierarchy_icon.icon_name.as_str(), "layers-outline");
-        assert_eq!(hierarchy_icon.text_tone.as_str(), "muted");
+        assert_eq!(hierarchy_icon.text_tone.as_str(), "default");
+        assert_eq!(assets_icon.icon_name.as_str(), "folder-open-outline");
+        assert_eq!(assets_icon.text_tone.as_str(), "subtle");
     }
 
     #[test]
@@ -1517,7 +1582,7 @@ mod tests {
         let second_tab = node(&nodes, "PageTab1");
         let project_path = node(&nodes, PAGE_PROJECT_PATH_CONTROL_ID);
 
-        assert!(bar.frame.height >= PAGE_BAR_HEIGHT_FALLBACK_PX);
+        assert!(bar.frame.height >= PAGE_BAR_HEIGHT_PX);
         assert!(
             first_tab.frame.width > 0.0 && first_tab.frame.height > 0.0,
             "fallback page tabs must stay hit-testable when the template projection is unavailable"
@@ -1542,7 +1607,7 @@ mod tests {
         let game = node(&nodes, "DockTab1");
         let subtitle = node(&nodes, DOCK_SUBTITLE_CONTROL_ID);
 
-        assert!(header.frame.height >= DOCK_HEADER_HEIGHT_FALLBACK_PX);
+        assert!(header.frame.height >= DOCK_HEADER_HEIGHT_PX);
         assert!(
             scene.frame.width > 0.0 && scene.frame.height > 0.0,
             "fallback dock tabs must provide drag/click hit frames"

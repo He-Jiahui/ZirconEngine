@@ -18,6 +18,7 @@ impl EditorUiHost {
         Ok(EditorStartupSessionDocument {
             mode: EditorSessionMode::Project,
             project: Some(document),
+            open_builtin_view: None,
             recent_projects: self.recent_projects_snapshot()?,
             draft: NewProjectDraft::renderable_empty_default(),
             status_message: "Project opened".to_string(),

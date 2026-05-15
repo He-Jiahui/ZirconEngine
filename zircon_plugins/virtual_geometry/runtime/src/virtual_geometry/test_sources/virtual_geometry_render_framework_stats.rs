@@ -194,7 +194,7 @@ fn build_single_entity_extract(
             translation: Vec3::new(0.0, 0.0, 4.0),
             ..Transform::default()
         },
-        projection_mode: ProjectionMode::Orthographic,
+        projection_mode: ProjectionMode::Perspective,
         ortho_size: 1.2,
         ..ViewportCameraSnapshot::default()
     };
@@ -272,7 +272,7 @@ fn build_same_page_dual_entity_extract(
             translation: Vec3::new(0.0, 0.0, 4.0),
             ..Transform::default()
         },
-        projection_mode: ProjectionMode::Orthographic,
+        projection_mode: ProjectionMode::Perspective,
         ortho_size: 1.2,
         ..ViewportCameraSnapshot::default()
     };
@@ -351,7 +351,7 @@ fn build_hierarchical_instance_extract(
             translation: Vec3::new(0.0, 0.0, 4.0),
             ..Transform::default()
         },
-        projection_mode: ProjectionMode::Orthographic,
+        projection_mode: ProjectionMode::Perspective,
         ortho_size: 1.2,
         ..ViewportCameraSnapshot::default()
     };

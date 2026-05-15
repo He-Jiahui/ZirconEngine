@@ -7,12 +7,18 @@ use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
 };
 
-use super::data::{FrameRect, HostWindowPresentationData};
-use super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
-use super::painter::{
-    debug_refresh_overlay_frame, paint_host_frame, presentation_top_bar_frame,
-    repaint_host_frame_region, union_frames, HostRgbaFrame,
+use super::super::data::{FrameRect, HostWindowPresentationData};
+use super::super::diagnostics::{HostInvalidationDiagnostics, HostRefreshDiagnostics};
+use super::super::painter::{
+    debug_refresh_overlay_frame, presentation_top_bar_frame, union_frames, HostRgbaFrame,
 };
+use super::command_stream::{
+    build_chrome_command_stream, paint_chrome_command_stream_to_frame,
+    repaint_chrome_command_stream_region, ChromeCommandStream,
+};
+use super::error::{HostPresenterError, HostPresenterResult};
+use super::host_chrome_presenter::HostChromePresenter;
+use crate::ui::retained_host::ui_perf::{record_current_ui_perf_counter, UiPerfCounter};
 
 pub(super) struct SoftbufferHostPresenter {
     #[allow(dead_code)]
@@ -75,6 +81,7 @@ impl SoftbufferHostPresenter {
         invalidation: HostInvalidationDiagnostics,
     ) -> Result<HostRefreshDiagnostics, softbuffer::SoftBufferError> {
         zircon_runtime::profile_scope!("editor", "host_presenter", "present");
+        record_current_ui_perf_counter(UiPerfCounter::SoftwareFallbackPresentCount, 1.0);
         let size = current_window_size(self.surface.window().as_ref());
         if self.size != size {
             self.resize(size)?;
@@ -89,10 +96,20 @@ impl SoftbufferHostPresenter {
             invalidation,
             size,
         );
+        let stream =
+            build_chrome_command_stream(&planned.presentation, size, planned.damage.as_ref(), true);
+        record_chrome_command_stream_counters(&stream);
         let outcome = {
             zircon_runtime::profile_scope!("editor", "host_presenter", "repaint_backbuffer");
-            self.repaint_backbuffer(&planned.presentation, planned.damage, size)
+            self.repaint_backbuffer(&stream, size)
         };
+        record_current_ui_perf_counter(UiPerfCounter::PaintedPixels, outcome.painted_pixels as f64);
+        if outcome.full_paint {
+            record_current_ui_perf_counter(UiPerfCounter::FullPaintCount, 1.0);
+        }
+        if outcome.region_paint {
+            record_current_ui_perf_counter(UiPerfCounter::RegionPaintCount, 1.0);
+        }
         debug_assert_eq!(
             planned.diagnostics.painted_pixel_count,
             self.diagnostics
@@ -165,14 +182,13 @@ impl SoftbufferHostPresenter {
 
     fn repaint_backbuffer(
         &mut self,
-        presentation: &HostWindowPresentationData,
-        damage: Option<FrameRect>,
+        stream: &ChromeCommandStream,
         size: (u32, u32),
     ) -> RepaintOutcome {
         if self.can_region_repaint() {
-            if let Some(damage) = damage {
+            if !stream.is_full_rebuild() {
                 if let Some(frame) = self.backbuffer.as_mut() {
-                    if let Some(damage) = repaint_host_frame_region(frame, presentation, &damage) {
+                    if let Some(damage) = repaint_chrome_command_stream_region(frame, stream) {
                         return RepaintOutcome {
                             painted_pixels: damage_pixel_count(&damage, size),
                             damage: Some(damage),
@@ -184,13 +200,37 @@ impl SoftbufferHostPresenter {
             }
         }
 
-        self.backbuffer = Some(paint_host_frame(self.size.0, self.size.1, presentation));
+        self.backbuffer = Some(paint_chrome_command_stream_to_frame(
+            self.size.0,
+            self.size.1,
+            stream,
+        ));
         RepaintOutcome {
             damage: None,
             painted_pixels: (size.0 as u64) * (size.1 as u64),
             full_paint: true,
             region_paint: false,
         }
+    }
+}
+
+impl HostChromePresenter for SoftbufferHostPresenter {
+    fn resize(&mut self, size: (u32, u32)) -> HostPresenterResult<()> {
+        SoftbufferHostPresenter::resize(self, size).map_err(HostPresenterError::softbuffer)
+    }
+
+    fn present(
+        &mut self,
+        presentation: &HostWindowPresentationData,
+        damage: Option<FrameRect>,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        SoftbufferHostPresenter::present(self, presentation, damage, invalidation)
+            .map_err(HostPresenterError::softbuffer)
+    }
+
+    fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
+        SoftbufferHostPresenter::diagnostics_snapshot(self)
     }
 }
 
@@ -273,6 +313,22 @@ fn plan_present_for_diagnostics(
     }
 }
 
+fn record_chrome_command_stream_counters(stream: &ChromeCommandStream) {
+    #[cfg(feature = "profiling")]
+    {
+        let counter = if stream.is_full_rebuild() {
+            UiPerfCounter::ChromeCommandFullRebuildCount
+        } else {
+            UiPerfCounter::ChromeCommandPatchCount
+        };
+        record_current_ui_perf_counter(counter, 1.0);
+    }
+    #[cfg(not(feature = "profiling"))]
+    {
+        let _ = stream;
+    }
+}
+
 fn repaint_outcome_for_damage(damage: Option<FrameRect>, size: (u32, u32)) -> RepaintOutcome {
     if let Some(damage) = damage {
         return RepaintOutcome {
@@ -319,18 +375,20 @@ fn copy_rgba_to_softbuffer(
         .and_then(|damage| pixel_bounds(damage, size))
         .unwrap_or((0, 0, size.0, size.1));
     let width = size.0 as usize;
+    let frame_bytes = frame.as_bytes();
+    let copy_width = x1.saturating_sub(x0) as usize;
     for y in y0..y1 {
-        let row_start = y as usize * width;
-        for x in x0..x1 {
-            let pixel_index = row_start + x as usize;
-            let byte_offset = pixel_index * 4;
-            let rgba = &frame.as_bytes()[byte_offset..byte_offset + 4];
+        let pixel_start = y as usize * width + x0 as usize;
+        let pixel_end = pixel_start + copy_width;
+        let byte_start = pixel_start * 4;
+        let byte_end = pixel_end * 4;
+        let source_row = &frame_bytes[byte_start..byte_end];
+        let target_row = &mut buffer[pixel_start..pixel_end];
+        for (pixel, rgba) in target_row.iter_mut().zip(source_row.chunks_exact(4)) {
             let red = rgba[0] as u32;
             let green = rgba[1] as u32;
             let blue = rgba[2] as u32;
-            if let Some(pixel) = buffer.get_mut(pixel_index) {
-                *pixel = (red << 16) | (green << 8) | blue;
-            }
+            *pixel = (red << 16) | (green << 8) | blue;
         }
     }
 }
@@ -388,7 +446,7 @@ fn presentation_summary(presentation: &HostWindowPresentationData) -> String {
     )
 }
 
-fn frame_summary(frame: &super::data::FrameRect) -> String {
+fn frame_summary(frame: &super::super::data::FrameRect) -> String {
     format!(
         "{:.1},{:.1},{:.1},{:.1}",
         frame.x, frame.y, frame.width, frame.height
@@ -556,7 +614,7 @@ mod tests {
 
     #[test]
     fn presenter_diagnostics_plan_same_frame_overlay_pixels_match_expanded_region_damage() {
-        use super::super::diagnostics::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
+        use super::super::super::diagnostics::STARTUP_REFRESH_DIAGNOSTICS_OVERLAY;
 
         let planned = plan_present_for_diagnostics(
             &HostRefreshDiagnostics::default(),

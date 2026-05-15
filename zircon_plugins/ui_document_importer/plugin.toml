@@ -20,12 +20,11 @@ capability = "runtime.asset.importer.ui_document"
 status = "partial"
 
 [[asset_importers]]
-id = "ui_document_importer.v2_typed_toml"
+id = "ui_document_importer.zui_component"
 plugin_id = "ui_document_importer"
 priority = 120
-full_suffixes = [".v2.ui.toml"]
-output_kind = "UiLayout"
-additional_output_kinds = ["UiWidget", "UiStyle"]
+full_suffixes = [".zui"]
+output_kind = "UiWidget"
 importer_version = 2
 required_capabilities = ["runtime.asset.importer.ui_document"]
 

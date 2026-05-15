@@ -21,6 +21,7 @@ pub(super) fn descriptor_content_kind(descriptor_id: &ViewDescriptorId) -> ViewC
         "editor.animation_sequence" => ViewContentKind::AnimationSequenceEditor,
         "editor.animation_graph" => ViewContentKind::AnimationGraphEditor,
         "editor.runtime_diagnostics" => ViewContentKind::RuntimeDiagnostics,
+        "editor.performance_timeline" => ViewContentKind::PerformanceTimeline,
         "editor.module_plugins" => ViewContentKind::ModulePlugins,
         "editor.build_export_desktop" => ViewContentKind::BuildExport,
         _ => ViewContentKind::Placeholder,

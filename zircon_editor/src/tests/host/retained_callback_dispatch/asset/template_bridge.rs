@@ -2,6 +2,27 @@ use super::super::support::*;
 use zircon_runtime_interface::ui::binding::UiBindingValue;
 
 #[test]
+fn builtin_asset_surface_minimal_bridge_dispatches_without_startup_runtime() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_asset_minimal");
+    let bridge = BuiltinAssetSurfaceTemplateBridge::new_minimal().unwrap();
+
+    let effects = dispatch_builtin_asset_surface_control(
+        &harness.runtime,
+        &bridge,
+        "OpenAssetBrowser",
+        UiEventKind::Click,
+        Vec::new(),
+    )
+    .expect("asset browser control should resolve through minimal template bridge")
+    .unwrap();
+
+    assert!(effects.layout_dirty);
+    assert!(effects.presentation_dirty);
+}
+
+#[test]
 fn builtin_asset_surface_view_mode_dispatches_dynamic_binding_from_template() {
     let _guard = env_lock().lock().unwrap();
 

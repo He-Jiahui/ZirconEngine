@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for NetEditorPlugin {
                 drawer_id: NET_DRAWER_ID,
                 drawer_display_name: "Network Tools",
                 template_id: NET_TEMPLATE_ID,
-                template_document: "plugins://net/editor/authoring.v2.ui.toml",
+                template_document: "plugins://net/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     NET_AUTHORING_VIEW_ID,
                     "Network",

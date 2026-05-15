@@ -46,7 +46,7 @@ impl zircon_editor::EditorPlugin for Tilemap2dEditorPlugin {
                 drawer_id: TILEMAP_DRAWER_ID,
                 drawer_display_name: "Tilemap Tools",
                 template_id: TILEMAP_TEMPLATE_ID,
-                template_document: "plugins://tilemap_2d/editor/authoring.v2.ui.toml",
+                template_document: "plugins://tilemap_2d/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     TILEMAP_AUTHORING_VIEW_ID,
                     "Tilemap 2D",
@@ -143,7 +143,7 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
         .with_required_capabilities([CAPABILITY])],
         component_drawers: vec![ComponentDrawerDescriptor::new(
             zircon_plugin_tilemap_2d_runtime::TILEMAP_COMPONENT_TYPE,
-            "plugins://tilemap_2d/editor/tilemap_component.v2.ui.toml",
+            "plugins://tilemap_2d/editor/tilemap_component.zui",
             "tilemap_2d.editor.component",
         )],
         asset_creation_templates: vec![

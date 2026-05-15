@@ -16,12 +16,20 @@ pub(crate) struct BuiltinFloatingWindowSourceTemplateBridge {
 }
 
 impl BuiltinFloatingWindowSourceTemplateBridge {
+    #[cfg(test)]
     pub(crate) fn new(
         shell_size: UiSize,
     ) -> Result<Self, BuiltinFloatingWindowSourceTemplateBridgeError> {
         let mut runtime = EditorUiHostRuntime::default();
         runtime.load_builtin_host_templates()?;
-        let surface = build_builtin_floating_window_source_surface(&runtime, shell_size)?;
+        Self::new_with_runtime(&runtime, shell_size)
+    }
+
+    pub(crate) fn new_with_runtime(
+        runtime: &EditorUiHostRuntime,
+        shell_size: UiSize,
+    ) -> Result<Self, BuiltinFloatingWindowSourceTemplateBridgeError> {
+        let surface = build_builtin_floating_window_source_surface(runtime, shell_size)?;
         Ok(Self { surface })
     }
 

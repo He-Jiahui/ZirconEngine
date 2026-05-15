@@ -4,12 +4,12 @@ use std::rc::Rc;
 use crate::ui::retained_host::primitives::{ModelRc, PhysicalSize, VecModel};
 use crate::ui::retained_host::{
     build_pane_template_surface_frame, callback_dispatch::BuiltinViewportToolbarTemplateBridge,
-    to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FrameRect,
-    HostChromeControlFrameData, HostChromeTabData, HostDocumentDockSurfaceData, HostMenuChromeData,
-    HostMenuChromeItemData, HostMenuChromeMenuData, HostMenuStateData, HostResizeLayerData,
-    HostSideDockSurfaceData, HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData,
-    SceneViewportChromeData, TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext,
-    UiHostWindow,
+    to_host_contract_component_showcase_pane_from_host_pane_with_runtime, FloatingWindowData,
+    FrameRect, HostChromeControlFrameData, HostChromeTabData, HostClosePromptData,
+    HostDocumentDockSurfaceData, HostMenuChromeData, HostMenuChromeItemData,
+    HostMenuChromeMenuData, HostMenuStateData, HostResizeLayerData, HostSideDockSurfaceData,
+    HostWindowLayoutData, PaneData, PaneSurfaceHostContext, SceneNodeData, SceneViewportChromeData,
+    TabData, TemplateNodeFrameData, TemplatePaneNodeData, UiHostContext, UiHostWindow,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -53,10 +53,249 @@ fn native_host_pointer_click_routes_document_tab_with_document_region_origin() {
     let result = ui.dispatch_native_primary_press_for_test(60.0 + 24.0, 58.0 + 12.0);
 
     assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(60.0, 58.0, 280.0, 138.0)),
+        "document tab press should refresh presentation without repainting the full native window"
+    );
     assert_eq!(
         clicks.borrow().as_slice(),
         [("document".to_string(), 0, 12.0, 84.0, 24.0, 12.0)],
         "root document tabs should be hit-tested in document-region global coordinates"
+    );
+}
+
+#[test]
+fn native_host_close_prompt_button_press_uses_overlay_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.close_prompt = HostClosePromptData {
+        visible: true,
+        can_save: true,
+        overlay_frame: host_frame(30.0, 40.0, 260.0, 150.0),
+        dialog_frame: host_frame(70.0, 70.0, 180.0, 90.0),
+        discard_button_frame: host_frame(120.0, 130.0, 60.0, 22.0),
+        ..HostClosePromptData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let actions = Rc::new(RefCell::new(Vec::new()));
+    {
+        let actions = actions.clone();
+        ui.global::<UiHostContext>()
+            .on_close_prompt_action_clicked(move |action_id| {
+                actions.borrow_mut().push(action_id.to_string());
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(140.0, 140.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(30.0, 40.0, 260.0, 150.0)),
+        "close prompt action should repaint overlay damage without requesting an unbounded full frame"
+    );
+    assert_eq!(actions.borrow().as_slice(), ["discard"]);
+}
+
+#[test]
+fn native_host_floating_document_tab_press_uses_floating_window_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.floating_layer.floating_windows =
+        model_rc(vec![FloatingWindowData {
+            window_id: "floating-a".into(),
+            frame: host_frame(120.0, 70.0, 220.0, 150.0),
+            header_frame: host_frame(0.0, 0.0, 220.0, 31.0),
+            tab_frames: model_rc(vec![chrome_tab(
+                "floating.scene",
+                "Scene",
+                12.0,
+                4.0,
+                84.0,
+                24.0,
+            )]),
+            tabs: model_rc(vec![tab_data("floating.scene", "Scene")]),
+            active_pane: scene_pane(),
+            ..FloatingWindowData::default()
+        }]);
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>()
+            .on_document_tab_pointer_clicked(move |surface_key, index, tab_x, tab_width, x, y| {
+                clicks
+                    .borrow_mut()
+                    .push((surface_key.to_string(), index, tab_x, tab_width, x, y));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(120.0 + 24.0, 70.0 + 12.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(120.0, 70.0, 220.0, 150.0)),
+        "floating document-tab press should refresh presentation while repainting only the owning floating window"
+    );
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [("floating-a".to_string(), 0, 12.0, 84.0, 24.0, 12.0)]
+    );
+}
+
+#[test]
+fn native_host_floating_window_header_press_uses_floating_layer_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.floating_layer.floating_windows = model_rc(vec![
+        FloatingWindowData {
+            window_id: "floating-a".into(),
+            frame: host_frame(40.0, 70.0, 100.0, 100.0),
+            header_frame: host_frame(0.0, 0.0, 100.0, 31.0),
+            ..FloatingWindowData::default()
+        },
+        FloatingWindowData {
+            window_id: "floating-b".into(),
+            frame: host_frame(180.0, 90.0, 160.0, 120.0),
+            header_frame: host_frame(0.0, 0.0, 160.0, 31.0),
+            tab_frames: model_rc(vec![chrome_tab(
+                "floating.scene",
+                "Scene",
+                12.0,
+                4.0,
+                84.0,
+                24.0,
+            )]),
+            tabs: model_rc(vec![tab_data("floating.scene", "Scene")]),
+            active_pane: scene_pane(),
+            ..FloatingWindowData::default()
+        },
+    ]);
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>()
+            .on_floating_window_header_pointer_clicked(move |x, y| {
+                clicks.borrow_mut().push((x, y));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(180.0 + 132.0, 90.0 + 12.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(40.0, 70.0, 300.0, 140.0)),
+        "floating header focus may reorder floating windows, so damage should cover the floating layer union without repainting the full host"
+    );
+    assert_eq!(clicks.borrow().as_slice(), [(312.0, 102.0)]);
+}
+
+#[test]
+fn native_host_drawer_header_tab_press_uses_drawer_region_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData {
+        surface_key: "left".into(),
+        region_frame: host_frame(0.0, 58.0, 180.0, 178.0),
+        header_frame: host_frame(32.0, 0.0, 148.0, 31.0),
+        tab_frames: model_rc(vec![chrome_tab(
+            "left.hierarchy",
+            "Hierarchy",
+            4.0,
+            4.0,
+            96.0,
+            24.0,
+        )]),
+        tabs: model_rc(vec![tab_data("left.hierarchy", "Hierarchy")]),
+        ..HostSideDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>()
+            .on_drawer_header_pointer_clicked(move |surface_key, index, tab_x, tab_width, x, y| {
+                clicks
+                    .borrow_mut()
+                    .push((surface_key.to_string(), index, tab_x, tab_width, x, y));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(32.0 + 4.0 + 12.0, 58.0 + 4.0 + 8.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(0.0, 58.0, 180.0, 178.0)),
+        "drawer header tab selection should repaint only the owning dock region"
+    );
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [("left".to_string(), 0, 4.0, 96.0, 16.0, 12.0)]
+    );
+}
+
+#[test]
+fn native_host_activity_rail_press_uses_center_band_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData {
+        surface_key: "left".into(),
+        region_frame: host_frame(0.0, 58.0, 180.0, 178.0),
+        rail_before_panel: true,
+        rail_width_px: 32.0,
+        rail_button_frames: model_rc(vec![control_frame("HierarchyRail", 4.0, 8.0, 24.0, 24.0)]),
+        ..HostSideDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<UiHostContext>()
+            .on_activity_rail_pointer_clicked(move |side, x, y| {
+                clicks.borrow_mut().push((side.to_string(), x, y));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(8.0, 70.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(0.0, 58.0, 420.0, 178.0)),
+        "activity rail can move drawer/document layout, so damage is the retained center band rather than full frame"
+    );
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [("left".to_string(), 8.0, 12.0)]
     );
 }
 
@@ -90,6 +329,12 @@ fn native_host_pointer_click_routes_host_page_tabs_with_tab_local_point() {
     let result = ui.dispatch_native_primary_press_for_test(80.0, 41.0);
 
     assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(0.0, 29.0, 420.0, 231.0)),
+        "host page tab activation should update presentation while repainting only page chrome, workspace, and status damage"
+    );
     assert_eq!(
         clicks.borrow().as_slice(),
         [(0, 68.0, 116.0, 12.0, 12.0)],
@@ -350,6 +595,19 @@ fn native_host_generic_template_text_field_routes_builtin_change_binding() {
         ) > 0,
         "local text edit focus should repaint visible input glyphs without waiting for a full presentation rebuild"
     );
+    let clear_focus_result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 240.0, 58.0 + 32.0 + 80.0);
+    assert!(clear_focus_result.request_redraw());
+    assert!(!clear_focus_result.requires_frame_update());
+    assert_eq!(
+        clear_focus_result.damage_region(),
+        Some(input_frame.clone()),
+        "clearing focus on inert pane space should repaint only the old text field"
+    );
+    assert!(
+        !ui.get_host_presentation().text_input_focus.is_active(),
+        "clicking inert pane space should clear text focus without rebuilding the full host"
+    );
     assert_eq!(
         edits.borrow().as_slice(),
         [(
@@ -358,6 +616,79 @@ fn native_host_generic_template_text_field_routes_builtin_change_binding() {
             "Draft CubeX".to_string()
         )],
         "generic template text fields should keep the shared edit binding id and changed value on the native route"
+    );
+}
+
+#[test]
+fn native_host_template_text_field_focus_switch_repaints_old_and_new_inputs_only() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 240));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 240.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 240.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 158.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 125.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![
+                template_input_node(
+                    "NameFieldA",
+                    "Draft Cube",
+                    "InspectorView/NameFieldA",
+                    12.0,
+                    14.0,
+                    160.0,
+                    24.0,
+                ),
+                template_input_node(
+                    "NameFieldB",
+                    "Player",
+                    "InspectorView/NameFieldB",
+                    12.0,
+                    48.0,
+                    160.0,
+                    24.0,
+                ),
+            ],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let first_focus =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    let second_focus =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 48.0 + 8.0);
+    let first_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 14.0, 160.0, 24.0);
+    let second_frame = host_frame(60.0 + 12.0, 58.0 + 32.0 + 48.0, 160.0, 24.0);
+    let focus_switch_damage = host_frame(
+        first_frame.x,
+        first_frame.y,
+        first_frame.width,
+        second_frame.y + second_frame.height - first_frame.y,
+    );
+
+    assert!(first_focus.request_redraw());
+    assert!(!first_focus.requires_frame_update());
+    assert_eq!(first_focus.damage_region(), Some(first_frame));
+    assert!(second_focus.request_redraw());
+    assert!(!second_focus.requires_frame_update());
+    assert_eq!(
+        second_focus.damage_region(),
+        Some(focus_switch_damage),
+        "switching text focus should repaint the old and new input fields without a full-frame host refresh"
+    );
+    assert_eq!(
+        ui.get_host_presentation()
+            .text_input_focus
+            .control_id
+            .as_str(),
+        "NameFieldB"
     );
 }
 
@@ -423,6 +754,94 @@ fn native_host_asset_template_search_field_routes_asset_change_callback() {
         )],
         "v2 asset search fields should keep their asset dispatch kind through retained projection and native text focus"
     );
+}
+
+#[test]
+fn native_host_template_node_move_updates_hover_without_rebuilding_presentation() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![template_node_with_action(
+                "ProjectHoverButton",
+                "Button",
+                "Hover",
+                "ProjectHoverAction",
+                12.0,
+                14.0,
+                160.0,
+                24.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+    let rebuild_count_after_projection = ui.presentation_rebuild_count_for_test();
+
+    let result =
+        ui.dispatch_native_pointer_move_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+
+    assert!(result.request_redraw());
+    assert!(
+        !result.requires_frame_update(),
+        "template hover should repaint only retained host pixels"
+    );
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(72.0, 104.0, 160.0, 24.0)),
+        "template hover should damage the hovered node instead of the full pane"
+    );
+    assert_eq!(
+        ui.presentation_rebuild_count_for_test(),
+        rebuild_count_after_projection,
+        "template hover must not rebuild the projected presentation"
+    );
+    assert_eq!(
+        ui.get_pane_interaction_state()
+            .hovered_template_control_id
+            .as_str(),
+        "ProjectHoverButton"
+    );
+    assert!(
+        ui.get_host_presentation()
+            .host_scene_data
+            .document_dock
+            .pane
+            .project_overview
+            .nodes
+            .row_data(0)
+            .expect("hover fixture should keep its node")
+            .hovered
+    );
+
+    let repeated =
+        ui.dispatch_native_pointer_move_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+    assert!(
+        !repeated.request_redraw(),
+        "same template hover target should remain on the pointer fast path"
+    );
+
+    let cleared = ui.dispatch_native_pointer_move_for_test(60.0 + 240.0, 58.0 + 32.0 + 90.0);
+    assert!(cleared.request_redraw());
+    assert_eq!(
+        cleared.damage_region(),
+        Some(host_frame(72.0, 104.0, 160.0, 24.0)),
+        "leaving a template node should repaint the old hover node"
+    );
+    assert!(ui
+        .get_pane_interaction_state()
+        .hovered_template_control_id
+        .is_empty());
 }
 
 #[test]
@@ -777,10 +1196,17 @@ fn native_host_resize_splitter_forwards_move_and_release_after_capture() {
     let press = ui.dispatch_native_primary_press_for_test(124.0, 80.0);
     let move_result = ui.dispatch_native_pointer_move_for_test(180.0, 82.0);
     let release = ui.dispatch_native_primary_release_for_test(180.0, 82.0);
+    let resize_damage = host_frame(0.0, 58.0, 360.0, 138.0);
 
     assert!(press.request_redraw());
     assert!(move_result.request_redraw());
     assert!(release.request_redraw());
+    assert!(press.requires_frame_update());
+    assert!(move_result.requires_frame_update());
+    assert!(release.requires_frame_update());
+    assert_eq!(press.damage_region(), Some(resize_damage.clone()));
+    assert_eq!(move_result.damage_region(), Some(resize_damage.clone()));
+    assert_eq!(release.damage_region(), Some(resize_damage));
     assert_eq!(
         resize_events.borrow().as_slice(),
         [(0, 124.0, 80.0), (1, 180.0, 82.0), (2, 180.0, 82.0)],
@@ -826,8 +1252,19 @@ fn native_host_welcome_material_button_routes_welcome_callback() {
 
     let result =
         ui.dispatch_native_primary_press_for_test(40.0 + 20.0 + 8.0, 58.0 + 32.0 + 64.0 + 8.0);
+    let release =
+        ui.dispatch_native_primary_release_for_test(40.0 + 20.0 + 8.0, 58.0 + 32.0 + 64.0 + 8.0);
 
     assert!(result.request_redraw());
+    assert!(release.request_redraw());
+    assert!(
+        !release.requires_frame_update(),
+        "button release only clears local pressed state and should not request a full frame update"
+    );
+    assert_eq!(
+        release.damage_region(),
+        Some(host_frame(40.0, 90.0, 340.0, 145.0))
+    );
     assert_eq!(
         clicks.borrow().as_slice(),
         ["CreateProject".to_string()],
@@ -871,9 +1308,22 @@ fn native_host_document_tab_drag_releases_capture_and_forwards_drop() {
 
     ui.dispatch_native_primary_press_for_test(40.0 + 24.0, 58.0 + 12.0);
     ui.dispatch_native_pointer_move_for_test(40.0 + 132.0, 58.0 + 74.0);
-    ui.dispatch_native_primary_release_for_test(40.0 + 132.0, 58.0 + 74.0);
+    let host = ui.global::<UiHostContext>();
+    let mut active_drag_state = host.get_drag_state();
+    active_drag_state.active_drag_target_group = "document".into();
+    host.set_drag_state(active_drag_state);
+    let release = ui.dispatch_native_primary_release_for_test(40.0 + 132.0, 58.0 + 74.0);
 
     let drag_state = ui.global::<UiHostContext>().get_drag_state();
+    assert!(release.request_redraw());
+    assert!(
+        release.requires_frame_update(),
+        "same-dock tab release can refresh presentation while preserving regional damage"
+    );
+    assert_eq!(
+        release.damage_region(),
+        Some(host_frame(0.0, 58.0, 420.0, 202.0))
+    );
     assert_eq!(
         drag_events.borrow().as_slice(),
         [(0, 172.0, 132.0), (2, 172.0, 132.0)],
@@ -882,6 +1332,148 @@ fn native_host_document_tab_drag_releases_capture_and_forwards_drop() {
     assert!(
         drag_state.drag_tab_id.is_empty() && !drag_state.drag_active,
         "drag capture must be cleared on primary release so native repaint cannot leave stale drag state behind"
+    );
+}
+
+#[test]
+fn native_host_document_tab_drag_cross_dock_release_uses_center_status_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData {
+        surface_key: "left".into(),
+        region_frame: host_frame(0.0, 58.0, 120.0, 178.0),
+        content_frame: host_frame(0.0, 31.0, 120.0, 147.0),
+        pane: hierarchy_pane(vec![scene_node("entity://root", "Root", 0, false)]),
+        ..HostSideDockSurfaceData::default()
+    };
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(140.0, 58.0, 240.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 240.0, 31.0),
+        tab_frames: model_rc(vec![chrome_tab(
+            "document.scene",
+            "Scene",
+            12.0,
+            4.0,
+            84.0,
+            24.0,
+        )]),
+        tabs: model_rc(vec![tab_data("document.scene", "Scene")]),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    ui.dispatch_native_primary_press_for_test(140.0 + 24.0, 58.0 + 12.0);
+    ui.dispatch_native_pointer_move_for_test(140.0 + 132.0, 58.0 + 74.0);
+    let host = ui.global::<UiHostContext>();
+    let mut active_drag_state = host.get_drag_state();
+    active_drag_state.active_drag_target_group = "left".into();
+    host.set_drag_state(active_drag_state);
+    let release = ui.dispatch_native_primary_release_for_test(40.0, 120.0);
+
+    assert!(release.request_redraw());
+    assert!(release.requires_frame_update());
+    assert_eq!(
+        release.damage_region(),
+        Some(host_frame(0.0, 58.0, 420.0, 202.0)),
+        "cross-dock tab release should repaint center/status damage without falling back to a full native frame"
+    );
+}
+
+#[test]
+fn native_host_document_tab_drag_document_edge_release_uses_center_status_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(40.0, 58.0, 340.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 340.0, 31.0),
+        tab_frames: model_rc(vec![chrome_tab(
+            "document.scene",
+            "Scene",
+            12.0,
+            4.0,
+            84.0,
+            24.0,
+        )]),
+        tabs: model_rc(vec![tab_data("document.scene", "Scene")]),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    ui.dispatch_native_primary_press_for_test(40.0 + 24.0, 58.0 + 12.0);
+    ui.dispatch_native_pointer_move_for_test(40.0 + 132.0, 58.0 + 74.0);
+    let host = ui.global::<UiHostContext>();
+    let mut active_drag_state = host.get_drag_state();
+    active_drag_state.active_drag_target_group = "document-left".into();
+    host.set_drag_state(active_drag_state);
+    let release = ui.dispatch_native_primary_release_for_test(40.0, 120.0);
+
+    assert!(release.request_redraw());
+    assert!(release.requires_frame_update());
+    assert_eq!(
+        release.damage_region(),
+        Some(host_frame(0.0, 58.0, 420.0, 202.0)),
+        "document-edge tab split should repaint center/status damage without falling back to a full native frame"
+    );
+}
+
+#[test]
+fn native_host_document_tab_drag_floating_window_release_uses_floating_center_status_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(420, 260));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(420.0, 260.0);
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(40.0, 58.0, 240.0, 178.0),
+        header_frame: host_frame(0.0, 0.0, 240.0, 31.0),
+        tab_frames: model_rc(vec![chrome_tab(
+            "document.scene",
+            "Scene",
+            12.0,
+            4.0,
+            84.0,
+            24.0,
+        )]),
+        tabs: model_rc(vec![tab_data("document.scene", "Scene")]),
+        pane: scene_pane(),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    presentation.host_scene_data.floating_layer.floating_windows =
+        model_rc(vec![FloatingWindowData {
+            window_id: "floating-a".into(),
+            frame: host_frame(300.0, 40.0, 80.0, 50.0),
+            header_frame: host_frame(0.0, 0.0, 80.0, 24.0),
+            target_group: "floating-window/floating-a".into(),
+            active_pane: scene_pane(),
+            ..FloatingWindowData::default()
+        }]);
+    ui.set_host_presentation(presentation);
+
+    ui.dispatch_native_primary_press_for_test(40.0 + 24.0, 58.0 + 12.0);
+    ui.dispatch_native_pointer_move_for_test(40.0 + 132.0, 58.0 + 74.0);
+    let host = ui.global::<UiHostContext>();
+    let mut active_drag_state = host.get_drag_state();
+    active_drag_state.active_drag_target_group = "floating-window/floating-a".into();
+    host.set_drag_state(active_drag_state);
+    let release = ui.dispatch_native_primary_release_for_test(320.0, 58.0);
+
+    assert!(release.request_redraw());
+    assert!(release.requires_frame_update());
+    assert_eq!(
+        release.damage_region(),
+        Some(host_frame(0.0, 40.0, 420.0, 220.0)),
+        "floating-window tab drop should repaint the floating target plus center/status damage instead of the full native frame"
     );
 }
 
@@ -996,7 +1588,10 @@ fn native_host_pointer_click_ignores_template_buttons_without_dispatch_metadata(
     let result =
         ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
 
-    assert!(result.request_redraw());
+    assert!(
+        !result.request_redraw(),
+        "decorative template nodes without dispatch metadata should not consume CPU with a native repaint"
+    );
     assert_eq!(
         clicks.borrow().as_slice(),
         [],
@@ -1065,6 +1660,11 @@ fn native_host_pointer_click_routes_viewport_toolbar_buttons_before_viewport_bod
     );
 
     assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(60.0, 90.0, 620.0, 28.0))
+    );
     assert_eq!(viewport_events.borrow().as_slice(), []);
     let clicks = toolbar_clicks.borrow();
     assert_eq!(clicks.len(), 1);
@@ -1122,6 +1722,11 @@ fn native_host_viewport_toolbar_only_dispatches_primary_press() {
     let middle = ui.dispatch_native_middle_press_for_test(display_x, toolbar_y);
 
     assert!(press.request_redraw());
+    assert!(press.requires_frame_update());
+    assert_eq!(
+        press.damage_region(),
+        Some(host_frame(60.0, 90.0, 620.0, 28.0))
+    );
     assert!(!release.request_redraw());
     assert!(!secondary.request_redraw());
     assert!(!middle.request_redraw());
@@ -1184,6 +1789,12 @@ fn native_host_pointer_click_routes_late_viewport_toolbar_controls() {
     let result = ui.dispatch_native_primary_press_for_test(frame_selection_x, toolbar_y);
 
     assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(0.0, 58.0, 900.0, 182.0)),
+        "viewport commands that can move the camera or status should repaint center band and status, not the full host"
+    );
     assert_eq!(viewport_events.borrow().as_slice(), []);
     assert_eq!(
         toolbar_clicks.borrow().as_slice(),
@@ -1374,6 +1985,68 @@ fn native_host_hierarchy_move_updates_visible_hover_state() {
 }
 
 #[test]
+fn native_host_hierarchy_move_prefers_native_hover_when_template_node_overlaps() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(20.0, 40.0, 300.0, 150.0),
+        header_frame: host_frame(0.0, 0.0, 300.0, 24.0),
+        content_frame: host_frame(0.0, 25.0, 300.0, 124.0),
+        pane: hierarchy_pane_with_template_nodes(
+            vec![
+                scene_node("entity://root", "Root", 0, false),
+                scene_node("entity://child", "Child", 1, false),
+            ],
+            vec![template_node_with_action(
+                "HierarchyTemplateOverlay",
+                "Button",
+                "Overlay",
+                "OverlayAction",
+                0.0,
+                0.0,
+                300.0,
+                124.0,
+            )],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let moves = Rc::new(RefCell::new(Vec::new()));
+    {
+        let ui = ui.clone_strong();
+        let moves = moves.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_hierarchy_pointer_moved(move |x, y, width, height| {
+                moves.borrow_mut().push((x, y, width, height));
+                ui.global::<PaneSurfaceHostContext>()
+                    .set_hovered_hierarchy_index(1);
+            });
+    }
+
+    let result = ui.dispatch_native_pointer_move_for_test(20.0 + 20.0, 40.0 + 25.0 + 42.0);
+
+    assert!(result.request_redraw());
+    assert_eq!(
+        moves.borrow().as_slice(),
+        [(20.0, 42.0, 300.0, 124.0)],
+        "template hit surfaces must not swallow native hierarchy hover routing"
+    );
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(28.0, 96.0, 284.0, 22.0)),
+        "hierarchy hover should still use row-local damage under template-backed panes"
+    );
+}
+
+#[test]
 fn native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation() {
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.show()
@@ -1438,6 +2111,50 @@ fn native_host_repeated_hierarchy_hover_moves_do_not_rebuild_presentation() {
         rebuild_count_after_projection,
         "100 same-target hover moves must not rebuild presentation state"
     );
+}
+
+#[test]
+fn native_host_hierarchy_press_uses_pane_center_status_damage() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        surface_key: "document".into(),
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: hierarchy_pane(vec![
+            scene_node("entity://root", "Root", 0, false),
+            scene_node("entity://child", "Child", 1, false),
+        ]),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_hierarchy_pointer_clicked(move |x, y, width, height| {
+                clicks.borrow_mut().push((x, y, width, height));
+            });
+    }
+
+    let result = ui.dispatch_native_primary_press_for_test(60.0 + 20.0, 58.0 + 32.0 + 42.0);
+
+    assert!(result.request_redraw());
+    assert!(result.requires_frame_update());
+    assert_eq!(
+        result.damage_region(),
+        Some(host_frame(0.0, 58.0, 360.0, 162.0)),
+        "pane press callbacks should refresh presentation while repainting center/status damage, not the full native window"
+    );
+    assert_eq!(clicks.borrow().as_slice(), [(20.0, 42.0, 280.0, 105.0)]);
 }
 
 #[test]
@@ -1883,6 +2600,7 @@ fn component_showcase_pane_with_runtime_projection(
             assets_activity: host_window::AssetsActivityPaneViewData::default(),
             asset_browser: host_window::AssetBrowserPaneViewData::default(),
             project_overview: host_window::ProjectOverviewPaneViewData::default(),
+            performance_timeline: host_window::PerformanceTimelinePaneViewData::default(),
             module_plugins: host_window::ModulePluginsPaneViewData::default(),
             build_export: host_window::BuildExportPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
@@ -1931,6 +2649,16 @@ fn hierarchy_pane(nodes: Vec<SceneNodeData>) -> PaneData {
         ..PaneData::default()
     };
     pane.hierarchy.hierarchy_nodes = model_rc(nodes);
+    pane
+}
+
+fn hierarchy_pane_with_template_nodes(
+    nodes: Vec<SceneNodeData>,
+    template_nodes: Vec<TemplatePaneNodeData>,
+) -> PaneData {
+    let mut pane = hierarchy_pane(nodes);
+    pane.hierarchy.nodes = model_rc(template_nodes);
+    pane.body_surface_frame = build_pane_template_surface_frame(&pane, UiSize::new(1000.0, 1000.0));
     pane
 }
 

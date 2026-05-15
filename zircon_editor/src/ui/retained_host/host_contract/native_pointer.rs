@@ -1,9 +1,18 @@
-use crate::ui::retained_host::primitives::{ModelRc, SharedString};
+mod chrome_damage;
+mod close_prompt_damage;
+mod menu_geometry;
+mod pane_button_damage;
+mod resize_damage;
+mod tab_drag_damage;
+mod template_hover_damage;
+mod viewport_toolbar_damage;
+
+use crate::ui::retained_host::primitives::SharedString;
 use zircon_runtime_interface::ui::surface::UiPointerButton;
 
 use super::data::{
-    FrameRect, HostDragStateData, HostMenuChromeItemData, HostPaneInteractionStateData,
-    HostResizeStateData, HostTextInputFocusData, HostWindowPresentationData, TabData,
+    FrameRect, HostDragStateData, HostPaneInteractionStateData, HostResizeStateData,
+    HostTextInputFocusData, HostWindowPresentationData, TabData,
 };
 use super::globals::{PaneSurfaceHostContext, UiHostContext};
 use super::redraw::NativePointerDispatchResult;
@@ -12,6 +21,19 @@ use super::window::UiHostWindow;
 use crate::ui::retained_host::hierarchy_pointer::constants::{
     ROW_GAP, ROW_HEIGHT, ROW_WIDTH_INSET, ROW_X, ROW_Y,
 };
+use crate::ui::retained_host::ui_perf::{
+    enter_ui_perf_scenario, time_ui_perf_scenario, UiPerfScenario,
+};
+use chrome_damage::chrome_press_damage_frame;
+use close_prompt_damage::close_prompt_action_damage_frame;
+use menu_geometry::{
+    menu_damage_frame, menu_damage_frame_with_state, menu_handles_point, menu_popup_handles_point,
+};
+use pane_button_damage::pane_pointer_press_damage_frame;
+use resize_damage::resize_damage_frame;
+use tab_drag_damage::tab_drag_release_damage_frame;
+use template_hover_damage::template_hover_damage;
+use viewport_toolbar_damage::viewport_toolbar_press_damage_frame;
 
 const HOST_POINTER_DOWN: i32 = 0;
 const HOST_POINTER_MOVE: i32 = 1;
@@ -37,6 +59,9 @@ pub(super) fn dispatch_native_pointer_move(
     x: f32,
     y: f32,
 ) -> NativePointerDispatchResult {
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::IdleHover);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::IdleHover);
+
     if let Some(result) = dispatch_native_resize_move(ui, x, y) {
         return result;
     }
@@ -55,7 +80,7 @@ pub(super) fn dispatch_native_pointer_move(
         return NativePointerDispatchResult::region(menu_damage_frame(&presentation));
     }
 
-    if let Some(pointer) = route_pointer_to_pane(&presentation, x, y) {
+    if let Some(pointer) = route_pointer_move_to_pane(&presentation, x, y) {
         let before = ui.get_pane_interaction_state();
         let pane_host = ui.global::<PaneSurfaceHostContext>();
         match &pointer.target {
@@ -94,24 +119,37 @@ pub(super) fn dispatch_native_pointer_move(
                     pointer.width,
                     pointer.height,
                 ),
-            PanePointerTarget::Viewport(_) => pane_host.invoke_viewport_pointer_event(
-                VIEWPORT_POINTER_MOVE,
-                VIEWPORT_POINTER_BUTTON_NONE,
-                pointer.local_x,
-                pointer.local_y,
-                0.0,
+            PanePointerTarget::TemplateNode(hit) => ui.set_hovered_template_node_for_pointer_move(
+                hit.control_id.clone(),
+                hit.frame.clone(),
             ),
+            PanePointerTarget::Viewport(_) => {
+                ui.clear_hovered_template_node_for_pointer_move();
+                pane_host.invoke_viewport_pointer_event(
+                    VIEWPORT_POINTER_MOVE,
+                    VIEWPORT_POINTER_BUTTON_NONE,
+                    pointer.local_x,
+                    pointer.local_y,
+                    0.0,
+                )
+            }
             PanePointerTarget::Console
             | PanePointerTarget::Inspector
             | PanePointerTarget::BrowserAssetDetails
-            | PanePointerTarget::TemplateNode(_)
             | PanePointerTarget::ViewportToolbar(_)
             | PanePointerTarget::UiAsset
-            | PanePointerTarget::Other => {}
+            | PanePointerTarget::Other => {
+                ui.clear_hovered_template_node_for_pointer_move();
+            }
         }
         return pointer_move_redraw(&pointer, &before, &ui.get_pane_interaction_state());
     }
 
+    let before = ui.get_pane_interaction_state();
+    ui.clear_hovered_template_node_for_pointer_move();
+    if let Some(damage) = template_hover_damage(&before, &ui.get_pane_interaction_state()) {
+        return NativePointerDispatchResult::region(damage);
+    }
     NativePointerDispatchResult::idle()
 }
 
@@ -121,12 +159,21 @@ fn pointer_move_redraw(
     after: &HostPaneInteractionStateData,
 ) -> NativePointerDispatchResult {
     if matches!(&pointer.target, PanePointerTarget::Viewport(_)) || before == after {
-        return NativePointerDispatchResult::idle();
+        if before == after {
+            return NativePointerDispatchResult::idle();
+        }
+        return template_hover_damage(before, after)
+            .map(NativePointerDispatchResult::region)
+            .unwrap_or_else(NativePointerDispatchResult::idle);
     }
 
+    let template_damage = template_hover_damage(before, after);
     if matches!(&pointer.target, PanePointerTarget::Hierarchy) {
         if (before.hierarchy_scroll_px - after.hierarchy_scroll_px).abs() > f32::EPSILON {
-            return NativePointerDispatchResult::region(pointer.frame.clone());
+            let damage = template_damage
+                .map(|template| union_frame(&template, &pointer.frame))
+                .unwrap_or_else(|| pointer.frame.clone());
+            return NativePointerDispatchResult::region(damage);
         }
         let damage = union_optional_frames(
             hierarchy_row_damage(
@@ -141,7 +188,22 @@ fn pointer_move_redraw(
             ),
         )
         .unwrap_or_else(|| pointer.frame.clone());
+        let damage = template_damage
+            .map(|template| union_frame(&template, &damage))
+            .unwrap_or(damage);
         return NativePointerDispatchResult::region(damage);
+    }
+
+    if let Some(template_damage) = template_damage {
+        return match &pointer.target {
+            PanePointerTarget::AssetTree(_)
+            | PanePointerTarget::AssetContent(_)
+            | PanePointerTarget::AssetReference(_, _)
+            | PanePointerTarget::Welcome => {
+                NativePointerDispatchResult::region(union_frame(&template_damage, &pointer.frame))
+            }
+            _ => NativePointerDispatchResult::region(template_damage),
+        };
     }
 
     NativePointerDispatchResult::region(pointer.frame.clone())
@@ -154,6 +216,9 @@ pub(super) fn dispatch_native_pointer_button(
     x: f32,
     y: f32,
 ) -> NativePointerDispatchResult {
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::Click);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::Click);
+
     let button = button.unwrap_or(UiPointerButton::Primary);
     let presentation = ui.get_host_presentation();
     let Some(button_id) = viewport_button_id(button) else {
@@ -173,7 +238,10 @@ pub(super) fn dispatch_native_pointer_button(
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
             ui.global::<UiHostContext>()
                 .invoke_close_prompt_action_clicked(action_id);
-            return NativePointerDispatchResult::full_frame();
+            return match close_prompt_action_damage_frame(&presentation) {
+                Some(damage) => NativePointerDispatchResult::region_with_frame_update(damage),
+                None => NativePointerDispatchResult::full_frame(),
+            };
         }
         return NativePointerDispatchResult::idle();
     }
@@ -182,30 +250,47 @@ pub(super) fn dispatch_native_pointer_button(
         return NativePointerDispatchResult::idle();
     }
 
-    let cleared_text_input_focus =
+    let cleared_text_input_frame =
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
             let host = ui.global::<UiHostContext>();
-            let had_text_input_focus = host.get_text_input_focus().is_active();
-            host.clear_text_input_focus();
-            had_text_input_focus
+            let focus = host.get_text_input_focus();
+            if focus.is_active() {
+                let frame = focus.edit_frame.clone();
+                host.clear_text_input_focus();
+                Some(frame)
+            } else {
+                None
+            }
         } else {
-            false
+            None
         };
 
     if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
         if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y)
         {
+            let before_damage = menu_damage_frame(&presentation);
             ui.global::<UiHostContext>()
                 .invoke_menu_pointer_clicked(x, y);
-            return NativePointerDispatchResult::full_frame();
+            let after_state = ui.get_menu_state();
+            let after_damage = menu_damage_frame_with_state(&presentation, &after_state);
+            let mut damage = union_frame(&before_damage, &after_damage);
+            if let Some(frame) = cleared_text_input_frame.clone() {
+                damage = union_frame(&damage, &frame);
+            }
+            return NativePointerDispatchResult::region(damage);
         }
     }
 
     if let Some(route) = route_top_level_chrome(&presentation, x, y) {
         if state == NativePointerButtonState::Pressed && button == UiPointerButton::Primary {
             arm_native_tab_drag(ui, &presentation, &route, x, y);
+            let redraw = if matches!(&route, ChromePointerRoute::Resize) {
+                resize_pointer_redraw(&presentation, cleared_text_input_frame.clone())
+            } else {
+                chrome_press_redraw(&presentation, &route, cleared_text_input_frame.clone())
+            };
             dispatch_chrome_press(ui, route, x, y);
-            return NativePointerDispatchResult::full_frame();
+            return redraw;
         }
     }
 
@@ -311,6 +396,7 @@ pub(super) fn dispatch_native_pointer_button(
                 {
                     return NativePointerDispatchResult::idle();
                 }
+                let control_id = hit.control_id.clone();
                 pane_host.invoke_viewport_toolbar_pointer_clicked(
                     hit.surface_key,
                     hit.control_id,
@@ -321,7 +407,15 @@ pub(super) fn dispatch_native_pointer_button(
                     pointer.local_x,
                     pointer.local_y,
                 );
-                return NativePointerDispatchResult::full_frame();
+                return match viewport_toolbar_press_damage_frame(
+                    &presentation,
+                    control_id.as_str(),
+                    &pointer.frame,
+                    cleared_text_input_frame.clone(),
+                ) {
+                    Some(damage) => NativePointerDispatchResult::region_with_frame_update(damage),
+                    None => NativePointerDispatchResult::full_frame(),
+                };
             }
             PanePointerTarget::Viewport(_) => {
                 pane_host.invoke_viewport_pointer_event(
@@ -331,8 +425,8 @@ pub(super) fn dispatch_native_pointer_button(
                     pointer.local_y,
                     0.0,
                 );
-                if cleared_text_input_focus {
-                    return NativePointerDispatchResult::full_frame();
+                if let Some(frame) = cleared_text_input_frame.clone() {
+                    return NativePointerDispatchResult::region(frame);
                 }
                 return NativePointerDispatchResult::idle();
             }
@@ -341,7 +435,12 @@ pub(super) fn dispatch_native_pointer_button(
                 {
                     if hit_is_text_input(&hit) {
                         if focus_template_node_text_input(ui, &hit) {
-                            return NativePointerDispatchResult::region(hit.frame.clone());
+                            let damage = union_optional_frames(
+                                cleared_text_input_frame.clone(),
+                                Some(hit.frame.clone()),
+                            )
+                            .unwrap_or_else(|| hit.frame.clone());
+                            return NativePointerDispatchResult::region(damage);
                         }
                         return NativePointerDispatchResult::idle();
                     }
@@ -352,11 +451,31 @@ pub(super) fn dispatch_native_pointer_button(
             | PanePointerTarget::Inspector
             | PanePointerTarget::BrowserAssetDetails
             | PanePointerTarget::UiAsset
-            | PanePointerTarget::Other => {}
+            | PanePointerTarget::Other => {
+                if state == NativePointerButtonState::Pressed {
+                    if let Some(frame) = cleared_text_input_frame.clone() {
+                        return NativePointerDispatchResult::region(frame);
+                    }
+                    return NativePointerDispatchResult::idle();
+                }
+            }
         }
-        return NativePointerDispatchResult::full_frame();
+        if state == NativePointerButtonState::Released {
+            return NativePointerDispatchResult::region(pointer.frame.clone());
+        }
+        return match pane_pointer_press_damage_frame(
+            &presentation,
+            &pointer.frame,
+            cleared_text_input_frame.clone(),
+        ) {
+            Some(damage) => NativePointerDispatchResult::region_with_frame_update(damage),
+            None => NativePointerDispatchResult::full_frame(),
+        };
     }
 
+    if let Some(frame) = cleared_text_input_frame {
+        return NativePointerDispatchResult::region(frame);
+    }
     NativePointerDispatchResult::idle()
 }
 
@@ -366,11 +485,14 @@ pub(super) fn dispatch_native_pointer_scroll(
     y: f32,
     delta: f32,
 ) -> NativePointerDispatchResult {
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::IdleHover);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::IdleHover);
+
     let presentation = ui.get_host_presentation();
     if menu_handles_point(&presentation, x, y) || menu_popup_handles_point(&presentation, x, y) {
         ui.global::<UiHostContext>()
             .invoke_menu_pointer_scrolled(x, y, delta);
-        return NativePointerDispatchResult::full_frame();
+        return NativePointerDispatchResult::region(menu_damage_frame(&presentation));
     }
 
     if let Some(pointer) = route_pointer_to_pane(&presentation, x, y) {
@@ -524,7 +646,7 @@ fn dispatch_chrome_press(ui: &UiHostWindow, route: ChromePointerRoute, x: f32, y
             local_x,
             local_y,
         ),
-        ChromePointerRoute::FloatingWindowHeader => {
+        ChromePointerRoute::FloatingWindowHeader { .. } => {
             host.invoke_floating_window_header_pointer_clicked(x, y);
         }
         ChromePointerRoute::Resize => {
@@ -646,12 +768,15 @@ fn dispatch_native_resize_move(
     if !resize_state.resize_active {
         return None;
     }
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::DrawerResize);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::DrawerResize);
 
     resize_state.resize_pointer_x = x;
     resize_state.resize_pointer_y = y;
     host.set_resize_state(resize_state);
+    let presentation = ui.get_host_presentation();
     host.invoke_host_resize_pointer_event(HOST_POINTER_MOVE, x, y);
-    Some(NativePointerDispatchResult::full_frame())
+    Some(resize_pointer_redraw(&presentation, None))
 }
 
 fn finish_native_resize(ui: &UiHostWindow, x: f32, y: f32) -> Option<NativePointerDispatchResult> {
@@ -659,10 +784,13 @@ fn finish_native_resize(ui: &UiHostWindow, x: f32, y: f32) -> Option<NativePoint
     if !host.get_resize_state().resize_active {
         return None;
     }
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::DrawerResize);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::DrawerResize);
 
+    let presentation = ui.get_host_presentation();
     host.invoke_host_resize_pointer_event(HOST_POINTER_UP, x, y);
     host.clear_resize_state();
-    Some(NativePointerDispatchResult::full_frame())
+    Some(resize_pointer_redraw(&presentation, None))
 }
 
 fn arm_native_tab_drag(
@@ -697,6 +825,8 @@ fn dispatch_native_tab_drag_move(
     if drag_state.drag_tab_id.is_empty() {
         return None;
     }
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::Drag);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::Drag);
 
     if !drag_state.drag_active {
         let distance_x = x - drag_state.drag_pointer_x;
@@ -729,10 +859,15 @@ fn finish_native_tab_drag(
     if drag_state.drag_tab_id.is_empty() {
         return None;
     }
+    let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::Drag);
+    let _ui_perf_timer = time_ui_perf_scenario(UiPerfScenario::Drag);
     if drag_state.drag_active {
+        let presentation = ui.get_host_presentation();
         host.invoke_host_drag_pointer_event(HOST_POINTER_UP, x, y);
+        let release_drag_state = host.get_drag_state();
+        let redraw = tab_drag_release_redraw(&presentation, &release_drag_state);
         host.set_drag_state(HostDragStateData::default());
-        return Some(NativePointerDispatchResult::full_frame());
+        return Some(redraw);
     }
     host.set_drag_state(HostDragStateData::default());
     Some(NativePointerDispatchResult::idle())
@@ -829,7 +964,7 @@ fn tab_drag_payload_for_route(
         },
         ChromePointerRoute::ActivityRail { .. }
         | ChromePointerRoute::HostPageTab { .. }
-        | ChromePointerRoute::FloatingWindowHeader
+        | ChromePointerRoute::FloatingWindowHeader { .. }
         | ChromePointerRoute::Resize => None,
     }
 }
@@ -935,7 +1070,9 @@ fn route_top_level_chrome(
             ) {
                 return Some(route);
             }
-            return Some(ChromePointerRoute::FloatingWindowHeader);
+            return Some(ChromePointerRoute::FloatingWindowHeader {
+                window_id: window.window_id.clone(),
+            });
         }
     }
 
@@ -1071,6 +1208,23 @@ fn route_pointer_to_pane(
     x: f32,
     y: f32,
 ) -> Option<PanePointerRoute> {
+    route_pointer_to_pane_with_mode(presentation, x, y, PaneRouteMode::Default)
+}
+
+fn route_pointer_move_to_pane(
+    presentation: &HostWindowPresentationData,
+    x: f32,
+    y: f32,
+) -> Option<PanePointerRoute> {
+    route_pointer_to_pane_with_mode(presentation, x, y, PaneRouteMode::PointerMove)
+}
+
+fn route_pointer_to_pane_with_mode(
+    presentation: &HostWindowPresentationData,
+    x: f32,
+    y: f32,
+    mode: PaneRouteMode,
+) -> Option<PanePointerRoute> {
     let scene = &presentation.host_scene_data;
     for row in (0..scene.floating_layer.floating_windows.row_count()).rev() {
         let Some(window) = scene.floating_layer.floating_windows.row_data(row) else {
@@ -1084,6 +1238,7 @@ fn route_pointer_to_pane(
                 x,
                 y,
                 Some(window.window_id.as_str()),
+                mode,
             );
         }
     }
@@ -1117,7 +1272,7 @@ fn route_pointer_to_pane(
             Some(scene.bottom_dock.surface_key.as_str()),
         ),
     ] {
-        if let Some(route) = pane_route_from_pane(pane, &content, x, y, surface_key) {
+        if let Some(route) = pane_route_from_pane(pane, &content, x, y, surface_key, mode) {
             return Some(route);
         }
     }
@@ -1151,6 +1306,7 @@ fn pane_route_from_pane(
     x: f32,
     y: f32,
     surface_key: Option<&str>,
+    mode: PaneRouteMode,
 ) -> Option<PanePointerRoute> {
     if !contains(content, x, y) {
         return None;
@@ -1190,13 +1346,15 @@ fn pane_route_from_pane(
         body.y += toolbar_height;
         body.height = (body.height - toolbar_height).max(0.0);
     }
-    if let Some(hit) = surface_hit_test::hit_test_pane_template_node(pane, &body, x, y) {
-        return Some(PanePointerRoute::new(
-            PanePointerTarget::TemplateNode(hit),
-            &body,
-            x,
-            y,
-        ));
+    if mode.allows_template_hit_for_move(pane) {
+        if let Some(hit) = surface_hit_test::hit_test_pane_template_node(pane, &body, x, y) {
+            return Some(PanePointerRoute::new(
+                PanePointerTarget::TemplateNode(hit),
+                &body,
+                x,
+                y,
+            ));
+        }
     }
     let target = match pane.kind.as_str() {
         "Hierarchy" => PanePointerTarget::Hierarchy,
@@ -1212,330 +1370,21 @@ fn pane_route_from_pane(
     Some(PanePointerRoute::new(target, &body, x, y))
 }
 
-fn menu_handles_point(presentation: &HostWindowPresentationData, x: f32, y: f32) -> bool {
-    let scene = &presentation.host_scene_data;
-    if contains(&scene.menu_chrome_frame(), x, y) {
-        return true;
-    }
-    if scene.menu_chrome.menu_frames.row_count() == 0 {
-        return contains(
-            &FrameRect {
-                x: 0.0,
-                y: 0.0,
-                width: presentation.host_layout.status_bar_frame.width,
-                height: scene.menu_chrome.top_bar_height_px.max(0.0),
-            },
-            x,
-            y,
-        );
-    }
-    (0..scene.menu_chrome.menu_frames.row_count()).any(|row| {
-        scene
-            .menu_chrome
-            .menu_frames
-            .row_data(row)
-            .is_some_and(|control| {
-                contains(&scrolled_menu_frame(&control.frame, presentation), x, y)
-            })
-    })
+#[derive(Clone, Copy)]
+enum PaneRouteMode {
+    Default,
+    PointerMove,
 }
 
-fn menu_popup_handles_point(presentation: &HostWindowPresentationData, x: f32, y: f32) -> bool {
-    let state = &presentation.menu_state;
-    if state.open_menu_index < 0 {
-        return false;
-    }
-    let menu_index = state.open_menu_index as usize;
-    let Some(menu_frame) = presentation
-        .host_scene_data
-        .menu_chrome
-        .menu_frames
-        .row_data(menu_index)
-    else {
-        return false;
-    };
-    let Some(menu) = presentation
-        .host_scene_data
-        .menu_chrome
-        .menus
-        .row_data(menu_index)
-    else {
-        return false;
-    };
-    let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
-    let popup = constrained_menu_popup_frame(
-        presentation,
-        &menu_frame_rect,
-        menu.popup_width_px.max(menu_frame_rect.width).max(1.0),
-        menu.popup_height_px.max(1.0),
-    );
-    contains(&popup, x, y)
-        || nested_menu_popup_handles_point(presentation, menu.items.clone(), popup, x, y)
-        || contains(
-            &FrameRect {
-                x: 0.0,
-                y: presentation
-                    .host_scene_data
-                    .menu_chrome
-                    .top_bar_height_px
-                    .max(0.0),
-                width: presentation
-                    .host_layout
-                    .status_bar_frame
-                    .width
-                    .max(presentation.host_scene_data.layout.status_bar_frame.width),
-                height: (presentation
-                    .host_layout
-                    .status_bar_frame
-                    .y
-                    .max(presentation.host_scene_data.layout.status_bar_frame.y)
-                    - presentation
-                        .host_scene_data
-                        .menu_chrome
-                        .top_bar_height_px
-                        .max(0.0))
-                .max(0.0),
-            },
-            x,
-            y,
-        )
-}
-
-fn menu_damage_frame(presentation: &HostWindowPresentationData) -> FrameRect {
-    let scene = &presentation.host_scene_data;
-    let width = presentation
-        .host_layout
-        .status_bar_frame
-        .width
-        .max(scene.layout.status_bar_frame.width)
-        .max(scene.layout.center_band_frame.width)
-        .max(1.0);
-    let base_height = scene.menu_chrome.top_bar_height_px.max(0.0);
-    let popup_bottom = if presentation.menu_state.open_menu_index >= 0 {
-        scene
-            .menu_chrome
-            .menus
-            .row_data(presentation.menu_state.open_menu_index as usize)
-            .and_then(|menu| {
-                let menu_frame = scene
-                    .menu_chrome
-                    .menu_frames
-                    .row_data(presentation.menu_state.open_menu_index as usize)?;
-                let menu_frame_rect = scrolled_menu_frame(&menu_frame.frame, presentation);
-                let popup = constrained_menu_popup_frame(
-                    presentation,
-                    &menu_frame_rect,
-                    menu.popup_width_px.max(menu_frame_rect.width).max(1.0),
-                    menu.popup_height_px.max(1.0),
-                );
-                Some(menu_popup_stack_bottom(
-                    presentation,
-                    menu.items.clone(),
-                    popup,
-                ))
-            })
-            .unwrap_or(base_height)
-    } else {
-        base_height
-    };
-    FrameRect {
-        x: 0.0,
-        y: 0.0,
-        width,
-        height: (popup_bottom + 4.0).max(base_height),
-    }
-}
-
-fn constrained_menu_popup_frame(
-    presentation: &HostWindowPresentationData,
-    menu_frame: &FrameRect,
-    width: f32,
-    requested_height: f32,
-) -> FrameRect {
-    let shell_width = presentation
-        .host_layout
-        .status_bar_frame
-        .width
-        .max(presentation.host_scene_data.layout.status_bar_frame.width)
-        .max(presentation.host_scene_data.layout.center_band_frame.width)
-        .max(1.0);
-    let shell_height = presentation
-        .host_layout
-        .status_bar_frame
-        .y
-        .max(presentation.host_scene_data.layout.status_bar_frame.y)
-        .max(1.0);
-    let width = width.min(shell_width).max(1.0);
-    let popup_y = menu_frame.y + menu_frame.height + 3.0;
-    let x = menu_frame.x.clamp(0.0, (shell_width - width).max(0.0));
-    let available_below = (shell_height - popup_y - 8.0).max(0.0);
-    let available_above = (menu_frame.y - 8.0).max(0.0);
-    let available_height = available_below
-        .max(available_above)
-        .max(72.0)
-        .min(shell_height);
-    let height = requested_height.min(available_height).max(1.0);
-    let y = if popup_y + height <= shell_height {
-        popup_y
-    } else {
-        (menu_frame.y - height - 3.0).max(0.0)
-    };
-    FrameRect {
-        x,
-        y,
-        width,
-        height,
-    }
-}
-
-fn scrolled_menu_frame(
-    menu_frame: &FrameRect,
-    presentation: &HostWindowPresentationData,
-) -> FrameRect {
-    FrameRect {
-        x: menu_frame.x - presentation.menu_state.menu_bar_scroll_px,
-        y: menu_frame.y,
-        width: menu_frame.width,
-        height: menu_frame.height,
-    }
-}
-
-fn nested_menu_popup_handles_point(
-    presentation: &HostWindowPresentationData,
-    mut items: ModelRc<HostMenuChromeItemData>,
-    mut parent_popup: FrameRect,
-    x: f32,
-    y: f32,
-) -> bool {
-    for (level, selected_index) in presentation
-        .menu_state
-        .open_submenu_path
-        .iter()
-        .copied()
-        .enumerate()
-    {
-        let Some(branch) = items.row_data(selected_index) else {
-            return false;
-        };
-        if branch.children.row_count() == 0 {
-            return false;
+impl PaneRouteMode {
+    fn allows_template_hit_for_move(self, pane: &super::data::PaneData) -> bool {
+        match self {
+            Self::Default => true,
+            Self::PointerMove => !matches!(
+                pane.kind.as_str(),
+                "Hierarchy" | "Welcome" | "Assets" | "AssetBrowser"
+            ),
         }
-        let scroll_px = if level == 0 {
-            presentation.menu_state.window_menu_scroll_px
-        } else {
-            0.0
-        };
-        let anchor = menu_popup_row_frame(&parent_popup, selected_index, scroll_px);
-        let popup = constrained_submenu_popup_frame(
-            presentation,
-            &anchor,
-            parent_popup.width.max(1.0),
-            menu_popup_height(branch.children.row_count()).max(1.0),
-        );
-        if contains(&popup, x, y) {
-            return true;
-        }
-        items = branch.children.clone();
-        parent_popup = popup;
-    }
-    false
-}
-
-fn menu_popup_stack_bottom(
-    presentation: &HostWindowPresentationData,
-    mut items: ModelRc<HostMenuChromeItemData>,
-    mut parent_popup: FrameRect,
-) -> f32 {
-    let mut bottom = parent_popup.y + parent_popup.height;
-    for (level, selected_index) in presentation
-        .menu_state
-        .open_submenu_path
-        .iter()
-        .copied()
-        .enumerate()
-    {
-        let Some(branch) = items.row_data(selected_index) else {
-            break;
-        };
-        if branch.children.row_count() == 0 {
-            break;
-        }
-        let scroll_px = if level == 0 {
-            presentation.menu_state.window_menu_scroll_px
-        } else {
-            0.0
-        };
-        let anchor = menu_popup_row_frame(&parent_popup, selected_index, scroll_px);
-        let popup = constrained_submenu_popup_frame(
-            presentation,
-            &anchor,
-            parent_popup.width.max(1.0),
-            menu_popup_height(branch.children.row_count()).max(1.0),
-        );
-        bottom = bottom.max(popup.y + popup.height);
-        items = branch.children.clone();
-        parent_popup = popup;
-    }
-    bottom
-}
-
-fn menu_popup_row_frame(popup: &FrameRect, row: usize, scroll_px: f32) -> FrameRect {
-    FrameRect {
-        x: popup.x + 6.0,
-        y: popup.y + 6.0 + row as f32 * 30.0 - scroll_px,
-        width: (popup.width - 12.0).max(0.0),
-        height: 28.0,
-    }
-}
-
-fn menu_popup_height(item_count: usize) -> f32 {
-    if item_count == 0 {
-        0.0
-    } else {
-        12.0 + item_count as f32 * 28.0 + (item_count as f32 - 1.0) * 2.0
-    }
-}
-
-fn constrained_submenu_popup_frame(
-    presentation: &HostWindowPresentationData,
-    anchor: &FrameRect,
-    width: f32,
-    requested_height: f32,
-) -> FrameRect {
-    let shell_width = presentation
-        .host_layout
-        .status_bar_frame
-        .width
-        .max(presentation.host_scene_data.layout.status_bar_frame.width)
-        .max(presentation.host_scene_data.layout.center_band_frame.width)
-        .max(1.0);
-    let shell_height = presentation
-        .host_layout
-        .status_bar_frame
-        .y
-        .max(presentation.host_scene_data.layout.status_bar_frame.y)
-        .max(1.0);
-    let width = width.min((shell_width - 16.0).max(1.0)).max(1.0);
-    let min_x = 8.0;
-    let max_x = (shell_width - width - 8.0).max(min_x);
-    let right_x = anchor.x + anchor.width + 3.0;
-    let left_x = anchor.x - width - 3.0;
-    let x = if right_x + width <= shell_width - 8.0 {
-        right_x.clamp(min_x, max_x)
-    } else {
-        left_x.clamp(min_x, max_x)
-    };
-    let height = requested_height
-        .min((shell_height - 16.0).max(1.0))
-        .max(1.0);
-    let min_y = 8.0;
-    let max_y = (shell_height - height - 8.0).max(min_y);
-    let y = anchor.y.clamp(min_y, max_y);
-    FrameRect {
-        x,
-        y,
-        width,
-        height,
     }
 }
 
@@ -1559,6 +1408,41 @@ fn union_optional_frames(left: Option<FrameRect>, right: Option<FrameRect>) -> O
     }
 }
 
+fn resize_pointer_redraw(
+    presentation: &HostWindowPresentationData,
+    extra_damage: Option<FrameRect>,
+) -> NativePointerDispatchResult {
+    match union_optional_frames(resize_damage_frame(presentation), extra_damage) {
+        Some(frame) => NativePointerDispatchResult::region_with_frame_update(frame),
+        None => NativePointerDispatchResult::full_frame(),
+    }
+}
+
+fn chrome_press_redraw(
+    presentation: &HostWindowPresentationData,
+    route: &ChromePointerRoute,
+    extra_damage: Option<FrameRect>,
+) -> NativePointerDispatchResult {
+    let Some(frame) = chrome_press_damage_frame(presentation, route) else {
+        return NativePointerDispatchResult::full_frame();
+    };
+    let damage = match extra_damage {
+        Some(extra) => union_frame(&frame, &extra),
+        None => frame,
+    };
+    NativePointerDispatchResult::region_with_frame_update(damage)
+}
+
+fn tab_drag_release_redraw(
+    presentation: &HostWindowPresentationData,
+    drag_state: &HostDragStateData,
+) -> NativePointerDispatchResult {
+    match tab_drag_release_damage_frame(presentation, drag_state) {
+        Some(frame) => NativePointerDispatchResult::region_with_frame_update(frame),
+        None => NativePointerDispatchResult::full_frame(),
+    }
+}
+
 fn union_frame(left: &FrameRect, right: &FrameRect) -> FrameRect {
     let x0 = left.x.min(right.x);
     let y0 = left.y.min(right.y);
@@ -1569,25 +1453,6 @@ fn union_frame(left: &FrameRect, right: &FrameRect) -> FrameRect {
         y: y0,
         width: (x1 - x0).max(0.0),
         height: (y1 - y0).max(0.0),
-    }
-}
-
-trait HostSceneMenuFrame {
-    fn menu_chrome_frame(&self) -> FrameRect;
-}
-
-impl HostSceneMenuFrame for super::data::HostWindowSceneData {
-    fn menu_chrome_frame(&self) -> FrameRect {
-        FrameRect {
-            x: 0.0,
-            y: 0.0,
-            width: self
-                .layout
-                .status_bar_frame
-                .width
-                .max(self.layout.center_band_frame.width),
-            height: self.menu_chrome.top_bar_height_px.max(0.0),
-        }
     }
 }
 
@@ -1665,7 +1530,9 @@ enum ChromePointerRoute {
         local_x: f32,
         local_y: f32,
     },
-    FloatingWindowHeader,
+    FloatingWindowHeader {
+        window_id: SharedString,
+    },
     Resize,
 }
 

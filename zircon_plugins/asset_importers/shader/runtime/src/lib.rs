@@ -241,6 +241,8 @@ fn shader_outcome(
             source,
             wgsl_source,
             entry_points,
+            dependencies: Vec::new(),
+            pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
     ))

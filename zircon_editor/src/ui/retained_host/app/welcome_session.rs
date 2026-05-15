@@ -1,6 +1,23 @@
 use super::*;
 
 impl RetainedEditorHost {
+    pub(super) fn ensure_welcome_surface_bridge(&mut self) -> bool {
+        if self.welcome_surface_bridge.is_some() {
+            return true;
+        }
+        zircon_runtime::profile_scope!("editor", "retained_host", "lazy_welcome_surface_bridge");
+        match callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge::new_minimal() {
+            Ok(bridge) => {
+                self.welcome_surface_bridge = Some(bridge);
+                true
+            }
+            Err(error) => {
+                self.set_status_line(format!("Failed to load welcome UI controls: {error}"));
+                false
+            }
+        }
+    }
+
     pub(super) fn refresh_welcome_snapshot(&mut self) {
         let snapshot = self.startup_session.welcome_pane_snapshot(false);
         self.runtime.set_welcome_snapshot(snapshot);
@@ -32,9 +49,27 @@ impl RetainedEditorHost {
     ) -> Result<(), String> {
         let welcome_snapshot = session.welcome_pane_snapshot(false);
         let status_message = session.status_message.clone();
+        let startup_view = session.open_builtin_view.clone();
         let mode = session.mode;
         let project = session.project.take();
         self.startup_session = session;
+
+        if let Some(descriptor_id) = startup_view {
+            self.editor_manager
+                .dismiss_welcome_page()
+                .map_err(|error| error.to_string())?;
+            self.editor_manager
+                .open_view(
+                    crate::ui::workbench::view::ViewDescriptorId::new(descriptor_id),
+                    None,
+                )
+                .map_err(|error| error.to_string())?;
+            self.runtime.set_session_mode(EditorSessionMode::Project);
+            self.runtime.set_welcome_snapshot(welcome_snapshot);
+            self.invalidate_host(HostInvalidationMask::PRESENTATION_DATA);
+            self.set_status_line(status_message);
+            return Ok(());
+        }
 
         match (mode, project) {
             (EditorSessionMode::Project | EditorSessionMode::Playing, Some(document)) => {
@@ -207,8 +242,8 @@ impl RetainedEditorHost {
             }
             WelcomeHostEvent::OpenStartupDemo => {
                 self.open_startup_view(
-                    "editor.material_demo_window",
-                    "Opened Material demo window",
+                    "editor.ui_component_showcase",
+                    "Opened UI Component Showcase",
                 );
             }
             WelcomeHostEvent::OpenStartupAssetWindow => {
@@ -232,8 +267,15 @@ impl RetainedEditorHost {
         event_kind: UiEventKind,
         arguments: Vec<UiBindingValue>,
     ) {
+        if !self.ensure_welcome_surface_bridge() {
+            return;
+        }
+        let Some(welcome_surface_bridge) = self.welcome_surface_bridge.as_ref() else {
+            self.set_status_line("Welcome UI controls are not available");
+            return;
+        };
         let Some(result) = callback_dispatch::dispatch_builtin_welcome_surface_control(
-            &self.welcome_surface_bridge,
+            welcome_surface_bridge,
             control_id,
             event_kind,
             arguments,

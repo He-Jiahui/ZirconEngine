@@ -18,7 +18,7 @@ fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_retaine
         .unwrap();
 
     assert_eq!(projection.document_id, "startup.welcome_controls");
-    assert_eq!(projection.root.component, "WelcomeSurfaceControls");
+    assert_eq!(projection.root.component, "VerticalGroup");
     assert_eq!(
         projection
             .root
@@ -29,10 +29,8 @@ fn editor_ui_host_runtime_projects_builtin_welcome_surface_template_into_retaine
         vec![
             "ProjectNameEdited",
             "LocationEdited",
-            "CreateProject",
-            "OpenExistingProject",
-            "OpenRecentProject",
-            "RemoveRecentProject",
+            "WelcomePrimaryActions",
+            "WelcomeRecentActions",
         ]
     );
 

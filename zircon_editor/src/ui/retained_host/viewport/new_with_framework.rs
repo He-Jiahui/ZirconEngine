@@ -8,15 +8,9 @@ use super::viewport_state::ViewportState;
 impl RetainedViewportController {
     pub(super) fn new_with_framework(render_framework: Arc<dyn RenderFramework>) -> Self {
         Self {
-            shared: Arc::new(Mutex::new(ViewportState {
+            shared: Arc::new(Mutex::new(ViewportState::with_render_framework(
                 render_framework,
-                viewport: None,
-                latest_generation: None,
-                latest_image: None,
-                last_error: None,
-                last_world_space_ui_surfaces: Vec::new(),
-                world_space_ui_pointer_capture: None,
-            })),
+            ))),
         }
     }
 }

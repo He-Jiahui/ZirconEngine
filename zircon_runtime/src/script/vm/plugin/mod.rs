@@ -7,7 +7,7 @@ mod vm_state_blob;
 
 pub use vm_plugin_instance::VmPluginInstance;
 pub use vm_plugin_manifest::VmPluginManifest;
-pub use vm_plugin_package::VmPluginPackage;
+pub use vm_plugin_package::{VmPluginPackage, ZrVmExecutionMode, ZrVmPluginProjectSource};
 pub use vm_plugin_package_discovery::{
     discover_vm_plugin_package, discover_vm_plugin_packages, DiscoveredVmPluginPackage,
 };

@@ -16,7 +16,7 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
     let projection = runtime.project_document("pane.surface_controls").unwrap();
 
     assert_eq!(projection.document_id, "pane.surface_controls");
-    assert_eq!(projection.root.component, "PaneSurfaceControls");
+    assert_eq!(projection.root.component, "HorizontalGroup");
     assert_eq!(
         projection
             .root
@@ -47,30 +47,24 @@ fn editor_ui_host_runtime_projects_pane_surface_controls_through_material_button
     let root = host_model
         .node_by_control_id("PaneSurfaceControlsRoot")
         .expect("pane surface controls root should remain a host container");
-    assert_eq!(root.component, "PaneSurfaceControls");
+    assert_eq!(root.component, "HorizontalGroup");
     assert_eq!(root.frame, UiFrame::new(0.0, 0.0, 300.0, 32.0));
 
     let button = host_model
         .node_by_control_id("TriggerAction")
-        .expect("pane trigger action should project as a Material button root");
-    assert_eq!(button.component, "Button");
-    assert_eq!(button.frame, UiFrame::new(0.0, 0.0, 128.0, 32.0));
+        .expect("pane trigger action should project as an authored icon button");
+    assert_eq!(button.component, "IconButton");
+    assert_eq!(button.frame, UiFrame::new(0.0, 0.0, 92.0, 32.0));
     assert_eq!(
-        button.attributes.get("text").and_then(Value::as_str),
-        Some("Open Project")
+        button.attributes.get("label").and_then(Value::as_str),
+        Some("Action")
     );
     assert_eq!(
-        button
-            .attributes
-            .get("input_interactive")
-            .and_then(Value::as_bool),
-        Some(true)
+        button.attributes.get("icon").and_then(Value::as_str),
+        Some("flash-outline")
     );
-    assert_eq!(
-        button
-            .attributes
-            .get("input_clickable")
-            .and_then(Value::as_bool),
-        Some(true)
-    );
+    assert!(button.bindings.iter().any(|binding| {
+        binding.binding_id == "PaneSurface/TriggerAction"
+            && binding.event_kind == UiEventKind::Click
+    }));
 }

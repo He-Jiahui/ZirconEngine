@@ -1,0 +1,28 @@
+id = "zr_vm_language"
+version = "0.1.0"
+sdk_api_version = "0.1.0"
+display_name = "ZrVM Language"
+category = "runtime"
+description = "Optional ZrVM language backend for Zircon VM plugin packages."
+supported_targets = ["client_runtime", "server_runtime", "editor_host"]
+supported_platforms = ["windows", "linux", "macos"]
+capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_project"]
+maturity = "experimental"
+asset_roots = []
+content_roots = []
+default_packaging = ["source_template", "library_embed"]
+
+[[capability_statuses]]
+capability = "runtime.plugin.zr_vm_language"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.script.backend.zr_vm_project"
+status = "partial"
+
+[[modules]]
+name = "zr_vm_language.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_zr_vm_language_runtime"
+target_modes = ["client_runtime", "server_runtime", "editor_host"]
+capabilities = ["runtime.plugin.zr_vm_language", "runtime.script.backend.zr_vm_project"]

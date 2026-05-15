@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for RuntimeDiagnosticsEditorPlugin {
                 drawer_id: RUNTIME_DIAGNOSTICS_DRAWER_ID,
                 drawer_display_name: "Runtime Diagnostics Tools",
                 template_id: RUNTIME_DIAGNOSTICS_TEMPLATE_ID,
-                template_document: "pane.runtime_diagnostics.body",
+                template_document: "plugins://runtime_diagnostics/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     RUNTIME_DIAGNOSTICS_VIEW_ID,
                     "Runtime Diagnostics",

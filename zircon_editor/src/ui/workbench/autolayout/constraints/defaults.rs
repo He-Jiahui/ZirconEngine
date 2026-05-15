@@ -49,6 +49,7 @@ pub fn default_constraints_for_content(kind: ViewContentKind) -> PaneConstraints
         },
         ViewContentKind::Console
         | ViewContentKind::RuntimeDiagnostics
+        | ViewContentKind::PerformanceTimeline
         | ViewContentKind::ModulePlugins
         | ViewContentKind::BuildExport => PaneConstraints {
             width: stretch_axis(0.0, 0.0, 50, 1.0),

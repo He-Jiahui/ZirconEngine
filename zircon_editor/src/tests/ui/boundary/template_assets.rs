@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use super::support::collect_rust_files;
+use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
 fn source(relative: &str) -> String {
     fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join(relative))
@@ -222,6 +223,7 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
         "animation_sequence_body.v2.ui.toml",
         "animation_graph_body.v2.ui.toml",
         "runtime_diagnostics_body.v2.ui.toml",
+        "performance_timeline_body.v2.ui.toml",
         "module_plugins_body.v2.ui.toml",
         "build_export_desktop_body.v2.ui.toml",
         "asset_surface_controls.v2.ui.toml",
@@ -392,15 +394,280 @@ fn critical_editor_shells_are_hard_cut_to_v2_assets() {
 }
 
 #[test]
-fn welcome_startup_demo_routes_to_material_demo_window() {
+fn welcome_startup_demo_routes_to_component_showcase_window() {
     let welcome_asset = source("assets/ui/editor/welcome.v2.ui.toml");
-    assert!(welcome_asset.contains("text = \"Material Demo\""));
+    assert!(welcome_asset.contains("text = \"Component Showcase\""));
     assert!(welcome_asset.contains("route = \"Welcome.OpenStartupDemo\""));
 
     let welcome_session = source("src/ui/retained_host/app/welcome_session.rs");
     assert!(welcome_session.contains("OpenStartupDemo"));
-    assert!(welcome_session.contains("editor.material_demo_window"));
-    assert!(!welcome_session.contains("open_startup_view(\"editor.ui_component_showcase\""));
+    assert!(welcome_session.contains("editor.ui_component_showcase"));
+    assert!(!welcome_session.contains("\"editor.material_demo_window\""));
+}
+
+#[test]
+fn component_showcase_imported_zui_components_are_single_component_assets() {
+    for (relative, component) in [
+        (
+            "assets/ui/editor/components/showcase_command_toolbar.zui",
+            "ShowcaseCommandToolbar",
+        ),
+        (
+            "assets/ui/editor/components/showcase_bottom_log.zui",
+            "ShowcaseBottomLog",
+        ),
+        (
+            "assets/ui/editor/components/showcase_category_nav.zui",
+            "ShowcaseCategoryNav",
+        ),
+        (
+            "assets/ui/editor/components/showcase_state_panel.zui",
+            "ShowcaseStatePanel",
+        ),
+        (
+            "assets/ui/editor/components/showcase_visual_section.zui",
+            "ShowcaseVisualSection",
+        ),
+        (
+            "assets/ui/editor/components/showcase_input_section.zui",
+            "ShowcaseInputSection",
+        ),
+        (
+            "assets/ui/editor/components/showcase_selection_section.zui",
+            "ShowcaseSelectionSection",
+        ),
+        (
+            "assets/ui/editor/components/showcase_collections_section.zui",
+            "ShowcaseCollectionsSection",
+        ),
+    ] {
+        let document = UiZuiAssetLoader::load_zui_str(&source(relative))
+            .unwrap_or_else(|error| panic!("{relative} should load as .zui: {error}"));
+        assert!(
+            document.components.contains_key(component),
+            "{relative} should declare `{component}`"
+        );
+        assert_eq!(
+            document.components.len(),
+            1,
+            "{relative} should stay a single component prototype"
+        );
+    }
+
+    let nav = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_category_nav.zui",
+    ))
+    .expect("showcase category nav should load as .zui");
+    for control_id in [
+        "ComponentCategoryNav",
+        "ShowAllCategory",
+        "ShowVisualCategory",
+        "ShowFeedbackCategory",
+        "ShowInputCategory",
+        "ShowNumericCategory",
+        "ShowSelectionCategory",
+        "ShowReferenceCategory",
+        "ShowDataCategory",
+    ] {
+        assert!(
+            nav.nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase category nav .zui should preserve `{control_id}`"
+        );
+    }
+    assert!(
+        nav.nodes.values().any(|node| {
+            node.events
+                .iter()
+                .any(|event| event.id == "UiComponentShowcase/ShowAllCategory")
+        }),
+        "showcase category nav .zui should preserve category click bindings"
+    );
+
+    let state_panel = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_state_panel.zui",
+    ))
+    .expect("showcase state panel should load as .zui");
+    for control_id in [
+        "ComponentShowcaseStatePanel",
+        "ComponentShowcaseStateTitle",
+        "ComponentShowcaseSelectedCategory",
+        "ComponentShowcaseLastControl",
+        "ComponentShowcaseLastAction",
+        "ComponentShowcaseCurrentValue",
+        "ComponentShowcaseValidation",
+        "ComponentShowcaseDragPayload",
+        "ComponentShowcaseEventLog",
+    ] {
+        assert!(
+            state_panel
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase state panel .zui should preserve `{control_id}`"
+        );
+    }
+
+    let visual_section = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_visual_section.zui",
+    ))
+    .expect("showcase visual section should load as .zui");
+    for control_id in [
+        "ComponentShowcaseVisualSectionTitle",
+        "LabelDemo",
+        "RichLabelDemo",
+        "ImageDemo",
+        "IconDemo",
+        "SvgIconDemo",
+        "SeparatorDemo",
+        "ProgressBarDemo",
+        "SpinnerDemo",
+        "BadgeDemo",
+        "HelpRowDemo",
+    ] {
+        assert!(
+            visual_section
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase visual section .zui should preserve `{control_id}`"
+        );
+    }
+
+    let input_section = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_input_section.zui",
+    ))
+    .expect("showcase input section should load as .zui");
+    for control_id in [
+        "ComponentShowcaseInputSectionTitle",
+        "ButtonDemo",
+        "IconButtonDemo",
+        "ToggleButtonDemo",
+        "CheckboxDemo",
+        "RadioDemo",
+        "SegmentedControlDemo",
+        "InputFieldDemo",
+        "TextFieldDemo",
+        "NumberFieldDemo",
+        "RangeFieldDemo",
+        "ColorFieldDemo",
+        "Vector2FieldDemo",
+        "Vector3FieldDemo",
+        "Vector4FieldDemo",
+    ] {
+        assert!(
+            input_section
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase input section .zui should preserve `{control_id}`"
+        );
+    }
+    for event_id in [
+        "UiComponentShowcase/ButtonCommit",
+        "UiComponentShowcase/InputFieldCommitted",
+        "UiComponentShowcase/NumberFieldDragUpdate",
+        "UiComponentShowcase/RangeFieldChanged",
+        "UiComponentShowcase/Vector4FieldChanged",
+    ] {
+        assert!(
+            input_section
+                .nodes
+                .values()
+                .any(|node| node.events.iter().any(|event| event.id == event_id)),
+            "showcase input section .zui should preserve `{event_id}`"
+        );
+    }
+
+    let selection_section = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_selection_section.zui",
+    ))
+    .expect("showcase selection section should load as .zui");
+    for control_id in [
+        "ComponentShowcaseSelectionSectionTitle",
+        "DropdownDemo",
+        "ComboBoxDemo",
+        "EnumFieldDemo",
+        "FlagsFieldDemo",
+        "SearchSelectDemo",
+        "AssetFieldDemo",
+        "InstanceFieldDemo",
+        "ObjectFieldDemo",
+    ] {
+        assert!(
+            selection_section
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase selection section .zui should preserve `{control_id}`"
+        );
+    }
+    for event_id in [
+        "UiComponentShowcase/DropdownChanged",
+        "UiComponentShowcase/SearchSelectQueryChanged",
+        "UiComponentShowcase/AssetFieldDropped",
+        "UiComponentShowcase/AssetFieldClear",
+        "UiComponentShowcase/ObjectFieldClear",
+    ] {
+        assert!(
+            selection_section
+                .nodes
+                .values()
+                .any(|node| node.events.iter().any(|event| event.id == event_id)),
+            "showcase selection section .zui should preserve `{event_id}`"
+        );
+    }
+
+    let collections_section = UiZuiAssetLoader::load_zui_str(&source(
+        "assets/ui/editor/components/showcase_collections_section.zui",
+    ))
+    .expect("showcase collections section should load as .zui");
+    for control_id in [
+        "ComponentShowcaseCollectionsSectionTitle",
+        "GroupDemo",
+        "FoldoutDemo",
+        "PropertyRowDemo",
+        "InspectorSectionDemo",
+        "ArrayFieldDemo",
+        "MapFieldDemo",
+        "ListRowDemo",
+        "TableRowDemo",
+        "VirtualListDemo",
+        "PagedListDemo",
+        "WorldSpaceSurfaceDemo",
+        "TreeRowDemo",
+        "ContextActionMenuDemo",
+    ] {
+        assert!(
+            collections_section
+                .nodes
+                .values()
+                .any(|node| node.control_id.as_deref() == Some(control_id)),
+            "showcase collections section .zui should preserve `{control_id}`"
+        );
+    }
+    for event_id in [
+        "UiComponentShowcase/GroupToggled",
+        "UiComponentShowcase/FoldoutToggled",
+        "UiComponentShowcase/InspectorSectionToggled",
+        "UiComponentShowcase/ArrayFieldAddElement",
+        "UiComponentShowcase/MapFieldSetEntry",
+        "UiComponentShowcase/ListRowClicked",
+        "UiComponentShowcase/VirtualListScrolled",
+        "UiComponentShowcase/PagedListNextPage",
+        "UiComponentShowcase/WorldSpaceSurfaceMoved",
+        "UiComponentShowcase/TreeRowToggled",
+        "UiComponentShowcase/ContextActionMenuOpenAt",
+    ] {
+        assert!(
+            collections_section
+                .nodes
+                .values()
+                .any(|node| node.events.iter().any(|event| event.id == event_id)),
+            "showcase collections section .zui should preserve `{event_id}`"
+        );
+    }
 }
 
 #[test]
@@ -452,6 +719,10 @@ fn pointer_handlers_do_not_force_slow_path_rebuilds() {
         assert!(
             !source.contains("recompute_if_dirty("),
             "{relative} should not rebuild the editor UI inside pointer callbacks"
+        );
+        assert!(
+            !source.contains("chrome_snapshot("),
+            "{relative} should use committed retained-host caches instead of rebuilding chrome snapshots"
         );
     }
 
@@ -654,7 +925,17 @@ fn runtime_fixture_host_tests_are_hard_cut_to_v2_paths() {
 
 #[test]
 fn component_showcase_is_hard_cut_to_v2_catalog_components() {
-    let asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
+    let searchable_assets = [
+        "assets/ui/editor/component_showcase.v2.ui.toml",
+        "assets/ui/editor/components/showcase_visual_section.zui",
+        "assets/ui/editor/components/showcase_input_section.zui",
+        "assets/ui/editor/components/showcase_selection_section.zui",
+        "assets/ui/editor/components/showcase_collections_section.zui",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n");
 
     for forbidden in [
         "material_meta_components.ui.toml",
@@ -663,7 +944,7 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
         "kind = \"reference\"",
     ] {
         assert!(
-            !asset.contains(forbidden),
+            !searchable_assets.contains(forbidden),
             "component showcase v2 asset should not depend on old recursive `{forbidden}`"
         );
     }
@@ -679,16 +960,47 @@ fn component_showcase_is_hard_cut_to_v2_catalog_components() {
         "component = \"TextField\"",
         "component = \"NumberField\"",
         "component = \"RangeField\"",
+        "component = \"Dropdown\"",
         "component = \"ComboBox\"",
+        "component = \"EnumField\"",
+        "component = \"FlagsField\"",
+        "component = \"SearchSelect\"",
+        "component = \"AssetField\"",
+        "component = \"InstanceField\"",
+        "component = \"ObjectField\"",
         "component = \"Group\"",
+        "component = \"Foldout\"",
+        "component = \"PropertyRow\"",
+        "component = \"InspectorSection\"",
+        "component = \"ArrayField\"",
+        "component = \"MapField\"",
         "component = \"ListRow\"",
         "component = \"TableRow\"",
         "component = \"VirtualList\"",
+        "component = \"PagedList\"",
+        "component = \"WorldSpaceSurface\"",
+        "component = \"TreeRow\"",
         "component = \"ContextActionMenu\"",
         "res://ui/theme/editor_material.v2.ui.toml",
+        "res://ui/editor/components/showcase_command_toolbar.zui#ShowcaseCommandToolbar",
+        "res://ui/editor/components/showcase_bottom_log.zui#ShowcaseBottomLog",
+        "res://ui/editor/components/showcase_category_nav.zui#ShowcaseCategoryNav",
+        "res://ui/editor/components/showcase_state_panel.zui#ShowcaseStatePanel",
+        "res://ui/editor/components/showcase_visual_section.zui#ShowcaseVisualSection",
+        "res://ui/editor/components/showcase_input_section.zui#ShowcaseInputSection",
+        "res://ui/editor/components/showcase_selection_section.zui#ShowcaseSelectionSection",
+        "res://ui/editor/components/showcase_collections_section.zui#ShowcaseCollectionsSection",
+        "component = \"ShowcaseCommandToolbar\"",
+        "component = \"ShowcaseBottomLog\"",
+        "component = \"ShowcaseCategoryNav\"",
+        "component = \"ShowcaseStatePanel\"",
+        "component = \"ShowcaseVisualSection\"",
+        "component = \"ShowcaseInputSection\"",
+        "component = \"ShowcaseSelectionSection\"",
+        "component = \"ShowcaseCollectionsSection\"",
     ] {
         assert!(
-            asset.contains(required),
+            searchable_assets.contains(required),
             "component showcase v2 asset missing `{required}`"
         );
     }

@@ -1,0 +1,474 @@
+import {
+    BrandMark,
+    IconButton,
+    MutedText,
+    NavButton,
+    NavItemData,
+    Panel,
+    ProjectCardData,
+    QuickActionData,
+    RecentProjectRowData,
+    SourceEngineData,
+    StatusPill,
+    WindowButton,
+} from "shared.slint";
+import { ProjectsPage } from "projects.slint";
+import { EditorPage } from "editor.slint";
+import { BuildsPage } from "builds.slint";
+import { PlaceholderPage } from "placeholder.slint";
+import { SettingsPage } from "settings.slint";
+
+export component HubWindow inherits Window {
+    title: "Zircon Hub";
+    no-frame: true;
+    resize-border-width: 6px;
+    width: 1320px;
+    height: 820px;
+
+    in-out property <string> selected-page: "projects";
+    in property <string> selected-page-title: "Projects";
+    in property <string> selected-page-subtitle: "Manage your projects and start building worlds.";
+    in property <string> project-sort-label: "Last Modified";
+    in-out property <string> project-view-mode: "grid";
+    in-out property <string> search-query;
+    in-out property <string> project-path;
+    in-out property <string> project-name: "ZirconProject";
+    in-out property <string> project-location;
+    in-out property <string> source-path;
+    in-out property <string> output-path;
+    in-out property <string> python-path;
+    in-out property <string> cargo-path;
+    in-out property <string> rustup-path;
+    in-out property <string> build-jobs;
+    in-out property <string> build-profile: "debug";
+    in-out property <string> language: "English";
+    in property <[NavItemData]> nav-items;
+    in property <[ProjectCardData]> project-cards;
+    in property <int> project-card-count;
+    in property <[RecentProjectRowData]> recent-project-rows;
+    in property <int> recent-project-row-count;
+    in property <[QuickActionData]> quick-actions;
+    in property <SourceEngineData> source-engine;
+    in property <string> status-label: "Ready";
+    in property <string> status-detail: "Hub is ready";
+    in property <bool> task-running: false;
+
+    callback show-page(string);
+    callback open-project();
+    callback open-recent-project(string);
+    callback create-project();
+    callback save-settings();
+    callback build-engine();
+    callback open-output();
+    callback launch-editor();
+    callback quick-action(string);
+    callback search-projects(string);
+    callback cycle-project-sort();
+    callback set-project-view-mode(string);
+    callback window-minimize();
+    callback window-toggle-maximize();
+    callback window-close();
+    callback window-drag-start(float, float);
+    callback window-drag-move(float, float);
+    callback window-drag-end();
+
+    Rectangle {
+        background: #11151a;
+
+        VerticalLayout {
+            width: parent.width;
+            height: parent.height;
+            spacing: 0px;
+
+            Rectangle {
+                height: 66px;
+                background: #11151a;
+                border-width: 1px;
+                border-color: #2c323a;
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-left: 24px;
+                    padding-right: 8px;
+                    spacing: 12px;
+                    alignment: start;
+
+                    HorizontalLayout {
+                        width: 176px;
+                        spacing: 12px;
+                        alignment: start;
+                        BrandMark {}
+                        VerticalLayout {
+                            spacing: 0px;
+                            Text {
+                                text: "ZIRCON HUB";
+                                color: #f6f8fb;
+                                font-size: 16px;
+                                font-weight: 900;
+                            }
+                            MutedText {
+                                text: "Game Engine";
+                            }
+                        }
+                    }
+
+                    Panel {
+                        width: 168px;
+                        height: 38px;
+                        HorizontalLayout {
+                            padding-left: 14px;
+                            padding-right: 12px;
+                            spacing: 8px;
+                            alignment: center;
+                            Text {
+                                text: root.source-engine.version;
+                                color: #f0f3f7;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: "v";
+                                color: #b7bec8;
+                                font-size: 12px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1px;
+                        height: 34px;
+                        background: #2a3038;
+                    }
+
+                    StatusPill {
+                        icon: ">";
+                        text: root.task-running ? "Running" : "Idle";
+                        accent-color: root.task-running ? #22d8d1 : #6fdc7a;
+                    }
+                    StatusPill { icon: "o"; text: "Success"; accent-color: #72dd7a; }
+                    StatusPill { icon: "!"; text: "Warning"; accent-color: #f0b545; }
+                    StatusPill { icon: "x"; text: "Error"; accent-color: #e16666; }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        height: 66px;
+                        drag := TouchArea {
+                            pointer-event(event) => {
+                                if (event.button != PointerEventButton.left) {
+                                    return;
+                                }
+                                if (event.kind == PointerEventKind.down) {
+                                    root.window-drag-start(drag.mouse-x / 1px, drag.mouse-y / 1px);
+                                }
+                                if (event.kind == PointerEventKind.up) {
+                                    root.window-drag-end();
+                                }
+                            }
+                            moved => {
+                                root.window-drag-move(drag.mouse-x / 1px, drag.mouse-y / 1px);
+                            }
+                        }
+                    }
+
+                    IconButton { icon: "!"; enabled: false; }
+                    IconButton { icon: "?"; enabled: false; }
+                    IconButton {
+                        icon: "::";
+                        clicked => { root.show-page("settings"); }
+                    }
+
+                    Rectangle {
+                        width: 1px;
+                        height: 34px;
+                        background: #2a3038;
+                    }
+
+                    Rectangle {
+                        width: 144px;
+                        height: 42px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Rectangle {
+                                width: 34px;
+                                height: 34px;
+                                border-radius: 17px;
+                                background: #3a3e45;
+                                Text {
+                                    text: "AD";
+                                    color: #f6f8fb;
+                                    font-size: 12px;
+                                    font-weight: 800;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            Text {
+                                text: "Alex Developer";
+                                color: #d5dae2;
+                                font-size: 12px;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: "v";
+                                color: #8d96a2;
+                                font-size: 11px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    WindowButton {
+                        icon: "-";
+                        clicked => { root.window-minimize(); }
+                    }
+                    WindowButton {
+                        icon: "[]";
+                        clicked => { root.window-toggle-maximize(); }
+                    }
+                    WindowButton {
+                        icon: "x";
+                        danger: true;
+                        clicked => { root.window-close(); }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height - 66px;
+                spacing: 0px;
+                vertical-stretch: 1;
+
+                Rectangle {
+                    width: 224px;
+                    vertical-stretch: 1;
+                    background: #11151a;
+                    border-width: 1px;
+                    border-color: #2c323a;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 14px;
+                        spacing: 10px;
+
+                        for item in root.nav-items: NavButton {
+                            item: item;
+                            clicked(id) => { root.show-page(id); }
+                        }
+
+                        Rectangle { vertical-stretch: 1; }
+
+                        Panel {
+                            height: 170px;
+                            VerticalLayout {
+                                padding: 14px;
+                                spacing: 8px;
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Rectangle {
+                                        width: 10px;
+                                        height: 10px;
+                                        border-radius: 5px;
+                                        background: root.task-running ? #22d8d1 : #72dd7a;
+                                    }
+                                    Text {
+                                        text: "Engine Status";
+                                        color: #f3f6f9;
+                                        font-size: 13px;
+                                        font-weight: 800;
+                                    }
+                                }
+                                MutedText { text: root.source-engine.version; }
+                                Text {
+                                    text: root.source-engine.status;
+                                    color: #72dd7a;
+                                    font-size: 12px;
+                                }
+                                Rectangle { vertical-stretch: 1; }
+                                Panel {
+                                    height: 36px;
+                                    Text {
+                                        text: "Check for Updates";
+                                        color: #c8ced7;
+                                        font-size: 12px;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+
+                        Rectangle { height: 1px; background: #303641; }
+                        MutedText { text: "<  Collapse"; }
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    background: #11151a;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        spacing: 0px;
+
+                        Rectangle {
+                            height: 96px;
+                            horizontal-stretch: 1;
+                            background: #11151a;
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding-left: 28px;
+                                padding-right: 28px;
+                                spacing: 14px;
+                                alignment: start;
+                                VerticalLayout {
+                                    spacing: 6px;
+                                    Text {
+                                        text: root.selected-page-title;
+                                        color: #f7f9fc;
+                                        font-size: 28px;
+                                        font-weight: 900;
+                                    }
+                                    MutedText {
+                                        text: root.selected-page-subtitle;
+                                    }
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                Text {
+                                    text: root.status-label;
+                                    color: root.task-running ? #22d8d1 : #aeb6c2;
+                                    font-size: 13px;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            clip: true;
+                            if root.selected-page == "projects": ProjectsPage {
+                                width: parent.width;
+                                height: parent.height;
+                                search-query <=> root.search-query;
+                                project-path <=> root.project-path;
+                                project-name <=> root.project-name;
+                                project-location <=> root.project-location;
+                                project-sort-label: root.project-sort-label;
+                                project-view-mode <=> root.project-view-mode;
+                                project-cards: root.project-cards;
+                                project-card-count: root.project-card-count;
+                                recent-project-rows: root.recent-project-rows;
+                                recent-project-row-count: root.recent-project-row-count;
+                                quick-actions: root.quick-actions;
+                                open-project => { root.open-project(); }
+                                open-recent-project(path) => { root.open-recent-project(path); }
+                                create-project => { root.create-project(); }
+                                quick-action(id) => { root.quick-action(id); }
+                                search-projects(query) => { root.search-projects(query); }
+                                cycle-project-sort => { root.cycle-project-sort(); }
+                                set-project-view-mode(mode) => { root.set-project-view-mode(mode); }
+                            }
+                            if root.selected-page == "editor": EditorPage {
+                                width: parent.width;
+                                height: parent.height;
+                                source-path <=> root.source-path;
+                                output-path <=> root.output-path;
+                                source-engine: root.source-engine;
+                                save-settings => { root.save-settings(); }
+                                build-engine => { root.build-engine(); }
+                                open-output => { root.open-output(); }
+                                launch-editor => { root.launch-editor(); }
+                            }
+                            if root.selected-page == "settings": SettingsPage {
+                                width: parent.width;
+                                height: parent.height;
+                                python-path <=> root.python-path;
+                                cargo-path <=> root.cargo-path;
+                                rustup-path <=> root.rustup-path;
+                                project-location <=> root.project-location;
+                                source-path <=> root.source-path;
+                                output-path <=> root.output-path;
+                                build-jobs <=> root.build-jobs;
+                                build-profile <=> root.build-profile;
+                                language <=> root.language;
+                                save-settings => { root.save-settings(); }
+                            }
+                            if root.selected-page == "builds": BuildsPage {
+                                width: parent.width;
+                                height: parent.height;
+                                source-engine: root.source-engine;
+                                status-label: root.status-label;
+                                status-detail: root.status-detail;
+                                build-engine => { root.build-engine(); }
+                                open-output => { root.open-output(); }
+                                launch-editor => { root.launch-editor(); }
+                            }
+                            if root.selected-page == "assets": PlaceholderPage {
+                                width: parent.width;
+                                height: parent.height;
+                                title: root.selected-page-title;
+                                subtitle: root.selected-page-subtitle;
+                                action-label: "Open Editor";
+                                primary-action => { root.quick-action("open-editor"); }
+                            }
+                            if root.selected-page == "plugins": PlaceholderPage {
+                                width: parent.width;
+                                height: parent.height;
+                                title: root.selected-page-title;
+                                subtitle: root.selected-page-subtitle;
+                                action-label: "Open Editor";
+                                primary-action => { root.quick-action("open-editor"); }
+                            }
+                            if root.selected-page == "cloud": PlaceholderPage {
+                                width: parent.width;
+                                height: parent.height;
+                                title: root.selected-page-title;
+                                subtitle: root.selected-page-subtitle;
+                                action-label: "Open Editor";
+                                primary-action => { root.quick-action("open-editor"); }
+                            }
+                            if root.selected-page == "team": PlaceholderPage {
+                                width: parent.width;
+                                height: parent.height;
+                                title: root.selected-page-title;
+                                subtitle: root.selected-page-subtitle;
+                                action-label: "Open Editor";
+                                primary-action => { root.quick-action("open-editor"); }
+                            }
+                            if root.selected-page == "learn": PlaceholderPage {
+                                width: parent.width;
+                                height: parent.height;
+                                title: root.selected-page-title;
+                                subtitle: root.selected-page-subtitle;
+                                action-label: "Open Editor";
+                                primary-action => { root.quick-action("open-editor"); }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 34px;
+                            horizontal-stretch: 1;
+                            background: #171b21;
+                            border-color: #303641;
+                            border-width: 1px;
+                            Text {
+                                x: 14px;
+                                y: 8px;
+                                text: root.status-detail;
+                                color: #8792a2;
+                                font-size: 12px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

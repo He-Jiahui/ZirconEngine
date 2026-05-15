@@ -18,8 +18,7 @@ impl RetainedEditorHost {
                 self.console_scroll_surface.size(),
                 ViewContentKind::Console,
             ));
-        let chrome = self.runtime.chrome_snapshot();
-        self.sync_console_pointer_layout(&chrome);
+        self.sync_console_pointer_layout();
         match self
             .console_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)

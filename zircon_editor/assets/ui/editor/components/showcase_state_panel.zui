@@ -1,0 +1,84 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_state_panel.zui"
+version = 2
+display_name = "Showcase State Panel"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseStatePanel]
+root = "state_panel_root"
+default_classes = ["showcase-panel"]
+
+[nodes.state_title]
+component = "Label"
+control_id = "ComponentShowcaseStateTitle"
+classes = ["showcase-title"]
+props = { text = "Runtime State and Events" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.selected_category]
+component = "PropertyRow"
+control_id = "ComponentShowcaseSelectedCategory"
+classes = ["showcase-field"]
+props = { text = "Category", value = "All" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.last_control]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastControl"
+classes = ["showcase-field"]
+props = { text = "Last Control", value = "No component event yet" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.last_action]
+component = "PropertyRow"
+control_id = "ComponentShowcaseLastAction"
+classes = ["showcase-field"]
+props = { text = "Last Action", value = "Waiting for Runtime UI event" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.current_value]
+component = "PropertyRow"
+control_id = "ComponentShowcaseCurrentValue"
+classes = ["showcase-field"]
+props = { text = "Current Value", value = "Select or edit a control" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.validation]
+component = "PropertyRow"
+control_id = "ComponentShowcaseValidation"
+classes = ["showcase-field"]
+props = { text = "Validation", value = "normal" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.drag_payload]
+component = "PropertyRow"
+control_id = "ComponentShowcaseDragPayload"
+classes = ["showcase-field"]
+props = { text = "Drag / Drop", value = "No retained drop payload" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.event_log]
+component = "Label"
+control_id = "ComponentShowcaseEventLog"
+classes = ["showcase-muted"]
+props = { text = "Registered events: NumberField drag/commit, popup open/close, Dropdown change, Foldout toggle, Array/Map change, reference drop" }
+layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
+
+[nodes.state_panel_root]
+component = "VerticalBox"
+control_id = "ComponentShowcaseStatePanel"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "state_title" },
+  { node = "selected_category" },
+  { node = "last_control" },
+  { node = "last_action" },
+  { node = "current_value" },
+  { node = "validation" },
+  { node = "drag_payload" },
+  { node = "event_log" },
+]

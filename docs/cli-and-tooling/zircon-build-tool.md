@@ -2,6 +2,7 @@
 related_code:
   - tools/zircon_build.py
   - Cargo.toml
+  - zircon_hub/Cargo.toml
   - zircon_app/Cargo.toml
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/asset/runtime_asset_path.rs
@@ -39,6 +40,7 @@ plan_sources:
   - user: 2026-05-04 confirm editor/runtime asset staging and exported lookup support
   - user: 2026-05-04 add file-backed exported editor/runtime diagnostics
   - user: 2026-05-13 stop packaging legacy `.ui.toml` schema assets after the editor UI v2 hard cut
+  - .codex/plans/zircon_hub 独立启动器设计.md
   - docs/engine-architecture/runtime-editor-pluginized-export.md
   - docs/superpowers/plans/2026-05-01-runtime-interface-cdylib-loader.md
 tests:
@@ -46,6 +48,7 @@ tests:
   - python tools/zircon_build.py --help
   - python tools/zircon_build.py --list-plugins
   - python tools/zircon_build.py --targets editor,runtime --out <dir> --mode debug --dry-run
+  - python tools/zircon_build.py --targets hub,editor,runtime --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out <dir> --mode debug --dry-run
   - python tools/zircon_build.py --targets editor,runtime --out E:\zircon-build --mode debug
   - python -c "from pathlib import Path; import importlib.util, sys; spec = importlib.util.spec_from_file_location('zb', 'tools/zircon_build.py'); zb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = zb; spec.loader.exec_module(zb); assert zb.should_skip_staged_engine_asset(Path('ui/editor/editor_widgets.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('ui/editor/ui_asset_editor.v2.ui.toml')); assert not zb.should_skip_staged_engine_asset(Path('fonts/default.font.toml'))"
@@ -57,9 +60,9 @@ doc_type: workflow-detail
 # Zircon Build Tool
 
 `tools/zircon_build.py` is the staged local build entry point for producing a
-runnable `ZirconEngine` directory from the repository checkout. It builds editor,
-runtime, and selected plugins into separate Cargo target directories, then copies
-only deployable runtime artifacts into the staged engine directory.
+runnable `ZirconEngine` directory from the repository checkout. It builds Hub,
+editor, runtime, and selected plugins into separate Cargo target directories, then
+copies only deployable runtime artifacts into the staged engine directory.
 
 ## Output Layout
 
@@ -68,6 +71,7 @@ Given `--out E:\builds\zircon`, the tool writes:
 ```text
 E:\builds\zircon\
   ZirconEngine\
+    zircon_hub.exe
     zircon_editor.exe
     zircon_runtime.exe
     zircon_runtime.dll
@@ -84,6 +88,7 @@ E:\builds\zircon\
           <native-plugin-dylib>
   targets\
     editor\
+    hub\
     runtime\
     plugins\
       <plugin-id>\
@@ -109,6 +114,11 @@ ending in `.v2.ui.toml` are staged, as are non-UI assets such as fonts, icons,
 SVGs, and viewport gizmo resources. This prevents a packaged `zircon_editor.exe`
 from resolving old schema assets from the exported directory while the source
 tree can keep focused migration coverage until those fixtures are rewritten.
+
+The hub target stages `zircon_hub.exe` as the default launcher entry. It does not
+replace the editor/runtime targets: a complete local desktop payload should include
+`hub,editor,runtime` so Hub can stay open while launching `zircon_editor` child
+processes against the staged runtime library.
 
 The editor target also stages a sibling `zircon_runtime.dll`/`so`/`dylib`, because
 `zircon_editor` resolves the runtime library from `ZIRCON_RUNTIME_LIBRARY` or the
@@ -162,10 +172,10 @@ presentation data, window creation, or rendering.
 The three required decisions are build targets, output directory, and mode:
 
 ```powershell
-python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon --mode debug
+    python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon --mode debug
 ```
 
-`--targets` accepts `editor`, `runtime`, `plugins`, or comma-separated
+`--targets` accepts `hub`, `editor`, `runtime`, `plugins`, or comma-separated
 combinations. `--mode` is `debug` or `release`. If any required value is missing
 and stdin is interactive, the tool prompts for the missing selection; if stdin is
 not interactive, it exits with a clear error.
@@ -244,6 +254,7 @@ Use these fast checks for script changes:
 python -m py_compile tools/zircon_build.py
 python tools/zircon_build.py --help
 python tools/zircon_build.py --list-plugins
+python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
 python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon-smoke --mode debug --dry-run
 python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug --dry-run
 ```
@@ -251,11 +262,11 @@ python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture 
 Use a real build when validating executable staging or NativeDynamic publishing:
 
 ```powershell
-python tools/zircon_build.py --targets editor,runtime --out E:\builds\zircon-smoke --mode debug
+python tools/zircon_build.py --targets hub,editor,runtime --out E:\builds\zircon-smoke --mode debug
 python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture --out E:\builds\zircon-smoke --mode debug
 ```
 
-The first command should leave `zircon_editor` and the platform runtime library
+The first command should leave `zircon_hub`, `zircon_editor`, and the platform runtime library
 as siblings under `ZirconEngine`. The second command should leave a
 `plugins/native_plugins.toml` file and a copied native dynamic library under the
 selected plugin package.

@@ -36,6 +36,7 @@ fn functional_editor_window_items() -> Vec<MenuItemModel> {
     [
         ("Prefab Editor", "editor.prefab_editor_window"),
         ("Material Editor", "editor.material_editor_window"),
+        ("UI Component Showcase", "editor.ui_component_showcase"),
         ("Material Demo", "editor.material_demo_window"),
         ("UI Asset Editor", "editor.ui_asset_editor_window"),
         ("Animation Editor", "editor.animation_editor_window"),

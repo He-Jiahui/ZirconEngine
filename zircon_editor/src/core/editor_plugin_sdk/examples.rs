@@ -113,11 +113,11 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
         ))?;
         registry.register_ui_template(EditorUiTemplateDescriptor::new(
             "sdk.example.asset_inspector",
-            "asset://sdk_examples/editor/model_inspector.v2.ui.toml",
+            "asset://sdk_examples/editor/model_inspector.zui",
         ))?;
         registry.register_component_drawer(ComponentDrawerDescriptor::new(
             "sdk.example.ModelImportSettings",
-            "asset://sdk_examples/editor/model_import_settings.v2.ui.toml",
+            "asset://sdk_examples/editor/model_import_settings.zui",
             "sdk.example.ModelImportSettingsController",
         ))
     }

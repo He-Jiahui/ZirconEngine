@@ -33,7 +33,7 @@ fn production_ui_entry_assets_live_under_crate_assets_not_src() {
         repo_root.join("zircon_editor").join("src"),
         repo_root.join("zircon_runtime").join("src"),
     ] {
-        let lingering = collect_ui_toml_files(&crate_src);
+        let lingering = collect_production_ui_toml_files(&crate_src);
         assert!(
             lingering.is_empty(),
             "production ui entry assets must not live under src; found {:?}",
@@ -118,4 +118,38 @@ fn collect_ui_toml_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
         }
     }
     files
+}
+
+fn collect_production_ui_toml_files(root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut files = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if is_test_fixture_path(&path) {
+                continue;
+            }
+            if path.is_dir() {
+                files.extend(collect_production_ui_toml_files(&path));
+            } else if path.extension() == Some(std::ffi::OsStr::new("toml"))
+                && path
+                    .file_name()
+                    .is_some_and(|name| name.to_string_lossy().ends_with(".ui.toml"))
+            {
+                files.push(path);
+            }
+        }
+    }
+    files
+}
+
+fn is_test_fixture_path(path: &std::path::Path) -> bool {
+    let mut saw_tests = false;
+    for component in path.components() {
+        let name = component.as_os_str().to_string_lossy();
+        if saw_tests && name == "fixtures" {
+            return true;
+        }
+        saw_tests = name == "tests";
+    }
+    false
 }

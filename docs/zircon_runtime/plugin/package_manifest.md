@@ -35,7 +35,10 @@ plan_sources:
   - user: 2026-05-02 sound plugin mixer/spatial/convolution/timeline core implementation request
   - .codex/plans/Sound 插件核心完善计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
+  - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
 tests:
+  - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui UI component descriptor suffix validation: planned for milestone testing stage)
+  - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui plugin manifest boundary: planned for milestone testing stage)
   - cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets --jobs 1
   - cargo check -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short (passed from zircon_plugins workspace with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout)
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short (passed from zircon_plugins workspace with CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-sound-closeout; 8 sound tests passed)
@@ -73,9 +76,9 @@ These fields are generic because sound is not the only plugin that needs optiona
 
 `RuntimeExtensionRegistry` mirrors options, event catalogs, manifest-declared components, UI components, and asset importer descriptors during linked plugin registration so runtime/editor hosts can discover them alongside modules, managers, render features, pass executors, and runtime providers. If a plugin has already registered a real importer backend with the same importer id, the manifest descriptor is treated as the public descriptor for that backend and the registration report does not add the diagnostic-only placeholder.
 
-Runtime UI component manifest entries are v2-only on the production path. The registry still accepts the lightweight `{ component_id, plugin_id, ui_document }` shape, but `register_ui_component(...)` now rejects documents that do not end in `.v2.ui.toml`. This keeps plugin component metadata from reintroducing recursive `.ui.toml` prototypes after the UI v2 cutover.
+Runtime UI component manifest entries are `.zui`-only on the production path. The registry still accepts the lightweight `{ component_id, plugin_id, ui_document }` shape, but `register_ui_component(...)` now rejects documents that do not end in `.zui`. This keeps plugin component metadata from reintroducing recursive `.ui.toml` prototypes or broad `.v2.ui.toml` documents after the UI component asset cutover.
 
-Asset importer manifest entries are v2-only for UI documents as well. `AssetImporterRegistry` rejects any non-fixture importer descriptor whose full suffix is `.ui.toml`, so stale package manifests cannot reinstall the recursive `UiAssetDocument` importer even when they declare an otherwise valid asset importer contribution. The only surviving `.ui.toml` matcher is the exact unit-test migration fixture used to verify old-schema migration metadata.
+Asset importer manifest entries are `.zui`-only for production UI component documents as well. `AssetImporterRegistry` rejects any non-fixture importer descriptor whose full suffix is `.ui.toml` or `.v2.ui.toml`, so stale package manifests cannot reinstall the recursive `UiAssetDocument` importer or the old mixed-kind v2 importer even when they declare an otherwise valid asset importer contribution. The only surviving old matchers are unit-test migration fixtures used to verify old-schema migration metadata.
 
 Package manifests and feature manifests expose the same `with_default_packaging(...)` builder shape. That lets standalone plugin packages, such as editor-only export plugins, override the package-level default export strategy without reaching into the public struct fields or relying on feature-bundle builders by mistake.
 
@@ -97,8 +100,8 @@ desktop export plan.
 - Duplicate option keys and event namespaces are rejected by the runtime extension registry.
 - Asset importer descriptors must declare at least one source extension or full suffix before they can be registered as diagnostic-only manifest declarations.
 - Duplicate importer ids and duplicate importer matchers at the same priority are rejected by the asset importer registry.
-- Asset importer descriptors cannot register `.ui.toml`; UI document importers must target `.v2.ui.toml` on the production path.
-- UI component descriptors must reference `.v2.ui.toml` documents; legacy `.ui.toml` is reserved for migration and fixture tests.
+- Asset importer descriptors cannot register `.ui.toml` or `.v2.ui.toml`; UI component importers must target `.zui` on the production path.
+- UI component descriptors must reference `.zui` documents; legacy `.ui.toml` and `.v2.ui.toml` are reserved for migration and fixture tests.
 - Existing plugin manifests continue to deserialize because the new fields use serde defaults.
 - This layer does not resolve dependency graphs yet; it only records declared dependency metadata for package/catalog consumers.
 

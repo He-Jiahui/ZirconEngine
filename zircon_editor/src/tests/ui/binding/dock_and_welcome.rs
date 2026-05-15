@@ -28,17 +28,17 @@ fn dock_command_binding_roundtrips_through_native_binding() {
 fn activity_rail_toggle_binding_roundtrips_through_native_binding() {
     let binding = EditorUiBinding::new(
         "ActivityRail",
-        "ProjectToggle",
+        "AssetsToggle",
         EditorUiEventKind::Click,
         EditorUiBindingPayload::dock_command(DockCommand::ActivateDrawerTab {
             slot: "left_top".to_string(),
-            instance_id: "editor.project#1".to_string(),
+            instance_id: "editor.assets#1".to_string(),
         }),
     );
 
     assert_eq!(
         binding.native_binding(),
-        r#"ActivityRail/ProjectToggle:onClick(DockCommand.ActivateDrawerTab("left_top","editor.project#1"))"#
+        r#"ActivityRail/AssetsToggle:onClick(DockCommand.ActivateDrawerTab("left_top","editor.assets#1"))"#
     );
     assert_eq!(
         EditorUiBinding::parse_native_binding(&binding.native_binding()).unwrap(),

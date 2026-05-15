@@ -1,0 +1,190 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_input_section.zui"
+version = 2
+display_name = "Showcase Input Section"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseInputSection]
+root = "input_section_root"
+default_classes = ["showcase-panel", "material-surface"]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseInputSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Inputs and Numeric Fields", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.button_demo]
+component = "Button"
+control_id = "ButtonDemo"
+classes = ["showcase-field", "material-control", "material-button"]
+props = { text = "Button", surface_variant = "accent", button_variant = "primary", validation_level = "normal", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ButtonCommit", event = "Click", route = "UiComponentShowcase.Commit.Button" },
+]
+
+[nodes.icon_button_demo]
+component = "IconButton"
+control_id = "IconButtonDemo"
+classes = ["showcase-field", "material-control", "material-icon-button"]
+props = { text = "Icon Button", icon = "add-outline", layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/IconButtonCommit", event = "Click", route = "UiComponentShowcase.Commit.IconButton" },
+]
+
+[nodes.toggle_button_demo]
+component = "ToggleButton"
+control_id = "ToggleButtonDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Toggle Button", checked = true, layout_padding_left = 12.0, layout_padding_right = 12.0, layout_padding_top = 6.0, layout_padding_bottom = 6.0, layout_spacing = 6.0, layout_min_width = 32.0, layout_min_height = 32.0, layout_icon_size = 16.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ToggleButtonChanged", event = "Toggle", route = "UiComponentShowcase.Change.ToggleButton" },
+]
+
+[nodes.checkbox_demo]
+component = "Checkbox"
+control_id = "CheckboxDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Checkbox", checked = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/CheckboxChanged", event = "Toggle", route = "UiComponentShowcase.Change.Checkbox" },
+]
+
+[nodes.radio_demo]
+component = "Radio"
+control_id = "RadioDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Radio", value = false, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/RadioChanged", event = "Change", route = "UiComponentShowcase.Change.Radio" },
+]
+
+[nodes.segmented_control_demo]
+component = "SegmentedControl"
+control_id = "SegmentedControlDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "move", options = ["select", "move", "rotate", "scale"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SegmentedControlChanged", event = "Change", route = "UiComponentShowcase.SelectOption.SegmentedControl" },
+]
+
+[nodes.text_field_demo]
+component = "InputField"
+control_id = "InputFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "Runtime retained text", placeholder = "Type here", validation_level = "normal", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InputFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.InputField" },
+  { id = "UiComponentShowcase/InputFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.InputField" },
+]
+
+[nodes.text_area_demo]
+component = "TextField"
+control_id = "TextFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "Longer retained text field", placeholder = "Multi-line notes", validation_level = "normal", height = 34.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TextFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.TextField" },
+  { id = "UiComponentShowcase/TextFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.TextField" },
+]
+
+[nodes.number_field_demo]
+component = "NumberField"
+control_id = "NumberFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/NumberFieldDragBegin", event = "DragBegin", route = "UiComponentShowcase.BeginDrag.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.DragDelta.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldLargeDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.LargeDragDelta.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldDragEnd", event = "DragEnd", route = "UiComponentShowcase.EndDrag.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.NumberField" },
+  { id = "UiComponentShowcase/NumberFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.NumberField" },
+]
+
+[nodes.range_field_demo]
+component = "RangeField"
+control_id = "RangeFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = 68.0, min = 0.0, max = 100.0, step = 1.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/RangeFieldDragUpdate", event = "DragUpdate", route = "UiComponentShowcase.DragDelta.RangeField" },
+  { id = "UiComponentShowcase/RangeFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.RangeField" },
+  { id = "UiComponentShowcase/RangeFieldCommitted", event = "Submit", route = "UiComponentShowcase.Commit.RangeField" },
+]
+
+[nodes.color_field_demo]
+component = "ColorField"
+control_id = "ColorFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "#4d89ff", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ColorFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.ColorField" },
+]
+
+[nodes.vector2_field_demo]
+component = "Vector2Field"
+control_id = "Vector2FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [12.0, 24.0], value_text = "12, 24", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector2FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector2Field" },
+]
+
+[nodes.vector3_field_demo]
+component = "Vector3Field"
+control_id = "Vector3FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [0.0, 1.0, 0.0], value_text = "0, 1, 0", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector3FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector3Field" },
+]
+
+[nodes.vector4_field_demo]
+component = "Vector4Field"
+control_id = "Vector4FieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = [0.0, 1.0, 0.0, 1.0], value_text = "0, 1, 0, 1", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/Vector4FieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.Vector4Field" },
+]
+
+[nodes.input_section_root]
+component = "VerticalGroup"
+layout = { width = { stretch = "Stretch" } }
+children = [
+  { node = "section_title" },
+  { node = "button_demo", slot = { name = "content" } },
+  { node = "icon_button_demo", slot = { name = "content" } },
+  { node = "toggle_button_demo", slot = { name = "content" } },
+  { node = "checkbox_demo", slot = { name = "content" } },
+  { node = "radio_demo", slot = { name = "content" } },
+  { node = "segmented_control_demo", slot = { name = "content" } },
+  { node = "text_field_demo", slot = { name = "content" } },
+  { node = "text_area_demo", slot = { name = "content" } },
+  { node = "number_field_demo", slot = { name = "content" } },
+  { node = "range_field_demo", slot = { name = "content" } },
+  { node = "color_field_demo", slot = { name = "content" } },
+  { node = "vector2_field_demo", slot = { name = "content" } },
+  { node = "vector3_field_demo", slot = { name = "content" } },
+  { node = "vector4_field_demo", slot = { name = "content" } },
+]

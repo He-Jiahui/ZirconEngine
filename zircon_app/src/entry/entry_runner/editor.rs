@@ -9,10 +9,10 @@ use zircon_editor::{
         EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
         EditorOperationSource,
     },
-    run_editor,
+    run_editor_with_startup_request,
     ui::host::EditorManager,
     ui::workbench::state::EditorState,
-    EDITOR_MANAGER_NAME,
+    EditorGuiStartupRequest, EDITOR_MANAGER_NAME,
 };
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::{core::math::UVec2, scene::DefaultLevelManager};
@@ -51,17 +51,36 @@ impl EntryRunner {
             );
             #[cfg(feature = "profiling-tracy")]
             let _ = zircon_runtime::core::diagnostics::profiling::initialize_tracy_sink();
-            let request = EditorCliOperationRequest::parse(diagnostic_args.remaining_args)?;
+            let remaining_args = diagnostic_args.remaining_args;
+            let gui_startup_request = EditorGuiStartupRequestArgs::parse(remaining_args.clone())?;
+            let request = if gui_startup_request.is_none() {
+                EditorCliOperationRequest::parse(remaining_args)?
+            } else {
+                None
+            };
             if let Some(request) = request {
                 let response = Self::run_editor_operation(request)?;
                 println!("{}", serde_json::to_string(&response)?);
                 return Ok(());
             }
+            #[cfg(feature = "profiling")]
+            let profile_capture =
+                zircon_runtime::core::diagnostics::profiling::start_capture_from_env("editor");
             let core = Self::bootstrap(EntryConfig::new(EntryProfile::Editor))?;
             let runtime = LoadedRuntime::load_default()?;
             let runtime_client =
                 std::sync::Arc::new(RuntimeSession::create_with_profile(runtime, b"editor")?);
-            run_editor(core, runtime_client)?;
+            let result = run_editor_with_startup_request(core, runtime_client, gui_startup_request);
+            #[cfg(feature = "profiling")]
+            if profile_capture.is_some() {
+                match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env(
+                ) {
+                    Some(Ok(report)) => eprintln!("profile report exported: {}", report.export_dir),
+                    Some(Err(error)) => eprintln!("profile report export failed: {error}"),
+                    None => {}
+                }
+            }
+            result?;
             Ok(())
         }
     }
@@ -82,6 +101,116 @@ impl EntryRunner {
             EditorOperationSource::Cli,
             request.into_control_request()?,
         ))
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct EditorGuiStartupRequestArgs;
+
+#[cfg(feature = "target-editor-host")]
+impl EditorGuiStartupRequestArgs {
+    fn parse<I>(args: I) -> Result<Option<EditorGuiStartupRequest>, Box<dyn Error>>
+    where
+        I: IntoIterator<Item = String>,
+    {
+        let mut args = args.into_iter();
+        let mut project_path = None;
+        let mut create_project = false;
+        let mut project_name = None;
+        let mut location = None;
+        let mut template = None;
+        let mut saw_gui_arg = false;
+
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--project" => {
+                    if project_path.is_some() {
+                        return Err("--project was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--project requires a project path".into());
+                    };
+                    project_path = Some(value);
+                    saw_gui_arg = true;
+                }
+                "--create-project" => {
+                    if create_project {
+                        return Err("--create-project was provided more than once".into());
+                    }
+                    create_project = true;
+                    saw_gui_arg = true;
+                }
+                "--project-name" => {
+                    if project_name.is_some() {
+                        return Err("--project-name was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--project-name requires a value".into());
+                    };
+                    project_name = Some(value);
+                    saw_gui_arg = true;
+                }
+                "--location" => {
+                    if location.is_some() {
+                        return Err("--location was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--location requires a directory".into());
+                    };
+                    location = Some(value);
+                    saw_gui_arg = true;
+                }
+                "--template" => {
+                    if template.is_some() {
+                        return Err("--template was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--template requires a value".into());
+                    };
+                    if value != "renderable-empty" {
+                        return Err(format!("unsupported project template `{value}`").into());
+                    }
+                    template = Some(value);
+                    saw_gui_arg = true;
+                }
+                other if saw_gui_arg => {
+                    return Err(format!("unknown editor GUI startup argument `{other}`").into());
+                }
+                _ => return Ok(None),
+            }
+        }
+
+        if !saw_gui_arg {
+            return Ok(None);
+        }
+        if create_project {
+            if project_path.is_some() {
+                return Err("--project cannot be combined with --create-project".into());
+            }
+            let Some(project_name) = project_name else {
+                return Err("--create-project requires --project-name".into());
+            };
+            let Some(location) = location else {
+                return Err("--create-project requires --location".into());
+            };
+            if template.as_deref() != Some("renderable-empty") {
+                return Err("--create-project requires --template renderable-empty".into());
+            }
+            return Ok(Some(EditorGuiStartupRequest::create_renderable_empty(
+                project_name,
+                location,
+            )));
+        }
+        if project_name.is_some() || location.is_some() || template.is_some() {
+            return Err(
+                "--project-name, --location, and --template require --create-project".into(),
+            );
+        }
+        let Some(project_path) = project_path else {
+            return Ok(None);
+        };
+        Ok(Some(EditorGuiStartupRequest::open_project(project_path)))
     }
 }
 
@@ -226,8 +355,11 @@ impl EditorCliOperationRequest {
 
 #[cfg(all(test, feature = "target-editor-host"))]
 mod tests {
-    use super::EditorCliOperationRequest;
+    use std::path::PathBuf;
+
+    use super::{EditorCliOperationRequest, EditorGuiStartupRequestArgs};
     use zircon_editor::core::editor_operation::EditorOperationControlRequest;
+    use zircon_editor::EditorGuiStartupRequest;
 
     #[test]
     fn editor_cli_operation_parser_accepts_operation_args_and_headless() {
@@ -443,6 +575,66 @@ mod tests {
         assert!(EditorCliOperationRequest::parse(Vec::<String>::new())
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn editor_gui_startup_parser_accepts_project_path() {
+        let request = EditorGuiStartupRequestArgs::parse([
+            "--project".to_string(),
+            "E:/Projects/My Game".to_string(),
+        ])
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            request,
+            EditorGuiStartupRequest::OpenProject {
+                project_path: PathBuf::from("E:/Projects/My Game")
+            }
+        );
+    }
+
+    #[test]
+    fn editor_gui_startup_parser_accepts_create_project_request() {
+        let request = EditorGuiStartupRequestArgs::parse([
+            "--create-project".to_string(),
+            "--project-name".to_string(),
+            "My Game".to_string(),
+            "--location".to_string(),
+            "E:/Projects".to_string(),
+            "--template".to_string(),
+            "renderable-empty".to_string(),
+        ])
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            request,
+            EditorGuiStartupRequest::create_renderable_empty("My Game", "E:/Projects")
+        );
+    }
+
+    #[test]
+    fn editor_gui_startup_parser_leaves_headless_args_for_operation_parser() {
+        assert!(EditorGuiStartupRequestArgs::parse([
+            "--operation".to_string(),
+            "Window.Layout.Reset".to_string(),
+            "--headless".to_string(),
+        ])
+        .unwrap()
+        .is_none());
+    }
+
+    #[test]
+    fn editor_gui_startup_parser_rejects_create_without_required_fields() {
+        let error = EditorGuiStartupRequestArgs::parse([
+            "--create-project".to_string(),
+            "--project-name".to_string(),
+            "My Game".to_string(),
+        ])
+        .unwrap_err();
+
+        assert_eq!(error.to_string(), "--create-project requires --location");
     }
 
     #[test]

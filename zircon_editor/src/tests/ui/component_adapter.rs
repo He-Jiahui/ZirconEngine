@@ -56,7 +56,7 @@ fn component_drawer_press_envelope(
     operation_path: &str,
 ) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+        "asset://weather/editor/cloud_layer.inspector.zui",
         "RefreshButton",
         UiComponentBindingTarget::new("component_drawer", operation_path)
             .with_subject(component_type),
@@ -71,7 +71,7 @@ fn component_drawer_action_envelope(
     event: UiComponentEvent,
 ) -> UiComponentEventEnvelope {
     UiComponentEventEnvelope::new(
-        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+        "asset://weather/editor/cloud_layer.inspector.zui",
         "DrawerAction",
         UiComponentBindingTarget::new("component_drawer", operation_path)
             .with_subject(component_type),
@@ -213,7 +213,7 @@ fn component_drawer_adapter_invokes_only_enabled_declared_operation_bindings() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -275,7 +275,7 @@ fn component_drawer_adapter_accepts_safe_action_events_beyond_press() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Scene.Node.CreateCube"),

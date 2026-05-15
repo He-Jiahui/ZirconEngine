@@ -5,10 +5,81 @@ fn source(relative: &str) -> String {
         .unwrap_or_else(|error| panic!("read `{relative}`: {error}"))
 }
 
+fn component_showcase_contract_source() -> String {
+    [
+        "assets/ui/editor/component_showcase.v2.ui.toml",
+        "assets/ui/editor/components/showcase_command_toolbar.zui",
+        "assets/ui/editor/components/showcase_bottom_log.zui",
+        "assets/ui/editor/components/showcase_category_nav.zui",
+        "assets/ui/editor/components/showcase_state_panel.zui",
+        "assets/ui/editor/components/showcase_visual_section.zui",
+        "assets/ui/editor/components/showcase_input_section.zui",
+        "assets/ui/editor/components/showcase_selection_section.zui",
+        "assets/ui/editor/components/showcase_collections_section.zui",
+    ]
+    .into_iter()
+    .map(source)
+    .collect::<Vec<_>>()
+    .join("\n")
+}
+
+fn default_component_showcase_nodes_for_size(
+    width: f32,
+    height: f32,
+) -> Vec<crate::ui::retained_host::TemplatePaneNodeData> {
+    let _guard = crate::tests::support::env_lock()
+        .lock()
+        .unwrap_or_else(|poison| poison.into_inner());
+    let (_fixture, chrome, _model, _ui_asset_panes, _animation_panes) = root_shell_fixture();
+    let body_spec = PaneBodySpec::new(
+        "editor.window.ui_component_showcase",
+        PanePayloadKind::UiComponentShowcaseV1,
+        PaneRouteNamespace::UiComponentShowcase,
+        PaneInteractionMode::TemplateOnly,
+    );
+    let body = host_window::build_pane_body_presentation(
+        &body_spec,
+        &host_window::PanePayloadBuildContext::new(&chrome),
+    );
+    let mut pane = host_pane("component-showcase", "UI Component Showcase");
+    pane.kind = "UiComponentShowcase".into();
+    pane.pane_presentation = Some(host_window::PanePresentation::new(
+        host_window::PaneShellPresentation::new(
+            "UI Component Showcase",
+            "ui-components",
+            "Runtime components",
+            "",
+            None,
+            false,
+            blank_viewport_chrome(),
+        ),
+        body,
+    ));
+    let host_contract_pane =
+        super::pane_data_conversion::to_host_contract_component_showcase_pane_from_host_pane(
+            &pane,
+            host_window::PaneContentSize::new(width, height),
+        );
+
+    (0..host_contract_pane.nodes.row_count())
+        .filter_map(|row| host_contract_pane.nodes.row_data(row))
+        .collect()
+}
+
+fn template_node<'a>(
+    nodes: &'a [crate::ui::retained_host::TemplatePaneNodeData],
+    control_id: &str,
+) -> &'a crate::ui::retained_host::TemplatePaneNodeData {
+    nodes
+        .iter()
+        .find(|node| node.control_id.as_str() == control_id)
+        .unwrap_or_else(|| panic!("component showcase should expose `{control_id}`"))
+}
+
 #[test]
 fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
     let template_nodes = source("src/ui/retained_host/host_contract/data/template_nodes.rs");
-    let showcase_asset = source("assets/ui/editor/component_showcase.v2.ui.toml");
+    let showcase_asset = component_showcase_contract_source();
 
     for required in [
         "pub value_number: f32",
@@ -24,6 +95,8 @@ fn component_showcase_template_metadata_is_owned_by_rust_contracts() {
         "pub drag_action_id: SharedString",
         "pub commit_action_id: SharedString",
         "pub edit_action_id: SharedString",
+        "pub has_clip_frame: bool",
+        "pub clip_frame: TemplateNodeFrameData",
     ] {
         assert!(
             template_nodes.contains(required),
@@ -585,6 +658,36 @@ fn component_showcase_pane_projects_runtime_component_nodes_for_template_pane() 
         .find(|node| node.control_id.as_str() == "ComponentShowcaseEventLog")
         .expect("component showcase pane should expose event log node");
     assert!(event_log.text.contains("Registered events"));
+}
+
+#[test]
+fn component_showcase_template_nodes_preserve_scroll_clip_frames() {
+    let nodes = default_component_showcase_nodes_for_size(1080.0, 360.0);
+    let scroll = template_node(&nodes, "ComponentShowcaseScroll");
+    let collections = template_node(&nodes, "ContextActionMenuDemo");
+
+    assert!(
+        collections.frame.y > scroll.frame.y + scroll.frame.height,
+        "narrow smoke height should place lower showcase rows beyond the scroll viewport: collections y={} scroll y={} scroll h={}",
+        collections.frame.y,
+        scroll.frame.y,
+        scroll.frame.height
+    );
+    assert!(
+        collections.has_clip_frame,
+        "scrolled child should expose a retained clip frame for painter clipping"
+    );
+    assert!(
+        collections.clip_frame.width > 0.0 && collections.clip_frame.height > 0.0,
+        "scrolled child should carry a retained clip frame for painter clipping"
+    );
+    assert!(
+        collections.clip_frame.y + collections.clip_frame.height
+            <= scroll.frame.y + scroll.frame.height + 0.5,
+        "scrolled child clip should be bounded by the ScrollableBox viewport: child clip bottom={} scroll bottom={}",
+        collections.clip_frame.y + collections.clip_frame.height,
+        scroll.frame.y + scroll.frame.height
+    );
 }
 
 #[test]

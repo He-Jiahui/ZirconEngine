@@ -221,6 +221,7 @@ pub(super) fn pane_from_tab(
             assets_activity: AssetsActivityPaneViewData::default(),
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
+            performance_timeline: performance_timeline_pane_data(&pane_presentation),
             module_plugins: module_plugins.clone(),
             build_export: build_export.clone(),
             ui_asset: ui_asset_pane,
@@ -321,6 +322,7 @@ pub(super) fn blank_pane() -> PaneData {
             assets_activity: AssetsActivityPaneViewData::default(),
             asset_browser: AssetBrowserPaneViewData::default(),
             project_overview: ProjectOverviewPaneViewData::default(),
+            performance_timeline: PerformanceTimelinePaneViewData::default(),
             module_plugins: ModulePluginsPaneViewData::default(),
             build_export: BuildExportPaneViewData::default(),
             ui_asset: crate::ui::asset_editor::UiAssetEditorPanePresentation::default(),
@@ -458,6 +460,11 @@ fn pane_metadata(
             "Render, physics, and animation diagnostics".to_string(),
             false,
         ),
+        ViewContentKind::PerformanceTimeline => (
+            "Runtime and Editor CPU Timeline".to_string(),
+            "Frame rows, span summaries, hotspots, and capture controls".to_string(),
+            false,
+        ),
         ViewContentKind::ModulePlugins => (
             "Project Plugins".to_string(),
             "Builtin and native plugin packages".to_string(),
@@ -591,6 +598,81 @@ fn console_pane_data(chrome: &EditorChromeSnapshot) -> ConsolePaneViewData {
     }
 }
 
+fn performance_timeline_pane_data(
+    pane_presentation: &Option<PanePresentation>,
+) -> PerformanceTimelinePaneViewData {
+    let Some(PanePayload::PerformanceTimelineV1(payload)) = pane_presentation
+        .as_ref()
+        .map(|presentation| &presentation.body.payload)
+    else {
+        return PerformanceTimelinePaneViewData::default();
+    };
+
+    PerformanceTimelinePaneViewData {
+        frame_rows: model_rc(
+            payload
+                .frame_rows
+                .iter()
+                .map(|row| PerformanceTimelineFrameRowViewData {
+                    stream: row.stream.clone().into(),
+                    name: row.name.clone().into(),
+                    frame_index: row.frame_index,
+                    duration_label: row.duration_label.clone().into(),
+                    budget_label: row.budget_label.clone().into(),
+                    budget_usage_label: row.budget_usage_label.clone().into(),
+                    duration_ratio: row.duration_ratio,
+                    bar_fill_ratio: row.bar_fill_ratio,
+                    budget_marker_ratio: row.budget_marker_ratio,
+                    over_budget: row.over_budget,
+                })
+                .collect(),
+        ),
+        span_rows: model_rc(
+            payload
+                .span_summary_rows
+                .iter()
+                .map(|row| PerformanceTimelineSpanRowViewData {
+                    stream: row.stream.clone().into(),
+                    category: row.category.clone().into(),
+                    name: row.name.clone().into(),
+                    path: row.path.clone().into(),
+                    duration_label: row.duration_label.clone().into(),
+                    depth: row.depth,
+                })
+                .collect(),
+        ),
+        hotspot_rows: model_rc(
+            payload
+                .hotspot_rows
+                .iter()
+                .map(|row| PerformanceTimelineHotspotRowViewData {
+                    stream: row.stream.clone().into(),
+                    category: row.category.clone().into(),
+                    name: row.name.clone().into(),
+                    path: row.path.clone().into(),
+                    total_label: row.total_label.clone().into(),
+                    average_label: row.average_label.clone().into(),
+                    count_label: row.count_label.clone().into(),
+                })
+                .collect(),
+        ),
+        capture_controls: model_rc(
+            payload
+                .capture_controls
+                .iter()
+                .map(|control| PerformanceTimelineCaptureControlViewData {
+                    label: control.label.clone().into(),
+                    action_id: control.action_id.clone().into(),
+                    enabled: control.enabled,
+                })
+                .collect(),
+        ),
+        summary: payload.summary.clone().into(),
+        session_label: payload.session_label.clone().into(),
+        output_label: payload.output_label.clone().into(),
+    }
+}
+
 fn payload_path(snapshot: Option<&ViewTabSnapshot>) -> Option<String> {
     snapshot
         .and_then(|view| {
@@ -626,6 +708,7 @@ fn pane_kind_key(kind: ViewContentKind) -> &'static str {
         ViewContentKind::AnimationSequenceEditor => "AnimationSequenceEditor",
         ViewContentKind::AnimationGraphEditor => "AnimationGraphEditor",
         ViewContentKind::RuntimeDiagnostics => "RuntimeDiagnostics",
+        ViewContentKind::PerformanceTimeline => "PerformanceTimeline",
         ViewContentKind::ModulePlugins => "ModulePlugins",
         ViewContentKind::BuildExport => "BuildExport",
         ViewContentKind::Placeholder => "Placeholder",

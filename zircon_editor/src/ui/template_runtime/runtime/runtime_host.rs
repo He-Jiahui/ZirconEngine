@@ -29,7 +29,7 @@ use zircon_runtime_interface::ui::component::UiComponentAdapterResult;
 use super::{
     build_session::{
         compile_template_document_file, compile_template_document_with_builtin_imports,
-        load_builtin_host_templates,
+        load_builtin_host_templates, load_builtin_host_templates_for_document_ids,
     },
     pane_payload_projection::project_pane_body,
     projection::{
@@ -120,7 +120,7 @@ impl EditorUiHostRuntime {
         path: impl AsRef<std::path::Path>,
     ) -> Result<(), EditorUiHostRuntimeError> {
         let document_id = document_id.into();
-        if is_v2_document_path(path.as_ref()) {
+        if is_v2_backed_document_path(path.as_ref()) {
             return self.register_v2_document_file(document_id, path);
         }
         let compiled = compile_template_document_file(&self.template_service, path.as_ref())?;
@@ -141,6 +141,13 @@ impl EditorUiHostRuntime {
 
     pub fn load_builtin_host_templates(&mut self) -> Result<(), EditorUiHostRuntimeError> {
         load_builtin_host_templates(self)
+    }
+
+    pub(crate) fn load_builtin_host_templates_for_document_ids(
+        &mut self,
+        document_ids: &[&str],
+    ) -> Result<(), EditorUiHostRuntimeError> {
+        load_builtin_host_templates_for_document_ids(self, document_ids)
     }
 
     #[cfg(test)]
@@ -328,8 +335,8 @@ pub(super) fn v2_template_file_cache_len_for_tests() -> usize {
         .len()
 }
 
-fn is_v2_document_path(path: &std::path::Path) -> bool {
+fn is_v2_backed_document_path(path: &std::path::Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
-        .is_some_and(|name| name.ends_with(".v2.ui.toml"))
+        .is_some_and(|name| name.ends_with(".zui") || name.ends_with(".v2.ui.toml"))
 }

@@ -38,6 +38,7 @@ members = [
     "particles/editor",
     "animation/runtime",
     "animation/editor",
+    "zr_vm_language/runtime",
     "terrain/runtime",
     "terrain/editor",
     "tilemap_2d/runtime",

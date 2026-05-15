@@ -154,5 +154,7 @@ pub(crate) struct TemplatePaneNodeData {
     pub overflow: SharedString,
     pub corner_radius: f32,
     pub border_width: f32,
+    pub has_clip_frame: bool,
+    pub clip_frame: TemplateNodeFrameData,
     pub frame: TemplateNodeFrameData,
 }

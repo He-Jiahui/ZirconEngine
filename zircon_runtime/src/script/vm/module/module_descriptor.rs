@@ -41,8 +41,12 @@ pub fn module_descriptor() -> ModuleDescriptor {
                 })?;
                 let host = core
                     .resolve_driver::<PluginHostDriver>(PLUGIN_HOST_DRIVER_NAME)?
-                    .registry();
-                Ok(VmPluginManager::with_plugin_context(context.clone(), host) as ServiceObject)
+                    .clone();
+                Ok(VmPluginManager::with_plugin_context_and_host_exports(
+                    context.clone(),
+                    host.registry(),
+                    host.host_exports(),
+                ) as ServiceObject)
             }),
         ))
         .with_manager(crate::core::ManagerDescriptor::new(

@@ -122,6 +122,7 @@ fn animation_pane(
             assets_activity: Default::default(),
             asset_browser: Default::default(),
             project_overview: Default::default(),
+            performance_timeline: Default::default(),
             module_plugins: Default::default(),
             build_export: Default::default(),
             ui_asset: Default::default(),

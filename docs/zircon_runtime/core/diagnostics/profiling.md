@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/core/diagnostics/profiling/scope.rs
   - zircon_runtime/src/core/diagnostics/profiling/tracy.rs
   - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
+  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/diagnostics/profiling/export.rs
   - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/core/diagnostics/snapshot.rs
@@ -27,6 +28,7 @@ implementation_files:
   - zircon_runtime/src/core/diagnostics/profiling/scope.rs
   - zircon_runtime/src/core/diagnostics/profiling/tracy.rs
   - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
+  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/core/diagnostics/profiling/export.rs
   - zircon_runtime/src/core/diagnostics/collect.rs
   - zircon_runtime/src/dynamic_api/exports.rs
@@ -84,11 +86,12 @@ The sink follows the same reference shape used by Bevy's `trace_tracy` support: 
 
 ## Export And Hotspots
 
-`export_report` snapshots the recorder, analyzes hotspots, and writes four files under `<output_root>/<session-id>/`:
+`export_report` snapshots the recorder, analyzes hotspots, and writes profiling artifacts under `<output_root>/<session-id>/`:
 
 - `timeline.zrtrace.json`: native Zircon snapshot JSON.
-- `timeline.perfetto.json`: Chrome/Perfetto complete-event JSON.
+- `timeline.perfetto.json`: Chrome/Perfetto complete-event JSON, written only when the build includes `profiling-chrome` and the capture config keeps `include_perfetto = true`.
 - `hotspots.json`: grouped span-cost report.
+- `ui_hotspots.json`: retained-host UI slow-path counter aggregation.
 - `summary.md`: human-readable frame/span/counter and top-hotspot summary.
 
 `analyze_hotspots` groups spans by `stream/category/name/path`. It reports total, average, p95, max, count, distinct frame count, and over-budget count. Hints are intentionally conservative: they only point to recorded span names that exceeded or accumulated against the configured budget, and they do not infer causes that were not sampled.

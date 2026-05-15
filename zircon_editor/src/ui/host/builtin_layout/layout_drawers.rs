@@ -67,13 +67,12 @@ pub(super) fn right_bottom_drawer() -> ActivityDrawerLayout {
 pub(super) fn bottom_drawer(subsystems: &EditorSubsystemReport) -> ActivityDrawerLayout {
     let console = ViewInstanceId::new("editor.console#1");
     let diagnostics = ViewInstanceId::new("editor.runtime_diagnostics#1");
+    let performance_timeline = ViewInstanceId::new("editor.performance_timeline#1");
     let mut tabs = vec![console.clone()];
-    tabs.extend(
-        subsystems
-            .is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
-            .then_some(diagnostics.clone())
-            .into_iter(),
-    );
+    if subsystems.is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS) {
+        tabs.push(diagnostics.clone());
+        tabs.push(performance_timeline);
+    }
     tabs.push(ViewInstanceId::new("editor.build_export_desktop#1"));
     ActivityDrawerLayout {
         slot: ActivityDrawerSlot::Bottom,

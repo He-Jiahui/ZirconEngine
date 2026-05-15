@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
 use zircon_runtime::core::diagnostics::{
-    RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics,
-    RuntimeRenderDiagnostics,
+    ProfileFrameSnapshot, ProfileSnapshot, ProfileSpanSnapshot, RuntimeAnimationDiagnostics,
+    RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
 };
 use zircon_runtime::core::framework::animation::AnimationPlaybackSettings;
 use zircon_runtime::core::framework::physics::{
@@ -29,7 +29,8 @@ use crate::ui::animation_editor::AnimationEditorPanePresentation;
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
 use crate::ui::layouts::windows::workbench_host_window::{
-    build_pane_body_presentation, PanePayloadBuildContext,
+    build_pane_body_presentation, BuildExportPaneViewData, ModulePluginsPaneViewData,
+    PanePayloadBuildContext,
 };
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::layout::MainPageId;
@@ -140,6 +141,33 @@ fn animation_fixture() -> AnimationEditorPanePresentation {
 }
 
 fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
+    let profile = ProfileSnapshot {
+        active: true,
+        feature_enabled: true,
+        frames: vec![ProfileFrameSnapshot {
+            stream: "editor".to_string(),
+            name: "retained_host_tick".to_string(),
+            frame_index: 42,
+            start_us: 1_000,
+            duration_us: 17_250,
+            budget_ms: 16.67,
+            over_budget: true,
+        }],
+        spans: vec![ProfileSpanSnapshot {
+            id: 7,
+            parent_id: None,
+            frame_index: Some(42),
+            stream: "editor".to_string(),
+            category: "retained_host".to_string(),
+            name: "present_frame".to_string(),
+            path: "editor/retained_host:present_frame".to_string(),
+            start_us: 2_000,
+            duration_us: 8_500,
+            depth: 0,
+        }],
+        ..ProfileSnapshot::default()
+    };
+
     RuntimeDiagnosticsSnapshot {
         render: RuntimeRenderDiagnostics {
             available: true,
@@ -184,7 +212,7 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             error: None,
         },
         store: Default::default(),
-        profile: Default::default(),
+        profile,
     }
 }
 
@@ -256,10 +284,14 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
     let animation = animation_fixture();
     let runtime_diagnostics = runtime_diagnostics_fixture();
     let active_snapshot = active_ui_debug_snapshot_fixture();
+    let module_plugins = ModulePluginsPaneViewData::default();
+    let build_export = BuildExportPaneViewData::default();
     let context = PanePayloadBuildContext::new(&chrome)
         .with_animation_pane(&animation)
         .with_runtime_diagnostics(&runtime_diagnostics)
-        .with_active_ui_debug_snapshot(&active_snapshot);
+        .with_active_ui_debug_snapshot(&active_snapshot)
+        .with_module_plugins(&module_plugins)
+        .with_build_export(&build_export);
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -356,6 +388,40 @@ fn editor_ui_host_runtime_projects_pane_body_payload_metadata_into_root_attribut
                 .as_str()
                 .is_some_and(|text| text.contains("Selected: runtime/projection/live_label"))
         })));
+
+    let timeline =
+        build_pane_body_presentation(&pane_body_spec("editor.performance_timeline"), &context);
+    let timeline_projection = runtime.project_pane_body(&timeline).unwrap();
+    assert_eq!(
+        timeline_projection.root.attributes.get("pane_payload_kind"),
+        Some(&Value::String("PerformanceTimelineV1".to_string()))
+    );
+    assert_eq!(
+        timeline_projection.root.attributes.get("payload_summary"),
+        Some(&Value::String(
+            "Profiling active: 1 frame, 1 span, 0 counters".to_string()
+        ))
+    );
+    assert!(timeline_projection
+        .root
+        .attributes
+        .get("payload_frame_rows")
+        .and_then(Value::as_array)
+        .is_some_and(|rows| rows.iter().any(|row| {
+            row.get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name == "retained_host_tick")
+        })));
+    assert!(timeline_projection
+        .root
+        .attributes
+        .get("payload_hotspot_rows")
+        .and_then(Value::as_array)
+        .is_some_and(|rows| rows.iter().any(|row| {
+            row.get("name")
+                .and_then(Value::as_str)
+                .is_some_and(|name| name == "present_frame")
+        })));
 }
 
 #[test]
@@ -365,7 +431,14 @@ fn editor_ui_host_runtime_exposes_hybrid_slot_anchors_in_host_projection() {
         .unwrap_or_else(|poison| poison.into_inner());
     let chrome = chrome_fixture();
     let animation = animation_fixture();
-    let context = PanePayloadBuildContext::new(&chrome).with_animation_pane(&animation);
+    let runtime_diagnostics = runtime_diagnostics_fixture();
+    let module_plugins = ModulePluginsPaneViewData::default();
+    let build_export = BuildExportPaneViewData::default();
+    let context = PanePayloadBuildContext::new(&chrome)
+        .with_animation_pane(&animation)
+        .with_runtime_diagnostics(&runtime_diagnostics)
+        .with_module_plugins(&module_plugins)
+        .with_build_export(&build_export);
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
@@ -384,6 +457,11 @@ fn editor_ui_host_runtime_exposes_hybrid_slot_anchors_in_host_projection() {
             "editor.animation_graph",
             "AnimationGraphCanvasSlotAnchor",
             "animation_graph_canvas_slot",
+        ),
+        (
+            "editor.performance_timeline",
+            "PerformanceTimelineFrameListSlotAnchor",
+            "performance_timeline_frame_list",
         ),
     ];
 
@@ -419,13 +497,24 @@ fn editor_ui_host_runtime_preserves_hybrid_slot_anchors_in_surface_host_projecti
         .unwrap_or_else(|poison| poison.into_inner());
     let chrome = chrome_fixture();
     let animation = animation_fixture();
-    let context = PanePayloadBuildContext::new(&chrome).with_animation_pane(&animation);
+    let runtime_diagnostics = runtime_diagnostics_fixture();
+    let module_plugins = ModulePluginsPaneViewData::default();
+    let build_export = BuildExportPaneViewData::default();
+    let context = PanePayloadBuildContext::new(&chrome)
+        .with_animation_pane(&animation)
+        .with_runtime_diagnostics(&runtime_diagnostics)
+        .with_module_plugins(&module_plugins)
+        .with_build_export(&build_export);
     let mut runtime = EditorUiHostRuntime::default();
     runtime.load_builtin_host_templates().unwrap();
 
     for (descriptor_id, control_id) in [
         ("editor.animation_sequence", "AnimationTimelineSlotAnchor"),
         ("editor.animation_graph", "AnimationGraphCanvasSlotAnchor"),
+        (
+            "editor.performance_timeline",
+            "PerformanceTimelineFrameListSlotAnchor",
+        ),
     ] {
         let body = build_pane_body_presentation(&pane_body_spec(descriptor_id), &context);
         let projection = runtime.project_pane_body(&body).unwrap();

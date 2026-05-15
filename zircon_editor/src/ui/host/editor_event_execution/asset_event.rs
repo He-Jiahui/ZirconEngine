@@ -20,7 +20,7 @@ pub(super) fn execute_asset_event(
     match event {
         EditorAssetEvent::OpenAsset { asset_path } => {
             let lower_path = asset_path.to_ascii_lowercase();
-            if lower_path.ends_with(".v2.ui.toml") {
+            if lower_path.ends_with(".zui") || lower_path.ends_with(".v2.ui.toml") {
                 let instance_id = inner
                     .manager
                     .open_ui_asset_editor_by_id(asset_path, None)

@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 use crate::script::{
     CapabilitySet, VmError, VmPluginManifest, VmPluginPackage, VmPluginPackageSource,
+    ZrVmExecutionMode, ZrVmPluginProjectSource,
 };
 
 const DEFAULT_BACKEND_NAME: &str = "unavailable";
@@ -27,8 +28,19 @@ struct DiskVmPluginManifest {
     capabilities: CapabilitySet,
     #[serde(default = "default_backend_name")]
     backend: String,
-    #[serde(default = "default_bytecode_file")]
-    bytecode: String,
+    #[serde(default)]
+    bytecode: Option<String>,
+    #[serde(default)]
+    zr_vm: Option<DiskZrVmProject>,
+}
+
+#[derive(Debug, Deserialize)]
+struct DiskZrVmProject {
+    project: String,
+    #[serde(default = "default_zr_vm_entry_module")]
+    entry_module: String,
+    #[serde(default)]
+    execution_mode: ZrVmExecutionMode,
 }
 
 pub fn discover_vm_plugin_packages(
@@ -90,20 +102,18 @@ pub fn discover_vm_plugin_package(
                 manifest_path.display()
             ))
         })?;
-    let bytecode_path = package_root.join(&disk_manifest.bytecode);
-    let bytecode = fs::read(&bytecode_path).map_err(|error| {
-        VmError::Operation(format!(
-            "failed to read plugin bytecode {}: {error}",
-            bytecode_path.display()
-        ))
-    })?;
+    let (bytecode, bytecode_path, zr_vm_project) =
+        load_package_payload(&package_root, &disk_manifest)?;
 
     Ok(DiscoveredVmPluginPackage {
         backend_name: disk_manifest.backend,
         source: VmPluginPackageSource {
             package_root: Some(package_root),
             manifest_path: Some(manifest_path.to_path_buf()),
-            bytecode_path: Some(bytecode_path),
+            bytecode_path,
+            zr_vm_project_path: zr_vm_project
+                .as_ref()
+                .map(|project| project.project_path.clone()),
         },
         package: VmPluginPackage {
             manifest: VmPluginManifest {
@@ -112,9 +122,56 @@ pub fn discover_vm_plugin_package(
                 entry: disk_manifest.entry,
                 capabilities: disk_manifest.capabilities,
             },
+            zr_vm_project,
             bytecode,
         },
     })
+}
+
+fn load_package_payload(
+    package_root: &Path,
+    disk_manifest: &DiskVmPluginManifest,
+) -> Result<(Vec<u8>, Option<PathBuf>, Option<ZrVmPluginProjectSource>), VmError> {
+    if is_zr_vm_project_backend(&disk_manifest.backend) {
+        let zr_vm = disk_manifest.zr_vm.as_ref().ok_or_else(|| {
+            VmError::Parse("zr_vm:project backend requires a [zr_vm] project section".to_string())
+        })?;
+        let project_path = package_root.join(&zr_vm.project);
+        if !project_path.exists() {
+            return Err(VmError::Operation(format!(
+                "zr_vm project does not exist: {}",
+                project_path.display()
+            )));
+        }
+        return Ok((
+            Vec::new(),
+            None,
+            Some(ZrVmPluginProjectSource {
+                project_path,
+                entry_module: zr_vm.entry_module.clone(),
+                execution_mode: zr_vm.execution_mode,
+            }),
+        ));
+    }
+
+    if disk_manifest.zr_vm.is_some() {
+        return Err(VmError::Parse(
+            "[zr_vm] project section requires backend = \"zr_vm:project\"".to_string(),
+        ));
+    }
+
+    let bytecode_file = disk_manifest
+        .bytecode
+        .clone()
+        .unwrap_or_else(default_bytecode_file);
+    let bytecode_path = package_root.join(bytecode_file);
+    let bytecode = fs::read(&bytecode_path).map_err(|error| {
+        VmError::Operation(format!(
+            "failed to read plugin bytecode {}: {error}",
+            bytecode_path.display()
+        ))
+    })?;
+    Ok((bytecode, Some(bytecode_path), None))
 }
 
 fn collect_plugin_manifests(root: &Path, manifest_paths: &mut Vec<PathBuf>) -> Result<(), VmError> {
@@ -146,4 +203,12 @@ fn default_backend_name() -> String {
 
 fn default_bytecode_file() -> String {
     DEFAULT_BYTECODE_FILE.to_string()
+}
+
+fn default_zr_vm_entry_module() -> String {
+    "main".to_string()
+}
+
+fn is_zr_vm_project_backend(backend: &str) -> bool {
+    backend == "zr_vm:project"
 }

@@ -577,6 +577,12 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "editor.runtime_diagnostics",
         ),
         (
+            "View.PerformanceTimeline.Open",
+            "Open Performance Timeline View",
+            "View/Performance Timeline",
+            "editor.performance_timeline",
+        ),
+        (
             "Window.DebugObservatory.Open",
             "Open Debug Observatory",
             "Window/Debug Observatory",
@@ -617,6 +623,12 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "Open Material Editor",
             "Window/Material Editor",
             "editor.material_editor_window",
+        ),
+        (
+            "Window.UiComponentShowcase.Open",
+            "Open UI Component Showcase",
+            "Window/UI Component Showcase",
+            "editor.ui_component_showcase",
         ),
         (
             "Window.MaterialDemo.Open",

@@ -74,7 +74,7 @@ fn scene_representation_extract(
             translation: Vec3::new(0.0, 0.0, 6.0),
             ..Transform::default()
         },
-        projection_mode: ProjectionMode::Orthographic,
+        projection_mode: ProjectionMode::Perspective,
         ortho_size: 6.0,
         ..ViewportCameraSnapshot::default()
     };

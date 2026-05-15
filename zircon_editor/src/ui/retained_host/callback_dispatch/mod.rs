@@ -44,11 +44,11 @@ pub(crate) use template_binding::{
 #[cfg(test)]
 pub(crate) use template_bridge::BuiltinHostDrawerSourceTemplateBridge;
 pub(crate) use template_bridge::{
-    BuiltinAssetSurfaceTemplateBridge, BuiltinFloatingWindowSourceFrames,
-    BuiltinFloatingWindowSourceTemplateBridge, BuiltinHostRootShellFrames,
-    BuiltinHostWindowTemplateBridge, BuiltinInspectorSurfaceTemplateBridge,
-    BuiltinPaneSurfaceTemplateBridge, BuiltinViewportToolbarTemplateBridge,
-    BuiltinWelcomeSurfaceTemplateBridge,
+    load_startup_builtin_template_runtime, BuiltinAssetSurfaceTemplateBridge,
+    BuiltinFloatingWindowSourceFrames, BuiltinFloatingWindowSourceTemplateBridge,
+    BuiltinHostRootShellFrames, BuiltinHostWindowTemplateBridge,
+    BuiltinInspectorSurfaceTemplateBridge, BuiltinPaneSurfaceTemplateBridge,
+    BuiltinViewportToolbarTemplateBridge, BuiltinWelcomeSurfaceTemplateBridge,
 };
 pub(crate) use viewport::dispatch_builtin_viewport_toolbar_control;
 #[cfg(test)]

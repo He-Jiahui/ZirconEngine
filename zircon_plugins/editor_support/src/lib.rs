@@ -196,7 +196,7 @@ mod tests {
                 )],
                 component_drawers: vec![ComponentDrawerDescriptor::new(
                     "support.Component",
-                    "plugins://support/editor/component.v2.ui.toml",
+                    "plugins://support/editor/component.zui",
                     "support.editor.component",
                 )
                 .with_binding(validate.as_str())],

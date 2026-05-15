@@ -4,6 +4,9 @@ related_code:
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/lib.rs
   - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -12,6 +15,9 @@ implementation_files:
   - zircon_runtime_interface/src/profiling.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/lib.rs
+  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
+  - zircon_runtime/src/core/diagnostics/profiling/export.rs
+  - zircon_editor/src/ui/retained_host/ui_perf.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime/src/dynamic_api/frame.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
@@ -19,8 +25,10 @@ implementation_files:
 plan_sources:
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
   - user: 2026-05-13 continue profiling timeline and Tracy integration milestone
+  - user: 2026-05-15 retained UI profile should report actual GPU batch draw efficiency
 tests:
   - zircon_runtime_interface/src/tests/contracts.rs
+  - zircon_runtime/src/core/diagnostics/profiling/ui_hotspot.rs
   - zircon_runtime/src/dynamic_api/tests.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - target: cargo check -p zircon_runtime_interface --locked
@@ -42,7 +50,7 @@ The interface crate does not own recorder state, file I/O, Tracy subscribers, ed
 
 ## DTOs
 
-`ProfileCaptureConfig` carries capture limits, output location, frame budget, and whether Perfetto output should be included. `normalized()` fills empty ids/paths and zero limits from defaults:
+`ProfileCaptureConfig` carries capture limits, output location, frame budget, and whether Perfetto output should be included. Runtime export still requires a `profiling-chrome` build before `include_perfetto` can produce `timeline.perfetto.json`. `normalized()` fills empty ids/paths and zero limits from defaults:
 
 - `PROFILE_DEFAULT_OUTPUT_ROOT = "target/zircon-profiles"`.
 - `PROFILE_DEFAULT_SESSION_ID = "local"`.
@@ -54,6 +62,8 @@ The interface crate does not own recorder state, file I/O, Tracy subscribers, ed
 `ProfileSnapshot` is the ABI-safe timeline view. It contains session metadata, active/feature flags, the frame budget, and vectors of frame, span, and counter snapshots. Spans carry ids, optional parent ids, optional frame indices, stream/category/name/path strings, timestamps, durations, and nesting depth.
 
 `HotspotReport` groups recorded spans by `stream/category/name/path` and carries totals, averages, p95, max, count, frame count, over-budget count, and conservative optimization hints.
+
+`UiHotspotReport` groups retained-host UI counters by scenario. The GPU UI counters distinguish actual batch submissions from input work: `gpu_draw_calls` is the number of planned WGPU batch draws, `gpu_visible_commands` is the command-stream visibility count, `gpu_visible_draw_items` is the clipped geometry/text item count after border expansion, and `gpu_batch_layers` / `gpu_batch_dependencies` describe the partial-order depth plan. This keeps profile summaries honest when renderer efficiency changes: a capture can show that the presenter stayed on GPU and also whether independent UI items were actually batched.
 
 ## Optional Runtime ABI Hook
 
@@ -79,4 +89,4 @@ Dynamic runtime responses use `ZrOwnedByteBuffer` with a runtime-owned free call
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.
+`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. `zircon_runtime` UI hotspot tests verify the retained-host GPU counters aggregate actual batch draws, visible commands/items, layer counts, dependency counts, no-draw failures, upload failures, and batch degeneration alerts. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.

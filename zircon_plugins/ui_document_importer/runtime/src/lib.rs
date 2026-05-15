@@ -1,6 +1,6 @@
 use zircon_runtime::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    FunctionAssetImporter, ImportedAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    FunctionAssetImporter, ImportedAsset, UiV2ComponentAsset,
 };
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::{
@@ -40,8 +40,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
 }
 
 pub fn asset_importer_descriptors() -> Vec<AssetImporterDescriptor> {
-    vec![ui_v2_descriptor("ui_document_importer.v2_typed_toml", 120)
-        .with_full_suffixes([".v2.ui.toml"])]
+    vec![ui_zui_descriptor("ui_document_importer.zui_component", 120).with_full_suffixes([".zui"])]
 }
 
 pub fn package_manifest() -> PluginPackageManifest {
@@ -97,44 +96,31 @@ pub fn register_runtime_extensions(
     for importer in asset_importer_descriptors() {
         registry.register_asset_importer(FunctionAssetImporter::new(
             importer,
-            import_ui_v2_toml_document,
+            import_ui_zui_component_document,
         ))?;
     }
     Ok(())
 }
 
-pub fn import_ui_v2_toml_document(
+pub fn import_ui_zui_component_document(
     context: &AssetImportContext,
 ) -> Result<AssetImportOutcome, AssetImportError> {
     let document = context.source_text()?;
-    if let Ok(asset) = UiV2ViewAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(
-            context.uri.clone(),
-            ImportedAsset::UiV2View(asset),
-        ));
-    }
-    if let Ok(asset) = UiV2ComponentAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(
-            context.uri.clone(),
-            ImportedAsset::UiV2Component(asset),
-        ));
-    }
-    if let Ok(asset) = UiV2StyleAsset::from_toml_str(&document) {
-        return Ok(AssetImportOutcome::new(
-            context.uri.clone(),
-            ImportedAsset::UiV2Style(asset),
-        ));
-    }
-    Err(AssetImportError::Parse(format!(
-        "parse ui v2 asset toml {}: unsupported or mismatched [asset.kind]",
-        context.source_path.display()
-    )))
+    let asset = UiV2ComponentAsset::from_zui_str(&document).map_err(|error| {
+        AssetImportError::Parse(format!(
+            "parse .zui component asset {}: {error}",
+            context.source_path.display()
+        ))
+    })?;
+    Ok(AssetImportOutcome::new(
+        context.uri.clone(),
+        ImportedAsset::UiV2Component(asset),
+    ))
 }
 
-fn ui_v2_descriptor(id: impl Into<String>, priority: i32) -> AssetImporterDescriptor {
-    AssetImporterDescriptor::new(id, PLUGIN_ID, AssetKind::UiLayout, 2)
+fn ui_zui_descriptor(id: impl Into<String>, priority: i32) -> AssetImporterDescriptor {
+    AssetImporterDescriptor::new(id, PLUGIN_ID, AssetKind::UiWidget, 2)
         .with_priority(priority)
-        .with_additional_output_kinds([AssetKind::UiWidget, AssetKind::UiStyle])
         .with_required_capabilities([IMPORTER_CAPABILITY])
 }
 
@@ -143,7 +129,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn package_declares_only_ui_v2_toml_importer() {
+    fn package_declares_only_zui_component_importer() {
         let manifest = package_manifest();
 
         assert_eq!(manifest.id, PLUGIN_ID);
@@ -152,30 +138,34 @@ mod tests {
             .contains(&RUNTIME_CAPABILITY.to_string()));
         assert_eq!(manifest.asset_importers.len(), 1);
         assert!(manifest.asset_importers.iter().any(|importer| {
-            importer.full_suffixes.contains(&".v2.ui.toml".to_string())
+            importer.full_suffixes.contains(&".zui".to_string())
                 && importer.importer_version == 2
                 && importer.allows_output_kind(AssetKind::UiWidget)
         }));
         assert!(manifest.asset_importers.iter().all(|importer| !importer
             .full_suffixes
             .contains(&".ui.json".to_string())
-            && !importer.source_extensions.contains(&"zui".to_string())
+            && !importer.full_suffixes.contains(&".v2.ui.toml".to_string())
+            && !importer.allows_output_kind(AssetKind::UiLayout)
+            && !importer.allows_output_kind(AssetKind::UiStyle)
             && !importer.source_extensions.contains(&"uidoc".to_string())));
     }
 
     #[test]
-    fn plugin_toml_declares_only_ui_v2_toml_importer() {
+    fn plugin_toml_declares_only_zui_component_importer() {
         let manifest = include_str!("../../plugin.toml");
 
         assert_eq!(manifest.matches("[[asset_importers]]").count(), 1);
-        assert!(manifest.contains("id = \"ui_document_importer.v2_typed_toml\""));
-        assert!(manifest.contains("full_suffixes = [\".v2.ui.toml\"]"));
+        assert!(manifest.contains("id = \"ui_document_importer.zui_component\""));
+        assert!(manifest.contains("full_suffixes = [\".zui\"]"));
+        assert!(manifest.contains("output_kind = \"UiWidget\""));
         assert!(manifest.contains("importer_version = 2"));
         assert!(!manifest.contains("ui_document_importer.serialized_json"));
         assert!(!manifest.contains("ui_document_importer.serialized_binary"));
+        assert!(!manifest.contains("full_suffixes = [\".v2.ui.toml\"]"));
         assert!(!manifest.contains("full_suffixes = [\".ui.toml\"]"));
         assert!(!manifest.contains(".ui.json"));
-        assert!(!manifest.contains("source_extensions = [\"zui\", \"uidoc\"]"));
+        assert!(!manifest.contains("source_extensions = [\"uidoc\"]"));
     }
 
     #[test]
@@ -192,24 +182,24 @@ mod tests {
     }
 
     #[test]
-    fn typed_toml_importer_decodes_ui_v2_view_asset() {
+    fn zui_importer_decodes_single_component_asset() {
         let report = plugin_registration();
         let importer = report
             .extensions
             .asset_importers()
-            .select(std::path::Path::new("layout.v2.ui.toml"))
+            .select(std::path::Path::new("toolbar.zui"))
             .unwrap();
         let context = zircon_runtime::asset::AssetImportContext::new(
-            "layout.v2.ui.toml".into(),
-            zircon_runtime::asset::AssetUri::parse("res://ui/layout.v2.ui.toml").unwrap(),
+            "toolbar.zui".into(),
+            zircon_runtime::asset::AssetUri::parse("res://ui/toolbar.zui").unwrap(),
             br#"
 [asset]
-kind = "view"
-id = "main"
+kind = "component"
+id = "toolbar"
 version = 2
 
-[root]
-node = "root"
+[components.Toolbar]
+root = "root"
 
 [nodes.root]
 component = "Container"
@@ -223,7 +213,7 @@ component = "Container"
 
         assert!(matches!(
             imported,
-            zircon_runtime::asset::ImportedAsset::UiV2View(_)
+            zircon_runtime::asset::ImportedAsset::UiV2Component(_)
         ));
     }
 
@@ -236,7 +226,7 @@ component = "Container"
             .select(std::path::Path::new("layout.ui.json"))
             .is_err());
         assert!(importers
-            .select(std::path::Path::new("layout.zui"))
+            .select(std::path::Path::new("layout.v2.ui.toml"))
             .is_err());
         assert!(importers
             .select(std::path::Path::new("layout.uidoc"))

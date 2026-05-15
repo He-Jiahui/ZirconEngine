@@ -120,6 +120,8 @@ pub(crate) fn to_host_contract_template_node(
         overflow: data.overflow.clone(),
         corner_radius: data.corner_radius,
         border_width: data.border_width,
+        has_clip_frame: false,
+        clip_frame: host_contract::TemplateNodeFrameData::default(),
         frame: to_host_contract_template_frame(&data.frame),
     }
 }

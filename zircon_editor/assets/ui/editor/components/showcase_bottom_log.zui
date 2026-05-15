@@ -1,0 +1,44 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_bottom_log.zui"
+version = 2
+display_name = "Showcase Bottom Log"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseBottomLog]
+root = "bottom_log_root"
+default_classes = ["unreal-panel"]
+
+[nodes.log_scope]
+component = "Label"
+control_id = "ComponentShowcaseLogScope"
+classes = ["showcase-muted"]
+props = { text = "Output Log", font_size = 11.0 }
+layout = { width = { min = 86.0, preferred = 86.0, max = 86.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+
+[nodes.log_message]
+component = "Label"
+control_id = "ComponentShowcaseLogMessage"
+classes = ["showcase-muted"]
+props = { text = "Ready: imported component prototypes are resident in the v2 prototype store.", font_size = 11.0 }
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+
+[nodes.log_status]
+component = "Badge"
+control_id = "ComponentShowcaseLogStatus"
+classes = ["showcase-field", "unreal-command"]
+props = { text = "Live", layout_padding_left = 8.0, layout_padding_right = 8.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0 }
+layout = { width = { min = 54.0, preferred = 54.0, max = 54.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.bottom_log_root]
+component = "HorizontalBox"
+control_id = "ShowcaseBottomLogRoot"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "log_scope" },
+  { node = "log_message" },
+  { node = "log_status" },
+]

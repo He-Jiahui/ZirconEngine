@@ -150,6 +150,7 @@ impl ChildWindowHostHarness {
             .open_view(ViewDescriptorId::new(descriptor_id), None)
             .expect("view should open");
         let mut host = self.host.borrow_mut();
+        host.mark_layout_dirty();
         host.refresh_ui();
         host.recompute_if_dirty();
         instance_id
@@ -970,63 +971,74 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
     )
     .map(|limit| requested_bottom_height.min(limit))
     .unwrap_or(requested_bottom_height);
-    let expected_bottom_height = round_to_centipixel(expected_bottom_height);
-    let expected_center_height = round_to_centipixel(
+    let expected_bottom_height = round_to_layout_pixel(expected_bottom_height);
+    let expected_center_height = round_to_layout_pixel(
         body_frame.height - expected_bottom_height - metrics.separator_thickness,
     );
     let expected_bottom_y =
-        round_to_centipixel(body_frame.y + body_frame.height - expected_bottom_height);
-    let expected_bottom_content_height = round_to_centipixel(
+        round_to_layout_pixel(body_frame.y + body_frame.height - expected_bottom_height);
+    let expected_bottom_content_height = round_to_layout_pixel(
         (expected_bottom_height - metrics.panel_header_height - metrics.separator_thickness)
             .max(0.0),
     );
+    let expected_left_drawer_width = 260.0;
+    let expected_left_panel_width =
+        expected_left_drawer_width - metrics.rail_width - metrics.separator_thickness;
+    let expected_right_drawer_width = 260.0;
+    let expected_right_panel_width =
+        expected_right_drawer_width - metrics.rail_width - metrics.separator_thickness;
     assert_eq!(
         host.template_bridge.control_frame("LeftDrawerShellRoot"),
         Some(UiFrame::new(
             body_frame.x,
             body_frame.y,
-            312.0,
+            expected_left_drawer_width,
             expected_center_height
         ))
     );
     assert_eq!(
         host.template_bridge.control_frame("LeftDrawerHeaderRoot"),
-        Some(UiFrame::new(body_frame.x + 35.0, body_frame.y, 277.0, 25.0,))
+        Some(UiFrame::new(
+            body_frame.x + metrics.rail_width + metrics.separator_thickness,
+            body_frame.y,
+            expected_left_panel_width,
+            25.0,
+        ))
     );
     assert_eq!(
         host.template_bridge.control_frame("LeftDrawerContentRoot"),
         Some(UiFrame::new(
-            body_frame.x + 35.0,
-            body_frame.y + 26.0,
-            277.0,
-            expected_center_height - 26.0,
+            body_frame.x + metrics.rail_width + metrics.separator_thickness,
+            body_frame.y + 25.0,
+            expected_left_panel_width,
+            expected_center_height - 25.0,
         ))
     );
     assert_eq!(
         host.template_bridge.control_frame("RightDrawerShellRoot"),
         Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
+            body_frame.x + body_frame.width - expected_right_drawer_width,
             body_frame.y,
-            308.0,
+            expected_right_drawer_width,
             expected_center_height,
         ))
     );
     assert_eq!(
         host.template_bridge.control_frame("RightDrawerHeaderRoot"),
         Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
+            body_frame.x + body_frame.width - expected_right_drawer_width,
             body_frame.y,
-            273.0,
+            expected_right_panel_width,
             25.0,
         ))
     );
     assert_eq!(
         host.template_bridge.control_frame("RightDrawerContentRoot"),
         Some(UiFrame::new(
-            body_frame.x + body_frame.width - 308.0,
-            body_frame.y + 26.0,
-            273.0,
-            expected_center_height - 26.0,
+            body_frame.x + body_frame.width - expected_right_drawer_width,
+            body_frame.y + 25.0,
+            expected_right_panel_width,
+            expected_center_height - 25.0,
         ))
     );
     assert_eq!(
@@ -1059,8 +1071,8 @@ fn root_host_recomputes_builtin_template_bridge_with_visible_drawer_shell_and_he
     );
 }
 
-fn round_to_centipixel(value: f32) -> f32 {
-    (value * 100.0).round() / 100.0
+fn round_to_layout_pixel(value: f32) -> f32 {
+    value.round()
 }
 
 #[test]
@@ -1278,6 +1290,7 @@ fn root_asset_browser_details_scroll_uses_region_frame_fallback_in_real_host() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_asset_browser_projection");
+    harness.activate_workbench_page();
     let _asset_browser = harness.open_view("editor.asset_browser");
 
     harness
@@ -1314,6 +1327,7 @@ fn root_browser_asset_tree_move_uses_region_frame_fallback_in_real_host() {
     let _guard = lock_env();
 
     let harness = ChildWindowHostHarness::new("zircon_retained_root_browser_asset_tree_projection");
+    harness.activate_workbench_page();
     let _asset_browser = harness.open_view("editor.asset_browser");
 
     harness
@@ -1351,6 +1365,7 @@ fn root_browser_asset_content_move_uses_region_frame_fallback_in_real_host() {
 
     let harness =
         ChildWindowHostHarness::new("zircon_retained_root_browser_asset_content_projection");
+    harness.activate_workbench_page();
     let _asset_browser = harness.open_view("editor.asset_browser");
 
     harness
@@ -1392,6 +1407,7 @@ fn root_browser_asset_reference_move_uses_region_frame_fallback_in_real_host() {
 
     let harness =
         ChildWindowHostHarness::new("zircon_retained_root_browser_asset_reference_projection");
+    harness.activate_workbench_page();
     let _asset_browser = harness.open_view("editor.asset_browser");
 
     pane_surface_host(&harness.root_ui).invoke_asset_reference_pointer_moved(

@@ -32,11 +32,11 @@ impl RetainedUiHostComponentKind {
             "IconButton" => Self::IconButton,
             "ActivityRail" => Self::ActivityRail,
             "DocumentHost" => Self::DocumentHost,
-            "HorizontalBox" => Self::HorizontalBox,
+            "HorizontalBox" | "HorizontalGroup" => Self::HorizontalBox,
             "DocumentTabs" => Self::TabStrip,
             "PaneSurface" => Self::PaneSurface,
             "StatusBar" => Self::StatusBar,
-            "VerticalBox" => Self::VerticalBox,
+            "VerticalBox" | "VerticalGroup" => Self::VerticalBox,
             "Label" => Self::Label,
             _ => Self::Unknown,
         }

@@ -22,11 +22,11 @@ pub use plugin_api::{
 pub use profiling::{
     HotspotEntry, HotspotReport, ProfileCaptureConfig, ProfileControlCommand,
     ProfileControlRequest, ProfileControlResponse, ProfileCounterSnapshot, ProfileFrameSnapshot,
-    ProfileSnapshot, ProfileSpanSnapshot, ZrRuntimeProfileControlFnV1,
-    PROFILE_DEFAULT_FRAME_BUDGET_MS, PROFILE_DEFAULT_MAX_COUNTERS, PROFILE_DEFAULT_MAX_FRAMES,
-    PROFILE_DEFAULT_MAX_SPANS, PROFILE_DEFAULT_OUTPUT_ROOT, PROFILE_DEFAULT_SESSION_ID,
-    PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE, PROFILE_TIMELINE_NATIVE_FILE,
-    PROFILE_TIMELINE_PERFETTO_FILE,
+    ProfileSnapshot, ProfileSpanSnapshot, UiHotspotAlert, UiHotspotReport, UiScenarioHotspot,
+    ZrRuntimeProfileControlFnV1, PROFILE_DEFAULT_FRAME_BUDGET_MS, PROFILE_DEFAULT_MAX_COUNTERS,
+    PROFILE_DEFAULT_MAX_FRAMES, PROFILE_DEFAULT_MAX_SPANS, PROFILE_DEFAULT_OUTPUT_ROOT,
+    PROFILE_DEFAULT_SESSION_ID, PROFILE_HOTSPOTS_FILE, PROFILE_SUMMARY_FILE,
+    PROFILE_TIMELINE_NATIVE_FILE, PROFILE_TIMELINE_PERFETTO_FILE, PROFILE_UI_HOTSPOTS_FILE,
 };
 pub use runtime_api::{
     ZrHostApiV1, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV1,

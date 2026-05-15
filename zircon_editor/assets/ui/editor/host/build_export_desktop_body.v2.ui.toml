@@ -12,7 +12,7 @@ component = "VerticalGroup"
 control_id = "BuildExportPaneBodyRoot"
 classes = ["editor-pane", "build-export-pane"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "summary" }, { node = "targets_slot" }]
+children = [{ node = "header" }, { node = "summary" }, { node = "targets_slot", slot = { name = "build_export_targets_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"

@@ -375,6 +375,7 @@ fn editor_manager_vm_extension_load_failure_is_reported_without_breaking_host() 
             entry: "main".to_string(),
             capabilities: Default::default(),
         },
+        zr_vm_project: None,
         bytecode: vec![1, 2, 3],
     });
 
@@ -1276,6 +1277,7 @@ fn editor_runtime_sandbox_can_be_disabled_before_vm_bridge_registration() {
             entry: "main".to_string(),
             capabilities: Default::default(),
         },
+        zr_vm_project: None,
         bytecode: vec![1, 2, 3],
     });
     assert!(report.loaded_slot().is_none());

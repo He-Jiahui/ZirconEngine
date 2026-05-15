@@ -29,9 +29,7 @@ mod welcome_pane_snapshot;
 pub(crate) use constants::{
     STARTUP_SESSION_KEY, WELCOME_DESCRIPTOR_ID, WELCOME_INSTANCE_ID, WELCOME_PAGE_ID,
 };
-pub(crate) use display_project_path::{
-    display_project_path, display_project_text, display_project_title,
-};
+pub(crate) use display_project_path::{display_project_text, display_project_title};
 pub use editor_session_mode::EditorSessionMode;
 pub use editor_startup_session_document::EditorStartupSessionDocument;
 pub use new_project_draft::NewProjectDraft;

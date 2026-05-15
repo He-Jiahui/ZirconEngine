@@ -1,0 +1,15 @@
+[package]
+name = "zircon_plugin_zr_vm_language_runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "ZrVM language runtime backend plugin for Zircon."
+
+[features]
+default = []
+real-zr-vm = ["dep:zr_vm_rust_binding", "dep:zr_vm_rust_binding_sys"]
+
+[dependencies]
+zircon_runtime = { path = "../../../zircon_runtime", default-features = false }
+zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
+zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }

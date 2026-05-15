@@ -1,5 +1,7 @@
 //! Runtime absorption layer for the built-in high-level engine subsystems.
 
+extern crate self as zircon_runtime;
+
 pub mod core;
 pub mod diagnostic_log;
 pub mod dynamic_api;
@@ -24,6 +26,10 @@ pub mod input;
 pub mod platform;
 pub mod plugin;
 pub mod script;
+
+pub use zircon_runtime_reflection_macros::{
+    zircon_host_function, zircon_host_module, ZirconScriptType,
+};
 
 pub use builtin::{
     builtin_runtime_modules, default_manifest_for_target, manifest_for_runtime_profile,

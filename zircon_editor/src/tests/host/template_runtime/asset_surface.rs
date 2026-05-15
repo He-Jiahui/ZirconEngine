@@ -16,7 +16,7 @@ fn editor_ui_host_runtime_projects_builtin_asset_surface_template_into_retained_
     let projection = runtime.project_document("asset.surface_controls").unwrap();
 
     assert_eq!(projection.document_id, "asset.surface_controls");
-    assert_eq!(projection.root.component, "AssetSurfaceControls");
+    assert_eq!(projection.root.component, "HorizontalGroup");
     assert_eq!(
         projection
             .root

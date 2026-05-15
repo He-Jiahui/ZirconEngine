@@ -15,10 +15,17 @@ pub(super) use debug_reflector_overlay::draw_debug_reflector_overlay;
 pub(super) use diagnostics_overlay::{
     debug_refresh_overlay_frame, presentation_top_bar_frame, union_frames,
 };
-pub(super) use frame::HostRgbaFrame;
-pub(super) use workbench::{paint_host_frame, repaint_host_frame_region};
+pub(super) use frame::{HostRecordedPaintCommand, HostRecordedPaintKind, HostRgbaFrame};
+pub(super) use primitives::{
+    draw_rect_clipped, draw_rgba_image_clipped_with_resource_key, draw_rounded_border_clipped,
+    draw_rounded_rect_clipped,
+};
+pub(super) use text::draw_text_with_size_and_style;
+pub(super) use workbench::{paint_host_frame, record_host_frame_commands};
 
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;
 #[cfg(test)]
 pub(crate) use template_nodes::paint_template_nodes_for_test;
+#[cfg(test)]
+pub(in crate::ui::retained_host::host_contract) use workbench::repaint_host_frame_region;

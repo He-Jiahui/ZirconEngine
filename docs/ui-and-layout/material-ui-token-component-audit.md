@@ -2,6 +2,12 @@
 related_code:
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
   - zircon_editor/assets/ui/theme/editor_base.ui.toml
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
@@ -16,12 +22,26 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/painter/visual_assets.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
+  - zircon_runtime/src/rhi/ui_surface.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/template_runtime/runtime/pane_payload_projection.rs
 implementation_files:
   - zircon_editor/assets/ui/editor/material_meta_components.ui.toml
   - zircon_editor/assets/ui/theme/editor_material.ui.toml
+  - zircon_editor/assets/ui/theme/editor_material.v2.ui.toml
+  - zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml
+  - zircon_editor/assets/ui/editor/welcome.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
   - zircon_editor/src/tests/ui/boundary/global_material_surface_assets.rs
   - zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
   - zircon_runtime/src/ui/template/asset/compiler/value_normalizer.rs
@@ -32,6 +52,14 @@ implementation_files:
   - zircon_runtime_interface/src/tests/render_contracts.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs
   - zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/frame.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/primitives.rs
+  - zircon_editor/src/ui/retained_host/host_contract/painter/render_commands.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
+  - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
+  - zircon_runtime/src/rhi/ui_surface.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/geometry.rs
+  - zircon_runtime/src/rhi_wgpu/ui_surface/batching.rs
   - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/pane_component_projection/mod.rs
   - zircon_editor/src/tests/host/retained_window/native_material_painter.rs
 plan_sources:
@@ -44,6 +72,8 @@ plan_sources:
   - dev/slint/ui-libraries/material/src/ui/styling/material_style_metrics.slint
   - dev/slint/ui-libraries/material/src/ui/styling/material_palette.slint
   - dev/slint/ui-libraries/material/src/ui/components/buttons/base_button.slint
+  - .codex/plans/Editor 基础组件 Material 化视觉优化计划.md
+  - user: 2026-05-15 optimize retained editor UI styling with Material-like rounded controls and stronger feedback
 tests:
   - rustfmt --edition 2021 --check zircon_runtime/src/ui/template/asset/compiler/value_normalizer.rs zircon_runtime/src/ui/tests/asset_component_reference_layout.rs zircon_editor/src/tests/ui/boundary/material_meta_component_contracts.rs
   - cargo test -p zircon_runtime --lib ui_document_compiler_resolves_nested_material_role_tokens_in_props_and_styles --locked --jobs 1 --target-dir D:\cargo-targets\zircon-m2-material-token-roles --message-format short --color never -- --nocapture
@@ -78,6 +108,20 @@ tests:
   - cargo test -p zircon_editor --lib material_meta_component_contracts --locked --jobs 1 --target-dir E:\cargo-targets\zircon-material-shared-style-pass --message-format short --color never
   - cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --target-dir E:\cargo-targets\zircon-material-shared-style-pass --message-format short --color never
   - cargo test -p zircon_editor --lib runtime_component_projection_preserves_material_visual_metadata --locked --jobs 1 --target-dir E:\cargo-targets\zircon-material-shared-style-pass --message-format short --color never
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never (3 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never (35 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --message-format short --color never (25 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never (7 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never (2 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib gpu_surface_commands_preserve_chrome_corner_radius --locked --jobs 1 --message-format short --color never (1 passed)
+  - 2026-05-15 Material visual slice: cargo check -p zircon_editor --lib --tests --locked --jobs 1 --message-format short --color never (passed)
+  - 2026-05-15 Material visual slice: cargo fmt --all -- --check (passed)
+  - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -ScenarioList startup,idle_hover -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (startup 20260516-000244 passed; idle_hover 20260516-000253 recorded redraw/GPU work with zero alerts but missed the strict batch gate)
+  - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -Scenario click -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (20260516-000343 passed)
+  - 2026-05-16 Material feedback emphasis: rustfmt --edition 2021 --check zircon_editor/src/ui/retained_host/host_contract/painter/theme.rs zircon_editor/src/ui/retained_host/host_contract/painter/template_nodes.rs zircon_editor/src/tests/host/retained_window/native_material_painter.rs (passed)
+  - 2026-05-16 Material feedback emphasis: Python tomllib parse for zircon_editor/assets/ui/theme/editor_material.v2.ui.toml, zircon_editor/src/tests/fixtures/ui_legacy/theme/editor_material.ui.toml, and zircon_editor/assets/ui/editor/component_showcase.v2.ui.toml (passed)
+  - 2026-05-16 Material feedback emphasis: git diff --check on touched Material feedback files (passed; line-ending warnings only)
+  - 2026-05-16 Material feedback emphasis: cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never (blocked before compile by existing Cargo.lock mismatch; lockfile left unchanged)
   - docs-only audit: git diff --check docs/ui-and-layout/material-ui-token-component-audit.md docs/ui-and-layout/index.md .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md .codex/sessions/20260506-2211-slate-milestone-m0-baseline.md
 doc_type: milestone-detail
 ---
@@ -188,7 +232,13 @@ M2.2b is now covered by `zircon_editor/src/tests/ui/boundary/material_meta_compo
 
 The 2026-05-07 shared component style pass keeps the public `TemplatePaneNodeData` shape unchanged. `pane_component_projection` already forwards `surface_variant`, `button_variant`, `text_tone`, `validation_level`, `selected`, `hovered`, `pressed`, `focused`, `disabled`, border, radius, and font metadata; `runtime_component_projection_preserves_material_visual_metadata` now asserts that full style/state set so root visual metadata cannot silently fall out of the native host contract.
 
-Native painter state is intentionally centralized in `host_contract/painter/theme.rs` and consumed by `template_nodes.rs`. The current state priority is `disabled > validation error/warning > pressed > selected/focused > primary/accent > hovered > default`; focused painter tests cover default, hover, pressed, selected/focused border, disabled, primary/accent, warning, error, and disabled text colors. Rounded corners and true elevation are still outside the Rust-owned painter’s current quad primitive, but the token and state-color contract is stable for the shared Material controls.
+Native painter state is intentionally centralized in `host_contract/painter/theme.rs` and consumed by `template_nodes.rs`. The current state priority is `disabled > validation error/warning > success/info > pressed > selected/checked/focused > primary/accent hovered/drop-target > primary/accent > hovered/drop-target > default`; focused painter tests cover default, hover, pressed, selected/checked/focused border, disabled, primary/accent, warning, error, success, info, disabled text colors, and rounded-corner pixels.
+
+The 2026-05-16 feedback emphasis uses the generated Material references in `.codex/material-ui-capture/material-style-reference-1.png` and `.codex/material-ui-capture/material-style-reference-2.png` as visual anchors. It raises dark-tooling contrast without changing layout: hover surfaces move to a brighter blue-teal container with accent/focus borders, pressed surfaces move to a deeper teal container, selected and checked states share the saturated selected container, and focused/pressed/selected borders use the 2px focus-ring token. Primary/accent controls also get an explicit hover fill instead of remaining visually flat, so buttons, icon buttons, toggles, rows, tabs, menu items, and field-like controls show immediate feedback through the same retained painter path.
+
+The 2026-05-15 retained Material slice makes rounded corners a real paint contract instead of a token-only promise. `HostPaintCommand` carries `corner_radius`, `HostRecordedPaintKind::{Quad, Border}` preserves it in the recorded stream, `ChromeCommandKind::{Quad, Border}` forwards it to the GPU presenter, and `UiSurfaceCommandKind::{Quad, Border}` keeps the radius for runtime WGPU geometry. The software painter fills rounded surfaces and borders by pixel coverage, while WGPU emits rounded solid vertices for quad and border commands so the GPU presenter no longer draws Material controls as square quads.
+
+The same slice shifts the editor Material palette from the older blue/orange-dark scheme to a darker teal/blue tool palette: default controls use roughly 10px radii, panels use 12px radii, primary/action controls can use pill radii, and success/info/warning/error tones are available as reusable surface variants. The first representative consumers are the workbench menu/activity controls, Inspector fields/actions, welcome controls, and component showcase shell; this is intentionally a visual/style convergence pass and does not change business routing or restore any Slint host path.
 
 Implementation follow-up in this slice added root-level forwarding params for the first-slice Button/IconButton/Field/List/Menu/Dialog-like Popup/Tabs/Navigation/Surface representatives, and keeps `MaterialComboBox` forwarding `popup_anchor_x` and `popup_anchor_y` so popup positioning does not need an editor-host side table.
 

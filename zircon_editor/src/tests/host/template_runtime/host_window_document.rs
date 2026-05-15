@@ -26,7 +26,7 @@ fn editor_ui_host_runtime_projects_builtin_host_template_into_retained_projectio
             .iter()
             .map(|node| node.component.as_str())
             .collect::<Vec<_>>(),
-        vec!["VerticalBox", "Overlay", "Overlay", "Overlay"]
+        vec!["VerticalGroup", "Overlay", "Overlay", "Overlay"]
     );
 
     let open_project = projection
@@ -55,7 +55,7 @@ fn editor_ui_host_runtime_registers_only_generic_host_window_document_id() {
         .unwrap();
     assert_eq!(
         surface.tree.tree_id.0,
-        format!("template.{UI_HOST_WINDOW_DOCUMENT_ID}")
+        format!("template.v2.{UI_HOST_WINDOW_DOCUMENT_ID}")
     );
 }
 

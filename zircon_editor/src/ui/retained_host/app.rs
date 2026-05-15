@@ -32,6 +32,7 @@ use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::{
     EditorEventRuntime, EditorViewportEvent, NativePluginEditorRuntimePlayModeBackend,
 };
+use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
 use crate::ui::host::editor_asset_manager::{
     EditorAssetChange, EditorAssetManager as EditorAssetManagerContract,
@@ -104,6 +105,7 @@ pub(crate) mod backend_refresh;
 mod build_export_actions;
 mod callback_wiring;
 mod close_prompt;
+mod component_showcase_runtime;
 mod detail_scroll_pointer;
 mod helpers;
 mod hierarchy_pointer;
@@ -114,10 +116,13 @@ mod menu_pointer;
 mod module_plugin_actions;
 mod native_window_close;
 mod native_windows;
+mod pane_payload_visibility;
 mod pane_surface_actions;
 mod pointer_layout;
+mod presentation_cache;
 mod profiling;
 mod reference_drop_payload;
+mod runtime_diagnostics_visibility;
 mod showcase_event_inputs;
 mod startup;
 #[cfg(test)]
@@ -144,17 +149,27 @@ pub(crate) use native_windows::{
     collect_native_floating_window_targets, configure_native_floating_window_presentation,
     NativeWindowPresenterStore,
 };
+use presentation_cache::HostPresentationCache;
 pub(super) use startup::build_startup_state;
 
 pub fn run_editor(
     core: CoreHandle,
     runtime_client: SharedEditorRuntimeClient,
 ) -> Result<(), Box<dyn Error>> {
+    run_editor_with_startup_request(core, runtime_client, None)
+}
+
+pub fn run_editor_with_startup_request(
+    core: CoreHandle,
+    runtime_client: SharedEditorRuntimeClient,
+    startup_request: Option<EditorGuiStartupRequest>,
+) -> Result<(), Box<dyn Error>> {
     let ui = UiHostWindow::new()?;
     let host = Rc::new(RefCell::new(RetainedEditorHost::new(
         core,
         runtime_client,
         ui.clone_strong(),
+        startup_request,
     )?));
     wire_callbacks(&ui, &host);
     let host_weak = Rc::downgrade(&host);
@@ -168,7 +183,6 @@ pub fn run_editor(
     host.borrow_mut().self_handle = Some(Rc::downgrade(&host));
 
     host.borrow_mut().refresh_ui();
-
     ui.run()?;
     Ok(())
 }
@@ -194,15 +208,17 @@ struct RetainedEditorHost {
     startup_session: EditorStartupSessionDocument,
     viewport_size: UVec2,
     viewport_pointer_bridge: callback_dispatch::SharedViewportPointerBridge,
+    builtin_template_runtime: Arc<EditorUiHostRuntime>,
     template_bridge: callback_dispatch::BuiltinHostWindowTemplateBridge,
     floating_window_source_bridge: callback_dispatch::BuiltinFloatingWindowSourceTemplateBridge,
     viewport_toolbar_bridge: callback_dispatch::BuiltinViewportToolbarTemplateBridge,
     viewport_toolbar_pointer_bridge: ViewportToolbarPointerBridge,
-    asset_surface_bridge: callback_dispatch::BuiltinAssetSurfaceTemplateBridge,
-    welcome_surface_bridge: callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge,
+    asset_surface_bridge: Option<callback_dispatch::BuiltinAssetSurfaceTemplateBridge>,
+    welcome_surface_bridge: Option<callback_dispatch::BuiltinWelcomeSurfaceTemplateBridge>,
     inspector_surface_bridge: callback_dispatch::BuiltinInspectorSurfaceTemplateBridge,
     pane_surface_bridge: callback_dispatch::BuiltinPaneSurfaceTemplateBridge,
     component_showcase_runtime: EditorUiHostRuntime,
+    component_showcase_runtime_loaded: bool,
     shell_pointer_bridge: HostShellPointerBridge,
     activity_rail_pointer_bridge: HostActivityRailPointerBridge,
     host_page_pointer_bridge: HostPagePointerBridge,
@@ -236,6 +252,7 @@ struct RetainedEditorHost {
     transient_region_preferred: BTreeMap<ShellRegionId, f32>,
     active_drawer_resize: Option<ActiveDrawerResize>,
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
+    presentation_cache: HostPresentationCache,
     invalidation: HostInvalidationRoot,
     presentation_dirty: bool,
     layout_dirty: bool,

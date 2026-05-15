@@ -67,6 +67,7 @@ pub(super) unsafe extern "C" fn create_session(
     config: ZrRuntimeSessionConfigV1,
     out_session: *mut ZrRuntimeSessionHandle,
 ) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "create_session");
     if out_session.is_null() {
         return invalid_argument(b"missing runtime session output");
     }
@@ -246,40 +247,80 @@ struct RuntimeDynamicSession {
 
 impl RuntimeDynamicSession {
     fn new() -> Result<Self, String> {
-        let runtime = CoreRuntime::new();
+        crate::profile_scope!("runtime", "dynamic_api", "runtime_dynamic_session_new");
+        let runtime = {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_core_new");
+            CoreRuntime::new()
+        };
         let core = runtime.handle();
-        let modules = runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None);
+        let modules = {
+            crate::profile_scope!(
+                "runtime",
+                "dynamic_api",
+                "runtime_session_modules_for_target"
+            );
+            runtime_modules_for_target(RuntimeTargetMode::ClientRuntime, None)
+        };
         if !modules.errors.is_empty() {
             return Err(modules.errors.join("; "));
         }
-        for module in &modules.modules {
-            runtime
-                .register_module(module.descriptor())
-                .map_err(|error| error.to_string())?;
+        {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_register_modules");
+            for module in &modules.modules {
+                runtime
+                    .register_module(module.descriptor())
+                    .map_err(|error| error.to_string())?;
+            }
         }
-        for module in &modules.modules {
-            runtime
-                .activate_module(module.module_name())
-                .map_err(|error| error.to_string())?;
+        {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_activate_modules");
+            for module in &modules.modules {
+                runtime
+                    .activate_module(module.module_name())
+                    .map_err(|error| error.to_string())?;
+            }
         }
 
-        let input_manager = resolve_input(&core).map_err(|error| error.to_string())?;
-        let render_bridge = RuntimeRenderBridge::new(&core).map_err(|error| error.to_string())?;
-        let level = crate::scene::create_default_level(&core).map_err(|error| error.to_string())?;
-        let (selected_node, orbit_target) = level.with_world(|world| {
-            let cube = world
-                .nodes()
-                .iter()
-                .find(|node| matches!(&node.kind, NodeKind::Cube))
-                .map(|node| node.id)
-                .unwrap_or(world.active_camera());
-            let orbit_target = world
-                .find_node(cube)
-                .map(|node| node.transform.translation)
-                .unwrap_or_default();
-            (Some(cube), orbit_target)
-        });
-        let mut camera_controller = RuntimeCameraController::new(UVec2::new(1280, 720));
+        let input_manager = {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_resolve_input");
+            resolve_input(&core).map_err(|error| error.to_string())?
+        };
+        let render_bridge = {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_render_bridge");
+            RuntimeRenderBridge::new(&core).map_err(|error| error.to_string())?
+        };
+        let level = {
+            crate::profile_scope!("runtime", "dynamic_api", "runtime_session_default_level");
+            crate::scene::create_default_level(&core).map_err(|error| error.to_string())?
+        };
+        let (selected_node, orbit_target) = {
+            crate::profile_scope!(
+                "runtime",
+                "dynamic_api",
+                "runtime_session_select_orbit_target"
+            );
+            level.with_world(|world| {
+                let cube = world
+                    .nodes()
+                    .iter()
+                    .find(|node| matches!(&node.kind, NodeKind::Cube))
+                    .map(|node| node.id)
+                    .unwrap_or(world.active_camera());
+                let orbit_target = world
+                    .find_node(cube)
+                    .map(|node| node.transform.translation)
+                    .unwrap_or_default();
+                (Some(cube), orbit_target)
+            })
+        };
+        let mut camera_controller = {
+            crate::profile_scope!(
+                "runtime",
+                "dynamic_api",
+                "runtime_session_camera_controller"
+            );
+            RuntimeCameraController::new(UVec2::new(1280, 720))
+        };
         camera_controller.set_orbit_target(orbit_target);
 
         Ok(Self {

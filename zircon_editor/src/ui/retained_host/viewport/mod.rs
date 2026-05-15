@@ -3,6 +3,7 @@ mod import_frame_image;
 mod new;
 #[cfg(test)]
 mod new_test_stub;
+#[cfg(test)]
 mod new_with_framework;
 mod poll_image;
 mod retained_viewport_controller;

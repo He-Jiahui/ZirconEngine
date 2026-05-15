@@ -17,14 +17,14 @@ children = [{ node = "project_name" }, { node = "location" }, { node = "actions"
 [nodes.project_name]
 component = "InputField"
 control_id = "ProjectNameEdited"
-props = { label = "Project", placeholder = "Project name", value_text = "" }
+props = { label = "Project", placeholder = "Project name", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WelcomeSurface/ProjectNameEdited", event = "Change", route = "WelcomeCommand.SetProjectName" }]
 
 [nodes.location]
 component = "InputField"
 control_id = "LocationEdited"
-props = { label = "Location", placeholder = "Project location", value_text = "" }
+props = { label = "Location", placeholder = "Project location", value_text = "", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
 events = [{ id = "WelcomeSurface/LocationEdited", event = "Change", route = "WelcomeCommand.SetLocation" }]
 
@@ -37,14 +37,14 @@ children = [{ node = "create" }, { node = "open_existing" }]
 [nodes.create]
 component = "IconButton"
 control_id = "CreateProject"
-props = { label = "Create", icon = "add-circle-outline" }
+props = { label = "Create", icon = "add-circle-outline", surface_variant = "accent", button_variant = "primary", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/CreateProject", event = "Click", route = "WelcomeCommand.CreateProject" }]
 
 [nodes.open_existing]
 component = "IconButton"
 control_id = "OpenExistingProject"
-props = { label = "Open", icon = "folder-open-outline" }
+props = { label = "Open", icon = "folder-open-outline", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/OpenExistingProject", event = "Click", route = "WelcomeCommand.OpenExistingProject" }]
 
@@ -57,13 +57,13 @@ children = [{ node = "open_recent" }, { node = "remove_recent" }]
 [nodes.open_recent]
 component = "IconButton"
 control_id = "OpenRecentProject"
-props = { label = "Open Recent", icon = "time-outline" }
+props = { label = "Open Recent", icon = "time-outline", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 116.0, preferred = 116.0, max = 116.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/OpenRecentProject", event = "Click", route = "WelcomeCommand.OpenRecentProject" }]
 
 [nodes.remove_recent]
 component = "IconButton"
 control_id = "RemoveRecentProject"
-props = { label = "Remove", icon = "close-circle-outline" }
+props = { label = "Remove", icon = "close-circle-outline", surface_variant = "danger", text_tone = "danger", border_width = 1.0, corner_radius = 999.0 }
 layout = { width = { min = 92.0, preferred = 92.0, max = 92.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
 events = [{ id = "WelcomeSurface/RemoveRecentProject", event = "Click", route = "WelcomeCommand.RemoveRecentProject" }]

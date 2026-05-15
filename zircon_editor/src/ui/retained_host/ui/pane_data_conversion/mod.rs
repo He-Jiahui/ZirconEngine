@@ -16,6 +16,7 @@ mod pane_menu_projection;
 mod pane_option_projection;
 mod pane_ui_asset_conversion;
 mod pane_value_conversion;
+mod performance_timeline;
 mod runtime_diagnostics;
 mod ui_asset_detail_fields;
 
@@ -24,6 +25,7 @@ pub(crate) use self::module_plugins::to_host_contract_module_plugins_pane_from_h
 use self::pane_component_projection::host_template_node;
 pub(super) use self::pane_ui_asset_conversion::to_host_contract_ui_asset_pane;
 use self::pane_value_conversion::{value_as_bool, value_as_string};
+pub(crate) use self::performance_timeline::to_host_contract_performance_timeline_pane_from_host_pane;
 pub(crate) use self::runtime_diagnostics::{
     refresh_runtime_diagnostics_debug_reflector_from_body_surface,
     to_host_contract_runtime_diagnostics_pane_from_host_pane,
@@ -80,7 +82,16 @@ pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::HierarchyPaneData {
-    hierarchy_template_projection(data, content_size)
+    hierarchy_template_projection(data, content_size, None)
+        .unwrap_or_else(|| to_host_contract_hierarchy_pane(data.native_body.hierarchy.clone()))
+}
+
+pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> host_contract::HierarchyPaneData {
+    hierarchy_template_projection(data, content_size, Some(runtime))
         .unwrap_or_else(|| to_host_contract_hierarchy_pane(data.native_body.hierarchy.clone()))
 }
 
@@ -112,7 +123,17 @@ pub(crate) fn to_host_contract_inspector_pane_from_host_pane(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::InspectorPaneData {
-    inspector_template_projection(data, content_size).unwrap_or_else(|| {
+    inspector_template_projection(data, content_size, None).unwrap_or_else(|| {
+        to_host_contract_inspector_pane(data.native_body.inspector.clone(), content_size)
+    })
+}
+
+pub(crate) fn to_host_contract_inspector_pane_from_host_pane_with_runtime(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> host_contract::InspectorPaneData {
+    inspector_template_projection(data, content_size, Some(runtime)).unwrap_or_else(|| {
         to_host_contract_inspector_pane(data.native_body.inspector.clone(), content_size)
     })
 }
@@ -130,7 +151,16 @@ pub(crate) fn to_host_contract_console_pane_from_host_pane(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::ConsolePaneData {
-    console_template_projection(data, content_size)
+    console_template_projection(data, content_size, None)
+        .unwrap_or_else(|| to_host_contract_console_pane(data.native_body.console.clone()))
+}
+
+pub(crate) fn to_host_contract_console_pane_from_host_pane_with_runtime(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> host_contract::ConsolePaneData {
+    console_template_projection(data, content_size, Some(runtime))
         .unwrap_or_else(|| to_host_contract_console_pane(data.native_body.console.clone()))
 }
 
@@ -167,7 +197,17 @@ pub(crate) fn to_host_contract_animation_editor_pane_from_host_pane(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::AnimationEditorPaneData {
-    animation_template_projection(data, content_size).unwrap_or_else(|| {
+    animation_template_projection(data, content_size, None).unwrap_or_else(|| {
+        to_host_contract_animation_editor_pane(data.native_body.animation.clone())
+    })
+}
+
+pub(crate) fn to_host_contract_animation_editor_pane_from_host_pane_with_runtime(
+    data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
+    content_size: PaneContentSize,
+    runtime: &EditorUiHostRuntime,
+) -> host_contract::AnimationEditorPaneData {
+    animation_template_projection(data, content_size, Some(runtime)).unwrap_or_else(|| {
         to_host_contract_animation_editor_pane(data.native_body.animation.clone())
     })
 }
@@ -194,6 +234,7 @@ pub(super) fn to_host_contract_asset_browser_pane(
 fn console_template_projection(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> Option<host_contract::ConsolePaneData> {
     let presentation = data.pane_presentation.as_ref()?;
     if !matches!(
@@ -203,7 +244,7 @@ fn console_template_projection(
         return None;
     }
 
-    let runtime = builtin_host_runtime()?;
+    let runtime = pane_template_runtime(runtime)?;
     let projection = runtime.project_pane_body(&presentation.body).ok()?;
     let mut surface = runtime
         .build_shared_surface(&presentation.body.document_id)
@@ -245,6 +286,7 @@ fn console_template_projection(
 fn inspector_template_projection(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> Option<host_contract::InspectorPaneData> {
     let presentation = data.pane_presentation.as_ref()?;
     let crate::ui::layouts::windows::workbench_host_window::PanePayload::InspectorV1(payload) =
@@ -253,7 +295,7 @@ fn inspector_template_projection(
         return None;
     };
 
-    let runtime = builtin_host_runtime()?;
+    let runtime = pane_template_runtime(runtime)?;
     let projection = runtime.project_pane_body(&presentation.body).ok()?;
     let mut surface = runtime
         .build_shared_surface(&presentation.body.document_id)
@@ -923,6 +965,7 @@ fn inspector_node(
 fn hierarchy_template_projection(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> Option<host_contract::HierarchyPaneData> {
     let presentation = data.pane_presentation.as_ref()?;
     let crate::ui::layouts::windows::workbench_host_window::PanePayload::HierarchyV1(payload) =
@@ -931,7 +974,8 @@ fn hierarchy_template_projection(
         return None;
     };
 
-    let mut nodes = project_pane_template_nodes(&presentation.body, content_size)?;
+    let mut nodes =
+        project_pane_template_nodes_with_runtime(&presentation.body, content_size, runtime)?;
     apply_hierarchy_template_state(
         &mut nodes,
         !payload.nodes.is_empty(),
@@ -1001,11 +1045,13 @@ fn apply_hierarchy_template_state(
 fn animation_template_projection(
     data: &crate::ui::layouts::windows::workbench_host_window::PaneData,
     content_size: PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
 ) -> Option<host_contract::AnimationEditorPaneData> {
     let presentation = data.pane_presentation.as_ref()?;
-    let nodes = model_rc(project_pane_template_nodes(
+    let nodes = model_rc(project_pane_template_nodes_with_runtime(
         &presentation.body,
         content_size,
+        runtime,
     )?);
 
     match &presentation.body.payload {
@@ -1323,7 +1369,15 @@ fn project_pane_template_nodes(
     body: &crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation,
     content_size: PaneContentSize,
 ) -> Option<Vec<host_contract::TemplatePaneNodeData>> {
-    let runtime = builtin_host_runtime()?;
+    project_pane_template_nodes_with_runtime(body, content_size, None)
+}
+
+fn project_pane_template_nodes_with_runtime(
+    body: &crate::ui::layouts::windows::workbench_host_window::PaneBodyPresentation,
+    content_size: PaneContentSize,
+    runtime: Option<&EditorUiHostRuntime>,
+) -> Option<Vec<host_contract::TemplatePaneNodeData>> {
+    let runtime = pane_template_runtime(runtime)?;
     let projection = runtime.project_pane_body(body).ok()?;
     let mut surface = runtime.build_shared_surface(&body.document_id).ok()?;
     surface
@@ -1343,6 +1397,13 @@ fn project_pane_template_nodes(
             .filter_map(|node| host_template_node_with_content_fallback(node, content_size))
             .collect(),
     )
+}
+
+fn pane_template_runtime(runtime: Option<&EditorUiHostRuntime>) -> Option<&EditorUiHostRuntime> {
+    match runtime {
+        Some(runtime) => Some(runtime),
+        None => builtin_host_runtime(),
+    }
 }
 
 fn host_template_node_with_content_fallback(

@@ -5,9 +5,10 @@ use zircon_runtime::foundation::{
 
 use crate::ui::host::module::{self, module_descriptor, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorManager;
+use crate::ui::workbench::layout::MainPageId;
 use crate::ui::workbench::preset::EditorUiDesignStack;
 use crate::ui::workbench::view::{
-    PanePayloadKind, PaneRouteNamespace, PreferredHost, ViewDescriptorId, ViewKind,
+    PanePayloadKind, PaneRouteNamespace, PreferredHost, ViewDescriptorId, ViewHost, ViewKind,
 };
 
 fn editor_runtime() -> CoreRuntime {
@@ -199,6 +200,41 @@ fn material_demo_window_descriptor_opens_as_document_center_demo() {
 }
 
 #[test]
+fn component_showcase_window_descriptor_opens_as_exclusive_demo_page() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let runtime = editor_runtime();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let descriptors = manager.descriptors();
+    let descriptor = descriptors
+        .iter()
+        .find(|descriptor| {
+            descriptor.descriptor_id == ViewDescriptorId::new("editor.ui_component_showcase")
+        })
+        .expect("missing UI Component Showcase descriptor");
+
+    assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
+    assert_eq!(descriptor.default_title, "UI Component Showcase");
+    assert_eq!(descriptor.preferred_host, PreferredHost::ExclusiveMainPage);
+    assert_eq!(descriptor.icon_key, "ui-components");
+
+    let instance_id = manager
+        .open_view(ViewDescriptorId::new("editor.ui_component_showcase"), None)
+        .expect("UI Component Showcase should open through the view registry");
+    let page_id = MainPageId::new("page:editor.ui_component_showcase#1");
+    assert_eq!(
+        manager
+            .current_view_instances()
+            .into_iter()
+            .find(|instance| instance.instance_id == instance_id)
+            .map(|instance| instance.host),
+        Some(ViewHost::ExclusivePage(page_id.clone()))
+    );
+    assert_eq!(manager.current_layout().active_main_page, page_id);
+}
+
+#[test]
 fn functional_editor_internal_view_descriptors_use_document_host() {
     let _guard = crate::tests::support::env_lock().lock().unwrap();
     let runtime = editor_runtime();
@@ -259,6 +295,46 @@ fn debug_observatory_activity_window_reuses_runtime_diagnostics_payload() {
     assert_eq!(
         pane_template.body.payload_kind,
         PanePayloadKind::RuntimeDiagnosticsV1
+    );
+    assert_eq!(
+        pane_template.body.route_namespace,
+        PaneRouteNamespace::Diagnostics
+    );
+}
+
+#[test]
+fn performance_timeline_activity_view_uses_dedicated_payload_and_diagnostics_capability() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let runtime = editor_runtime();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let descriptors = manager.descriptors();
+
+    let descriptor = descriptors
+        .iter()
+        .find(|descriptor| {
+            descriptor.descriptor_id == ViewDescriptorId::new("editor.performance_timeline")
+        })
+        .expect("missing Performance Timeline descriptor");
+
+    assert_eq!(descriptor.kind, ViewKind::ActivityView);
+    assert_eq!(descriptor.default_title, "Performance Timeline");
+    assert_eq!(descriptor.icon_key, "performance-timeline");
+    assert!(descriptor
+        .required_capabilities
+        .contains(&crate::ui::host::EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS.to_string()));
+    let pane_template = descriptor
+        .pane_template
+        .as_ref()
+        .expect("Performance Timeline should own a pane template");
+    assert_eq!(
+        pane_template.body.document_id,
+        "pane.performance.timeline.body"
+    );
+    assert_eq!(
+        pane_template.body.payload_kind,
+        PanePayloadKind::PerformanceTimelineV1
     );
     assert_eq!(
         pane_template.body.route_namespace,

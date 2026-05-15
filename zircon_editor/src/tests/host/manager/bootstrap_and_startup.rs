@@ -629,7 +629,7 @@ fn editor_manager_registers_animation_document_view_descriptors() {
 }
 
 #[test]
-fn startup_session_defaults_to_welcome_without_recent_project() {
+fn startup_session_defaults_to_component_showcase_without_recent_project() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_startup_welcome");
     let runtime = editor_runtime_with_config_path(&path);
@@ -640,10 +640,15 @@ fn startup_session_defaults_to_welcome_without_recent_project() {
     let session = manager.resolve_startup_session().unwrap();
 
     assert_eq!(session.mode, EditorSessionMode::Welcome);
+    assert_eq!(
+        session.open_builtin_view.as_deref(),
+        Some("editor.ui_component_showcase")
+    );
     assert!(session.project.is_none());
     assert!(session.recent_projects.is_empty());
     assert_eq!(session.draft.project_name, "ZirconProject");
     assert_eq!(session.draft.template, NewProjectTemplate::RenderableEmpty);
+    assert_eq!(session.status_message, "Opened UI Component Showcase");
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
@@ -667,17 +672,54 @@ fn create_project_and_open_persists_recent_project_and_returns_project_session()
 
     let opened = manager.create_project_and_open(draft).unwrap();
     let recent = manager.recent_projects_snapshot().unwrap();
-    let reopened = manager.resolve_startup_session().unwrap();
+    let default_startup = manager.resolve_startup_session().unwrap();
 
     assert_eq!(opened.mode, EditorSessionMode::Project);
     assert!(opened.project.is_some());
+    assert!(opened.open_builtin_view.is_none());
     assert_eq!(recent.len(), 1);
     assert_eq!(recent[0].display_name, "RecentProject");
     assert_eq!(recent[0].validation, RecentProjectValidation::Valid);
-    assert_eq!(reopened.mode, EditorSessionMode::Project);
-    assert!(reopened.project.is_some());
+    assert_eq!(default_startup.mode, EditorSessionMode::Welcome);
+    assert_eq!(
+        default_startup.open_builtin_view.as_deref(),
+        Some("editor.ui_component_showcase")
+    );
+    assert!(default_startup.project.is_none());
+    assert!(default_startup.recent_projects.is_empty());
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(path);
     let _ = fs::remove_dir_all(location);
+}
+
+#[test]
+fn explicit_project_open_session_bypasses_component_showcase_builtin_view() {
+    let _guard = env_lock().lock().unwrap();
+    let path = unique_temp_path("zircon_editor_startup_project_open");
+    let project_root = unique_temp_dir("zircon_editor_explicit_project_open");
+    let runtime = editor_runtime_with_config_path(&path);
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let world = DefaultLevelManager::default()
+        .create_default_level()
+        .snapshot();
+    EditorProjectDocument::save_to_path(&project_root, &world, None).unwrap();
+
+    let opened = manager.open_project_and_remember(&project_root).unwrap();
+
+    assert_eq!(opened.mode, EditorSessionMode::Project);
+    assert!(opened.project.is_some());
+    assert!(opened.open_builtin_view.is_none());
+    assert_eq!(opened.status_message, "Project opened");
+    assert_eq!(opened.recent_projects.len(), 1);
+    assert_eq!(
+        opened.recent_projects[0].validation,
+        RecentProjectValidation::Valid
+    );
+
+    std::env::remove_var("ZIRCON_CONFIG_PATH");
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_dir_all(project_root);
 }

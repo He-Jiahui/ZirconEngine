@@ -21,7 +21,9 @@ mod import_sound;
 mod import_texture;
 #[cfg(test)]
 mod import_ui_asset;
+#[cfg(test)]
 mod import_ui_v2_asset;
+mod import_ui_zui_asset;
 mod primitive_from_indexed_mesh;
 mod validate_wgsl;
 

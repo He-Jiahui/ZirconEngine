@@ -34,7 +34,7 @@ use crate::ui::layouts::windows::workbench_host_window::{
     build_pane_body_presentation, document_pane, BuildExportPaneViewData,
     BuildExportTargetViewData, ModulePluginStatusViewData, ModulePluginsPaneViewData,
     PaneActionPresentation, PaneEmptyStatePresentation, PanePayload, PanePayloadBuildContext,
-    PanePresentation, PaneShellPresentation,
+    PanePresentation, PaneShellPresentation, PerformanceTimelineCaptureControlPayload,
 };
 use crate::ui::workbench::layout::{
     ActivityWindowId, DocumentNode, MainHostPageLayout, MainPageId, TabStackLayout, WorkbenchLayout,
@@ -141,7 +141,7 @@ fn editor_data_with_drawer_fixture() -> EditorDataSnapshot {
                 plugin_id: "weather".to_string(),
                 drawer_available: true,
                 drawer_ui_document: Some(
-                    "asset://weather/editor/cloud_layer.inspector.v2.ui.toml".to_string(),
+                    "asset://weather/editor/cloud_layer.inspector.zui".to_string(),
                 ),
                 drawer_controller: Some("weather.editor.CloudLayerInspectorController".to_string()),
                 drawer_template_id: Some("weather.cloud_layer.inspector".to_string()),
@@ -226,6 +226,13 @@ fn runtime_diagnostics_fixture() -> RuntimeDiagnosticsSnapshot {
             start_us: 1_000,
             duration_us: 12_000,
             depth: 0,
+        }],
+        counters: vec![zircon_runtime::core::diagnostics::ProfileCounterSnapshot {
+            stream: "editor".to_string(),
+            name: "ui.scenario.hover.slow_path_rebuild".to_string(),
+            value: 1.0,
+            timestamp_us: 2_000,
+            frame_index: Some(0),
         }],
         ..ProfileSnapshot::default()
     };
@@ -446,6 +453,11 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
             PanePayloadKind::RuntimeDiagnosticsV1,
         ),
         (
+            "editor.performance_timeline",
+            "pane.performance.timeline.body",
+            PanePayloadKind::PerformanceTimelineV1,
+        ),
+        (
             "editor.module_plugins",
             "pane.module_plugins.body",
             PanePayloadKind::ModulePluginsV1,
@@ -513,7 +525,7 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     .contains(&"Hybrid GI active probes: 4".to_string()));
                 assert!(payload
                     .detail_items
-                    .contains(&"Profiling: active (1 frames, 1 spans, 0 counters)".to_string()));
+                    .contains(&"Profiling: active (1 frames, 1 spans, 1 counters)".to_string()));
                 assert!(payload
                     .detail_items
                     .contains(&"Profiling over-budget frames: 1".to_string()));
@@ -530,6 +542,40 @@ fn pane_payload_builders_emit_stable_body_metadata_for_first_wave_views() {
                     .contains("Export unavailable"));
                 assert!(payload.ui_debug_reflector_overlay_primitives.is_empty());
                 assert!(!payload.ui_debug_reflector_has_active_snapshot);
+            }
+            ("editor.performance_timeline", PanePayload::PerformanceTimelineV1(payload)) => {
+                assert_eq!(
+                    payload.summary,
+                    "Profiling active: 1 frame, 1 span, 1 counter"
+                );
+                assert_eq!(payload.session_label, "Session local");
+                assert_eq!(payload.output_label, "Output target/zircon-profiles/local");
+                assert_eq!(payload.frame_rows.len(), 1);
+                assert_eq!(payload.frame_rows[0].stream, "editor");
+                assert_eq!(payload.frame_rows[0].name, "retained_host_tick");
+                assert_eq!(payload.frame_rows[0].duration_label, "18.00 ms");
+                assert_eq!(payload.frame_rows[0].budget_label, "16.67 ms budget");
+                assert_eq!(payload.frame_rows[0].budget_usage_label, "108% budget");
+                assert!((payload.frame_rows[0].duration_ratio - 1.079_784).abs() < 0.000_1);
+                assert_eq!(payload.frame_rows[0].bar_fill_ratio, 1.0);
+                assert!((payload.frame_rows[0].budget_marker_ratio - 0.926_111).abs() < 0.000_1);
+                assert!(payload.frame_rows[0].over_budget);
+                assert_eq!(payload.span_summary_rows.len(), 1);
+                assert_eq!(payload.span_summary_rows[0].name, "recompute_if_dirty");
+                assert_eq!(payload.span_summary_rows[0].duration_label, "12.00 ms");
+                assert_eq!(payload.hotspot_rows.len(), 1);
+                assert_eq!(payload.hotspot_rows[0].name, "recompute_if_dirty");
+                assert_eq!(payload.hotspot_rows[0].total_label, "12.00 ms total");
+                assert!(payload.capture_controls.iter().any(|control| control
+                    == &PerformanceTimelineCaptureControlPayload {
+                        label: "Stop Capture".to_string(),
+                        action_id: "PerformanceTimeline.StopCapture".to_string(),
+                        enabled: true,
+                    }));
+                assert!(payload
+                    .capture_controls
+                    .iter()
+                    .any(|control| control.action_id == "PerformanceTimeline.ExportReport"));
             }
             ("editor.module_plugins", PanePayload::ModulePluginsV1(payload)) => {
                 assert_eq!(payload.diagnostics, "plugin catalog ready");
@@ -647,7 +693,7 @@ fn inspector_payload_preserves_component_drawer_template_metadata() {
 
     assert_eq!(
         component.drawer_ui_document.as_deref(),
-        Some("asset://weather/editor/cloud_layer.inspector.v2.ui.toml")
+        Some("asset://weather/editor/cloud_layer.inspector.zui")
     );
     assert_eq!(
         component.drawer_controller.as_deref(),
@@ -734,6 +780,10 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
         (
             "editor.runtime_diagnostics",
             "pane.runtime.diagnostics.body",
+        ),
+        (
+            "editor.performance_timeline",
+            "pane.performance.timeline.body",
         ),
         ("editor.module_plugins", "pane.module_plugins.body"),
         (
@@ -831,6 +881,19 @@ fn document_pane_projects_first_wave_pane_presentations_alongside_legacy_data() 
                     assert!(!payload.ui_debug_reflector_has_active_snapshot);
                 }
                 unexpected => panic!("expected runtime diagnostics payload, found {unexpected:?}"),
+            }
+        }
+        if descriptor_id == "editor.performance_timeline" {
+            match &pane_presentation.body.payload {
+                PanePayload::PerformanceTimelineV1(payload) => {
+                    assert_eq!(
+                        payload.summary,
+                        "Profiling active: 1 frame, 1 span, 1 counter"
+                    );
+                    assert_eq!(payload.frame_rows.len(), 1);
+                    assert_eq!(payload.hotspot_rows.len(), 1);
+                }
+                unexpected => panic!("expected performance timeline payload, found {unexpected:?}"),
             }
         }
         if descriptor_id == "editor.module_plugins" {

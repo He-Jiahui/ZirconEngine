@@ -3,6 +3,7 @@
 mod capabilities;
 mod descriptors;
 mod device;
+mod ui_surface;
 
 pub use capabilities::{AccelerationStructureCaps, RenderBackendCaps, RenderQueueClass};
 pub use descriptors::{
@@ -15,6 +16,19 @@ pub use device::{
     RenderDevice, RhiError, SamplerHandle, ShaderModuleHandle, TextureHandle,
     TransientAllocatorStats,
 };
+pub use ui_surface::{
+    UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,
+    UiSurfaceImagePayload, UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect,
+    UiSurfaceTextStyle,
+};
+
+pub fn create_default_ui_surface_presenter(
+    descriptor: UiSurfaceDescriptor,
+) -> Result<Box<dyn UiSurfacePresenter>, RhiError> {
+    Ok(Box::new(crate::rhi_wgpu::WgpuUiSurfacePresenter::new(
+        descriptor,
+    )?))
+}
 
 #[cfg(test)]
 mod tests;

@@ -12,7 +12,7 @@ pub(super) fn component_showcase_view_descriptor() -> ViewDescriptor {
         ViewKind::ActivityWindow,
         "UI Component Showcase",
     )
-    .with_preferred_host(PreferredHost::DocumentCenter)
+    .with_preferred_host(PreferredHost::ExclusiveMainPage)
     .with_default_constraints(default_constraints_for_content(
         ViewContentKind::UiComponentShowcase,
     ))

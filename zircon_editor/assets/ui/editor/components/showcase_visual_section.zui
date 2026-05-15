@@ -1,0 +1,105 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_visual_section.zui"
+version = 2
+display_name = "Showcase Visual Section"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseVisualSection]
+root = "visual_section_root"
+default_classes = ["showcase-panel", "material-surface"]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseVisualSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Visual and Feedback", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.label_demo]
+component = "Label"
+control_id = "LabelDemo"
+props = { text = "Label, rich label, badge, icon, SVG icon and progress primitives" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.rich_label_demo]
+component = "RichLabel"
+control_id = "RichLabelDemo"
+props = { text = "RichLabel: supports emphasized inspector copy" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.image_demo]
+component = "Image"
+control_id = "ImageDemo"
+classes = ["showcase-field"]
+props = { value = "ui/editor/showcase_checker.svg", image = "ui/editor/showcase_checker.svg" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.icon_demo]
+component = "Icon"
+control_id = "IconDemo"
+classes = ["showcase-field"]
+props = { value = "ionicons/options-outline.svg", icon = "options-outline" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.svg_icon_demo]
+component = "SvgIcon"
+control_id = "SvgIconDemo"
+classes = ["showcase-field"]
+props = { source = "ionicons/options-outline.svg" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.separator_demo]
+component = "Separator"
+control_id = "SeparatorDemo"
+classes = ["showcase-field"]
+props = { text = "Separator" }
+layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 12.0, max = 12.0, stretch = "Fixed" } }
+
+[nodes.progress_demo]
+component = "ProgressBar"
+control_id = "ProgressBarDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = 0.62, indeterminate = false }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.spinner_demo]
+component = "Spinner"
+control_id = "SpinnerDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Spinner" }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.badge_demo]
+component = "Badge"
+control_id = "BadgeDemo"
+classes = ["showcase-field"]
+props = { text = "Badge / Tag" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.help_row_demo]
+component = "HelpRow"
+control_id = "HelpRowDemo"
+classes = ["showcase-field"]
+props = { text = "Help row with inline validation guidance", validation_level = "warning", validation_message = "review" }
+layout = { width = { stretch = "Stretch" }, height = { min = 26.0, preferred = 26.0, max = 26.0, stretch = "Fixed" } }
+
+[nodes.visual_section_root]
+component = "VerticalGroup"
+layout = { width = { stretch = "Stretch" } }
+children = [
+  { node = "section_title" },
+  { node = "label_demo", slot = { name = "content" } },
+  { node = "rich_label_demo", slot = { name = "content" } },
+  { node = "image_demo", slot = { name = "content" } },
+  { node = "icon_demo", slot = { name = "content" } },
+  { node = "svg_icon_demo", slot = { name = "content" } },
+  { node = "separator_demo", slot = { name = "content" } },
+  { node = "progress_demo", slot = { name = "content" } },
+  { node = "spinner_demo", slot = { name = "content" } },
+  { node = "badge_demo", slot = { name = "content" } },
+  { node = "help_row_demo", slot = { name = "content" } },
+]

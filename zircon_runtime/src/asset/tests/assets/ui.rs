@@ -344,54 +344,26 @@ fn importer_decodes_ui_layout_widget_and_style_assets_from_ui_toml() {
 }
 
 #[test]
-fn importer_decodes_ui_v2_view_component_and_style_assets_from_v2_ui_toml() {
-    let root = unique_temp_project_root("ui_v2_asset_import");
+fn importer_decodes_zui_component_assets_from_zui() {
+    let root = unique_temp_project_root("zui_asset_import");
     fs::create_dir_all(&root).unwrap();
-    let view_path = root.join("panel.v2.ui.toml");
-    let component_path = root.join("button.v2.ui.toml");
-    let style_path = root.join("theme.v2.ui.toml");
-    fs::write(&view_path, V2_VIEW_UI_TOML).unwrap();
+    let component_path = root.join("button.zui");
     fs::write(&component_path, V2_COMPONENT_UI_TOML).unwrap();
-    fs::write(&style_path, V2_STYLE_UI_TOML).unwrap();
 
     let importer = AssetImporter::default();
 
-    let view = importer
-        .import_from_source(
-            &view_path,
-            &AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap(),
-        )
-        .unwrap();
     let component = importer
         .import_from_source(
             &component_path,
-            &AssetUri::parse("res://ui/button.v2.ui.toml").unwrap(),
-        )
-        .unwrap();
-    let style = importer
-        .import_from_source(
-            &style_path,
-            &AssetUri::parse("res://ui/theme.v2.ui.toml").unwrap(),
+            &AssetUri::parse("res://ui/button.zui").unwrap(),
         )
         .unwrap();
 
-    match view {
-        ImportedAsset::UiV2View(asset) => {
-            assert_eq!(asset.document.asset.id, "runtime.ui.panel");
-        }
-        other => panic!("unexpected v2 view import: {other:?}"),
-    }
     match component {
         ImportedAsset::UiV2Component(asset) => {
             assert!(asset.document.components.contains_key("ToolbarButton"));
         }
-        other => panic!("unexpected v2 component import: {other:?}"),
-    }
-    match style {
-        ImportedAsset::UiV2Style(asset) => {
-            assert_eq!(asset.document.stylesheets.len(), 1);
-        }
-        other => panic!("unexpected v2 style import: {other:?}"),
+        other => panic!("unexpected zui component import: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);
@@ -453,13 +425,13 @@ fn project_manager_scans_ui_assets_and_assigns_ui_asset_kinds() {
 }
 
 #[test]
-fn project_manager_scans_ui_v2_assets_and_restores_v2_payloads() {
-    let root = unique_temp_project_root("ui_v2_asset_project");
+fn project_manager_scans_zui_assets_and_restores_component_payloads() {
+    let root = unique_temp_project_root("zui_asset_project");
     let paths = ProjectPaths::from_root(&root).unwrap();
     paths.ensure_layout().unwrap();
     ProjectManifest::new(
-        "UiV2Sandbox",
-        AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap(),
+        "ZuiSandbox",
+        AssetUri::parse("res://ui/button.zui").unwrap(),
         1,
     )
     .save(paths.manifest_path())
@@ -467,38 +439,26 @@ fn project_manager_scans_ui_v2_assets_and_restores_v2_payloads() {
 
     let ui_dir = paths.assets_root().join("ui");
     fs::create_dir_all(&ui_dir).unwrap();
-    fs::write(ui_dir.join("panel.v2.ui.toml"), V2_VIEW_UI_TOML).unwrap();
-    fs::write(ui_dir.join("button.v2.ui.toml"), V2_COMPONENT_UI_TOML).unwrap();
-    fs::write(ui_dir.join("theme.v2.ui.toml"), V2_STYLE_UI_TOML).unwrap();
+    fs::write(ui_dir.join("button.zui"), V2_COMPONENT_UI_TOML).unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
     manager.scan_and_import().unwrap();
 
-    let view = manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap())
-        .unwrap();
     let component = manager
         .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/button.v2.ui.toml").unwrap())
-        .unwrap();
-    let style = manager
-        .registry()
-        .get_by_locator(&AssetUri::parse("res://ui/theme.v2.ui.toml").unwrap())
+        .get_by_locator(&AssetUri::parse("res://ui/button.zui").unwrap())
         .unwrap();
 
-    assert_eq!(view.kind, AssetKind::UiLayout);
     assert_eq!(component.kind, AssetKind::UiWidget);
-    assert_eq!(style.kind, AssetKind::UiStyle);
 
     match manager
-        .load_artifact(&AssetUri::parse("res://ui/panel.v2.ui.toml").unwrap())
+        .load_artifact(&AssetUri::parse("res://ui/button.zui").unwrap())
         .unwrap()
     {
-        ImportedAsset::UiV2View(asset) => {
-            assert_eq!(asset.document.root_node_id(), Some("root"));
+        ImportedAsset::UiV2Component(asset) => {
+            assert!(asset.document.components.contains_key("ToolbarButton"));
         }
-        other => panic!("unexpected project v2 view asset: {other:?}"),
+        other => panic!("unexpected project zui component asset: {other:?}"),
     }
 
     let _ = fs::remove_dir_all(root);

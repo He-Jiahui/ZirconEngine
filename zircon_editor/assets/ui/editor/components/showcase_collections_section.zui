@@ -1,0 +1,177 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_collections_section.zui"
+version = 2
+display_name = "Showcase Collections Section"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseCollectionsSection]
+root = "collections_section_root"
+default_classes = ["showcase-panel", "material-surface"]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseCollectionsSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Collections and Inspector Structures", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.group_demo]
+component = "Group"
+control_id = "GroupDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Foldout Group", expanded = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/GroupToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.Group" },
+]
+
+[nodes.foldout_demo]
+component = "Foldout"
+control_id = "FoldoutDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Foldout", expanded = false, validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/FoldoutToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.Foldout" },
+]
+
+[nodes.property_row_demo]
+component = "PropertyRow"
+control_id = "PropertyRowDemo"
+classes = ["showcase-field"]
+props = { text = "Property Row", value = "Label + Field" }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.inspector_section_demo]
+component = "InspectorSection"
+control_id = "InspectorSectionDemo"
+classes = ["showcase-panel", "material-control"]
+props = { text = "Inspector Section", expanded = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InspectorSectionToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.InspectorSection" },
+]
+
+[nodes.array_field_demo]
+component = "ArrayField"
+control_id = "ArrayFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { items = ["Label", "NumberField", "AssetField"], value_text = "3 elements", element_type = "UiComponentRef", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ArrayFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldAddElement", event = "Submit", route = "UiComponentShowcase.AddElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldSetElement", event = "Submit", route = "UiComponentShowcase.SetElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldRemoveElement", event = "Submit", route = "UiComponentShowcase.RemoveElement.ArrayField" },
+  { id = "UiComponentShowcase/ArrayFieldMoveElement", event = "DragEnd", route = "UiComponentShowcase.MoveElement.ArrayField" },
+]
+
+[nodes.map_field_demo]
+component = "MapField"
+control_id = "MapFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { entries = { speed = 1.0, visible = true }, value_text = "2 entries", key_type = "String", value_type = "UiValue", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/MapFieldChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.MapField" },
+  { id = "UiComponentShowcase/MapFieldAddEntry", event = "Submit", route = "UiComponentShowcase.AddMapEntry.MapField" },
+  { id = "UiComponentShowcase/MapFieldSetEntry", event = "Submit", route = "UiComponentShowcase.SetMapEntry.MapField" },
+  { id = "UiComponentShowcase/MapFieldRemoveEntry", event = "Submit", route = "UiComponentShowcase.RemoveMapEntry.MapField" },
+]
+
+[nodes.list_row_demo]
+component = "ListRow"
+control_id = "ListRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "List Row", value = "selected", selected = true, focused = true, hovered = true, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ListRowClicked", event = "Click", route = "UiComponentShowcase.Select.ListRow" },
+  { id = "UiComponentShowcase/ListRowHovered", event = "Hover", route = "UiComponentShowcase.Hover.ListRow" },
+  { id = "UiComponentShowcase/ListRowPressed", event = "Press", route = "UiComponentShowcase.Press.ListRow" },
+]
+
+[nodes.table_row_demo]
+component = "TableRow"
+control_id = "TableRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Table Row", value = "row-42", selected = true, focused = true, hovered = false, pressed = false, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.virtual_list_demo]
+component = "VirtualList"
+control_id = "VirtualListDemo"
+classes = ["showcase-field", "material-control"]
+props = { items = ["Row 0", "Row 1", "Row 2", "Row 3", "Row 4", "Row 5", "Row 6", "Row 7"], total_count = 10000, viewport_start = 0, viewport_count = 25, item_extent = 28.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/VirtualListScrolled", event = "Scroll", route = "UiComponentShowcase.SetVisibleRange.VirtualList" },
+]
+
+[nodes.paged_list_demo]
+component = "PagedList"
+control_id = "PagedListDemo"
+classes = ["showcase-field"]
+props = { data_source = "showcase.large_items", total_count = 10000, page_index = 0, page_size = 100, page_count = 100, items = ["Page row 0", "Page row 1", "Page row 2"] }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/PagedListNextPage", event = "Click", route = "UiComponentShowcase.SetPage.PagedList" },
+]
+
+[nodes.world_space_surface_demo]
+component = "WorldSpaceSurface"
+control_id = "WorldSpaceSurfaceDemo"
+classes = ["showcase-field"]
+props = { world_position = [0.0, 1.5, 3.0], world_rotation = [0.0, 180.0, 0.0], world_scale = [1.0, 1.0, 1.0], world_size = [2.0, 1.0], pixels_per_meter = 256.0, billboard = true, depth_test = true, render_order = 0, camera_target = "viewport-main" }
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/WorldSpaceSurfaceMoved", event = "DragEnd", route = "UiComponentShowcase.SetWorldTransform.WorldSpaceSurface" },
+  { id = "UiComponentShowcase/WorldSpaceSurfaceConfigured", event = "Submit", route = "UiComponentShowcase.SetWorldSurface.WorldSpaceSurface" },
+]
+
+[nodes.tree_row_demo]
+component = "TreeRow"
+control_id = "TreeRowDemo"
+classes = ["showcase-field", "material-control"]
+props = { text = "Tree Row", expanded = true, tree_depth = 2, tree_indent_px = 24.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/TreeRowToggled", event = "Toggle", route = "UiComponentShowcase.ToggleExpanded.TreeRow" },
+]
+
+[nodes.context_action_menu_demo]
+component = "ContextActionMenu"
+control_id = "ContextActionMenuDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "Inspect", menu_items = ["Inspect|checked,focused|Ctrl+I", "---", "Duplicate|hovered,pressed|Ctrl+D", "Delete|disabled|Del"], popup_open = true, popup_anchor_x = 156.0, popup_anchor_y = 24.0, layout_padding_left = 10.0, layout_padding_right = 10.0, layout_spacing = 6.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 132.0, max = 132.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ContextActionMenuChanged", event = "Change", route = "UiComponentShowcase.SelectOption.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuOpenAt", event = "Press", route = "UiComponentShowcase.OpenPopupAt.ContextActionMenu" },
+  { id = "UiComponentShowcase/ContextActionMenuClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.ContextActionMenu" },
+]
+
+[nodes.collections_section_root]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "section_title" },
+  { node = "group_demo", slot = { name = "content" } },
+  { node = "foldout_demo", slot = { name = "content" } },
+  { node = "property_row_demo", slot = { name = "content" } },
+  { node = "inspector_section_demo", slot = { name = "content" } },
+  { node = "array_field_demo", slot = { name = "content" } },
+  { node = "map_field_demo", slot = { name = "content" } },
+  { node = "list_row_demo", slot = { name = "content" } },
+  { node = "table_row_demo", slot = { name = "content" } },
+  { node = "virtual_list_demo", slot = { name = "content" } },
+  { node = "paged_list_demo", slot = { name = "content" } },
+  { node = "world_space_surface_demo", slot = { name = "content" } },
+  { node = "tree_row_demo", slot = { name = "content" } },
+  { node = "context_action_menu_demo", slot = { name = "content" } },
+]

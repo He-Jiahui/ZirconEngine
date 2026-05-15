@@ -2,7 +2,7 @@ use crate::ui::retained_host::callback_dispatch::BuiltinHostRootShellFrames;
 use crate::ui::retained_host::drawer_resize::{
     resolve_host_resize_target_group_with_root_frames, HostResizeTargetGroup,
 };
-use crate::ui::workbench::autolayout::ShellSizePx;
+use crate::ui::workbench::autolayout::{ShellSizePx, WorkbenchChromeMetrics};
 use zircon_runtime_interface::ui::layout::{UiFrame, UiPoint};
 
 fn root_shell_frames() -> BuiltinHostRootShellFrames {
@@ -39,11 +39,17 @@ fn shared_resize_target_route_resolves_left_right_and_bottom_splitters() {
         ),
         Some(HostResizeTargetGroup::Right)
     );
+    let metrics = WorkbenchChromeMetrics::default();
+    let bottom_splitter_y = shared_root_frames
+        .bottom_drawer_shell_frame
+        .expect("test root frames include bottom drawer")
+        .y
+        - metrics.separator_thickness;
     assert_eq!(
         resolve_host_resize_target_group_with_root_frames(
             shell_size,
             Some(&shared_root_frames),
-            UiPoint::new(720.0, 730.0)
+            UiPoint::new(720.0, bottom_splitter_y)
         ),
         Some(HostResizeTargetGroup::Bottom)
     );

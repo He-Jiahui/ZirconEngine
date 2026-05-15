@@ -57,7 +57,7 @@ impl zircon_editor::EditorPlugin for EditorBuildExportDesktopPlugin {
                 drawer_id: EXPORT_DRAWER_ID,
                 drawer_display_name: "Desktop Export Tools",
                 template_id: EXPORT_TEMPLATE_ID,
-                template_document: "pane.editor_build_export_desktop.body",
+                template_document: "asset://editor_build_export_desktop/editor/panel.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     EXPORT_VIEW_ID,
                     "Desktop Export",
@@ -185,15 +185,15 @@ fn register_export_report_templates(
     for (id, document) in [
         (
             SOURCE_TEMPLATE_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/source_template_report.v2.ui.toml",
+            "asset://editor_build_export_desktop/editor/source_template_report.zui",
         ),
         (
             LIBRARY_EMBED_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/library_embed_report.v2.ui.toml",
+            "asset://editor_build_export_desktop/editor/library_embed_report.zui",
         ),
         (
             NATIVE_DYNAMIC_REPORT_ID,
-            "asset://editor_build_export_desktop/editor/native_dynamic_report.v2.ui.toml",
+            "asset://editor_build_export_desktop/editor/native_dynamic_report.zui",
         ),
     ] {
         registry.register_ui_template(EditorUiTemplateDescriptor::new(id, document))?;
@@ -231,7 +231,7 @@ fn register_export_profile_authoring(
     registry.register_component_drawer(
         ComponentDrawerDescriptor::new(
             EXPORT_PROFILE_COMPONENT,
-            "asset://editor_build_export_desktop/editor/export_profile_drawer.v2.ui.toml",
+            "asset://editor_build_export_desktop/editor/export_profile_drawer.zui",
             "editor.build_export_desktop.ExportProfileController",
         )
         .with_binding("BuildExport.Desktop.GeneratePlan")

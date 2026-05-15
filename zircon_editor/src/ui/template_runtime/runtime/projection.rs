@@ -8,7 +8,7 @@ use zircon_runtime::ui::template::UiTemplateInstance;
 use zircon_runtime::ui::v2::UiV2CompiledDocument;
 use zircon_runtime::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
 use zircon_runtime_interface::ui::{
-    event_ui::UiNodeId, template::UiTemplateNode, tree::UiTree, v2::UiV2NodeHandle,
+    event_ui::UiNodeId, template::UiTemplateNode, v2::UiV2NodeHandle,
 };
 
 use crate::ui::template_runtime::{
@@ -101,7 +101,7 @@ pub(super) fn build_host_model_with_surface(
         .collect::<BTreeMap<_, _>>();
     let mut nodes = Vec::new();
     for root_id in &surface.tree.roots {
-        collect_surface_host_nodes(&surface.tree, *root_id, &bindings, &mut nodes)?;
+        collect_surface_host_nodes(surface, *root_id, &bindings, &mut nodes)?;
     }
     merge_projection_only_host_nodes(&mut nodes, projection, &bindings)?;
     Ok(RetainedUiHostModel {
@@ -377,16 +377,18 @@ struct HostProjectionFrame<'a> {
 }
 
 fn collect_surface_host_nodes(
-    tree: &UiTree,
+    surface: &UiSurface,
     node_id: UiNodeId,
     bindings: &BTreeMap<String, RetainedUiBindingProjection>,
     host_nodes: &mut Vec<RetainedUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
+    let tree = &surface.tree;
     let mut stack = vec![node_id];
     while let Some(node_id) = stack.pop() {
         let node = tree
             .node(node_id)
             .expect("surface traversal should only visit valid nodes");
+        let arranged_node = surface.arranged_tree.get(node_id);
         let metadata = node.template_metadata.as_ref().ok_or_else(|| {
             EditorUiHostRuntimeError::MissingSurfaceMetadata {
                 node_path: node.node_path.0.clone(),
@@ -407,9 +409,15 @@ fn collect_surface_host_nodes(
                 .map(|parent| parent.node_path.0.clone()),
             component: metadata.component.clone(),
             control_id: metadata.control_id.clone(),
-            frame: node.layout_cache.frame,
-            clip_frame: node.layout_cache.clip_frame,
-            z_index: node.z_index,
+            frame: arranged_node
+                .map(|arranged_node| arranged_node.frame)
+                .unwrap_or(node.layout_cache.frame),
+            clip_frame: arranged_node
+                .map(|arranged_node| arranged_node.clip_frame)
+                .or(node.layout_cache.clip_frame),
+            z_index: arranged_node
+                .map(|arranged_node| arranged_node.z_index)
+                .unwrap_or(node.z_index),
             attributes: metadata.attributes.clone(),
             style_tokens: metadata.style_tokens.clone(),
             bindings: node_bindings,

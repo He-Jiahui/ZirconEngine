@@ -9,6 +9,7 @@ pub use core::editor_plugin::{
     EditorExtensionCatalogReport, EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor,
     EditorPluginRegistrationReport,
 };
+pub use core::gui_startup_request::EditorGuiStartupRequest;
 pub use ui::host::module::{
     module_descriptor, EditorHostDriver, EditorModule, EDITOR_ASSET_MANAGER_NAME,
     EDITOR_HOST_DRIVER_NAME, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME,
@@ -25,7 +26,7 @@ pub use ui::host::{
     EDITOR_SUBSYSTEM_NATIVE_WINDOW_HOSTING, EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS,
     EDITOR_SUBSYSTEM_UI_ASSET_AUTHORING,
 };
-pub use ui::retained_host::run_editor;
+pub use ui::retained_host::{run_editor, run_editor_with_startup_request};
 
 #[cfg(test)]
 mod tests;

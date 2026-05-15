@@ -57,6 +57,14 @@ pub(super) fn builtin_shell_view_instances(
             host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
         },
         ViewInstance {
+            instance_id: ViewInstanceId::new("editor.performance_timeline#1"),
+            descriptor_id: ViewDescriptorId::new("editor.performance_timeline"),
+            title: "Performance Timeline".to_string(),
+            serializable_payload: serde_json::Value::Null,
+            dirty: false,
+            host: ViewHost::Drawer(ActivityDrawerSlot::Bottom),
+        },
+        ViewInstance {
             instance_id: ViewInstanceId::new("editor.build_export_desktop#1"),
             descriptor_id: ViewDescriptorId::new("editor.build_export_desktop"),
             title: "Desktop Export".to_string(),
@@ -82,7 +90,9 @@ pub(super) fn builtin_shell_view_instances(
         },
     ];
     instances.retain(|instance| match instance.descriptor_id.0.as_str() {
-        "editor.runtime_diagnostics" => snapshot.is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS),
+        "editor.runtime_diagnostics" | "editor.performance_timeline" => {
+            snapshot.is_enabled(EDITOR_SUBSYSTEM_RUNTIME_DIAGNOSTICS)
+        }
         _ => true,
     });
     instances

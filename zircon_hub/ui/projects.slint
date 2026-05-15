@@ -1,0 +1,624 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import {
+    IconButton,
+    MutedText,
+    Panel,
+    PillButton,
+    ProjectCardData,
+    QuickActionData,
+    RecentProjectRowData,
+} from "shared.slint";
+
+component ProjectCard inherits Panel {
+    in property <ProjectCardData> project;
+    callback open(string);
+
+    height: 212px;
+
+    VerticalLayout {
+        padding: 12px;
+        spacing: 8px;
+
+        Rectangle {
+            height: 96px;
+            border-radius: 6px;
+            background: root.project.accent == 0 ? #24352e : (root.project.accent == 1 ? #143242 : (root.project.accent == 2 ? #3a2d20 : #1f3327));
+
+            Rectangle {
+                x: 0px;
+                y: 0px;
+                width: parent.width;
+                height: parent.height;
+                border-radius: 6px;
+                background: root.project.accent == 0 ? #345d4a : (root.project.accent == 1 ? #1c5b76 : (root.project.accent == 2 ? #65462c : #2e573c));
+            }
+
+            Rectangle {
+                x: 14px;
+                y: 60px;
+                width: 28px;
+                height: 28px;
+                border-radius: 6px;
+                background: #082d31;
+                border-width: 1px;
+                border-color: #32ded3;
+                Text {
+                    text: "Z";
+                    color: #a6fff7;
+                    font-size: 13px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            Rectangle {
+                x: parent.width - 34px;
+                y: 8px;
+                width: 26px;
+                height: 26px;
+                border-radius: 6px;
+                background: #11151add;
+                Text {
+                    text: "...";
+                    color: #d9dde4;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        Text {
+            text: root.project.title;
+            overflow: elide;
+            color: #f4f7fb;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        MutedText {
+            text: root.project.project-path;
+            overflow: elide;
+        }
+
+        MutedText {
+            text: "Modified " + root.project.modified;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            Rectangle {
+                width: 52px;
+                height: 24px;
+                border-radius: 5px;
+                background: #063f3e;
+                border-width: 1px;
+                border-color: #0f7d78;
+                Text {
+                    text: root.project.version;
+                    color: #72f7ee;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            Rectangle {
+                width: 72px;
+                height: 24px;
+                border-radius: 5px;
+                background: #2a2f36;
+                border-width: 1px;
+                border-color: #3a4049;
+                Text {
+                    text: root.project.platform;
+                    color: #c9cfd8;
+                    font-size: 12px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.open(root.project.project-path);
+        }
+    }
+}
+
+component RecentProjectRow inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    callback open(string);
+
+    height: 36px;
+    background: area.has-hover ? #20252d : transparent;
+
+    HorizontalLayout {
+        spacing: 12px;
+        padding-left: 8px;
+        padding-right: 8px;
+        alignment: start;
+
+        Rectangle {
+            width: 26px;
+            height: 26px;
+            border-radius: 4px;
+            background: root.project.accent == 0 ? #355b49 : (root.project.accent == 1 ? #245675 : (root.project.accent == 2 ? #60442d : #2b503b));
+            Text {
+                text: "Z";
+                color: #a6fff7;
+                font-size: 10px;
+                font-weight: 800;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        Text {
+            width: 190px;
+            text: root.project.title;
+            overflow: elide;
+            color: #f1f4f7;
+            font-size: 13px;
+            font-weight: 600;
+            vertical-alignment: center;
+        }
+
+        MutedText {
+            width: 110px;
+            text: root.project.version;
+            vertical-alignment: center;
+        }
+
+        MutedText {
+            width: 115px;
+            text: root.project.modified;
+            vertical-alignment: center;
+        }
+
+        MutedText {
+            text: root.project.project-path;
+            overflow: elide;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            width: 24px;
+            text: ">";
+            color: #dbe1e9;
+            font-size: 14px;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.open(root.project.project-path);
+        }
+    }
+}
+
+component QuickActionButton inherits Rectangle {
+    in property <QuickActionData> action;
+    callback activate(string);
+
+    height: 56px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: area.has-hover && root.action.enabled ? #4a525d : #303641;
+    background: area.has-hover && root.action.enabled ? #20252d : #171b21;
+
+    HorizontalLayout {
+        padding-left: 14px;
+        padding-right: 14px;
+        spacing: 12px;
+        alignment: start;
+
+        Text {
+            width: 32px;
+            text: root.action.icon;
+            color: root.action.enabled ? #f2f5f7 : #707884;
+            font-size: 18px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+
+        VerticalLayout {
+            spacing: 2px;
+            Text {
+                text: root.action.title;
+                color: root.action.enabled ? #f3f6f9 : #8c939d;
+                font-size: 13px;
+                font-weight: 700;
+            }
+            MutedText {
+                text: root.action.detail;
+            }
+        }
+
+        Text {
+            width: 20px;
+            text: ">";
+            color: root.action.enabled ? #eef3f7 : #646c76;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+
+    area := TouchArea {
+        enabled: root.action.enabled;
+        clicked => {
+            root.activate(root.action.id);
+        }
+    }
+}
+
+component ToolbarSelect inherits Rectangle {
+    in property <string> icon;
+    in property <string> text;
+    callback clicked;
+
+    width: 138px;
+    height: 38px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: area.has-hover ? #424b56 : #303641;
+    background: area.has-hover ? #20262d : #171b21;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 12px;
+        padding-right: 10px;
+        spacing: 8px;
+        alignment: center;
+
+        Text {
+            text: root.icon;
+            color: #cbd2dc;
+            font-size: 14px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.text;
+            overflow: elide;
+            color: #d7dde6;
+            font-size: 13px;
+            vertical-alignment: center;
+        }
+
+        Rectangle { horizontal-stretch: 1; }
+
+        Text {
+            text: "v";
+            color: #88929f;
+            font-size: 10px;
+            vertical-alignment: center;
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component ProjectsPage inherits Rectangle {
+    in-out property <string> search-query;
+    in-out property <string> project-path;
+    in-out property <string> project-name;
+    in-out property <string> project-location;
+    in property <string> project-sort-label;
+    in-out property <string> project-view-mode;
+    in property <[ProjectCardData]> project-cards;
+    in property <int> project-card-count;
+    in property <[RecentProjectRowData]> recent-project-rows;
+    in property <int> recent-project-row-count;
+    in property <[QuickActionData]> quick-actions;
+    callback open-project();
+    callback create-project();
+    callback open-recent-project(string);
+    callback quick-action(string);
+    callback search-projects(string);
+    callback cycle-project-sort();
+    callback set-project-view-mode(string);
+
+    background: #11151a;
+    clip: true;
+
+    ScrollView {
+        content := Rectangle {
+            width: root.width;
+            height: 960px;
+            background: #11151a;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 28px;
+                padding-right: 28px;
+                padding-top: 252px;
+                padding-bottom: 24px;
+                spacing: 20px;
+
+                if root.project-view-mode == "grid": HorizontalLayout {
+                    spacing: 16px;
+
+                    for card in root.project-cards: ProjectCard {
+                        width: (parent.width - 48px) / 4;
+                        project: card;
+                        open(path) => {
+                            root.open-recent-project(path);
+                        }
+                    }
+
+                    if root.project-card-count == 0: Panel {
+                        height: 212px;
+                        horizontal-stretch: 1;
+                        VerticalLayout {
+                            padding: 24px;
+                            spacing: 8px;
+                            Text {
+                                text: "No recent projects";
+                                color: #f4f7fb;
+                                font-size: 18px;
+                                font-weight: 800;
+                            }
+                            MutedText {
+                                text: "Create a project or enter a project path to open an existing one.";
+                            }
+                        }
+                    }
+                }
+
+                if root.project-view-mode == "list": Panel {
+                    height: 250px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "Project List";
+                            color: #f2f5f7;
+                            font-size: 16px;
+                            font-weight: 800;
+                        }
+                        HorizontalLayout {
+                            spacing: 12px;
+                            MutedText { width: 228px; text: "Name"; }
+                            MutedText { width: 110px; text: "Engine Version"; }
+                            MutedText { width: 115px; text: "Last Modified"; }
+                            MutedText { text: "Location"; horizontal-stretch: 1; }
+                        }
+                        Rectangle { height: 1px; background: #303641; }
+
+                        for row in root.recent-project-rows: RecentProjectRow {
+                            project: row;
+                            open(path) => {
+                                root.open-recent-project(path);
+                            }
+                        }
+
+                        if root.recent-project-row-count == 0: MutedText {
+                            text: "No projects match the current search.";
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 14px;
+
+                    Panel {
+                        horizontal-stretch: 1;
+                        height: 320px;
+                        VerticalLayout {
+                            padding: 16px;
+                            spacing: 10px;
+                            Text {
+                                text: "Recent Projects";
+                                color: #f2f5f7;
+                                font-size: 16px;
+                                font-weight: 800;
+                            }
+                            HorizontalLayout {
+                                spacing: 12px;
+                                MutedText { width: 228px; text: "Name"; }
+                                MutedText { width: 110px; text: "Engine Version"; }
+                                MutedText { width: 115px; text: "Last Modified"; }
+                                MutedText { text: "Location"; horizontal-stretch: 1; }
+                            }
+                            Rectangle { height: 1px; background: #303641; }
+
+                            for row in root.recent-project-rows: RecentProjectRow {
+                                project: row;
+                                open(path) => {
+                                    root.open-recent-project(path);
+                                }
+                            }
+
+                            if root.recent-project-row-count == 0: MutedText {
+                                text: "No projects match the current search.";
+                            }
+
+                            Rectangle { vertical-stretch: 1; }
+                            HorizontalLayout {
+                                spacing: 10px;
+                                PillButton {
+                                    text: "Open Path";
+                                    icon: "[]";
+                                    clicked => {
+                                        root.open-project();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Panel {
+                        width: 420px;
+                        height: 320px;
+                        VerticalLayout {
+                            padding: 16px;
+                            spacing: 10px;
+                            Text {
+                                text: "Quick Actions";
+                                color: #f2f5f7;
+                                font-size: 16px;
+                                font-weight: 800;
+                            }
+                            for action in root.quick-actions: QuickActionButton {
+                                action: action;
+                                activate(id) => {
+                                    root.quick-action(id);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Panel {
+                    height: 132px;
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 10px;
+                        Text {
+                            text: "Project Entry";
+                            color: #f2f5f7;
+                            font-size: 16px;
+                            font-weight: 800;
+                        }
+                        HorizontalLayout {
+                            spacing: 10px;
+                            LineEdit {
+                                placeholder-text: "Project root path";
+                                text <=> root.project-path;
+                            }
+                            PillButton {
+                                text: "Open";
+                                icon: ">";
+                                clicked => {
+                                    root.open-project();
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 10px;
+                            LineEdit {
+                                placeholder-text: "Project name";
+                                text <=> root.project-name;
+                            }
+                            LineEdit {
+                                placeholder-text: "Location";
+                                text <=> root.project-location;
+                            }
+                            PillButton {
+                                text: "Create";
+                                icon: "+";
+                                primary: true;
+                                clicked => {
+                                    root.create-project();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                x: 28px;
+                y: 184px;
+                width: parent.width - 56px;
+                height: 46px;
+                background: transparent;
+
+                HorizontalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: 12px;
+
+                    Rectangle {
+                        width: 330px;
+                        height: 46px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: search-focus.has-focus ? #4ee8df : #37404b;
+                        background: #171b21;
+                        HorizontalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding-left: 14px;
+                            padding-right: 12px;
+                            spacing: 10px;
+                            alignment: center;
+                            Text {
+                                text: "O";
+                                color: #b8c0ca;
+                                font-size: 14px;
+                            }
+                            search-focus := LineEdit {
+                                text <=> root.search-query;
+                                placeholder-text: "Search projects...";
+                                edited => {
+                                    root.search-projects(search-focus.text);
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle { horizontal-stretch: 1; }
+
+                    ToolbarSelect {
+                        icon: "[]";
+                        text: "All Projects";
+                    }
+
+                    ToolbarSelect {
+                        icon: "^v";
+                        text: root.project-sort-label;
+                        clicked => {
+                            root.cycle-project-sort();
+                        }
+                    }
+
+                    IconButton {
+                        icon: "::";
+                        active: root.project-view-mode == "grid";
+                        clicked => {
+                            root.set-project-view-mode("grid");
+                        }
+                    }
+
+                    IconButton {
+                        icon: "==";
+                        active: root.project-view-mode == "list";
+                        clicked => {
+                            root.set-project-view-mode("list");
+                        }
+                    }
+
+                    PillButton {
+                        text: "Import Project";
+                        icon: "v";
+                        clicked => {
+                            root.open-project();
+                        }
+                    }
+
+                    PillButton {
+                        text: "New Project";
+                        icon: "+";
+                        primary: true;
+                        clicked => {
+                            root.create-project();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

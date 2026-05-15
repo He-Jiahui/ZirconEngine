@@ -150,6 +150,11 @@ fn workbench_window_menu_exposes_unreal_style_functional_windows() {
             "Window.MaterialEditor.Open",
         ),
         (
+            "UI Component Showcase",
+            "editor.ui_component_showcase",
+            "Window.UiComponentShowcase.Open",
+        ),
+        (
             "Material Demo",
             "editor.material_demo_window",
             "Window.MaterialDemo.Open",

@@ -9,7 +9,14 @@ impl RetainedViewportController {
         let Some(viewport) = shared.viewport.map(|viewport| viewport.handle) else {
             return shared.latest_image.clone();
         };
-        match shared.render_framework.capture_frame(viewport) {
+        let render_framework = match shared.render_framework() {
+            Ok(render_framework) => render_framework,
+            Err(error) => {
+                shared.last_error = Some(error.to_string());
+                return shared.latest_image.clone();
+            }
+        };
+        match render_framework.capture_frame(viewport) {
             Ok(Some(frame)) => {
                 if shared.latest_generation == Some(frame.generation) {
                     return None;

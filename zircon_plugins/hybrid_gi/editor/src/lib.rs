@@ -35,7 +35,7 @@ impl zircon_editor::EditorPlugin for HybridGiEditorPlugin {
                 drawer_id: HYBRID_GI_DRAWER_ID,
                 drawer_display_name: "Hybrid GI Tools",
                 template_id: HYBRID_GI_TEMPLATE_ID,
-                template_document: "plugins://hybrid_gi/editor/authoring.v2.ui.toml",
+                template_document: "plugins://hybrid_gi/editor/authoring.zui",
                 surfaces: &[EditorAuthoringSurface::new(
                     HYBRID_GI_AUTHORING_VIEW_ID,
                     "Hybrid GI",

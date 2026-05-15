@@ -6,6 +6,7 @@ mod console;
 mod hierarchy;
 mod inspector;
 mod module_plugins;
+mod performance_timeline;
 mod runtime_diagnostics;
 
 use crate::ui::workbench::view::PanePayloadKind;
@@ -24,6 +25,7 @@ pub(super) fn build_payload(
         PanePayloadKind::AnimationSequenceV1 => animation_sequence::build(context),
         PanePayloadKind::AnimationGraphV1 => animation_graph::build(context),
         PanePayloadKind::RuntimeDiagnosticsV1 => runtime_diagnostics::build(context),
+        PanePayloadKind::PerformanceTimelineV1 => performance_timeline::build(context),
         PanePayloadKind::ModulePluginsV1 => module_plugins::build(context),
         PanePayloadKind::BuildExportV1 => build_export::build(context),
         PanePayloadKind::UiComponentShowcaseV1 => component_showcase::build(context),

@@ -49,6 +49,7 @@ pub enum RuntimePluginId {
     Rendering,
     VirtualGeometry,
     HybridGi,
+    ZrVmLanguage,
 }
 
 impl RuntimePluginId {
@@ -74,6 +75,7 @@ impl RuntimePluginId {
             Self::Rendering => "rendering",
             Self::VirtualGeometry => "virtual_geometry",
             Self::HybridGi => "hybrid_gi",
+            Self::ZrVmLanguage => "zr_vm_language",
         }
     }
 
@@ -99,6 +101,7 @@ impl RuntimePluginId {
             Self::Rendering => "Rendering",
             Self::VirtualGeometry => "VirtualGeometry",
             Self::HybridGi => "HybridGi",
+            Self::ZrVmLanguage => "ZrVM Language",
         }
     }
 
@@ -126,6 +129,7 @@ impl RuntimePluginId {
             "rendering" | "renderer" | "graphics" => Some(Self::Rendering),
             "vg" | "virtual_geometry" => Some(Self::VirtualGeometry),
             "gi" | "hybrid_gi" => Some(Self::HybridGi),
+            "zr_vm_language" | "zr_vm" | "zrvmlanguage" => Some(Self::ZrVmLanguage),
             _ => None,
         }
     }
@@ -874,6 +878,10 @@ fn module_for_plugin(
         }
         RuntimePluginId::HybridGi => {
             warnings.push(externalized_runtime_plugin_message("hybrid_gi"));
+            None
+        }
+        RuntimePluginId::ZrVmLanguage => {
+            warnings.push(externalized_runtime_plugin_message("zr_vm_language"));
             None
         }
     }

@@ -36,7 +36,7 @@ impl zircon_editor::EditorPlugin for NativeWindowHostingEditorPlugin {
                 drawer_id: NATIVE_WINDOW_DRAWER_ID,
                 drawer_display_name: "Native Window Tools",
                 template_id: NATIVE_WINDOW_TEMPLATE_ID,
-                template_document: "pane.native_window_hosting.body",
+                template_document: "plugins://native_window_hosting/editor/authoring.zui",
                 surfaces: &[
                     EditorAuthoringSurface::new(
                         WORKBENCH_WINDOW_VIEW_ID,

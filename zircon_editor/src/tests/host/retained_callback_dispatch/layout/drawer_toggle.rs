@@ -5,7 +5,7 @@ use crate::core::editor_event::{
 };
 
 #[test]
-fn builtin_host_activity_toggle_collapses_active_project_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_collapses_active_hierarchy_drawer_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_collapse");
@@ -16,14 +16,14 @@ fn builtin_host_activity_toggle_collapses_active_project_drawer_from_template_bi
     assert_eq!(drawer.mode, ActivityDrawerMode::Pinned);
     assert_eq!(
         drawer.active_view.as_ref().map(|id| id.0.as_str()),
-        Some("editor.project#1")
+        Some("editor.hierarchy#1")
     );
 
     let effects = dispatch_builtin_host_drawer_toggle(
         &harness.runtime,
         &bridge,
         "left_top",
-        "editor.project#1",
+        "editor.hierarchy#1",
     )
     .expect("builtin activity rail target should resolve through template bridge")
     .unwrap();
@@ -50,7 +50,7 @@ fn builtin_host_activity_toggle_collapses_active_project_drawer_from_template_bi
 }
 
 #[test]
-fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_binding() {
+fn builtin_host_activity_toggle_reopens_collapsed_hierarchy_drawer_from_template_binding() {
     let _guard = env_lock().lock().unwrap();
 
     let harness = EventRuntimeHarness::new("zircon_retained_template_bridge_activity_reopen");
@@ -60,7 +60,7 @@ fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_b
         &harness.runtime,
         &bridge,
         "left_top",
-        "editor.project#1",
+        "editor.hierarchy#1",
     )
     .expect("builtin activity rail target should resolve through template bridge")
     .unwrap();
@@ -70,7 +70,7 @@ fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_b
         &harness.runtime,
         &bridge,
         "left_top",
-        "editor.project#1",
+        "editor.hierarchy#1",
     )
     .expect("builtin activity rail target should still resolve through template bridge")
     .unwrap();
@@ -80,7 +80,7 @@ fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_b
     assert_eq!(drawer.mode, ActivityDrawerMode::Pinned);
     assert_eq!(
         drawer.active_view.as_ref().map(|id| id.0.as_str()),
-        Some("editor.project#1")
+        Some("editor.hierarchy#1")
     );
 
     let journal = harness.runtime.journal();
@@ -96,7 +96,7 @@ fn builtin_host_activity_toggle_reopens_collapsed_project_drawer_from_template_b
         vec![
             EditorEvent::Layout(EventLayoutCommand::ActivateDrawerTab {
                 slot: EventActivityDrawerSlot::LeftTop,
-                instance_id: EventViewInstanceId::new("editor.project#1"),
+                instance_id: EventViewInstanceId::new("editor.hierarchy#1"),
             }),
             EditorEvent::Layout(EventLayoutCommand::SetDrawerMode {
                 slot: EventActivityDrawerSlot::LeftTop,

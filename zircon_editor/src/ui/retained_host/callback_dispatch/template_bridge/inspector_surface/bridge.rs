@@ -4,9 +4,11 @@ use zircon_runtime_interface::ui::binding::UiEventKind;
 
 use crate::ui::binding::EditorUiBinding;
 use crate::ui::retained_host::callback_dispatch::constants::BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID;
-use crate::ui::template_runtime::RetainedUiHostProjection;
+use crate::ui::template_runtime::{EditorUiHostRuntime, RetainedUiHostProjection};
 
-use super::super::{binding_for_control, project_builtin_surface};
+#[cfg(test)]
+use super::super::project_builtin_surface;
+use super::super::{binding_for_control, project_builtin_surface_with_runtime};
 use super::error::BuiltinInspectorSurfaceTemplateBridgeError;
 
 pub(crate) struct BuiltinInspectorSurfaceTemplateBridge {
@@ -15,9 +17,21 @@ pub(crate) struct BuiltinInspectorSurfaceTemplateBridge {
 }
 
 impl BuiltinInspectorSurfaceTemplateBridge {
+    #[cfg(test)]
     pub(crate) fn new() -> Result<Self, BuiltinInspectorSurfaceTemplateBridgeError> {
         let (bindings_by_id, host_projection) =
             project_builtin_surface(BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID)?;
+        Ok(Self {
+            bindings_by_id,
+            host_projection,
+        })
+    }
+
+    pub(crate) fn new_with_runtime(
+        runtime: &EditorUiHostRuntime,
+    ) -> Result<Self, BuiltinInspectorSurfaceTemplateBridgeError> {
+        let (bindings_by_id, host_projection) =
+            project_builtin_surface_with_runtime(runtime, BUILTIN_INSPECTOR_SURFACE_DOCUMENT_ID)?;
         Ok(Self {
             bindings_by_id,
             host_projection,

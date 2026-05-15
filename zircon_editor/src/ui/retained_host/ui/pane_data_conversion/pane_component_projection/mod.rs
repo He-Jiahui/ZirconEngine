@@ -532,6 +532,16 @@ pub(super) fn host_template_node(
         overflow: overflow.into(),
         corner_radius,
         border_width,
+        has_clip_frame: node.clip_frame.is_some(),
+        clip_frame: node
+            .clip_frame
+            .map(|clip| host_contract::TemplateNodeFrameData {
+                x: clip.x,
+                y: clip.y,
+                width: clip.width,
+                height: clip.height,
+            })
+            .unwrap_or_default(),
         frame: host_contract::TemplateNodeFrameData {
             x: node.frame.x,
             y: node.frame.y,

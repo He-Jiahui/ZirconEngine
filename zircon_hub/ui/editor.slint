@@ -1,0 +1,187 @@
+import { LineEdit, ScrollView } from "std-widgets.slint";
+import { FieldLabel, MutedText, Panel, PillButton, SourceEngineData } from "shared.slint";
+
+export component EditorPage inherits Rectangle {
+    in-out property <string> source-path;
+    in-out property <string> output-path;
+    in property <SourceEngineData> source-engine;
+    callback save-settings();
+    callback build-engine();
+    callback open-output();
+    callback launch-editor();
+
+    background: #11151a;
+
+    ScrollView {
+        content := Rectangle {
+            width: root.width;
+            height: 720px;
+            background: #11151a;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 28px;
+                padding-right: 28px;
+                padding-top: 184px;
+                padding-bottom: 28px;
+                spacing: 18px;
+
+                HorizontalLayout {
+                    spacing: 14px;
+
+                    Panel {
+                        horizontal-stretch: 1;
+                        height: 230px;
+                        VerticalLayout {
+                            padding: 18px;
+                            spacing: 12px;
+
+                            HorizontalLayout {
+                                spacing: 14px;
+                                Rectangle {
+                                    width: 52px;
+                                    height: 52px;
+                                    border-radius: 10px;
+                                    background: #073e3d;
+                                    border-width: 1px;
+                                    border-color: #24d5ca;
+                                    Text {
+                                        text: "Z";
+                                        color: #a6fff7;
+                                        font-size: 22px;
+                                        font-weight: 900;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                VerticalLayout {
+                                    spacing: 4px;
+                                    Text {
+                                        text: root.source-engine.title;
+                                        color: #f3f6f9;
+                                        font-size: 20px;
+                                        font-weight: 800;
+                                    }
+                                    MutedText {
+                                        text: root.source-engine.version + " / " + root.source-engine.status;
+                                    }
+                                }
+                                Rectangle { horizontal-stretch: 1; }
+                                PillButton {
+                                    text: "Launch Editor";
+                                    icon: ">";
+                                    primary: true;
+                                    clicked => {
+                                        root.launch-editor();
+                                    }
+                                }
+                            }
+
+                            Rectangle { height: 1px; background: #303641; }
+
+                            MutedText { text: "Source: " + root.source-engine.source-path; }
+                            MutedText { text: "Output: " + root.source-engine.output-path; }
+                            MutedText { text: "Last build: " + root.source-engine.last-build; }
+
+                            HorizontalLayout {
+                                spacing: 10px;
+                                Rectangle {
+                                    width: 84px;
+                                    height: 26px;
+                                    border-radius: 5px;
+                                    background: #063f3e;
+                                    border-width: 1px;
+                                    border-color: #0f7d78;
+                                    Text {
+                                        text: root.source-engine.build-profile;
+                                        color: #72f7ee;
+                                        font-size: 12px;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                Rectangle {
+                                    width: 84px;
+                                    height: 26px;
+                                    border-radius: 5px;
+                                    background: #2a2f36;
+                                    border-width: 1px;
+                                    border-color: #3a4049;
+                                    Text {
+                                        text: root.source-engine.jobs + " jobs";
+                                        color: #c9cfd8;
+                                        font-size: 12px;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Panel {
+                        width: 360px;
+                        height: 230px;
+                        VerticalLayout {
+                            padding: 18px;
+                            spacing: 10px;
+                            Text {
+                                text: "Engine Actions";
+                                color: #f3f6f9;
+                                font-size: 16px;
+                                font-weight: 800;
+                            }
+                            PillButton {
+                                text: "Save Source";
+                                icon: "[]";
+                                clicked => {
+                                    root.save-settings();
+                                }
+                            }
+                            PillButton {
+                                text: "Build";
+                                icon: "/>";
+                                primary: true;
+                                clicked => {
+                                    root.build-engine();
+                                }
+                            }
+                            PillButton {
+                                text: "Open Output";
+                                icon: ">";
+                                clicked => {
+                                    root.open-output();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Panel {
+                    height: 210px;
+                    VerticalLayout {
+                        padding: 18px;
+                        spacing: 12px;
+                        Text {
+                            text: "Source Engine";
+                            color: #f3f6f9;
+                            font-size: 16px;
+                            font-weight: 800;
+                        }
+                        FieldLabel { text: "Source checkout path"; }
+                        LineEdit {
+                            placeholder-text: "Source checkout path";
+                            text <=> root.source-path;
+                        }
+                        FieldLabel { text: "Staged output directory"; }
+                        LineEdit {
+                            placeholder-text: "Staged output directory";
+                            text <=> root.output-path;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

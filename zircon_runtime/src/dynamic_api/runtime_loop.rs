@@ -23,7 +23,10 @@ pub(super) struct RuntimeRenderBridge {
 
 impl RuntimeRenderBridge {
     pub(super) fn new(core: &CoreHandle) -> Result<Self, CoreError> {
-        let render_framework = resolve_render_framework(core)?;
+        let render_framework = {
+            crate::profile_scope!("runtime", "render_bridge", "resolve_render_framework");
+            resolve_render_framework(core)?
+        };
         Ok(Self {
             render_framework,
             viewport: None,

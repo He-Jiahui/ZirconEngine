@@ -152,8 +152,14 @@ impl RetainedEditorHost {
             list.bridge.sync(layout, list.state.clone());
         }
 
+        if !self.ensure_asset_surface_bridge() {
+            return;
+        }
+        let Some(bridge) = self.asset_surface_bridge.as_ref() else {
+            self.set_status_line("Asset UI controls are not available");
+            return;
+        };
         let runtime = &self.runtime;
-        let bridge = &self.asset_surface_bridge;
         let point = UiPoint::new(x, y);
         let dispatch = match (surface_mode, list_kind) {
             ("activity", "references") => {

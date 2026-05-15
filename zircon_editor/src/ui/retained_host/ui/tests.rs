@@ -347,6 +347,7 @@ fn host_pane(id: &str, title: &str) -> host_window::PaneData {
             assets_activity: host_window::AssetsActivityPaneViewData::default(),
             asset_browser: host_window::AssetBrowserPaneViewData::default(),
             project_overview: host_window::ProjectOverviewPaneViewData::default(),
+            performance_timeline: host_window::PerformanceTimelinePaneViewData::default(),
             module_plugins: host_window::ModulePluginsPaneViewData::default(),
             build_export: host_window::BuildExportPaneViewData::default(),
             ui_asset: UiAssetEditorPanePresentation::default(),

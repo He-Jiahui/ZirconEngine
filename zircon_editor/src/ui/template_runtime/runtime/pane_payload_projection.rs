@@ -244,6 +244,125 @@ fn inject_payload_attributes(attributes: &mut BTreeMap<String, Value>, payload: 
                 Value::String(payload.ui_debug_reflector_export_status.clone()),
             );
         }
+        PanePayload::PerformanceTimelineV1(payload) => {
+            attributes.insert(
+                "payload_summary".to_string(),
+                Value::String(payload.summary.clone()),
+            );
+            attributes.insert(
+                "payload_session_label".to_string(),
+                Value::String(payload.session_label.clone()),
+            );
+            attributes.insert(
+                "payload_output_label".to_string(),
+                Value::String(payload.output_label.clone()),
+            );
+            attributes.insert(
+                "payload_frame_rows".to_string(),
+                Value::Array(
+                    payload
+                        .frame_rows
+                        .iter()
+                        .map(|row| {
+                            let mut table = Table::new();
+                            table.insert("stream".to_string(), Value::String(row.stream.clone()));
+                            table.insert("name".to_string(), Value::String(row.name.clone()));
+                            table.insert(
+                                "frame_index".to_string(),
+                                Value::Integer(i64::try_from(row.frame_index).unwrap_or(i64::MAX)),
+                            );
+                            table.insert(
+                                "duration_label".to_string(),
+                                Value::String(row.duration_label.clone()),
+                            );
+                            table.insert(
+                                "budget_label".to_string(),
+                                Value::String(row.budget_label.clone()),
+                            );
+                            table
+                                .insert("over_budget".to_string(), Value::Boolean(row.over_budget));
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+            attributes.insert(
+                "payload_span_summary_rows".to_string(),
+                Value::Array(
+                    payload
+                        .span_summary_rows
+                        .iter()
+                        .map(|row| {
+                            let mut table = Table::new();
+                            table.insert("stream".to_string(), Value::String(row.stream.clone()));
+                            table.insert(
+                                "category".to_string(),
+                                Value::String(row.category.clone()),
+                            );
+                            table.insert("name".to_string(), Value::String(row.name.clone()));
+                            table.insert("path".to_string(), Value::String(row.path.clone()));
+                            table.insert(
+                                "duration_label".to_string(),
+                                Value::String(row.duration_label.clone()),
+                            );
+                            table.insert("depth".to_string(), Value::Integer(i64::from(row.depth)));
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+            attributes.insert(
+                "payload_hotspot_rows".to_string(),
+                Value::Array(
+                    payload
+                        .hotspot_rows
+                        .iter()
+                        .map(|row| {
+                            let mut table = Table::new();
+                            table.insert("stream".to_string(), Value::String(row.stream.clone()));
+                            table.insert(
+                                "category".to_string(),
+                                Value::String(row.category.clone()),
+                            );
+                            table.insert("name".to_string(), Value::String(row.name.clone()));
+                            table.insert("path".to_string(), Value::String(row.path.clone()));
+                            table.insert(
+                                "total_label".to_string(),
+                                Value::String(row.total_label.clone()),
+                            );
+                            table.insert(
+                                "average_label".to_string(),
+                                Value::String(row.average_label.clone()),
+                            );
+                            table.insert(
+                                "count_label".to_string(),
+                                Value::String(row.count_label.clone()),
+                            );
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+            attributes.insert(
+                "payload_capture_controls".to_string(),
+                Value::Array(
+                    payload
+                        .capture_controls
+                        .iter()
+                        .map(|control| {
+                            let mut table = Table::new();
+                            table.insert("label".to_string(), Value::String(control.label.clone()));
+                            table.insert(
+                                "action_id".to_string(),
+                                Value::String(control.action_id.clone()),
+                            );
+                            table.insert("enabled".to_string(), Value::Boolean(control.enabled));
+                            Value::Table(table)
+                        })
+                        .collect(),
+                ),
+            );
+        }
         PanePayload::ModulePluginsV1(payload) => {
             attributes.insert(
                 "payload_diagnostics".to_string(),
@@ -443,6 +562,10 @@ fn hybrid_slot_anchor(body: &PaneBodyPresentation) -> Option<(&'static str, &'st
         PanePayload::BuildExportV1(_) => {
             Some(("BuildExportTargetsSlotAnchor", "build_export_targets_slot"))
         }
+        PanePayload::PerformanceTimelineV1(_) => Some((
+            "PerformanceTimelineFrameListSlotAnchor",
+            "performance_timeline_frame_list",
+        )),
         _ => None,
     }
 }

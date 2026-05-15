@@ -9,11 +9,12 @@ use super::super::data::{
 use super::close_prompt::draw_close_prompt;
 use super::diagnostics_overlay::{debug_refresh_overlay_frame, presentation_top_bar_frame};
 use super::draw_debug_reflector_overlay;
-use super::frame::HostRgbaFrame;
+use super::frame::{HostRecordedPaintCommand, HostRgbaFrame};
 use super::geometry::{frame_from_template, frame_or, intersect, is_visible_frame, translated};
 use super::primitives::{
     draw_border, draw_border_clipped, draw_label_marker, draw_rect, draw_rect_clipped,
-    draw_rgba_image_clipped, draw_separator_line, draw_text_bars, draw_text_bars_clipped,
+    draw_rgba_image_clipped_with_resource_key, draw_separator_line, draw_text_bars,
+    draw_text_bars_clipped,
 };
 use super::template_nodes::{draw_template_nodes, has_template_nodes};
 use super::theme::PALETTE;
@@ -71,11 +72,53 @@ pub(in crate::ui::retained_host::host_contract) fn paint_host_frame(
         return HostRgbaFrame::empty(width, height);
     }
 
-    let mut frame = HostRgbaFrame::filled(width, height, SHELL_BACKGROUND);
+    let mut frame = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_full_frame_clear");
+        HostRgbaFrame::filled(width, height, SHELL_BACKGROUND)
+    };
+    let root = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_resolve_root_frames");
+        resolve_root_frames(width, height, presentation)
+    };
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_draw_root_skeleton");
+        draw_root_skeleton(&mut frame, &root, presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_draw_host_scene");
+        draw_host_scene(&mut frame, &root, presentation);
+    }
+    frame
+}
+
+pub(in crate::ui::retained_host::host_contract) fn record_host_frame_commands(
+    width: u32,
+    height: u32,
+    presentation: &HostWindowPresentationData,
+    damage: Option<&FrameRect>,
+) -> (Vec<HostRecordedPaintCommand>, Option<FrameRect>) {
+    if width == 0 || height == 0 {
+        return (Vec::new(), None);
+    }
+
+    let frame_bounds = FrameRect {
+        x: 0.0,
+        y: 0.0,
+        width: width as f32,
+        height: height as f32,
+    };
+    let damage = damage.and_then(|damage| intersect(damage, &frame_bounds));
+    let mut frame = HostRgbaFrame::recording_only(width, height);
+    if let Some(damage) = damage.as_ref() {
+        frame.replace_paint_clip(Some(damage.clone()));
+        frame.fill_rect(damage, SHELL_BACKGROUND);
+    } else {
+        frame.fill_rect(&frame_bounds, SHELL_BACKGROUND);
+    }
     let root = resolve_root_frames(width, height, presentation);
     draw_root_skeleton(&mut frame, &root, presentation);
     draw_host_scene(&mut frame, &root, presentation);
-    frame
+    (frame.into_recorded_commands(), damage)
 }
 
 pub(in crate::ui::retained_host::host_contract) fn repaint_host_frame_region(
@@ -92,15 +135,38 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_host_frame_region(
         width: frame.width() as f32,
         height: frame.height() as f32,
     };
-    let damage = intersect(damage, &frame_bounds)?;
+    let damage = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_region_clip");
+        intersect(damage, &frame_bounds)?
+    };
 
     // Slate-style fast path: the retained backbuffer is the authoritative previous
     // frame, and the active paint clip makes every painter operation respect damage.
     let previous_clip = frame.replace_paint_clip(Some(damage.clone()));
-    frame.fill_rect(&damage, SHELL_BACKGROUND);
-    let root = resolve_root_frames(frame.width(), frame.height(), presentation);
-    draw_root_skeleton(frame, &root, presentation);
-    draw_host_scene(frame, &root, presentation);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_region_clear");
+        frame.fill_rect(&damage, SHELL_BACKGROUND);
+    }
+    let root = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "painter_region_resolve_root_frames"
+        );
+        resolve_root_frames(frame.width(), frame.height(), presentation)
+    };
+    {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "painter_region_draw_root_skeleton"
+        );
+        draw_root_skeleton(frame, &root, presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_region_draw_host_scene");
+        draw_host_scene(frame, &root, presentation);
+    }
     frame.replace_paint_clip(previous_clip);
     Some(damage)
 }
@@ -163,68 +229,108 @@ fn draw_host_scene(
 ) {
     let scene = &presentation.host_scene_data;
     let viewport_image = presentation.viewport_image.as_ref();
-    draw_template_nodes(
-        frame,
-        &scene.menu_chrome.template_nodes,
-        &zero_origin(),
-        &root.top_bar,
-        None,
-    );
-    draw_template_nodes(
-        frame,
-        &scene.page_chrome.template_nodes,
-        &zero_origin(),
-        &root.top_bar,
-        None,
-    );
-    draw_menu_bar_labels(frame, presentation);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_menu_template_nodes");
+        draw_template_nodes(
+            frame,
+            &scene.menu_chrome.template_nodes,
+            &zero_origin(),
+            &root.top_bar,
+            None,
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_page_template_nodes");
+        draw_template_nodes(
+            frame,
+            &scene.page_chrome.template_nodes,
+            &zero_origin(),
+            &root.top_bar,
+            None,
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_menu_bar_labels");
+        draw_menu_bar_labels(frame, presentation);
+    }
 
-    draw_side_dock(
-        frame,
-        &scene.left_dock,
-        &presentation.pane_interaction_state,
-        viewport_image,
-        Some(&presentation.text_input_focus),
-    );
-    draw_document_dock(
-        frame,
-        &scene.document_dock,
-        &presentation.pane_interaction_state,
-        viewport_image,
-        Some(&presentation.text_input_focus),
-    );
-    draw_side_dock(
-        frame,
-        &scene.right_dock,
-        &presentation.pane_interaction_state,
-        viewport_image,
-        Some(&presentation.text_input_focus),
-    );
-    draw_bottom_dock(
-        frame,
-        &scene.bottom_dock,
-        &presentation.pane_interaction_state,
-        viewport_image,
-        Some(&presentation.text_input_focus),
-    );
-    draw_resize_layer(frame, presentation);
-    draw_floating_layer(
-        frame,
-        presentation,
-        &presentation.pane_interaction_state,
-        viewport_image,
-        Some(&presentation.text_input_focus),
-    );
-    draw_open_menu_popup(frame, presentation);
-    draw_close_prompt(frame, presentation);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_left_dock");
+        draw_side_dock(
+            frame,
+            &scene.left_dock,
+            &presentation.pane_interaction_state,
+            viewport_image,
+            Some(&presentation.text_input_focus),
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock");
+        draw_document_dock(
+            frame,
+            &scene.document_dock,
+            &presentation.pane_interaction_state,
+            viewport_image,
+            Some(&presentation.text_input_focus),
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_right_dock");
+        draw_side_dock(
+            frame,
+            &scene.right_dock,
+            &presentation.pane_interaction_state,
+            viewport_image,
+            Some(&presentation.text_input_focus),
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock");
+        draw_bottom_dock(
+            frame,
+            &scene.bottom_dock,
+            &presentation.pane_interaction_state,
+            viewport_image,
+            Some(&presentation.text_input_focus),
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_resize_layer");
+        draw_resize_layer(frame, presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_floating_layer");
+        draw_floating_layer(
+            frame,
+            presentation,
+            &presentation.pane_interaction_state,
+            viewport_image,
+            Some(&presentation.text_input_focus),
+        );
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_open_menu_popup");
+        draw_open_menu_popup(frame, presentation);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_close_prompt");
+        draw_close_prompt(frame, presentation);
+    }
 
-    draw_template_nodes(
-        frame,
-        &scene.status_bar.template_nodes,
-        &scene.status_bar.status_bar_frame,
-        &root.status_bar,
-        None,
-    );
+    {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "painter_status_bar_template_nodes"
+        );
+        draw_template_nodes(
+            frame,
+            &scene.status_bar.template_nodes,
+            &scene.status_bar.status_bar_frame,
+            &root.status_bar,
+            None,
+        );
+    }
 }
 
 fn draw_menu_bar_labels(frame: &mut HostRgbaFrame, presentation: &HostWindowPresentationData) {
@@ -289,7 +395,11 @@ fn draw_open_menu_popup(frame: &mut HostRgbaFrame, presentation: &HostWindowPres
     }
     draw_rect(frame, popup.clone(), TOP_BAR);
     draw_border(frame, popup.clone(), ACCENT);
-    draw_template_nodes(frame, &menu.popup_nodes, &popup, &popup, None);
+    if menu.popup_nodes.row_count() > 0 {
+        draw_template_nodes(frame, &menu.popup_nodes, &popup, &popup, None);
+    } else {
+        draw_menu_popup_rows(frame, &menu.items, &popup, 0, presentation);
+    }
     draw_open_submenu_popups(frame, presentation, menu.items.clone(), popup);
 }
 
@@ -503,8 +613,11 @@ fn draw_side_dock(
     if !is_visible_frame(&dock.region_frame) {
         return;
     }
-    draw_rect(frame, dock.region_frame.clone(), SIDE_PANEL);
-    draw_border(frame, dock.region_frame.clone(), SEPARATOR);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_side_dock_shell");
+        draw_rect(frame, dock.region_frame.clone(), SIDE_PANEL);
+        draw_border(frame, dock.region_frame.clone(), SEPARATOR);
+    }
 
     let rail_origin = if dock.rail_before_panel {
         FrameRect {
@@ -538,21 +651,28 @@ fn draw_side_dock(
     };
 
     if is_visible_frame(&rail_origin) {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_side_dock_rail");
         draw_rect(frame, rail_origin.clone(), TOP_BAR);
         draw_template_nodes(frame, &dock.rail_nodes, &rail_origin, &rail_origin, None);
         draw_active_rail_marker(frame, dock, &rail_origin);
     }
-    draw_panel_header(frame, &dock.header_nodes, &panel_origin, &dock.header_frame);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_side_dock_header");
+        draw_panel_header(frame, &dock.header_nodes, &panel_origin, &dock.header_frame);
+    }
 
     let content = translated(&dock.content_frame, panel_origin.x, panel_origin.y);
-    draw_pane(
-        frame,
-        &dock.pane,
-        &content,
-        interaction,
-        viewport_image,
-        text_input_focus,
-    );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_side_dock_pane");
+        draw_pane(
+            frame,
+            &dock.pane,
+            &content,
+            interaction,
+            viewport_image,
+            text_input_focus,
+        );
+    }
 }
 
 fn draw_document_dock(
@@ -565,27 +685,36 @@ fn draw_document_dock(
     if !is_visible_frame(&dock.region_frame) {
         return;
     }
-    draw_rect(frame, dock.region_frame.clone(), DOCUMENT_PANEL);
-    draw_border(frame, dock.region_frame.clone(), SEPARATOR);
-    draw_panel_header(
-        frame,
-        &dock.header_nodes,
-        &dock.region_frame,
-        &dock.header_frame,
-    );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock_shell");
+        draw_rect(frame, dock.region_frame.clone(), DOCUMENT_PANEL);
+        draw_border(frame, dock.region_frame.clone(), SEPARATOR);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock_header");
+        draw_panel_header(
+            frame,
+            &dock.header_nodes,
+            &dock.region_frame,
+            &dock.header_frame,
+        );
+    }
     let content = translated(
         &dock.content_frame,
         dock.region_frame.x,
         dock.region_frame.y,
     );
-    draw_pane(
-        frame,
-        &dock.pane,
-        &content,
-        interaction,
-        viewport_image,
-        text_input_focus,
-    );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_document_dock_pane");
+        draw_pane(
+            frame,
+            &dock.pane,
+            &content,
+            interaction,
+            viewport_image,
+            text_input_focus,
+        );
+    }
 }
 
 fn draw_bottom_dock(
@@ -598,27 +727,36 @@ fn draw_bottom_dock(
     if !is_visible_frame(&dock.region_frame) {
         return;
     }
-    draw_rect(frame, dock.region_frame.clone(), SIDE_PANEL);
-    draw_border(frame, dock.region_frame.clone(), SEPARATOR);
-    draw_panel_header(
-        frame,
-        &dock.header_nodes,
-        &dock.region_frame,
-        &dock.header_frame,
-    );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock_shell");
+        draw_rect(frame, dock.region_frame.clone(), SIDE_PANEL);
+        draw_border(frame, dock.region_frame.clone(), SEPARATOR);
+    }
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock_header");
+        draw_panel_header(
+            frame,
+            &dock.header_nodes,
+            &dock.region_frame,
+            &dock.header_frame,
+        );
+    }
     let content = translated(
         &dock.content_frame,
         dock.region_frame.x,
         dock.region_frame.y,
     );
-    draw_pane(
-        frame,
-        &dock.pane,
-        &content,
-        interaction,
-        viewport_image,
-        text_input_focus,
-    );
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_bottom_dock_pane");
+        draw_pane(
+            frame,
+            &dock.pane,
+            &content,
+            interaction,
+            viewport_image,
+            text_input_focus,
+        );
+    }
 }
 
 fn draw_panel_header(
@@ -632,7 +770,14 @@ fn draw_panel_header(
         return;
     }
     draw_rect(frame, header.clone(), TOP_BAR);
-    draw_template_nodes(frame, nodes, origin, &header, None);
+    {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "painter_panel_header_template_nodes"
+        );
+        draw_template_nodes(frame, nodes, origin, &header, None);
+    }
     draw_separator_line(
         frame,
         header.x.max(0.0) as u32,
@@ -657,7 +802,10 @@ fn draw_pane(
         "Scene" | "Game" => VIEWPORT_PANEL,
         _ => PANE_EMPTY,
     };
-    draw_rect(frame, content.clone(), pane_color);
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_background");
+        draw_rect(frame, content.clone(), pane_color);
+    }
 
     let body = if matches!(pane.kind.as_str(), "Scene" | "Game") && pane.show_toolbar {
         let toolbar = FrameRect {
@@ -666,7 +814,14 @@ fn draw_pane(
             width: content.width,
             height: 28.0_f32.min(content.height),
         };
-        draw_viewport_toolbar(frame, pane, &toolbar, content);
+        {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "host_painter",
+                "painter_pane_viewport_toolbar"
+            );
+            draw_viewport_toolbar(frame, pane, &toolbar, content);
+        }
         FrameRect {
             x: content.x,
             y: content.y + toolbar.height,
@@ -677,11 +832,24 @@ fn draw_pane(
         content.clone()
     };
 
-    let painted_viewport = draw_viewport_image(frame, pane, &body, content, viewport_image);
-    let painted_nodes = draw_pane_template_nodes(frame, pane, &body, content, text_input_focus);
-    let painted_native = draw_native_pane_content(frame, pane, &body, content, interaction);
-    let painted_debug_overlay = draw_pane_debug_overlay(frame, pane, &body, content);
+    let painted_viewport = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_viewport_image");
+        draw_viewport_image(frame, pane, &body, content, viewport_image)
+    };
+    let painted_nodes = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_template_nodes");
+        draw_pane_template_nodes(frame, pane, &body, content, text_input_focus)
+    };
+    let painted_native = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_native_content");
+        draw_native_pane_content(frame, pane, &body, content, interaction)
+    };
+    let painted_debug_overlay = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_debug_overlay");
+        draw_pane_debug_overlay(frame, pane, &body, content)
+    };
     if !painted_viewport && !painted_nodes && !painted_native && !painted_debug_overlay {
+        zircon_runtime::profile_scope!("editor", "host_painter", "painter_pane_fallback");
         draw_pane_fallback(frame, pane, &body, content);
     }
 }
@@ -714,10 +882,11 @@ fn draw_viewport_image(
     let Some(image) = viewport_image.filter(|image| image.is_valid()) else {
         return false;
     };
-    draw_rgba_image_clipped(
+    draw_rgba_image_clipped_with_resource_key(
         frame,
         body.clone(),
         Some(clip),
+        image.resource_key.as_str(),
         image.width,
         image.height,
         &image.rgba,
@@ -1465,6 +1634,13 @@ fn draw_pane_template_nodes(
         "RuntimeDiagnostics" => draw_if_present(
             frame,
             &pane.runtime_diagnostics.nodes,
+            body,
+            clip,
+            text_input_focus,
+        ),
+        "PerformanceTimeline" => draw_if_present(
+            frame,
+            &pane.performance_timeline.nodes,
             body,
             clip,
             text_input_focus,

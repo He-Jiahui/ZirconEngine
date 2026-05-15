@@ -1,7 +1,10 @@
+use std::collections::hash_map::DefaultHasher;
 use std::collections::BTreeMap;
 use std::fs;
+use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::UNIX_EPOCH;
 
 use resvg::{tiny_skia, usvg};
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
@@ -18,9 +21,17 @@ const MAX_VECTOR_RASTER_EDGE: u32 = 4096;
 
 #[derive(Clone)]
 pub(super) struct HostPaintImagePixels {
+    pub(super) resource_key: String,
     pub(super) width: u32,
     pub(super) height: u32,
     pub(super) rgba: Vec<u8>,
+}
+
+impl HostPaintImagePixels {
+    fn with_resource_key(mut self, resource_key: impl Into<String>) -> Self {
+        self.resource_key = resource_key.into();
+        self
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -39,6 +50,7 @@ pub(super) fn retained_image_pixels(
         tint_non_transparent_pixels(&mut rgba, tint);
     }
     let image = HostPaintImagePixels {
+        resource_key: retained_image_resource_key(buffer.width(), buffer.height(), &rgba),
         width: buffer.width(),
         height: buffer.height(),
         rgba,
@@ -137,31 +149,49 @@ fn load_pixels_from_candidates(
     target: Option<RasterTargetSize>,
     tint: Option<[u8; 4]>,
 ) -> Option<HostPaintImagePixels> {
-    let path = first_existing_path(candidates)?;
+    let path = {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "visual_assets_first_existing_path"
+        );
+        first_existing_path(candidates)?
+    };
     let key = image_pixels_cache_key(base_key, &path, target.filter(|_| is_svg_path(&path)), tint);
     let cache = VISUAL_ASSET_CACHE.get_or_init(|| Mutex::new(BTreeMap::new()));
-    if let Some(cached) = cache
-        .lock()
-        .unwrap_or_else(|poison| poison.into_inner())
-        .get(&key)
     {
-        return cached.clone();
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_cache_lookup");
+        if let Some(cached) = cache
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .get(&key)
+        {
+            return cached.clone();
+        }
     }
 
-    let loaded = if is_svg_path(&path) {
-        target
-            .and_then(|target| render_svg_file_pixels(&path, target, tint))
-            .or_else(|| {
-                load_image_from_path(&path).and_then(|image| retained_image_pixels(&image, tint))
-            })
-    } else {
-        load_image_from_path(&path).and_then(|image| retained_image_pixels(&image, tint))
-    };
+    let loaded = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_load_pixels");
+        if is_svg_path(&path) {
+            target
+                .and_then(|target| render_svg_file_pixels(&path, target, tint))
+                .or_else(|| {
+                    load_image_from_path(&path)
+                        .and_then(|image| retained_image_pixels(&image, tint))
+                })
+        } else {
+            load_image_from_path(&path).and_then(|image| retained_image_pixels(&image, tint))
+        }
+    }
+    .map(|pixels| pixels.with_resource_key(key.clone()));
 
-    cache
-        .lock()
-        .unwrap_or_else(|poison| poison.into_inner())
-        .insert(key, loaded.clone());
+    {
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_cache_store");
+        cache
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .insert(key, loaded.clone());
+    }
     loaded
 }
 
@@ -261,6 +291,14 @@ fn image_pixels_cache_key(
     format!("{base_key}:{size_key}:tint:{tint_key}:{}", path.display())
 }
 
+fn retained_image_resource_key(width: u32, height: u32, rgba: &[u8]) -> String {
+    let mut hasher = DefaultHasher::new();
+    width.hash(&mut hasher);
+    height.hash(&mut hasher);
+    rgba.hash(&mut hasher);
+    format!("retained-image:{width}x{height}:{:016x}", hasher.finish())
+}
+
 fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
@@ -306,19 +344,25 @@ fn render_svg_file_pixels(
     tint: Option<[u8; 4]>,
 ) -> Option<HostPaintImagePixels> {
     let tree = load_svg_tree(path)?;
-    let svg_size = tree.size();
-    let transform = tiny_skia::Transform::from_scale(
-        target.width as f32 / svg_size.width(),
-        target.height as f32 / svg_size.height(),
-    );
-    let mut pixmap = tiny_skia::Pixmap::new(target.width, target.height)?;
-    resvg::render(&tree, transform, &mut pixmap.as_mut());
+    let pixmap = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_render_svg_raster");
+        let svg_size = tree.size();
+        let transform = tiny_skia::Transform::from_scale(
+            target.width as f32 / svg_size.width(),
+            target.height as f32 / svg_size.height(),
+        );
+        let mut pixmap = tiny_skia::Pixmap::new(target.width, target.height)?;
+        resvg::render(tree.as_ref(), transform, &mut pixmap.as_mut());
+        pixmap
+    };
 
     let mut rgba = pixmap.take_demultiplied();
     if let Some(tint) = tint {
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_render_svg_tint");
         tint_non_transparent_pixels(&mut rgba, tint);
     }
     let image = HostPaintImagePixels {
+        resource_key: retained_image_resource_key(target.width, target.height, &rgba),
         width: target.width,
         height: target.height,
         rgba,
@@ -339,7 +383,7 @@ fn render_svg_file_image(path: &Path) -> Option<crate::ui::retained_host::primit
         .clamp(1.0, MAX_VECTOR_RASTER_EDGE as f32) as u32;
     let mut pixmap = tiny_skia::Pixmap::new(width, height)?;
     resvg::render(
-        &tree,
+        tree.as_ref(),
         tiny_skia::Transform::identity(),
         &mut pixmap.as_mut(),
     );
@@ -351,17 +395,110 @@ fn render_svg_file_image(path: &Path) -> Option<crate::ui::retained_host::primit
     ))
 }
 
-fn load_svg_tree(path: &Path) -> Option<usvg::Tree> {
+fn load_svg_tree(path: &Path) -> Option<Arc<usvg::Tree>> {
+    let cache_key = SvgTreeCacheKey::from_path(path);
+    let cache = svg_tree_cache();
+    {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "visual_assets_svg_tree_cache_lookup"
+        );
+        if let Some(cached) = cache
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .get(&cache_key)
+        {
+            return cached.clone();
+        }
+    }
+
+    let tree = {
+        zircon_runtime::profile_scope!("editor", "host_painter", "visual_assets_render_svg_parse");
+        parse_svg_tree_file(path).map(Arc::new)
+    };
+    {
+        zircon_runtime::profile_scope!(
+            "editor",
+            "host_painter",
+            "visual_assets_svg_tree_cache_store"
+        );
+        cache
+            .lock()
+            .unwrap_or_else(|poison| poison.into_inner())
+            .insert(cache_key, tree.clone());
+    }
+    tree
+}
+
+fn parse_svg_tree_file(path: &Path) -> Option<usvg::Tree> {
     let svg = fs::read(path).ok()?;
+    let resources_dir = fs::canonicalize(path)
+        .ok()
+        .and_then(|path| path.parent().map(Path::to_path_buf));
     let mut options = usvg::Options {
-        resources_dir: fs::canonicalize(path)
-            .ok()
-            .and_then(|path| path.parent().map(Path::to_path_buf)),
+        resources_dir,
         ..usvg::Options::default()
     };
-    options.fontdb_mut().load_system_fonts();
+    if svg_may_need_fonts(&svg) {
+        options.fontdb = cached_svg_font_db();
+    }
 
     usvg::Tree::from_data(&svg, &options).ok()
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct SvgTreeCacheKey {
+    path: PathBuf,
+    modified_unix_ns: Option<u128>,
+    len: Option<u64>,
+}
+
+impl SvgTreeCacheKey {
+    fn from_path(path: &Path) -> Self {
+        let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
+        let metadata = std::fs::metadata(&path).ok();
+        let modified_unix_ns = metadata
+            .as_ref()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+            .map(|duration| duration.as_nanos());
+        let len = metadata.as_ref().map(std::fs::Metadata::len);
+        Self {
+            path,
+            modified_unix_ns,
+            len,
+        }
+    }
+}
+
+fn svg_tree_cache() -> &'static Mutex<BTreeMap<SvgTreeCacheKey, Option<Arc<usvg::Tree>>>> {
+    static CACHE: OnceLock<Mutex<BTreeMap<SvgTreeCacheKey, Option<Arc<usvg::Tree>>>>> =
+        OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+}
+
+fn cached_svg_font_db() -> Arc<usvg::fontdb::Database> {
+    static SVG_FONT_DB: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
+    SVG_FONT_DB
+        .get_or_init(|| {
+            zircon_runtime::profile_scope!(
+                "editor",
+                "host_painter",
+                "visual_assets_init_system_font_db"
+            );
+            let mut database = usvg::fontdb::Database::new();
+            database.load_system_fonts();
+            Arc::new(database)
+        })
+        .clone()
+}
+
+fn svg_may_need_fonts(svg: &[u8]) -> bool {
+    let Ok(svg) = std::str::from_utf8(svg) else {
+        return false;
+    };
+    svg.contains("<text") || svg.contains("<tspan") || svg.contains("font-family")
 }
 
 fn normalized_asset_relative_path(source: &str) -> PathBuf {
@@ -390,7 +527,8 @@ fn tint_non_transparent_pixels(rgba: &mut [u8], tint: [u8; 4]) {
 
 impl HostPaintImagePixels {
     fn is_valid(&self) -> bool {
-        self.width > 0
+        !self.resource_key.is_empty()
+            && self.width > 0
             && self.height > 0
             && self.rgba.len() == self.width as usize * self.height as usize * 4
     }
@@ -464,6 +602,19 @@ mod tests {
         assert_eq!((large.width, large.height), (54, 54));
         assert_ne!(small.rgba.len(), large.rgba.len());
         assert!(has_visible_pixel(&large));
+    }
+
+    #[test]
+    fn svg_font_scan_is_reserved_for_text_svg() {
+        assert!(!svg_may_need_fonts(
+            br#"<svg viewBox="0 0 16 16"><path d="M0 0h16v16H0z"/></svg>"#
+        ));
+        assert!(svg_may_need_fonts(
+            br#"<svg viewBox="0 0 16 16"><text x="0" y="12">A</text></svg>"#
+        ));
+        assert!(svg_may_need_fonts(
+            br#"<svg viewBox="0 0 16 16"><path style="font-family:Arial" /></svg>"#
+        ));
     }
 
     #[test]

@@ -3,10 +3,6 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use crate::ui::retained_host::callback_dispatch::dispatch_builtin_floating_window_focus_for_source;
-use crate::ui::retained_host::floating_window_projection::{
-    resolve_floating_window_projection_content_frame,
-    resolve_floating_window_projection_shared_source, resolve_native_floating_window_host_frame,
-};
 use crate::ui::workbench::autolayout::ShellFrame;
 use crate::ui::workbench::layout::{ActivityDrawerSlot, MainPageId};
 use crate::ui::workbench::snapshot::{MainPageSnapshot, ViewContentKind};
@@ -179,27 +175,25 @@ impl RetainedEditorHost {
     ) -> Option<ShellFrame> {
         self.floating_window_projection_bundle
             .content_frame(window_id)
-            .or_else(|| {
-                let chrome = self.runtime.chrome_snapshot();
-                let model = WorkbenchViewModel::build(&chrome);
-                let window_index = model
-                    .floating_windows
-                    .iter()
-                    .position(|window| &window.window_id == window_id)?;
-                let shared_source = resolve_floating_window_projection_shared_source(
-                    &self.floating_window_source_bridge.source_frames(),
-                );
-                let native_window_hosts = self.editor_manager.native_window_hosts();
-                let host_frame =
-                    resolve_native_floating_window_host_frame(&native_window_hosts, window_id);
-                Some(resolve_floating_window_projection_content_frame(
-                    &model.floating_windows[window_index],
-                    window_index,
-                    shared_source,
-                    &self.chrome_metrics,
-                    host_frame,
-                ))
-            })
+    }
+
+    fn resolve_native_floating_window_content_size_for_window(
+        &self,
+        window_id: &MainPageId,
+    ) -> Option<UiSize> {
+        let window = self.native_window_presenters.window(window_id)?;
+        let bounds = window
+            .get_host_presentation()
+            .host_shell
+            .native_window_bounds;
+        let size = UiSize::new(
+            bounds.width.max(0.0),
+            (bounds.height
+                - self.chrome_metrics.document_header_height
+                - self.chrome_metrics.separator_thickness)
+                .max(0.0),
+        );
+        is_valid_size(size).then_some(size)
     }
 
     pub(super) fn with_callback_source_window<T>(
@@ -247,25 +241,28 @@ impl RetainedEditorHost {
             return;
         }
 
-        self.last_focused_callback_window = self
-            .runtime
-            .chrome_snapshot()
-            .workbench
-            .floating_windows
-            .iter()
-            .find(|window| window.window_id.0 == surface_key)
-            .map(|window| window.window_id.clone());
+        self.last_focused_callback_window =
+            self.presentation_cache.workbench().and_then(|workbench| {
+                workbench
+                    .floating_windows
+                    .iter()
+                    .find(|window| window.window_id.0 == surface_key)
+                    .map(|window| window.window_id.clone())
+            });
     }
 
     fn resolve_host_frame_backed_size_for_kind(&self, kind: ViewContentKind) -> Option<UiSize> {
         if let Some(window_id) = self.callback_source_window.as_ref() {
             return self
                 .resolve_floating_window_content_frame_for_window(window_id)
-                .and_then(frame_size);
+                .and_then(frame_size)
+                .or_else(|| {
+                    self.resolve_native_floating_window_content_size_for_window(window_id)
+                });
         }
 
         let root_shell_frames = self.template_bridge.root_shell_frames();
-        let workbench = &self.runtime.chrome_snapshot().workbench;
+        let workbench = self.presentation_cache.workbench()?;
         if let Some(region) = active_drawer_region_for_kind(workbench, kind) {
             return root_shell_frames
                 .drawer_content_frame(region)

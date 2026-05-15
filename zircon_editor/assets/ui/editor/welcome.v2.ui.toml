@@ -52,28 +52,28 @@ layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 2
 component = "Button"
 control_id = "WelcomeStartupWorkbenchButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
-props = { text = "Default Workbench", height = 30.0 }
+props = { text = "Default Workbench", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
 events = [{ id = "Welcome/OpenStartupWorkbench", event = "Click", route = "Welcome.OpenStartupWorkbench" }]
 
 [nodes.startup_chooser_button_demo]
 component = "Button"
 control_id = "WelcomeStartupDemoButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
-props = { text = "Material Demo", height = 30.0 }
+props = { text = "Component Showcase", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
 events = [{ id = "Welcome/OpenStartupDemo", event = "Click", route = "Welcome.OpenStartupDemo" }]
 
 [nodes.startup_chooser_button_asset]
 component = "Button"
 control_id = "WelcomeStartupAssetWindowButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
-props = { text = "Asset Window", height = 30.0 }
+props = { text = "Asset Window", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
 events = [{ id = "Welcome/OpenStartupAssetWindow", event = "Click", route = "Welcome.OpenStartupAssetWindow" }]
 
 [nodes.startup_chooser_button_ui_layout]
 component = "Button"
 control_id = "WelcomeStartupUILayoutEditorButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
-props = { text = "UI Layout Editor", height = 30.0 }
+props = { text = "UI Layout Editor", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 30.0 }
 events = [{ id = "Welcome/OpenStartupUILayoutEditor", event = "Click", route = "Welcome.OpenStartupUILayoutEditor" }]
 
 [nodes.startup_chooser_row]
@@ -118,7 +118,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 16.0, preferred = 1
 component = "TextField"
 control_id = "WelcomeProjectNameField"
 classes = ["showcase-field", "material-control", "material-outlined-field"]
-props = { value = "ZirconProject", placeholder = "Project name", validation_level = "normal", height = 56.0 }
+props = { value = "ZirconProject", placeholder = "Project name", validation_level = "normal", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, height = 56.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
 
 [nodes.project_name_location_gap]
@@ -129,7 +129,7 @@ layout = { width = { stretch = "Stretch" }, height = { min = 12.0, preferred = 1
 component = "TextField"
 control_id = "WelcomeLocationField"
 classes = ["showcase-field", "material-control", "material-outlined-field"]
-props = { value = "Documents/ZirconProjects", placeholder = "Location", validation_level = "normal", height = 56.0 }
+props = { value = "Documents/ZirconProjects", placeholder = "Location", validation_level = "normal", surface_variant = "inset", border_width = 1.0, corner_radius = 10.0, height = 56.0 }
 layout = { width = { stretch = "Stretch" }, height = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" } }
 
 [nodes.location_preview_gap]
@@ -162,14 +162,14 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "Button"
 control_id = "WelcomeOpenExistingButton"
 classes = ["showcase-field", "material-control", "material-button", "material-text-button"]
-props = { text = "Open", height = 32.0 }
+props = { text = "Open", surface_variant = "inset", border_width = 1.0, corner_radius = 999.0, height = 32.0 }
 events = [{ id = "Welcome/OpenExisting", event = "Click", route = "Welcome.OpenExisting" }]
 
 [nodes.create_project_button]
 component = "Button"
 control_id = "WelcomeCreateProjectButton"
 classes = ["showcase-field", "material-control", "material-button", "material-button-primary"]
-props = { text = "Create Project", surface_variant = "accent", button_variant = "primary", validation_level = "normal", height = 32.0 }
+props = { text = "Create Project", surface_variant = "accent", button_variant = "primary", border_width = 1.0, corner_radius = 999.0, validation_level = "normal", height = 32.0 }
 events = [{ id = "Welcome/CreateProject", event = "Click", route = "Welcome.CreateProject" }]
 
 [nodes.actions_row]

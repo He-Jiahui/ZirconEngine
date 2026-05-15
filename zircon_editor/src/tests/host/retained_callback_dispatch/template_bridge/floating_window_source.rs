@@ -9,22 +9,22 @@ fn builtin_floating_window_source_template_bridge_recomputes_surface_backed_fram
         BuiltinFloatingWindowSourceTemplateBridge::new(UiSize::new(1280.0, 720.0)).unwrap();
     assert_eq!(
         bridge.source_frames().center_band_frame,
-        Some(UiFrame::new(0.0, 57.0, 1280.0, 639.0))
+        Some(UiFrame::new(0.0, 30.0, 1280.0, 668.0))
     );
     assert_eq!(
         bridge.source_frames().document_frame,
-        Some(UiFrame::new(44.0, 57.0, 1236.0, 639.0))
+        Some(UiFrame::new(34.0, 30.0, 1246.0, 668.0))
     );
 
     bridge.recompute_layout(UiSize::new(960.0, 540.0)).unwrap();
 
     assert_eq!(
         bridge.source_frames().center_band_frame,
-        Some(UiFrame::new(0.0, 57.0, 960.0, 459.0))
+        Some(UiFrame::new(0.0, 30.0, 960.0, 488.0))
     );
     assert_eq!(
         bridge.source_frames().document_frame,
-        Some(UiFrame::new(44.0, 57.0, 916.0, 459.0))
+        Some(UiFrame::new(34.0, 30.0, 926.0, 488.0))
     );
 }
 

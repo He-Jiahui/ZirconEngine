@@ -1,0 +1,12 @@
+name = "zr_vm_minimal"
+version = "0.1.0"
+entry = "main"
+backend = "zr_vm:project"
+
+[capabilities]
+capabilities = ["foundation.time", "foundation.log"]
+
+[zr_vm]
+project = "plugin.zrp"
+entry_module = "main"
+execution_mode = "binary"

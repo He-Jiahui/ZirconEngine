@@ -20,6 +20,10 @@ pub(crate) fn builtin_hybrid_layout_for_subsystems(
             &mut layout,
             &ViewInstanceId::new("editor.runtime_diagnostics#1"),
         );
+        remove_view_from_layout(
+            &mut layout,
+            &ViewInstanceId::new("editor.performance_timeline#1"),
+        );
     }
     layout
 }

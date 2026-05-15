@@ -1,0 +1,6 @@
+{
+  "name": "zr_vm_minimal",
+  "source": ".",
+  "binary": "bin",
+  "entry": "main"
+}

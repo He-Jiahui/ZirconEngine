@@ -24,8 +24,11 @@ related_code:
   - zircon_editor/src/ui/retained_host/tab_drag/bridge.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
   - zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml
   - zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
 implementation_files:
   - zircon_editor/src/ui/retained_host/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
@@ -47,10 +50,15 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/bridge.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/floating_window_source/surface.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
+  - zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml
+  - zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml
 plan_sources:
   - .codex/plans/Zircon Editor Runtime UI Rust-Owned Retained Host 重构计划.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
+  - .codex/plans/Editor 基础组件 Material 化视觉优化计划.md
+  - user: 2026-05-15 optimize retained editor UI styling with Material-like rounded controls and stronger feedback
 tests:
   - zircon_editor/src/tests/ui/boundary/template_assets.rs
   - zircon_editor/src/tests/ui/boundary/workbench_projection_cutover.rs
@@ -72,6 +80,14 @@ tests:
   - cargo test -p zircon_editor --lib --locked --target-dir target\codex-shared-a -- --test-threads=1
   - ./.codex/skills/zircon-dev/scripts/validate-matrix.ps1 -TargetDir target\codex-shared-a (2026-05-09: workspace build passed, workspace test blocked in zircon_plugin_navigation_runtime --lib)
   - cargo test -p zircon_plugin_navigation_runtime --lib --locked --target-dir target\codex-shared-a -- --nocapture --test-threads=1 (2026-05-09: reproduced external navigation runtime blocker, 5 passed / 8 failed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never (3 passed)
+  - 2026-05-15 Material visual slice: cargo test -p zircon_editor --lib component_showcase --locked --jobs 1 --message-format short --color never (25 passed)
+  - 2026-05-15 Material visual slice: cargo check -p zircon_editor --lib --tests --locked --jobs 1 --message-format short --color never (passed)
+  - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -ScenarioList startup,idle_hover -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (startup 20260516-000244 passed; idle_hover 20260516-000253 recorded redraw/GPU work with zero alerts but missed the strict batch gate)
+  - 2026-05-16 Material visual live capture: tools/ui-profile-capture.ps1 -Scenario click -OutputRoot .codex/material-ui-capture -SkipBuild -AutoCloseSeconds 5 -AutoInteract -RequireScenarioEvidence (20260516-000343 passed)
+  - 2026-05-16 Material feedback emphasis: rustfmt --edition 2021 --check retained painter theme/template_nodes/native_material_painter test files (passed)
+  - 2026-05-16 Material feedback emphasis: Python tomllib parse for editor_material.v2.ui.toml, ui_legacy editor_material.ui.toml, and component_showcase.v2.ui.toml (passed)
+  - 2026-05-16 Material feedback emphasis: cargo test -p zircon_editor --lib native_material_painter --locked --jobs 1 --message-format short --color never (blocked before compile by existing Cargo.lock mismatch; lockfile left unchanged)
 doc_type: module-detail
 ---
 
@@ -101,17 +117,24 @@ The recompute path builds a `WorkbenchViewModel`, computes workbench geometry, r
 The current shell structure comes from source-controlled `.ui.toml` assets, not from generated UI files. Important host assets include:
 
 - `zircon_editor/assets/ui/editor/host/workbench_shell.ui.toml`
+- `zircon_editor/assets/ui/editor/host/workbench_shell.v2.ui.toml`
 - `zircon_editor/assets/ui/editor/host/floating_window_source.ui.toml`
 - `zircon_editor/assets/ui/editor/host/workbench_drawer_source.ui.toml`
 - `zircon_editor/assets/ui/editor/host/scene_viewport_toolbar.ui.toml`
 - `zircon_editor/assets/ui/editor/host/asset_surface_controls.ui.toml`
 - `zircon_editor/assets/ui/editor/host/inspector_surface_controls.ui.toml`
+- `zircon_editor/assets/ui/editor/host/inspector_surface_controls.v2.ui.toml`
 - `zircon_editor/assets/ui/editor/host/pane_surface_controls.ui.toml`
 - `zircon_editor/assets/ui/editor/host/startup_welcome_controls.ui.toml`
+- `zircon_editor/assets/ui/editor/host/startup_welcome_controls.v2.ui.toml`
 
 `EditorUiHostRuntime` loads these assets, builds shared UI surfaces, registers stable bindings, and exposes retained host projections. `RetainedUiHostAdapter` maps generic host models into retained host node models with component kind, frame, clip, z, style, state, validation, popup, selection, drag/drop, and route metadata.
 
 Current root-shell frame authority is the host `.ui.toml` geometry, not old workbench metrics. `workbench_shell.ui.toml` gives the menu bar `24px`, the page strip `32px`, the separator `1px`, the status bar `24px`, and the activity rail `44px`. That makes the body and document top boundary `57px`; at 1280x720 the document host frame is `44,57,1236,639`, and at 960x540 it is `44,57,916,459`.
+
+The 2026-05-15 Material visual slice keeps that geometry authority unchanged while strengthening first-look editor controls. `workbench_shell.v2.ui.toml` marks representative menu and activity-rail icon buttons with inset surfaces, 1px borders, and 10px rounded corners. `inspector_surface_controls.v2.ui.toml` applies the same rounded inset treatment to fields and uses pill-rounded primary/danger actions. `startup_welcome_controls.v2.ui.toml` does the same for welcome fields and actions. These values are visual metadata consumed by the retained painter and command stream; action routes, binding ids, drawer ownership, and workbench business state stay unchanged.
+
+The 2026-05-16 feedback pass keeps the same shell frames and route ownership but strengthens state contrast through shared Material tokens and the retained painter. Hovered controls now receive a brighter teal-tinted container plus accent/focus border, pressed controls move to a deeper teal, selected and checked controls use the saturated selected container, and focus/pressed/selected borders use the 2px focus-ring width. Workbench chrome, pane controls, welcome controls, Inspector controls, and component showcase controls inherit these states through the common theme/painter path instead of separate host-specific styling.
 
 Dedicated source assets must match that root-shell authority unless they are deliberately exercising a standalone fallback. `floating_window_source.ui.toml` therefore uses a `57px` top spacer and `44px` rail so floating-window default/clamp frames line up with the document host. `workbench_drawer_source.ui.toml` still supports its metric-only fallback, but `BuiltinHostWindowTemplateBridge` passes `WorkbenchBody` and `StatusBarRoot` anchors into `workbench_drawer_source/layout.rs` for real workbench projections so visible drawer frames are recomputed from the current root shell.
 

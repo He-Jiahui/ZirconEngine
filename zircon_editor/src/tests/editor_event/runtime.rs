@@ -49,6 +49,10 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
         ("Window.DebugObservatory.Open", "Window/Debug Observatory"),
         ("Window.PrefabEditor.Open", "Window/Prefab Editor"),
         ("Window.MaterialEditor.Open", "Window/Material Editor"),
+        (
+            "Window.UiComponentShowcase.Open",
+            "Window/UI Component Showcase",
+        ),
         ("Window.MaterialDemo.Open", "Window/Material Demo"),
         ("Window.UiAssetEditor.Open", "Window/UI Asset Editor"),
         ("Window.AnimationEditor.Open", "Window/Animation Editor"),
@@ -153,14 +157,14 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
     registry
         .register_component_drawer(ComponentDrawerDescriptor::new(
             "weather.Component.CloudLayer",
-            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.zui",
             "weather.editor.CloudLayerInspectorController",
         ))
         .unwrap();
     registry
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
-            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.zui",
         ))
         .unwrap();
     registry.register_operation(operation.clone()).unwrap();
@@ -1996,14 +2000,14 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
     extension
         .register_ui_template(EditorUiTemplateDescriptor::new(
             "weather.cloud_layer.inspector",
-            "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+            "asset://weather/editor/cloud_layer.inspector.zui",
         ))
         .unwrap();
     extension
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -2023,7 +2027,7 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         .expect("component drawer registered");
     assert_eq!(
         drawer.ui_document(),
-        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml"
+        "asset://weather/editor/cloud_layer.inspector.zui"
     );
     assert_eq!(
         drawer.controller(),
@@ -2042,7 +2046,7 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
         .expect("ui template registered");
     assert_eq!(
         template.ui_document(),
-        "asset://weather/editor/cloud_layer.inspector.v2.ui.toml"
+        "asset://weather/editor/cloud_layer.inspector.zui"
     );
 }
 
@@ -2090,7 +2094,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id("weather.cloud_layer.inspector")
@@ -2116,7 +2120,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
     assert!(component.drawer_available);
     assert_eq!(
         component.drawer_ui_document.as_deref(),
-        Some("asset://weather/editor/cloud_layer.inspector.v2.ui.toml")
+        Some("asset://weather/editor/cloud_layer.inspector.zui")
     );
     assert_eq!(
         component.drawer_controller.as_deref(),
@@ -2178,7 +2182,7 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 component_type,
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.CloudLayer.Refresh"),
@@ -2423,7 +2427,7 @@ fn editor_runtime_rejects_component_drawer_bindings_to_missing_operations() {
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.CloudLayer.Refresh"),
@@ -2450,7 +2454,7 @@ fn editor_extension_registry_rejects_invalid_component_drawer_operation_bindings
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_binding("Weather.Refresh"),
@@ -2472,7 +2476,7 @@ fn editor_extension_registry_rejects_invalid_component_drawer_template_metadata(
         .register_component_drawer(
             ComponentDrawerDescriptor::new(
                 "weather.Component.CloudLayer",
-                "asset://weather/editor/cloud_layer.inspector.v2.ui.toml",
+                "asset://weather/editor/cloud_layer.inspector.zui",
                 "weather.editor.CloudLayerInspectorController",
             )
             .with_template_id(" weather.cloud_layer.inspector"),
@@ -2499,7 +2503,7 @@ fn editor_extension_registry_rejects_legacy_ui_template_documents() {
 
     assert_eq!(
         error.to_string(),
-        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .v2.ui.toml asset"
+        "editor ui template document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .zui component asset"
     );
 }
 
@@ -2518,7 +2522,7 @@ fn editor_extension_registry_rejects_legacy_component_drawer_documents() {
 
     assert_eq!(
         error.to_string(),
-        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .v2.ui.toml asset"
+        "editor component drawer document `asset://weather/editor/cloud_layer.inspector.ui.toml` must reference a .zui component asset"
     );
 }
 

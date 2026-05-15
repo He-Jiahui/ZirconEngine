@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, HashSet};
 
 use crate::core::resource::{AssetReference, ResourceLocator};
 use crate::ui::template::{collect_document_resource_dependencies, UiAssetLoader};
-use crate::ui::v2::UiV2AssetLoader;
+use crate::ui::v2::{UiV2AssetLoader, UiZuiAssetLoader};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use zircon_runtime_interface::ui::template::{UiAssetDocument, UiAssetKind};
@@ -109,6 +109,12 @@ impl UiV2ViewAsset {
 impl UiV2ComponentAsset {
     pub fn from_toml_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
         parse_v2_typed(document, UiV2AssetKind::Component).map(|document| Self { document })
+    }
+
+    pub fn from_zui_str(document: &str) -> Result<Self, UiV2AssetDocumentError> {
+        UiZuiAssetLoader::load_zui_str(document)
+            .map(|document| Self { document })
+            .map_err(|error| UiV2AssetDocumentError::Parse(error.to_string()))
     }
 
     pub fn to_toml_string(&self) -> Result<String, toml::ser::Error> {

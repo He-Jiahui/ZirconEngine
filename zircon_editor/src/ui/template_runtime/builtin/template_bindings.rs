@@ -44,18 +44,6 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
             ),
         ),
         (
-            "ActivityRail/ProjectToggle".to_string(),
-            EditorUiBinding::new(
-                "ActivityRail",
-                "ProjectToggle",
-                EditorUiEventKind::Click,
-                EditorUiBindingPayload::dock_command(DockCommand::ActivateDrawerTab {
-                    slot: "left_top".to_string(),
-                    instance_id: "editor.project#1".to_string(),
-                }),
-            ),
-        ),
-        (
             "ActivityRail/HierarchyToggle".to_string(),
             EditorUiBinding::new(
                 "ActivityRail",
@@ -64,6 +52,18 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 EditorUiBindingPayload::dock_command(DockCommand::ActivateDrawerTab {
                     slot: "left_top".to_string(),
                     instance_id: "editor.hierarchy#1".to_string(),
+                }),
+            ),
+        ),
+        (
+            "ActivityRail/AssetsToggle".to_string(),
+            EditorUiBinding::new(
+                "ActivityRail",
+                "AssetsToggle",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::dock_command(DockCommand::ActivateDrawerTab {
+                    slot: "left_top".to_string(),
+                    instance_id: "editor.assets#1".to_string(),
                 }),
             ),
         ),
@@ -593,6 +593,17 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
                 EditorUiEventKind::Click,
                 EditorUiBindingPayload::dock_command(DockCommand::FocusView {
                     instance_id: "editor.runtime_diagnostics#1".to_string(),
+                }),
+            ),
+        ),
+        (
+            "PerformanceTimelinePaneBody/RefreshSnapshot".to_string(),
+            EditorUiBinding::new(
+                "PerformanceTimelinePaneBody",
+                "RefreshSnapshot",
+                EditorUiEventKind::Click,
+                EditorUiBindingPayload::dock_command(DockCommand::FocusView {
+                    instance_id: "editor.performance_timeline#1".to_string(),
                 }),
             ),
         ),

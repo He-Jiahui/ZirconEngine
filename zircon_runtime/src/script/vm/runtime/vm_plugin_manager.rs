@@ -6,7 +6,8 @@ use crate::core::{CoreRuntime, PluginContext};
 use super::super::backend::{BuiltinVmBackendFamily, VmBackendFamily, VmBackendRegistry, VmError};
 use super::super::handles::PluginSlotId;
 use super::super::host::{
-    HostRegistry, VmPluginHostContext, VmPluginSlotLifecycle, VM_PLUGIN_RUNTIME_NAME,
+    register_builtin_host_modules, HostExportRegistry, HostRegistry, VmPluginHostContext,
+    VmPluginSlotLifecycle, VM_PLUGIN_RUNTIME_NAME,
 };
 use super::super::plugin::{
     discover_vm_plugin_packages, DiscoveredVmPluginPackage, VmPluginPackage, VmPluginPackageSource,
@@ -21,6 +22,7 @@ pub struct VmPluginManager {
     self_ref: Weak<VmPluginManager>,
     plugin_context: PluginContext,
     host_registry: HostRegistry,
+    host_exports: HostExportRegistry,
     coordinator: HotReloadCoordinator,
     backends: VmBackendRegistry,
     selected_backend: RwLock<String>,
@@ -97,10 +99,22 @@ impl VmPluginManager {
     }
 
     pub fn with_plugin_context(plugin_context: PluginContext, host: HostRegistry) -> Arc<Self> {
+        let host_exports = HostExportRegistry::new(host.clone());
+        register_builtin_host_modules(&host_exports, &host)
+            .expect("builtin script host modules should be valid");
+        Self::with_plugin_context_and_host_exports(plugin_context, host, host_exports)
+    }
+
+    pub fn with_plugin_context_and_host_exports(
+        plugin_context: PluginContext,
+        host: HostRegistry,
+        host_exports: HostExportRegistry,
+    ) -> Arc<Self> {
         let manager = Arc::new_cyclic(|weak| Self {
             self_ref: weak.clone(),
             plugin_context,
             host_registry: host,
+            host_exports,
             coordinator: HotReloadCoordinator::new(),
             backends: VmBackendRegistry::new(),
             selected_backend: RwLock::new(DEFAULT_BACKEND_SELECTOR.to_string()),
@@ -231,6 +245,10 @@ impl VmPluginManager {
         self.host_registry.clone()
     }
 
+    pub fn host_exports(&self) -> HostExportRegistry {
+        self.host_exports.clone()
+    }
+
     pub fn base_plugin_context(&self) -> &PluginContext {
         &self.plugin_context
     }
@@ -264,6 +282,7 @@ impl VmPluginManager {
             backend_selector: backend_selector.to_string(),
             package_source: source,
             host_registry: self.host_registry.clone(),
+            host_exports: self.host_exports.clone(),
             slot_lifecycle: Arc::new(ManagerSlotLifecycle::new(self.self_ref.clone())),
         }
     }

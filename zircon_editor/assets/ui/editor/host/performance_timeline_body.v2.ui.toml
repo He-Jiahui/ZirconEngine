@@ -1,0 +1,68 @@
+[asset]
+kind = "view"
+id = "editor.host.pane.performance_timeline.body"
+version = 2
+display_name = "performance timeline pane body"
+
+[root]
+node = "root"
+
+[nodes.root]
+component = "VerticalGroup"
+control_id = "PerformanceTimelinePaneBodyRoot"
+classes = ["editor-pane", "performance-timeline-pane"]
+layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
+children = [{ node = "header" }, { node = "summary" }, { node = "session" }, { node = "output" }, { node = "controls" }, { node = "frame_list", slot = { name = "performance_timeline_frame_list" } }]
+
+[nodes.header]
+component = "HorizontalGroup"
+control_id = "PerformanceTimelineHeader"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+children = [{ node = "refresh" }]
+
+[nodes.refresh]
+component = "IconButton"
+control_id = "RefreshTimelineSnapshot"
+props = { label = "Refresh Timeline", icon = "timeline-outline" }
+layout = { width = { min = 148.0, preferred = 148.0, max = 148.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+events = [{ id = "PerformanceTimelinePaneBody/RefreshSnapshot", event = "Click", route = "DockCommand.FocusView" }]
+
+[nodes.summary]
+component = "Text"
+control_id = "PerformanceTimelineSummary"
+props = { text = "Profiling disabled" }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.session]
+component = "Text"
+control_id = "PerformanceTimelineSession"
+props = { text = "Session local" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.output]
+component = "Text"
+control_id = "PerformanceTimelineOutput"
+props = { text = "Output target/zircon-profiles/local" }
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.controls]
+component = "HorizontalGroup"
+control_id = "PerformanceTimelineCaptureControls"
+layout = { container = { kind = "HorizontalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.frame_list]
+component = "Container"
+control_id = "PerformanceTimelineFrameList"
+props = { slot_name = "performance_timeline_frame_list" }
+layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, scroll = { vertical = true } }
+children = [{ node = "span_summary" }, { node = "hotspots" }]
+
+[nodes.span_summary]
+component = "Container"
+control_id = "PerformanceTimelineSpanSummary"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }
+
+[nodes.hotspots]
+component = "Container"
+control_id = "PerformanceTimelineHotspots"
+layout = { width = { stretch = "Stretch" }, height = { min = 1.0, preferred = 1.0, max = 1.0, stretch = "Fixed" } }

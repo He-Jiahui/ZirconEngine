@@ -1,10 +1,20 @@
 use super::data::FrameRect;
+use crate::ui::retained_host::ui_perf::{
+    current_ui_perf_scenario, record_ui_perf_counter, UiPerfCounter, UiPerfScenario,
+};
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum HostRedrawRequest {
     None,
-    Full { frame_update: bool },
-    Region(FrameRect),
+    Full {
+        frame_update: bool,
+        scenario: UiPerfScenario,
+    },
+    Region {
+        frame: FrameRect,
+        frame_update: bool,
+        scenario: UiPerfScenario,
+    },
 }
 
 impl HostRedrawRequest {
@@ -13,12 +23,41 @@ impl HostRedrawRequest {
     }
 
     pub(super) fn full_frame() -> Self {
-        Self::Full { frame_update: true }
+        Self::full_frame_for_scenario(current_ui_perf_scenario(), true)
+    }
+
+    pub(crate) fn full_frame_for_scenario(scenario: UiPerfScenario, frame_update: bool) -> Self {
+        record_ui_perf_counter(scenario, UiPerfCounter::RedrawFullFrame, 1.0);
+        Self::Full {
+            frame_update,
+            scenario,
+        }
     }
 
     pub(crate) fn region(frame: FrameRect) -> Self {
+        Self::region_for_scenario(current_ui_perf_scenario(), frame)
+    }
+
+    pub(crate) fn region_for_scenario(scenario: UiPerfScenario, frame: FrameRect) -> Self {
+        Self::region_for_scenario_with_frame_update(scenario, frame, false)
+    }
+
+    pub(crate) fn region_with_frame_update(frame: FrameRect) -> Self {
+        Self::region_for_scenario_with_frame_update(current_ui_perf_scenario(), frame, true)
+    }
+
+    pub(crate) fn region_for_scenario_with_frame_update(
+        scenario: UiPerfScenario,
+        frame: FrameRect,
+        frame_update: bool,
+    ) -> Self {
         if visible_frame(&frame) {
-            Self::Region(frame)
+            record_ui_perf_counter(scenario, UiPerfCounter::RedrawRegion, 1.0);
+            Self::Region {
+                frame,
+                frame_update,
+                scenario,
+            }
         } else {
             Self::None
         }
@@ -29,27 +68,93 @@ impl HostRedrawRequest {
     }
 
     pub(crate) fn requires_frame_update(&self) -> bool {
-        matches!(self, Self::Full { frame_update: true })
+        matches!(
+            self,
+            Self::Full {
+                frame_update: true,
+                ..
+            } | Self::Region {
+                frame_update: true,
+                ..
+            }
+        )
     }
 
     pub(crate) fn damage_region(&self) -> Option<&FrameRect> {
         match self {
-            Self::Region(frame) => Some(frame),
+            Self::Region { frame, .. } => Some(frame),
             Self::None | Self::Full { .. } => None,
+        }
+    }
+
+    pub(crate) fn scenario(&self) -> UiPerfScenario {
+        match self {
+            Self::Full { scenario, .. } | Self::Region { scenario, .. } => *scenario,
+            Self::None => current_ui_perf_scenario(),
         }
     }
 
     pub(crate) fn merge(self, next: Self) -> Self {
         match (self, next) {
-            (Self::Full { frame_update }, Self::Full { frame_update: next }) => Self::Full {
+            (
+                Self::Full {
+                    frame_update,
+                    scenario,
+                },
+                Self::Full {
+                    frame_update: next,
+                    scenario: next_scenario,
+                },
+            ) => Self::Full {
                 frame_update: frame_update || next,
+                scenario: if next { next_scenario } else { scenario },
             },
-            (current @ Self::Full { .. }, _) => current,
-            (_, Self::Full { frame_update }) => Self::Full { frame_update },
-            (Self::Region(current), Self::Region(next)) => {
-                Self::Region(union_frame(&current, &next))
-            }
-            (Self::None, Self::Region(next)) => Self::Region(next),
+            (
+                Self::Full {
+                    frame_update,
+                    scenario,
+                },
+                Self::Region {
+                    frame_update: next,
+                    scenario: next_scenario,
+                    ..
+                },
+            ) => Self::Full {
+                frame_update: frame_update || next,
+                scenario: if next { next_scenario } else { scenario },
+            },
+            (
+                Self::Region { frame_update, .. },
+                Self::Full {
+                    frame_update: next,
+                    scenario,
+                },
+            ) => Self::Full {
+                frame_update: frame_update || next,
+                scenario,
+            },
+            (
+                Self::Region {
+                    frame: current,
+                    frame_update,
+                    scenario,
+                },
+                Self::Region {
+                    frame: next,
+                    frame_update: next_update,
+                    scenario: next_scenario,
+                },
+            ) => Self::Region {
+                frame: union_frame(&current, &next),
+                frame_update: frame_update || next_update,
+                scenario: if next_update && !frame_update {
+                    next_scenario
+                } else {
+                    scenario
+                },
+            },
+            (Self::None, next @ Self::Full { .. }) => next,
+            (Self::None, next @ Self::Region { .. }) => next,
             (current, Self::None) => current,
         }
     }
@@ -76,6 +181,12 @@ impl NativePointerDispatchResult {
     pub(super) fn region(frame: FrameRect) -> Self {
         Self {
             redraw: HostRedrawRequest::region(frame),
+        }
+    }
+
+    pub(super) fn region_with_frame_update(frame: FrameRect) -> Self {
+        Self {
+            redraw: HostRedrawRequest::region_with_frame_update(frame),
         }
     }
 
@@ -157,10 +268,62 @@ mod tests {
             width: 20.0,
             height: 12.0,
         })
-        .merge(HostRedrawRequest::Full { frame_update: true });
+        .merge(HostRedrawRequest::full_frame_for_scenario(
+            UiPerfScenario::Startup,
+            true,
+        ));
 
         assert!(redraw.request_redraw());
         assert!(redraw.requires_frame_update());
         assert_eq!(redraw.damage_region(), None);
+    }
+
+    #[test]
+    fn redraw_region_can_request_frame_update_without_losing_damage() {
+        let redraw = HostRedrawRequest::region_with_frame_update(FrameRect {
+            x: 4.0,
+            y: 8.0,
+            width: 80.0,
+            height: 28.0,
+        });
+
+        assert!(redraw.request_redraw());
+        assert!(redraw.requires_frame_update());
+        assert_eq!(
+            redraw.damage_region(),
+            Some(&FrameRect {
+                x: 4.0,
+                y: 8.0,
+                width: 80.0,
+                height: 28.0,
+            })
+        );
+    }
+
+    #[test]
+    fn redraw_region_merge_preserves_frame_update_request() {
+        let redraw = HostRedrawRequest::region(FrameRect {
+            x: 8.0,
+            y: 10.0,
+            width: 20.0,
+            height: 12.0,
+        })
+        .merge(HostRedrawRequest::region_with_frame_update(FrameRect {
+            x: 24.0,
+            y: 6.0,
+            width: 10.0,
+            height: 20.0,
+        }));
+
+        assert!(redraw.requires_frame_update());
+        assert_eq!(
+            redraw.damage_region(),
+            Some(&FrameRect {
+                x: 8.0,
+                y: 6.0,
+                width: 26.0,
+                height: 20.0,
+            })
+        );
     }
 }

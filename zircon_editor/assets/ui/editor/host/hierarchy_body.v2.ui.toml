@@ -12,7 +12,7 @@ component = "VerticalGroup"
 control_id = "HierarchyPaneBodyRoot"
 classes = ["editor-pane", "hierarchy-pane", "panel"]
 layout = { container = { kind = "VerticalBox", gap = 6.0 }, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
-children = [{ node = "header" }, { node = "tree_slot" }]
+children = [{ node = "header" }, { node = "tree_slot", slot = { name = "hierarchy_tree_slot" } }]
 
 [nodes.header]
 component = "HorizontalGroup"
@@ -30,4 +30,5 @@ events = [{ id = "HierarchyPaneBody/SelectRoot", event = "Click", route = "Selec
 [nodes.tree_slot]
 component = "Container"
 control_id = "HierarchyListPanel"
+props = { slot_name = "hierarchy_tree_slot" }
 layout = { clip = true, width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }

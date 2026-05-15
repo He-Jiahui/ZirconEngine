@@ -1,0 +1,137 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/components/showcase_selection_section.zui"
+version = 2
+display_name = "Showcase Selection Section"
+
+[imports]
+widgets = []
+styles = []
+
+[components.ShowcaseSelectionSection]
+root = "selection_section_root"
+default_classes = ["showcase-panel", "material-surface"]
+
+[nodes.section_title]
+component = "Label"
+control_id = "ComponentShowcaseSelectionSectionTitle"
+classes = ["showcase-section-title"]
+props = { text = "Selection and References", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.dropdown_demo]
+component = "Dropdown"
+control_id = "DropdownDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime", options = ["runtime", "editor", "debug"], disabled_options = ["debug"], special_options = ["runtime"], focused_options = ["editor"], hovered_options = ["editor"], pressed_options = ["runtime"], multiple = true, popup_open = true, selection_state = "multi", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/DropdownChanged", event = "Change", route = "UiComponentShowcase.SelectOption.Dropdown" },
+  { id = "UiComponentShowcase/DropdownOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.Dropdown" },
+  { id = "UiComponentShowcase/DropdownClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.Dropdown" },
+]
+
+[nodes.combo_box_demo]
+component = "ComboBox"
+control_id = "ComboBoxDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "material", options = ["material", "fluent", "native"], multiple = false, selection_state = "single", layout_padding_left = 10.0, layout_padding_right = 10.0, layout_padding_top = 3.0, layout_padding_bottom = 3.0, layout_min_height = 32.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ComboBoxChanged", event = "Change", route = "UiComponentShowcase.SelectOption.ComboBox" },
+  { id = "UiComponentShowcase/ComboBoxOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.ComboBox" },
+  { id = "UiComponentShowcase/ComboBoxClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.ComboBox" },
+]
+
+[nodes.enum_field_demo]
+component = "EnumField"
+control_id = "EnumFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "RiderDocking", options = ["RiderDocking", "UnityInspector", "RuntimeOverlay"], selection_state = "single", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/EnumFieldChanged", event = "Change", route = "UiComponentShowcase.SelectOption.EnumField" },
+  { id = "UiComponentShowcase/EnumFieldOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.EnumField" },
+  { id = "UiComponentShowcase/EnumFieldClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.EnumField" },
+]
+
+[nodes.flags_field_demo]
+component = "FlagsField"
+control_id = "FlagsFieldDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = ["Selectable", "Draggable"], value_text = "Selectable, Draggable", options = ["Selectable", "Draggable", "Disabled"], multiple = true, selection_state = "flags", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/FlagsFieldChanged", event = "Change", route = "UiComponentShowcase.SelectOption.FlagsField" },
+  { id = "UiComponentShowcase/FlagsFieldOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.FlagsField" },
+  { id = "UiComponentShowcase/FlagsFieldClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.FlagsField" },
+]
+
+[nodes.search_select_demo]
+component = "SearchSelect"
+control_id = "SearchSelectDemo"
+classes = ["showcase-field", "material-control", "material-outlined-field"]
+props = { value = "runtime.ui.NumberField", query = "number", options = ["runtime.ui.NumberField", "runtime.ui.RangeField", "runtime.ui.Vector3Field"], input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/SearchSelectChanged", event = "Change", route = "UiComponentShowcase.SelectOption.SearchSelect" },
+  { id = "UiComponentShowcase/SearchSelectQueryChanged", event = "Change", route = "UiComponentShowcase.ValueChanged.SearchSelectQuery" },
+  { id = "UiComponentShowcase/SearchSelectOpenPopup", event = "Click", route = "UiComponentShowcase.OpenPopup.SearchSelect" },
+  { id = "UiComponentShowcase/SearchSelectClosePopup", event = "Click", route = "UiComponentShowcase.ClosePopup.SearchSelect" },
+]
+
+[nodes.asset_field_demo]
+component = "AssetField"
+control_id = "AssetFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "res://textures/grid.albedo.png", validation_level = "normal", drop_hovered = true, active_drag_target = true, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/AssetFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldDropHovered", event = "Hover", route = "UiComponentShowcase.DropHover.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldActiveDragTarget", event = "DragBegin", route = "UiComponentShowcase.ActiveDragTarget.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.AssetField" },
+  { id = "UiComponentShowcase/AssetFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.AssetField" },
+]
+
+[nodes.instance_field_demo]
+component = "InstanceField"
+control_id = "InstanceFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "scene://Root/CameraRig", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/InstanceFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.InstanceField" },
+  { id = "UiComponentShowcase/InstanceFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.InstanceField" },
+]
+
+[nodes.object_field_demo]
+component = "ObjectField"
+control_id = "ObjectFieldDemo"
+classes = ["showcase-field", "material-control"]
+props = { value = "object://Selection/MainCamera", validation_level = "normal", input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+events = [
+  { id = "UiComponentShowcase/ObjectFieldDropped", event = "Drop", route = "UiComponentShowcase.DropReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldLocate", event = "Click", route = "UiComponentShowcase.LocateReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldOpen", event = "Click", route = "UiComponentShowcase.OpenReference.ObjectField" },
+  { id = "UiComponentShowcase/ObjectFieldClear", event = "Click", route = "UiComponentShowcase.ClearReference.ObjectField" },
+]
+
+[nodes.selection_section_root]
+component = "VerticalGroup"
+classes = ["showcase-panel", "material-surface"]
+children = [
+  { node = "section_title" },
+  { node = "dropdown_demo", slot = { name = "content" } },
+  { node = "combo_box_demo", slot = { name = "content" } },
+  { node = "enum_field_demo", slot = { name = "content" } },
+  { node = "flags_field_demo", slot = { name = "content" } },
+  { node = "search_select_demo", slot = { name = "content" } },
+  { node = "asset_field_demo", slot = { name = "content" } },
+  { node = "instance_field_demo", slot = { name = "content" } },
+  { node = "object_field_demo", slot = { name = "content" } },
+]

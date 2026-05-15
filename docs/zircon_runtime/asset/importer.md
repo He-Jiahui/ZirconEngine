@@ -6,6 +6,7 @@ related_code:
   - zircon_runtime/src/asset/importer/schema.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/importer/ingest/import_data_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
@@ -62,6 +63,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/schema.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
+  - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/module.rs
@@ -105,9 +107,12 @@ plan_sources:
   - user: 2026-05-02 Asset Importer 插件化补齐计划
   - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
+  - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - docs/superpowers/specs/2026-05-03-opus-native-dynamic-importer-design.md
   - docs/superpowers/plans/2026-05-03-opus-native-dynamic-importer.md
 tests:
+  - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui M1 importer route: planned for milestone testing stage)
+  - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui M1 importer route: planned for milestone testing stage)
   - 2026-05-03 review correction: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_opus_importer_runtime --check (passed)
   - 2026-05-03 review correction: cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_opus_importer_runtime --lib --locked --jobs 1 (passed, 4 tests)
   - 2026-05-03 review correction: cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (passed)
@@ -211,19 +216,19 @@ This makes import formats a runtime extension point. The runtime still owns the 
 
 ## Runtime Contract
 
-`AssetImporterDescriptor` is the public routing record. It declares importer id, plugin id, priority, ordinary extensions, full suffixes, output kind, importer version, and required capabilities. Full suffixes are matched before extensions, so `main.v2.ui.toml`, `level.scene.toml`, and `actor.prefab.toml` do not fall through to the plain `.toml` data importer.
+`AssetImporterDescriptor` is the public routing record. It declares importer id, plugin id, priority, ordinary extensions, full suffixes, output kind, importer version, and required capabilities. Full suffixes are matched before extensions, so `toolbar.zui`, `level.scene.toml`, and `actor.prefab.toml` do not fall through to ordinary extension importers.
 
 `AssetImportContext` carries the source path, normalized asset URI, source bytes, and per-asset import settings from meta. `AssetImportOutcome` is now a labeled entry list rather than a single imported asset. Each `ImportedAssetEntry` owns its locator, asset payload, dependency URIs, optional schema migration report, and diagnostics. The root entry uses the unlabeled source locator, and subassets use the same source path with a label such as `res://model/character.gltf#Mesh0`. The registry validates duplicate importer ids and duplicate matchers at the same priority before a plugin contribution is accepted.
 
 The hard-cutover rule is that importer code must call `AssetImportOutcome::new(locator, asset)` with an explicit locator. No compatibility constructor derives a locator from the asset payload, because several asset payloads do not own source URIs and subasset identity is label-based. Structured duplicate-label and missing-label errors carry `source_uri` plus `label` so `thiserror` does not treat the source locator as an error source.
 
-Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry now rejects legacy `.ui.toml` importer descriptors on the production path, so plugin manifests cannot reintroduce the old recursive UI schema after the v2 cutover. Only the exact unit-test migration fixture is allowed to register that matcher for schema migration coverage.
+Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-suffix importer; unknown typed TOML fails as an error resource instead of silently becoming a generic data file. The registry now rejects legacy `.ui.toml` and broad `.v2.ui.toml` importer descriptors on the production path, so plugin manifests cannot reintroduce either the old recursive UI schema or the pre-`.zui` mixed view/component/style UI v2 importer. Only explicit unit-test migration fixtures are allowed to register those matchers for schema migration coverage.
 
 ## Built-In Coverage
 
-The production default importer registry installs real Rust paths for runtime-core formats only: plain TOML/JSON data, UI v2 `.v2.ui.toml` documents, typed Zircon TOML assets such as material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, and the remaining GLSL/SPIR-V shader paths. It no longer decodes the first-wave independent plugin formats directly.
+The production default importer registry installs real Rust paths for runtime-core formats only: plain TOML/JSON data, `.zui` UI component documents, typed Zircon TOML assets such as material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, and the remaining GLSL/SPIR-V shader paths. It no longer decodes the first-wave independent plugin formats directly.
 
-Common image textures, WGSL, OBJ, glTF/GLB, and WAV now register diagnostic-only `zircon.plugin_required.*` descriptors by default. These descriptors preserve output kind, matcher, importer version, and capability metadata so scans produce stable error records when a plugin is disabled or missing, but they do not perform decoding in production runtime code. Legacy UI `.ui.toml` no longer registers even a production plugin-required fallback, and `AssetImporterRegistry` rejects non-fixture `.ui.toml` matcher registration. It remains reachable only through the exact migration fixture used by unit tests. The real stable split backends live in `texture_importer`, `shader_wgsl_importer`, `obj_importer`, `gltf_importer`, and `audio_importer`, while `ui_document_importer` mirrors the v2 `.v2.ui.toml` UI payload path for plugin packaging.
+Common image textures, WGSL, OBJ, glTF/GLB, and WAV now register diagnostic-only `zircon.plugin_required.*` descriptors by default. These descriptors preserve output kind, matcher, importer version, and capability metadata so scans produce stable error records when a plugin is disabled or missing, but they do not perform decoding in production runtime code. Legacy UI `.ui.toml` and `.v2.ui.toml` no longer register production plugin-required fallbacks, and `AssetImporterRegistry` rejects non-fixture matcher registration for both suffixes. They remain reachable only through exact migration fixtures used by unit tests. The real stable split backends live in `texture_importer`, `shader_wgsl_importer`, `obj_importer`, `gltf_importer`, and `audio_importer`, while `ui_document_importer` mirrors the `.zui` component payload path for plugin packaging.
 
 Runtime tests that intentionally exercise these first-wave formats install explicit fixture importers with the same package ids and higher priority as the split plugin crates. The fixtures still call test-only legacy runtime helper modules so the runtime test crate can validate artifact/project behavior without taking a dev-dependency on `zircon_plugins`; the production default path is diagnostic-only. Graphics project-render and M4 behavior-layer tests now use that explicit fixture path for PNG/WGSL/OBJ projects, so the tests prove render behavior with installed importer plugins instead of silently reintroducing production built-in decoders.
 
@@ -243,9 +248,9 @@ NativeDynamic/libopus command contract; importing still requires an installed na
 missing backend cases remain stable importer errors. The
 `asset_importer.shader` family package now owns a real Naga path for WGSL validation plus
 GLSL/vertex/fragment/compute and SPIR-V conversion into normalized WGSL `ShaderAsset` payloads. The
-split `ui_document_importer` package imports only v2 typed `.v2.ui.toml` documents and emits
-`UiV2ViewAsset`, `UiV2ComponentAsset`, or `UiV2StyleAsset` payloads. The older `.ui.toml`
-migration path and serialized `.ui.json`/`.zui`/`.uidoc` `UiAssetDocument` paths are not production
+split `ui_document_importer` package imports only `.zui` component documents and emits
+`UiV2ComponentAsset` payloads. The older `.ui.toml` migration path, pre-`.zui` `.v2.ui.toml`
+view/style/component importer, and serialized `.ui.json`/`.uidoc` `UiAssetDocument` paths are not production
 plugin importers anymore; migration coverage must install explicit test fixtures.
 
 Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
@@ -269,11 +274,11 @@ return a migration report. Failed imports clear the same fields before recording
 old upgraded asset does not leave misleading schema metadata on a later non-migrating or failed
 import.
 
-The split `ui_document_importer` runtime package routes typed UI TOML through `UiV2AssetLoader`.
-The importer descriptor and package `plugin.toml` both expose a single `ui_document_importer.v2_typed_toml`
-entry for `.v2.ui.toml` with importer version 2. Legacy `.ui.toml` is intentionally absent from
-production registration so it cannot silently route through `UiAssetLoader` or the recursive
-`UiAssetDocument` migration chain. `.ui.json`, `.zui`, and `.uidoc` are also absent from production
+The split `ui_document_importer` runtime package routes `.zui` TOML through `UiZuiAssetLoader`.
+The importer descriptor and package `plugin.toml` both expose a single `ui_document_importer.zui_component`
+entry for `.zui` with importer version 2 and `UiWidget` output. Legacy `.ui.toml` and `.v2.ui.toml` are intentionally absent from
+production registration so they cannot silently route through `UiAssetLoader`, the recursive
+`UiAssetDocument` migration chain, or the old mixed-kind v2 importer. `.ui.json` and `.uidoc` are also absent from production
 registration; the plugin no longer depends on `serde_json` or `bincode` for UI document import.
 
 `ProjectAssetManager` keeps a host-owned importer registry for plugin contributions that arrive

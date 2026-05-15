@@ -21,6 +21,21 @@ use super::runtime_host::{EditorUiHostRuntime, EditorUiHostRuntimeError};
 pub(super) fn load_builtin_host_templates(
     runtime: &mut EditorUiHostRuntime,
 ) -> Result<(), EditorUiHostRuntimeError> {
+    load_builtin_host_templates_for_documents(runtime, None)
+}
+
+pub(super) fn load_builtin_host_templates_for_document_ids(
+    runtime: &mut EditorUiHostRuntime,
+    document_ids: &[&str],
+) -> Result<(), EditorUiHostRuntimeError> {
+    let document_ids = document_ids.iter().copied().collect::<BTreeSet<_>>();
+    load_builtin_host_templates_for_documents(runtime, Some(&document_ids))
+}
+
+fn load_builtin_host_templates_for_documents(
+    runtime: &mut EditorUiHostRuntime,
+    document_ids: Option<&BTreeSet<&str>>,
+) -> Result<(), EditorUiHostRuntimeError> {
     if runtime.builtin_host_templates_loaded {
         return Ok(());
     }
@@ -29,7 +44,7 @@ pub(super) fn load_builtin_host_templates(
         runtime.register_component(descriptor)?;
     }
 
-    register_builtin_template_documents(runtime)?;
+    register_builtin_template_documents(runtime, document_ids)?;
 
     for (binding_id, binding) in builtin_template_bindings() {
         runtime.register_binding(binding_id, binding)?;
@@ -41,8 +56,12 @@ pub(super) fn load_builtin_host_templates(
 
 fn register_builtin_template_documents(
     runtime: &mut EditorUiHostRuntime,
+    document_ids: Option<&BTreeSet<&str>>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     for (document_id, path) in builtin_template_documents() {
+        if document_ids.is_some_and(|document_ids| !document_ids.contains(document_id)) {
+            continue;
+        }
         if editor_template_verbose_enabled() {
             write_diagnostic_log(
                 "editor_builtin_templates",
