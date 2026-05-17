@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderPluginRendererOutputs;
+use crate::core::framework::render::{PostProcessGraphResourceNames, RenderPluginRendererOutputs};
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{insert_marker, marker_for_render_pass_stage};
 use crate::graphics::pipeline::RenderPassStage;
@@ -7,6 +7,7 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutionContext,
     RenderPassExecutorId, RenderPassExecutorRegistry, RenderPassGpuExecutionContext,
 };
+use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 
 pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_compiled_scene)
@@ -39,16 +40,36 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     target: &OffscreenTarget,
 ) {
     resources.import_texture_view(
-        "scene-color",
+        PostProcessGraphResourceNames::SCENE_COLOR,
         target
             .scene_color
             .create_view(&wgpu::TextureViewDescriptor::default()),
     );
     resources.import_texture_view(
-        "scene-depth",
+        PostProcessGraphResourceNames::SCENE_DEPTH,
         target
             .depth
             .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_view(
+        PostProcessGraphResourceNames::FINAL_COLOR,
+        target
+            .final_color
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_view(
+        PostProcessGraphResourceNames::BLOOM,
+        target
+            .bloom
+            .create_view(&wgpu::TextureViewDescriptor::default()),
+    );
+    resources.import_texture_alias(
+        PostProcessGraphResourceNames::COLOR_GRADED,
+        &target.final_color,
+    );
+    resources.import_texture_alias(
+        PostProcessGraphResourceNames::HISTORY_RESOLVED,
+        &target.final_color,
     );
 }
 
@@ -62,8 +83,10 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
     encoder: &mut wgpu::CommandEncoder,
     frame: &ViewportRenderFrame,
     scene_bind_group: &wgpu::BindGroup,
+    screen_space_ui_renderer: &mut ScreenSpaceUiRenderer,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
+    crate::profile_dynamic_scope!("runtime", "render_graph.stage", format!("{stage:?}"));
     for stage_entry in pipeline
         .pass_stages
         .iter()
@@ -78,6 +101,7 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             encoder,
             frame,
             scene_bind_group,
+            screen_space_ui_renderer,
             execution,
         )?;
     }
@@ -94,6 +118,7 @@ fn execute_graph_pass(
     encoder: &mut wgpu::CommandEncoder,
     frame: &ViewportRenderFrame,
     scene_bind_group: &wgpu::BindGroup,
+    screen_space_ui_renderer: &mut ScreenSpaceUiRenderer,
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
     let Some(pass) = pipeline
@@ -113,6 +138,7 @@ fn execute_graph_pass(
     if let Some(marker) = marker_for_render_pass_stage(stage_entry.stage) {
         insert_marker(encoder, marker);
     }
+    crate::profile_dynamic_scope!("runtime", "render_graph.pass", pass.name.clone());
     let executor_id = pass.executor_id.as_ref().ok_or_else(|| {
         GraphicsError::Asset(format!("render pass `{}` has no executor id", pass.name))
     })?;
@@ -125,6 +151,7 @@ fn execute_graph_pass(
         scene_bind_group,
         &mut *execution.resources,
         &mut *execution.plugin_outputs,
+        screen_space_ui_renderer,
     );
     let mut context =
         RenderPassExecutionContext::with_declared_graph_metadata_dependencies_and_resources(

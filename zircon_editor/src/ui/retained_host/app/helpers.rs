@@ -875,9 +875,9 @@ mod tests {
             .expect("derived clip should be imported")
             .id();
         let first_skeleton_meta =
-            AssetMetaDocument::load(model_dir.join("hero.skeleton.zranim.meta.toml")).unwrap();
+            AssetMetaDocument::load(model_dir.join("hero.skeleton.zranim.zmeta")).unwrap();
         let first_clip_meta =
-            AssetMetaDocument::load(model_dir.join("hero.idle.clip.zranim.meta.toml")).unwrap();
+            AssetMetaDocument::load(model_dir.join("hero.idle.clip.zranim.zmeta")).unwrap();
 
         let second_generated =
             derive_animation_assets_from_model_source(paths.assets_root(), &model_path).unwrap();
@@ -894,20 +894,21 @@ mod tests {
             .expect("reimported clip should stay registered")
             .id();
         let second_skeleton_meta =
-            AssetMetaDocument::load(model_dir.join("hero.skeleton.zranim.meta.toml")).unwrap();
+            AssetMetaDocument::load(model_dir.join("hero.skeleton.zranim.zmeta")).unwrap();
         let second_clip_meta =
-            AssetMetaDocument::load(model_dir.join("hero.idle.clip.zranim.meta.toml")).unwrap();
+            AssetMetaDocument::load(model_dir.join("hero.idle.clip.zranim.zmeta")).unwrap();
 
         assert_eq!(first_generated, second_generated);
         assert_eq!(first_skeleton_id, second_skeleton_id);
         assert_eq!(first_clip_id, second_clip_id);
-        assert_eq!(
-            first_skeleton_meta.asset_uuid,
-            second_skeleton_meta.asset_uuid
-        );
-        assert_eq!(first_clip_meta.asset_uuid, second_clip_meta.asset_uuid);
+        assert_eq!(first_skeleton_meta.uuid, second_skeleton_meta.uuid);
+        assert_eq!(first_clip_meta.uuid, second_clip_meta.uuid);
         assert!(
             !model_dir.join("hero.bin.meta.toml").exists(),
+            "gltf buffer sidecars should not get runtime asset metadata sidecars"
+        );
+        assert!(
+            !model_dir.join("hero.bin.zmeta").exists(),
             "gltf buffer sidecars should not get runtime asset metadata sidecars"
         );
 

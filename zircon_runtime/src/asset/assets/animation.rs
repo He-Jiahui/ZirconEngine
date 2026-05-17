@@ -38,14 +38,14 @@ struct AnimationBinaryHeader {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 struct AnimationAssetReferenceBinary {
     uuid: String,
-    locator: String,
+    url: String,
 }
 
 impl From<&AssetReference> for AnimationAssetReferenceBinary {
     fn from(value: &AssetReference) -> Self {
         Self {
             uuid: value.uuid.to_string(),
-            locator: value.locator.to_string(),
+            url: value.locator.to_string(),
         }
     }
 }
@@ -58,7 +58,7 @@ impl TryFrom<AnimationAssetReferenceBinary> for AssetReference {
             .uuid
             .parse::<AssetUuid>()
             .map_err(|error| error.to_string())?;
-        let locator = AssetUri::parse(&value.locator).map_err(|error| error.to_string())?;
+        let locator = AssetUri::parse(&value.url).map_err(|error| error.to_string())?;
         Ok(AssetReference::new(uuid, locator))
     }
 }

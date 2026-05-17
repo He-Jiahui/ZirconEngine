@@ -59,9 +59,11 @@ plan_sources:
   - .codex/plans/Sound 插件核心完善计划.md
   - .codex/plans/多插件组合可选功能规则设计.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
+  - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 tests:
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/core/resource/tests.rs
   - cargo check -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short
   - cargo test -p zircon_plugin_sound_runtime -p zircon_plugin_sound_editor --locked --message-format short
@@ -82,7 +84,7 @@ M1 of the Bevy-style asset stack adds a generic facade over the same mapping. `A
 
 M2 adds the dependency graph to the same converged path. Importers declare dependency locators on each `ImportedAssetEntry`, and native importer response entries expose the same field. `ProjectManager::scan_and_import()` persists those locators into `AssetMetaDocument.entries[*].dependencies`, then resolves the completed project registry into `ResourceRecord.dependency_ids`. The graph therefore stays in the resource record and travels through existing project-to-runtime sync into `ResourceManager`, while the meta file carries enough locator data to restore the graph after a restart. Missing dependency locators are recorded as resource diagnostics instead of silently disappearing.
 
-M3 hard-cuts the importer result from a single payload to `AssetImportOutcome { entries: Vec<ImportedAssetEntry> }`. A valid import must contain exactly one root entry whose locator has no `#label`, while subassets use the same source locator with a label such as `res://bundle.gltf#Mesh0`. `ProjectManager` writes one library artifact and one `ResourceRecord` per entry, persists those rows in `AssetMetaDocument.entries`, and derives each ID with `AssetId::from_asset_uuid_label(meta.asset_uuid, entry.locator.label())`. Duplicate labels are recorded as a failed root import through `AssetImportError::DuplicateAssetLabel`, and loading a missing label from an imported source returns `AssetImportError::MissingAssetLabel` instead of an unstructured parse error.
+M3 hard-cuts the importer result from a single payload to `AssetImportOutcome { entries: Vec<ImportedAssetEntry> }`. A valid import must contain exactly one root entry whose locator has no `#label`, while subassets use the same source locator with a label such as `res://bundle.gltf#Mesh0`. `ProjectManager` writes one library artifact and one `ResourceRecord` per entry, persists those rows in `AssetMetaDocument.entries`, and derives each ID with `AssetId::from_asset_uuid(entry.uuid)`. Duplicate labels are recorded as a failed root import through `AssetImportError::DuplicateAssetLabel`, and loading a missing label from an imported source returns `AssetImportError::MissingAssetLabel` instead of an unstructured parse error.
 
 Editor asset surfaces use placeholder thumbnails and labels for newly introduced non-texture kinds. Reference analysis delegates graph-like authoring assets to their `direct_references()` implementations so scene terrain, tilemap, prefab, material graph, terrain layer stack, tile set, and tile map references remain discoverable without duplicating traversal logic in the editor.
 

@@ -41,6 +41,10 @@ fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {
         stats.last_ui_quad_count >= 4,
         "expected pause menu fixture to contribute multiple quad-like UI draws"
     );
+    assert!(
+        stats.last_ui_graph_executed_pass_count >= 1,
+        "expected runtime UI to execute through the product render graph"
+    );
 
     let frame = server.capture_frame(viewport).unwrap().unwrap();
     assert!(
@@ -142,6 +146,10 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
         assert!(
             stats.last_ui_quad_count >= 1 || stats.last_ui_text_payload_count >= 1,
             "expected fixture {fixture:?} to reach the screen-space UI pass"
+        );
+        assert!(
+            stats.last_ui_graph_executed_pass_count >= 1,
+            "expected fixture {fixture:?} to execute through the product render graph"
         );
     }
 }

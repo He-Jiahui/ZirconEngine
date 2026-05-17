@@ -14,38 +14,91 @@ use zircon_runtime_interface::{
     },
     ProfileControlRequest, ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1,
+    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
     ZR_RUNTIME_BUTTON_STATE_RELEASED_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
-    ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1,
-    ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
+    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1,
     ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1, ZR_RUNTIME_EVENT_KIND_TOUCH_V1,
-    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_KEY_ACTION_RELEASED_V1, ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1,
-    ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1, ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1,
-    ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1, ZR_RUNTIME_TOUCH_PHASE_ENDED_V1,
-    ZR_RUNTIME_TOUCH_PHASE_MOVED_V1, ZR_RUNTIME_TOUCH_PHASE_STARTED_V1,
+    ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1, ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1,
+    ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1, ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_C_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1, ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1, ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1, ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1, ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1, ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_START_V1, ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1, ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1,
+    ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1,
+    ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+    ZR_RUNTIME_IME_STATE_DISABLED_V1, ZR_RUNTIME_IME_STATE_ENABLED_V1,
+    ZR_RUNTIME_IME_STATE_PREEDIT_V1, ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1, ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+    ZR_RUNTIME_KEY_ACTION_PRESSED_V1, ZR_RUNTIME_KEY_ACTION_RELEASED_V1,
+    ZR_RUNTIME_KEY_ACTION_TEXT_V1, ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1, ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1, ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1,
+    ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_ENDED_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_TOUCH_PHASE_STARTED_V1, ZR_RUNTIME_WINDOW_BOOL_FALSE_V1,
+    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_THEME_DARK_V1, ZR_RUNTIME_WINDOW_THEME_LIGHT_V1,
 };
 
-use crate::core::framework::input::{InputButton, InputEvent, InputManager};
+use crate::core::diagnostics::collect_runtime_diagnostics;
+use crate::core::framework::input::{
+    FileDragDropEvent, GamepadAxis, GamepadButton, GamepadConnectionInfo, GamepadId, ImeCursorArea,
+    ImeCursorRange, ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText,
+    InputButton, InputEvent, InputManager, MouseScrollUnit, MouseWheelEvent, TouchPhase,
+    WindowStatusEvent, WindowTheme,
+};
 use crate::core::framework::render::{
     CapturedFrame, RenderFrameExtract, RenderViewportSurfaceDescriptor,
 };
 use crate::core::math::{UVec2, Vec2};
 use crate::core::CoreRuntime;
+use crate::diagnostic_log::{
+    write_diagnostic_store_snapshot, DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT,
+};
 use crate::scene::components::NodeKind;
 use crate::scene::LevelSystem;
 use crate::{runtime_modules_for_target, RuntimeTargetMode};
 
 use super::camera_controller::RuntimeCameraController;
 use super::frame::{
-    encode_accessibility_tree, encode_frame, encode_profile_response, write_accessibility_tree,
-    write_frame, write_profile_response,
+    encode_accessibility_tree, encode_frame, encode_host_request_batch, encode_profile_response,
+    write_accessibility_tree, write_frame, write_host_requests, write_profile_response,
 };
 use super::runtime_loop::{resolve_input, RuntimeRenderBridge};
 use super::surface::render_surface_descriptor;
 
 const DEFAULT_VIEWPORT: ZrRuntimeViewportHandle = ZrRuntimeViewportHandle::new(1);
+const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
+const DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE: &str = "runtime_diagnostics";
+const RUNTIME_SESSION_PROFILE_RUNTIME: &[u8] = b"runtime";
+const RUNTIME_SESSION_PROFILE_EDITOR: &[u8] = b"editor";
+const RUNTIME_SESSION_PROFILE_DEV: &[u8] = b"dev";
+const RUNTIME_SESSION_PROFILE_MINIMAL: &[u8] = b"minimal";
+const RUNTIME_SESSION_PROFILE_HEADLESS: &[u8] = b"headless";
 
 static SESSION_REGISTRY: OnceLock<Mutex<SessionRegistry>> = OnceLock::new();
 
@@ -75,7 +128,13 @@ pub(super) unsafe extern "C" fn create_session(
         return unsupported_version();
     }
 
-    match RuntimeDynamicSession::new() {
+    let profile =
+        match RuntimeDynamicSessionProfile::from_bytes(unsafe { config.profile.as_slice() }) {
+            Some(profile) => profile,
+            None => return invalid_argument(b"unknown runtime session profile"),
+        };
+
+    match RuntimeDynamicSession::new(profile) {
         Ok(session) => {
             let handle = insert_session(session);
             ptr::write(out_session, handle);
@@ -235,8 +294,35 @@ pub(super) unsafe extern "C" fn profile_control(
     })
 }
 
+pub(super) unsafe extern "C" fn tick_frame(handle: ZrRuntimeSessionHandle) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "tick_frame");
+    with_session(handle, |session| {
+        session.tick_frame();
+        ZrStatus::ok()
+    })
+}
+
+pub(super) unsafe extern "C" fn drain_host_requests(
+    handle: ZrRuntimeSessionHandle,
+    out_requests: *mut ZrOwnedByteBuffer,
+) -> ZrStatus {
+    crate::profile_scope!("runtime", "dynamic_api", "drain_host_requests");
+    if out_requests.is_null() {
+        return write_host_requests(out_requests, ZrOwnedByteBuffer::empty());
+    }
+    with_session(handle, |session| {
+        let batch = session.drain_host_requests();
+        match encode_host_request_batch(&batch) {
+            Ok(buffer) => write_host_requests(out_requests, buffer),
+            Err(error) => error_status(error.to_string()),
+        }
+    })
+}
+
 struct RuntimeDynamicSession {
-    _runtime: CoreRuntime,
+    runtime: CoreRuntime,
+    profile: RuntimeDynamicSessionProfile,
+    diagnostic_log_schedule: DiagnosticStoreLogSchedule,
     render_bridge: RuntimeRenderBridge,
     level: LevelSystem,
     selected_node: Option<u64>,
@@ -245,8 +331,43 @@ struct RuntimeDynamicSession {
     input_manager: Arc<dyn InputManager>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum RuntimeDynamicSessionProfile {
+    Runtime,
+    Editor,
+    Dev,
+    Minimal,
+    Headless,
+}
+
+impl RuntimeDynamicSessionProfile {
+    fn from_bytes(bytes: &[u8]) -> Option<Self> {
+        match bytes {
+            [] | RUNTIME_SESSION_PROFILE_RUNTIME => Some(Self::Runtime),
+            RUNTIME_SESSION_PROFILE_EDITOR => Some(Self::Editor),
+            RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev),
+            RUNTIME_SESSION_PROFILE_MINIMAL => Some(Self::Minimal),
+            RUNTIME_SESSION_PROFILE_HEADLESS => Some(Self::Headless),
+            _ => None,
+        }
+    }
+
+    fn max_fixed_steps_per_frame(self) -> u32 {
+        DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME
+    }
+
+    fn diagnostic_log_schedule(self) -> DiagnosticStoreLogSchedule {
+        match self {
+            Self::Dev => DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT),
+            Self::Runtime | Self::Editor | Self::Minimal | Self::Headless => {
+                DiagnosticStoreLogSchedule::disabled()
+            }
+        }
+    }
+}
+
 impl RuntimeDynamicSession {
-    fn new() -> Result<Self, String> {
+    fn new(profile: RuntimeDynamicSessionProfile) -> Result<Self, String> {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_dynamic_session_new");
         let runtime = {
             crate::profile_scope!("runtime", "dynamic_api", "runtime_session_core_new");
@@ -324,7 +445,9 @@ impl RuntimeDynamicSession {
         camera_controller.set_orbit_target(orbit_target);
 
         Ok(Self {
-            _runtime: runtime,
+            runtime,
+            profile,
+            diagnostic_log_schedule: profile.diagnostic_log_schedule(),
             render_bridge,
             level,
             selected_node,
@@ -332,6 +455,27 @@ impl RuntimeDynamicSession {
             cursor: Vec2::ZERO,
             input_manager,
         })
+    }
+
+    fn tick_frame(&mut self) {
+        let advance = self
+            .runtime
+            .tick_time(self.profile.max_fixed_steps_per_frame());
+        if self.diagnostic_log_schedule.tick(advance.real_delta()) {
+            let snapshot = collect_runtime_diagnostics(&self.runtime.handle()).store;
+            write_diagnostic_store_snapshot(DYNAMIC_RUNTIME_DIAGNOSTIC_LOG_SCOPE, &snapshot);
+        }
+    }
+
+    fn drain_host_requests(&mut self) -> ZrRuntimeHostRequestBatchV1 {
+        let requests = self
+            .input_manager
+            .drain_ime_host_requests()
+            .into_iter()
+            .map(runtime_ime_host_request)
+            .map(ZrRuntimeHostRequestV1::ime)
+            .collect();
+        ZrRuntimeHostRequestBatchV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, requests)
     }
 
     fn handle_event(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
@@ -352,16 +496,32 @@ impl RuntimeDynamicSession {
                 self.handle_cursor_moved(cursor);
                 ZrStatus::ok()
             }
-            ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1 => self.handle_mouse_button(event),
-            ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::WheelScrolled { delta: event.delta });
-                self.handle_scroll(event.delta);
+            ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1 => {
+                self.input_manager.submit_event(InputEvent::CursorEntered);
                 ZrStatus::ok()
             }
-            ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1 => ZrStatus::ok(),
+            ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1 => {
+                self.input_manager.submit_event(InputEvent::CursorLeft);
+                ZrStatus::ok()
+            }
+            ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1 => self.handle_mouse_button(event),
+            ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1 => self.handle_mouse_wheel(event),
+            ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1 => {
+                self.input_manager.submit_event(InputEvent::MouseMotion {
+                    delta_x: event.x,
+                    delta_y: event.y,
+                });
+                ZrStatus::ok()
+            }
+            ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1 => self.handle_lifecycle(event),
             ZR_RUNTIME_EVENT_KIND_TOUCH_V1 => self.handle_touch(event),
             ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1 => self.handle_keyboard(event),
+            ZR_RUNTIME_EVENT_KIND_IME_V1 => self.handle_ime(event),
+            ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1 => self.handle_file_drag_drop(event),
+            ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1 => self.handle_window_status(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1 => self.handle_gamepad_connection(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1 => self.handle_gamepad_button(event),
+            ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1 => self.handle_gamepad_axis(event),
             ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1 => {
                 self.handle_accessibility_action(event)
             }
@@ -470,46 +630,260 @@ impl RuntimeDynamicSession {
         ZrStatus::ok()
     }
 
+    fn handle_mouse_wheel(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let unit = match mouse_scroll_unit(event.state) {
+            Ok(unit) => unit,
+            Err(status) => return status,
+        };
+        let Some(unit) = unit else {
+            self.input_manager
+                .submit_event(InputEvent::WheelScrolled { delta: event.delta });
+            self.handle_scroll(event.delta);
+            return ZrStatus::ok();
+        };
+        if !event.x.is_finite() || !event.y.is_finite() {
+            return invalid_argument(b"invalid runtime mouse wheel delta");
+        }
+        let wheel = MouseWheelEvent::new(unit, event.x, event.y);
+        self.input_manager
+            .submit_event(InputEvent::MouseWheel(wheel));
+        self.handle_scroll(wheel.legacy_vertical_delta());
+        ZrStatus::ok()
+    }
+
+    fn handle_lifecycle(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        match event.state {
+            ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1
+            | ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1
+            | ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1 => {
+                self.input_manager
+                    .submit_event(InputEvent::KeyboardFocusLost);
+            }
+            _ => {}
+        }
+        ZrStatus::ok()
+    }
+
     fn handle_touch(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
         let cursor = Vec2::new(event.x, event.y);
+        let Some(phase) = touch_phase(event.state) else {
+            return invalid_argument(b"unknown runtime touch phase");
+        };
         self.input_manager.submit_event(InputEvent::CursorMoved {
+            x: cursor.x,
+            y: cursor.y,
+        });
+        self.input_manager.submit_event(InputEvent::Touch {
+            id: event.pointer_id,
+            phase,
             x: cursor.x,
             y: cursor.y,
         });
         match event.state {
             ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
                 self.handle_cursor_moved(cursor);
                 self.handle_pressed(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
             }
             ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => self.handle_cursor_moved(cursor),
             ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 | ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => {
                 self.cursor = cursor;
-                self.input_manager
-                    .submit_event(InputEvent::ButtonReleased(InputButton::MouseLeft));
                 self.handle_released(ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1);
             }
-            _ => return invalid_argument(b"unknown runtime touch phase"),
+            _ => unreachable!("touch phase was validated before dispatch"),
         }
         ZrStatus::ok()
     }
 
     fn handle_keyboard(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        let Some(button) = keyboard_button(event.key_code) else {
-            return ZrStatus::ok();
+        let payload = unsafe { event.payload.as_slice() };
+        let text = if payload.is_empty() {
+            None
+        } else {
+            String::from_utf8(payload.to_vec()).ok()
         };
-        match event.button {
-            ZR_RUNTIME_KEY_ACTION_PRESSED_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::ButtonPressed(button));
+        if event.button == ZR_RUNTIME_KEY_ACTION_TEXT_V1 {
+            if let Some(text) = text {
+                self.input_manager.submit_event(InputEvent::KeyboardInput {
+                    key_code: event.key_code,
+                    logical_key: None,
+                    text: Some(text),
+                    pressed: false,
+                    repeat: false,
+                });
             }
-            ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::ButtonReleased(button));
-            }
-            _ => return ZrStatus::ok(),
+            return ZrStatus::ok();
         }
+
+        let pressed = match event.button {
+            ZR_RUNTIME_KEY_ACTION_PRESSED_V1 => true,
+            ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => false,
+            _ => return ZrStatus::ok(),
+        };
+        self.input_manager.submit_event(InputEvent::KeyboardInput {
+            key_code: event.key_code,
+            logical_key: keyboard_logical_key(event.key_code, text.as_deref()),
+            text,
+            pressed,
+            repeat: false,
+        });
+        ZrStatus::ok()
+    }
+
+    fn handle_ime(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let payload = unsafe { event.payload.as_slice() };
+        let text_payload = || match String::from_utf8(payload.to_vec()) {
+            Ok(text) => Ok(text),
+            Err(_) => Err(invalid_argument(b"invalid runtime ime payload")),
+        };
+        let input_event = match event.state {
+            ZR_RUNTIME_IME_STATE_ENABLED_V1 => InputEvent::Ime(ImeEvent::Enabled),
+            ZR_RUNTIME_IME_STATE_DISABLED_V1 => InputEvent::Ime(ImeEvent::Disabled),
+            ZR_RUNTIME_IME_STATE_PREEDIT_V1 => InputEvent::Ime(ImeEvent::Preedit(ImePreedit {
+                value: match text_payload() {
+                    Ok(text) => text,
+                    Err(status) => return status,
+                },
+                cursor: ime_cursor(event),
+            })),
+            ZR_RUNTIME_IME_STATE_COMMIT_V1 => match text_payload() {
+                Ok(text) => InputEvent::Ime(ImeEvent::Commit(text)),
+                Err(status) => return status,
+            },
+            ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1 => {
+                InputEvent::Ime(ImeEvent::DeleteSurrounding(ImeDeleteSurrounding::new(
+                    event.key_code as usize,
+                    event.scan_code as usize,
+                )))
+            }
+            ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1 => {
+                InputEvent::ImeHostRequest(ImeHostRequest::Enable)
+            }
+            ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1 => {
+                InputEvent::ImeHostRequest(ImeHostRequest::Disable)
+            }
+            ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1 => match ime_cursor_area(event) {
+                Some(area) => InputEvent::ImeHostRequest(ImeHostRequest::SetCursorArea(area)),
+                None => return invalid_argument(b"invalid runtime ime cursor area"),
+            },
+            ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1 => {
+                match ime_surrounding_text(event, payload) {
+                    Ok(text) => {
+                        InputEvent::ImeHostRequest(ImeHostRequest::SetSurroundingText(text))
+                    }
+                    Err(status) => return status,
+                }
+            }
+            _ => return invalid_argument(b"unknown runtime ime state"),
+        };
+        self.input_manager.submit_event(input_event);
+        ZrStatus::ok()
+    }
+
+    fn handle_file_drag_drop(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let payload = unsafe { event.payload.as_slice() };
+        let path_payload = || match String::from_utf8(payload.to_vec()) {
+            Ok(path) => Ok(path),
+            Err(_) => Err(invalid_argument(b"invalid runtime file drag path")),
+        };
+        let file_event = match event.state {
+            ZR_RUNTIME_FILE_DRAG_HOVERED_V1 => match path_payload() {
+                Ok(path) => FileDragDropEvent::Hovered { path },
+                Err(status) => return status,
+            },
+            ZR_RUNTIME_FILE_DRAG_DROPPED_V1 => match path_payload() {
+                Ok(path) => FileDragDropEvent::Dropped { path },
+                Err(status) => return status,
+            },
+            ZR_RUNTIME_FILE_DRAG_CANCELLED_V1 => FileDragDropEvent::Cancelled,
+            _ => return invalid_argument(b"unknown runtime file drag state"),
+        };
+        self.input_manager
+            .submit_event(InputEvent::FileDragDrop(file_event));
+        ZrStatus::ok()
+    }
+
+    fn handle_window_status(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let window_event = match event.state {
+            ZR_RUNTIME_WINDOW_STATUS_MOVED_V1 => WindowStatusEvent::Moved {
+                x: event.x as i32,
+                y: event.y as i32,
+            },
+            ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1 => match window_bool(event.button) {
+                Some(occluded) => WindowStatusEvent::Occluded(occluded),
+                None => return invalid_argument(b"unknown runtime window bool"),
+            },
+            ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1 => {
+                WindowStatusEvent::ThemeChanged(window_theme(event.button))
+            }
+            ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1 => {
+                WindowStatusEvent::ScaleFactorChanged {
+                    scale_factor: match window_scale_factor(event.delta) {
+                        Some(scale_factor) => scale_factor,
+                        None => return invalid_argument(b"invalid runtime window scale factor"),
+                    },
+                }
+            }
+            ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1 => {
+                WindowStatusEvent::BackendScaleFactorChanged {
+                    scale_factor: match window_scale_factor(event.delta) {
+                        Some(scale_factor) => scale_factor,
+                        None => return invalid_argument(b"invalid runtime window scale factor"),
+                    },
+                }
+            }
+            ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1 => WindowStatusEvent::CloseRequested,
+            ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1 => WindowStatusEvent::Destroyed,
+            _ => return invalid_argument(b"unknown runtime window status"),
+        };
+        self.input_manager
+            .submit_event(InputEvent::WindowStatus(window_event));
+        ZrStatus::ok()
+    }
+
+    fn handle_gamepad_connection(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let connected = match event.state {
+            ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1 => true,
+            ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1 => false,
+            _ => return invalid_argument(b"unknown runtime gamepad connection state"),
+        };
+        let payload = unsafe { event.payload.as_slice() };
+        let name = if payload.is_empty() {
+            None
+        } else {
+            String::from_utf8(payload.to_vec()).ok()
+        };
+        self.input_manager
+            .submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+                gamepad: GamepadId(event.pointer_id),
+                connected,
+                name,
+                vendor_id: nonzero_u16(event.key_code),
+                product_id: nonzero_u16(event.scan_code),
+            }));
+        ZrStatus::ok()
+    }
+
+    fn handle_gamepad_button(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        let pressed = match event.state {
+            ZR_RUNTIME_BUTTON_STATE_PRESSED_V1 => true,
+            ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => false,
+            _ => return invalid_argument(b"unknown runtime gamepad button state"),
+        };
+        self.input_manager.submit_event(InputEvent::GamepadButton {
+            gamepad: GamepadId(event.pointer_id),
+            button: gamepad_button(event.button),
+            value: event.delta,
+            pressed,
+        });
+        ZrStatus::ok()
+    }
+
+    fn handle_gamepad_axis(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
+        self.input_manager.submit_event(InputEvent::GamepadAxis {
+            gamepad: GamepadId(event.pointer_id),
+            axis: gamepad_axis(event.button),
+            value: event.delta,
+        });
         ZrStatus::ok()
     }
 
@@ -581,6 +955,23 @@ fn with_session(
     action(&mut session)
 }
 
+pub(super) fn runtime_ime_host_request(request: ImeHostRequest) -> ZrRuntimeImeHostRequestV1 {
+    match request {
+        ImeHostRequest::Enable => ZrRuntimeImeHostRequestV1::enable(),
+        ImeHostRequest::Disable => ZrRuntimeImeHostRequestV1::disable(),
+        ImeHostRequest::SetCursorArea(area) => ZrRuntimeImeHostRequestV1::set_cursor_area(
+            ZrRuntimeImeCursorAreaV1::new(area.x, area.y, area.width, area.height),
+        ),
+        ImeHostRequest::SetSurroundingText(text) => {
+            ZrRuntimeImeHostRequestV1::set_surrounding_text(ZrRuntimeImeSurroundingTextV1::new(
+                text.value,
+                text.cursor,
+                text.anchor,
+            ))
+        }
+    }
+}
+
 fn input_button(button: u32) -> Option<InputButton> {
     match button {
         ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1 => Some(InputButton::MouseLeft),
@@ -590,13 +981,151 @@ fn input_button(button: u32) -> Option<InputButton> {
     }
 }
 
-fn keyboard_button(key_code: u32) -> Option<InputButton> {
-    match key_code {
-        16 => Some(InputButton::Key("Shift".to_string())),
-        17 => Some(InputButton::Key("Control".to_string())),
-        18 => Some(InputButton::Key("Alt".to_string())),
+fn mouse_scroll_unit(unit: u32) -> Result<Option<MouseScrollUnit>, ZrStatus> {
+    match unit {
+        0 => Ok(None),
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1 => Ok(Some(MouseScrollUnit::Line)),
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1 => Ok(Some(MouseScrollUnit::Pixel)),
+        _ => Err(invalid_argument(b"unknown runtime mouse wheel unit")),
+    }
+}
+
+fn touch_phase(phase: u32) -> Option<TouchPhase> {
+    match phase {
+        ZR_RUNTIME_TOUCH_PHASE_STARTED_V1 => Some(TouchPhase::Started),
+        ZR_RUNTIME_TOUCH_PHASE_MOVED_V1 => Some(TouchPhase::Moved),
+        ZR_RUNTIME_TOUCH_PHASE_ENDED_V1 => Some(TouchPhase::Ended),
+        ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1 => Some(TouchPhase::Cancelled),
         _ => None,
     }
+}
+
+fn keyboard_logical_key(key_code: u32, _text: Option<&str>) -> Option<String> {
+    keyboard_button_name(key_code).map(str::to_string)
+}
+
+fn keyboard_button_name(key_code: u32) -> Option<&'static str> {
+    match key_code {
+        16 => Some("Shift"),
+        17 => Some("Control"),
+        18 => Some("Alt"),
+        _ => None,
+    }
+}
+
+fn ime_cursor(event: ZrRuntimeEventV1) -> Option<ImeCursorRange> {
+    if event.key_code == ZR_RUNTIME_IME_CURSOR_HIDDEN_V1
+        || event.scan_code == ZR_RUNTIME_IME_CURSOR_HIDDEN_V1
+    {
+        None
+    } else {
+        Some(ImeCursorRange::new(
+            event.key_code as usize,
+            event.scan_code as usize,
+        ))
+    }
+}
+
+fn ime_cursor_area(event: ZrRuntimeEventV1) -> Option<ImeCursorArea> {
+    if event.x.is_finite() && event.y.is_finite() && event.size.width > 0 && event.size.height > 0 {
+        Some(ImeCursorArea::new(
+            event.x,
+            event.y,
+            event.size.width as f32,
+            event.size.height as f32,
+        ))
+    } else {
+        None
+    }
+}
+
+fn ime_surrounding_text(
+    event: ZrRuntimeEventV1,
+    payload: &[u8],
+) -> Result<ImeSurroundingText, ZrStatus> {
+    let value = match String::from_utf8(payload.to_vec()) {
+        Ok(value) => value,
+        Err(_) => return Err(invalid_argument(b"invalid runtime ime payload")),
+    };
+    let cursor = event.key_code as usize;
+    let anchor = event.scan_code as usize;
+    if cursor > value.len()
+        || anchor > value.len()
+        || !value.is_char_boundary(cursor)
+        || !value.is_char_boundary(anchor)
+    {
+        return Err(invalid_argument(b"invalid runtime ime surrounding text"));
+    }
+    Ok(ImeSurroundingText::new(value, cursor, anchor))
+}
+
+fn window_bool(value: u32) -> Option<bool> {
+    match value {
+        ZR_RUNTIME_WINDOW_BOOL_FALSE_V1 => Some(false),
+        ZR_RUNTIME_WINDOW_BOOL_TRUE_V1 => Some(true),
+        _ => None,
+    }
+}
+
+fn window_theme(theme: u32) -> WindowTheme {
+    match theme {
+        ZR_RUNTIME_WINDOW_THEME_LIGHT_V1 => WindowTheme::Light,
+        ZR_RUNTIME_WINDOW_THEME_DARK_V1 => WindowTheme::Dark,
+        _ => WindowTheme::Unknown,
+    }
+}
+
+fn window_scale_factor(value: f32) -> Option<f32> {
+    if value.is_finite() && value > 0.0 {
+        Some(value)
+    } else {
+        None
+    }
+}
+
+fn gamepad_button(button: u32) -> GamepadButton {
+    match button {
+        ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1 => GamepadButton::South,
+        ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1 => GamepadButton::East,
+        ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1 => GamepadButton::North,
+        ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1 => GamepadButton::West,
+        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1 => GamepadButton::LeftTrigger,
+        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1 => GamepadButton::LeftTrigger2,
+        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1 => GamepadButton::RightTrigger,
+        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1 => GamepadButton::RightTrigger2,
+        ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1 => GamepadButton::Select,
+        ZR_RUNTIME_GAMEPAD_BUTTON_START_V1 => GamepadButton::Start,
+        ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1 => GamepadButton::Mode,
+        ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1 => GamepadButton::LeftThumb,
+        ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1 => GamepadButton::RightThumb,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1 => GamepadButton::DPadUp,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1 => GamepadButton::DPadDown,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1 => GamepadButton::DPadLeft,
+        ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1 => GamepadButton::DPadRight,
+        ZR_RUNTIME_GAMEPAD_BUTTON_C_V1
+        | ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1
+        | ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1 => GamepadButton::Other(button as u16),
+        _ => GamepadButton::Other(button as u16),
+    }
+}
+
+fn gamepad_axis(axis: u32) -> GamepadAxis {
+    match axis {
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1 => GamepadAxis::LeftStickX,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1 => GamepadAxis::LeftStickY,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1 => GamepadAxis::LeftZ,
+        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1 => GamepadAxis::RightStickX,
+        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1 => GamepadAxis::RightStickY,
+        ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1 => GamepadAxis::RightZ,
+        ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1 => GamepadAxis::DPadX,
+        ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1 => GamepadAxis::DPadY,
+        ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1 => GamepadAxis::Other(axis as u16),
+        _ => GamepadAxis::Other(axis as u16),
+    }
+}
+
+fn nonzero_u16(value: u32) -> Option<u16> {
+    u16::try_from(value).ok().filter(|value| *value != 0)
 }
 
 fn empty_captured_frame(size: UVec2) -> CapturedFrame {

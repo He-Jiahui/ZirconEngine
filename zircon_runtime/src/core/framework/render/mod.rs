@@ -1,5 +1,6 @@
 mod backend_types;
 mod camera;
+mod camera_ordering;
 mod core_pipeline;
 mod frame_extract;
 mod framework;
@@ -9,10 +10,12 @@ mod material;
 mod mesh;
 mod overlay;
 mod plugin_renderer_outputs;
+mod post_process;
 mod prepared_runtime_sidebands;
 mod profile;
 mod scene_extract;
 mod shader;
+mod sprite;
 mod surface;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -27,24 +30,32 @@ pub use backend_types::{
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
-    FallbackSkyboxKind, ProjectionMode, SceneViewportExtractRequest, ViewportCameraSnapshot,
-    ViewportRenderSettings,
+    FallbackSkyboxKind, ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderLayer,
+    RenderLayerSet, RenderViewportRect, SceneViewportExtractRequest, ViewportCameraSnapshot,
+    ViewportRenderSettings, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
+    DEFAULT_RENDER_LAYER, DEFAULT_RENDER_LAYER_MASK,
+};
+pub use camera_ordering::{
+    sort_render_cameras, RenderCameraOrderAmbiguity, RenderCameraOrderInput,
+    RenderCameraOrderReport, RenderCameraTargetOrderKey, SortedRenderCamera,
 };
 pub use core_pipeline::{
-    build_mesh_phase_queue, CorePipelineKind, MeshPhaseInput, RenderPhase, RenderPhaseItem,
-    RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortKey,
+    build_mesh_phase_queue, build_sprite_phase_queue, CorePipelineKind, MeshPhaseInput,
+    RenderPhase, RenderPhaseItem, RenderPhaseMeshSource, RenderPhaseQueue, RenderPhaseSortKey,
+    SpritePhaseInput,
 };
 pub use frame_extract::{
     DebugOverlayExtract, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
     PostProcessExtract, RenderExtractContext, RenderExtractProducer, RenderFrameExtract,
     RenderParticleGpuFrameExtract, RenderSkeletalPoseExtract, RenderViewExtract,
-    RenderWorldSnapshotHandle, VisibilityInput, VisibilityRenderableInput,
+    RenderWorldSnapshotHandle, SpritePhaseExtractInput, VisibilityInput, VisibilityRenderableInput,
 };
 pub use framework::RenderFramework;
 pub use framework_error::RenderFrameworkError;
 pub use image::{
-    RenderImageColorSpace, RenderImageDescriptor, RenderImageFallbackKind, RenderImageUsage,
-    RenderSamplerAddressMode, RenderSamplerDescriptor, RenderSamplerFilter,
+    RenderImageAssetUsage, RenderImageColorSpace, RenderImageDescriptor, RenderImageDimension,
+    RenderImageFallbackKind, RenderImageUsage, RenderSamplerAddressMode, RenderSamplerDescriptor,
+    RenderSamplerFilter,
 };
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
@@ -67,27 +78,36 @@ pub use plugin_renderer_outputs::{
     RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryPageAssignmentRecord,
     RenderVirtualGeometryPageReplacementRecord, RenderVirtualGeometryReadbackOutputs,
 };
+pub use post_process::{
+    PostProcessEffectKind, PostProcessEffectSettings, PostProcessGraphResourceNames,
+    PostProcessGraphValidationError, PostProcessPassGraph, PostProcessPassNode,
+    PostProcessStackDescriptor,
+};
 pub use prepared_runtime_sidebands::RenderPreparedRuntimeSidebands;
 pub use profile::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderProfileValidationError,
     RENDER_PROFILE_CONFIG_KEY,
 };
 pub use scene_extract::{
-    PreviewEnvironmentExtract, RenderBakedLightingExtract, RenderBloomSettings,
-    RenderColorGradingSettings, RenderDirectionalLightSnapshot, RenderExtractPacket,
-    RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality, RenderMeshSnapshot,
-    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPointLightSnapshot,
-    RenderReflectionProbeSnapshot, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderSpotLightSnapshot, RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState,
-    RenderVirtualGeometryExtract, RenderVirtualGeometryHierarchyNode,
-    RenderVirtualGeometryInstance, RenderVirtualGeometryPage, RenderVirtualGeometryPageDependency,
-    SceneViewportRenderPacket,
+    PreviewEnvironmentExtract, RenderAmbientLightSnapshot, RenderBakedLightingExtract,
+    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
+    RenderExtractPacket, RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
+    RenderMeshSnapshot, RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot,
+    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderReflectionProbeSnapshot,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot,
+    RenderVirtualGeometryCluster, RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryHierarchyNode, RenderVirtualGeometryInstance, RenderVirtualGeometryPage,
+    RenderVirtualGeometryPageDependency, SceneViewportRenderPacket,
 };
 pub use scene_extract::{RenderHybridGiProbe, RenderHybridGiTraceRegion};
 pub use shader::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDependency, RenderShaderEntryPointDescriptor,
     RenderShaderPipelineLayoutDescriptor, RenderShaderStage, RenderShaderVariantKey,
+};
+pub use sprite::{
+    RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteBounds, RenderSpriteRect,
+    RenderSpriteSnapshot, SpriteExtract,
 };
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use virtual_geometry_debug_snapshot::{

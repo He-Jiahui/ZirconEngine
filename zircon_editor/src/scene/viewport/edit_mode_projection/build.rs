@@ -1,13 +1,27 @@
-use std::collections::{HashMap, HashSet};
+use zircon_runtime::scene::{EntityId, Scene, SceneEditorHierarchyRow, SceneEditorInspectorField};
+use zircon_runtime_interface::reflect::ReflectedValue;
 
 use crate::scene::viewport::SceneViewportSettings;
-use zircon_runtime::scene::components::{Mobility, NodeKind, SceneNode};
-use zircon_runtime::scene::{EntityId, Scene};
 
 use super::{
     SceneEditModeProjection, SceneHierarchyRow, SceneInspectorField, SceneInspectorFieldValue,
     SceneViewportStats, SceneViewportToolbarState,
 };
+
+const NAME_TYPE_PATH: &str = "zircon_runtime::scene::components::Name";
+const HIERARCHY_TYPE_PATH: &str = "zircon_runtime::scene::components::Hierarchy";
+const LOCAL_TRANSFORM_TYPE_PATH: &str = "zircon_runtime::scene::components::LocalTransform";
+const ACTIVE_SELF_TYPE_PATH: &str = "zircon_runtime::scene::components::ActiveSelf";
+const ACTIVE_IN_HIERARCHY_TYPE_PATH: &str = "zircon_runtime::scene::components::ActiveInHierarchy";
+const RENDER_LAYER_MASK_TYPE_PATH: &str = "zircon_runtime::scene::components::RenderLayerMask";
+const MOBILITY_TYPE_PATH: &str = "zircon_runtime::core::framework::scene::Mobility";
+const CAMERA_COMPONENT_TYPE_PATH: &str = "zircon_runtime::scene::components::CameraComponent";
+const MESH_RENDERER_TYPE_PATH: &str = "zircon_runtime::scene::components::MeshRenderer";
+const DIRECTIONAL_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::DirectionalLight";
+const POINT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::PointLight";
+const SPOT_LIGHT_TYPE_PATH: &str = "zircon_runtime::scene::components::SpotLight";
+const RIGID_BODY_COMPONENT_TYPE_PATH: &str =
+    "zircon_runtime::scene::components::RigidBodyComponent";
 
 pub(crate) fn build_scene_edit_mode_projection(
     scene: &Scene,
@@ -15,370 +29,172 @@ pub(crate) fn build_scene_edit_mode_projection(
     selected: Option<EntityId>,
     handle_drag_active: bool,
 ) -> SceneEditModeProjection {
-    let selected_entity = selected.filter(|entity| scene.contains_entity(*entity));
-    let selected_node = selected_entity.and_then(|entity| scene.find_node(entity));
+    let runtime_projection = scene.editor_projection(selected);
+    let selected_entity = runtime_projection.selected_entity;
 
     SceneEditModeProjection {
         selected_entity,
-        hierarchy_rows: build_hierarchy_rows(scene, selected_entity),
-        inspector_fields: build_inspector_fields(scene, selected_node),
+        hierarchy_rows: runtime_projection
+            .hierarchy_rows
+            .into_iter()
+            .map(SceneHierarchyRow::from)
+            .collect(),
+        inspector_fields: runtime_projection
+            .inspector_fields
+            .into_iter()
+            .filter_map(scene_inspector_field_from_runtime)
+            .collect(),
         toolbar: build_toolbar_state(settings, selected_entity, handle_drag_active),
         stats: build_stats(scene, selected_entity),
     }
 }
 
-fn build_hierarchy_rows(scene: &Scene, selected: Option<EntityId>) -> Vec<SceneHierarchyRow> {
-    let nodes = scene.node_records();
-    let node_by_entity = nodes
-        .iter()
-        .map(|node| (node.id, node))
-        .collect::<HashMap<_, _>>();
-    let mut children_by_parent: HashMap<Option<EntityId>, Vec<EntityId>> = HashMap::new();
-    for node in &nodes {
-        children_by_parent
-            .entry(node.parent)
-            .or_default()
-            .push(node.id);
-    }
-
-    let mut rows = Vec::new();
-    let mut visited = HashSet::new();
-    if let Some(roots) = children_by_parent.get(&None) {
-        for root in roots {
-            push_hierarchy_row(
-                scene,
-                &node_by_entity,
-                &children_by_parent,
-                selected,
-                *root,
-                0,
-                &mut visited,
-                &mut rows,
-            );
-        }
-    }
-
-    for node in &nodes {
-        if !visited.contains(&node.id) {
-            push_hierarchy_row(
-                scene,
-                &node_by_entity,
-                &children_by_parent,
-                selected,
-                node.id,
-                0,
-                &mut visited,
-                &mut rows,
-            );
-        }
-    }
-
-    rows
-}
-
-fn push_hierarchy_row(
-    scene: &Scene,
-    node_by_entity: &HashMap<EntityId, &SceneNode>,
-    children_by_parent: &HashMap<Option<EntityId>, Vec<EntityId>>,
-    selected: Option<EntityId>,
-    entity: EntityId,
-    depth: u32,
-    visited: &mut HashSet<EntityId>,
-    rows: &mut Vec<SceneHierarchyRow>,
-) {
-    if !visited.insert(entity) {
-        return;
-    }
-    let Some(node) = node_by_entity.get(&entity).copied() else {
-        return;
-    };
-    let children = children_by_parent.get(&Some(entity));
-    rows.push(SceneHierarchyRow {
-        entity,
-        parent: node.parent,
-        depth,
-        display_name: node.name.clone(),
-        kind: node_kind_label(&node.kind).to_string(),
-        selected: selected == Some(entity),
-        active_in_hierarchy: scene.active_in_hierarchy(entity).unwrap_or(false),
-        has_children: children.is_some_and(|children| !children.is_empty()),
-    });
-
-    if let Some(children) = children {
-        for child in children {
-            push_hierarchy_row(
-                scene,
-                node_by_entity,
-                children_by_parent,
-                selected,
-                *child,
-                depth + 1,
-                visited,
-                rows,
-            );
+impl From<SceneEditorHierarchyRow> for SceneHierarchyRow {
+    fn from(row: SceneEditorHierarchyRow) -> Self {
+        Self {
+            entity: row.entity,
+            parent: row.parent,
+            depth: row.depth,
+            display_name: row.display_name,
+            kind: row.kind,
+            selected: row.selected,
+            active_in_hierarchy: row.active_in_hierarchy,
+            has_children: row.has_children,
         }
     }
 }
 
-fn build_inspector_fields(
-    scene: &Scene,
-    selected_node: Option<SceneNode>,
-) -> Vec<SceneInspectorField> {
-    let Some(node) = selected_node.as_ref() else {
-        return Vec::new();
-    };
-
-    let mut fields = Vec::new();
-    push_field(
-        &mut fields,
-        "Name",
-        "Name",
-        Some("Name.value"),
-        SceneInspectorFieldValue::Text(node.name.clone()),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Hierarchy",
-        "Parent",
-        Some("Hierarchy.parent"),
-        SceneInspectorFieldValue::Entity(node.parent),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Transform",
-        "Translation",
-        Some("Transform.translation"),
-        SceneInspectorFieldValue::Vec3(node.transform.translation.to_array()),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Transform",
-        "Rotation",
-        Some("Transform.rotation"),
-        SceneInspectorFieldValue::Quaternion(node.transform.rotation.to_array()),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Transform",
-        "Scale",
-        Some("Transform.scale"),
-        SceneInspectorFieldValue::Vec3(node.transform.scale.to_array()),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Active",
-        "Enabled",
-        Some("Active.enabled"),
-        SceneInspectorFieldValue::Bool(scene.active_self(node.id).unwrap_or(true)),
-        true,
-    );
-    push_field(
-        &mut fields,
-        "Active",
-        "Active In Hierarchy",
-        None,
-        SceneInspectorFieldValue::Bool(scene.active_in_hierarchy(node.id).unwrap_or(false)),
-        false,
-    );
-    if let Some(mask) = scene.render_layer_mask(node.id) {
-        push_field(
-            &mut fields,
-            "Render Layer",
-            "Mask",
-            Some("RenderLayer.mask"),
-            SceneInspectorFieldValue::Unsigned(mask as u64),
-            true,
-        );
-    }
-    if let Some(mobility) = scene.mobility(node.id) {
-        push_field(
-            &mut fields,
-            "Mobility",
-            "Kind",
-            Some("Mobility.kind"),
-            SceneInspectorFieldValue::Enum(mobility_label(mobility).to_string()),
-            true,
-        );
-    }
-
-    if let Some(camera) = node.camera.as_ref() {
-        push_field(
-            &mut fields,
-            "Camera",
-            "FOV Y",
-            Some("Camera.fov_y_radians"),
-            SceneInspectorFieldValue::Scalar(camera.fov_y_radians),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Camera",
-            "Near Clip",
-            Some("Camera.z_near"),
-            SceneInspectorFieldValue::Scalar(camera.z_near),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Camera",
-            "Far Clip",
-            Some("Camera.z_far"),
-            SceneInspectorFieldValue::Scalar(camera.z_far),
-            true,
-        );
-    }
-    if let Some(mesh) = node.mesh.as_ref() {
-        push_field(
-            &mut fields,
-            "Mesh Renderer",
-            "Model",
-            Some("MeshRenderer.model"),
-            SceneInspectorFieldValue::Resource(mesh.model.id().to_string()),
-            false,
-        );
-        push_field(
-            &mut fields,
-            "Mesh Renderer",
-            "Material",
-            Some("MeshRenderer.material"),
-            SceneInspectorFieldValue::Resource(mesh.material.id().to_string()),
-            false,
-        );
-        push_field(
-            &mut fields,
-            "Mesh Renderer",
-            "Tint",
-            Some("MeshRenderer.tint"),
-            SceneInspectorFieldValue::Vec4(mesh.tint.to_array()),
-            true,
-        );
-    }
-    if let Some(light) = node.directional_light.as_ref() {
-        push_field(
-            &mut fields,
-            "Directional Light",
-            "Direction",
-            Some("DirectionalLight.direction"),
-            SceneInspectorFieldValue::Vec3(light.direction.to_array()),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Directional Light",
-            "Color",
-            Some("DirectionalLight.color"),
-            SceneInspectorFieldValue::Vec3(light.color.to_array()),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Directional Light",
-            "Intensity",
-            Some("DirectionalLight.intensity"),
-            SceneInspectorFieldValue::Scalar(light.intensity),
-            true,
-        );
-    }
-    if let Some(light) = node.point_light.as_ref() {
-        push_field(
-            &mut fields,
-            "Point Light",
-            "Color",
-            Some("PointLight.color"),
-            SceneInspectorFieldValue::Vec3(light.color.to_array()),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Point Light",
-            "Intensity",
-            Some("PointLight.intensity"),
-            SceneInspectorFieldValue::Scalar(light.intensity),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Point Light",
-            "Range",
-            Some("PointLight.range"),
-            SceneInspectorFieldValue::Scalar(light.range),
-            true,
-        );
-    }
-    if let Some(light) = node.spot_light.as_ref() {
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Direction",
-            Some("SpotLight.direction"),
-            SceneInspectorFieldValue::Vec3(light.direction.to_array()),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Color",
-            Some("SpotLight.color"),
-            SceneInspectorFieldValue::Vec3(light.color.to_array()),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Intensity",
-            Some("SpotLight.intensity"),
-            SceneInspectorFieldValue::Scalar(light.intensity),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Range",
-            Some("SpotLight.range"),
-            SceneInspectorFieldValue::Scalar(light.range),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Inner Angle",
-            Some("SpotLight.inner_angle_radians"),
-            SceneInspectorFieldValue::Scalar(light.inner_angle_radians),
-            true,
-        );
-        push_field(
-            &mut fields,
-            "Spot Light",
-            "Outer Angle",
-            Some("SpotLight.outer_angle_radians"),
-            SceneInspectorFieldValue::Scalar(light.outer_angle_radians),
-            true,
-        );
-    }
-
-    fields
-}
-
-fn push_field(
-    fields: &mut Vec<SceneInspectorField>,
-    component: &str,
-    label: &str,
-    property_path: Option<&str>,
-    value: SceneInspectorFieldValue,
-    editable: bool,
-) {
-    fields.push(SceneInspectorField {
-        component: component.to_string(),
-        label: label.to_string(),
-        property_path: property_path.map(ToOwned::to_owned),
+fn scene_inspector_field_from_runtime(
+    field: SceneEditorInspectorField,
+) -> Option<SceneInspectorField> {
+    let property_path = property_path_for_field(&field);
+    let value = scene_inspector_value_from_reflected(&field)?;
+    let editable = field.editable && property_path.is_some();
+    Some(SceneInspectorField {
+        component: component_label(&field).to_string(),
+        label: field_label(&field),
+        property_path,
         value,
-        editable: editable && property_path.is_some(),
-    });
+        editable,
+    })
+}
+
+fn scene_inspector_value_from_reflected(
+    field: &SceneEditorInspectorField,
+) -> Option<SceneInspectorFieldValue> {
+    match &field.value {
+        ReflectedValue::Bool(value) => Some(SceneInspectorFieldValue::Bool(*value)),
+        ReflectedValue::Unsigned(value) => Some(SceneInspectorFieldValue::Unsigned(*value)),
+        ReflectedValue::Scalar(value) => Some(SceneInspectorFieldValue::Scalar(*value)),
+        ReflectedValue::String(value) => Some(SceneInspectorFieldValue::Text(value.clone())),
+        ReflectedValue::Enum(value) => Some(SceneInspectorFieldValue::Enum(value.clone())),
+        ReflectedValue::Vec3(value) => Some(SceneInspectorFieldValue::Vec3(*value)),
+        ReflectedValue::Vec4(value) if is_transform_rotation(field) => {
+            Some(SceneInspectorFieldValue::Quaternion(*value))
+        }
+        ReflectedValue::Vec4(value) => Some(SceneInspectorFieldValue::Vec4(*value)),
+        ReflectedValue::Quaternion(value) => Some(SceneInspectorFieldValue::Quaternion(*value)),
+        ReflectedValue::Entity(entity) => Some(SceneInspectorFieldValue::Entity(*entity)),
+        ReflectedValue::Resource(value) => Some(SceneInspectorFieldValue::Resource(value.clone())),
+        ReflectedValue::Null
+        | ReflectedValue::Integer(_)
+        | ReflectedValue::Vec2(_)
+        | ReflectedValue::List(_)
+        | ReflectedValue::Map(_)
+        | ReflectedValue::Json(_) => None,
+    }
+}
+
+fn is_transform_rotation(field: &SceneEditorInspectorField) -> bool {
+    field.component_type_path == LOCAL_TRANSFORM_TYPE_PATH && field.field_name == "rotation"
+}
+
+fn property_path_for_field(field: &SceneEditorInspectorField) -> Option<String> {
+    if field.component_type_path == ACTIVE_IN_HIERARCHY_TYPE_PATH {
+        return None;
+    }
+    let component = property_component_name(field);
+    let property = property_field_name(field);
+    Some(format!("{component}.{property}"))
+}
+
+fn property_component_name(field: &SceneEditorInspectorField) -> &str {
+    match field.component_type_path.as_str() {
+        NAME_TYPE_PATH => "Name",
+        HIERARCHY_TYPE_PATH => "Hierarchy",
+        LOCAL_TRANSFORM_TYPE_PATH => "Transform",
+        ACTIVE_SELF_TYPE_PATH => "Active",
+        RENDER_LAYER_MASK_TYPE_PATH => "RenderLayer",
+        MOBILITY_TYPE_PATH => "Mobility",
+        CAMERA_COMPONENT_TYPE_PATH => "Camera",
+        MESH_RENDERER_TYPE_PATH => "MeshRenderer",
+        DIRECTIONAL_LIGHT_TYPE_PATH => "DirectionalLight",
+        POINT_LIGHT_TYPE_PATH => "PointLight",
+        SPOT_LIGHT_TYPE_PATH => "SpotLight",
+        RIGID_BODY_COMPONENT_TYPE_PATH => "RigidBody",
+        _ if field.plugin_owned => field.component_type_path.as_str(),
+        _ => field.component_display_name.as_str(),
+    }
+}
+
+fn property_field_name(field: &SceneEditorInspectorField) -> &str {
+    match (
+        field.component_type_path.as_str(),
+        field.field_name.as_str(),
+    ) {
+        (ACTIVE_SELF_TYPE_PATH, "value") => "enabled",
+        (RIGID_BODY_COMPONENT_TYPE_PATH, "body_type") => "kind",
+        _ => field.field_name.as_str(),
+    }
+}
+
+fn component_label(field: &SceneEditorInspectorField) -> &str {
+    match field.component_type_path.as_str() {
+        LOCAL_TRANSFORM_TYPE_PATH => "Transform",
+        ACTIVE_SELF_TYPE_PATH | ACTIVE_IN_HIERARCHY_TYPE_PATH => "Active",
+        RENDER_LAYER_MASK_TYPE_PATH => "Render Layer",
+        CAMERA_COMPONENT_TYPE_PATH => "Camera",
+        MESH_RENDERER_TYPE_PATH => "Mesh Renderer",
+        DIRECTIONAL_LIGHT_TYPE_PATH => "Directional Light",
+        POINT_LIGHT_TYPE_PATH => "Point Light",
+        SPOT_LIGHT_TYPE_PATH => "Spot Light",
+        RIGID_BODY_COMPONENT_TYPE_PATH => "Rigid Body",
+        _ => field.component_display_name.as_str(),
+    }
+}
+
+fn field_label(field: &SceneEditorInspectorField) -> String {
+    match (
+        field.component_type_path.as_str(),
+        field.field_name.as_str(),
+    ) {
+        (ACTIVE_SELF_TYPE_PATH, "value") => "Enabled".to_string(),
+        (ACTIVE_IN_HIERARCHY_TYPE_PATH, "value") => "Active In Hierarchy".to_string(),
+        (RIGID_BODY_COMPONENT_TYPE_PATH, "body_type") => "Kind".to_string(),
+        (CAMERA_COMPONENT_TYPE_PATH, "fov_y_radians") => "FOV Y".to_string(),
+        (CAMERA_COMPONENT_TYPE_PATH, "z_near") => "Near Clip".to_string(),
+        (CAMERA_COMPONENT_TYPE_PATH, "z_far") => "Far Clip".to_string(),
+        _ => title_case_identifier(&field.field_display_name),
+    }
+}
+
+fn title_case_identifier(value: &str) -> String {
+    value
+        .split('_')
+        .filter(|part| !part.is_empty())
+        .map(|part| {
+            let mut chars = part.chars();
+            match chars.next() {
+                Some(first) => {
+                    let mut word = first.to_ascii_uppercase().to_string();
+                    word.push_str(chars.as_str());
+                    word
+                }
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn build_toolbar_state(
@@ -426,22 +242,4 @@ fn build_stats(scene: &Scene, selected: Option<EntityId>) -> SceneViewportStats 
         }
     }
     stats
-}
-
-fn node_kind_label(kind: &NodeKind) -> &'static str {
-    match kind {
-        NodeKind::Camera => "Camera",
-        NodeKind::Cube => "Cube",
-        NodeKind::Mesh => "Mesh",
-        NodeKind::DirectionalLight => "Directional Light",
-        NodeKind::PointLight => "Point Light",
-        NodeKind::SpotLight => "Spot Light",
-    }
-}
-
-fn mobility_label(mobility: Mobility) -> &'static str {
-    match mobility {
-        Mobility::Dynamic => "dynamic",
-        Mobility::Static => "static",
-    }
 }

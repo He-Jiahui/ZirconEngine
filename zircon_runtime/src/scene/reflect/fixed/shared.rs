@@ -202,6 +202,25 @@ pub(super) fn expect_vec3(
     }
 }
 
+pub(super) fn expect_vec4(
+    type_path: &'static str,
+    field_name: &str,
+    value: ReflectedValue,
+) -> Result<[f32; 4], ReflectError> {
+    match value {
+        ReflectedValue::Vec4(value) if value.iter().all(|component| component.is_finite()) => {
+            Ok(value)
+        }
+        ReflectedValue::Vec4(_) => Err(invalid_value(
+            type_path,
+            field_name,
+            "finite Vec4",
+            "non-finite Vec4",
+        )),
+        value => Err(type_mismatch(type_path, field_name, "Vec4", &value)),
+    }
+}
+
 pub(super) fn remove_component<T>(
     world: &mut World,
     entity: EntityId,

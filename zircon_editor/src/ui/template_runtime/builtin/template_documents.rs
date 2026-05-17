@@ -13,6 +13,8 @@ pub(crate) const ASSET_WINDOW_DOCUMENT_ID: &str = "editor.window.asset";
 pub(crate) const UI_COMPONENT_SHOWCASE_WINDOW_DOCUMENT_ID: &str =
     "editor.window.ui_component_showcase";
 pub(crate) const MATERIAL_DEMO_WINDOW_DOCUMENT_ID: &str = "editor.window.material_demo";
+pub(crate) const MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID: &str =
+    "editor.window.material_component_lab";
 pub(crate) const UI_LAYOUT_EDITOR_WINDOW_DOCUMENT_ID: &str = "editor.window.ui_layout_editor";
 pub(crate) const HOST_DRAWER_SOURCE_DOCUMENT_ID: &str = "workbench.drawer_source";
 pub(crate) const FLOATING_WINDOW_SOURCE_DOCUMENT_ID: &str = "floating_window.source";
@@ -55,7 +57,7 @@ fn editor_dev_asset_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets")
 }
 
-pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
+pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 25] {
     let documents = [
         (
             EDITOR_MAIN_FRAME_DOCUMENT_ID,
@@ -84,6 +86,10 @@ pub(crate) fn builtin_template_documents() -> [(&'static str, PathBuf); 24] {
         (
             MATERIAL_DEMO_WINDOW_DOCUMENT_ID,
             builtin_editor_template_path("material_demo_window.v2.ui.toml"),
+        ),
+        (
+            MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID,
+            builtin_editor_template_path("material_component_lab.v2.ui.toml"),
         ),
         (
             UI_HOST_WINDOW_DOCUMENT_ID,

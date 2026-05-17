@@ -6,7 +6,7 @@ pub(in crate::graphics::runtime::render_framework) fn request_graphics_debugger_
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let mut state = framework.state.lock().unwrap();
+    let mut state = framework.lock_state();
     if !state.viewports.contains_key(&viewport) {
         return Err(RenderFrameworkError::UnknownViewport {
             viewport: viewport.raw(),

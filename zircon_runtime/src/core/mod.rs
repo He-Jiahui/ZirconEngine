@@ -8,6 +8,8 @@ mod frame_clock;
 mod job_scheduler;
 mod lifecycle;
 pub mod runtime;
+pub mod tasks;
+mod time;
 mod types;
 
 pub mod diagnostics;
@@ -31,4 +33,12 @@ pub use runtime::{
     ServiceFactory,
 };
 pub use state::{NextState, OnEnter, OnExit, OnTransition, State, StateSpec, StateTransitionEvent};
+pub use tasks::{
+    TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
+    TaskPoolReportEntry, TaskPoolThreadAssignmentPolicy, TaskPoolThreadCounts, TaskPools,
+};
+pub use time::{
+    RuntimeTimeAdvance, RuntimeTimeClocks, TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC,
+    TIME_FRAME_COUNT_DIAGNOSTIC, TIME_FRAME_TIME_DIAGNOSTIC,
+};
 pub use types::{ChannelReceiver, ChannelSender, ServiceObject};

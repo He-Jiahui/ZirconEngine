@@ -2,7 +2,11 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::PhysicsMaterialMetadata;
-use crate::core::framework::render::RenderMaterialAlphaMode;
+use crate::core::framework::render::{
+    ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderMaterialAlphaMode,
+    RenderViewportRect, DEFAULT_CAMERA_EXPOSURE_EV100, DEFAULT_CAMERA_MSAA_SAMPLES,
+    DEFAULT_RENDER_LAYER_MASK,
+};
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Mat4, Real, Transform, Vec3, Vec4};
 use crate::core::resource::{
@@ -12,6 +16,7 @@ use crate::core::resource::{
 };
 use serde::{Deserialize, Serialize};
 
+use super::{Mesh2dComponent, Sprite2dComponent};
 use crate::scene::EntityId;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,17 +103,50 @@ pub type Active = ActiveSelf;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CameraComponent {
+    #[serde(default)]
+    pub projection_mode: ProjectionMode,
+    #[serde(default = "default_camera_fov_y_radians")]
     pub fov_y_radians: Real,
+    #[serde(default = "default_camera_ortho_size")]
+    pub ortho_size: Real,
+    #[serde(default = "default_camera_z_near")]
     pub z_near: Real,
+    #[serde(default = "default_camera_z_far")]
     pub z_far: Real,
+    #[serde(default)]
+    pub target: RenderCameraTarget,
+    #[serde(default)]
+    pub viewport: Option<RenderViewportRect>,
+    #[serde(default)]
+    pub order: i32,
+    #[serde(default = "default_true")]
+    pub is_active: bool,
+    #[serde(default)]
+    pub hdr: bool,
+    #[serde(default = "default_camera_exposure_ev100")]
+    pub exposure_ev100: Real,
+    #[serde(default)]
+    pub clear_color: RenderCameraClearColor,
+    #[serde(default = "default_camera_msaa_samples")]
+    pub msaa_samples: u32,
 }
 
 impl Default for CameraComponent {
     fn default() -> Self {
         Self {
-            fov_y_radians: 60.0_f32.to_radians(),
-            z_near: 0.1,
-            z_far: 200.0,
+            projection_mode: ProjectionMode::Perspective,
+            fov_y_radians: default_camera_fov_y_radians(),
+            ortho_size: default_camera_ortho_size(),
+            z_near: default_camera_z_near(),
+            z_far: default_camera_z_far(),
+            target: RenderCameraTarget::default(),
+            viewport: None,
+            order: 0,
+            is_active: true,
+            hdr: false,
+            exposure_ev100: DEFAULT_CAMERA_EXPOSURE_EV100,
+            clear_color: RenderCameraClearColor::default(),
+            msaa_samples: DEFAULT_CAMERA_MSAA_SAMPLES,
         }
     }
 }
@@ -367,6 +405,10 @@ pub struct SceneNode {
     pub transform: Transform,
     pub camera: Option<CameraComponent>,
     pub mesh: Option<MeshRenderer>,
+    #[serde(default)]
+    pub sprite_2d: Option<Sprite2dComponent>,
+    #[serde(default)]
+    pub mesh_2d: Option<Mesh2dComponent>,
     pub directional_light: Option<DirectionalLight>,
     #[serde(default)]
     pub point_light: Option<PointLight>,
@@ -391,6 +433,10 @@ pub struct NodeRecord {
     pub transform: Transform,
     pub camera: Option<CameraComponent>,
     pub mesh: Option<MeshRenderer>,
+    #[serde(default)]
+    pub sprite_2d: Option<Sprite2dComponent>,
+    #[serde(default)]
+    pub mesh_2d: Option<Mesh2dComponent>,
     pub directional_light: Option<DirectionalLight>,
     #[serde(default)]
     pub point_light: Option<PointLight>,
@@ -421,5 +467,33 @@ pub struct NodeRecord {
 }
 
 pub const fn default_render_layer_mask() -> u32 {
-    0x0000_0001
+    DEFAULT_RENDER_LAYER_MASK
+}
+
+const fn default_true() -> bool {
+    true
+}
+
+const fn default_camera_ortho_size() -> Real {
+    5.0
+}
+
+fn default_camera_fov_y_radians() -> Real {
+    60.0_f32.to_radians()
+}
+
+const fn default_camera_z_near() -> Real {
+    0.1
+}
+
+const fn default_camera_z_far() -> Real {
+    200.0
+}
+
+const fn default_camera_exposure_ev100() -> Real {
+    DEFAULT_CAMERA_EXPOSURE_EV100
+}
+
+const fn default_camera_msaa_samples() -> u32 {
+    DEFAULT_CAMERA_MSAA_SAMPLES
 }

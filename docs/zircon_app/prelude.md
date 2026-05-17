@@ -3,18 +3,24 @@ related_code:
   - zircon_app/src/prelude.rs
   - zircon_app/src/lib.rs
   - zircon_app/src/entry/mod.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/plugins/mod.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/core/state/mod.rs
 implementation_files:
   - zircon_app/src/prelude.rs
   - zircon_app/src/lib.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/entry_runner/bootstrap.rs
 plan_sources:
   - user: 2026-05-08 continue ZirconEngine Bevy completion roadmap M2 stable prelude
   - user: 2026-05-08 continue ZirconEngine Bevy completion roadmap M3 State
+  - user: 2026-05-16 continue Bevy-style profile/module group diagnostics completion
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
 tests:
   - zircon_app/src/tests/prelude.rs
+  - zircon_app/src/entry/tests/builtin_engine_entry.rs
   - zircon_runtime/src/tests/state.rs
   - zircon_app/src/tests/mod.rs
   - .github/workflows/ci.yml
@@ -37,7 +43,7 @@ This mirrors the Bevy convention of an application-level prelude while preservin
 
 The app prelude exports:
 
-- entry types: `BuiltinEngineEntry`, `EngineEntry`, `EntryConfig`, `EntryProfile`, `EntryRunMode`, `EntryRunner`, and `NativePluginRuntimeBootstrap`,
+- entry types: `BuiltinEngineEntry`, `EngineEntry`, `EntryConfig`, `EntryProfile`, `EntryRunMode`, `EntryRunner`, `EntryModuleSelection`, `EntryModuleSelectionReport`, base and provider-aware runner-level module selection diagnostics, and `NativePluginRuntimeBootstrap`,
 - plugin group types: `PluginGroup`, `PluginGroupBuilder`, `PluginGroupError`, `ResolvedPluginGroup`, `MinimalPlugins`, `DefaultPlugins`, `DevPlugins`, and `HeadlessPlugins`,
 - all stable runtime prelude exports through `zircon_runtime::prelude::*`, including M3 state contracts once they are owned by `zircon_runtime::core::state`.
 
@@ -47,7 +53,7 @@ The app prelude does not re-export editor internals, runtime presenter details, 
 
 ## Validation
 
-`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
+`zircon_app/src/tests/prelude.rs` imports only `crate::prelude::*` and verifies that entry construction, module selection diagnostics, base and first-party provider-aware runner-level module selection diagnostics, built-in plugin groups, custom plugin group construction, runtime state contracts, and runtime prelude foundations are available through the app surface.
 
 Fresh M2 validation evidence from 2026-05-08:
 

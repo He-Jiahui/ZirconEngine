@@ -13,7 +13,7 @@ fn global_material_surface_assets_follow_responsive_contracts() {
     let files = collect_ui_files(&repo);
     assert_eq!(
         files.len(),
-        41,
+        42,
         "Milestone 3 inventory changed; update the acceptance inventory and this conformance test together"
     );
 
@@ -549,6 +549,9 @@ fn fixed_axis_reason(location: &str, node: &Value, axis: &str) -> Option<&'stati
             || normalized.contains("component_showcase_"))
     {
         return Some("bounded Component Showcase sample row");
+    }
+    if axis == "height" && normalized.contains("material_component_lab") {
+        return Some("bounded Material component lab sample row");
     }
     if axis == "height"
         && normalized.contains("editor/welcome")

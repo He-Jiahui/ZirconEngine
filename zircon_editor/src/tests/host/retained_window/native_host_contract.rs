@@ -1498,6 +1498,22 @@ fn native_host_pointer_click_routes_projected_material_showcase_button() {
         button.frame.width > 0.0 && button.frame.height > 0.0,
         "projected Material ButtonDemo should carry a concrete arranged frame"
     );
+    let hit_frame_node = showcase_pane
+        .body_surface_frame
+        .as_ref()
+        .and_then(|frame| {
+            frame
+                .arranged_tree
+                .nodes
+                .iter()
+                .find(|node| node.control_id.as_deref() == Some("ButtonDemo"))
+        })
+        .expect("ButtonDemo should be present in the retained hit-test surface frame");
+    assert!(hit_frame_node.enabled && hit_frame_node.clickable);
+    assert_eq!(hit_frame_node.frame.x, button.frame.x);
+    assert_eq!(hit_frame_node.frame.y, button.frame.y);
+    assert_eq!(hit_frame_node.frame.width, button.frame.width);
+    assert_eq!(hit_frame_node.frame.height, button.frame.height);
 
     let ui = UiHostWindow::new().expect("workbench shell should instantiate");
     ui.window().set_size(PhysicalSize::new(980, 840));
@@ -1541,6 +1557,62 @@ fn native_host_pointer_click_routes_projected_material_showcase_button() {
             "UiComponentShowcase/ButtonCommit".to_string()
         )],
         "native host should route real .ui.toml Material component hits through showcase dispatch metadata"
+    );
+}
+
+#[test]
+fn native_host_pointer_click_ignores_disabled_projected_template_button() {
+    let ui = UiHostWindow::new().expect("workbench shell should instantiate");
+    ui.window().set_size(PhysicalSize::new(360, 220));
+    let mut presentation = ui.get_host_presentation();
+    presentation.host_layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.layout = host_window_layout_for_test(360.0, 220.0);
+    presentation.host_scene_data.left_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.right_dock = HostSideDockSurfaceData::default();
+    presentation.host_scene_data.bottom_dock = Default::default();
+    presentation.host_scene_data.document_dock = HostDocumentDockSurfaceData {
+        region_frame: host_frame(60.0, 58.0, 280.0, 138.0),
+        header_frame: host_frame(0.0, 0.0, 280.0, 31.0),
+        content_frame: host_frame(0.0, 32.0, 280.0, 105.0),
+        pane: pane_with_nodes(
+            "Project",
+            vec![TemplatePaneNodeData {
+                disabled: true,
+                ..template_node_with_action(
+                    "DisabledButton",
+                    "Button",
+                    "Disabled",
+                    "Disabled.Action",
+                    12.0,
+                    14.0,
+                    92.0,
+                    22.0,
+                )
+            }],
+        ),
+        ..HostDocumentDockSurfaceData::default()
+    };
+    ui.set_host_presentation(presentation);
+
+    let clicks = Rc::new(RefCell::new(Vec::new()));
+    {
+        let clicks = clicks.clone();
+        ui.global::<PaneSurfaceHostContext>()
+            .on_surface_control_clicked(move |control_id, action_id| {
+                clicks
+                    .borrow_mut()
+                    .push((control_id.to_string(), action_id.to_string()));
+            });
+    }
+
+    let result =
+        ui.dispatch_native_primary_press_for_test(60.0 + 12.0 + 8.0, 58.0 + 32.0 + 14.0 + 8.0);
+
+    assert!(!result.request_redraw());
+    assert_eq!(
+        clicks.borrow().as_slice(),
+        [],
+        "disabled template Buttons must not enter retained-host pointer dispatch"
     );
 }
 

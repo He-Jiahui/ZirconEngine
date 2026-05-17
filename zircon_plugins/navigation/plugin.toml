@@ -1,5 +1,8 @@
 id = "navigation"
 version = "0.1.0"
+package_prefix = "com"
+package_company = "zircon"
+package_name = "navigation"
 display_name = "Navigation"
 description = "Optional navigation runtime and editor package."
 maturity = "beta"

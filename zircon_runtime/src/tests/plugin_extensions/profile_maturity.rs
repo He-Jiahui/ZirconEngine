@@ -114,6 +114,23 @@ fn runtime_profiles_cover_expected_bevy_grade_profile_ids() {
         .default_plugins
         .iter()
         .all(|plugin| plugin.id != RuntimePluginId::Sound && plugin.id != RuntimePluginId::Ui));
+
+    let minimal = RuntimeProfileDescriptor::for_id(RuntimeProfileId::Minimal);
+    assert!(minimal.default_plugins.is_empty());
+    assert!(minimal.optional_plugins.is_empty());
+    assert_eq!(
+        minimal.required_capabilities,
+        [
+            "runtime.core.lifecycle",
+            "runtime.core.tasks",
+            "runtime.core.time",
+            "runtime.core.frame_count",
+            "runtime.core.diagnostics",
+        ]
+        .into_iter()
+        .map(str::to_string)
+        .collect::<Vec<_>>()
+    );
 }
 
 #[test]
@@ -346,7 +363,16 @@ fn minimal_runtime_profile_module_loading_does_not_inherit_legacy_target_default
         .map(|module| module.module_name())
         .collect::<Vec<_>>();
 
-    assert!(!module_names.contains(&"UiModule"));
+    assert_eq!(
+        module_names,
+        vec![
+            crate::foundation::FOUNDATION_MODULE_NAME,
+            crate::core::modules::TASKS_MODULE_NAME,
+            crate::core::modules::TIME_MODULE_NAME,
+            crate::core::modules::FRAME_COUNT_MODULE_NAME,
+            crate::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+        ]
+    );
 }
 
 #[test]

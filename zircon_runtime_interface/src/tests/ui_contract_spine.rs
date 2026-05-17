@@ -10,12 +10,17 @@ use crate::ui::{
         UiFocusChangeEvent, UiFocusChangeReason, UiFocusVisible, UiFocusVisibleReason,
         UiFocusedInput, UiFocusedInputKind, UiInputFocus,
     },
-    layout::UiFrame,
+    layout::{UiAxis, UiFrame},
     navigation::{
         UiDirectionalNavigation, UiDirectionalNavigationTarget, UiNavigationGroup,
         UiNavigationGroupId, UiTabIndex,
     },
     picking::{UiPickMode, UiPickPolicy, UiPointerCapture, UiPointerCaptureKind},
+    style::{
+        ButtonColor, ButtonDimension, ButtonEventKind, ButtonIconPlacement, ButtonInteractionState,
+        ButtonSize, ButtonVariant, ResolvedButtonStyle, StyleDimension, UiResolvedElementStyle,
+        UiRgbaColor, UiStyleColor,
+    },
     surface::{
         UiEditableTextState, UiRenderCommand, UiRenderCommandKind, UiRenderExtract,
         UiRenderExtractKind, UiRenderList, UiRenderStats, UiResolvedStyle, UiTextCaret,
@@ -23,7 +28,9 @@ use crate::ui::{
     },
     template::{UiAssetDocument, UiTemplateDocument, UiTemplateNode},
     text::{UiTextCursorStyle, UiTextEdit, UiTextEditSource},
-    widget::{UiWidgetEvent, UiWidgetEventKind, UiWidgetEventSource},
+    widget::{
+        UiWidgetBehavior, UiWidgetContract, UiWidgetEvent, UiWidgetEventKind, UiWidgetEventSource,
+    },
 };
 
 fn round_trip<T>(value: &T) -> T
@@ -31,6 +38,54 @@ where
     T: serde::Serialize + serde::de::DeserializeOwned,
 {
     serde_json::from_str(&serde_json::to_string(value).unwrap()).unwrap()
+}
+
+#[test]
+fn ui_typed_style_and_button_contracts_round_trip_with_material_defaults() {
+    let custom = UiRgbaColor::from_u8(12, 34, 56, 200);
+    let element = UiResolvedElementStyle {
+        background_color: Some(UiStyleColor::Role("material.primary".to_string())),
+        foreground_color: Some(UiStyleColor::Rgba(custom)),
+        border_color: Some(UiStyleColor::Transparent),
+        border_width: 1.0,
+        corner_radius: 10.0,
+        width: StyleDimension::Fill,
+        height: StyleDimension::Fixed(40.0),
+        opacity: 0.85,
+    };
+    let button = ResolvedButtonStyle {
+        variant: ButtonVariant::Default,
+        color: ButtonColor::Custom(custom),
+        size: ButtonSize::Custom {
+            width: ButtonDimension::Fill,
+            height: ButtonDimension::Fixed(44.0),
+        },
+        width: ButtonDimension::Fill,
+        height: ButtonDimension::Fixed(44.0),
+        icon_placement: ButtonIconPlacement::Start,
+        interaction_state: ButtonInteractionState::Pressed,
+        loading: true,
+        disabled: true,
+        element,
+    };
+
+    assert_eq!(custom.to_u8(), [12, 34, 56, 200]);
+    assert_eq!(ButtonVariant::Default.normalized(), ButtonVariant::Text);
+    assert_eq!(round_trip(&button), button);
+    assert_eq!(
+        ButtonVariant::OPTIONS,
+        ["default", "text", "contained", "outlined"]
+    );
+    assert_eq!(ButtonColor::OPTIONS[0], "default");
+    assert_eq!(ButtonSize::OPTIONS, ["small", "medium", "large"]);
+    assert_eq!(ButtonIconPlacement::OPTIONS[3], "icon_only");
+    assert_eq!(round_trip(&ButtonEventKind::Enter), ButtonEventKind::Enter);
+
+    let default_button = ResolvedButtonStyle::default();
+    assert_eq!(default_button.variant, ButtonVariant::Text);
+    assert_eq!(default_button.color, ButtonColor::Primary);
+    assert_eq!(default_button.size, ButtonSize::Medium);
+    assert_eq!(default_button.width, StyleDimension::Auto);
 }
 
 #[test]
@@ -211,6 +266,21 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
         blink_period_millis: Some(600),
         visible: true,
     };
+    let widget = UiWidgetContract {
+        behavior: UiWidgetBehavior::Range,
+        value_property: Some("amount".to_string()),
+        min_property: Some("minimum".to_string()),
+        max_property: Some("maximum".to_string()),
+        step_property: Some("interval".to_string()),
+        ..UiWidgetContract::default()
+    };
+    let scrollbar = UiWidgetContract {
+        behavior: UiWidgetBehavior::Scrollbar,
+        scroll_target: Some("#42".to_string()),
+        scroll_axis: Some(UiAxis::Vertical),
+        min_thumb_extent: Some(18.0),
+        ..UiWidgetContract::default()
+    };
 
     let round_tripped_events = round_trip(&events);
     assert_eq!(round_tripped_events, events);
@@ -218,6 +288,32 @@ fn ui_widget_text_and_cursor_contracts_serialize_typed_events() {
     assert_eq!(events[2].kind(), UiWidgetEventKind::TextEditChange);
     assert_eq!(round_trip(&edit), edit);
     assert_eq!(round_trip(&cursor), cursor);
+    assert_eq!(round_trip(&widget), widget);
+    assert_eq!(round_trip(&scrollbar), scrollbar);
+    assert_eq!(
+        widget.resolved_behavior("CustomMeter"),
+        UiWidgetBehavior::Range
+    );
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("TextField"),
+        UiWidgetBehavior::TextInput
+    );
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("RadioButton"),
+        UiWidgetBehavior::Radio
+    );
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("RadioGroup"),
+        UiWidgetBehavior::RadioGroup
+    );
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("ScrollBar"),
+        UiWidgetBehavior::Scrollbar
+    );
+    assert_eq!(
+        UiWidgetContract::default().resolved_behavior("ScrollbarThumb"),
+        UiWidgetBehavior::ScrollbarThumb
+    );
     assert_eq!(UiTextCursorStyle::default().width, 1.0);
     assert!(serde_json::to_string(&round_tripped_events)
         .unwrap()
@@ -323,6 +419,7 @@ name = "Search"
 tooltip = "Search assets"
 
 [root.widget]
+behavior = "text_input"
 disabled = false
 checked = false
 tooltip = "Search assets"
@@ -337,6 +434,7 @@ tooltip = "Search assets"
     assert_eq!(modern.root.a11y.role, UiA11yRole::TextInput);
     assert_eq!(modern.root.a11y.name.as_deref(), Some("Search"));
     assert_eq!(modern.root.widget.checked, Some(false));
+    assert_eq!(modern.root.widget.behavior, UiWidgetBehavior::TextInput);
 
     let mut authored = UiTemplateNode {
         component: Some("Checkbox".to_string()),

@@ -4,15 +4,15 @@ use crate::core::manager::{
 use crate::core::CoreHandle;
 
 use super::{
-    DiagnosticStore, RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot,
-    RuntimePhysicsDiagnostics, RuntimeRenderDiagnostics,
+    RuntimeAnimationDiagnostics, RuntimeDiagnosticsSnapshot, RuntimePhysicsDiagnostics,
+    RuntimeRenderDiagnostics,
 };
 
 pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnapshot {
     let render = collect_render_diagnostics(core);
     let physics = collect_physics_diagnostics(core);
     let animation = collect_animation_diagnostics(core);
-    let store = collect_diagnostic_store_snapshot(&render, &physics, &animation);
+    let store = collect_diagnostic_store_snapshot(core, &render, &physics, &animation);
     let profile = super::profiling::snapshot();
 
     RuntimeDiagnosticsSnapshot {
@@ -78,11 +78,12 @@ fn collect_animation_diagnostics(core: &CoreHandle) -> RuntimeAnimationDiagnosti
 }
 
 fn collect_diagnostic_store_snapshot(
+    core: &CoreHandle,
     render: &RuntimeRenderDiagnostics,
     physics: &RuntimePhysicsDiagnostics,
     animation: &RuntimeAnimationDiagnostics,
 ) -> super::DiagnosticStoreSnapshot {
-    let mut store = DiagnosticStore::default();
+    let mut store = core.diagnostic_store();
     if let Some(stats) = &render.stats {
         store.record(
             "render.submitted_frames",

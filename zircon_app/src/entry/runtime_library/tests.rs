@@ -8,7 +8,10 @@ use super::loaded_runtime::{
     runtime_api_field_available, runtime_api_required_prefix_available,
     runtime_api_supports_viewport_surface_present,
 };
-use zircon_runtime_interface::runtime_api::ZrRuntimeCaptureFrameFnV1;
+use zircon_runtime_interface::runtime_api::{
+    ZrRuntimeCaptureFrameFnV1, ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeProfileControlFnV1,
+    ZrRuntimeTickFrameFnV1,
+};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeBindViewportSurfaceRequestV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrStatus,
@@ -146,6 +149,58 @@ fn runtime_api_profile_control_is_optional_after_present_prefix() {
     ));
 }
 
+#[test]
+fn runtime_api_tick_frame_is_optional_after_profile_control() {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV1>();
+    let before_tick = core::mem::offset_of!(ZrRuntimeApiV1, tick_frame);
+    let api = ZrRuntimeApiV1 {
+        tick_frame: Some(fake_tick_frame as _),
+        ..ZrRuntimeApiV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1)
+    };
+
+    assert_eq!(
+        before_tick,
+        core::mem::offset_of!(ZrRuntimeApiV1, profile_control)
+            + core::mem::size_of::<Option<ZrRuntimeProfileControlFnV1>>()
+    );
+    assert!(runtime_api_field_available(
+        full_size,
+        before_tick,
+        core::mem::size_of::<Option<ZrRuntimeTickFrameFnV1>>()
+    ));
+    assert!(!runtime_api_field_available(
+        before_tick,
+        before_tick,
+        core::mem::size_of_val(&api.tick_frame)
+    ));
+}
+
+#[test]
+fn runtime_api_drain_host_requests_is_optional_after_tick_frame() {
+    let full_size = core::mem::size_of::<ZrRuntimeApiV1>();
+    let before_drain = core::mem::offset_of!(ZrRuntimeApiV1, drain_host_requests);
+    let api = ZrRuntimeApiV1 {
+        drain_host_requests: Some(fake_drain_host_requests as _),
+        ..ZrRuntimeApiV1::empty(zircon_runtime_interface::ZIRCON_RUNTIME_ABI_VERSION_V1)
+    };
+
+    assert_eq!(
+        before_drain,
+        core::mem::offset_of!(ZrRuntimeApiV1, tick_frame)
+            + core::mem::size_of::<Option<ZrRuntimeTickFrameFnV1>>()
+    );
+    assert!(runtime_api_field_available(
+        full_size,
+        before_drain,
+        core::mem::size_of::<Option<ZrRuntimeDrainHostRequestsFnV1>>()
+    ));
+    assert!(!runtime_api_field_available(
+        before_drain,
+        before_drain,
+        core::mem::size_of_val(&api.drain_host_requests)
+    ));
+}
+
 fn runtime_library_temp_dir(case_name: &str) -> PathBuf {
     let temp = std::env::temp_dir().join(format!(
         "zircon-runtime-library-path-{}-{case_name}",
@@ -186,6 +241,17 @@ unsafe extern "C" fn fake_profile_control(
     _session: ZrRuntimeSessionHandle,
     _request_json: ZrByteSlice,
     _out_json: *mut ZrOwnedByteBuffer,
+) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_tick_frame(_session: ZrRuntimeSessionHandle) -> ZrStatus {
+    ZrStatus::ok()
+}
+
+unsafe extern "C" fn fake_drain_host_requests(
+    _session: ZrRuntimeSessionHandle,
+    _out_requests: *mut ZrOwnedByteBuffer,
 ) -> ZrStatus {
     ZrStatus::ok()
 }

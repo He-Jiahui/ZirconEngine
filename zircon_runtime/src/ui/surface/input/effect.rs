@@ -322,6 +322,11 @@ fn apply_input_method_request(
     request: &UiInputMethodRequest,
 ) -> Result<Option<UiNodeId>, String> {
     require_valid_input_owner(surface, request.owner)?;
+    if let Some(surrounding_text) = &request.surrounding_text {
+        surrounding_text
+            .validate()
+            .map_err(|error| format!("invalid input method surrounding text: {error}"))?;
+    }
     match request.kind {
         UiInputMethodRequestKind::Enable => {
             surface.input.input_method_owner = Some(request.owner);

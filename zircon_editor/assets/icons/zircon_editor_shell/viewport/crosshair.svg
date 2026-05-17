@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Crosshair">
+  <circle cx="12" cy="12" r="6" fill="none" stroke="#cbd2dc" stroke-width="1.5"/>
+  <path fill="none" stroke="#cbd2dc" stroke-linecap="round" stroke-width="1.5" d="M12 3v4M12 17v4M3 12h4M17 12h4"/>
+  <circle cx="12" cy="12" r="1.5" fill="#26d8d1"/>
+</svg>

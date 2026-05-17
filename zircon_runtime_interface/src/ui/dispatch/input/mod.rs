@@ -6,9 +6,10 @@ mod result;
 
 pub use effect::{
     UiComponentEmissionPolicy, UiDispatchEffect, UiDragDropEffectKind, UiFocusEffectReason,
-    UiInputMethodRequest, UiInputMethodRequestKind, UiNavigationRequestPolicy,
-    UiPointerCaptureReason, UiPointerLockPolicy, UiPopupEffectKind, UiRedrawRequestReason,
-    UiTooltipEffectKind,
+    UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText,
+    UiInputMethodSurroundingTextError, UiNavigationRequestPolicy, UiPointerCaptureReason,
+    UiPointerLockPolicy, UiPopupEffectKind, UiRedrawRequestReason, UiTooltipEffectKind,
+    UI_INPUT_METHOD_SURROUNDING_TEXT_BYTE_LIMIT,
 };
 pub use event::{
     UiAccessibilityInputEvent, UiAnalogInputEvent, UiDragDropInputEvent, UiDragDropInputEventKind,

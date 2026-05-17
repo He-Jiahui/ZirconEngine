@@ -1,9 +1,11 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 use zircon_runtime::core::framework::net::{
-    ReliableDatagramAck, ReliableDatagramConfig, ReliableDatagramPacket,
-    ReliableDatagramSendReport, ReliableDatagramSendStatus, ReliableDatagramStats,
+    ReliableDatagramAck, ReliableDatagramConfig, ReliableDatagramDeliveryReport,
+    ReliableDatagramPacket, ReliableDatagramReceiveReport, ReliableDatagramReceiveStatus,
+    ReliableDatagramRecoveryReport, ReliableDatagramRecoveryState, ReliableDatagramSendReport,
+    ReliableDatagramSendStatus, ReliableDatagramSimulationProfile, ReliableDatagramStats,
 };
 
 #[derive(Clone, Debug)]
@@ -16,7 +18,60 @@ struct NetReliableUdpRuntimeState {
     config: ReliableDatagramConfig,
     next_sequence: u64,
     outbound: VecDeque<ReliableDatagramPacket>,
+    inbound_fragments: HashMap<u64, InboundFragmentAssembly>,
+    completed_inbound_sequences: VecDeque<u64>,
+    simulation_profile: ReliableDatagramSimulationProfile,
+    simulated_packet_counter: u64,
+    recovery_state: ReliableDatagramRecoveryState,
+    dropped_packets_since_recovery: u64,
+    recovery_diagnostic: Option<String>,
     stats: ReliableDatagramStats,
+}
+
+// Keeps partial datagrams in fragment-index order so out-of-order delivery can be
+// reassembled without leaking runtime-owned buffers through the public contract.
+#[derive(Debug)]
+struct InboundFragmentAssembly {
+    channel: String,
+    fragment_count: u16,
+    fragments: Vec<Option<Vec<u8>>>,
+}
+
+impl InboundFragmentAssembly {
+    fn new(packet: &ReliableDatagramPacket) -> Self {
+        Self {
+            channel: packet.channel.clone(),
+            fragment_count: packet.fragment_count,
+            fragments: vec![None; packet.fragment_count as usize],
+        }
+    }
+
+    fn insert(&mut self, packet: &ReliableDatagramPacket) -> ReliableDatagramReceiveStatus {
+        if packet.fragment_count != self.fragment_count
+            || packet.channel != self.channel
+            || packet.fragment_index >= self.fragment_count
+        {
+            return ReliableDatagramReceiveStatus::InvalidFragment;
+        }
+        let fragment = &mut self.fragments[packet.fragment_index as usize];
+        if fragment.is_some() {
+            return ReliableDatagramReceiveStatus::DuplicateFragment;
+        }
+        *fragment = Some(packet.payload.clone());
+        if self.fragments.iter().all(Option::is_some) {
+            ReliableDatagramReceiveStatus::Reassembled
+        } else {
+            ReliableDatagramReceiveStatus::AcceptedFragment
+        }
+    }
+
+    fn payload(&self) -> Vec<u8> {
+        self.fragments
+            .iter()
+            .flat_map(|fragment| fragment.as_deref().unwrap_or_default())
+            .copied()
+            .collect()
+    }
 }
 
 impl NetReliableUdpRuntimeManager {
@@ -26,9 +81,25 @@ impl NetReliableUdpRuntimeManager {
                 config,
                 next_sequence: 1,
                 outbound: VecDeque::new(),
+                inbound_fragments: HashMap::new(),
+                completed_inbound_sequences: VecDeque::new(),
+                simulation_profile: ReliableDatagramSimulationProfile::default(),
+                simulated_packet_counter: 0,
+                recovery_state: ReliableDatagramRecoveryState::Connected,
+                dropped_packets_since_recovery: 0,
+                recovery_diagnostic: None,
                 stats: ReliableDatagramStats::default(),
             })),
         }
+    }
+
+    pub fn set_simulation_profile(&self, profile: ReliableDatagramSimulationProfile) {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        state.simulation_profile = profile;
+        state.simulated_packet_counter = 0;
     }
 
     pub fn enqueue_reliable_datagram(
@@ -89,6 +160,130 @@ impl NetReliableUdpRuntimeManager {
         removed
     }
 
+    pub fn simulate_outbound_delivery(
+        &self,
+        packets: impl IntoIterator<Item = ReliableDatagramPacket>,
+    ) -> ReliableDatagramDeliveryReport {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        let mut delivered = Vec::new();
+        let mut dropped = Vec::new();
+        for packet in packets {
+            state.simulated_packet_counter += 1;
+            if state.should_drop_simulated_packet() {
+                state.stats.dropped_packets += 1;
+                state.dropped_packets_since_recovery += 1;
+                dropped.push(packet);
+            } else {
+                delivered.push(packet);
+            }
+        }
+        reorder_delivered_packets(&mut delivered, state.simulation_profile.reorder_window);
+        state.update_recovery_after_delivery();
+        ReliableDatagramDeliveryReport::new(delivered, dropped, state.recovery_report())
+    }
+
+    pub fn receive_packet(&self, packet: ReliableDatagramPacket) -> ReliableDatagramReceiveReport {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        if state.completed_inbound_sequences.contains(&packet.sequence) {
+            return ReliableDatagramReceiveReport::new(
+                packet.sequence,
+                packet.channel,
+                ReliableDatagramReceiveStatus::DuplicateFragment,
+            );
+        }
+        if packet.fragment_count == 0 || packet.fragment_index >= packet.fragment_count {
+            return ReliableDatagramReceiveReport::new(
+                packet.sequence,
+                packet.channel,
+                ReliableDatagramReceiveStatus::InvalidFragment,
+            )
+            .with_diagnostic("fragment index outside fragment count");
+        }
+        if packet.fragment_count == 1 {
+            state.stats.received_packets += 1;
+            state.completed_inbound_sequences.push_back(packet.sequence);
+            state.trim_completed_inbound_sequences();
+            return ReliableDatagramReceiveReport::new(
+                packet.sequence,
+                packet.channel,
+                ReliableDatagramReceiveStatus::Reassembled,
+            )
+            .with_ack(ReliableDatagramAck::new(packet.sequence))
+            .with_payload(packet.payload);
+        }
+
+        let sequence = packet.sequence;
+        let channel = packet.channel.clone();
+        let status = state
+            .inbound_fragments
+            .entry(sequence)
+            .or_insert_with(|| InboundFragmentAssembly::new(&packet))
+            .insert(&packet);
+        match status {
+            ReliableDatagramReceiveStatus::AcceptedFragment => {
+                state.stats.received_packets += 1;
+                ReliableDatagramReceiveReport::new(sequence, channel, status)
+            }
+            ReliableDatagramReceiveStatus::DuplicateFragment => {
+                ReliableDatagramReceiveReport::new(sequence, channel, status)
+            }
+            ReliableDatagramReceiveStatus::InvalidFragment => {
+                ReliableDatagramReceiveReport::new(sequence, channel, status)
+                    .with_diagnostic("fragment does not match existing assembly")
+            }
+            ReliableDatagramReceiveStatus::Reassembled => {
+                let payload = state
+                    .inbound_fragments
+                    .remove(&sequence)
+                    .expect("reassembled fragment sequence should exist")
+                    .payload();
+                state.stats.received_packets += 1;
+                state.completed_inbound_sequences.push_back(sequence);
+                state.trim_completed_inbound_sequences();
+                ReliableDatagramReceiveReport::new(sequence, channel, status)
+                    .with_ack(ReliableDatagramAck::new(sequence))
+                    .with_payload(payload)
+            }
+        }
+    }
+
+    pub fn recovery_state(&self) -> ReliableDatagramRecoveryReport {
+        self.state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned")
+            .recovery_report()
+    }
+
+    pub fn mark_disconnected(
+        &self,
+        diagnostic: impl Into<String>,
+    ) -> ReliableDatagramRecoveryReport {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        state.recovery_state = ReliableDatagramRecoveryState::Disconnected;
+        state.recovery_diagnostic = Some(diagnostic.into());
+        state.recovery_report()
+    }
+
+    pub fn mark_recovered(&self) -> ReliableDatagramRecoveryReport {
+        let mut state = self
+            .state
+            .lock()
+            .expect("net reliable UDP state mutex poisoned");
+        state.recovery_state = ReliableDatagramRecoveryState::Connected;
+        state.dropped_packets_since_recovery = 0;
+        state.recovery_diagnostic = None;
+        state.recovery_report()
+    }
+
     pub fn resend_pending(&self, max_packets: usize) -> Vec<ReliableDatagramPacket> {
         let mut state = self
             .state
@@ -105,11 +300,13 @@ impl NetReliableUdpRuntimeManager {
     }
 
     pub fn record_dropped_packet(&self) {
-        self.state
+        let mut state = self
+            .state
             .lock()
-            .expect("net reliable UDP state mutex poisoned")
-            .stats
-            .dropped_packets += 1;
+            .expect("net reliable UDP state mutex poisoned");
+        state.stats.dropped_packets += 1;
+        state.dropped_packets_since_recovery += 1;
+        state.update_recovery_after_delivery();
     }
 
     pub fn record_rtt_ms(&self, rtt_ms: f32) {
@@ -136,6 +333,61 @@ impl NetReliableUdpRuntimeManager {
             .expect("net reliable UDP state mutex poisoned")
             .stats
             .clone()
+    }
+}
+
+impl NetReliableUdpRuntimeState {
+    fn should_drop_simulated_packet(&self) -> bool {
+        self.simulation_profile
+            .drop_every_nth_packet
+            .is_some_and(|packet_interval| self.simulated_packet_counter % packet_interval == 0)
+    }
+
+    fn update_recovery_after_delivery(&mut self) {
+        if self.recovery_state == ReliableDatagramRecoveryState::Disconnected {
+            return;
+        }
+        self.recovery_state = match self.simulation_profile.recovery_drop_threshold {
+            Some(threshold) if self.dropped_packets_since_recovery >= threshold => {
+                ReliableDatagramRecoveryState::Recovering
+            }
+            _ => ReliableDatagramRecoveryState::Connected,
+        };
+        self.recovery_diagnostic = (self.recovery_state
+            == ReliableDatagramRecoveryState::Recovering)
+            .then(|| "drop threshold reached".to_string());
+    }
+
+    fn recovery_report(&self) -> ReliableDatagramRecoveryReport {
+        let report = ReliableDatagramRecoveryReport::new(
+            self.recovery_state,
+            self.dropped_packets_since_recovery,
+            self.outbound.len(),
+        );
+        match &self.recovery_diagnostic {
+            Some(diagnostic) => report.with_diagnostic(diagnostic.clone()),
+            None => report,
+        }
+    }
+
+    fn trim_completed_inbound_sequences(&mut self) {
+        let receive_window = self.config.receive_window as usize;
+        if receive_window == 0 {
+            self.completed_inbound_sequences.clear();
+            return;
+        }
+        while self.completed_inbound_sequences.len() > receive_window {
+            self.completed_inbound_sequences.pop_front();
+        }
+    }
+}
+
+fn reorder_delivered_packets(packets: &mut Vec<ReliableDatagramPacket>, reorder_window: usize) {
+    if reorder_window <= 1 {
+        return;
+    }
+    for chunk in packets.chunks_mut(reorder_window) {
+        chunk.reverse();
     }
 }
 

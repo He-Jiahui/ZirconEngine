@@ -30,7 +30,7 @@ pub use zircon_runtime_interface::{
     PROFILE_TIMELINE_PERFETTO_FILE, PROFILE_UI_HOTSPOTS_FILE,
 };
 
-pub use crate::{profile_counter, profile_frame, profile_scope};
+pub use crate::{profile_counter, profile_dynamic_scope, profile_frame, profile_scope};
 
 static GLOBAL_RECORDER: OnceLock<Mutex<ProfileRecorder>> = OnceLock::new();
 
@@ -191,10 +191,18 @@ pub(crate) fn begin_scope(
     category: &'static str,
     name: &'static str,
 ) -> Option<scope::ProfileScopeToken> {
+    begin_scope_named(stream, category, name.to_string())
+}
+
+pub(crate) fn begin_scope_named(
+    stream: &'static str,
+    category: &'static str,
+    name: String,
+) -> Option<scope::ProfileScopeToken> {
     if !feature_enabled() {
         return None;
     }
-    scope::begin_scope(stream, category, name)
+    scope::begin_scope_named(stream, category, name)
 }
 
 pub(crate) fn finish_scope(token: scope::ProfileScopeToken) {
@@ -236,24 +244,21 @@ fn recorder() -> &'static Mutex<ProfileRecorder> {
         .get_or_init(|| Mutex::new(ProfileRecorder::new(ProfileCaptureConfig::default())))
 }
 
+#[cfg(all(test, feature = "profiling"))]
+pub(crate) fn test_capture_lock() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "profiling")]
-    use std::sync::{Mutex, OnceLock};
-
-    #[cfg(feature = "profiling")]
-    use super::{reset_capture, snapshot, start_capture, ProfileCaptureConfig};
-
-    #[cfg(feature = "profiling")]
-    fn test_lock() -> std::sync::MutexGuard<'static, ()> {
-        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-        LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
-    }
+    use super::{reset_capture, snapshot, start_capture, test_capture_lock, ProfileCaptureConfig};
 
     #[cfg(feature = "profiling")]
     #[test]
     fn profile_macros_capture_nested_spans_inside_frame() {
-        let _guard = test_lock();
+        let _guard = test_capture_lock();
         let mut config = ProfileCaptureConfig::default();
         config.session_id = "nested-span-test".to_string();
         config.max_frames = 4;
@@ -290,10 +295,65 @@ mod tests {
         assert_eq!(inner.frame_index, Some(0));
     }
 
+    #[cfg(feature = "profiling")]
+    #[test]
+    fn profile_scope_enter_named_captures_runtime_generated_names() {
+        let _guard = test_capture_lock();
+        let mut config = ProfileCaptureConfig::default();
+        config.session_id = "dynamic-span-test".to_string();
+        config.max_spans = 4;
+        start_capture(config);
+
+        {
+            let pass_name = format!("{}-{}", "graph-pass", 7);
+            let _scope =
+                super::ProfileScope::enter_named("runtime", "render_graph.pass", pass_name);
+        }
+
+        let snapshot = snapshot();
+        reset_capture();
+        let span = snapshot
+            .spans
+            .iter()
+            .find(|span| span.category == "render_graph.pass")
+            .expect("dynamic render graph pass span");
+        assert_eq!(span.name, "graph-pass-7");
+        assert_eq!(span.path, "runtime/render_graph.pass:graph-pass-7");
+    }
+
+    #[cfg(feature = "profiling")]
+    #[test]
+    fn profile_dynamic_scope_macro_captures_runtime_generated_names() {
+        let _guard = test_capture_lock();
+        let mut config = ProfileCaptureConfig::default();
+        config.session_id = "dynamic-macro-span-test".to_string();
+        config.max_spans = 4;
+        start_capture(config);
+
+        {
+            crate::profile_dynamic_scope!(
+                "runtime",
+                "render_graph.stage",
+                format!("{:?}", crate::graphics::RenderPassStage::PostProcess),
+            );
+        }
+
+        let snapshot = snapshot();
+        reset_capture();
+        let span = snapshot
+            .spans
+            .iter()
+            .find(|span| span.category == "render_graph.stage")
+            .expect("dynamic macro render graph stage span");
+        assert_eq!(span.name, "PostProcess");
+        assert_eq!(span.path, "runtime/render_graph.stage:PostProcess");
+    }
+
     #[cfg(not(feature = "profiling"))]
     #[test]
     fn disabled_profile_macros_do_not_evaluate_arguments() {
         crate::profile_scope!(panic!("stream"), panic!("category"), panic!("name"));
+        crate::profile_dynamic_scope!(panic!("stream"), panic!("category"), panic!("name"));
         crate::profile_frame!(panic!("stream"), panic!("name"));
         crate::profile_counter!(panic!("stream"), panic!("name"), panic!("value"));
 

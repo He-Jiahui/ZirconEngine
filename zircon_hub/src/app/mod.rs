@@ -1,4 +1,5 @@
 mod binding;
+mod localization;
 mod quick_action;
 mod runtime;
 mod view_model;

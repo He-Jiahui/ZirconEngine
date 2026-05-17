@@ -1,0 +1,49 @@
+import { AssetData, UiTextData } from "shared.slint";
+import { CatalogListPanel, InfoRow, PageScrollSurface } from "components.slint";
+
+component AssetRow inherits InfoRow {
+    in property <AssetData> asset;
+    in property <UiTextData> ui-text;
+
+    title: root.asset.name;
+    detail: root.asset.path;
+    meta: root.ui-text.asset-source + ": " + root.asset.source + "    " + root.ui-text.asset-size + ": " + root.asset.size;
+    leading-image: @image-url("../assets/icons/nav/assets.svg");
+    has-leading-image: true;
+    trailing-text: root.asset.kind;
+    trailing-tone: "accent";
+    show-trailing-badge: true;
+    row-height: 86px;
+}
+
+export component AssetsPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <[AssetData]> assets;
+    in property <int> asset-count;
+    in property <UiTextData> ui-text;
+    private property <length> list-scroll-y: 0px;
+
+    background: #11151a;
+
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: 620px;
+
+        CatalogListPanel {
+            scroll-y <=> root.list-scroll-y;
+            title: root.ui-text.asset-catalog;
+            badge-text: root.asset-count + " " + root.ui-text.assets-found;
+            badge-tone: "accent";
+            empty-title: root.ui-text.no-assets-found;
+            row-count: root.asset-count;
+            row-height: 86px;
+
+            for asset in root.assets: AssetRow {
+                asset: asset;
+                ui-text: root.ui-text;
+            }
+        }
+    }
+}

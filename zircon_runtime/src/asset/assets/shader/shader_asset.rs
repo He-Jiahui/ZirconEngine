@@ -8,7 +8,8 @@ use crate::core::framework::render::{
 
 use super::{
     dependency, language::default_shader_language, ShaderDependencyAsset, ShaderEntryPointAsset,
-    ShaderSourceLanguage,
+    ShaderImportRedirectAsset, ShaderMaterialPropertyAsset, ShaderSourceFileAsset,
+    ShaderSourceLanguage, ShaderTextureSlotAsset,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -23,6 +24,16 @@ pub struct ShaderAsset {
     pub entry_points: Vec<ShaderEntryPointAsset>,
     #[serde(default)]
     pub dependencies: Vec<ShaderDependencyAsset>,
+    #[serde(default)]
+    pub source_files: Vec<ShaderSourceFileAsset>,
+    #[serde(default)]
+    pub imports: Vec<ShaderImportRedirectAsset>,
+    #[serde(default)]
+    pub property_schema: Vec<ShaderMaterialPropertyAsset>,
+    #[serde(default)]
+    pub texture_slots: Vec<ShaderTextureSlotAsset>,
+    #[serde(default)]
+    pub editor: toml::Table,
     #[serde(default)]
     pub pipeline_layout: RenderShaderPipelineLayoutDescriptor,
     #[serde(default)]

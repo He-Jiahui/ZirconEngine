@@ -6,6 +6,7 @@ use std::path::{Component, Path};
 pub enum ResourceScheme {
     Res,
     Library,
+    Package,
     Builtin,
     Memory,
 }
@@ -15,6 +16,7 @@ impl ResourceScheme {
         match value {
             "res" => Some(Self::Res),
             "lib" => Some(Self::Library),
+            "package" => Some(Self::Package),
             "builtin" => Some(Self::Builtin),
             "mem" => Some(Self::Memory),
             _ => None,
@@ -25,6 +27,7 @@ impl ResourceScheme {
         match self {
             Self::Res => "res",
             Self::Library => "lib",
+            Self::Package => "package",
             Self::Builtin => "builtin",
             Self::Memory => "mem",
         }
@@ -57,6 +60,9 @@ impl ResourceLocator {
     ) -> Result<Self, ResourceLocatorError> {
         let raw_path = path.into();
         let normalized_path = normalize_resource_path(&raw_path)?;
+        if scheme == ResourceScheme::Package {
+            validate_package_path(&normalized_path)?;
+        }
         let normalized_label = match label {
             Some(value) if value.is_empty() => return Err(ResourceLocatorError::EmptyLabel),
             Some(value) => Some(value),
@@ -79,6 +85,22 @@ impl ResourceLocator {
 
     pub fn label(&self) -> Option<&str> {
         self.label.as_deref()
+    }
+
+    pub fn package_id(&self) -> Option<&str> {
+        if self.scheme != ResourceScheme::Package {
+            return None;
+        }
+        self.path.split_once('/').map(|(package_id, _)| package_id)
+    }
+
+    pub fn package_path(&self) -> Option<&str> {
+        if self.scheme != ResourceScheme::Package {
+            return None;
+        }
+        self.path
+            .split_once('/')
+            .map(|(_, package_path)| package_path)
     }
 }
 
@@ -116,6 +138,7 @@ pub enum ResourceLocatorError {
     MissingScheme(String),
     UnsupportedScheme(String),
     EmptyPath,
+    MissingPackagePath(String),
     EscapeAttempt(String),
     EmptyLabel,
 }
@@ -126,6 +149,12 @@ impl Display for ResourceLocatorError {
             Self::MissingScheme(value) => write!(f, "resource locator is missing scheme: {value}"),
             Self::UnsupportedScheme(value) => write!(f, "unsupported resource scheme: {value}"),
             Self::EmptyPath => write!(f, "resource locator path cannot be empty"),
+            Self::MissingPackagePath(value) => {
+                write!(
+                    f,
+                    "package resource locator requires package id and path: {value}"
+                )
+            }
             Self::EscapeAttempt(value) => write!(f, "resource locator escapes root: {value}"),
             Self::EmptyLabel => write!(f, "resource locator label cannot be empty"),
         }
@@ -166,4 +195,13 @@ fn normalize_resource_path(path: &str) -> Result<String, ResourceLocatorError> {
     }
 
     Ok(normalized.join("/"))
+}
+
+fn validate_package_path(path: &str) -> Result<(), ResourceLocatorError> {
+    match path.split_once('/') {
+        Some((package_id, package_path)) if !package_id.is_empty() && !package_path.is_empty() => {
+            Ok(())
+        }
+        _ => Err(ResourceLocatorError::MissingPackagePath(path.to_string())),
+    }
 }

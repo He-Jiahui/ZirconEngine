@@ -2,6 +2,7 @@ use crate::buffer::{ZrByteSlice, ZrOwnedByteBuffer};
 use crate::handles::{ZrRuntimeSessionHandle, ZrRuntimeViewportHandle};
 pub use crate::profiling::ZrRuntimeProfileControlFnV1;
 use crate::status::ZrStatus;
+use serde::{Deserialize, Serialize};
 
 pub const ZR_RUNTIME_GET_API_SYMBOL_V1: &[u8] = b"zircon_runtime_get_api_v1\0";
 
@@ -27,6 +28,9 @@ pub type ZrRuntimeUnbindViewportSurfaceFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeViewportHandle) -> ZrStatus;
 pub type ZrRuntimePresentViewportFnV1 =
     unsafe extern "C" fn(ZrRuntimeSessionHandle, ZrRuntimeFrameRequestV1) -> ZrStatus;
+pub type ZrRuntimeTickFrameFnV1 = unsafe extern "C" fn(ZrRuntimeSessionHandle) -> ZrStatus;
+pub type ZrRuntimeDrainHostRequestsFnV1 =
+    unsafe extern "C" fn(ZrRuntimeSessionHandle, *mut ZrOwnedByteBuffer) -> ZrStatus;
 pub type ZrRuntimeHostFetchFnV1 =
     unsafe extern "C" fn(ZrRuntimeHostFetchRequestV1, *mut ZrOwnedByteBuffer) -> ZrStatus;
 
@@ -41,10 +45,22 @@ pub const ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1: u32 = 5;
 pub const ZR_RUNTIME_EVENT_KIND_TOUCH_V1: u32 = 6;
 pub const ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1: u32 = 7;
 pub const ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1: u32 = 8;
+pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1: u32 = 9;
+pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1: u32 = 10;
+pub const ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1: u32 = 11;
+pub const ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1: u32 = 12;
+pub const ZR_RUNTIME_EVENT_KIND_IME_V1: u32 = 13;
+pub const ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1: u32 = 14;
+pub const ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1: u32 = 15;
+pub const ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1: u32 = 16;
+pub const ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1: u32 = 17;
 
 pub const ZR_RUNTIME_MOUSE_BUTTON_LEFT_V1: u32 = 1;
 pub const ZR_RUNTIME_MOUSE_BUTTON_RIGHT_V1: u32 = 2;
 pub const ZR_RUNTIME_MOUSE_BUTTON_MIDDLE_V1: u32 = 3;
+
+pub const ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1: u32 = 1;
+pub const ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1: u32 = 2;
 
 pub const ZR_RUNTIME_BUTTON_STATE_PRESSED_V1: u32 = 1;
 pub const ZR_RUNTIME_BUTTON_STATE_RELEASED_V1: u32 = 2;
@@ -63,6 +79,68 @@ pub const ZR_RUNTIME_TOUCH_PHASE_CANCELLED_V1: u32 = 4;
 pub const ZR_RUNTIME_KEY_ACTION_PRESSED_V1: u32 = 1;
 pub const ZR_RUNTIME_KEY_ACTION_RELEASED_V1: u32 = 2;
 pub const ZR_RUNTIME_KEY_ACTION_TEXT_V1: u32 = 3;
+
+pub const ZR_RUNTIME_IME_STATE_ENABLED_V1: u32 = 1;
+pub const ZR_RUNTIME_IME_STATE_DISABLED_V1: u32 = 2;
+pub const ZR_RUNTIME_IME_STATE_PREEDIT_V1: u32 = 3;
+pub const ZR_RUNTIME_IME_STATE_COMMIT_V1: u32 = 4;
+pub const ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1: u32 = 5;
+pub const ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1: u32 = 6;
+pub const ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1: u32 = 7;
+pub const ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1: u32 = 8;
+pub const ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1: u32 = 9;
+pub const ZR_RUNTIME_IME_CURSOR_HIDDEN_V1: u32 = u32::MAX;
+
+pub const ZR_RUNTIME_FILE_DRAG_HOVERED_V1: u32 = 1;
+pub const ZR_RUNTIME_FILE_DRAG_DROPPED_V1: u32 = 2;
+pub const ZR_RUNTIME_FILE_DRAG_CANCELLED_V1: u32 = 3;
+
+pub const ZR_RUNTIME_WINDOW_STATUS_MOVED_V1: u32 = 1;
+pub const ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1: u32 = 2;
+pub const ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1: u32 = 3;
+pub const ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1: u32 = 4;
+pub const ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1: u32 = 5;
+pub const ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1: u32 = 6;
+pub const ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1: u32 = 7;
+pub const ZR_RUNTIME_WINDOW_BOOL_FALSE_V1: u32 = 0;
+pub const ZR_RUNTIME_WINDOW_BOOL_TRUE_V1: u32 = 1;
+pub const ZR_RUNTIME_WINDOW_THEME_UNKNOWN_V1: u32 = 0;
+pub const ZR_RUNTIME_WINDOW_THEME_LIGHT_V1: u32 = 1;
+pub const ZR_RUNTIME_WINDOW_THEME_DARK_V1: u32 = 2;
+
+pub const ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1: u32 = 1;
+pub const ZR_RUNTIME_GAMEPAD_CONNECTION_DISCONNECTED_V1: u32 = 2;
+
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_UNKNOWN_V1: u32 = 0;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1: u32 = 1;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_EAST_V1: u32 = 2;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_NORTH_V1: u32 = 3;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_WEST_V1: u32 = 4;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_C_V1: u32 = 5;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_Z_V1: u32 = 6;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER_V1: u32 = 7;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_TRIGGER2_V1: u32 = 8;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER_V1: u32 = 9;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_TRIGGER2_V1: u32 = 10;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_SELECT_V1: u32 = 11;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_START_V1: u32 = 12;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_MODE_V1: u32 = 13;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_LEFT_THUMB_V1: u32 = 14;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_RIGHT_THUMB_V1: u32 = 15;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_UP_V1: u32 = 16;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_DOWN_V1: u32 = 17;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_LEFT_V1: u32 = 18;
+pub const ZR_RUNTIME_GAMEPAD_BUTTON_DPAD_RIGHT_V1: u32 = 19;
+
+pub const ZR_RUNTIME_GAMEPAD_AXIS_UNKNOWN_V1: u32 = 0;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1: u32 = 1;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_Y_V1: u32 = 2;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_LEFT_Z_V1: u32 = 3;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_X_V1: u32 = 4;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_STICK_Y_V1: u32 = 5;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_RIGHT_Z_V1: u32 = 6;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_DPAD_X_V1: u32 = 7;
+pub const ZR_RUNTIME_GAMEPAD_AXIS_DPAD_Y_V1: u32 = 8;
 
 pub const ZR_RUNTIME_FETCH_FLAG_STREAMING_V1: u32 = 1 << 0;
 
@@ -100,6 +178,8 @@ pub struct ZrRuntimeApiV1 {
     pub unbind_viewport_surface: Option<ZrRuntimeUnbindViewportSurfaceFnV1>,
     pub present_viewport: Option<ZrRuntimePresentViewportFnV1>,
     pub profile_control: Option<ZrRuntimeProfileControlFnV1>,
+    pub tick_frame: Option<ZrRuntimeTickFrameFnV1>,
+    pub drain_host_requests: Option<ZrRuntimeDrainHostRequestsFnV1>,
 }
 
 impl ZrRuntimeApiV1 {
@@ -116,6 +196,126 @@ impl ZrRuntimeApiV1 {
             unbind_viewport_surface: None,
             present_viewport: None,
             profile_control: None,
+            tick_frame: None,
+            drain_host_requests: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeHostRequestBatchV1 {
+    pub abi_version: u32,
+    pub requests: Vec<ZrRuntimeHostRequestV1>,
+}
+
+impl ZrRuntimeHostRequestBatchV1 {
+    pub fn new(abi_version: u32, requests: Vec<ZrRuntimeHostRequestV1>) -> Self {
+        Self {
+            abi_version,
+            requests,
+        }
+    }
+
+    pub fn empty(abi_version: u32) -> Self {
+        Self {
+            abi_version,
+            requests: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum ZrRuntimeHostRequestV1 {
+    Ime(ZrRuntimeImeHostRequestV1),
+}
+
+impl ZrRuntimeHostRequestV1 {
+    pub fn ime(request: ZrRuntimeImeHostRequestV1) -> Self {
+        Self::Ime(request)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeImeHostRequestV1 {
+    pub kind: ZrRuntimeImeHostRequestKindV1,
+    pub cursor_area: Option<ZrRuntimeImeCursorAreaV1>,
+    pub surrounding_text: Option<ZrRuntimeImeSurroundingTextV1>,
+}
+
+impl ZrRuntimeImeHostRequestV1 {
+    pub fn enable() -> Self {
+        Self {
+            kind: ZrRuntimeImeHostRequestKindV1::Enable,
+            cursor_area: None,
+            surrounding_text: None,
+        }
+    }
+
+    pub fn disable() -> Self {
+        Self {
+            kind: ZrRuntimeImeHostRequestKindV1::Disable,
+            cursor_area: None,
+            surrounding_text: None,
+        }
+    }
+
+    pub fn set_cursor_area(area: ZrRuntimeImeCursorAreaV1) -> Self {
+        Self {
+            kind: ZrRuntimeImeHostRequestKindV1::SetCursorArea,
+            cursor_area: Some(area),
+            surrounding_text: None,
+        }
+    }
+
+    pub fn set_surrounding_text(text: ZrRuntimeImeSurroundingTextV1) -> Self {
+        Self {
+            kind: ZrRuntimeImeHostRequestKindV1::SetSurroundingText,
+            cursor_area: None,
+            surrounding_text: Some(text),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ZrRuntimeImeHostRequestKindV1 {
+    Enable,
+    Disable,
+    SetCursorArea,
+    SetSurroundingText,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ZrRuntimeImeCursorAreaV1 {
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+}
+
+impl ZrRuntimeImeCursorAreaV1 {
+    pub const fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ZrRuntimeImeSurroundingTextV1 {
+    pub value: String,
+    pub cursor: usize,
+    pub anchor: usize,
+}
+
+impl ZrRuntimeImeSurroundingTextV1 {
+    pub fn new(value: impl Into<String>, cursor: usize, anchor: usize) -> Self {
+        Self {
+            value: value.into(),
+            cursor,
+            anchor,
         }
     }
 }
@@ -340,9 +540,207 @@ impl ZrRuntimeEventV1 {
         viewport: ZrRuntimeViewportHandle,
         delta: f32,
     ) -> Self {
-        Self {
+        Self::mouse_wheel_delta(
+            abi_version,
+            viewport,
+            ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+            0.0,
             delta,
+        )
+    }
+
+    pub const fn mouse_wheel_delta(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        unit: u32,
+        x: f32,
+        y: f32,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            delta: y,
+            state: unit,
             ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, viewport)
+        }
+    }
+
+    pub const fn cursor_entered(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self::new(
+            abi_version,
+            ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1,
+            viewport,
+        )
+    }
+
+    pub const fn cursor_left(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1, viewport)
+    }
+
+    pub const fn file_hovered(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        path: ZrByteSlice,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_FILE_DRAG_HOVERED_V1,
+            payload: path,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn file_dropped(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        path: ZrByteSlice,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
+            payload: path,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn file_drag_cancelled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_FILE_DRAG_CANCELLED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_moved(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        x: i32,
+        y: i32,
+    ) -> Self {
+        Self {
+            x: x as f32,
+            y: y as f32,
+            state: ZR_RUNTIME_WINDOW_STATUS_MOVED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_occluded(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        occluded: bool,
+    ) -> Self {
+        Self {
+            button: if occluded {
+                ZR_RUNTIME_WINDOW_BOOL_TRUE_V1
+            } else {
+                ZR_RUNTIME_WINDOW_BOOL_FALSE_V1
+            },
+            state: ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_theme_changed(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        theme: u32,
+    ) -> Self {
+        Self {
+            button: theme,
+            state: ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_scale_factor_changed(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        scale_factor: f32,
+    ) -> Self {
+        Self {
+            delta: scale_factor,
+            state: ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_backend_scale_factor_changed(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        scale_factor: f32,
+    ) -> Self {
+        Self {
+            delta: scale_factor,
+            state: ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_close_requested(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn window_destroyed(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn mouse_motion(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        delta_x: f32,
+        delta_y: f32,
+    ) -> Self {
+        Self {
+            x: delta_x,
+            y: delta_y,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1, viewport)
         }
     }
 
@@ -391,6 +789,109 @@ impl ZrRuntimeEventV1 {
         }
     }
 
+    pub const fn ime_enabled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_ENABLED_V1,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_disabled(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_DISABLED_V1,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_preedit(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        value: ZrByteSlice,
+        cursor_start: u32,
+        cursor_end: u32,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_PREEDIT_V1,
+            payload: value,
+            key_code: cursor_start,
+            scan_code: cursor_end,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_commit(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        value: ZrByteSlice,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_COMMIT_V1,
+            payload: value,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_delete_surrounding(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        before_bytes: u32,
+        after_bytes: u32,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+            key_code: before_bytes,
+            scan_code: after_bytes,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_request_enable(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_request_disable(abi_version: u32, viewport: ZrRuntimeViewportHandle) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_cursor_area(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        x: f32,
+        y: f32,
+        width: u32,
+        height: u32,
+    ) -> Self {
+        Self {
+            x,
+            y,
+            size: ZrRuntimeViewportSizeV1::new(width, height),
+            state: ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
+    pub const fn ime_surrounding_text(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        value: ZrByteSlice,
+        cursor: u32,
+        anchor: u32,
+    ) -> Self {
+        Self {
+            state: ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1,
+            payload: value,
+            key_code: cursor,
+            scan_code: anchor,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_IME_V1, viewport)
+        }
+    }
+
     pub const fn accessibility_action(
         abi_version: u32,
         viewport: ZrRuntimeViewportHandle,
@@ -403,6 +904,75 @@ impl ZrRuntimeEventV1 {
                 ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
                 viewport,
             )
+        }
+    }
+
+    pub const fn gamepad_connection(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        state: u32,
+        name: ZrByteSlice,
+    ) -> Self {
+        Self::gamepad_connection_with_ids(abi_version, viewport, gamepad_id, state, 0, 0, name)
+    }
+
+    pub const fn gamepad_connection_with_ids(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        state: u32,
+        vendor_id: u32,
+        product_id: u32,
+        name: ZrByteSlice,
+    ) -> Self {
+        Self {
+            state,
+            pointer_id: gamepad_id,
+            key_code: vendor_id,
+            scan_code: product_id,
+            payload: name,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn gamepad_button(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        button: u32,
+        state: u32,
+        value: f32,
+    ) -> Self {
+        Self {
+            button,
+            state,
+            delta: value,
+            pointer_id: gamepad_id,
+            ..Self::new(
+                abi_version,
+                ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1,
+                viewport,
+            )
+        }
+    }
+
+    pub const fn gamepad_axis(
+        abi_version: u32,
+        viewport: ZrRuntimeViewportHandle,
+        gamepad_id: u64,
+        axis: u32,
+        value: f32,
+    ) -> Self {
+        Self {
+            button: axis,
+            delta: value,
+            pointer_id: gamepad_id,
+            ..Self::new(abi_version, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1, viewport)
         }
     }
 }

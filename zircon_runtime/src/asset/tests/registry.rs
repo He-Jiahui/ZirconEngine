@@ -5,8 +5,8 @@ use crate::asset::{AssetId, AssetKind, AssetUri};
 #[test]
 fn asset_registry_tracks_add_update_delete_and_rename() {
     let mut registry = ResourceRegistry::default();
-    let original_uri = AssetUri::parse("res://materials/grid.material.toml").unwrap();
-    let renamed_uri = AssetUri::parse("res://materials/grid_renamed.material.toml").unwrap();
+    let original_uri = AssetUri::parse("res://materials/grid.zmaterial").unwrap();
+    let renamed_uri = AssetUri::parse("res://materials/grid_renamed.zmaterial").unwrap();
     let asset_id = AssetId::new();
 
     let original = ResourceRecord::new(asset_id, AssetKind::Material, original_uri.clone())

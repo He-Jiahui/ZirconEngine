@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::core::resource::ResourceRegistry;
 
-use crate::asset::{ArtifactStore, AssetId, AssetImporter, AssetUuid};
+use crate::asset::{ArtifactStore, AssetId, AssetImporter, AssetUri, AssetUuid};
 
-use super::{ProjectManifest, ProjectPaths};
+use super::{PackageAssetRegistry, ProjectManifest, ProjectPaths};
 
 mod artifact_access;
 mod asset_kind;
@@ -16,6 +16,7 @@ mod is_meta_sidecar;
 mod load_or_create_meta;
 mod meta_path_for_source;
 mod open;
+mod package_assets;
 mod registry_access;
 mod scan_and_import;
 mod source_mtime_unix_ms;
@@ -29,6 +30,8 @@ pub struct ProjectManager {
     registry: ResourceRegistry,
     asset_ids_by_uuid: HashMap<AssetUuid, AssetId>,
     asset_uuids_by_id: HashMap<AssetId, AssetUuid>,
+    asset_urls_by_uuid: HashMap<AssetUuid, AssetUri>,
+    package_assets: PackageAssetRegistry,
     importer: AssetImporter,
     artifact_store: ArtifactStore,
 }

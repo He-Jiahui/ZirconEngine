@@ -15,14 +15,16 @@ use crate::{
             UiDragDropInputEvent, UiDragDropInputEventKind, UiDragSessionId, UiFocusEffectReason,
             UiImeInputEvent, UiImeInputEventKind, UiInputDispatchDiagnostics,
             UiInputDispatchResult, UiInputEvent, UiInputEventMetadata, UiInputMethodRequest,
-            UiInputMethodRequestKind, UiInputSequence, UiInputTimestamp, UiKeyboardInputEvent,
-            UiKeyboardInputState, UiNavigationInputEvent, UiNavigationRequestPolicy,
-            UiPointerCaptureReason, UiPointerComponentEventReason, UiPointerDispatchContext,
-            UiPointerDispatchEffect, UiPointerDispatchResult, UiPointerEvent, UiPointerId,
-            UiPointerInputEvent, UiPointerLockPolicy, UiPopupEffectKind, UiPopupInputEvent,
-            UiPopupInputEventKind, UiPreciseScrollDelta, UiRedrawRequestReason, UiScrollDeltaUnit,
-            UiSurfaceId, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
-            UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
+            UiInputMethodRequestKind, UiInputMethodSurroundingText,
+            UiInputMethodSurroundingTextError, UiInputSequence, UiInputTimestamp,
+            UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent,
+            UiNavigationRequestPolicy, UiPointerCaptureReason, UiPointerComponentEventReason,
+            UiPointerDispatchContext, UiPointerDispatchEffect, UiPointerDispatchResult,
+            UiPointerEvent, UiPointerId, UiPointerInputEvent, UiPointerLockPolicy,
+            UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiPreciseScrollDelta,
+            UiRedrawRequestReason, UiScrollDeltaUnit, UiSurfaceId, UiTextByteRange,
+            UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
+            UiTooltipTimerInputEventKind, UiUserId, UiWindowId,
         },
         event_ui::{
             UiBindingCodec, UiControlRequest, UiInvocationContext, UiNodeId, UiNodePath,
@@ -61,15 +63,36 @@ use crate::{
         tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeNode, UiVisibility},
     },
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeApiV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeNativeSurfaceTargetV1,
+    ZrRuntimeFrameV1, ZrRuntimeHostFetchRequestV1, ZrRuntimeHostRequestBatchV1,
+    ZrRuntimeHostRequestV1, ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1,
+    ZrRuntimeImeHostRequestV1, ZrRuntimeImeSurroundingTextV1, ZrRuntimeNativeSurfaceTargetV1,
     ZrRuntimeSessionHandle, ZrRuntimeTranslatedEventV1, ZrRuntimeViewportHandle,
     ZrRuntimeViewportMetricsV1, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
-    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+    ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1,
+    ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1,
+    ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1, ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1,
+    ZR_RUNTIME_EVENT_KIND_IME_V1, ZR_RUNTIME_EVENT_KIND_KEYBOARD_V1,
+    ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1,
+    ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1, ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1,
     ZR_RUNTIME_EVENT_KIND_TOUCH_V1, ZR_RUNTIME_EVENT_KIND_VIEWPORT_RESIZED_V1,
-    ZR_RUNTIME_FETCH_FLAG_STREAMING_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
-    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
+    ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1, ZR_RUNTIME_FETCH_FLAG_STREAMING_V1,
+    ZR_RUNTIME_FILE_DRAG_CANCELLED_V1, ZR_RUNTIME_FILE_DRAG_DROPPED_V1,
+    ZR_RUNTIME_FILE_DRAG_HOVERED_V1, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+    ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1, ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+    ZR_RUNTIME_IME_CURSOR_HIDDEN_V1, ZR_RUNTIME_IME_STATE_COMMIT_V1,
+    ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1,
+    ZR_RUNTIME_IME_STATE_ENABLED_V1, ZR_RUNTIME_IME_STATE_PREEDIT_V1,
+    ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1, ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1,
+    ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1, ZR_RUNTIME_KEY_ACTION_PRESSED_V1,
+    ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1,
+    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1, ZR_RUNTIME_NATIVE_SURFACE_KIND_NONE_V1,
     ZR_RUNTIME_NATIVE_SURFACE_KIND_WIN32_V1, ZR_RUNTIME_TOUCH_PHASE_MOVED_V1,
+    ZR_RUNTIME_WINDOW_BOOL_TRUE_V1, ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1, ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_MOVED_V1, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1,
+    ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1, ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1,
+    ZR_RUNTIME_WINDOW_THEME_DARK_V1,
 };
 
 fn sample_ui_input_metadata() -> UiInputEventMetadata {
@@ -475,13 +498,15 @@ fn runtime_api_table_records_size_and_version() {
 
     assert_eq!(api.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
     assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV1>());
-    assert_eq!(core::mem::size_of::<ZrRuntimeApiV1>(), 88);
+    assert_eq!(core::mem::size_of::<ZrRuntimeApiV1>(), 104);
     assert!(api.create_session.is_none());
     assert!(api.capture_frame.is_none());
     assert!(api.bind_viewport_surface.is_none());
     assert!(api.unbind_viewport_surface.is_none());
     assert!(api.present_viewport.is_none());
     assert!(api.profile_control.is_none());
+    assert!(api.tick_frame.is_none());
+    assert!(api.drain_host_requests.is_none());
     assert_eq!(
         core::mem::offset_of!(ZrRuntimeApiV1, bind_viewport_surface),
         core::mem::offset_of!(ZrRuntimeApiV1, capture_accessibility_tree)
@@ -491,6 +516,16 @@ fn runtime_api_table_records_size_and_version() {
         core::mem::offset_of!(ZrRuntimeApiV1, profile_control),
         core::mem::offset_of!(ZrRuntimeApiV1, present_viewport)
             + core::mem::size_of::<Option<crate::ZrRuntimePresentViewportFnV1>>()
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV1, tick_frame),
+        core::mem::offset_of!(ZrRuntimeApiV1, profile_control)
+            + core::mem::size_of::<Option<crate::ZrRuntimeProfileControlFnV1>>()
+    );
+    assert_eq!(
+        core::mem::offset_of!(ZrRuntimeApiV1, drain_host_requests),
+        core::mem::offset_of!(ZrRuntimeApiV1, tick_frame)
+            + core::mem::size_of::<Option<crate::ZrRuntimeTickFrameFnV1>>()
     );
 }
 
@@ -574,10 +609,151 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
         30,
         ZrByteSlice::from_static(b"KeyA"),
     );
+    let cursor_entered = ZrRuntimeEventV1::cursor_entered(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let cursor_left = ZrRuntimeEventV1::cursor_left(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
     let metrics = ZrRuntimeViewportMetricsV1::new(
         ZrRuntimeViewportSizeV1::new(1280, 720),
         2.0,
         ZrRuntimeViewportSizeV1::new(2560, 1440),
+    );
+    let gamepad_connection = ZrRuntimeEventV1::gamepad_connection(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        7,
+        ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1,
+        ZrByteSlice::from_static(b"Test Pad"),
+    );
+    let gamepad_button = ZrRuntimeEventV1::gamepad_button(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        7,
+        ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1,
+        ZR_RUNTIME_BUTTON_STATE_PRESSED_V1,
+        1.0,
+    );
+    let gamepad_axis = ZrRuntimeEventV1::gamepad_axis(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        7,
+        ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1,
+        -0.5,
+    );
+    let mouse_motion = ZrRuntimeEventV1::mouse_motion(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        -2.0,
+        3.5,
+    );
+    let mouse_wheel = ZrRuntimeEventV1::mouse_wheel(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        1.5,
+    );
+    let mouse_wheel_delta = ZrRuntimeEventV1::mouse_wheel_delta(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+        2.0,
+        -3.0,
+    );
+    let ime_enabled = ZrRuntimeEventV1::ime_enabled(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let ime_preedit = ZrRuntimeEventV1::ime_preedit(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZrByteSlice::from_static("ni".as_bytes()),
+        0,
+        2,
+    );
+    let ime_commit = ZrRuntimeEventV1::ime_commit(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZrByteSlice::from_static("你".as_bytes()),
+    );
+    let ime_delete = ZrRuntimeEventV1::ime_delete_surrounding(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        1,
+        3,
+    );
+    let ime_request_enable = ZrRuntimeEventV1::ime_request_enable(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let ime_request_disable = ZrRuntimeEventV1::ime_request_disable(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let ime_cursor_area = ZrRuntimeEventV1::ime_cursor_area(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        16.0,
+        24.0,
+        1,
+        18,
+    );
+    let ime_surrounding_text = ZrRuntimeEventV1::ime_surrounding_text(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZrByteSlice::from_static(b"hello"),
+        5,
+        0,
+    );
+    let file_hovered = ZrRuntimeEventV1::file_hovered(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZrByteSlice::from_static(b"C:/tmp/asset.png"),
+    );
+    let file_dropped = ZrRuntimeEventV1::file_dropped(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZrByteSlice::from_static(b"C:/tmp/asset.png"),
+    );
+    let file_cancelled = ZrRuntimeEventV1::file_drag_cancelled(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let window_moved = ZrRuntimeEventV1::window_moved(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        100,
+        200,
+    );
+    let window_occluded = ZrRuntimeEventV1::window_occluded(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        true,
+    );
+    let window_theme = ZrRuntimeEventV1::window_theme_changed(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        ZR_RUNTIME_WINDOW_THEME_DARK_V1,
+    );
+    let window_backend_scale_factor = ZrRuntimeEventV1::window_backend_scale_factor_changed(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        2.0,
+    );
+    let window_scale_factor = ZrRuntimeEventV1::window_scale_factor_changed(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+        1.5,
+    );
+    let window_close_requested = ZrRuntimeEventV1::window_close_requested(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
+    );
+    let window_destroyed = ZrRuntimeEventV1::window_destroyed(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        ZrRuntimeViewportHandle::new(2),
     );
 
     assert_eq!(lifecycle.kind, ZR_RUNTIME_EVENT_KIND_LIFECYCLE_V1);
@@ -589,6 +765,126 @@ fn runtime_abi_events_cover_lifecycle_touch_keyboard_and_canvas_metrics() {
     assert_eq!(keyboard.button, ZR_RUNTIME_KEY_ACTION_PRESSED_V1);
     assert_eq!(keyboard.key_code, 65);
     assert_eq!(unsafe { keyboard.payload.as_slice() }, b"KeyA");
+    assert_eq!(cursor_entered.kind, ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1);
+    assert_eq!(cursor_left.kind, ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1);
+    assert_eq!(file_hovered.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
+    assert_eq!(file_hovered.state, ZR_RUNTIME_FILE_DRAG_HOVERED_V1);
+    assert_eq!(
+        unsafe { file_hovered.payload.as_slice() },
+        b"C:/tmp/asset.png"
+    );
+    assert_eq!(file_dropped.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
+    assert_eq!(file_dropped.state, ZR_RUNTIME_FILE_DRAG_DROPPED_V1);
+    assert_eq!(
+        unsafe { file_dropped.payload.as_slice() },
+        b"C:/tmp/asset.png"
+    );
+    assert_eq!(file_cancelled.kind, ZR_RUNTIME_EVENT_KIND_FILE_DRAG_DROP_V1);
+    assert_eq!(file_cancelled.state, ZR_RUNTIME_FILE_DRAG_CANCELLED_V1);
+    assert!(file_cancelled.payload.is_empty());
+    assert_eq!(window_moved.kind, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1);
+    assert_eq!(window_moved.state, ZR_RUNTIME_WINDOW_STATUS_MOVED_V1);
+    assert_eq!(window_moved.x, 100.0);
+    assert_eq!(window_moved.y, 200.0);
+    assert_eq!(window_occluded.kind, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1);
+    assert_eq!(window_occluded.state, ZR_RUNTIME_WINDOW_STATUS_OCCLUDED_V1);
+    assert_eq!(window_occluded.button, ZR_RUNTIME_WINDOW_BOOL_TRUE_V1);
+    assert_eq!(window_theme.kind, ZR_RUNTIME_EVENT_KIND_WINDOW_STATUS_V1);
+    assert_eq!(
+        window_theme.state,
+        ZR_RUNTIME_WINDOW_STATUS_THEME_CHANGED_V1
+    );
+    assert_eq!(window_theme.button, ZR_RUNTIME_WINDOW_THEME_DARK_V1);
+    assert_eq!(
+        window_backend_scale_factor.state,
+        ZR_RUNTIME_WINDOW_STATUS_BACKEND_SCALE_FACTOR_CHANGED_V1
+    );
+    assert_eq!(window_backend_scale_factor.delta, 2.0);
+    assert_eq!(
+        window_scale_factor.state,
+        ZR_RUNTIME_WINDOW_STATUS_SCALE_FACTOR_CHANGED_V1
+    );
+    assert_eq!(window_scale_factor.delta, 1.5);
+    assert_eq!(
+        window_close_requested.state,
+        ZR_RUNTIME_WINDOW_STATUS_CLOSE_REQUESTED_V1
+    );
+    assert_eq!(
+        window_destroyed.state,
+        ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1
+    );
+    assert_eq!(
+        gamepad_connection.kind,
+        ZR_RUNTIME_EVENT_KIND_GAMEPAD_CONNECTION_V1
+    );
+    assert_eq!(gamepad_connection.pointer_id, 7);
+    assert_eq!(
+        gamepad_connection.state,
+        ZR_RUNTIME_GAMEPAD_CONNECTION_CONNECTED_V1
+    );
+    assert_eq!(
+        unsafe { gamepad_connection.payload.as_slice() },
+        b"Test Pad"
+    );
+    assert_eq!(gamepad_button.kind, ZR_RUNTIME_EVENT_KIND_GAMEPAD_BUTTON_V1);
+    assert_eq!(gamepad_button.button, ZR_RUNTIME_GAMEPAD_BUTTON_SOUTH_V1);
+    assert_eq!(gamepad_button.state, ZR_RUNTIME_BUTTON_STATE_PRESSED_V1);
+    assert_eq!(gamepad_button.delta, 1.0);
+    assert_eq!(gamepad_axis.kind, ZR_RUNTIME_EVENT_KIND_GAMEPAD_AXIS_V1);
+    assert_eq!(gamepad_axis.button, ZR_RUNTIME_GAMEPAD_AXIS_LEFT_STICK_X_V1);
+    assert_eq!(gamepad_axis.delta, -0.5);
+    assert_eq!(mouse_motion.kind, ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1);
+    assert_eq!(mouse_motion.x, -2.0);
+    assert_eq!(mouse_motion.y, 3.5);
+    assert_eq!(mouse_wheel.kind, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1);
+    assert_eq!(mouse_wheel.state, ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1);
+    assert_eq!(mouse_wheel.x, 0.0);
+    assert_eq!(mouse_wheel.y, 1.5);
+    assert_eq!(mouse_wheel.delta, 1.5);
+    assert_eq!(mouse_wheel_delta.kind, ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1);
+    assert_eq!(
+        mouse_wheel_delta.state,
+        ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1
+    );
+    assert_eq!(mouse_wheel_delta.x, 2.0);
+    assert_eq!(mouse_wheel_delta.y, -3.0);
+    assert_eq!(mouse_wheel_delta.delta, -3.0);
+    assert_eq!(ime_enabled.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
+    assert_eq!(ime_enabled.state, ZR_RUNTIME_IME_STATE_ENABLED_V1);
+    assert_eq!(ime_preedit.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
+    assert_eq!(ime_preedit.state, ZR_RUNTIME_IME_STATE_PREEDIT_V1);
+    assert_eq!(ime_preedit.key_code, 0);
+    assert_eq!(ime_preedit.scan_code, 2);
+    assert_ne!(ime_preedit.key_code, ZR_RUNTIME_IME_CURSOR_HIDDEN_V1);
+    assert_eq!(unsafe { ime_preedit.payload.as_slice() }, "ni".as_bytes());
+    assert_eq!(ime_commit.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
+    assert_eq!(ime_commit.state, ZR_RUNTIME_IME_STATE_COMMIT_V1);
+    assert_eq!(unsafe { ime_commit.payload.as_slice() }, "你".as_bytes());
+    assert_eq!(ime_delete.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
+    assert_eq!(ime_delete.state, ZR_RUNTIME_IME_STATE_DELETE_SURROUNDING_V1);
+    assert_eq!(ime_delete.key_code, 1);
+    assert_eq!(ime_delete.scan_code, 3);
+    assert_eq!(ime_request_enable.kind, ZR_RUNTIME_EVENT_KIND_IME_V1);
+    assert_eq!(
+        ime_request_enable.state,
+        ZR_RUNTIME_IME_STATE_REQUEST_ENABLE_V1
+    );
+    assert_eq!(
+        ime_request_disable.state,
+        ZR_RUNTIME_IME_STATE_REQUEST_DISABLE_V1
+    );
+    assert_eq!(ime_cursor_area.state, ZR_RUNTIME_IME_STATE_CURSOR_AREA_V1);
+    assert_eq!(ime_cursor_area.x, 16.0);
+    assert_eq!(ime_cursor_area.y, 24.0);
+    assert_eq!(ime_cursor_area.size.width, 1);
+    assert_eq!(ime_cursor_area.size.height, 18);
+    assert_eq!(
+        ime_surrounding_text.state,
+        ZR_RUNTIME_IME_STATE_SURROUNDING_TEXT_V1
+    );
+    assert_eq!(unsafe { ime_surrounding_text.payload.as_slice() }, b"hello");
+    assert_eq!(ime_surrounding_text.key_code, 5);
+    assert_eq!(ime_surrounding_text.scan_code, 0);
     assert_eq!(metrics.logical_size.width, 1280);
     assert_eq!(metrics.device_scale_factor, 2.0);
     assert_eq!(metrics.physical_size.height, 1440);
@@ -608,6 +904,48 @@ fn runtime_host_fetch_request_declares_streaming_resource_contract() {
         unsafe { request.uri.as_slice() },
         b"res://assets/zircon-project.toml"
     );
+}
+
+#[test]
+fn runtime_host_request_batch_serializes_ime_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::ime(ZrRuntimeImeHostRequestV1::enable()),
+            ZrRuntimeHostRequestV1::ime(ZrRuntimeImeHostRequestV1::set_cursor_area(
+                ZrRuntimeImeCursorAreaV1::new(16.0, 24.0, 8.0, 18.0),
+            )),
+            ZrRuntimeHostRequestV1::ime(ZrRuntimeImeHostRequestV1::set_surrounding_text(
+                ZrRuntimeImeSurroundingTextV1::new("search", 6, 0),
+            )),
+        ],
+    );
+
+    let decoded: ZrRuntimeHostRequestBatchV1 = ui_input_round_trip(&batch);
+
+    assert_eq!(decoded.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(decoded.requests.len(), 3);
+    assert!(matches!(
+        decoded.requests[0],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::Enable
+    ));
+    assert!(matches!(
+        decoded.requests[1],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
+                && request.cursor_area.as_ref().map(|area| area.height) == Some(18.0)
+    ));
+    assert!(matches!(
+        decoded.requests[2],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetSurroundingText
+                && request
+                    .surrounding_text
+                    .as_ref()
+                    .map(|text| text.cursor)
+                    == Some(6)
+    ));
 }
 
 #[test]
@@ -1130,6 +1468,9 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
                 owner: target,
                 cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
                 composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
+                surrounding_text: Some(
+                    UiInputMethodSurroundingText::new("search term", 6, 6).unwrap(),
+                ),
             },
         },
         UiDispatchEffect::DirtyRedraw {
@@ -1173,6 +1514,9 @@ fn ui_dispatch_effect_contract_constructs_every_effect_family() {
                 owner: target,
                 cursor_rect: Some(UiFrame::new(6.0, 7.0, 8.0, 9.0)),
                 composition_rects: vec![UiFrame::new(6.0, 7.0, 32.0, 9.0)],
+                surrounding_text: Some(
+                    UiInputMethodSurroundingText::new("search term", 6, 6).unwrap(),
+                ),
             }),
             reason: "ime owner changed".to_string(),
         }],
@@ -1308,6 +1652,7 @@ fn ui_input_payloads_round_trip_through_serde() {
             owner: UiNodeId::new(77),
             cursor_rect: Some(UiFrame::new(14.0, 15.0, 1.0, 18.0)),
             composition_rects: vec![UiFrame::new(14.0, 15.0, 48.0, 18.0)],
+            surrounding_text: Some(UiInputMethodSurroundingText::new("foobar", 3, 3).unwrap()),
         },
     };
 
@@ -1333,6 +1678,21 @@ fn ui_input_payloads_round_trip_through_serde() {
         ui_input_round_trip(&input_method_request),
         input_method_request
     );
+}
+
+#[test]
+fn ui_input_method_surrounding_text_validates_byte_positions() {
+    let selected = UiInputMethodSurroundingText::new("abcde", 4, 1).unwrap();
+
+    assert_eq!(selected.selection_range(), UiTextByteRange::new(1, 4));
+    assert!(matches!(
+        UiInputMethodSurroundingText::new("你好", 1, 1),
+        Err(UiInputMethodSurroundingTextError::CursorBadPosition)
+    ));
+    assert!(matches!(
+        UiInputMethodSurroundingText::new("你好", 3, 1),
+        Err(UiInputMethodSurroundingTextError::AnchorBadPosition)
+    ));
 }
 
 #[test]

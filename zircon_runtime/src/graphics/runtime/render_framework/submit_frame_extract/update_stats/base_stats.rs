@@ -39,6 +39,19 @@ pub(super) fn update_base_stats(
         .last_render_graph_executed_resource_access_count();
     state.stats.last_graph_executed_dependency_count =
         state.renderer.last_render_graph_executed_dependency_count();
+    let post_process_graph = state
+        .renderer
+        .last_render_graph_post_process_graph()
+        .unwrap_or_else(|| context.post_process_graph());
+    state.stats.last_post_process_graph_node_count = post_process_graph.node_count();
+    state.stats.last_post_process_graph_skipped_node_count =
+        post_process_graph.skipped_node_count();
+    state.stats.last_post_process_final_composite_node =
+        post_process_graph.final_composite_node.clone();
+    state.stats.last_post_process_graph_executed_nodes = state
+        .renderer
+        .last_render_graph_executed_post_process_nodes()
+        .to_vec();
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();
@@ -62,6 +75,31 @@ pub(super) fn update_base_stats(
     state.stats.last_ui_text_payload_count = ui_stats.text_payload_count();
     state.stats.last_ui_image_payload_count = ui_stats.image_payload_count();
     state.stats.last_ui_clipped_command_count = ui_stats.clipped_command_count();
+    state.stats.last_ui_graph_executed_pass_count = state
+        .renderer
+        .last_render_graph_executed_stage_count(RenderPassStage::Ui);
+    state.stats.last_ui_target_size =
+        (state.stats.last_ui_graph_executed_pass_count > 0).then(|| context.size());
+    state.stats.last_ui_graph_pass_order = runtime_ui_graph_pass_order(
+        &state.stats.last_graph_executed_passes,
+        state.stats.last_ui_graph_executed_pass_count,
+    );
+    state.stats.last_material_count = state.renderer.last_material_count();
+    state.stats.last_material_ready_count = state.renderer.last_material_ready_count();
+    state.stats.last_material_fallback_count = state.renderer.last_material_fallback_count();
+    state.stats.last_material_validation_error_count =
+        state.renderer.last_material_validation_error_count();
+    state.stats.last_sprite_count = state.renderer.last_sprite_count();
+    state.stats.last_sprite_ready_count = state.renderer.last_sprite_ready_count();
+    state.stats.last_sprite_texture_fallback_count =
+        state.renderer.last_sprite_texture_fallback_count();
+    state.stats.last_sprite_graph_executed_pass_count =
+        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "sprite.");
+    state.stats.last_directional_light_count = context.scene_directional_lights().len();
+    state.stats.last_point_light_count = context.scene_point_lights().len();
+    state.stats.last_spot_light_count = context.scene_spot_lights().len();
+    state.stats.last_ambient_light_count = context.scene_ambient_lights().len();
+    state.stats.last_rect_light_count = context.scene_rect_lights().len();
 }
 
 fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
@@ -69,4 +107,60 @@ fn count_executor_prefix(executor_ids: &[String], prefix: &str) -> usize {
         .iter()
         .filter(|executor_id| executor_id.starts_with(prefix))
         .count()
+}
+
+fn runtime_ui_graph_pass_order(
+    executed_passes: &[String],
+    ui_graph_executed_pass_count: usize,
+) -> Option<String> {
+    if ui_graph_executed_pass_count == 0 {
+        return None;
+    }
+
+    let postprocess = executed_passes
+        .iter()
+        .position(|pass| pass == "post-process")?;
+    let runtime_ui = executed_passes
+        .iter()
+        .position(|pass| pass == "runtime-ui")?;
+    let overlay = executed_passes
+        .iter()
+        .position(|pass| pass == "overlay-gizmo")?;
+
+    (postprocess < runtime_ui && runtime_ui < overlay).then(|| "postprocess-ui-overlay".to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::runtime_ui_graph_pass_order;
+
+    #[test]
+    fn runtime_ui_graph_pass_order_requires_actual_graph_order() {
+        let passes = ["post-process", "runtime-ui", "overlay-gizmo"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            runtime_ui_graph_pass_order(&passes, 1).as_deref(),
+            Some("postprocess-ui-overlay")
+        );
+
+        let unordered = ["runtime-ui", "post-process", "overlay-gizmo"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        assert_eq!(runtime_ui_graph_pass_order(&unordered, 1), None);
+    }
+
+    #[test]
+    fn runtime_ui_graph_pass_order_is_absent_without_ui_execution() {
+        let passes = ["post-process", "runtime-ui", "overlay-gizmo"]
+            .into_iter()
+            .map(str::to_string)
+            .collect::<Vec<_>>();
+
+        assert_eq!(runtime_ui_graph_pass_order(&passes, 0), None);
+    }
 }

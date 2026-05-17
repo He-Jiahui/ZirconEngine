@@ -157,7 +157,7 @@ set = { self = { background = { color = "$material_surface_pressed" }, border = 
 
 [[stylesheets.rules]]
 selector = ".material-control:focus"
-set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-control:selected"
@@ -185,35 +185,47 @@ set = { self = { background = { color = "$material_error_container" }, foregroun
 
 [[stylesheets.rules]]
 selector = ".material-button"
-set = { self = { background = { color = "$material_surface_hover" } } }
+set = { self = { button_size = "medium", background = { color = "$material_surface_hover" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button:hover"
-set = { self = { background = { color = "$material_surface_container_high" } } }
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_container_high" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button:pressed"
-set = { self = { background = { color = "$material_surface_pressed" } } }
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_pressed" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button-primary"
-set = { self = { background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button-primary:hover"
-set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "hover", background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button-primary:pressed"
-set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "pressed", background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-button-base"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
+set = { self = { button_variant = "default", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface" }, foreground = { color = "$material_text" } } }
 
 [[stylesheets.rules]]
 selector = ".material-icon-button"
-set = { self = { background = { color = "$material_surface" } } }
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", background = { color = "$material_surface" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:hover"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:pressed"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:focus"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-toggle-button"
@@ -245,15 +257,99 @@ set = { self = { background = { color = "$material_surface_inset" }, foreground 
 
 [[stylesheets.rules]]
 selector = ".material-text-button"
-set = { self = { background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface" }, foreground = { color = "$material_accent" }, border = { color = "$material_surface", width = "$material_border_width_none", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-text-button:hover"
-set = { self = { background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "hover", background = { color = "$material_surface_hover" }, foreground = { color = "$material_text" } } }
 
 [[stylesheets.rules]]
 selector = ".material-text-button:pressed"
-set = { self = { background = { color = "$material_surface_pressed" }, foreground = { color = "$material_text" } } }
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-segment"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-first"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-middle"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-group-last"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_border_width_none", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:focus"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "focused", foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-button:disabled"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:focus"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "focused", foreground = { color = "$material_color_on_primary" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-button-primary:disabled"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-icon-button:disabled"
+set = { self = { button_variant = "text", button_color = "primary", button_size = "small", icon_placement = "icon_only", button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-row"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "icon_only", background = { color = "$material_surface_inset" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab"
+set = { self = { button_variant = "contained", button_color = "primary", button_size = "medium", elevation = "$material_elevation_level2", shadow = "$material_shadow", background = { color = "$material_color_primary" }, foreground = { color = "$material_color_on_primary" }, border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_accent_soft" }, border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:pressed"
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-circular"
+set = { self = { button_shape = "circular", icon_placement = "icon_only", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-small"
+set = { self = { button_size = "small", button_shape = "circular", icon_placement = "icon_only", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-fab-extended"
+set = { self = { button_size = "medium", button_shape = "extended", icon_placement = "leading", border = { color = "$material_shadow", width = "$material_border_width_none", radius = "$material_radius_pill" } } }
 
 [[stylesheets.rules]]
 selector = ".material-check-box"

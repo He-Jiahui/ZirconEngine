@@ -5,6 +5,7 @@ use crate::asset::AssetUri;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DataAssetFormat {
+    Text,
     Toml,
     Json,
     Yaml,
@@ -14,6 +15,7 @@ pub enum DataAssetFormat {
 impl DataAssetFormat {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Text => "text",
             Self::Toml => "toml",
             Self::Json => "json",
             Self::Yaml => "yaml",

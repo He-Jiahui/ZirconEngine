@@ -294,7 +294,7 @@ impl RenderFixture {
             paths
                 .assets_root()
                 .join("materials")
-                .join("flat_color.material.toml"),
+                .join("flat_color.zmaterial"),
             "res://shaders/flat_color.wgsl",
             base_color,
             "res://textures/white.png",
@@ -313,7 +313,7 @@ impl RenderFixture {
         let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
         let material = resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/flat_color.material.toml",
+            "res://materials/flat_color.zmaterial",
         );
 
         Self {
@@ -428,6 +428,8 @@ fn build_snapshot(
             directional_lights: lights,
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -626,6 +628,9 @@ fn write_material_with_base_color_and_texture(
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

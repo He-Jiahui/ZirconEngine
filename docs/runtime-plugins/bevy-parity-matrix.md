@@ -38,6 +38,8 @@ plan_sources:
 tests:
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - cargo test -p zircon_runtime --locked plugin_extensions::profile_maturity -- --nocapture
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
 doc_type: module-detail
 ---
 
@@ -80,6 +82,8 @@ The M2 linked-provider closure lives in `zircon_app`, not in `zircon_runtime`. R
 
 Profile bootstrap tests cover the practical Bevy-grade path: `EntryConfig::for_runtime_profile(RuntimeProfileId::Client2d)` projects the profile manifest, the app provider supplies linked registration reports for required sound/rendering and optional texture, and `BuiltinEngineEntry` appends the resulting plugin modules without making `zircon_runtime` depend on any `zircon_plugin_*` crate.
 
+The same app-provider validation now covers app-owned render/platform bootstrap persistence. Headless profile selection stores both the headless platform feature set and the `Headless` render bundle, while the provider-enabled `client_2d` path keeps linked first-party registration closure in `zircon_app`.
+
 ## Bevy References
 
 The metadata intentionally points to local Bevy source files rather than copying API shapes:
@@ -107,3 +111,7 @@ Latest M2 scoped validation:
 - `rustfmt --edition 2021 --check <scoped profile/maturity files>` passed after formatting scoped files.
 - `git diff --check -- <scoped profile/maturity files and docs>` passed with line-ending normalization warnings only.
 - `cargo test -p zircon_runtime --lib plugin_extensions::manifest_contributions::builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_members --locked -- --nocapture` passed: 1 manifest/catalog matching test, 0 failures.
+- `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed in WSL/Linux: 1 test, 0 failures. The earlier Windows attempt stopped in `wgpu-hal` before provider code because `windows 0.61.3` and `windows 0.62.2` D3D12 types were both present in the root dependency graph.

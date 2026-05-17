@@ -5,5 +5,5 @@ pub(super) fn meta_path_for_source(path: &Path) -> PathBuf {
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or("asset");
-    path.with_file_name(format!("{file_name}.meta.toml"))
+    path.with_file_name(format!("{file_name}.zmeta"))
 }

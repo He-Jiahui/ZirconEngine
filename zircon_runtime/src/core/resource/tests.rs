@@ -62,31 +62,30 @@ fn resource_ids_are_stable_for_persistent_schemes_and_not_for_mem() {
 #[test]
 fn asset_uuid_and_reference_roundtrip() {
     let uuid = AssetUuid::new();
-    let locator = locator("res://materials/default.material.toml");
+    let locator = locator("res://materials/default.zmaterial");
     let reference = AssetReference::new(uuid, locator.clone());
     let json = serde_json::to_string(&reference).expect("serialize reference");
     let decoded: AssetReference = serde_json::from_str(&json).expect("deserialize reference");
 
+    assert!(json.contains("\"url\""));
+    assert!(!json.contains("\"locator\""));
     assert_eq!(decoded.uuid, uuid);
     assert_eq!(decoded.locator, locator);
     assert_eq!(uuid.to_string().parse::<AssetUuid>().unwrap(), uuid);
 }
 
 #[test]
-fn resource_id_is_stable_for_asset_uuid_and_label() {
+fn resource_id_is_stable_for_asset_uuid() {
     let uuid = AssetUuid::from_stable_label("test://robot");
+    let other_uuid = AssetUuid::from_stable_label("test://robot#mesh0");
 
     assert_eq!(
-        ResourceId::from_asset_uuid_label(uuid, None),
-        ResourceId::from_asset_uuid_label(uuid, None)
-    );
-    assert_eq!(
-        ResourceId::from_asset_uuid_label(uuid, Some("mesh0")),
-        ResourceId::from_asset_uuid_label(uuid, Some("mesh0"))
+        ResourceId::from_asset_uuid(uuid),
+        ResourceId::from_asset_uuid(uuid)
     );
     assert_ne!(
-        ResourceId::from_asset_uuid_label(uuid, None),
-        ResourceId::from_asset_uuid_label(uuid, Some("mesh0"))
+        ResourceId::from_asset_uuid(uuid),
+        ResourceId::from_asset_uuid(other_uuid)
     );
 }
 
@@ -116,34 +115,31 @@ fn typed_and_untyped_handles_roundtrip() {
 #[test]
 fn registry_rename_preserves_id_and_remove_clears_lookup() {
     let mut registry = crate::core::resource::ResourceRegistry::default();
-    let original = record(
-        "res://materials/default.material.toml",
-        ResourceKind::Material,
-    );
+    let original = record("res://materials/default.zmaterial", ResourceKind::Material);
     let id = original.id;
     registry.upsert(original.clone());
 
     let renamed = registry
         .rename(
             &original.primary_locator,
-            locator("res://materials/default-renamed.material.toml"),
+            locator("res://materials/default-renamed.zmaterial"),
         )
         .expect("rename should succeed");
 
     assert_eq!(renamed.id, id);
     assert!(registry
-        .get_by_locator(&locator("res://materials/default.material.toml"))
+        .get_by_locator(&locator("res://materials/default.zmaterial"))
         .is_none());
     assert_eq!(
         registry
-            .get_by_locator(&locator("res://materials/default-renamed.material.toml"))
+            .get_by_locator(&locator("res://materials/default-renamed.zmaterial"))
             .expect("renamed locator should exist")
             .id,
         id
     );
 
     let removed = registry
-        .remove_by_locator(&locator("res://materials/default-renamed.material.toml"))
+        .remove_by_locator(&locator("res://materials/default-renamed.zmaterial"))
         .expect("remove should succeed");
     assert_eq!(removed.id, id);
     assert!(registry.get(id).is_none());
@@ -267,7 +263,7 @@ fn register_ready_is_idempotent_for_unchanged_records() {
 fn register_ready_bumps_revision_when_dependency_ids_change() {
     let manager = ResourceManager::new();
     let events = manager.subscribe();
-    let locator = locator("res://materials/grid.material.toml");
+    let locator = locator("res://materials/grid.zmaterial");
     let id = ResourceId::from_locator(&locator);
     let dependency = ResourceId::from_stable_label("res://textures/checker.png");
     let record = ResourceRecord::new(id, ResourceKind::Material, locator);

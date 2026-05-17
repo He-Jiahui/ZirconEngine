@@ -21,7 +21,7 @@ impl UiV2StyleResolver {
         arena: &UiV2NodeArena,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
         let rules = collect_rules(document)?;
-        Self::resolve_with_rules(document, arena, &rules)
+        Self::resolve_with_rules(document, arena, &rules, true)
     }
 
     pub(crate) fn resolve_static(
@@ -32,13 +32,14 @@ impl UiV2StyleResolver {
             .into_iter()
             .filter(|rule| !rule.uses_pseudo_state())
             .collect::<Vec<_>>();
-        Self::resolve_with_rules(document, arena, &rules)
+        Self::resolve_with_rules(document, arena, &rules, false)
     }
 
     fn resolve_with_rules(
         document: &UiV2AssetDocument,
         arena: &UiV2NodeArena,
         rules: &[ResolvedRule],
+        include_inline_style: bool,
     ) -> Result<UiV2ResolvedStyleSheet, UiV2AssetError> {
         let mut resolved = UiV2ResolvedStyleSheet::default();
         let Some(root) = arena.root else {
@@ -62,7 +63,9 @@ impl UiV2StyleResolver {
                         node_style.merge_block(&rule.set);
                     }
                 }
-                node_style.merge_block(&node.style);
+                if include_inline_style {
+                    node_style.merge_block(&node.style);
+                }
                 resolve_value_map(&mut node_style.self_values, &document.tokens, 0);
                 resolve_value_map(&mut node_style.slot, &document.tokens, 0);
                 let _ = resolved.nodes.insert(node.source_id.clone(), node_style);
@@ -214,7 +217,19 @@ impl UiV2RuntimeStyleIndex {
             .get(&node_id)
             .cloned()
             .unwrap_or_default();
-        next_style_overrides.extend(node_style.self_values);
+        for key in node_style.self_values.keys() {
+            if self
+                .base_style_overrides
+                .get(&node_id)
+                .and_then(|values| values.get(key))
+                .is_some_and(|override_value| base_attributes.get(key) != Some(override_value))
+            {
+                continue;
+            }
+            if let Some(value) = next_attributes.get(key).cloned() {
+                let _ = next_style_overrides.insert(key.clone(), value);
+            }
+        }
 
         let node = tree
             .nodes
@@ -690,6 +705,12 @@ fn is_render_only_style_key(key: &str) -> bool {
             | "shadow"
             | "elevation"
             | "cursor"
+            | "button_variant"
+            | "button_color"
+            | "button_size"
+            | "button_interaction_state"
+            | "icon_placement"
+            | "button_icon_placement"
     )
 }
 

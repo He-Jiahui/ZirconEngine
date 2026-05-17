@@ -17,6 +17,7 @@ pub(super) struct GpuChromePresenter<P: UiSurfacePresenter> {
     diagnostics: HostRefreshDiagnostics,
     last_upload_bytes: u64,
     last_draw_calls: u64,
+    surface_cache_initialized: bool,
 }
 
 impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
@@ -30,8 +31,9 @@ impl<P: UiSurfacePresenter> HostChromePresenter for GpuChromePresenter<P> {
         damage: Option<FrameRect>,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
-        let stream = build_chrome_command_stream(presentation, self.size, damage.as_ref(), true);
-        self.present_stream(&stream, invalidation)
+        let stream_damage = damage.as_ref().filter(|_| self.surface_cache_initialized);
+        let stream = build_chrome_command_stream(presentation, self.size, stream_damage, true);
+        self.present_stream_with_damage_diagnostics(&stream, damage.as_ref(), invalidation)
     }
 
     fn diagnostics_snapshot(&self) -> HostRefreshDiagnostics {
@@ -47,6 +49,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             diagnostics: HostRefreshDiagnostics::default(),
             last_upload_bytes: 0,
             last_draw_calls: 0,
+            surface_cache_initialized: false,
         }
     }
 
@@ -54,6 +57,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         let size = clamp_size(size);
         self.surface.resize(size.0, size.1)?;
         self.size = size;
+        self.surface_cache_initialized = false;
         Ok(())
     }
 
@@ -62,25 +66,32 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         stream: &ChromeCommandStream,
         invalidation: HostInvalidationDiagnostics,
     ) -> HostPresenterResult<HostRefreshDiagnostics> {
+        self.present_stream_with_damage_diagnostics(stream, stream.damage(), invalidation)
+    }
+
+    fn present_stream_with_damage_diagnostics(
+        &mut self,
+        stream: &ChromeCommandStream,
+        diagnostic_damage: Option<&FrameRect>,
+        invalidation: HostInvalidationDiagnostics,
+    ) -> HostPresenterResult<HostRefreshDiagnostics> {
         let draw_list = ui_surface_draw_list_from_stream(stream);
         let stats = self.surface.present(&draw_list)?;
-        self.record_present_stats(stream, &stats);
+        let region_present = diagnostic_damage.is_some() || !stream.is_full_rebuild();
+        self.record_present_stats(&stats, region_present);
+        self.surface_cache_initialized = true;
 
-        let painted_pixels = stream
-            .damage()
+        let painted_pixels = diagnostic_damage
             .map(|damage| damage_pixel_count(damage, stream.surface_size()))
             .unwrap_or_else(|| full_surface_pixels(stream.surface_size()));
         record_current_ui_perf_counter(UiPerfCounter::PaintedPixels, painted_pixels as f64);
-        if stream.is_full_rebuild() {
-            record_current_ui_perf_counter(UiPerfCounter::FullPaintCount, 1.0);
-        } else {
+        if region_present {
             record_current_ui_perf_counter(UiPerfCounter::RegionPaintCount, 1.0);
+        } else {
+            record_current_ui_perf_counter(UiPerfCounter::FullPaintCount, 1.0);
         }
-        self.diagnostics.record_present(
-            painted_pixels,
-            stream.is_full_rebuild(),
-            !stream.is_full_rebuild(),
-        );
+        self.diagnostics
+            .record_present(painted_pixels, !region_present, region_present);
         Ok(self
             .diagnostics
             .clone()
@@ -99,11 +110,7 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
         self.last_draw_calls
     }
 
-    fn record_present_stats(
-        &mut self,
-        stream: &ChromeCommandStream,
-        stats: &UiSurfacePresentStats,
-    ) {
+    fn record_present_stats(&mut self, stats: &UiSurfacePresentStats, region_present: bool) {
         self.last_upload_bytes = stats.image_upload_bytes;
         self.last_draw_calls = stats.draw_calls;
         record_current_ui_perf_counter(
@@ -127,10 +134,10 @@ impl<P: UiSurfacePresenter> GpuChromePresenter<P> {
             UiPerfCounter::GpuBatchDependencies,
             stats.batch_dependency_count as f64,
         );
-        if stream.is_full_rebuild() {
-            record_current_ui_perf_counter(UiPerfCounter::ChromeCommandFullRebuildCount, 1.0);
-        } else {
+        if region_present {
             record_current_ui_perf_counter(UiPerfCounter::ChromeCommandPatchCount, 1.0);
+        } else {
+            record_current_ui_perf_counter(UiPerfCounter::ChromeCommandFullRebuildCount, 1.0);
         }
     }
 }
@@ -247,6 +254,7 @@ mod tests {
     struct RecordingSurfacePresenter {
         fail_present: bool,
         last: UiSurfacePresentStats,
+        last_draw_list: Option<UiSurfaceDrawList>,
     }
 
     impl UiSurfacePresenter for RecordingSurfacePresenter {
@@ -265,6 +273,7 @@ mod tests {
             let mut stats = draw_list.stats();
             stats.presented_frame_count = 1;
             self.last = stats.clone();
+            self.last_draw_list = Some(draw_list.clone());
             Ok(stats)
         }
 
@@ -392,5 +401,93 @@ mod tests {
         assert_eq!(diagnostics.painted_pixel_count, 40);
         assert_eq!(presenter.last_upload_bytes(), 16);
         assert_eq!(presenter.last_draw_calls(), 2);
+    }
+
+    #[test]
+    fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
+        let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
+        let damage = FrameRect {
+            x: 4.0,
+            y: 6.0,
+            width: 8.0,
+            height: 5.0,
+        };
+
+        let diagnostics = presenter
+            .present(
+                &HostWindowPresentationData::default(),
+                Some(damage),
+                HostInvalidationDiagnostics::default(),
+            )
+            .expect("GPU presenter should bootstrap the direct-surface cache");
+
+        let draw_list = presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("surface presenter should receive the submitted draw list");
+        assert_eq!(draw_list.damage, None);
+        assert!(draw_list.commands.iter().any(|command| {
+            command.frame.x <= 0.0
+                && command.frame.y <= 0.0
+                && command.frame.width >= 64.0
+                && command.frame.height >= 64.0
+        }));
+        assert_eq!(diagnostics.full_paint_count, 0);
+        assert_eq!(diagnostics.region_paint_count, 1);
+        assert_eq!(diagnostics.painted_pixel_count, 40);
+
+        let diagnostics = presenter
+            .present(
+                &HostWindowPresentationData::default(),
+                Some(damage),
+                HostInvalidationDiagnostics::default(),
+            )
+            .expect("GPU presenter should submit damage once the cache is ready");
+
+        let draw_list = presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("surface presenter should receive the submitted draw list");
+        assert_eq!(draw_list.damage, Some(ui_rect(&damage)));
+        assert_eq!(diagnostics.full_paint_count, 0);
+        assert_eq!(diagnostics.region_paint_count, 2);
+        assert_eq!(diagnostics.painted_pixel_count, 80);
+    }
+
+    #[test]
+    fn gpu_presenter_resize_invalidates_damage_cache() {
+        let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
+        let damage = FrameRect {
+            x: 4.0,
+            y: 6.0,
+            width: 8.0,
+            height: 5.0,
+        };
+
+        presenter
+            .present(
+                &HostWindowPresentationData::default(),
+                None,
+                HostInvalidationDiagnostics::default(),
+            )
+            .unwrap();
+        presenter.resize((128, 96)).unwrap();
+        presenter
+            .present(
+                &HostWindowPresentationData::default(),
+                Some(damage),
+                HostInvalidationDiagnostics::default(),
+            )
+            .unwrap();
+
+        let draw_list = presenter
+            .surface
+            .last_draw_list
+            .as_ref()
+            .expect("surface presenter should receive the submitted draw list");
+        assert_eq!(draw_list.surface_size, (128, 96));
+        assert_eq!(draw_list.damage, None);
     }
 }

@@ -37,12 +37,7 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
@@ -68,7 +63,7 @@ fn asset_manager_opens_project_reports_assets_and_publishes_changes() {
         .resolve_asset_id(&AssetUri::parse("res://models/triangle.obj").unwrap())
         .expect("model asset id");
     let material_id = manager
-        .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
+        .resolve_asset_id(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
         .expect("material asset id");
     assert_eq!(
         manager.load_model_asset(model_id).unwrap().primitives.len(),
@@ -106,12 +101,7 @@ fn asset_manager_imports_model_toml_with_virtual_geometry_payload() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let expected_model = sample_virtual_geometry_model_asset();
@@ -158,10 +148,7 @@ fn asset_manager_watcher_reimports_modified_assets() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    let material_path = paths
-        .assets_root()
-        .join("materials")
-        .join("grid.material.toml");
+    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
@@ -181,7 +168,7 @@ fn asset_manager_watcher_reimports_modified_assets() {
     for _ in 0..10 {
         if let Ok(change) = changes.recv_timeout(Duration::from_secs(1)) {
             if change.kind == AssetChangeKind::Modified
-                && change.uri.to_string() == "res://materials/grid.material.toml"
+                && change.uri.to_string() == "res://materials/grid.zmaterial"
             {
                 modified = Some(change);
                 break;
@@ -194,7 +181,7 @@ fn asset_manager_watcher_reimports_modified_assets() {
         "watcher did not report material modification"
     );
     let material_id = manager
-        .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
+        .resolve_asset_id(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
         .expect("material asset id");
     assert_eq!(
         manager.load_material_asset(material_id).unwrap().base_color,
@@ -220,12 +207,7 @@ fn resource_server_reports_resource_records_for_project_assets() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
@@ -287,10 +269,7 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    let material_path = paths
-        .assets_root()
-        .join("materials")
-        .join("grid.material.toml");
+    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
@@ -300,7 +279,7 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
         .unwrap();
     let resource_changes = manager.subscribe_resource_changes();
     let baseline_revision = manager
-        .resource_revision("res://materials/grid.material.toml")
+        .resource_revision("res://materials/grid.zmaterial")
         .expect("baseline revision");
 
     let mut material =
@@ -309,11 +288,11 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
     fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
 
     manager
-        .import_asset("res://materials/grid.material.toml")
+        .import_asset("res://materials/grid.zmaterial")
         .unwrap();
 
     let next_status = manager
-        .resource_status("res://materials/grid.material.toml")
+        .resource_status("res://materials/grid.zmaterial")
         .expect("material resource status");
     assert_eq!(next_status.state, ResourceState::Ready);
     assert!(next_status.revision > baseline_revision);
@@ -325,9 +304,10 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
         if let Ok(event) = resource_changes.recv_timeout(remaining.min(Duration::from_millis(250)))
         {
             if event.kind == ResourceEventKind::Updated
-                && event.locator.as_ref().is_some_and(|locator| {
-                    locator.to_string() == "res://materials/grid.material.toml"
-                })
+                && event
+                    .locator
+                    .as_ref()
+                    .is_some_and(|locator| locator.to_string() == "res://materials/grid.zmaterial")
             {
                 updated = Some(event);
                 break;
@@ -358,10 +338,7 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     let model_path = paths.assets_root().join("models").join("triangle.obj");
     write_triangle_obj(model_path);
-    let material_path = paths
-        .assets_root()
-        .join("materials")
-        .join("grid.material.toml");
+    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
@@ -371,7 +348,7 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
         .unwrap();
 
     let baseline_material_revision = manager
-        .resource_revision("res://materials/grid.material.toml")
+        .resource_revision("res://materials/grid.zmaterial")
         .expect("material revision");
     let baseline_model_revision = manager
         .resource_revision("res://models/triangle.obj")
@@ -383,12 +360,12 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
     fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
 
     manager
-        .import_asset("res://materials/grid.material.toml")
+        .import_asset("res://materials/grid.zmaterial")
         .unwrap();
 
     assert!(
         manager
-            .resource_revision("res://materials/grid.material.toml")
+            .resource_revision("res://materials/grid.zmaterial")
             .expect("updated material revision")
             > baseline_material_revision
     );
@@ -417,10 +394,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    let material_path = paths
-        .assets_root()
-        .join("materials")
-        .join("grid.material.toml");
+    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
@@ -435,9 +409,9 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
     {}
 
     let baseline_revision = manager
-        .resource_revision("res://materials/grid.material.toml")
+        .resource_revision("res://materials/grid.zmaterial")
         .expect("baseline material revision");
-    let meta_path = material_path.with_file_name("grid.material.toml.meta.toml");
+    let meta_path = material_path.with_file_name("grid.zmaterial.zmeta");
     let meta_before = fs::read_to_string(&meta_path).unwrap();
     fs::write(&meta_path, meta_before).unwrap();
 
@@ -447,7 +421,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
         let remaining = deadline.saturating_duration_since(Instant::now());
         match asset_changes.recv_timeout(remaining.min(Duration::from_millis(100))) {
             Ok(change) => {
-                if change.uri.to_string() == "res://materials/grid.material.toml" {
+                if change.uri.to_string() == "res://materials/grid.zmaterial" {
                     saw_material_change = true;
                     break;
                 }
@@ -462,7 +436,7 @@ fn watcher_ignores_meta_sidecar_updates_for_revision_tracking() {
         "sidecar-only updates must not emit asset changes for the source asset"
     );
     assert_eq!(
-        manager.resource_revision("res://materials/grid.material.toml"),
+        manager.resource_revision("res://materials/grid.zmaterial"),
         Some(baseline_revision),
         "sidecar-only updates must not bump resource revisions",
     );
@@ -486,10 +460,7 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    let material_path = paths
-        .assets_root()
-        .join("materials")
-        .join("grid.material.toml");
+    let material_path = paths.assets_root().join("materials").join("grid.zmaterial");
     write_default_material(material_path.clone());
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
@@ -504,7 +475,7 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
     {}
 
     let baseline_material_revision = manager
-        .resource_revision("res://materials/grid.material.toml")
+        .resource_revision("res://materials/grid.zmaterial")
         .expect("baseline material revision");
     let baseline_model_revision = manager
         .resource_revision("res://models/triangle.obj")
@@ -522,7 +493,7 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         match asset_changes.recv_timeout(remaining.min(Duration::from_millis(150))) {
             Ok(change) => {
                 if change.kind == AssetChangeKind::Modified
-                    && change.uri.to_string() == "res://materials/grid.material.toml"
+                    && change.uri.to_string() == "res://materials/grid.zmaterial"
                 {
                     material_changes += 1;
                 }
@@ -537,7 +508,7 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         "one source edit should produce one material change notification",
     );
     assert_eq!(
-        manager.resource_revision("res://materials/grid.material.toml"),
+        manager.resource_revision("res://materials/grid.zmaterial"),
         Some(baseline_material_revision + 1),
         "one source edit should bump the changed asset revision once",
     );
@@ -566,12 +537,7 @@ fn asset_manager_acquire_release_unloads_and_rehydrates_runtime_resources() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
@@ -579,7 +545,7 @@ fn asset_manager_acquire_release_unloads_and_rehydrates_runtime_resources() {
         .open_project(root.to_string_lossy().as_ref())
         .unwrap();
     let material_id = manager
-        .resolve_asset_id(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
+        .resolve_asset_id(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
         .expect("material asset id");
 
     assert_eq!(

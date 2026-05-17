@@ -9,8 +9,8 @@ pub(in crate::graphics::runtime::render_framework) fn create_viewport(
     server: &WgpuRenderFramework,
     descriptor: RenderViewportDescriptor,
 ) -> Result<RenderViewportHandle, RenderFrameworkError> {
-    let _operation_guard = server.operation_lock.lock().unwrap();
-    let mut state = server.state.lock().unwrap();
+    let _operation_guard = server.lock_operation();
+    let mut state = server.lock_state();
     let handle = RenderViewportHandle::new(state.next_viewport_id);
     state.next_viewport_id += 1;
     state

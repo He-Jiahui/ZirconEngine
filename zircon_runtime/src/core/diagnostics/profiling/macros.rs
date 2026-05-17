@@ -16,6 +16,29 @@ macro_rules! profile_scope {
 }
 
 #[macro_export]
+macro_rules! profile_dynamic_scope {
+    ($stream:expr, $category:expr, $name:expr $(,)?) => {
+        #[cfg(any(feature = "profiling", feature = "profiling-tracy"))]
+        let _zr_profile_dynamic_scope_name: String = ($name).into();
+        #[cfg(feature = "profiling")]
+        let _zr_profile_dynamic_scope =
+            $crate::core::diagnostics::profiling::ProfileScope::enter_named(
+                $stream,
+                $category,
+                _zr_profile_dynamic_scope_name.clone(),
+            );
+        #[cfg(feature = "profiling-tracy")]
+        let _zr_profile_dynamic_tracy_span = tracing::info_span!(
+            "zircon.profile.scope",
+            stream = $stream,
+            category = $category,
+            name = %_zr_profile_dynamic_scope_name,
+        )
+        .entered();
+    };
+}
+
+#[macro_export]
 macro_rules! profile_frame {
     ($stream:expr, $name:expr $(,)?) => {
         #[cfg(feature = "profiling")]

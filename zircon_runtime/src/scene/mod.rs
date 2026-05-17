@@ -19,13 +19,22 @@ pub type EntityId = u64;
 pub type NodeId = EntityId;
 
 pub mod components;
+pub mod dynamic_scene;
 pub mod ecs;
+pub mod editor_projection;
 pub mod reflect;
 mod render_extract;
 pub mod semantics;
 pub mod serializer;
 pub mod world;
 
+pub use dynamic_scene::{
+    DynamicComponent, DynamicEntity, DynamicResource, DynamicScene, DynamicSceneError, EntityRemap,
+    ScenePatch, DYNAMIC_SCENE_FORMAT_VERSION,
+};
+pub use editor_projection::{
+    SceneEditorHierarchyRow, SceneEditorInspectorField, SceneEditorProjection,
+};
 pub use reflect::{
     json_from_reflected, reflected_from_json, reflected_from_scene_value,
     scene_value_from_reflected, ReflectComponent, ReflectResource, RuntimeTypeRegistration,
@@ -34,7 +43,7 @@ pub use reflect::{
 pub use world::{ComponentTypeRegistry, DynamicComponentInstance, World};
 
 #[allow(unused_imports)]
-pub(crate) use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
+pub use components::{default_render_layer_mask, Mobility, NodeKind, NodeRecord};
 
 pub use ecs::{
     Added, ArchetypeId, Bundle, ChangeTick, ChangeTickWindow, Changed, Command, CommandQueue,

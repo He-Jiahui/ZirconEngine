@@ -1,0 +1,1456 @@
+[asset]
+kind = "view"
+id = "editor.window.material_component_lab.v2"
+version = 2
+display_name = "Material Component Lab"
+
+[root]
+node = "material_lab_root"
+
+[imports]
+widgets = [
+  "res://ui/editor/material_components/material_avatars.zui#MaterialAvatarsPrototype",
+  "res://ui/editor/material_components/material_badges.zui#MaterialBadgesPrototype",
+  "res://ui/editor/material_components/material_chips.zui#MaterialChipsPrototype",
+  "res://ui/editor/material_components/material_dividers.zui#MaterialDividersPrototype",
+  "res://ui/editor/material_components/material_icons.zui#MaterialIconsPrototype",
+  "res://ui/editor/material_components/material_image_list.zui#MaterialImageListPrototype",
+  "res://ui/editor/material_components/material_lists.zui#MaterialListsPrototype",
+  "res://ui/editor/material_components/material_material_icons.zui#MaterialMaterialIconsPrototype",
+  "res://ui/editor/material_components/material_table.zui#MaterialTablePrototype",
+  "res://ui/editor/material_components/material_timeline.zui#MaterialTimelinePrototype",
+  "res://ui/editor/material_components/material_typography.zui#MaterialTypographyPrototype",
+  "res://ui/editor/material_components/material_alert.zui#MaterialAlertPrototype",
+  "res://ui/editor/material_components/material_backdrop.zui#MaterialBackdropPrototype",
+  "res://ui/editor/material_components/material_dialogs.zui#MaterialDialogsPrototype",
+  "res://ui/editor/material_components/material_modal.zui#MaterialModalPrototype",
+  "res://ui/editor/material_components/material_popover.zui#MaterialPopoverPrototype",
+  "res://ui/editor/material_components/material_popper.zui#MaterialPopperPrototype",
+  "res://ui/editor/material_components/material_progress.zui#MaterialProgressPrototype",
+  "res://ui/editor/material_components/material_skeleton.zui#MaterialSkeletonPrototype",
+  "res://ui/editor/material_components/material_snackbars.zui#MaterialSnackbarsPrototype",
+  "res://ui/editor/material_components/material_speed_dial.zui#MaterialSpeedDialPrototype",
+  "res://ui/editor/material_components/material_tooltips.zui#MaterialTooltipsPrototype",
+  "res://ui/editor/material_components/material_autocomplete.zui#MaterialAutocompletePrototype",
+  "res://ui/editor/material_components/material_button_group.zui#MaterialButtonGroupPrototype",
+  "res://ui/editor/material_components/material_buttons.zui#MaterialButtonsPrototype",
+  "res://ui/editor/material_components/material_checkboxes.zui#MaterialCheckboxesPrototype",
+  "res://ui/editor/material_components/material_floating_action_button.zui#MaterialFloatingActionButtonPrototype",
+  "res://ui/editor/material_components/material_number_field.zui#MaterialNumberFieldPrototype",
+  "res://ui/editor/material_components/material_radio_buttons.zui#MaterialRadioButtonsPrototype",
+  "res://ui/editor/material_components/material_rating.zui#MaterialRatingPrototype",
+  "res://ui/editor/material_components/material_selects.zui#MaterialSelectsPrototype",
+  "res://ui/editor/material_components/material_slider.zui#MaterialSliderPrototype",
+  "res://ui/editor/material_components/material_switches.zui#MaterialSwitchesPrototype",
+  "res://ui/editor/material_components/material_text_fields.zui#MaterialTextFieldsPrototype",
+  "res://ui/editor/material_components/material_textarea_autosize.zui#MaterialTextareaAutosizePrototype",
+  "res://ui/editor/material_components/material_toggle_button.zui#MaterialToggleButtonPrototype",
+  "res://ui/editor/material_components/material_box.zui#MaterialBoxPrototype",
+  "res://ui/editor/material_components/material_container.zui#MaterialContainerPrototype",
+  "res://ui/editor/material_components/material_grid.zui#MaterialGridPrototype",
+  "res://ui/editor/material_components/material_masonry.zui#MaterialMasonryPrototype",
+  "res://ui/editor/material_components/material_stack.zui#MaterialStackPrototype",
+  "res://ui/editor/material_components/material_mui_x_tree_view.zui#MaterialMuiXTreeViewPrototype",
+  "res://ui/editor/material_components/material_mui_x_data_grid.zui#MaterialMuiXDataGridPrototype",
+  "res://ui/editor/material_components/material_mui_x_date_time_pickers.zui#MaterialMuiXDateTimePickersPrototype",
+  "res://ui/editor/material_components/material_mui_x_charts.zui#MaterialMuiXChartsPrototype",
+  "res://ui/editor/material_components/material_mui_x_line_chart.zui#MaterialMuiXLineChartPrototype",
+  "res://ui/editor/material_components/material_mui_x_bar_chart.zui#MaterialMuiXBarChartPrototype",
+  "res://ui/editor/material_components/material_mui_x_pie_chart.zui#MaterialMuiXPieChartPrototype",
+  "res://ui/editor/material_components/material_mui_x_sparkline.zui#MaterialMuiXSparklinePrototype",
+  "res://ui/editor/material_components/material_mui_x_gauge.zui#MaterialMuiXGaugePrototype",
+  "res://ui/editor/material_components/material_mui_x_agent_chat.zui#MaterialMuiXAgentChatPrototype",
+  "res://ui/editor/material_components/material_mui_x_chat_composer.zui#MaterialMuiXChatComposerPrototype",
+  "res://ui/editor/material_components/material_bottom_navigation.zui#MaterialBottomNavigationPrototype",
+  "res://ui/editor/material_components/material_breadcrumbs.zui#MaterialBreadcrumbsPrototype",
+  "res://ui/editor/material_components/material_links.zui#MaterialLinksPrototype",
+  "res://ui/editor/material_components/material_menubar.zui#MaterialMenubarPrototype",
+  "res://ui/editor/material_components/material_menus.zui#MaterialMenusPrototype",
+  "res://ui/editor/material_components/material_pagination.zui#MaterialPaginationPrototype",
+  "res://ui/editor/material_components/material_steppers.zui#MaterialSteppersPrototype",
+  "res://ui/editor/material_components/material_tabs.zui#MaterialTabsPrototype",
+  "res://ui/editor/material_components/material_transfer_list.zui#MaterialTransferListPrototype",
+  "res://ui/editor/material_components/material_accordion.zui#MaterialAccordionPrototype",
+  "res://ui/editor/material_components/material_app_bar.zui#MaterialAppBarPrototype",
+  "res://ui/editor/material_components/material_cards.zui#MaterialCardsPrototype",
+  "res://ui/editor/material_components/material_drawers.zui#MaterialDrawersPrototype",
+  "res://ui/editor/material_components/material_paper.zui#MaterialPaperPrototype",
+  "res://ui/editor/material_components/material_about_the_lab.zui#MaterialAboutTheLabPrototype",
+  "res://ui/editor/material_components/material_click_away_listener.zui#MaterialClickAwayListenerPrototype",
+  "res://ui/editor/material_components/material_css_baseline.zui#MaterialCssBaselinePrototype",
+  "res://ui/editor/material_components/material_init_color_scheme_script.zui#MaterialInitColorSchemeScriptPrototype",
+  "res://ui/editor/material_components/material_no_ssr.zui#MaterialNoSsrPrototype",
+  "res://ui/editor/material_components/material_portal.zui#MaterialPortalPrototype",
+  "res://ui/editor/material_components/material_transitions.zui#MaterialTransitionsPrototype",
+  "res://ui/editor/material_components/material_use_media_query.zui#MaterialUseMediaQueryPrototype",
+]
+styles = ["res://ui/theme/editor_material.v2.ui.toml"]
+
+[[stylesheets]]
+id = "material_component_lab"
+
+[[stylesheets.rules]]
+selector = ".material-lab-shell"
+[stylesheets.rules.set.self]
+background_color = "#101418"
+foreground_color = "#e6f1f4"
+
+[[stylesheets.rules]]
+selector = ".material-lab-card"
+[stylesheets.rules.set.self]
+background_color = "#202830"
+foreground_color = "#e6f1f4"
+border_color = "#4b626d"
+border_width = 1.0
+radius = 12.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-drawer-title"
+[stylesheets.rules.set.self]
+foreground_color = "#e6f1f4"
+
+[[stylesheets.rules]]
+selector = ".material-lab-appbar-title"
+[stylesheets.rules.set.self]
+foreground_color = "#e6f1f4"
+
+[[stylesheets.rules]]
+selector = ".material-lab-appbar-chip"
+[stylesheets.rules.set.self]
+background_color = "#182128"
+foreground_color = "#c8d7dd"
+border_color = "#344954"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-appbar-primary"
+[stylesheets.rules.set.self]
+background_color = "#0b4050"
+foreground_color = "#d8f7fb"
+border_color = "#2aaac0"
+
+[[stylesheets.rules]]
+selector = ".material-lab-appbar-status"
+[stylesheets.rules.set.self]
+background_color = "#173126"
+foreground_color = "#9de7be"
+border_color = "#33764f"
+
+[[stylesheets.rules]]
+selector = ".material-lab-section-header"
+[stylesheets.rules.set.self]
+background_color = "#202830"
+foreground_color = "#e6f1f4"
+border_color = "#4b626d"
+border_width = 1.0
+radius = 12.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-section-title"
+[stylesheets.rules.set.self]
+foreground_color = "#e6f1f4"
+
+[[stylesheets.rules]]
+selector = ".material-lab-section-chip"
+[stylesheets.rules.set.self]
+background_color = "#182128"
+foreground_color = "#c8d7dd"
+border_color = "#344954"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-section-status"
+[stylesheets.rules.set.self]
+background_color = "#142833"
+foreground_color = "#8fd7e8"
+border_color = "#2c6575"
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-panel"
+[stylesheets.rules.set.self]
+background_color = "#202830"
+foreground_color = "#e6f1f4"
+border_color = "#4b626d"
+border_width = 1.0
+radius = 12.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-title"
+[stylesheets.rules.set.self]
+foreground_color = "#e6f1f4"
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-caption"
+[stylesheets.rules.set.self]
+foreground_color = "#8fd7e8"
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-row"
+[stylesheets.rules.set.self]
+background_color = "#141b20"
+foreground_color = "#c8d7dd"
+border_color = "#2f424b"
+border_width = 1.0
+radius = 10.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-chip"
+[stylesheets.rules.set.self]
+background_color = "#182128"
+foreground_color = "#c8d7dd"
+border_color = "#344954"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-info"
+[stylesheets.rules.set.self]
+background_color = "#142833"
+foreground_color = "#8fd7e8"
+border_color = "#2c6575"
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-success"
+[stylesheets.rules.set.self]
+background_color = "#173126"
+foreground_color = "#9de7be"
+border_color = "#33764f"
+
+[[stylesheets.rules]]
+selector = ".material-lab-side-error"
+[stylesheets.rules.set.self]
+background_color = "#301b1e"
+foreground_color = "#ffb4ab"
+border_color = "#e56767"
+
+[[stylesheets.rules]]
+selector = ".material-lab-content-surface"
+[stylesheets.rules.set.self]
+background_color = "#151c22"
+foreground_color = "#e6f1f4"
+border_color = "#2f424b"
+border_width = 1.0
+radius = 12.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-item"
+[stylesheets.rules.set.self]
+background_color = "#182128"
+foreground_color = "#c8d7dd"
+border_color = "#2f424b"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-active"
+[stylesheets.rules.set.self]
+background_color = "#0b4050"
+foreground_color = "#d8f7fb"
+border_color = "#2aaac0"
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-hover"
+[stylesheets.rules.set.self]
+background_color = "#1e3540"
+foreground_color = "#b9eaf2"
+border_color = "#3f7080"
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-label"
+[stylesheets.rules.set.self]
+foreground_color = "#c8d7dd"
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-count"
+[stylesheets.rules.set.self]
+background_color = "#121b20"
+foreground_color = "#8fd7e8"
+border_color = "#2d5b68"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-count-active"
+[stylesheets.rules.set.self]
+background_color = "#0b4050"
+foreground_color = "#d8f7fb"
+border_color = "#2aaac0"
+
+[[stylesheets.rules]]
+selector = ".material-lab-nav-count-hover"
+[stylesheets.rules.set.self]
+background_color = "#1e3540"
+foreground_color = "#b9eaf2"
+border_color = "#3f7080"
+
+[[stylesheets.rules]]
+selector = ".material-lab-meta-strip"
+[stylesheets.rules.set.self]
+background_color = "#141b20"
+foreground_color = "#aebfc7"
+
+[[stylesheets.rules]]
+selector = ".material-lab-meta-chip"
+[stylesheets.rules.set.self]
+background_color = "#182128"
+foreground_color = "#aebfc7"
+border_color = "#344954"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-meta-variant"
+[stylesheets.rules.set.self]
+background_color = "#142833"
+foreground_color = "#9be3ee"
+border_color = "#2c6575"
+
+[[stylesheets.rules]]
+selector = ".material-lab-meta-response"
+[stylesheets.rules.set.self]
+background_color = "#173126"
+foreground_color = "#9de7be"
+border_color = "#33764f"
+
+[[stylesheets.rules]]
+selector = ".material-lab-meta-layout"
+[stylesheets.rules.set.self]
+background_color = "#2b2618"
+foreground_color = "#ffe08a"
+border_color = "#7f6820"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-strip"
+[stylesheets.rules.set.self]
+background_color = "#121b20"
+foreground_color = "#8fd7e8"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-pill"
+[stylesheets.rules.set.self]
+background_color = "#142229"
+foreground_color = "#8fd7e8"
+border_color = "#2d5b68"
+border_width = 1.0
+radius = 999.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-hover"
+[stylesheets.rules.set.self]
+background_color = "#1e3540"
+foreground_color = "#b9eaf2"
+border_color = "#3f7080"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-pressed"
+[stylesheets.rules.set.self]
+background_color = "#0f2931"
+foreground_color = "#d0f5fa"
+border_color = "#255664"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-focus"
+[stylesheets.rules.set.self]
+background_color = "#16262d"
+foreground_color = "#cdf6fb"
+border_color = "#36c7d9"
+border_width = 2.0
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-disabled"
+[stylesheets.rules.set.self]
+background_color = "#171f24"
+foreground_color = "#71838b"
+border_color = "#2d3940"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-selected"
+[stylesheets.rules.set.self]
+background_color = "#0b4050"
+foreground_color = "#d8f7fb"
+border_color = "#2aaac0"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-open"
+[stylesheets.rules.set.self]
+background_color = "#26343c"
+foreground_color = "#ffe08a"
+border_color = "#a8811a"
+
+[[stylesheets.rules]]
+selector = ".material-lab-state-error"
+[stylesheets.rules.set.self]
+background_color = "#3b1d20"
+foreground_color = "#ffb4ab"
+border_color = "#e56767"
+
+[nodes.appbar]
+component = "HorizontalBox"
+classes = ["material-lab-card"]
+layout = { width = { stretch = "Stretch" }, height = { min = 56.0, preferred = 56.0, max = 56.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "appbar_title" },
+  { node = "appbar_scope" },
+  { node = "appbar_count" },
+  { node = "appbar_status" },
+  { node = "appbar_capture" },
+]
+
+[nodes.appbar_title]
+component = "Label"
+classes = ["material-lab-appbar-title"]
+props = { text = "Material Component Lab", text_tone = "primary", font_size = 18.0, font_weight = 800 }
+layout = { width = { stretch = "Stretch" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.appbar_scope]
+component = "Label"
+classes = ["material-lab-appbar-chip", "material-lab-appbar-primary"]
+props = { text = "MUI + MUI X", text_tone = "primary", surface_variant = "elevated", selected = true, focused = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.appbar_count]
+component = "Label"
+classes = ["material-lab-appbar-chip"]
+props = { text = "74 prototypes", text_tone = "secondary", surface_variant = "elevated", selected = false, hovered = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 108.0, preferred = 108.0, max = 108.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.appbar_status]
+component = "Label"
+classes = ["material-lab-appbar-chip", "material-lab-appbar-status"]
+props = { text = "Static contracts", text_tone = "success", surface_variant = "success", validation_level = "success", selected = false, hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 124.0, preferred = 124.0, max = 124.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.appbar_capture]
+component = "Label"
+classes = ["material-lab-appbar-chip"]
+props = { text = "Capture ready", text_tone = "secondary", surface_variant = "elevated", selected = false, hovered = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.drawer]
+component = "VerticalBox"
+control_id = "MaterialLabDrawerPanel"
+classes = ["material-lab-card"]
+layout = { width = { min = 220.0, preferred = 220.0, max = 220.0, stretch = "Fixed" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_title" },
+  { node = "drawer_inputs" },
+  { node = "drawer_data_display" },
+  { node = "drawer_feedback" },
+  { node = "drawer_surfaces" },
+  { node = "drawer_navigation" },
+  { node = "drawer_layout" },
+  { node = "drawer_mui_x" },
+]
+
+[nodes.drawer_title]
+component = "Label"
+classes = ["material-lab-drawer-title"]
+props = { text = "Component Families", text_tone = "primary", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.drawer_inputs]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item", "material-lab-nav-active"]
+props = { selected = true, hovered = false, focused = true, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_inputs_label" },
+  { node = "drawer_inputs_count" },
+]
+
+[nodes.drawer_inputs_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Inputs", text_tone = "primary", font_size = 12.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_inputs_count]
+component = "Label"
+classes = ["material-lab-nav-count", "material-lab-nav-count-active"]
+props = { text = "14", text_tone = "primary", selected = true, focused = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_data_display]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item", "material-lab-nav-hover"]
+props = { selected = false, hovered = true, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_data_display_label" },
+  { node = "drawer_data_display_count" },
+]
+
+[nodes.drawer_data_display_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Data Display", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_data_display_count]
+component = "Label"
+classes = ["material-lab-nav-count", "material-lab-nav-count-hover"]
+props = { text = "11", text_tone = "info", hovered = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_feedback]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item"]
+props = { selected = false, hovered = false, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_feedback_label" },
+  { node = "drawer_feedback_count" },
+]
+
+[nodes.drawer_feedback_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Feedback", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_feedback_count]
+component = "Label"
+classes = ["material-lab-nav-count"]
+props = { text = "11", text_tone = "info", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_surfaces]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item"]
+props = { selected = false, hovered = false, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_surfaces_label" },
+  { node = "drawer_surfaces_count" },
+]
+
+[nodes.drawer_surfaces_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Surfaces", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_surfaces_count]
+component = "Label"
+classes = ["material-lab-nav-count"]
+props = { text = "5", text_tone = "info", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_navigation]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item"]
+props = { selected = false, hovered = false, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_navigation_label" },
+  { node = "drawer_navigation_count" },
+]
+
+[nodes.drawer_navigation_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Navigation", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_navigation_count]
+component = "Label"
+classes = ["material-lab-nav-count"]
+props = { text = "9", text_tone = "info", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_layout]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item"]
+props = { selected = false, hovered = false, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_layout_label" },
+  { node = "drawer_layout_count" },
+]
+
+[nodes.drawer_layout_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "Layout / Utils", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_layout_count]
+component = "Label"
+classes = ["material-lab-nav-count"]
+props = { text = "13", text_tone = "info", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.drawer_mui_x]
+component = "HorizontalBox"
+classes = ["material-lab-nav-item"]
+props = { selected = false, hovered = false, focused = false, disabled = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { stretch = "Stretch" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "drawer_mui_x_label" },
+  { node = "drawer_mui_x_count" },
+]
+
+[nodes.drawer_mui_x_label]
+component = "Label"
+classes = ["material-lab-nav-label"]
+props = { text = "MUI X", text_tone = "secondary", font_size = 12.0, font_weight = 600 }
+layout = { width = { stretch = "Stretch" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.drawer_mui_x_count]
+component = "Label"
+classes = ["material-lab-nav-count"]
+props = { text = "11", text_tone = "info", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.side_panel]
+component = "VerticalBox"
+control_id = "MaterialLabSidePanel"
+classes = ["material-lab-card", "material-lab-side-panel"]
+layout = { width = { min = 280.0, preferred = 280.0, max = 280.0, stretch = "Fixed" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 8.0 } }
+children = [
+  { node = "side_panel_title" },
+  { node = "side_panel_variant_caption" },
+  { node = "side_panel_variant_row_a" },
+  { node = "side_panel_variant_row_b" },
+  { node = "side_panel_feedback_caption" },
+  { node = "side_panel_feedback_row_a" },
+  { node = "side_panel_feedback_row_b" },
+  { node = "side_panel_evidence_caption" },
+  { node = "side_panel_evidence_row" },
+]
+
+[nodes.side_panel_title]
+component = "Label"
+classes = ["material-lab-side-title"]
+props = { text = "Interaction Contract", text_tone = "primary", font_size = 14.0, font_weight = 800 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.side_panel_variant_caption]
+component = "Label"
+classes = ["material-lab-side-caption"]
+props = { text = "Variant Chips", text_tone = "info", font_size = 12.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.side_panel_variant_row_a]
+component = "HorizontalBox"
+classes = ["material-lab-side-row"]
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "side_panel_family_chip" },
+  { node = "side_panel_response_chip" },
+]
+
+[nodes.side_panel_family_chip]
+component = "Label"
+classes = ["material-lab-side-chip"]
+props = { text = "family", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_response_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-success"]
+props = { text = "response", text_tone = "success", surface_variant = "success", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_variant_row_b]
+component = "HorizontalBox"
+classes = ["material-lab-side-row"]
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "side_panel_appearance_chip" },
+  { node = "side_panel_layout_chip" },
+]
+
+[nodes.side_panel_appearance_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-info"]
+props = { text = "appearance", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_layout_chip]
+component = "Label"
+classes = ["material-lab-side-chip"]
+props = { text = "layout", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_feedback_caption]
+component = "Label"
+classes = ["material-lab-side-caption"]
+props = { text = "Interaction Feedback", text_tone = "info", font_size = 12.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.side_panel_feedback_row_a]
+component = "HorizontalBox"
+classes = ["material-lab-side-row"]
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "side_panel_hover_chip" },
+  { node = "side_panel_pressed_chip" },
+  { node = "side_panel_focus_chip" },
+]
+
+[nodes.side_panel_hover_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-info"]
+props = { text = "Hover", text_tone = "info", hovered = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_pressed_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-info"]
+props = { text = "Pressed", text_tone = "info", pressed = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 76.0, preferred = 76.0, max = 76.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_focus_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-info"]
+props = { text = "Focus", text_tone = "info", focused = true, density = "compact", corner_radius = 999.0, border_width = 2.0 }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_feedback_row_b]
+component = "HorizontalBox"
+classes = ["material-lab-side-row"]
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "side_panel_selected_chip" },
+  { node = "side_panel_disabled_chip" },
+  { node = "side_panel_error_chip" },
+]
+
+[nodes.side_panel_selected_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-info"]
+props = { text = "Selected", text_tone = "info", selected = true, open = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 82.0, preferred = 82.0, max = 82.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_disabled_chip]
+component = "Label"
+classes = ["material-lab-side-chip"]
+props = { text = "Disabled", text_tone = "secondary", disabled = true, density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_error_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-error"]
+props = { text = "Error", text_tone = "error", validation_level = "error", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 68.0, preferred = 68.0, max = 68.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_evidence_caption]
+component = "Label"
+classes = ["material-lab-side-caption"]
+props = { text = "Capture Evidence", text_tone = "info", font_size = 12.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.side_panel_evidence_row]
+component = "HorizontalBox"
+classes = ["material-lab-side-row"]
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 6.0 } }
+children = [
+  { node = "side_panel_startup_chip" },
+  { node = "side_panel_hover_evidence_chip" },
+  { node = "side_panel_click_evidence_chip" },
+]
+
+[nodes.side_panel_startup_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-success"]
+props = { text = "startup", text_tone = "success", validation_level = "success", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 72.0, preferred = 72.0, max = 72.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_hover_evidence_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-success"]
+props = { text = "hover", text_tone = "success", validation_level = "success", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 64.0, preferred = 64.0, max = 64.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.side_panel_click_evidence_chip]
+component = "Label"
+classes = ["material-lab-side-chip", "material-lab-side-success"]
+props = { text = "click", text_tone = "success", validation_level = "success", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 60.0, preferred = 60.0, max = 60.0, stretch = "Fixed" }, height = { min = 24.0, preferred = 24.0, max = 24.0, stretch = "Fixed" } }
+
+[nodes.data_display_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "data_display_title_label" },
+  { node = "data_display_title_count" },
+  { node = "data_display_title_status" },
+]
+
+[nodes.data_display_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Data Display", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.data_display_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "11 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.data_display_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "display", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_avatars]
+component = "MaterialAvatarsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_badges]
+component = "MaterialBadgesPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_chips]
+component = "MaterialChipsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_dividers]
+component = "MaterialDividersPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_icons]
+component = "MaterialIconsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_image_list]
+component = "MaterialImageListPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_lists]
+component = "MaterialListsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_material_icons]
+component = "MaterialMaterialIconsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_table]
+component = "MaterialTablePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_timeline]
+component = "MaterialTimelinePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_typography]
+component = "MaterialTypographyPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_data_display]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 7, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "data_display_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_avatars", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_badges", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_chips", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_dividers", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_icons", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_image_list", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_lists", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_material_icons", slot = { layout = { column = 1, row = 4 } } },
+  { node = "prototype_table", slot = { layout = { column = 0, row = 5 } } },
+  { node = "prototype_timeline", slot = { layout = { column = 1, row = 5 } } },
+  { node = "prototype_typography", slot = { layout = { column = 0, row = 6 } } },
+]
+
+[nodes.feedback_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "feedback_title_label" },
+  { node = "feedback_title_count" },
+  { node = "feedback_title_status" },
+]
+
+[nodes.feedback_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Feedback", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.feedback_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "11 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.feedback_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "overlay", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_alert]
+component = "MaterialAlertPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_backdrop]
+component = "MaterialBackdropPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_dialogs]
+component = "MaterialDialogsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_modal]
+component = "MaterialModalPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_popover]
+component = "MaterialPopoverPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_popper]
+component = "MaterialPopperPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_progress]
+component = "MaterialProgressPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_skeleton]
+component = "MaterialSkeletonPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_snackbars]
+component = "MaterialSnackbarsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_speed_dial]
+component = "MaterialSpeedDialPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_tooltips]
+component = "MaterialTooltipsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_feedback]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 7, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "feedback_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_alert", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_backdrop", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_dialogs", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_modal", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_popover", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_popper", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_progress", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_skeleton", slot = { layout = { column = 1, row = 4 } } },
+  { node = "prototype_snackbars", slot = { layout = { column = 0, row = 5 } } },
+  { node = "prototype_speed_dial", slot = { layout = { column = 1, row = 5 } } },
+  { node = "prototype_tooltips", slot = { layout = { column = 0, row = 6 } } },
+]
+
+[nodes.inputs_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "inputs_title_label" },
+  { node = "inputs_title_count" },
+  { node = "inputs_title_status" },
+]
+
+[nodes.inputs_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Inputs", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.inputs_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "14 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 112.0, preferred = 112.0, max = 112.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.inputs_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "interactive", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_autocomplete]
+component = "MaterialAutocompletePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_button_group]
+component = "MaterialButtonGroupPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_buttons]
+component = "MaterialButtonsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_checkboxes]
+component = "MaterialCheckboxesPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_floating_action_button]
+component = "MaterialFloatingActionButtonPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_number_field]
+component = "MaterialNumberFieldPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_radio_buttons]
+component = "MaterialRadioButtonsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_rating]
+component = "MaterialRatingPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_selects]
+component = "MaterialSelectsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_slider]
+component = "MaterialSliderPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_switches]
+component = "MaterialSwitchesPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_text_fields]
+component = "MaterialTextFieldsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_textarea_autosize]
+component = "MaterialTextareaAutosizePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_toggle_button]
+component = "MaterialToggleButtonPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_inputs]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 8, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "inputs_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_autocomplete", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_button_group", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_buttons", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_checkboxes", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_floating_action_button", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_number_field", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_radio_buttons", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_rating", slot = { layout = { column = 1, row = 4 } } },
+  { node = "prototype_selects", slot = { layout = { column = 0, row = 5 } } },
+  { node = "prototype_slider", slot = { layout = { column = 1, row = 5 } } },
+  { node = "prototype_switches", slot = { layout = { column = 0, row = 6 } } },
+  { node = "prototype_text_fields", slot = { layout = { column = 1, row = 6 } } },
+  { node = "prototype_textarea_autosize", slot = { layout = { column = 0, row = 7 } } },
+  { node = "prototype_toggle_button", slot = { layout = { column = 1, row = 7 } } },
+]
+
+[nodes.layout_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "layout_title_label" },
+  { node = "layout_title_count" },
+  { node = "layout_title_status" },
+]
+
+[nodes.layout_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Layout", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.layout_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "5 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.layout_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "structure", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 88.0, preferred = 88.0, max = 88.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_box]
+component = "MaterialBoxPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_container]
+component = "MaterialContainerPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_grid]
+component = "MaterialGridPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_masonry]
+component = "MaterialMasonryPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_stack]
+component = "MaterialStackPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_layout]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 4, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "layout_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_box", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_container", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_grid", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_masonry", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_stack", slot = { layout = { column = 0, row = 3 } } },
+]
+
+[nodes.mui_x_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "mui_x_title_label" },
+  { node = "mui_x_title_count" },
+  { node = "mui_x_title_status" },
+]
+
+[nodes.mui_x_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "MUI X", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.mui_x_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "11 prototypes", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.mui_x_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "mockups", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 84.0, preferred = 84.0, max = 84.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_agent_chat]
+component = "MaterialMuiXAgentChatPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_bar_chart]
+component = "MaterialMuiXBarChartPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_charts]
+component = "MaterialMuiXChartsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_chat_composer]
+component = "MaterialMuiXChatComposerPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_data_grid]
+component = "MaterialMuiXDataGridPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_date_time_pickers]
+component = "MaterialMuiXDateTimePickersPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_gauge]
+component = "MaterialMuiXGaugePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_line_chart]
+component = "MaterialMuiXLineChartPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_pie_chart]
+component = "MaterialMuiXPieChartPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_sparkline]
+component = "MaterialMuiXSparklinePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_mui_x_tree_view]
+component = "MaterialMuiXTreeViewPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_mui_x]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 7, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "mui_x_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_mui_x_tree_view", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_mui_x_data_grid", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_mui_x_date_time_pickers", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_mui_x_charts", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_mui_x_line_chart", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_mui_x_bar_chart", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_mui_x_pie_chart", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_mui_x_sparkline", slot = { layout = { column = 1, row = 4 } } },
+  { node = "prototype_mui_x_gauge", slot = { layout = { column = 0, row = 5 } } },
+  { node = "prototype_mui_x_agent_chat", slot = { layout = { column = 1, row = 5 } } },
+  { node = "prototype_mui_x_chat_composer", slot = { layout = { column = 0, row = 6 } } },
+]
+
+[nodes.navigation_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "navigation_title_label" },
+  { node = "navigation_title_count" },
+  { node = "navigation_title_status" },
+]
+
+[nodes.navigation_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Navigation", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "9 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.navigation_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "routing", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_bottom_navigation]
+component = "MaterialBottomNavigationPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_breadcrumbs]
+component = "MaterialBreadcrumbsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_links]
+component = "MaterialLinksPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_menubar]
+component = "MaterialMenubarPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_menus]
+component = "MaterialMenusPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_pagination]
+component = "MaterialPaginationPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_steppers]
+component = "MaterialSteppersPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_tabs]
+component = "MaterialTabsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_transfer_list]
+component = "MaterialTransferListPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_navigation]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 6, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "navigation_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_bottom_navigation", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_breadcrumbs", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_links", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_menubar", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_menus", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_pagination", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_steppers", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_tabs", slot = { layout = { column = 1, row = 4 } } },
+  { node = "prototype_transfer_list", slot = { layout = { column = 0, row = 5 } } },
+]
+
+[nodes.surfaces_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "surfaces_title_label" },
+  { node = "surfaces_title_count" },
+  { node = "surfaces_title_status" },
+]
+
+[nodes.surfaces_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Surfaces", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.surfaces_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "5 components", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 104.0, preferred = 104.0, max = 104.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.surfaces_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "chrome", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_accordion]
+component = "MaterialAccordionPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_app_bar]
+component = "MaterialAppBarPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_cards]
+component = "MaterialCardsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_drawers]
+component = "MaterialDrawersPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_paper]
+component = "MaterialPaperPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_surfaces]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 4, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "surfaces_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_accordion", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_app_bar", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_cards", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_drawers", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_paper", slot = { layout = { column = 0, row = 3 } } },
+]
+
+[nodes.utils_lab_title]
+component = "HorizontalBox"
+classes = ["material-lab-card", "material-lab-section-header"]
+layout = { width = { stretch = "Stretch" }, height = { min = 40.0, preferred = 40.0, max = 40.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 8.0 } }
+children = [
+  { node = "utils_lab_title_label" },
+  { node = "utils_lab_title_count" },
+  { node = "utils_lab_title_status" },
+]
+
+[nodes.utils_lab_title_label]
+component = "Label"
+classes = ["material-lab-section-title"]
+props = { text = "Utils/Lab", text_tone = "primary", font_size = 16.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.utils_lab_title_count]
+component = "Label"
+classes = ["material-lab-section-chip"]
+props = { text = "8 utilities", text_tone = "secondary", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 96.0, preferred = 96.0, max = 96.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.utils_lab_title_status]
+component = "Label"
+classes = ["material-lab-section-chip", "material-lab-section-status"]
+props = { text = "utility", text_tone = "info", surface_variant = "info", density = "compact", hovered = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 80.0, preferred = 80.0, max = 80.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.prototype_about_the_lab]
+component = "MaterialAboutTheLabPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_click_away_listener]
+component = "MaterialClickAwayListenerPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_css_baseline]
+component = "MaterialCssBaselinePrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_init_color_scheme_script]
+component = "MaterialInitColorSchemeScriptPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_no_ssr]
+component = "MaterialNoSsrPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_portal]
+component = "MaterialPortalPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_transitions]
+component = "MaterialTransitionsPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.prototype_use_media_query]
+component = "MaterialUseMediaQueryPrototype"
+layout = { width = { stretch = "Stretch" }, height = { min = 112.0, preferred = 128.0, max = 150.0, stretch = "Fixed" } }
+
+[nodes.section_utils_lab]
+component = "GridBox"
+layout = { width = { stretch = "Stretch" }, container = { kind = "GridBox", columns = 2, rows = 5, column_gap = 10.0, row_gap = 10.0 } }
+children = [
+  { node = "utils_lab_title", slot = { layout = { column = 0, row = 0, column_span = 2 } } },
+  { node = "prototype_about_the_lab", slot = { layout = { column = 0, row = 1 } } },
+  { node = "prototype_click_away_listener", slot = { layout = { column = 1, row = 1 } } },
+  { node = "prototype_css_baseline", slot = { layout = { column = 0, row = 2 } } },
+  { node = "prototype_init_color_scheme_script", slot = { layout = { column = 1, row = 2 } } },
+  { node = "prototype_no_ssr", slot = { layout = { column = 0, row = 3 } } },
+  { node = "prototype_portal", slot = { layout = { column = 1, row = 3 } } },
+  { node = "prototype_transitions", slot = { layout = { column = 0, row = 4 } } },
+  { node = "prototype_use_media_query", slot = { layout = { column = 1, row = 4 } } },
+]
+
+[nodes.content]
+component = "ScrollableBox"
+classes = ["material-lab-content-surface"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "ScrollableBox", axis = "Vertical", gap = 14.0, scrollbar_visibility = "Auto" } }
+children = [
+  { node = "section_data_display" },
+  { node = "section_feedback" },
+  { node = "section_inputs" },
+  { node = "section_layout" },
+  { node = "section_mui_x" },
+  { node = "section_navigation" },
+  { node = "section_surfaces" },
+  { node = "section_utils_lab" },
+]
+
+[nodes.body]
+component = "HorizontalBox"
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "HorizontalBox", gap = 12.0 } }
+children = [
+  { node = "drawer" },
+  { node = "content" },
+  { node = "side_panel" },
+]
+
+[nodes.material_lab_root]
+component = "VerticalBox"
+classes = ["material-lab-shell"]
+layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" }, container = { kind = "VerticalBox", gap = 12.0 } }
+children = [
+  { node = "appbar" },
+  { node = "body" },
+]
+

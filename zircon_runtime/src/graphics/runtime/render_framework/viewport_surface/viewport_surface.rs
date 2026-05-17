@@ -10,8 +10,8 @@ pub(in crate::graphics::runtime::render_framework) fn bind_viewport_surface(
     viewport: RenderViewportHandle,
     descriptor: RenderViewportSurfaceDescriptor,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = framework.operation_lock.lock().unwrap();
-    let mut state = framework.state.lock().unwrap();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     if !state.viewports.contains_key(&viewport) {
         return Err(RenderFrameworkError::UnknownViewport {
             viewport: viewport.raw(),
@@ -33,8 +33,8 @@ pub(in crate::graphics::runtime::render_framework) fn unbind_viewport_surface(
     framework: &WgpuRenderFramework,
     viewport: RenderViewportHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = framework.operation_lock.lock().unwrap();
-    let mut state = framework.state.lock().unwrap();
+    let _operation_guard = framework.lock_operation();
+    let mut state = framework.lock_state();
     let record =
         state
             .viewports

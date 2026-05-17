@@ -10,6 +10,7 @@ pub struct ViewportRenderFrame {
     pub scene: RenderSceneSnapshot,
     pub extract: RenderFrameExtract,
     pub viewport_size: UVec2,
+    /// Screen-space runtime UI payload selected for this viewport target.
     pub ui: Option<UiRenderExtract>,
     pub(crate) virtual_geometry_debug_snapshot: Option<RenderVirtualGeometryDebugSnapshot>,
     pub(crate) prepared_runtime_sidebands: RenderPreparedRuntimeSidebands,
@@ -26,6 +27,10 @@ impl ViewportRenderFrame {
 
     pub(crate) fn meshes(&self) -> &[crate::core::framework::render::RenderMeshSnapshot] {
         &self.extract.geometry.meshes
+    }
+
+    pub(crate) fn sprites(&self) -> &[crate::core::framework::render::RenderSpriteSnapshot] {
+        &self.extract.sprites.sprites
     }
 
     pub(crate) fn directional_lights(

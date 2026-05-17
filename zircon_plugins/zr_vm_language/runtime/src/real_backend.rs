@@ -35,30 +35,34 @@ pub fn load_project_package(
             },
         )
         .map_err(map_zr_error)?;
+    let run_options = zrvm::RunOptions {
+        execution_mode: match project.execution_mode {
+            ZrVmExecutionMode::Interp => zrvm::ExecutionMode::Interp,
+            ZrVmExecutionMode::Binary => zrvm::ExecutionMode::Binary,
+        },
+        // Lifecycle export calls name the target module separately; keeping
+        // this empty makes ZrVM load the project entry before resolving it.
+        module_name: None,
+        program_args: Vec::new(),
+    };
+    let session = workspace
+        .start_session(&mut runtime, &run_options)
+        .map_err(map_zr_error)?;
 
     Ok(Box::new(ZrVmPluginInstance {
         manifest: package.manifest.clone(),
+        session,
         _registrations: registrations,
-        workspace,
         runtime,
-        run_options: zrvm::RunOptions {
-            execution_mode: match project.execution_mode {
-                ZrVmExecutionMode::Interp => zrvm::ExecutionMode::Interp,
-                ZrVmExecutionMode::Binary => zrvm::ExecutionMode::Binary,
-            },
-            module_name: Some(project.entry_module.clone()),
-            program_args: Vec::new(),
-        },
         entry_module: project.entry_module.clone(),
     }))
 }
 
 struct ZrVmPluginInstance {
     manifest: VmPluginManifest,
+    session: zrvm::ProjectSession,
     _registrations: Vec<ZrVmRegistration>,
-    workspace: zrvm::ProjectWorkspace,
     runtime: zrvm::Runtime,
-    run_options: zrvm::RunOptions,
     entry_module: String,
 }
 
@@ -114,13 +118,11 @@ impl ZrVmPluginInstance {
         export_name: &str,
         arguments: &[zrvm::Value],
     ) -> Result<Option<zrvm::Value>, VmError> {
-        match self.workspace.call_module_export(
-            &mut self.runtime,
-            &self.run_options,
-            &self.entry_module,
-            export_name,
-            arguments,
-        ) {
+        let _keep_runtime_alive = &self.runtime;
+        match self
+            .session
+            .call_module_export(&self.entry_module, export_name, arguments)
+        {
             Ok(value) => Ok(Some(value)),
             Err(error) if is_optional_export_missing(&error) => Ok(None),
             Err(error) => Err(map_zr_error(error)),
@@ -141,12 +143,11 @@ fn register_host_modules(
         }
 
         for type_descriptor in &module.descriptor.types {
-            let mut type_builder =
-                zrvm::TypeBuilder::new(
-                    &type_descriptor.name,
-                    zr_prototype_type(type_descriptor.prototype_kind),
-                )
-                .allow_value_construction(type_descriptor.allow_value_construction);
+            let mut type_builder = zrvm::TypeBuilder::new(
+                &type_descriptor.name,
+                zr_prototype_type(type_descriptor.prototype_kind),
+            )
+            .allow_value_construction(type_descriptor.allow_value_construction);
             if let Some(documentation) = &type_descriptor.documentation {
                 type_builder = type_builder.documentation(documentation);
             }

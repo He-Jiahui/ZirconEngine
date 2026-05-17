@@ -244,7 +244,6 @@ mod tests {
         let descriptor = ScriptHostModuleDescriptor::new("test.types", "0.1.0")
             .with_type(
                 ScriptHostTypeDescriptor::new("Vec3", ScriptHostValueKind::Float)
-                    .with_type_ref(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3"))
                     .with_prototype_kind(ScriptHostPrototypeKind::Struct)
                     .allow_value_construction(true),
             )
@@ -253,7 +252,10 @@ mod tests {
                     .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3"))
                     .with_parameter(
                         ScriptHostParameterDescriptor::new("value", ScriptHostValueKind::Float)
-                            .with_type_ref(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3")),
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "Vec3",
+                            )),
                     ),
             );
 
@@ -268,10 +270,18 @@ mod tests {
 
         let module = exports.module("test.types").unwrap();
         assert_eq!(module.descriptor.types[0].type_ref.type_name, "Vec3");
-        assert_eq!(module.descriptor.types[0].prototype_kind, ScriptHostPrototypeKind::Struct);
+        assert_eq!(
+            module.descriptor.types[0].prototype_kind,
+            ScriptHostPrototypeKind::Struct
+        );
         assert!(module.descriptor.types[0].allow_value_construction);
         assert_eq!(module.descriptor.functions[0].return_type.type_name, "Vec3");
-        assert_eq!(module.descriptor.functions[0].parameters[0].type_ref.type_name, "Vec3");
+        assert_eq!(
+            module.descriptor.functions[0].parameters[0]
+                .type_ref
+                .type_name,
+            "Vec3"
+        );
     }
 
     #[test]
@@ -307,14 +317,23 @@ mod tests {
             Err(VmError::Operation(message)) if message.contains("callback missing")
         ));
         assert!(matches!(
+            HostExportRegistry::default().register_module(
+                descriptor.clone(),
+                [
+                    HostExportFunction::new("read", |_| Ok(ScriptHostValue::Null)),
+                    HostExportFunction::new("read", |_| Ok(ScriptHostValue::Null)),
+                ]
+            ),
+            Err(VmError::Operation(message)) if message.contains("duplicate host export callback")
+        ));
+        assert!(matches!(
             exports.call_with_capabilities("test.host", "read", Vec::new(), &CapabilitySet::default()),
             Err(VmError::Operation(message)) if message.contains("missing capability")
         ));
-        let mismatched = ScriptHostModuleDescriptor::new("test.mismatch", "0.1.0")
-            .with_function(
-                ScriptHostFunctionDescriptor::new("bad", 0, 0, ScriptHostValueKind::Int)
-                    .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::String, "string")),
-            );
+        let mut function = ScriptHostFunctionDescriptor::new("bad", 0, 0, ScriptHostValueKind::Int);
+        function.return_type = ScriptHostTypeRef::new(ScriptHostValueKind::String, "string");
+        let mismatched =
+            ScriptHostModuleDescriptor::new("test.mismatch", "0.1.0").with_function(function);
         assert!(matches!(
             HostExportRegistry::default().register_module(
                 mismatched,
@@ -348,8 +367,24 @@ mod tests {
         assert_eq!(type_descriptor.name, "TestVec3");
         assert_eq!(type_descriptor.type_ref.type_name, "TestVec3");
         assert_eq!(type_descriptor.fields[0].type_ref.type_name, "float");
-        assert_eq!(type_descriptor.fields[0].documentation.as_deref(), Some("x axis"));
+        assert_eq!(
+            type_descriptor.fields[0].documentation.as_deref(),
+            Some("x axis")
+        );
         assert!(type_descriptor.allow_value_construction);
+
+        #[derive(crate::ZirconScriptType)]
+        #[zircon_script(name = "TestEnum", value_kind = ScriptHostValueKind::Int)]
+        #[allow(dead_code)]
+        enum TestEnum {
+            A,
+        }
+
+        let enum_descriptor = TestEnum::script_host_type_descriptor();
+        assert_eq!(
+            enum_descriptor.prototype_kind,
+            ScriptHostPrototypeKind::Enum
+        );
 
         #[crate::zircon_host_module(
             name = "test.macro.math",
@@ -388,7 +423,10 @@ mod tests {
         assert_eq!(descriptor.capabilities, vec!["test.math".to_string()]);
         assert_eq!(descriptor.types[0].name, "Point");
         assert_eq!(descriptor.functions[0].name, "double");
-        assert_eq!(descriptor.functions[0].parameters[0].type_ref.type_name, "f64");
+        assert_eq!(
+            descriptor.functions[0].parameters[0].type_ref.type_name,
+            "float"
+        );
         assert_eq!(descriptor.functions[0].return_type.type_name, "float");
 
         let exports = HostExportRegistry::default();

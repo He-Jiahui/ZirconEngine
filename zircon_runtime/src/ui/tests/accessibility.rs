@@ -5,8 +5,8 @@ use crate::ui::{
 };
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest, UiAccessibilityContract,
-        UiAccessibilityDiagnosticCode,
+        UiA11yCheckedState, UiA11yRole, UiAccessibilityAction, UiAccessibilityActionRequest,
+        UiAccessibilityContract, UiAccessibilityDiagnosticCode,
     },
     component::{UiComponentEvent, UiValue},
     dispatch::{
@@ -16,7 +16,7 @@ use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
     tree::{UiTemplateNodeMetadata, UiTreeNode, UiVisibility},
-    widget::UiWidgetContract,
+    widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
 fn id(value: u64) -> UiNodeId {
@@ -116,6 +116,196 @@ fn extraction_includes_widget_only_contract_nodes() {
     let snapshot = surface.accessibility_snapshot();
     let node = snapshot.node(id(2)).expect("widget-only node included");
     assert_eq!(node.state.value.as_deref(), Some("42"));
+}
+
+#[test]
+fn extraction_infers_role_and_actions_from_authored_widget_behavior() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/custom-range"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "CustomMeter".to_string(),
+                    attributes: toml::from_str("value = 0.4").unwrap(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
+                        value: Some(UiValue::Float(0.4)),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("behavior-authored range node");
+
+    assert_eq!(node.role, UiA11yRole::Slider);
+    assert_eq!(node.state.value.as_deref(), Some("0.4"));
+    assert!(node.actions.contains(&UiAccessibilityAction::Increment));
+    assert!(node.actions.contains(&UiAccessibilityAction::Decrement));
+    assert!(node.actions.contains(&UiAccessibilityAction::SetValue));
+    assert!(node.actions.contains(&UiAccessibilityAction::Focus));
+}
+
+#[test]
+fn extraction_reads_value_state_from_runtime_component_state() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-range"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeRange".to_string(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
+                        value: Some(UiValue::Float(0.25)),
+                        value_property: Some("amount".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .component_states
+        .set_value(id(2), "amount", UiValue::Float(0.75));
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("runtime range value exposed");
+
+    assert_eq!(node.role, UiA11yRole::Slider);
+    assert_eq!(node.state.value.as_deref(), Some("0.75"));
+    assert!(node.actions.contains(&UiAccessibilityAction::SetValue));
+}
+
+#[test]
+fn extraction_reads_checked_state_from_runtime_component_state() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-check"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeToggle".to_string(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Toggle,
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface.component_states.set_checked(id(2), true);
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("runtime checked toggle exposed");
+
+    assert_eq!(node.role, UiA11yRole::Checkbox);
+    assert_eq!(node.state.checked, Some(UiA11yCheckedState::True));
+    assert!(node.actions.contains(&UiAccessibilityAction::Activate));
+}
+
+#[test]
+fn extraction_reads_checked_state_from_runtime_component_value_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-check-alias"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeToggle".to_string(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Toggle,
+                        checked_property: Some("is_on".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .component_states
+        .set_value(id(2), "is_on", UiValue::Bool(true));
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("runtime checked alias exposed");
+
+    assert_eq!(node.role, UiA11yRole::Checkbox);
+    assert_eq!(node.state.checked, Some(UiA11yCheckedState::True));
+}
+
+#[test]
+fn extraction_reads_selected_state_from_retained_attributes() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/menu-item"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "CustomMenuEntry".to_string(),
+                    attributes: toml::from_str("selected = true").unwrap(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::MenuItem,
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("selected menu item exposed");
+
+    assert_eq!(node.role, UiA11yRole::MenuItem);
+    assert!(node.state.selected);
+    assert!(node.actions.contains(&UiAccessibilityAction::Activate));
+}
+
+#[test]
+fn extraction_reads_pressed_state_from_retained_active_attribute() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/pressed-button"))
+                .with_frame(UiFrame::new(8.0, 8.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(metadata("Button", "text = 'Pressed'\nactive = true")),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("pressed button exposed");
+
+    assert_eq!(node.role, UiA11yRole::Button);
+    assert_eq!(node.state.pressed, Some(true));
+    assert!(node.actions.contains(&UiAccessibilityAction::Activate));
 }
 
 #[test]
@@ -546,6 +736,32 @@ fn disabled_nodes_are_discoverable_with_invalid_actions_filtered() {
 
     let snapshot = surface.accessibility_snapshot();
     let node = snapshot.node(id(2)).unwrap();
+    assert!(node.state.disabled);
+    assert_eq!(node.actions, vec![UiAccessibilityAction::Focus]);
+    assert!(snapshot.diagnostics.iter().any(|diagnostic| {
+        diagnostic.code == UiAccessibilityDiagnosticCode::DisabledAction
+            && diagnostic.node_id == Some(id(2))
+    }));
+}
+
+#[test]
+fn disabled_attribute_filters_invalid_actions() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/disabled-attribute"))
+                .with_frame(UiFrame::new(4.0, 4.0, 80.0, 20.0))
+                .with_state_flags(state(true, true))
+                .with_template_metadata(metadata("Button", "text = 'Disabled'\ndisabled = true")),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).unwrap();
+
     assert!(node.state.disabled);
     assert_eq!(node.actions, vec![UiAccessibilityAction::Focus]);
     assert!(snapshot.diagnostics.iter().any(|diagnostic| {
@@ -1168,6 +1384,183 @@ fn accessibility_activate_emits_default_commit_component_event() {
 }
 
 #[test]
+fn accessibility_activate_uses_widget_toggle_behavior_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/favorite"))
+                .with_frame(UiFrame::new(4.0, 4.0, 80.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "FavoritePill".to_string(),
+                    attributes: toml::from_str("selected = false").unwrap(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Toggle,
+                        checked_property: Some("selected".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot_node = surface
+        .accessibility_snapshot()
+        .node(id(2))
+        .expect("toggle behavior node is exposed")
+        .clone();
+    assert_eq!(snapshot_node.role, UiA11yRole::Checkbox);
+    assert_eq!(snapshot_node.state.checked, Some(UiA11yCheckedState::False));
+    assert!(snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::Activate));
+
+    let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Activate);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.activate")
+    );
+    assert!(result.component_events.is_empty());
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(metadata.attributes["selected"].as_bool(), Some(true));
+    assert!(!metadata.attributes.contains_key("activated"));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("updated toggle remains exposed");
+    assert_eq!(node.state.checked, Some(UiA11yCheckedState::True));
+}
+
+#[test]
+fn accessibility_activate_uses_runtime_component_checked_value_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-toggle-alias"))
+                .with_frame(UiFrame::new(4.0, 4.0, 96.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeToggle".to_string(),
+                    a11y: UiAccessibilityContract::default(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Toggle,
+                        checked_property: Some("selected".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .component_states
+        .set_value(id(2), "selected", UiValue::Bool(true));
+
+    let snapshot_node = surface
+        .accessibility_snapshot()
+        .node(id(2))
+        .expect("runtime toggle alias is exposed")
+        .clone();
+    assert_eq!(snapshot_node.state.checked, Some(UiA11yCheckedState::True));
+
+    let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Activate);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.activate")
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(metadata.attributes["selected"].as_bool(), Some(false));
+    let runtime_value = surface
+        .component_state(id(2))
+        .and_then(|state| state.value("selected"))
+        .map(|value| value.display_text());
+    assert_eq!(runtime_value.as_deref(), Some("false"));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("updated runtime toggle alias remains exposed");
+    assert_eq!(node.state.checked, Some(UiA11yCheckedState::False));
+}
+
+#[test]
+fn accessibility_activate_uses_widget_disclosure_open_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/foldout"))
+                .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "CustomFoldout".to_string(),
+                    attributes: toml::from_str("is_open = false").unwrap(),
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Disclosure,
+                        open_property: Some("is_open".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let snapshot_node = surface
+        .accessibility_snapshot()
+        .node(id(2))
+        .expect("disclosure behavior node is exposed")
+        .clone();
+    assert_eq!(snapshot_node.role, UiA11yRole::Button);
+    assert_eq!(snapshot_node.state.expanded, Some(false));
+    assert!(snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::Activate));
+
+    let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Activate);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.activate")
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(metadata.attributes["is_open"].as_bool(), Some(true));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("updated disclosure remains exposed");
+    assert_eq!(node.state.expanded, Some(true));
+}
+
+#[test]
 fn accessibility_hidden_target_action_rejects_without_component_or_property_mutation() {
     let mut surface = root_surface();
     surface
@@ -1349,6 +1742,226 @@ fn accessibility_increment_and_decrement_step_slider_value() {
     assert!((value - 0.5).abs() < f64::EPSILON);
     assert!(surface.dirty_flags().render);
     assert!(!surface.dirty_flags().layout);
+}
+
+#[test]
+fn accessibility_increment_uses_runtime_component_state_range_contract() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-range"))
+                .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeRange".to_string(),
+                    a11y: UiAccessibilityContract {
+                        role: UiA11yRole::Slider,
+                        actions: vec![
+                            UiAccessibilityAction::Increment,
+                            UiAccessibilityAction::Decrement,
+                        ],
+                        ..UiAccessibilityContract::default()
+                    },
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
+                        value_property: Some("amount".to_string()),
+                        min_property: Some("low".to_string()),
+                        max_property: Some("high".to_string()),
+                        step_property: Some("quantum".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .component_states
+        .set_value(id(2), "amount", UiValue::Float(0.25));
+    surface
+        .component_states
+        .set_value(id(2), "low", UiValue::Float(0.0));
+    surface
+        .component_states
+        .set_value(id(2), "high", UiValue::Float(1.0));
+    surface
+        .component_states
+        .set_value(id(2), "quantum", UiValue::Float(0.25));
+
+    let result = dispatch_accessibility(&mut surface, id(2), UiAccessibilityAction::Increment);
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.adjust_value")
+    );
+    assert!(result.component_events.iter().any(|event| {
+        event.target == id(2)
+            && event.delivered
+            && matches!(
+                &event.event,
+                UiComponentEvent::ValueChanged { property, value }
+                    if property == "amount"
+                        && matches!(value, UiValue::Float(value) if (*value - 0.5).abs() < f64::EPSILON)
+            )
+    }));
+    let runtime_value = surface
+        .component_state(id(2))
+        .and_then(|state| state.value("amount"))
+        .map(|value| value.display_text());
+    assert_eq!(runtime_value.as_deref(), Some("0.5"));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot
+        .node(id(2))
+        .expect("adjusted runtime range value remains exposed");
+    assert_eq!(node.state.value.as_deref(), Some("0.5"));
+}
+
+#[test]
+fn accessibility_set_value_uses_widget_value_property_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/custom-meter"))
+                .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "CustomMeter".to_string(),
+                    attributes: toml::from_str("amount = 0.25").unwrap(),
+                    a11y: UiAccessibilityContract {
+                        role: UiA11yRole::Slider,
+                        actions: vec![
+                            UiAccessibilityAction::SetValue,
+                            UiAccessibilityAction::Focus,
+                        ],
+                        ..UiAccessibilityContract::default()
+                    },
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
+                        value: Some(UiValue::Float(0.25)),
+                        value_property: Some("amount".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+
+    let result = dispatch_accessibility_with_value(
+        &mut surface,
+        id(2),
+        UiAccessibilityAction::SetValue,
+        None,
+        Some(0.75),
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(result.diagnostics.route_target, Some(id(2)));
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.set_value")
+    );
+    assert!(has_note(&result, "status=accepted"));
+    assert_eq!(
+        result.component_events,
+        vec![
+            zircon_runtime_interface::ui::dispatch::UiComponentEventReport {
+                target: id(2),
+                event: UiComponentEvent::ValueChanged {
+                    property: "amount".to_string(),
+                    value: UiValue::Float(0.75),
+                },
+                delivered: true,
+            }
+        ]
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(metadata.attributes["amount"].as_float(), Some(0.75));
+    assert!(!metadata.attributes.contains_key("value"));
+    let runtime_value = surface
+        .component_state(id(2))
+        .and_then(|state| state.value("amount"))
+        .map(|value| value.display_text());
+    assert_eq!(runtime_value.as_deref(), Some("0.75"));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("updated range remains exposed");
+    assert_eq!(node.state.value.as_deref(), Some("0.75"));
+}
+
+#[test]
+fn accessibility_set_value_uses_runtime_component_state_value_alias() {
+    let mut surface = root_surface();
+    surface
+        .tree
+        .insert_child(
+            id(1),
+            UiTreeNode::new(id(2), UiNodePath::new("root/runtime-meter"))
+                .with_frame(UiFrame::new(4.0, 4.0, 120.0, 24.0))
+                .with_state_flags(state(false, true))
+                .with_template_metadata(UiTemplateNodeMetadata {
+                    component: "RuntimeMeter".to_string(),
+                    a11y: UiAccessibilityContract {
+                        role: UiA11yRole::Slider,
+                        actions: vec![
+                            UiAccessibilityAction::SetValue,
+                            UiAccessibilityAction::Focus,
+                        ],
+                        ..UiAccessibilityContract::default()
+                    },
+                    widget: UiWidgetContract {
+                        behavior: UiWidgetBehavior::Range,
+                        value_property: Some("amount".to_string()),
+                        ..UiWidgetContract::default()
+                    },
+                    ..UiTemplateNodeMetadata::default()
+                }),
+        )
+        .unwrap();
+    surface.rebuild();
+    surface
+        .component_states
+        .set_value(id(2), "amount", UiValue::Float(0.25));
+
+    let result = dispatch_accessibility_with_value(
+        &mut surface,
+        id(2),
+        UiAccessibilityAction::SetValue,
+        None,
+        Some(0.75),
+    );
+
+    assert_eq!(result.reply.disposition, UiDispatchDisposition::Handled);
+    assert_eq!(
+        result.diagnostics.handled_phase.as_deref(),
+        Some("accessibility.set_value")
+    );
+    let metadata = surface
+        .tree
+        .node(id(2))
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+    assert_eq!(metadata.attributes["amount"].as_float(), Some(0.75));
+    let runtime_value = surface
+        .component_state(id(2))
+        .and_then(|state| state.value("amount"))
+        .map(|value| value.display_text());
+    assert_eq!(runtime_value.as_deref(), Some("0.75"));
+    let snapshot = surface.accessibility_snapshot();
+    let node = snapshot.node(id(2)).expect("updated runtime range");
+    assert_eq!(node.state.value.as_deref(), Some("0.75"));
 }
 
 #[test]

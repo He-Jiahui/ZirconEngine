@@ -7,6 +7,7 @@ use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
 use zircon_runtime::ui::{
+    style::resolve_button_style_from_values,
     surface::{extract_ui_render_tree, UiSurface},
     v2::{UiV2CompiledDocument, UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder},
 };
@@ -193,6 +194,7 @@ fn project_ui_asset_editor_nodes(
             let commit_action_id = resolve_commit_action_id(metadata);
             let value_text = resolve_node_value_text(metadata, &text, component_role);
             let visual_assets = resolve_visual_assets(metadata);
+            let button_style = resolve_button_style_from_values(&metadata.style_overrides);
 
             Some(ViewTemplateNodeData {
                 node_id: SharedString::from(node.node_path.0.clone()),
@@ -219,6 +221,7 @@ fn project_ui_asset_editor_nodes(
                 button_variant: string_attribute(metadata, "button_variant")
                     .unwrap_or_default()
                     .into(),
+                button_style,
                 font_size: number_attribute(metadata, "font_size")
                     .unwrap_or_else(|| render_info.map(|info| info.font_size).unwrap_or_default()),
                 font_weight: integer_attribute(metadata, "font_weight").unwrap_or(400),

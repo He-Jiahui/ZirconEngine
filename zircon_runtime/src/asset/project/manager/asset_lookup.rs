@@ -14,11 +14,8 @@ impl ProjectManager {
     }
 
     pub fn asset_id_for_reference(&self, uuid: AssetUuid, locator: &AssetUri) -> Option<AssetId> {
-        self.asset_id_for_uri(locator).or_else(|| {
-            self.asset_ids_by_uuid
-                .contains_key(&uuid)
-                .then(|| AssetId::from_asset_uuid_label(uuid, locator.label()))
-        })
+        self.asset_id_for_uuid(uuid)
+            .or_else(|| self.asset_id_for_uri(locator))
     }
 
     pub fn asset_uri_for_id(&self, id: AssetId) -> Option<&AssetUri> {
@@ -35,5 +32,15 @@ impl ProjectManager {
             .copied()
             .unwrap_or_else(|| AssetUuid::from_stable_label(&locator.to_string()));
         Some(AssetReference::new(uuid, locator))
+    }
+
+    pub fn stale_url_for_reference(
+        &self,
+        uuid: AssetUuid,
+        locator: &AssetUri,
+    ) -> Option<&AssetUri> {
+        self.asset_urls_by_uuid
+            .get(&uuid)
+            .filter(|current| *current != locator)
     }
 }

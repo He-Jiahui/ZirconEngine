@@ -7,6 +7,8 @@ mod native_input_translation;
 mod native_pointer;
 mod painter;
 mod presenter;
+mod profiling_artifacts;
+mod profiling_hit_routes;
 mod redraw;
 mod surface_hit_test;
 mod window;

@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use super::material_lab_template_bindings::material_lab_template_bindings;
 use super::showcase_template_bindings::showcase_template_bindings;
 use crate::core::editor_event::InspectorFieldChange;
 use crate::scene::viewport::{
@@ -631,5 +632,6 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
         ),
     ]);
     bindings.extend(showcase_template_bindings());
+    bindings.extend(material_lab_template_bindings());
     bindings
 }

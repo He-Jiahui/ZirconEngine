@@ -7,7 +7,7 @@ use crate::asset::{
 
 #[test]
 fn authoring_assets_roundtrip_and_collect_references() {
-    let material = reference("res://materials/terrain.material.toml");
+    let material = reference("res://materials/terrain.zmaterial");
     let weightmap = reference("res://terrain/grass.png");
     let terrain = TerrainAsset {
         uri: AssetUri::parse("res://terrain/island.terrain.toml").unwrap(),
@@ -104,7 +104,7 @@ fn material_graph_requires_output_node_and_reports_references() {
 
 #[test]
 fn prefab_asset_collects_scene_references_without_editor_state() {
-    let material = reference("res://materials/default.material.toml");
+    let material = reference("res://materials/default.zmaterial");
     let model = reference("res://models/cube.model.toml");
     let scene = SceneAsset {
         entities: vec![SceneEntityAsset {

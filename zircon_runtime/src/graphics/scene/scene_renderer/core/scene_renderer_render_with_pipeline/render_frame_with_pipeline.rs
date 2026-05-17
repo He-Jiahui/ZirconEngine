@@ -116,6 +116,17 @@ impl SceneRenderer {
         self.last_render_graph_execution.executed_executor_ids()
     }
 
+    pub(crate) fn last_render_graph_executed_post_process_nodes(&self) -> &[String] {
+        self.last_render_graph_execution
+            .executed_post_process_nodes()
+    }
+
+    pub(crate) fn last_render_graph_post_process_graph(
+        &self,
+    ) -> Option<&crate::core::framework::render::PostProcessPassGraph> {
+        self.last_render_graph_execution.post_process_graph()
+    }
+
     pub(crate) fn last_render_graph_executed_resource_access_count(&self) -> usize {
         self.last_render_graph_execution
             .executed_resource_access_count()
@@ -140,5 +151,33 @@ impl SceneRenderer {
         stage: crate::graphics::pipeline::RenderPassStage,
     ) -> usize {
         self.last_render_graph_execution.executed_stage_count(stage)
+    }
+
+    pub(crate) fn last_material_count(&self) -> usize {
+        self.streamer.last_material_count()
+    }
+
+    pub(crate) fn last_material_ready_count(&self) -> usize {
+        self.streamer.last_material_ready_count()
+    }
+
+    pub(crate) fn last_material_fallback_count(&self) -> usize {
+        self.streamer.last_material_fallback_count()
+    }
+
+    pub(crate) fn last_material_validation_error_count(&self) -> usize {
+        self.streamer.last_material_validation_error_count()
+    }
+
+    pub(crate) fn last_sprite_count(&self) -> usize {
+        self.streamer.last_sprite_count()
+    }
+
+    pub(crate) fn last_sprite_ready_count(&self) -> usize {
+        self.streamer.last_sprite_ready_count()
+    }
+
+    pub(crate) fn last_sprite_texture_fallback_count(&self) -> usize {
+        self.streamer.last_sprite_texture_fallback_count()
     }
 }

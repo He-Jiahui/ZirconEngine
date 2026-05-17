@@ -4,8 +4,8 @@ use quote::{format_ident, quote};
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{
-    parse_macro_input, Attribute, Data, DeriveInput, Expr, Fields, FnArg, Ident, ItemFn,
-    ItemMod, LitBool, LitStr, Pat, Path, ReturnType, Token, Type,
+    parse_macro_input, Attribute, Data, DeriveInput, Expr, Fields, FnArg, Ident, ItemFn, ItemMod,
+    LitBool, LitStr, Pat, Path, ReturnType, Token, Type,
 };
 
 #[proc_macro_derive(ZirconScriptType, attributes(zircon_script))]
@@ -133,21 +133,30 @@ fn parse_key_values<T: Default>(
 
 fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<TokenStream2> {
     let ident = input.ident;
+    if !input.generics.params.is_empty() {
+        return Err(syn::Error::new(
+            input.generics.span(),
+            "ZirconScriptType does not support generic parameters",
+        ));
+    }
     let args = parse_script_type_attrs(&input.attrs)?;
     let type_name = args.name.unwrap_or_else(|| ident.to_string());
-    let value_kind = args
-        .value_kind
-        .map(path_tokens)
-        .unwrap_or_else(|| quote!(::zircon_runtime::core::framework::script::ScriptHostValueKind::Null));
-    let prototype = args
-        .prototype
-        .map(path_tokens)
-        .unwrap_or_else(|| quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Struct));
+    let value_kind = args.value_kind.map(path_tokens).unwrap_or_else(|| {
+        quote!(::zircon_runtime::core::framework::script::ScriptHostValueKind::Null)
+    });
     let allow_value_construction = args.allow_value_construction.unwrap_or(false);
-    let documentation = args.documentation.map(|doc| quote!(.with_documentation(#doc)));
-    let fields = match input.data {
-        Data::Struct(data) => field_descriptor_tokens(&data.fields)?,
-        Data::Enum(_) => Vec::new(),
+    let documentation = args
+        .documentation
+        .map(|doc| quote!(.with_documentation(#doc)));
+    let (fields, default_prototype) = match input.data {
+        Data::Struct(data) => (
+            field_descriptor_tokens(&data.fields)?,
+            quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Struct),
+        ),
+        Data::Enum(_) => (
+            Vec::new(),
+            quote!(::zircon_runtime::core::framework::script::ScriptHostPrototypeKind::Enum),
+        ),
         Data::Union(data) => {
             return Err(syn::Error::new(
                 data.union_token.span(),
@@ -155,6 +164,7 @@ fn derive_zircon_script_type_impl(input: DeriveInput) -> syn::Result<TokenStream
             ))
         }
     };
+    let prototype = args.prototype.map(path_tokens).unwrap_or(default_prototype);
 
     Ok(quote! {
         impl ::zircon_runtime::core::framework::script::ZirconScriptType for #ident {
@@ -186,19 +196,22 @@ fn field_descriptor_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
             (None, None) => index.to_string(),
         };
         let field_type = &field.ty;
-        let type_name = args.type_name.unwrap_or_else(|| rust_type_name(field_type));
-        let value_kind = args.value_kind.map(path_tokens).unwrap_or_else(|| {
-            quote!(<#field_type as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::script_host_type_ref().value_kind)
-        });
+        let type_ref = script_host_type_ref_tokens(
+            field_type,
+            args.value_kind.map(path_tokens),
+            args.type_name,
+            quote!(::zircon_runtime::core::framework::script::ScriptHostFromValue),
+        );
         let documentation = args
             .documentation
             .map(|doc| quote!(.with_documentation(#doc)));
         descriptors.push(quote! {
-            .with_field(
-                ::zircon_runtime::core::framework::script::ScriptHostFieldDescriptor::new(#field_name, #value_kind)
-                    .with_type_ref(::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(#value_kind, #type_name))
+            .with_field({
+                let type_ref = #type_ref;
+                ::zircon_runtime::core::framework::script::ScriptHostFieldDescriptor::new(#field_name, type_ref.value_kind)
+                    .with_type_ref(type_ref)
                     #documentation
-            )
+            })
         });
     }
     Ok(descriptors)
@@ -206,6 +219,18 @@ fn field_descriptor_tokens(fields: &Fields) -> syn::Result<Vec<TokenStream2>> {
 
 fn host_function_impl(args: HostFunctionArgs, item: ItemFn) -> syn::Result<TokenStream2> {
     let fn_ident = &item.sig.ident;
+    if item.sig.asyncness.is_some() {
+        return Err(syn::Error::new(
+            item.sig.asyncness.span(),
+            "zircon_host_function does not support async functions",
+        ));
+    }
+    if !item.sig.generics.params.is_empty() {
+        return Err(syn::Error::new(
+            item.sig.generics.span(),
+            "zircon_host_function does not support generic parameters",
+        ));
+    }
     let descriptor_ident = format_ident!("__zircon_host_function_descriptor_{}", fn_ident);
     let export_ident = format_ident!("__zircon_host_export_function_{}", fn_ident);
     let function_name = args.name.unwrap_or_else(|| fn_ident.to_string());
@@ -222,12 +247,35 @@ fn host_function_impl(args: HostFunctionArgs, item: ItemFn) -> syn::Result<Token
             quote!(::zircon_runtime::core::framework::script::ScriptHostValueKind::Null)
         }
     });
-    let return_type_name = args.return_type_name.unwrap_or_else(|| {
-        return_ty
-            .map(rust_type_name)
-            .unwrap_or_else(|| "void".to_string())
-    });
-    let documentation = args.documentation.map(|doc| quote!(.with_documentation(#doc)));
+    let return_type_ref = match (return_ty, args.return_type_name) {
+        (Some(ty), Some(type_name)) => script_host_type_ref_tokens(
+            ty,
+            Some(return_value_kind.clone()),
+            Some(type_name),
+            quote!(::zircon_runtime::core::framework::script::ScriptHostIntoValue),
+        ),
+        (Some(ty), None) => script_host_type_ref_tokens(
+            ty,
+            Some(return_value_kind.clone()),
+            None,
+            quote!(::zircon_runtime::core::framework::script::ScriptHostIntoValue),
+        ),
+        (None, Some(type_name)) => quote! {
+            ::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(
+                #return_value_kind,
+                #type_name,
+            )
+        },
+        (None, None) => quote! {
+            ::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(
+                #return_value_kind,
+                "void",
+            )
+        },
+    };
+    let documentation = args
+        .documentation
+        .map(|doc| quote!(.with_documentation(#doc)));
     let capabilities = args
         .capability
         .iter()
@@ -236,18 +284,18 @@ fn host_function_impl(args: HostFunctionArgs, item: ItemFn) -> syn::Result<Token
     let parameter_descriptors = params.iter().map(|param| {
         let name = &param.name;
         let ty = &param.ty;
-        let type_name = rust_type_name(ty);
+        let type_ref = quote! {
+            <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::script_host_type_ref()
+        };
         quote! {
-            .with_parameter(
+            .with_parameter({
+                let type_ref = #type_ref;
                 ::zircon_runtime::core::framework::script::ScriptHostParameterDescriptor::new(
                     #name,
-                    <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::script_host_type_ref().value_kind,
+                    type_ref.value_kind,
                 )
-                .with_type_ref(::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(
-                    <#ty as ::zircon_runtime::core::framework::script::ScriptHostFromValue>::script_host_type_ref().value_kind,
-                    #type_name,
-                ))
-            )
+                .with_type_ref(type_ref)
+            })
         }
     });
     let conversions = params.iter().enumerate().map(|(index, param)| {
@@ -280,16 +328,14 @@ fn host_function_impl(args: HostFunctionArgs, item: ItemFn) -> syn::Result<Token
         #item
 
         fn #descriptor_ident() -> ::zircon_runtime::core::framework::script::ScriptHostFunctionDescriptor {
+            let return_type_ref = #return_type_ref;
             ::zircon_runtime::core::framework::script::ScriptHostFunctionDescriptor::new(
                 #function_name,
                 #arity,
                 #arity,
-                #return_value_kind,
+                return_type_ref.value_kind,
             )
-            .with_return_type(::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(
-                #return_value_kind,
-                #return_type_name,
-            ))
+            .with_return_type(return_type_ref)
             #(#parameter_descriptors)*
             #(#capabilities)*
             #documentation
@@ -310,9 +356,16 @@ fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Result<TokenStr
     let mod_ident = &item.ident;
     let register_ident = format_ident!("register_{}_host_module", mod_ident);
     let descriptor_ident = format_ident!("{}_host_module_descriptor", mod_ident);
-    let module_name = args.name.ok_or_else(|| syn::Error::new(mod_ident.span(), "zircon_host_module requires name = \"...\""))?;
+    let module_name = args.name.ok_or_else(|| {
+        syn::Error::new(
+            mod_ident.span(),
+            "zircon_host_module requires name = \"...\"",
+        )
+    })?;
     let version = args.version.unwrap_or_else(|| "0.1.0".to_string());
-    let documentation = args.documentation.map(|doc| quote!(.with_documentation(#doc)));
+    let documentation = args
+        .documentation
+        .map(|doc| quote!(.with_documentation(#doc)));
     let capabilities = args
         .capability
         .iter()
@@ -324,8 +377,14 @@ fn host_module_impl(args: HostModuleArgs, item: ItemMod) -> syn::Result<TokenStr
             "zircon_host_module requires an inline module body",
         )
     })?;
-    let function_names = items.iter().filter_map(host_attr_function_ident).collect::<Vec<_>>();
-    let type_names = items.iter().filter_map(script_type_ident).collect::<Vec<_>>();
+    let function_names = items
+        .iter()
+        .filter_map(host_attr_function_ident)
+        .collect::<Vec<_>>();
+    let type_names = items
+        .iter()
+        .filter_map(script_type_ident)
+        .collect::<Vec<_>>();
     let function_descriptors = function_names.iter().map(|name| {
         let descriptor = format_ident!("__zircon_host_function_descriptor_{}", name);
         quote!(.with_function(#descriptor()))
@@ -399,7 +458,10 @@ fn host_function_params(item: &ItemFn) -> syn::Result<Vec<HostParam>> {
 
 fn parse_script_type_attrs(attrs: &[Attribute]) -> syn::Result<ScriptTypeArgs> {
     let mut args = ScriptTypeArgs::default();
-    for attr in attrs.iter().filter(|attr| attr.path().is_ident("zircon_script")) {
+    for attr in attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("zircon_script"))
+    {
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident("name") {
                 args.name = Some(meta.value()?.parse::<LitStr>()?.value());
@@ -422,7 +484,10 @@ fn parse_script_type_attrs(attrs: &[Attribute]) -> syn::Result<ScriptTypeArgs> {
 
 fn parse_field_attrs(attrs: &[Attribute]) -> syn::Result<FieldArgs> {
     let mut args = FieldArgs::default();
-    for attr in attrs.iter().filter(|attr| attr.path().is_ident("zircon_script")) {
+    for attr in attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("zircon_script"))
+    {
         attr.parse_nested_meta(|meta| {
             if meta.path.is_ident("name") {
                 args.name = Some(meta.value()?.parse::<LitStr>()?.value());
@@ -445,7 +510,9 @@ fn parse_field_attrs(attrs: &[Attribute]) -> syn::Result<FieldArgs> {
 
 fn host_attr_function_ident(item: &syn::Item) -> Option<Ident> {
     match item {
-        syn::Item::Fn(function) if has_attr(&function.attrs, "zircon_host_function") => {
+        syn::Item::Fn(function)
+            if has_attr_with_last_segment(&function.attrs, "zircon_host_function") =>
+        {
             Some(function.sig.ident.clone())
         }
         _ => None,
@@ -454,14 +521,26 @@ fn host_attr_function_ident(item: &syn::Item) -> Option<Ident> {
 
 fn script_type_ident(item: &syn::Item) -> Option<Ident> {
     match item {
-        syn::Item::Struct(item) if derives_zircon_script_type(&item.attrs) => Some(item.ident.clone()),
-        syn::Item::Enum(item) if derives_zircon_script_type(&item.attrs) => Some(item.ident.clone()),
+        syn::Item::Struct(item) if derives_zircon_script_type(&item.attrs) => {
+            Some(item.ident.clone())
+        }
+        syn::Item::Enum(item) if derives_zircon_script_type(&item.attrs) => {
+            Some(item.ident.clone())
+        }
         _ => None,
     }
 }
 
-fn has_attr(attrs: &[Attribute], name: &str) -> bool {
-    attrs.iter().any(|attr| attr.path().is_ident(name))
+fn has_attr_with_last_segment(attrs: &[Attribute], name: &str) -> bool {
+    attrs
+        .iter()
+        .any(|attr| path_last_segment_is(attr.path(), name))
+}
+
+fn path_last_segment_is(path: &Path, name: &str) -> bool {
+    path.segments
+        .last()
+        .is_some_and(|segment| segment.ident == name)
 }
 
 fn derives_zircon_script_type(attrs: &[Attribute]) -> bool {
@@ -471,7 +550,7 @@ fn derives_zircon_script_type(attrs: &[Attribute]) -> bool {
         }
         let mut found = false;
         let _ = attr.parse_nested_meta(|meta| {
-            if meta.path.is_ident("ZirconScriptType") {
+            if path_last_segment_is(&meta.path, "ZirconScriptType") {
                 found = true;
             }
             Ok(())
@@ -484,16 +563,25 @@ fn parse_lit_string(value: Expr, key: &Ident) -> syn::Result<String> {
     match value {
         Expr::Lit(lit) => match lit.lit {
             syn::Lit::Str(value) => Ok(value.value()),
-            _ => Err(syn::Error::new(lit.lit.span(), format!("{key} expects a string literal"))),
+            _ => Err(syn::Error::new(
+                lit.lit.span(),
+                format!("{key} expects a string literal"),
+            )),
         },
-        _ => Err(syn::Error::new(value.span(), format!("{key} expects a string literal"))),
+        _ => Err(syn::Error::new(
+            value.span(),
+            format!("{key} expects a string literal"),
+        )),
     }
 }
 
 fn parse_expr_path(value: Expr, key: &Ident) -> syn::Result<Path> {
     match value {
         Expr::Path(path) => Ok(path.path),
-        _ => Err(syn::Error::new(value.span(), format!("{key} expects a path"))),
+        _ => Err(syn::Error::new(
+            value.span(),
+            format!("{key} expects a path"),
+        )),
     }
 }
 
@@ -501,14 +589,75 @@ fn path_tokens(path: Path) -> TokenStream2 {
     quote!(#path)
 }
 
-fn rust_type_name(ty: &Type) -> String {
-    match ty {
-        Type::Path(path) => path
-            .path
-            .segments
-            .last()
-            .map(|segment| segment.ident.to_string())
-            .unwrap_or_else(|| quote!(#ty).to_string()),
-        _ => quote!(#ty).to_string(),
+fn script_host_type_ref_tokens(
+    ty: &Type,
+    value_kind: Option<TokenStream2>,
+    type_name: Option<String>,
+    trait_path: TokenStream2,
+) -> TokenStream2 {
+    match (value_kind, type_name) {
+        (Some(value_kind), Some(type_name)) => quote! {
+            ::zircon_runtime::core::framework::script::ScriptHostTypeRef::new(#value_kind, #type_name)
+        },
+        (Some(value_kind), None) => quote! {{
+            let mut type_ref = <#ty as #trait_path>::script_host_type_ref();
+            type_ref.value_kind = #value_kind;
+            type_ref
+        }},
+        (None, Some(type_name)) => quote! {{
+            let mut type_ref = <#ty as #trait_path>::script_host_type_ref();
+            type_ref.type_name = #type_name.to_string();
+            type_ref
+        }},
+        (None, None) => quote! {
+            <#ty as #trait_path>::script_host_type_ref()
+        },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_function_rejects_async_functions() {
+        let function: ItemFn = syn::parse_quote! {
+            async fn load_value() -> f64 {
+                1.0
+            }
+        };
+
+        let error = host_function_impl(HostFunctionArgs::default(), function)
+            .expect_err("async host functions should be rejected");
+
+        assert!(error.to_string().contains("async functions"));
+    }
+
+    #[test]
+    fn host_function_rejects_generic_functions() {
+        let function: ItemFn = syn::parse_quote! {
+            fn identity<T>(value: T) -> T {
+                value
+            }
+        };
+
+        let error = host_function_impl(HostFunctionArgs::default(), function)
+            .expect_err("generic host functions should be rejected");
+
+        assert!(error.to_string().contains("generic parameters"));
+    }
+
+    #[test]
+    fn script_type_rejects_generic_types() {
+        let input: DeriveInput = syn::parse_quote! {
+            struct Wrapper<T> {
+                value: T,
+            }
+        };
+
+        let error = derive_zircon_script_type_impl(input)
+            .expect_err("generic script types should be rejected");
+
+        assert!(error.to_string().contains("generic parameters"));
     }
 }

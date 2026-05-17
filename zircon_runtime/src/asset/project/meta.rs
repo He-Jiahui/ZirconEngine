@@ -4,7 +4,15 @@ use std::path::Path;
 
 use crate::asset::{AssetKind, AssetUri, AssetUuid};
 
-const ASSET_META_FORMAT_VERSION: u32 = 5;
+const ASSET_META_FORMAT_VERSION: u32 = 6;
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum AssetSourceUnit {
+    #[default]
+    Single,
+    Compound,
+}
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -18,9 +26,13 @@ pub enum PreviewState {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AssetMetaDocument {
     pub format_version: u32,
-    pub asset_uuid: AssetUuid,
-    pub primary_locator: AssetUri,
-    pub kind: AssetKind,
+    pub uuid: AssetUuid,
+    pub url: AssetUri,
+    pub asset_kind: AssetKind,
+    #[serde(default)]
+    pub unit: AssetSourceUnit,
+    #[serde(default)]
+    pub included_files: Vec<AssetUri>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub artifact_locator: Option<AssetUri>,
     #[serde(default)]
@@ -51,8 +63,9 @@ pub struct AssetMetaDocument {
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AssetMetaEntry {
-    pub locator: AssetUri,
-    pub kind: AssetKind,
+    pub uuid: AssetUuid,
+    pub url: AssetUri,
+    pub asset_kind: AssetKind,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub artifact_locator: Option<AssetUri>,
     #[serde(default)]
@@ -60,12 +73,14 @@ pub struct AssetMetaEntry {
 }
 
 impl AssetMetaDocument {
-    pub fn new(asset_uuid: AssetUuid, primary_locator: AssetUri, kind: AssetKind) -> Self {
+    pub fn new(uuid: AssetUuid, url: AssetUri, asset_kind: AssetKind) -> Self {
         Self {
             format_version: ASSET_META_FORMAT_VERSION,
-            asset_uuid,
-            primary_locator,
-            kind,
+            uuid,
+            url,
+            asset_kind,
+            unit: AssetSourceUnit::Single,
+            included_files: Vec::new(),
             artifact_locator: None,
             importer_id: String::new(),
             import_settings: toml::Table::new(),
@@ -115,7 +130,7 @@ impl AssetMetaDocument {
             self.format_version = ASSET_META_FORMAT_VERSION;
             if self.migration_summary.is_empty() {
                 self.migration_summary =
-                    "meta document migrated to multi-asset entry metadata v5".to_string();
+                    "meta document migrated to zmeta asset identity metadata v6".to_string();
             }
         }
         Ok(())

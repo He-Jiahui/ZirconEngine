@@ -1,22 +1,24 @@
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
-    component::{UiComponentEvent, UiComponentEventKind, UiValue},
-    dispatch::{UiPointerComponentEvent, UiPointerComponentEventReason},
+    component::{UiComponentEvent, UiComponentEventKind, UiComponentState, UiValue},
+    dispatch::{UiComponentEventReport, UiPointerComponentEvent, UiPointerComponentEventReason},
     event_ui::UiNodeId,
-    layout::UiPoint,
-    surface::{
-        UiNavigationEventKind, UiPointerActivationPhase, UiPointerEventKind, UiPointerRoute,
-    },
+    surface::{UiPointerActivationPhase, UiPointerRoute},
     template::UiBindingRef,
-    tree::UiTreeError,
+    tree::{UiTemplateNodeMetadata, UiTreeError},
+    widget::UiWidgetBehavior,
 };
 
-use crate::ui::surface::{
-    UiPropertyMutationReport, UiPropertyMutationRequest, UiPropertyMutationStatus,
-};
+use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus};
 use crate::ui::tree::UiRuntimeTreeAccessExt;
 
 use super::UiSurface;
+
+mod radio;
+mod range;
+mod scrollbar;
+
+pub(super) use range::{range_navigation_action, UiDefaultRangeNavigationAction};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(super) struct UiDefaultRangePointerActionReport {
@@ -26,10 +28,17 @@ pub(super) struct UiDefaultRangePointerActionReport {
     pub damage_node: Option<UiNodeId>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub(crate) struct UiDefaultKeyboardActionReport {
+    pub handled: bool,
+    pub component_events: Vec<UiComponentEventReport>,
+}
+
 impl UiSurface {
     pub(super) fn apply_default_pointer_component_actions(
         &mut self,
         route: &UiPointerRoute,
+        click_count: u8,
         events: &mut Vec<UiPointerComponentEvent>,
     ) -> Result<(), UiTreeError> {
         if route.activation_phase != UiPointerActivationPhase::PrimaryRelease {
@@ -39,18 +48,25 @@ impl UiSurface {
             return Ok(());
         };
         let Some(next_checked) = self.default_toggle_next_checked(node_id)? else {
+            if self.apply_default_radio_component_action(node_id, events)? {
+                return Ok(());
+            }
             if self.apply_default_expanded_component_action(node_id, events)? {
                 return Ok(());
             }
             if self.apply_default_popup_component_action(node_id, events)? {
                 return Ok(());
             }
+            if self.apply_default_button_component_action(node_id, click_count, events)? {
+                return Ok(());
+            }
             return Ok(());
         };
 
+        let property = self.default_toggle_checked_property(node_id)?;
         let report = self.mutate_property(UiPropertyMutationRequest::new(
             node_id,
-            "checked",
+            property.clone(),
             UiValue::Bool(next_checked),
         ))?;
         if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
@@ -62,12 +78,216 @@ impl UiSurface {
             node_id,
             UiEventKind::Change,
             UiComponentEvent::ValueChanged {
-                property: "checked".to_string(),
+                property,
                 value: UiValue::Bool(next_checked),
             },
             UiPointerComponentEventReason::DefaultClick,
         )?;
         Ok(())
+    }
+
+    fn apply_default_button_component_action(
+        &mut self,
+        node_id: UiNodeId,
+        click_count: u8,
+        events: &mut Vec<UiPointerComponentEvent>,
+    ) -> Result<bool, UiTreeError> {
+        let node = self
+            .tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        let Some(metadata) = node.template_metadata.as_ref() else {
+            return Ok(false);
+        };
+        if !matches!(
+            widget_behavior(metadata),
+            UiWidgetBehavior::Button | UiWidgetBehavior::MenuItem
+        ) {
+            return Ok(false);
+        }
+        if !self.widget_interaction_enabled(node_id, node, metadata) {
+            return Ok(false);
+        }
+
+        self.push_pointer_component_events(
+            events,
+            node_id,
+            UiEventKind::Click,
+            UiComponentEvent::Commit {
+                property: "activated".to_string(),
+                value: UiValue::Bool(true),
+            },
+            UiPointerComponentEventReason::DefaultClick,
+        )?;
+        if click_count >= 2 {
+            self.push_pointer_component_events(
+                events,
+                node_id,
+                UiEventKind::DoubleClick,
+                UiComponentEvent::Commit {
+                    property: "double_activated".to_string(),
+                    value: UiValue::Bool(true),
+                },
+                UiPointerComponentEventReason::DefaultDoubleClick,
+            )?;
+        }
+        if widget_behavior(metadata) == UiWidgetBehavior::MenuItem {
+            self.apply_default_menu_item_popup_close_pointer(node_id, events)?;
+        }
+        Ok(true)
+    }
+
+    pub(crate) fn apply_default_keyboard_component_action(
+        &mut self,
+        node_id: UiNodeId,
+    ) -> Result<UiDefaultKeyboardActionReport, UiTreeError> {
+        let Some(behavior) = self.default_keyboard_behavior(node_id)? else {
+            return Ok(UiDefaultKeyboardActionReport::default());
+        };
+
+        match behavior {
+            UiWidgetBehavior::Button | UiWidgetBehavior::MenuItem => {
+                let event = UiComponentEvent::Commit {
+                    property: "activated".to_string(),
+                    value: UiValue::Bool(true),
+                };
+                let component_events = self.component_event_reports_for_bindings(
+                    node_id,
+                    UiEventKind::Click,
+                    event,
+                    false,
+                )?;
+                let component_events =
+                    if behavior == UiWidgetBehavior::MenuItem && !component_events.is_empty() {
+                        self.with_default_menu_item_popup_close_reports(node_id, component_events)?
+                    } else {
+                        component_events
+                    };
+                Ok(UiDefaultKeyboardActionReport {
+                    handled: !component_events.is_empty(),
+                    component_events,
+                })
+            }
+            UiWidgetBehavior::Toggle => {
+                let Some(next_checked) = self.default_toggle_next_checked(node_id)? else {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                };
+                let property = self.default_toggle_checked_property(node_id)?;
+                let report = self.mutate_property(UiPropertyMutationRequest::new(
+                    node_id,
+                    property.clone(),
+                    UiValue::Bool(next_checked),
+                ))?;
+                if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                }
+                let event = UiComponentEvent::ValueChanged {
+                    property,
+                    value: UiValue::Bool(next_checked),
+                };
+                let component_events = self.component_event_reports_for_bindings(
+                    node_id,
+                    UiEventKind::Change,
+                    event,
+                    true,
+                )?;
+                Ok(UiDefaultKeyboardActionReport {
+                    handled: true,
+                    component_events,
+                })
+            }
+            UiWidgetBehavior::Radio => self.apply_default_radio_keyboard_action(node_id),
+            UiWidgetBehavior::Disclosure => {
+                let Some(next_expanded) = self.default_expanded_next(node_id)? else {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                };
+                let property = self.default_open_property(node_id, "expanded")?;
+                let report = self.mutate_property(UiPropertyMutationRequest::new(
+                    node_id,
+                    property,
+                    UiValue::Bool(next_expanded),
+                ))?;
+                if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                }
+                let event = UiComponentEvent::ToggleExpanded {
+                    expanded: next_expanded,
+                };
+                let component_events = self.component_event_reports_for_bindings(
+                    node_id,
+                    UiEventKind::Toggle,
+                    event,
+                    true,
+                )?;
+                Ok(UiDefaultKeyboardActionReport {
+                    handled: true,
+                    component_events,
+                })
+            }
+            UiWidgetBehavior::Popup => {
+                let Some(next_popup_open) = self.default_popup_open_next(node_id)? else {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                };
+                let property = self.default_open_property(node_id, "popup_open")?;
+                let report = self.mutate_property(UiPropertyMutationRequest::new(
+                    node_id,
+                    property,
+                    UiValue::Bool(next_popup_open),
+                ))?;
+                if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
+                    return Ok(UiDefaultKeyboardActionReport::default());
+                }
+                let event = if next_popup_open {
+                    UiComponentEvent::OpenPopup
+                } else {
+                    UiComponentEvent::ClosePopup
+                };
+                let component_events = self.component_event_reports_for_bindings(
+                    node_id,
+                    UiEventKind::Click,
+                    event,
+                    true,
+                )?;
+                Ok(UiDefaultKeyboardActionReport {
+                    handled: true,
+                    component_events,
+                })
+            }
+            UiWidgetBehavior::Auto
+            | UiWidgetBehavior::Passive
+            | UiWidgetBehavior::RadioGroup
+            | UiWidgetBehavior::Range
+            | UiWidgetBehavior::Scrollbar
+            | UiWidgetBehavior::ScrollbarThumb
+            | UiWidgetBehavior::TextInput => Ok(UiDefaultKeyboardActionReport::default()),
+        }
+    }
+
+    pub(crate) fn apply_default_popup_dismissal_action(
+        &mut self,
+        node_id: UiNodeId,
+    ) -> Result<UiDefaultKeyboardActionReport, UiTreeError> {
+        let Some(close) = self.default_popup_ancestor_close(node_id)? else {
+            return Ok(UiDefaultKeyboardActionReport::default());
+        };
+        let report = self.mutate_property(UiPropertyMutationRequest::new(
+            close.popup_id,
+            close.property,
+            UiValue::Bool(false),
+        ))?;
+        if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
+            return Ok(UiDefaultKeyboardActionReport::default());
+        }
+        let component_events = self.component_event_reports_for_bindings(
+            close.popup_id,
+            UiEventKind::Click,
+            UiComponentEvent::ClosePopup,
+            true,
+        )?;
+        Ok(UiDefaultKeyboardActionReport {
+            handled: true,
+            component_events,
+        })
     }
 
     fn apply_default_expanded_component_action(
@@ -78,9 +298,10 @@ impl UiSurface {
         let Some(next_expanded) = self.default_expanded_next(node_id)? else {
             return Ok(false);
         };
+        let property = self.default_open_property(node_id, "expanded")?;
         let report = self.mutate_property(UiPropertyMutationRequest::new(
             node_id,
-            "expanded",
+            property.clone(),
             UiValue::Bool(next_expanded),
         ))?;
         if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
@@ -107,9 +328,10 @@ impl UiSurface {
         let Some(next_popup_open) = self.default_popup_open_next(node_id)? else {
             return Ok(false);
         };
+        let property = self.default_open_property(node_id, "popup_open")?;
         let report = self.mutate_property(UiPropertyMutationRequest::new(
             node_id,
-            "popup_open",
+            property,
             UiValue::Bool(next_popup_open),
         ))?;
         if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
@@ -131,159 +353,46 @@ impl UiSurface {
         Ok(true)
     }
 
-    pub(super) fn apply_default_range_pointer_actions(
-        &mut self,
-        route: &UiPointerRoute,
-        events: &mut Vec<UiPointerComponentEvent>,
-    ) -> Result<UiDefaultRangePointerActionReport, UiTreeError> {
-        let mut action = UiDefaultRangePointerActionReport::default();
-        match route.activation_phase {
-            UiPointerActivationPhase::PrimaryPress => {
-                let Some(node_id) = route.target else {
-                    return Ok(action);
-                };
-                if !self.is_default_range_node(node_id)? {
-                    return Ok(action);
-                }
-                self.capture_pointer(node_id)?;
-                self.push_pointer_component_events(
-                    events,
-                    node_id,
-                    UiEventKind::DragBegin,
-                    UiComponentEvent::BeginDrag {
-                        property: "value".to_string(),
-                    },
-                    UiPointerComponentEventReason::PressBegin,
-                )?;
-                action.handled_by = Some(node_id);
-                action.captured_by = Some(node_id);
-                action.damage_node = Some(node_id);
-            }
-            UiPointerActivationPhase::Hover if matches!(route.kind, UiPointerEventKind::Move) => {
-                let Some(node_id) = route.captured else {
-                    return Ok(action);
-                };
-                if !self.is_default_range_node(node_id)? {
-                    return Ok(action);
-                }
-                if let Some(delta) = self.apply_default_range_value_from_point(
-                    node_id,
-                    route.point,
-                    events,
-                    UiPointerComponentEventReason::DirectBinding,
-                )? {
-                    self.push_pointer_component_events(
-                        events,
-                        node_id,
-                        UiEventKind::DragUpdate,
-                        UiComponentEvent::DragDelta {
-                            property: "value".to_string(),
-                            delta,
-                        },
-                        UiPointerComponentEventReason::DirectBinding,
-                    )?;
-                    action.damage_node = Some(node_id);
-                }
-                action.handled_by = Some(node_id);
-            }
-            UiPointerActivationPhase::PrimaryRelease => {
-                let Some(node_id) = route.captured.or(route.click_target) else {
-                    return Ok(action);
-                };
-                if !self.is_default_range_node(node_id)? {
-                    return Ok(action);
-                }
-                if self
-                    .apply_default_range_value_from_point(
-                        node_id,
-                        route.point,
-                        events,
-                        UiPointerComponentEventReason::DefaultClick,
-                    )?
-                    .is_some()
-                {
-                    action.damage_node = Some(node_id);
-                }
-                self.push_pointer_component_events(
-                    events,
-                    node_id,
-                    UiEventKind::DragEnd,
-                    UiComponentEvent::EndDrag {
-                        property: "value".to_string(),
-                    },
-                    UiPointerComponentEventReason::PressEnd,
-                )?;
-                action.handled_by = Some(node_id);
-                action.released_capture = Some(node_id);
-            }
-            _ => {}
-        }
-        Ok(action)
-    }
-
-    fn apply_default_range_value_from_point(
-        &mut self,
-        node_id: UiNodeId,
-        point: UiPoint,
-        events: &mut Vec<UiPointerComponentEvent>,
-        reason: UiPointerComponentEventReason,
-    ) -> Result<Option<f64>, UiTreeError> {
-        let Some(next_value) = self.default_range_click_value(node_id, point)? else {
-            return Ok(None);
-        };
-        let current_value = self
-            .default_range_current_value(node_id)?
-            .unwrap_or(next_value);
-        if self.apply_default_range_value(node_id, next_value, events, reason)? {
-            Ok(Some(next_value - current_value))
-        } else {
-            Ok(None)
-        }
-    }
-
-    fn apply_default_range_value(
-        &mut self,
-        node_id: UiNodeId,
-        next_value: f64,
-        events: &mut Vec<UiPointerComponentEvent>,
-        reason: UiPointerComponentEventReason,
-    ) -> Result<bool, UiTreeError> {
-        let report = self.mutate_property(UiPropertyMutationRequest::new(
-            node_id,
-            "value",
-            UiValue::Float(next_value),
-        ))?;
-        if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            return Ok(false);
-        }
-        self.push_pointer_component_events(
-            events,
-            node_id,
-            UiEventKind::Change,
-            UiComponentEvent::ValueChanged {
-                property: "value".to_string(),
-                value: UiValue::Float(next_value),
-            },
-            reason,
-        )?;
-        Ok(true)
-    }
-
     fn default_toggle_next_checked(&self, node_id: UiNodeId) -> Result<Option<bool>, UiTreeError> {
         let node = self
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(None);
-        }
         let Some(metadata) = node.template_metadata.as_ref() else {
             return Ok(None);
         };
-        if !is_default_toggle_component(&metadata.component) {
+        if !self.widget_interaction_enabled(node_id, node, metadata)
+            || !is_default_toggle_behavior(metadata)
+        {
             return Ok(None);
         }
-        Ok(Some(!node.state_flags.checked))
+        let property = widget_checked_property(metadata);
+        let current = self.default_toggle_current_checked(node_id, node, metadata, property);
+        Ok(Some(!current))
+    }
+
+    fn default_toggle_current_checked(
+        &self,
+        node_id: UiNodeId,
+        node: &zircon_runtime_interface::ui::tree::UiTreeNode,
+        metadata: &UiTemplateNodeMetadata,
+        property: &str,
+    ) -> bool {
+        let component_state = self.component_states.get(node_id);
+        if property == "checked" {
+            return bool_attribute_value(&metadata.attributes, property)
+                .or_else(|| {
+                    component_state.and_then(|state| bool_component_state_value(state, property))
+                })
+                .or_else(|| component_state.and_then(|state| state.flags.checked.then_some(true)))
+                .unwrap_or(node.state_flags.checked || metadata.widget.checked.unwrap_or(false));
+        }
+        bool_attribute_value(&metadata.attributes, property)
+            .or_else(|| {
+                component_state.and_then(|state| bool_component_state_value(state, property))
+            })
+            .or(metadata.widget.checked)
+            .unwrap_or(false)
     }
 
     fn default_expanded_next(&self, node_id: UiNodeId) -> Result<Option<bool>, UiTreeError> {
@@ -291,21 +400,23 @@ impl UiSurface {
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(None);
-        }
         let Some(metadata) = node.template_metadata.as_ref() else {
             return Ok(None);
         };
-        if !is_default_expanded_component(&metadata.component) {
+        if !self.widget_interaction_enabled(node_id, node, metadata)
+            || !is_default_expanded_behavior(metadata)
+        {
             return Ok(None);
         }
-        let expanded = self
-            .component_states
-            .get(node_id)
-            .map(|state| state.flags.expanded)
-            .or_else(|| bool_attribute_value(&metadata.attributes, "expanded"))
-            .unwrap_or_else(|| default_expanded_component_state(&metadata.component));
+        let property = widget_open_property(metadata, "expanded");
+        let expanded = self.default_open_boolean_value(
+            node_id,
+            metadata,
+            property,
+            "expanded",
+            &["expanded"],
+            default_expanded_component_state(metadata),
+        );
         Ok(Some(!expanded))
     }
 
@@ -314,148 +425,65 @@ impl UiSurface {
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(None);
-        }
         let Some(metadata) = node.template_metadata.as_ref() else {
             return Ok(None);
         };
-        if !is_default_popup_component(&metadata.component) {
+        if !self.widget_interaction_enabled(node_id, node, metadata)
+            || !is_default_popup_behavior(metadata)
+        {
             return Ok(None);
         }
-        let popup_open = self
-            .component_states
-            .get(node_id)
-            .map(|state| state.flags.popup_open)
-            .or_else(|| bool_attribute_value(&metadata.attributes, "popup_open"))
-            .or_else(|| bool_attribute_value(&metadata.attributes, "open"))
-            .unwrap_or(false);
+        let property = widget_open_property(metadata, "popup_open");
+        let popup_open = self.default_open_boolean_value(
+            node_id,
+            metadata,
+            property,
+            "popup_open",
+            &["popup_open", "open"],
+            false,
+        );
         Ok(Some(!popup_open))
     }
 
-    fn default_range_click_value(
+    fn default_open_boolean_value(
         &self,
         node_id: UiNodeId,
-        point: UiPoint,
-    ) -> Result<Option<f64>, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(None);
-        }
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(None);
-        };
-        if !is_default_range_component(&metadata.component) {
-            return Ok(None);
-        }
-        let Some(frame) = self.arranged_tree.get(node_id).map(|node| node.frame) else {
-            return Ok(None);
-        };
-        if frame.width <= f32::EPSILON {
-            return Ok(None);
-        }
-
-        let min = f64_attribute_value(&metadata.attributes, "min").unwrap_or(0.0);
-        let max = f64_attribute_value(&metadata.attributes, "max").unwrap_or(1.0);
-        if max <= min {
-            return Ok(None);
-        }
-        let fraction =
-            ((f64::from(point.x) - f64::from(frame.x)) / f64::from(frame.width)).clamp(0.0, 1.0);
-        let raw_value = min + (max - min) * fraction;
-        let stepped_value = f64_attribute_value(&metadata.attributes, "step")
-            .filter(|step| *step > 0.0)
-            .map(|step| min + ((raw_value - min) / step).round() * step)
-            .unwrap_or(raw_value)
-            .clamp(min, max);
-
-        Ok(Some(stepped_value))
-    }
-
-    pub(crate) fn mutate_default_range_step_value(
-        &mut self,
-        node_id: UiNodeId,
-        direction: f64,
-    ) -> Result<Option<(UiPropertyMutationReport, f64)>, UiTreeError> {
-        let Some(next_value) = self.default_range_step_value(node_id, direction)? else {
-            return Ok(None);
-        };
-        let report = self.mutate_property(UiPropertyMutationRequest::new(
-            node_id,
-            "value",
-            UiValue::Float(next_value),
-        ))?;
-        Ok(Some((report, next_value)))
-    }
-
-    fn default_range_step_value(
-        &self,
-        node_id: UiNodeId,
-        direction: f64,
-    ) -> Result<Option<f64>, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(None);
-        }
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(None);
-        };
-        if !is_default_range_component(&metadata.component) {
-            return Ok(None);
-        }
-        let min = f64_attribute_value(&metadata.attributes, "min").unwrap_or(0.0);
-        let max = f64_attribute_value(&metadata.attributes, "max").unwrap_or(1.0);
-        if max <= min {
-            return Ok(None);
-        }
-        let current = f64_attribute_value(&metadata.attributes, "value")
-            .unwrap_or(min)
-            .clamp(min, max);
-        let step = f64_attribute_value(&metadata.attributes, "step")
-            .filter(|step| *step > 0.0)
-            .unwrap_or_else(|| ((max - min) / 100.0).max(f64::EPSILON));
-        Ok(Some((current + direction.signum() * step).clamp(min, max)))
-    }
-
-    fn default_range_current_value(&self, node_id: UiNodeId) -> Result<Option<f64>, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(None);
-        };
-        if !is_default_range_component(&metadata.component) {
-            return Ok(None);
-        }
-        let min = f64_attribute_value(&metadata.attributes, "min").unwrap_or(0.0);
-        let max = f64_attribute_value(&metadata.attributes, "max").unwrap_or(1.0);
-        Ok(
-            f64_attribute_value(&metadata.attributes, "value").map(|value| {
-                if max > min {
-                    value.clamp(min, max)
-                } else {
-                    value
-                }
-            }),
-        )
-    }
-
-    fn is_default_range_node(&self, node_id: UiNodeId) -> Result<bool, UiTreeError> {
-        let node = self
-            .tree
-            .node(node_id)
-            .ok_or(UiTreeError::MissingNode(node_id))?;
-        let Some(metadata) = node.template_metadata.as_ref() else {
-            return Ok(false);
-        };
-        Ok(node.state_flags.enabled && is_default_range_component(&metadata.component))
+        metadata: &UiTemplateNodeMetadata,
+        property: &str,
+        canonical_property: &str,
+        legacy_properties: &[&str],
+        default_value: bool,
+    ) -> bool {
+        let component_state = self.component_states.get(node_id);
+        bool_attribute_value(&metadata.attributes, property)
+            .or_else(|| {
+                component_state.and_then(|state| bool_component_state_value(state, property))
+            })
+            .or_else(|| {
+                legacy_properties
+                    .iter()
+                    .copied()
+                    .filter(|legacy_property| *legacy_property != property)
+                    .find_map(|legacy_property| {
+                        bool_attribute_value(&metadata.attributes, legacy_property)
+                    })
+            })
+            .or_else(|| {
+                component_state.and_then(|state| {
+                    legacy_properties
+                        .iter()
+                        .copied()
+                        .filter(|legacy_property| *legacy_property != property)
+                        .find_map(|legacy_property| {
+                            bool_component_state_value(state, legacy_property)
+                        })
+                })
+            })
+            .or_else(|| {
+                component_state
+                    .and_then(|state| open_component_state_flag(state, canonical_property))
+            })
+            .unwrap_or(default_value)
     }
 
     pub(super) fn uses_typed_default_click_action(
@@ -466,16 +494,56 @@ impl UiSurface {
             .tree
             .node(node_id)
             .ok_or(UiTreeError::MissingNode(node_id))?;
-        if !node.state_flags.enabled {
-            return Ok(false);
-        }
         let Some(metadata) = node.template_metadata.as_ref() else {
             return Ok(false);
         };
-        Ok(is_default_toggle_component(&metadata.component)
-            || is_default_expanded_component(&metadata.component)
-            || is_default_popup_component(&metadata.component)
-            || is_default_range_component(&metadata.component))
+        Ok(is_default_button_behavior(metadata)
+            || is_default_toggle_behavior(metadata)
+            || is_default_radio_behavior(metadata)
+            || is_default_expanded_behavior(metadata)
+            || is_default_popup_behavior(metadata)
+            || is_default_range_behavior(metadata)
+            || is_default_scrollbar_behavior(metadata))
+    }
+
+    fn default_toggle_checked_property(&self, node_id: UiNodeId) -> Result<String, UiTreeError> {
+        let metadata = self.template_metadata(node_id)?;
+        Ok(widget_checked_property(metadata).to_string())
+    }
+
+    fn default_keyboard_behavior(
+        &self,
+        node_id: UiNodeId,
+    ) -> Result<Option<UiWidgetBehavior>, UiTreeError> {
+        let node = self
+            .tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        let Some(metadata) = node.template_metadata.as_ref() else {
+            return Ok(None);
+        };
+        if !self.widget_interaction_enabled(node_id, node, metadata) {
+            return Ok(None);
+        }
+        Ok(Some(widget_behavior(metadata)))
+    }
+
+    fn default_open_property(
+        &self,
+        node_id: UiNodeId,
+        fallback: &'static str,
+    ) -> Result<String, UiTreeError> {
+        let metadata = self.template_metadata(node_id)?;
+        Ok(widget_open_property(metadata, fallback).to_string())
+    }
+
+    fn template_metadata(&self, node_id: UiNodeId) -> Result<&UiTemplateNodeMetadata, UiTreeError> {
+        self.tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?
+            .template_metadata
+            .as_ref()
+            .ok_or(UiTreeError::MissingNode(node_id))
     }
 
     fn push_pointer_component_events_for_component_event_kind(
@@ -514,49 +582,232 @@ impl UiSurface {
         }
         Ok(())
     }
-}
 
-pub(super) fn range_navigation_direction(kind: UiNavigationEventKind) -> Option<f64> {
-    match kind {
-        UiNavigationEventKind::Right | UiNavigationEventKind::Up => Some(1.0),
-        UiNavigationEventKind::Left | UiNavigationEventKind::Down => Some(-1.0),
-        _ => None,
+    fn component_event_reports_for_bindings(
+        &self,
+        node_id: UiNodeId,
+        event_kind: UiEventKind,
+        event: UiComponentEvent,
+        require_component_event_token: bool,
+    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
+        let node = self
+            .tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        let Some(metadata) = node.template_metadata.as_ref() else {
+            return Ok(Vec::new());
+        };
+        let component_event_kind = event.kind();
+        Ok(metadata
+            .bindings
+            .iter()
+            .filter(|binding| {
+                binding.event == event_kind
+                    && (!require_component_event_token
+                        || binding_targets_component_event(binding, component_event_kind))
+            })
+            .map(|_| UiComponentEventReport {
+                target: node_id,
+                event: event.clone(),
+                delivered: true,
+            })
+            .collect())
+    }
+
+    fn apply_default_menu_item_popup_close_pointer(
+        &mut self,
+        menu_item_id: UiNodeId,
+        events: &mut Vec<UiPointerComponentEvent>,
+    ) -> Result<(), UiTreeError> {
+        let Some(close) = self.default_menu_item_popup_close(menu_item_id)? else {
+            return Ok(());
+        };
+        let report = self.mutate_property(UiPropertyMutationRequest::new(
+            close.popup_id,
+            close.property,
+            UiValue::Bool(false),
+        ))?;
+        if !matches!(report.status, UiPropertyMutationStatus::Accepted) {
+            return Ok(());
+        }
+        self.push_pointer_component_events_for_component_event_kind(
+            events,
+            close.popup_id,
+            UiEventKind::Click,
+            UiComponentEvent::ClosePopup,
+            UiPointerComponentEventReason::DefaultClick,
+        )
+    }
+
+    fn with_default_menu_item_popup_close_reports(
+        &mut self,
+        menu_item_id: UiNodeId,
+        mut component_events: Vec<UiComponentEventReport>,
+    ) -> Result<Vec<UiComponentEventReport>, UiTreeError> {
+        let Some(close) = self.default_menu_item_popup_close(menu_item_id)? else {
+            return Ok(component_events);
+        };
+        let report = self.mutate_property(UiPropertyMutationRequest::new(
+            close.popup_id,
+            close.property,
+            UiValue::Bool(false),
+        ))?;
+        if matches!(report.status, UiPropertyMutationStatus::Accepted) {
+            component_events.extend(self.component_event_reports_for_bindings(
+                close.popup_id,
+                UiEventKind::Click,
+                UiComponentEvent::ClosePopup,
+                true,
+            )?);
+        }
+        Ok(component_events)
+    }
+
+    fn default_menu_item_popup_close(
+        &self,
+        menu_item_id: UiNodeId,
+    ) -> Result<Option<UiDefaultMenuPopupClose>, UiTreeError> {
+        let menu_item = self
+            .tree
+            .node(menu_item_id)
+            .ok_or(UiTreeError::MissingNode(menu_item_id))?;
+        let Some(menu_item_metadata) = menu_item.template_metadata.as_ref() else {
+            return Ok(None);
+        };
+        if widget_behavior(menu_item_metadata) != UiWidgetBehavior::MenuItem {
+            return Ok(None);
+        }
+
+        self.default_popup_ancestor_close_from_parent(menu_item.parent)
+    }
+
+    fn default_popup_ancestor_close(
+        &self,
+        node_id: UiNodeId,
+    ) -> Result<Option<UiDefaultMenuPopupClose>, UiTreeError> {
+        let node = self
+            .tree
+            .node(node_id)
+            .ok_or(UiTreeError::MissingNode(node_id))?;
+        self.default_popup_ancestor_close_from_parent(Some(node_id))
+            .and_then(|close| {
+                if close.is_some() {
+                    Ok(close)
+                } else {
+                    self.default_popup_ancestor_close_from_parent(node.parent)
+                }
+            })
+    }
+
+    fn default_popup_ancestor_close_from_parent(
+        &self,
+        mut current: Option<UiNodeId>,
+    ) -> Result<Option<UiDefaultMenuPopupClose>, UiTreeError> {
+        while let Some(node_id) = current {
+            let node = self
+                .tree
+                .node(node_id)
+                .ok_or(UiTreeError::MissingNode(node_id))?;
+            if let Some(metadata) = node.template_metadata.as_ref() {
+                if is_default_popup_behavior(metadata)
+                    && self.widget_interaction_enabled(node_id, node, metadata)
+                {
+                    let property = widget_open_property(metadata, "popup_open");
+                    let popup_open = self.default_open_boolean_value(
+                        node_id,
+                        metadata,
+                        property,
+                        "popup_open",
+                        &["popup_open", "open"],
+                        false,
+                    );
+                    if popup_open {
+                        return Ok(Some(UiDefaultMenuPopupClose {
+                            popup_id: node_id,
+                            property: property.to_string(),
+                        }));
+                    }
+                }
+            }
+            current = node.parent;
+        }
+        Ok(None)
     }
 }
 
-fn is_default_toggle_component(component: &str) -> bool {
+struct UiDefaultMenuPopupClose {
+    popup_id: UiNodeId,
+    property: String,
+}
+
+fn is_default_toggle_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::Toggle
+}
+
+fn is_default_button_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
     matches!(
-        component,
-        "Toggle" | "Checkbox" | "CheckBox" | "Switch" | "ToggleButton"
+        widget_behavior(metadata),
+        UiWidgetBehavior::Button | UiWidgetBehavior::MenuItem
     )
 }
 
-fn is_default_expanded_component(component: &str) -> bool {
+fn is_default_radio_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::Radio
+}
+
+fn is_default_radio_group_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::RadioGroup
+}
+
+fn is_default_expanded_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::Disclosure
+}
+
+fn default_expanded_component_state(metadata: &UiTemplateNodeMetadata) -> bool {
+    match metadata.widget.behavior {
+        UiWidgetBehavior::Auto => matches!(
+            metadata.component.as_str(),
+            "Group" | "InspectorSection" | "TreeView"
+        ),
+        _ => matches!(
+            metadata.component.as_str(),
+            "Group" | "InspectorSection" | "TreeView"
+        ),
+    }
+}
+
+fn is_default_popup_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::Popup
+}
+
+fn is_default_range_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
+    widget_behavior(metadata) == UiWidgetBehavior::Range
+}
+
+fn is_default_scrollbar_behavior(metadata: &UiTemplateNodeMetadata) -> bool {
     matches!(
-        component,
-        "Group" | "Foldout" | "InspectorSection" | "TreeRow" | "TreeView"
+        widget_behavior(metadata),
+        UiWidgetBehavior::Scrollbar | UiWidgetBehavior::ScrollbarThumb
     )
 }
 
-fn default_expanded_component_state(component: &str) -> bool {
-    matches!(component, "Group" | "InspectorSection" | "TreeView")
+fn widget_behavior(metadata: &UiTemplateNodeMetadata) -> UiWidgetBehavior {
+    metadata.widget.resolved_behavior(&metadata.component)
 }
 
-fn is_default_popup_component(component: &str) -> bool {
-    matches!(
-        component,
-        "Dropdown"
-            | "ComboBox"
-            | "EnumField"
-            | "FlagsField"
-            | "SearchSelect"
-            | "ContextActionMenu"
-            | "Popup"
-    )
+fn widget_checked_property(metadata: &UiTemplateNodeMetadata) -> &str {
+    metadata
+        .widget
+        .checked_property
+        .as_deref()
+        .unwrap_or("checked")
 }
 
-fn is_default_range_component(component: &str) -> bool {
-    matches!(component, "RangeField" | "Slider")
+fn widget_open_property<'a>(
+    metadata: &'a UiTemplateNodeMetadata,
+    fallback: &'static str,
+) -> &'a str {
+    metadata.widget.open_property.as_deref().unwrap_or(fallback)
 }
 
 fn bool_attribute_value(
@@ -566,14 +817,17 @@ fn bool_attribute_value(
     values.get(key).and_then(toml::Value::as_bool)
 }
 
-fn f64_attribute_value(
-    values: &std::collections::BTreeMap<String, toml::Value>,
-    key: &str,
-) -> Option<f64> {
-    match values.get(key)? {
-        toml::Value::Float(value) => Some(*value),
-        toml::Value::Integer(value) => Some(*value as f64),
-        toml::Value::String(value) => value.parse::<f64>().ok(),
+fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {
+    match state.value(property) {
+        Some(UiValue::Bool(value)) => Some(*value),
+        _ => None,
+    }
+}
+
+fn open_component_state_flag(state: &UiComponentState, canonical_property: &str) -> Option<bool> {
+    match canonical_property {
+        "expanded" => state.flags.expanded.then_some(true),
+        "popup_open" => state.flags.popup_open.then_some(true),
         _ => None,
     }
 }

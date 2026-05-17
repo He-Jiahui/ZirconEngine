@@ -2,8 +2,8 @@ use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
-    Hierarchy, JointComponent, LocalTransform, MeshRenderer, Mobility, Name, PointLight,
-    RenderLayerMask, RigidBodyComponent, SpotLight, WorldMatrix,
+    Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
+    PointLight, RenderLayerMask, RigidBodyComponent, SpotLight, Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::Component;
 use crate::scene::EntityId;
@@ -26,6 +26,8 @@ impl_component_for_scene_type!(
     RenderLayerMask,
     CameraComponent,
     MeshRenderer,
+    Sprite2dComponent,
+    Mesh2dComponent,
     RigidBodyComponent,
     ColliderComponent,
     JointComponent,
@@ -68,6 +70,8 @@ fixed_component_map!(ActiveInHierarchy, active_in_hierarchy);
 fixed_component_map!(RenderLayerMask, render_layer_masks);
 fixed_component_map!(CameraComponent, cameras);
 fixed_component_map!(MeshRenderer, mesh_renderers);
+fixed_component_map!(Sprite2dComponent, sprite_2d);
+fixed_component_map!(Mesh2dComponent, mesh_2d);
 fixed_component_map!(RigidBodyComponent, rigid_bodies);
 fixed_component_map!(ColliderComponent, colliders);
 fixed_component_map!(JointComponent, joints);
@@ -124,6 +128,15 @@ impl World {
         }
         if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<MeshRenderer>() {
             return MeshRenderer::insert_fixed(self, entity, component);
+        }
+        if let Some(component) =
+            (component as &dyn std::any::Any).downcast_ref::<Sprite2dComponent>()
+        {
+            return Sprite2dComponent::insert_fixed(self, entity, component);
+        }
+        if let Some(component) = (component as &dyn std::any::Any).downcast_ref::<Mesh2dComponent>()
+        {
+            return Mesh2dComponent::insert_fixed(self, entity, component);
         }
         if let Some(component) =
             (component as &dyn std::any::Any).downcast_ref::<RigidBodyComponent>()
@@ -215,6 +228,10 @@ impl World {
             self.mesh_renderers
                 .remove(&entity)
                 .map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
+            self.sprite_2d.remove(&entity).map(cast_fixed_component)
+        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
+            self.mesh_2d.remove(&entity).map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
             self.rigid_bodies.remove(&entity).map(cast_fixed_component)
         } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
@@ -283,6 +300,10 @@ impl World {
             self.cameras.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<MeshRenderer>() {
             self.mesh_renderers.get(&entity).and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
+            self.sprite_2d.get(&entity).and_then(cast_fixed_ref)
+        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
+            self.mesh_2d.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
             self.rigid_bodies.get(&entity).and_then(cast_fixed_ref)
         } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
@@ -355,6 +376,10 @@ impl World {
             self.mesh_renderers
                 .get_mut(&entity)
                 .and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<Sprite2dComponent>() {
+            self.sprite_2d.get_mut(&entity).and_then(cast_fixed_mut)
+        } else if type_id == std::any::TypeId::of::<Mesh2dComponent>() {
+            self.mesh_2d.get_mut(&entity).and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<RigidBodyComponent>() {
             self.rigid_bodies.get_mut(&entity).and_then(cast_fixed_mut)
         } else if type_id == std::any::TypeId::of::<ColliderComponent>() {
@@ -410,6 +435,8 @@ impl World {
             || type_id == std::any::TypeId::of::<RenderLayerMask>()
             || type_id == std::any::TypeId::of::<CameraComponent>()
             || type_id == std::any::TypeId::of::<MeshRenderer>()
+            || type_id == std::any::TypeId::of::<Sprite2dComponent>()
+            || type_id == std::any::TypeId::of::<Mesh2dComponent>()
             || type_id == std::any::TypeId::of::<RigidBodyComponent>()
             || type_id == std::any::TypeId::of::<ColliderComponent>()
             || type_id == std::any::TypeId::of::<JointComponent>()
@@ -453,6 +480,12 @@ impl World {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.mesh_renderers.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
+        if let Some(component) = self.sprite_2d.get(&entity).cloned() {
+            let _ = self.insert(entity, component);
+        }
+        if let Some(component) = self.mesh_2d.get(&entity).cloned() {
             let _ = self.insert(entity, component);
         }
         if let Some(component) = self.rigid_bodies.get(&entity).cloned() {

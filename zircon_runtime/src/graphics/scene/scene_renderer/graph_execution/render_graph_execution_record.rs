@@ -1,3 +1,4 @@
+use crate::core::framework::render::PostProcessPassGraph;
 use crate::graphics::pipeline::RenderPassStage;
 use crate::render_graph::{QueueLane, RenderGraphPassResourceAccess, RenderPassId};
 
@@ -10,6 +11,8 @@ pub struct RenderGraphExecutionRecord {
     executed_pass_stages: Vec<Option<RenderPassStage>>,
     executed_pass_dependencies: Vec<Vec<RenderPassId>>,
     executed_pass_resources: Vec<Vec<RenderGraphPassResourceAccess>>,
+    post_process_graph: Option<PostProcessPassGraph>,
+    executed_post_process_nodes: Vec<String>,
 }
 
 impl RenderGraphExecutionRecord {
@@ -99,6 +102,23 @@ impl RenderGraphExecutionRecord {
         self.executed_pass_stages.push(stage);
         self.executed_pass_dependencies.push(dependencies);
         self.executed_pass_resources.push(resources);
+    }
+
+    pub fn push_executed_post_process_node(&mut self, node_name: impl Into<String>) {
+        self.executed_post_process_nodes.push(node_name.into());
+    }
+
+    pub fn set_post_process_graph(&mut self, graph: PostProcessPassGraph) {
+        self.post_process_graph = Some(graph);
+    }
+
+    pub fn post_process_graph(&self) -> Option<&PostProcessPassGraph> {
+        self.post_process_graph.as_ref()
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn executed_post_process_nodes(&self) -> &[String] {
+        &self.executed_post_process_nodes
     }
 
     pub fn executed_passes(&self) -> &[String] {
@@ -229,6 +249,21 @@ mod tests {
 
         assert_eq!(record.executed_pass_dependencies(), &[dependencies]);
         assert_eq!(record.executed_dependency_count(), 2);
+    }
+
+    #[test]
+    fn execution_record_keeps_post_process_nodes_out_of_render_graph_passes() {
+        let mut record = RenderGraphExecutionRecord::default();
+
+        record.push_executed_pass("overlay-gizmo", "overlay.gizmo", QueueLane::Graphics);
+        record.push_executed_post_process_node("final-composite");
+
+        assert_eq!(record.executed_passes(), &["overlay-gizmo".to_string()]);
+        assert_eq!(
+            record.executed_post_process_nodes(),
+            &["final-composite".to_string()]
+        );
+        assert_eq!(record.executed_queue_lane_count(QueueLane::Graphics), 1);
     }
 
     #[test]

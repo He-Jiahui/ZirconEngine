@@ -15,7 +15,7 @@ pub(super) fn resolve_viewport_record_state(
     viewport: RenderViewportHandle,
     extract: &RenderFrameExtract,
 ) -> Result<ViewportRecordState, RenderFrameworkError> {
-    let state = server.state.lock().unwrap();
+    let state = server.lock_state();
     let (
         size,
         pipeline_handle,

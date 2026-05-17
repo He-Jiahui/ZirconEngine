@@ -384,6 +384,67 @@ mod tests {
     }
 
     #[test]
+    fn batch_plan_batches_disjoint_list_rows_by_depth_and_material() {
+        let draw_list = UiSurfaceDrawList::new(
+            (200, 120),
+            None,
+            vec![
+                quad(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 200.0, 20.0),
+                    [20, 20, 20, 255],
+                ),
+                text(1, UiSurfaceRect::new(8.0, 2.0, 80.0, 16.0), "Row 1"),
+                quad(
+                    0,
+                    UiSurfaceRect::new(0.0, 24.0, 200.0, 20.0),
+                    [24, 24, 24, 255],
+                ),
+                text(1, UiSurfaceRect::new(8.0, 26.0, 80.0, 16.0), "Row 2"),
+                quad(
+                    0,
+                    UiSurfaceRect::new(0.0, 48.0, 200.0, 20.0),
+                    [28, 28, 28, 255],
+                ),
+                text(1, UiSurfaceRect::new(8.0, 50.0, 80.0, 16.0), "Row 3"),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 6);
+        assert_eq!(plan.stats.draw_calls, 2);
+        assert_eq!(plan.stats.batch_layer_count, 2);
+        assert_eq!(plan.stats.batch_dependency_count, 3);
+        assert!(matches!(plan.ops[0], DrawOp::Solid(_)));
+        let DrawOp::Text(text_draw) = &plan.ops[1] else {
+            panic!("expected row labels to share one text batch");
+        };
+        assert_eq!(text_draw.command_indices, vec![1, 3, 5]);
+    }
+
+    #[test]
+    fn batch_plan_degenerates_to_one_draw_per_item_when_all_items_overlap() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                quad(0, UiSurfaceRect::new(0.0, 0.0, 50.0, 50.0), [10, 0, 0, 255]),
+                quad(1, UiSurfaceRect::new(0.0, 0.0, 50.0, 50.0), [20, 0, 0, 255]),
+                quad(2, UiSurfaceRect::new(0.0, 0.0, 50.0, 50.0), [30, 0, 0, 255]),
+                quad(3, UiSurfaceRect::new(0.0, 0.0, 50.0, 50.0), [40, 0, 0, 255]),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 4);
+        assert_eq!(plan.stats.draw_calls, 4);
+        assert_eq!(plan.stats.batch_layer_count, 4);
+        assert_eq!(plan.stats.batch_dependency_count, 6);
+    }
+
+    #[test]
     fn batch_plan_uses_clip_reduced_rects_for_dependencies() {
         let mut left = quad(
             0,

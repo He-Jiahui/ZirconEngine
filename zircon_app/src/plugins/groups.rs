@@ -39,7 +39,10 @@ impl PluginGroup for DefaultPlugins {
 
 impl PluginGroup for DevPlugins {
     fn build(self) -> Result<PluginGroupBuilder, PluginGroupError> {
-        default_modules("DevPlugins", true)
+        default_modules("DevPlugins", true)?.add_after(
+            zircon_runtime::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
+            Arc::new(zircon_runtime::core::modules::LogDiagnosticsModule),
+        )
     }
 }
 
@@ -55,6 +58,7 @@ fn default_modules(
 ) -> Result<PluginGroupBuilder, PluginGroupError> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
         Arc::new(zircon_runtime::foundation::FoundationModule),
+        Arc::new(zircon_runtime::core::modules::LogModule),
         Arc::new(zircon_runtime::core::modules::TasksModule),
         Arc::new(zircon_runtime::core::modules::TimeModule),
         Arc::new(zircon_runtime::core::modules::FrameCountModule),

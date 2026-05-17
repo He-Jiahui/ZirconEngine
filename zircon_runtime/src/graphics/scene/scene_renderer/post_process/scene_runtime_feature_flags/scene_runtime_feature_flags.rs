@@ -9,6 +9,7 @@ pub(crate) struct SceneRuntimeFeatureFlags {
     pub(crate) color_grading_enabled: bool,
     pub(crate) reflection_probes_enabled: bool,
     pub(crate) baked_lighting_enabled: bool,
+    pub(crate) sprite_rendering_enabled: bool,
     pub(crate) particle_rendering_enabled: bool,
     pub(crate) virtual_geometry_enabled: bool,
 }

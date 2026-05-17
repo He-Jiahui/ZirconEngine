@@ -20,6 +20,9 @@ related_code:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/tests/render_profiling.rs
 implementation_files:
   - zircon_runtime/Cargo.toml
   - zircon_runtime/src/core/diagnostics/profiling/mod.rs
@@ -40,6 +43,8 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs
   - zircon_runtime/src/graphics/runtime/render_framework/capture_frame/capture_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
 plan_sources:
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
   - user: 2026-05-13 continue profiling timeline and Tracy integration milestone
@@ -49,8 +54,13 @@ tests:
   - zircon_runtime/src/core/diagnostics/profiling/hotspot.rs
   - zircon_runtime/src/core/diagnostics/profiling/export.rs
   - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/graphics/tests/render_profiling.rs
   - target: cargo check -p zircon_runtime --profile profiling --features profiling --locked
   - target: cargo test -p zircon_runtime --lib profiling --profile profiling --features profiling --locked
+  - target: cargo test -p zircon_runtime --lib profile_scope_enter_named_captures_runtime_generated_names --profile profiling --features profiling --locked --message-format=short
+  - target: cargo test -p zircon_runtime --lib profile_dynamic_scope_macro_captures_runtime_generated_names --profile profiling --features profiling --locked --message-format=short
+  - target: cargo test -p zircon_runtime --lib render_submit_records_render_graph_pass_and_wait_spans --profile profiling --features profiling --locked --message-format=short
+  - target: cargo test -p zircon_runtime --lib direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope --profile profiling --features profiling --locked --message-format=short
   - target: cargo check -p zircon_runtime --profile profiling --features "profiling profiling-tracy" --locked
   - target: cargo check -p zircon_app --profile profiling --features "target-editor-host profiling profiling-tracy profiling-chrome" --locked
 doc_type: module-detail
@@ -74,9 +84,10 @@ The public macros are:
 
 - `profile_frame!(stream, name)` for frame boundaries.
 - `profile_scope!(stream, category, name)` for CPU span samples.
+- `profile_dynamic_scope!(stream, category, name)` for runtime-generated scope names such as render pass or stage names.
 - `profile_counter!(stream, name, value)` for instantaneous counters.
 
-When `profiling` is disabled, the macro bodies are cfg-stripped and do not evaluate their arguments. When `profiling-tracy` is enabled, the same macros also emit `tracing` spans or events and `profile_frame!` creates a Tracy frame-mark guard that emits `tracy.frame_mark = true` when the frame scope exits.
+When `profiling` is disabled, the static macro bodies are cfg-stripped and do not evaluate their arguments. `profile_dynamic_scope!` only evaluates its name when either `profiling` or `profiling-tracy` is enabled, so render graph pass names are not allocated in ordinary runtime builds. When `profiling-tracy` is enabled, the same macros also emit `tracing` spans or events and `profile_frame!` creates a Tracy frame-mark guard that emits `tracy.frame_mark = true` when the frame scope exits.
 
 ## Tracy Sink
 
@@ -103,6 +114,8 @@ The first profiling slice records coarse CPU spans at stable engine seams:
 - Dynamic runtime ABI calls: event handling, frame capture, accessibility capture, viewport surface bind/unbind, and present.
 - `RuntimeRenderBridge`: extract submit, surface bind/unbind, and present.
 - Render framework submit/present/capture internals: submission context build, runtime submission preparation, render/present pipeline, feedback collection, and counters for submitted frames.
+- Render-framework contention: `WgpuRenderFramework::lock_operation` and `lock_state` wrap acquisition of the serialized operation mutex and mutable framework-state mutex in `render_framework.wait` spans. These spans measure CPU lock-acquire time at the runtime render-framework boundary without exposing editor/UI batching internals.
+- Render graph execution: `execute_graph_stage` records `render_graph.stage:<Stage>` spans and each non-culled executable pass records `render_graph.pass:<pass-name>` beneath the active runtime render/present pipeline span. The pass span surrounds executor dispatch plus execution-record update so the M4 timeline can attribute CPU render work by compiled graph stage and pass while GPU timestamp work remains a later extension.
 - Core lifecycle: module register, activate, deactivate, and service resolution.
 
 Upper-layer app/editor spans are deliberately consumers of this core module; the recorder remains in runtime diagnostics and does not move process-host or authoring state into runtime world data.
@@ -113,4 +126,4 @@ Upper-layer app/editor spans are deliberately consumers of this core module; the
 
 ## Test Coverage
 
-Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Export tests cover Perfetto event shape and expected artifact names. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization.
+Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Export tests cover Perfetto event shape and expected artifact names. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit a real headless runtime frame in a profiling build and assert that operation/state wait spans plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting.

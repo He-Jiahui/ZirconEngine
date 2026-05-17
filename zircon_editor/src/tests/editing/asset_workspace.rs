@@ -2,6 +2,7 @@ use crate::ui::host::editor_asset_manager::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetDetailsRecord,
     EditorAssetFolderRecord, EditorAssetReferenceRecord,
 };
+use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime::asset::project::PreviewState;
 use zircon_runtime_interface::resource::{
     ResourceId, ResourceKind, ResourceLocator, ResourceRecord, ResourceState,
@@ -205,7 +206,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 file_name: "grid.material.toml".to_string(),
                 extension: "toml".to_string(),
                 preview_state: PreviewState::Ready,
-                meta_path: "E:/Sandbox/assets/materials/grid.material.toml.meta.toml".to_string(),
+                meta_path: "E:/Sandbox/assets/materials/grid.material.toml.zmeta".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
                 source_mtime_unix_ms: 10,
                 source_hash: "mat".to_string(),
@@ -222,7 +223,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 file_name: "main.scene.toml".to_string(),
                 extension: "toml".to_string(),
                 preview_state: PreviewState::Dirty,
-                meta_path: "E:/Sandbox/assets/scenes/main.scene.toml.meta.toml".to_string(),
+                meta_path: "E:/Sandbox/assets/scenes/main.scene.toml.zmeta".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/main.png".to_string(),
                 source_mtime_unix_ms: 20,
                 source_hash: "scene".to_string(),
@@ -239,7 +240,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 file_name: "checker.png".to_string(),
                 extension: "png".to_string(),
                 preview_state: PreviewState::Ready,
-                meta_path: "E:/Sandbox/assets/textures/checker.png.meta.toml".to_string(),
+                meta_path: "E:/Sandbox/assets/textures/checker.png.zmeta".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/checker.png".to_string(),
                 source_mtime_unix_ms: 30,
                 source_hash: "tex".to_string(),
@@ -256,7 +257,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 file_name: "hero.sequence.zranim".to_string(),
                 extension: "zranim".to_string(),
                 preview_state: PreviewState::Dirty,
-                meta_path: "E:/Sandbox/assets/animation/hero.sequence.zranim.meta.toml".to_string(),
+                meta_path: "E:/Sandbox/assets/animation/hero.sequence.zranim.zmeta".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/hero-sequence.png"
                     .to_string(),
                 source_mtime_unix_ms: 40,
@@ -275,7 +276,7 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
                 extension: "toml".to_string(),
                 preview_state: PreviewState::Ready,
                 meta_path:
-                    "E:/Sandbox/assets/physics/materials/default.physics_material.toml.meta.toml"
+                    "E:/Sandbox/assets/physics/materials/default.physics_material.toml.zmeta"
                         .to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/default-physics.png"
                     .to_string(),
@@ -307,6 +308,10 @@ pub(super) fn sample_material_details() -> EditorAssetDetailsRecord {
             known_project_asset: true,
         }],
         editor_adapter: Some("material.pbr".to_string()),
+        package_id: None,
+        unit: AssetSourceUnit::Single,
+        included_files: Vec::new(),
+        subassets: Vec::new(),
     }
 }
 

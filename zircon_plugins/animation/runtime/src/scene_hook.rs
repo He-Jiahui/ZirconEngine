@@ -14,6 +14,8 @@ use zircon_runtime::plugin::{
 };
 use zircon_runtime::scene::{AnimationStateTransitionRuntime, EntityId, LevelSystem, SystemStage};
 
+use crate::clip_event::sample_clip_events;
+
 #[derive(Clone, Debug, Default)]
 pub struct AnimationSceneRuntimeHook;
 
@@ -36,12 +38,22 @@ struct PendingPoseSample {
 }
 
 #[derive(Clone, Debug)]
+struct PendingClipEventSample {
+    entity: EntityId,
+    clip_id: AssetId,
+    from_time_seconds: Real,
+    to_time_seconds: Real,
+    looping: bool,
+}
+
+#[derive(Clone, Debug)]
 struct PendingGraphPoseSample {
     entity: EntityId,
     skeleton_id: AssetId,
     graph_id: AssetId,
     parameters: AnimationParameterMap,
-    time_seconds: Real,
+    from_time_seconds: Real,
+    to_time_seconds: Real,
 }
 
 #[derive(Clone, Debug)]
@@ -51,7 +63,8 @@ struct PendingStateMachinePoseSample {
     state_machine_id: AssetId,
     parameters: AnimationParameterMap,
     active_state: Option<String>,
-    time_seconds: Real,
+    from_time_seconds: Real,
+    to_time_seconds: Real,
     delta_seconds: Real,
     transition: Option<AnimationStateTransitionRuntime>,
 }
@@ -96,6 +109,7 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
     let (
         pending_sequences,
         pending_clip_samples,
+        pending_clip_event_samples,
         pending_graph_samples,
         pending_state_machine_samples,
         next_graph_times,
@@ -104,6 +118,7 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
         let entity_ids = world.nodes().iter().map(|node| node.id).collect::<Vec<_>>();
         let mut pending_sequences = Vec::<PendingSequenceSample>::new();
         let mut pending_clip_samples = Vec::<PendingPoseSample>::new();
+        let mut pending_clip_event_samples = Vec::<PendingClipEventSample>::new();
         let mut pending_graph_samples = Vec::<PendingGraphPoseSample>::new();
         let mut pending_state_machine_samples = Vec::<PendingStateMachinePoseSample>::new();
         let mut next_graph_times = BTreeMap::<EntityId, Real>::new();
@@ -112,6 +127,7 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
         for entity in entity_ids {
             if playback_settings.skeletal_clips {
                 if let Some(mut player) = world.animation_player(entity).cloned() {
+                    let previous_time_seconds = player.time_seconds;
                     if player.playing {
                         player.time_seconds =
                             (player.time_seconds + delta_seconds * player.playback_speed).max(0.0);
@@ -119,6 +135,15 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
                     let clip_id = player.clip.id();
                     let time_seconds = player.time_seconds;
                     let looping = player.looping;
+                    if player.playing {
+                        pending_clip_event_samples.push(PendingClipEventSample {
+                            entity,
+                            clip_id,
+                            from_time_seconds: previous_time_seconds,
+                            to_time_seconds: time_seconds,
+                            looping,
+                        });
+                    }
                     let _ = world.set_animation_player(entity, Some(player));
                     if let Some(skeleton) = world.animation_skeleton(entity).cloned() {
                         pending_clip_samples.push(PendingPoseSample {
@@ -154,9 +179,10 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
 
             if playback_settings.graphs {
                 if let Some(player) = world.animation_graph_player(entity).cloned() {
+                    let previous_time_seconds =
+                        previous_graph_times.get(&entity).copied().unwrap_or(0.0);
                     let next_time_seconds =
-                        previous_graph_times.get(&entity).copied().unwrap_or(0.0)
-                            + if player.playing { delta_seconds } else { 0.0 };
+                        previous_time_seconds + if player.playing { delta_seconds } else { 0.0 };
                     next_graph_times.insert(entity, next_time_seconds);
                     if player.playing {
                         if let Some(skeleton) = world.animation_skeleton(entity).cloned() {
@@ -165,7 +191,8 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
                                 skeleton_id: skeleton.skeleton.id(),
                                 graph_id: player.graph.id(),
                                 parameters: player.parameters,
-                                time_seconds: next_time_seconds,
+                                from_time_seconds: previous_time_seconds,
+                                to_time_seconds: next_time_seconds,
                             });
                         }
                     }
@@ -174,11 +201,12 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
 
             if playback_settings.state_machines {
                 if let Some(player) = world.animation_state_machine_player(entity).cloned() {
-                    let next_time_seconds = previous_state_machine_times
+                    let previous_time_seconds = previous_state_machine_times
                         .get(&entity)
                         .copied()
-                        .unwrap_or(0.0)
-                        + if player.playing { delta_seconds } else { 0.0 };
+                        .unwrap_or(0.0);
+                    let next_time_seconds =
+                        previous_time_seconds + if player.playing { delta_seconds } else { 0.0 };
                     next_state_machine_times.insert(entity, next_time_seconds);
                     if player.playing {
                         if let Some(skeleton) = world.animation_skeleton(entity).cloned() {
@@ -188,7 +216,8 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
                                 state_machine_id: player.state_machine.id(),
                                 parameters: player.parameters,
                                 active_state: player.active_state,
-                                time_seconds: next_time_seconds,
+                                from_time_seconds: previous_time_seconds,
+                                to_time_seconds: next_time_seconds,
                                 delta_seconds,
                                 transition: previous_state_machine_transitions
                                     .get(&entity)
@@ -203,6 +232,7 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
         (
             pending_sequences,
             pending_clip_samples,
+            pending_clip_event_samples,
             pending_graph_samples,
             pending_state_machine_samples,
             next_graph_times,
@@ -232,21 +262,22 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
     if !loaded_sequences.is_empty() {
         apply_loaded_sequences(animation.as_ref(), level, &loaded_sequences);
     }
+    publish_clip_events(asset_manager, level, pending_clip_event_samples);
 
     let mut animation_poses =
         sample_pose_requests(animation.as_ref(), asset_manager, pending_clip_samples);
-    animation_poses.extend(resolve_graph_pose_requests(
-        animation.as_ref(),
-        asset_manager,
-        pending_graph_samples,
-    ));
-    let (state_machine_poses, active_state_updates, transition_updates) =
+    let (graph_poses, graph_events) =
+        resolve_graph_pose_requests(animation.as_ref(), asset_manager, pending_graph_samples);
+    animation_poses.extend(graph_poses);
+    publish_events(level, graph_events);
+    let (state_machine_poses, state_machine_events, active_state_updates, transition_updates) =
         resolve_state_machine_pose_requests(
             animation.as_ref(),
             asset_manager,
             pending_state_machine_samples,
         );
     animation_poses.extend(state_machine_poses);
+    publish_events(level, state_machine_events);
 
     if !active_state_updates.is_empty() {
         level.with_world_mut(|world| {
@@ -266,6 +297,49 @@ fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: R
         next_state_machine_times,
         transition_updates,
     );
+}
+
+fn publish_clip_events(
+    asset_manager: &ProjectAssetManager,
+    level: &LevelSystem,
+    pending_samples: Vec<PendingClipEventSample>,
+) {
+    let events = pending_samples
+        .into_iter()
+        .filter_map(|pending| {
+            let clip = asset_manager
+                .load_animation_clip_asset(pending.clip_id)
+                .ok()?;
+            Some(sample_clip_events(
+                &clip,
+                pending.entity,
+                pending.from_time_seconds,
+                pending.to_time_seconds,
+                pending.looping,
+            ))
+        })
+        .flatten()
+        .collect::<Vec<_>>();
+    if events.is_empty() {
+        return;
+    }
+    level.with_world_mut(|world| publish_events_to_world(world, events));
+}
+
+fn publish_events(level: &LevelSystem, events: Vec<crate::AnimationClipEvent>) {
+    if events.is_empty() {
+        return;
+    }
+    level.with_world_mut(|world| publish_events_to_world(world, events));
+}
+
+fn publish_events_to_world(
+    world: &mut zircon_runtime::scene::World,
+    events: Vec<crate::AnimationClipEvent>,
+) {
+    for event in events {
+        world.send_event(event);
+    }
 }
 
 fn apply_loaded_sequences(
@@ -314,25 +388,65 @@ fn resolve_graph_pose_requests(
     animation: &dyn AnimationManager,
     asset_manager: &ProjectAssetManager,
     pending_samples: Vec<PendingGraphPoseSample>,
-) -> BTreeMap<EntityId, AnimationPoseOutput> {
-    pending_samples
-        .into_iter()
-        .filter_map(|pending| {
-            let graph = asset_manager
-                .load_animation_graph_asset(pending.graph_id)
-                .ok()?;
-            let evaluation = animation.evaluate_graph(&graph, &pending.parameters);
-            sample_graph_evaluation_pose(
-                animation,
-                asset_manager,
-                pending.entity,
-                pending.skeleton_id,
-                pending.time_seconds,
-                AnimationPoseSource::Graph,
-                None,
-                &evaluation,
-            )
+) -> (
+    BTreeMap<EntityId, AnimationPoseOutput>,
+    Vec<crate::AnimationClipEvent>,
+) {
+    let mut poses = BTreeMap::new();
+    let mut events = Vec::new();
+    for pending in pending_samples {
+        let Some(graph) = asset_manager
+            .load_animation_graph_asset(pending.graph_id)
+            .ok()
+        else {
+            continue;
+        };
+        let evaluation = animation.evaluate_graph(&graph, &pending.parameters);
+        events.extend(sample_graph_evaluation_clip_events(
+            asset_manager,
+            pending.entity,
+            pending.from_time_seconds,
+            pending.to_time_seconds,
+            &evaluation,
+        ));
+        if let Some((entity, pose)) = sample_graph_evaluation_pose(
+            animation,
+            asset_manager,
+            pending.entity,
+            pending.skeleton_id,
+            pending.to_time_seconds,
+            AnimationPoseSource::Graph,
+            None,
+            &evaluation,
+        ) {
+            poses.insert(entity, pose);
+        }
+    }
+    (poses, events)
+}
+
+fn sample_graph_evaluation_clip_events(
+    asset_manager: &ProjectAssetManager,
+    entity: EntityId,
+    from_time_seconds: Real,
+    to_time_seconds: Real,
+    evaluation: &zircon_runtime::core::framework::animation::AnimationGraphEvaluation,
+) -> Vec<crate::AnimationClipEvent> {
+    evaluation
+        .clips
+        .iter()
+        .filter_map(|clip| {
+            let clip_id = asset_manager.resolve_asset_id(&clip.clip.locator)?;
+            let clip_asset = asset_manager.load_animation_clip_asset(clip_id).ok()?;
+            Some(sample_clip_events(
+                &clip_asset,
+                entity,
+                resolve_graph_clip_time_seconds(from_time_seconds, clip.playback_speed),
+                resolve_graph_clip_time_seconds(to_time_seconds, clip.playback_speed),
+                clip.looping,
+            ))
         })
+        .flatten()
         .collect()
 }
 
@@ -342,10 +456,12 @@ fn resolve_state_machine_pose_requests(
     pending_samples: Vec<PendingStateMachinePoseSample>,
 ) -> (
     BTreeMap<EntityId, AnimationPoseOutput>,
+    Vec<crate::AnimationClipEvent>,
     Vec<(EntityId, Option<String>)>,
     BTreeMap<EntityId, AnimationStateTransitionRuntime>,
 ) {
     let mut poses = BTreeMap::new();
+    let mut events = Vec::new();
     let mut active_state_updates = Vec::new();
     let mut transition_updates = BTreeMap::new();
 
@@ -364,7 +480,7 @@ fn resolve_state_machine_pose_requests(
         let transition = resolve_state_machine_transition_runtime(
             pending.transition.clone(),
             evaluation.transition.as_ref(),
-            pending.time_seconds,
+            pending.to_time_seconds,
             pending.delta_seconds,
         );
         let state_update = transition
@@ -380,6 +496,14 @@ fn resolve_state_machine_pose_requests(
         active_state_updates.push((pending.entity, state_update.clone()));
 
         if let Some(active_transition) = transition.as_ref() {
+            events.extend(sample_state_transition_clip_events(
+                animation,
+                asset_manager,
+                &state_machine,
+                &evaluation.parameters,
+                &pending,
+                active_transition,
+            ));
             let Some((entity, pose)) = sample_state_transition_pose(
                 animation,
                 asset_manager,
@@ -397,6 +521,15 @@ fn resolve_state_machine_pose_requests(
             continue;
         }
 
+        events.extend(sample_state_graph_clip_events(
+            animation,
+            asset_manager,
+            evaluation.graph.as_ref(),
+            &evaluation.parameters,
+            pending.entity,
+            pending.from_time_seconds,
+            pending.to_time_seconds,
+        ));
         let Some((entity, pose)) = sample_state_graph_pose(
             animation,
             asset_manager,
@@ -405,7 +538,7 @@ fn resolve_state_machine_pose_requests(
             &evaluation.parameters,
             pending.entity,
             pending.skeleton_id,
-            pending.time_seconds,
+            pending.to_time_seconds,
             state_update,
         ) else {
             continue;
@@ -413,7 +546,7 @@ fn resolve_state_machine_pose_requests(
         poses.insert(entity, pose);
     }
 
-    (poses, active_state_updates, transition_updates)
+    (poses, events, active_state_updates, transition_updates)
 }
 
 fn resolve_graph_clip_time_seconds(base_time_seconds: Real, playback_speed: Real) -> Real {
@@ -684,6 +817,72 @@ fn sample_state_transition_pose(
         }),
     )
     .map(|pose| (pending.entity, pose))
+}
+
+fn sample_state_transition_clip_events(
+    animation: &dyn AnimationManager,
+    asset_manager: &ProjectAssetManager,
+    state_machine: &zircon_runtime::asset::AnimationStateMachineAsset,
+    parameters: &AnimationParameterMap,
+    pending: &PendingStateMachinePoseSample,
+    transition: &AnimationStateTransitionRuntime,
+) -> Vec<crate::AnimationClipEvent> {
+    let mut events = Vec::new();
+    let from_graph = state_machine_graph_reference(state_machine, &transition.from_state);
+    let to_graph = state_machine_graph_reference(state_machine, &transition.to_state);
+    let (from_start_seconds, to_start_seconds) = pending
+        .transition
+        .as_ref()
+        .map(|previous| (previous.from_time_seconds, previous.to_time_seconds))
+        .unwrap_or((pending.from_time_seconds, 0.0));
+
+    events.extend(sample_state_graph_clip_events(
+        animation,
+        asset_manager,
+        from_graph,
+        parameters,
+        pending.entity,
+        from_start_seconds,
+        transition.from_time_seconds,
+    ));
+    events.extend(sample_state_graph_clip_events(
+        animation,
+        asset_manager,
+        to_graph,
+        parameters,
+        pending.entity,
+        to_start_seconds,
+        transition.to_time_seconds,
+    ));
+    events
+}
+
+fn sample_state_graph_clip_events(
+    animation: &dyn AnimationManager,
+    asset_manager: &ProjectAssetManager,
+    graph_reference: Option<&zircon_runtime::core::resource::AssetReference>,
+    parameters: &AnimationParameterMap,
+    entity: EntityId,
+    from_time_seconds: Real,
+    to_time_seconds: Real,
+) -> Vec<crate::AnimationClipEvent> {
+    let Some(graph_reference) = graph_reference else {
+        return Vec::new();
+    };
+    let Some(graph_id) = asset_manager.resolve_asset_id(&graph_reference.locator) else {
+        return Vec::new();
+    };
+    let Ok(graph) = asset_manager.load_animation_graph_asset(graph_id) else {
+        return Vec::new();
+    };
+    let graph_evaluation = animation.evaluate_graph(&graph, parameters);
+    sample_graph_evaluation_clip_events(
+        asset_manager,
+        entity,
+        from_time_seconds,
+        to_time_seconds,
+        &graph_evaluation,
+    )
 }
 
 fn sample_state_graph_pose(

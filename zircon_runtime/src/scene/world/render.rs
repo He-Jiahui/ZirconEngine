@@ -1,17 +1,18 @@
 use crate::core::framework::render::{
-    aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DebugOverlayExtract,
-    FallbackSkyboxKind, GeometryExtract, GeometryPhaseInput, LightingExtract, ParticleExtract,
-    PostProcessExtract, PreviewEnvironmentExtract, RenderBloomSettings, RenderColorGradingSettings,
-    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderMeshSnapshot,
-    RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SceneViewportRenderPacket,
-    ViewportCameraSnapshot, VisibilityInput, VisibilityRenderableInput,
+    default_viewport_aspect_ratio, DebugOverlayExtract, FallbackSkyboxKind, GeometryExtract,
+    GeometryPhaseInput, LightingExtract, ParticleExtract, PostProcessExtract,
+    PreviewEnvironmentExtract, ProjectionMode, RenderBloomSettings, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderPointLightSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot, RenderViewExtract,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot, VisibilityInput,
+    VisibilityRenderableInput,
 };
 use crate::core::math::Vec4;
 
 use super::World;
-use crate::scene::components::default_render_layer_mask;
+use crate::scene::components::{default_render_layer_mask, MeshRenderer, Sprite2dComponent};
 
 const SCENE_CLEAR_COLOR: Vec4 = Vec4::new(0.09, 0.11, 0.14, 1.0);
 
@@ -43,21 +44,24 @@ impl World {
     ) -> SceneViewportRenderPacket {
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
         let camera = self.build_render_camera(request);
+        if !camera.is_active {
+            return SceneViewportRenderPacket {
+                scene: empty_scene_geometry(camera),
+                overlays: RenderOverlayExtract {
+                    display_mode: request.settings.display_mode,
+                    ..RenderOverlayExtract::default()
+                },
+                preview: build_preview_environment(request),
+                virtual_geometry_debug: request.virtual_geometry_debug,
+            };
+        }
 
+        let camera_layers = camera.render_layers.clone();
         let mut meshes = self
             .mesh_renderers
             .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, mesh)| RenderMeshSnapshot {
-                node_id: *entity,
-                transform: self.world_transform(*entity).unwrap_or_default(),
-                model: mesh.model,
-                material: mesh.material,
-                tint: mesh.tint,
-                mobility: self.mobility(*entity).unwrap_or_default(),
-                render_layer_mask: self
-                    .render_layer_mask(*entity)
-                    .unwrap_or(default_render_layer_mask()),
+            .filter_map(|(entity, mesh)| {
+                self.render_mesh_snapshot_for_camera(*entity, mesh, &camera_layers)
             })
             .collect::<Vec<_>>();
         meshes.sort_by_key(|mesh| mesh.node_id);
@@ -119,6 +123,8 @@ impl World {
                 directional_lights,
                 point_lights,
                 spot_lights,
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract {
                 display_mode: request.settings.display_mode,
@@ -136,11 +142,16 @@ impl World {
     ) -> RenderFrameExtract {
         self.run_internal_scene_systems_for_stage(crate::scene::SystemStage::RenderExtract);
         let camera = self.build_render_camera(request);
-        let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs();
+        if !camera.is_active {
+            return inactive_camera_frame_extract(world, camera, request);
+        }
+        let (meshes, phase_inputs) =
+            self.collect_render_meshes_and_phase_inputs(&camera.render_layers);
+        let sprites = self.collect_render_sprites(&camera.render_layers);
         let directional_lights = self.collect_directional_lights();
         let point_lights = self.collect_point_lights();
         let spot_lights = self.collect_spot_lights();
-        let visibility = build_visibility_input(&meshes);
+        let visibility = build_visibility_input(&meshes, &sprites);
 
         RenderFrameExtract {
             world,
@@ -163,22 +174,27 @@ impl World {
                 directional_lights,
                 point_lights,
                 spot_lights,
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
                 reflection_probes: Vec::new(),
                 baked_lighting: None,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
             },
-            post_process: PostProcessExtract {
-                preview: build_preview_environment(request),
-                display_mode: request.settings.display_mode,
-                bloom: RenderBloomSettings::default(),
-                color_grading: RenderColorGradingSettings::default(),
-            },
+            post_process: PostProcessExtract::from_parts(
+                build_preview_environment(request),
+                request.settings.display_mode,
+                RenderBloomSettings::default(),
+                RenderColorGradingSettings::default(),
+                false,
+                false,
+            ),
             debug: DebugOverlayExtract {
                 overlays: RenderOverlayExtract {
                     display_mode: request.settings.display_mode,
                     ..RenderOverlayExtract::default()
                 },
             },
+            sprites: SpriteExtract::from_sprites(camera.core_pipeline_kind(), sprites),
             particles: ParticleExtract::default(),
             visibility,
         }
@@ -186,24 +202,14 @@ impl World {
 
     fn collect_render_meshes_and_phase_inputs(
         &self,
+        camera_layers: &RenderLayerSet,
     ) -> (Vec<RenderMeshSnapshot>, Vec<GeometryPhaseInput>) {
         let mut mesh_entries = self
             .mesh_renderers
             .iter()
-            .filter(|(entity, _)| self.active_in_hierarchy(**entity) == Some(true))
-            .map(|(entity, mesh)| {
-                let snapshot = RenderMeshSnapshot {
-                    node_id: *entity,
-                    transform: self.world_transform(*entity).unwrap_or_default(),
-                    model: mesh.model,
-                    material: mesh.material,
-                    tint: mesh.tint,
-                    mobility: self.mobility(*entity).unwrap_or_default(),
-                    render_layer_mask: self
-                        .render_layer_mask(*entity)
-                        .unwrap_or(default_render_layer_mask()),
-                };
-                (snapshot, mesh.material_alpha_mode)
+            .filter_map(|(entity, mesh)| {
+                self.render_mesh_snapshot_for_camera(*entity, mesh, camera_layers)
+                    .map(|snapshot| (snapshot, mesh.material_alpha_mode))
             })
             .collect::<Vec<_>>();
         mesh_entries.sort_by_key(|(mesh, _)| mesh.node_id);
@@ -226,6 +232,79 @@ impl World {
             .collect::<Vec<_>>();
 
         (meshes, phase_inputs)
+    }
+
+    fn render_mesh_snapshot_for_camera(
+        &self,
+        entity: crate::scene::EntityId,
+        mesh: &MeshRenderer,
+        camera_layers: &RenderLayerSet,
+    ) -> Option<RenderMeshSnapshot> {
+        if self.active_in_hierarchy(entity) != Some(true) {
+            return None;
+        }
+        let render_layer_mask = self
+            .render_layer_mask(entity)
+            .unwrap_or(default_render_layer_mask());
+        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+            return None;
+        }
+
+        Some(RenderMeshSnapshot {
+            node_id: entity,
+            transform: self.world_transform(entity).unwrap_or_default(),
+            model: mesh.model,
+            material: mesh.material,
+            tint: mesh.tint,
+            mobility: self.mobility(entity).unwrap_or_default(),
+            render_layer_mask,
+        })
+    }
+
+    fn collect_render_sprites(&self, camera_layers: &RenderLayerSet) -> Vec<RenderSpriteSnapshot> {
+        let mut sprites = self
+            .sprite_2d
+            .iter()
+            .filter_map(|(entity, sprite)| {
+                self.render_sprite_snapshot_for_camera(*entity, sprite, camera_layers)
+            })
+            .collect::<Vec<_>>();
+        sprites.sort_by_key(|sprite| (sprite.z_order, sprite.entity));
+        sprites
+    }
+
+    fn render_sprite_snapshot_for_camera(
+        &self,
+        entity: crate::scene::EntityId,
+        sprite: &Sprite2dComponent,
+        camera_layers: &RenderLayerSet,
+    ) -> Option<RenderSpriteSnapshot> {
+        if self.active_in_hierarchy(entity) != Some(true) {
+            return None;
+        }
+        let render_layer_mask = self
+            .render_layer_mask(entity)
+            .unwrap_or(default_render_layer_mask());
+        if !camera_layers.intersects_legacy_mask(render_layer_mask) {
+            return None;
+        }
+
+        Some(RenderSpriteSnapshot {
+            entity,
+            transform: self.world_transform(entity).unwrap_or_default(),
+            image: sprite.image,
+            material: sprite.material,
+            atlas_region: sprite.atlas_region,
+            rect: sprite.rect,
+            flip_x: sprite.flip_x,
+            flip_y: sprite.flip_y,
+            anchor: sprite.anchor,
+            custom_size: sprite.custom_size,
+            color: sprite.color,
+            z_order: sprite.z_order,
+            render_layer_mask,
+            material_alpha_mode: sprite.material_alpha_mode,
+        })
     }
 
     fn collect_directional_lights(&self) -> Vec<RenderDirectionalLightSnapshot> {
@@ -318,31 +397,126 @@ impl World {
                 .map(|node| node.transform)
                 .unwrap_or_default()
         });
+        let projection_mode = if request.settings.projection_mode == ProjectionMode::default() {
+            component.projection_mode
+        } else {
+            request.settings.projection_mode
+        };
 
-        ViewportCameraSnapshot {
+        let mut camera = ViewportCameraSnapshot {
             transform,
-            projection_mode: request.settings.projection_mode,
+            projection_mode,
             fov_y_radians: component.fov_y_radians,
-            ortho_size: 5.0,
+            ortho_size: component.ortho_size,
             z_near: component.z_near,
             z_far: component.z_far,
-            aspect_ratio: request
-                .viewport_size
-                .map(aspect_ratio_from_viewport_size)
-                .unwrap_or_else(default_viewport_aspect_ratio),
+            aspect_ratio: default_viewport_aspect_ratio(),
+            target: component.target.clone(),
+            viewport: component.viewport,
+            order: component.order,
+            is_active: component.is_active,
+            hdr: component.hdr,
+            exposure_ev100: component.exposure_ev100,
+            clear_color: component.clear_color,
+            msaa_samples: component.msaa_samples,
+            render_layers: RenderLayerSet::from_legacy_mask(
+                self.render_layer_mask(entity)
+                    .unwrap_or(default_render_layer_mask()),
+            ),
+            ..ViewportCameraSnapshot::default()
+        };
+        if let Some(viewport_size) = request.viewport_size {
+            camera.apply_viewport_size(viewport_size);
+        } else if let crate::core::framework::render::RenderCameraTarget::Headless { size } =
+            &camera.target
+        {
+            camera.apply_viewport_size(*size);
         }
+        camera
     }
 }
 
-fn build_visibility_input(meshes: &[RenderMeshSnapshot]) -> VisibilityInput {
-    let renderables = meshes
+fn empty_scene_geometry(camera: ViewportCameraSnapshot) -> RenderSceneGeometryExtract {
+    RenderSceneGeometryExtract {
+        camera,
+        meshes: Vec::new(),
+        directional_lights: Vec::new(),
+        point_lights: Vec::new(),
+        spot_lights: Vec::new(),
+        ambient_lights: Vec::new(),
+        rect_lights: Vec::new(),
+    }
+}
+
+fn inactive_camera_frame_extract(
+    world: RenderWorldSnapshotHandle,
+    camera: ViewportCameraSnapshot,
+    request: &SceneViewportExtractRequest,
+) -> RenderFrameExtract {
+    let mut geometry = GeometryExtract::from_meshes_and_phase_inputs(
+        camera.core_pipeline_kind(),
+        Vec::new(),
+        Vec::new(),
+    );
+    geometry.virtual_geometry = Some(RenderVirtualGeometryExtract {
+        debug: request.virtual_geometry_debug.unwrap_or_default(),
+        ..RenderVirtualGeometryExtract::default()
+    });
+    geometry.virtual_geometry_debug = request.virtual_geometry_debug;
+
+    RenderFrameExtract {
+        world,
+        view: RenderViewExtract::from_camera(camera),
+        geometry,
+        animation_poses: Vec::new(),
+        lighting: LightingExtract {
+            directional_lights: Vec::new(),
+            point_lights: Vec::new(),
+            spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
+            reflection_probes: Vec::new(),
+            baked_lighting: None,
+            hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
+        },
+        post_process: PostProcessExtract::from_parts(
+            build_preview_environment(request),
+            request.settings.display_mode,
+            RenderBloomSettings::default(),
+            RenderColorGradingSettings::default(),
+            false,
+            false,
+        ),
+        debug: DebugOverlayExtract {
+            overlays: RenderOverlayExtract {
+                display_mode: request.settings.display_mode,
+                ..RenderOverlayExtract::default()
+            },
+        },
+        sprites: SpriteExtract::default(),
+        particles: ParticleExtract::default(),
+        visibility: empty_visibility_input(),
+    }
+}
+
+fn build_visibility_input(
+    meshes: &[RenderMeshSnapshot],
+    sprites: &[RenderSpriteSnapshot],
+) -> VisibilityInput {
+    let mut renderables = meshes
         .iter()
         .map(|mesh| VisibilityRenderableInput {
             entity: mesh.node_id,
             mobility: mesh.mobility,
             render_layer_mask: mesh.render_layer_mask,
         })
+        .chain(sprites.iter().map(|sprite| VisibilityRenderableInput {
+            entity: sprite.entity,
+            mobility: crate::scene::components::Mobility::Dynamic,
+            render_layer_mask: sprite.render_layer_mask,
+        }))
         .collect::<Vec<_>>();
+    renderables.sort_by_key(|entry| entry.entity);
     let renderable_entities = renderables
         .iter()
         .map(|entry| entry.entity)
@@ -363,6 +537,15 @@ fn build_visibility_input(meshes: &[RenderMeshSnapshot]) -> VisibilityInput {
         static_entities,
         dynamic_entities,
         renderables,
+    }
+}
+
+fn empty_visibility_input() -> VisibilityInput {
+    VisibilityInput {
+        renderable_entities: Vec::new(),
+        static_entities: Vec::new(),
+        dynamic_entities: Vec::new(),
+        renderables: Vec::new(),
     }
 }
 

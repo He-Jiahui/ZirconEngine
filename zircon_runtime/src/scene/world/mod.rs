@@ -11,6 +11,8 @@ mod dynamic_components;
 mod events;
 mod hierarchy;
 mod identity;
+mod messages;
+mod observers;
 mod project_io;
 mod property_access;
 mod query;

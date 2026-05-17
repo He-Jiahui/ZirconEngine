@@ -9,7 +9,8 @@ use zircon_runtime::core::framework::sound::{
     SoundGainEffect, SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundLimiterEffect,
     SoundListenerDescriptor, SoundListenerId, SoundManager, SoundOutputDeviceDescriptor,
     SoundOutputDeviceId, SoundOutputDeviceState, SoundPanStereoEffect, SoundParameterId,
-    SoundPhaserEffect, SoundPlaybackSettings, SoundRayTracedImpulseResponseDescriptor,
+    SoundPhaserEffect, SoundPlaybackCompletionAction, SoundPlaybackFinishReason,
+    SoundPlaybackSettings, SoundRayTracedImpulseResponseDescriptor,
     SoundRayTracingConvolutionStatus, SoundReverbEffect, SoundSidechainInput,
     SoundSourceDescriptor, SoundSourceId, SoundSourceInput, SoundSourceParameterBinding,
     SoundSourceSend, SoundSpatialSourceSettings, SoundTimelineAutomationTrack,
@@ -74,6 +75,8 @@ fn sound_plugin_registration_contributes_runtime_module_components_options_and_e
         "sound.backend",
         "sound.sample_rate_hz",
         "sound.channel_count",
+        "sound.global_volume_gain",
+        "sound.default_spatial_scale",
         "sound.block_size_frames",
         "sound.max_voices",
         "sound.max_tracks",
@@ -122,6 +125,319 @@ fn default_sound_manager_renders_silence_without_active_playback() {
 }
 
 #[test]
+fn global_volume_gain_scales_final_mix_and_rejects_invalid_values() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/global-volume.wav", &[1.0]));
+    sound
+        .play_clip(clip, SoundPlaybackSettings::default())
+        .unwrap();
+
+    assert_eq!(sound.global_volume_gain().unwrap(), 1.0);
+    sound.set_global_volume_gain(0.25).unwrap();
+    let mix = sound.render_mix(1).unwrap();
+
+    assert_eq!(sound.global_volume_gain().unwrap(), 0.25);
+    assert_eq!(mix.samples, vec![0.25, 0.25]);
+    assert!(sound.set_global_volume_gain(f32::NAN).is_err());
+    assert!(sound.set_global_volume_gain(-0.1).is_err());
+}
+
+#[test]
+fn default_spatial_scale_controls_listener_source_distance() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial-scale.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    assert_eq!(sound.default_spatial_scale().unwrap(), 1.0);
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 0.75);
+
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/spatial-scale-half.wav", &[1.0]));
+    sound.update_listener(test_listener()).unwrap();
+    sound.set_default_spatial_scale(0.5).unwrap();
+    assert_eq!(sound.default_spatial_scale().unwrap(), 0.5);
+    assert!(sound.set_default_spatial_scale(f32::NAN).is_err());
+    assert!(sound.set_default_spatial_scale(-0.1).is_err());
+
+    let mut source = SoundSourceDescriptor::clip(clip);
+    source.position = [2.0, 0.0, 0.0];
+    source.spatial = SoundSpatialSourceSettings {
+        spatial_blend: 1.0,
+        min_distance: 1.0,
+        max_distance: 5.0,
+        attenuation: SoundAttenuationMode::Linear,
+        ..SoundSpatialSourceSettings::default()
+    };
+    sound.create_source(source).unwrap();
+
+    let mix = sound.render_mix(1).unwrap();
+    assert_sample_near(mix.samples[0], 0.0);
+    assert_sample_near(mix.samples[1], 1.0);
+}
+
+#[test]
+fn playback_settings_presets_match_bevy_playback_modes() {
+    assert_eq!(
+        SoundPlaybackSettings::default(),
+        SoundPlaybackSettings::ONCE
+    );
+    assert!(!SoundPlaybackSettings::ONCE.looped);
+    assert_eq!(
+        SoundPlaybackSettings::ONCE.completion_action,
+        SoundPlaybackCompletionAction::None
+    );
+    assert!(SoundPlaybackSettings::LOOP.looped);
+    assert_eq!(
+        SoundPlaybackSettings::LOOP.completion_action,
+        SoundPlaybackCompletionAction::None
+    );
+    assert!(!SoundPlaybackSettings::DESPAWN.looped);
+    assert_eq!(
+        SoundPlaybackSettings::DESPAWN.completion_action,
+        SoundPlaybackCompletionAction::DespawnEntity
+    );
+    assert!(!SoundPlaybackSettings::REMOVE.looped);
+    assert_eq!(
+        SoundPlaybackSettings::REMOVE.completion_action,
+        SoundPlaybackCompletionAction::RemoveAudioComponents
+    );
+
+    let customized = SoundPlaybackSettings::LOOP
+        .paused()
+        .muted()
+        .with_gain(0.5)
+        .with_speed(2.0)
+        .with_pan(-0.25)
+        .with_start_seconds(0.1)
+        .with_duration_seconds(0.2)
+        .with_completion_action(SoundPlaybackCompletionAction::RemoveAudioComponents)
+        .with_looped(false);
+    assert!(customized.paused);
+    assert!(customized.muted);
+    assert_eq!(customized.gain, 0.5);
+    assert_eq!(customized.speed, 2.0);
+    assert_eq!(customized.pan, -0.25);
+    assert_eq!(customized.start_seconds, Some(0.1));
+    assert_eq!(customized.duration_seconds, Some(0.2));
+    assert_eq!(
+        customized.completion_action,
+        SoundPlaybackCompletionAction::RemoveAudioComponents
+    );
+    assert!(!customized.looped);
+}
+
+#[test]
+fn playback_settings_reject_non_finite_initial_mix_parameters() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/playback-invalid.wav", &[0.5]));
+
+    assert!(sound
+        .play_clip(clip, SoundPlaybackSettings::ONCE.with_gain(f32::NAN),)
+        .is_err());
+    assert!(sound
+        .play_clip(clip, SoundPlaybackSettings::ONCE.with_gain(f32::INFINITY),)
+        .is_err());
+    assert!(sound
+        .play_clip(clip, SoundPlaybackSettings::ONCE.with_pan(f32::NAN),)
+        .is_err());
+    assert!(sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings::ONCE.with_pan(f32::NEG_INFINITY),
+        )
+        .is_err());
+}
+
+#[test]
+fn playback_pause_resume_and_status_match_sink_lifecycle_controls() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip(
+        "res://sound/playback-lifecycle.wav",
+        &[0.25, 0.5, 0.75, 1.0],
+    ));
+    let playback = sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings {
+                paused: true,
+                muted: true,
+                ..SoundPlaybackSettings::default()
+            },
+        )
+        .unwrap();
+
+    let initial = sound.playback_status(playback).unwrap();
+    assert!(initial.paused);
+    assert!(initial.muted);
+    assert_eq!(initial.gain, 1.0);
+    assert_eq!(initial.speed, 1.0);
+    assert_eq!(
+        initial.completion_action,
+        SoundPlaybackCompletionAction::None
+    );
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert_eq!(sound.playback_status(playback).unwrap().cursor_frame, 0);
+
+    sound.resume_playback(playback).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    let paused = sound.playback_status(playback).unwrap();
+    assert!(!paused.paused);
+    assert!(paused.muted);
+    assert_eq!(paused.cursor_frame, 1);
+
+    sound.unmute_playback(playback).unwrap();
+    sound.set_playback_gain(playback, 0.5).unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.25, 0.25]);
+    let advanced = sound.playback_status(playback).unwrap();
+    assert_eq!(advanced.clip, clip);
+    assert_eq!(advanced.gain, 0.5);
+    assert_eq!(advanced.cursor_frame, 2);
+
+    sound.mute_playback(playback).unwrap();
+    assert!(sound.playback_status(playback).unwrap().muted);
+    sound.unmute_playback(playback).unwrap();
+    sound.toggle_mute_playback(playback).unwrap();
+    assert!(sound.playback_status(playback).unwrap().muted);
+    sound.toggle_mute_playback(playback).unwrap();
+    assert!(!sound.playback_status(playback).unwrap().muted);
+    sound.pause_playback(playback).unwrap();
+    let paused = sound.playback_status(playback).unwrap();
+    assert!(paused.paused);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert_eq!(
+        sound.playback_status(playback).unwrap().cursor_frame,
+        paused.cursor_frame
+    );
+
+    sound.resume_playback(playback).unwrap();
+    assert!(!sound.playback_status(playback).unwrap().paused);
+    sound.toggle_playback(playback).unwrap();
+    assert!(sound.playback_status(playback).unwrap().paused);
+    sound.toggle_playback(playback).unwrap();
+    assert!(!sound.playback_status(playback).unwrap().paused);
+    sound.set_playback_speed(playback, 2.0).unwrap();
+    assert!(sound.set_playback_speed(playback, f32::NAN).is_err());
+    assert!(sound.set_playback_speed(playback, 0.0).is_err());
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.375, 0.375]);
+    assert_eq!(sound.playback_status(playback).unwrap().speed, 2.0);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert!(sound.playback_status(playback).is_err());
+    assert!(sound.toggle_playback(playback).is_err());
+    assert!(sound.toggle_mute_playback(playback).is_err());
+}
+
+#[test]
+fn playback_start_duration_seek_and_loop_range_match_sink_position_controls() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip(
+        "res://sound/playback-range.wav",
+        &[0.1, 0.2, 0.3, 0.4, 0.5],
+    ));
+    let frame_seconds = 1.0 / 48_000.0;
+    let playback = sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings::LOOP
+                .with_start_seconds(frame_seconds * 2.0)
+                .with_duration_seconds(frame_seconds * 2.0),
+        )
+        .unwrap();
+
+    let initial = sound.playback_status(playback).unwrap();
+    assert_eq!(initial.range_start_frame, 2);
+    assert_eq!(initial.range_end_frame, Some(4));
+    assert_eq!(initial.cursor_frame, 2);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.3, 0.3]);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.4, 0.4]);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.3, 0.3]);
+
+    sound
+        .seek_playback_seconds(playback, frame_seconds * 3.0)
+        .unwrap();
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.4, 0.4]);
+    sound.seek_playback_seconds(playback, 0.0).unwrap();
+    assert_eq!(sound.playback_status(playback).unwrap().cursor_frame, 2);
+    sound.seek_playback_seconds(playback, 1.0).unwrap();
+    assert_eq!(sound.playback_status(playback).unwrap().cursor_frame, 4);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.3, 0.3]);
+
+    assert!(sound.seek_playback_seconds(playback, f32::NAN).is_err());
+    assert!(sound
+        .seek_playback_seconds(playback, -frame_seconds)
+        .is_err());
+    assert!(sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings {
+                duration_seconds: Some(0.0),
+                ..SoundPlaybackSettings::default()
+            },
+        )
+        .is_err());
+}
+
+#[test]
+fn playback_completion_events_track_empty_and_stopped_sinks() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/playback-empty.wav", &[0.5]));
+    let playback = sound
+        .play_clip(clip, SoundPlaybackSettings::REMOVE)
+        .unwrap();
+
+    assert!(!sound.playback_empty(playback).unwrap());
+    assert!(sound.drain_finished_playbacks().unwrap().is_empty());
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.5, 0.5]);
+    assert_eq!(sound.playback_status(playback).unwrap().cursor_frame, 1);
+    assert!(!sound.playback_empty(playback).unwrap());
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    assert!(sound.playback_status(playback).is_err());
+    assert!(sound.playback_empty(playback).unwrap());
+    let finished = sound.drain_finished_playbacks().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].playback, playback);
+    assert_eq!(finished[0].clip, clip);
+    assert_eq!(finished[0].reason, SoundPlaybackFinishReason::Completed);
+    assert_eq!(
+        finished[0].completion_action,
+        SoundPlaybackCompletionAction::RemoveAudioComponents
+    );
+    assert_eq!(finished[0].output_track, SoundTrackId::master());
+    assert!(sound.drain_finished_playbacks().unwrap().is_empty());
+    assert!(sound.playback_empty(playback).is_err());
+
+    let stopped = sound
+        .play_clip(clip, SoundPlaybackSettings::DESPAWN)
+        .unwrap();
+    assert!(!sound.playback_empty(stopped).unwrap());
+    sound.stop_playback(stopped).unwrap();
+    assert!(sound.playback_status(stopped).is_err());
+    assert!(sound.playback_empty(stopped).unwrap());
+    let finished = sound.drain_finished_playbacks().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].playback, stopped);
+    assert_eq!(finished[0].reason, SoundPlaybackFinishReason::Stopped);
+    assert_eq!(
+        finished[0].completion_action,
+        SoundPlaybackCompletionAction::DespawnEntity
+    );
+    assert!(sound.stop_playback(stopped).is_err());
+    assert!(sound.playback_empty(stopped).is_err());
+}
+
+#[test]
 fn mixer_graph_routes_custom_track_through_effect_chain_to_master() {
     let sound = DefaultSoundManager::default();
     let clip = sound.insert_clip_for_test(test_clip("res://sound/tone.wav", &[1.0, 1.0]));
@@ -158,6 +474,38 @@ fn mixer_graph_routes_custom_track_through_effect_chain_to_master() {
         .meters
         .iter()
         .any(|meter| meter.track == music && meter.peak_left == 0.5));
+}
+
+#[test]
+fn removing_track_reroutes_active_playbacks_before_finished_events() {
+    let sound = DefaultSoundManager::default();
+    let clip = sound.insert_clip_for_test(test_clip("res://sound/remove-track.wav", &[0.5]));
+    let music = SoundTrackId::new(2);
+    sound
+        .add_or_update_track(SoundTrackDescriptor::child(music, "Music"))
+        .unwrap();
+    let playback = sound
+        .play_clip(
+            clip,
+            SoundPlaybackSettings {
+                output_track: music,
+                ..SoundPlaybackSettings::default()
+            },
+        )
+        .unwrap();
+
+    assert_eq!(sound.playback_status(playback).unwrap().output_track, music);
+    sound.remove_track(music).unwrap();
+    assert_eq!(
+        sound.playback_status(playback).unwrap().output_track,
+        SoundTrackId::master()
+    );
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.5, 0.5]);
+    assert_eq!(sound.render_mix(1).unwrap().samples, vec![0.0, 0.0]);
+    let finished = sound.drain_finished_playbacks().unwrap();
+    assert_eq!(finished.len(), 1);
+    assert_eq!(finished[0].playback, playback);
+    assert_eq!(finished[0].output_track, SoundTrackId::master());
 }
 
 #[test]

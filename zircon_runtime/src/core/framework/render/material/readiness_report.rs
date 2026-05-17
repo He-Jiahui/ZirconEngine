@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{
     RenderMaterialDependencySet, RenderMaterialFallbackPolicy, RenderMaterialValidationError,
 };
-use crate::core::resource::AssetReference;
+use crate::core::resource::{AssetReference, ResourceId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RenderMaterialFallbackUsage {
@@ -14,6 +14,9 @@ pub struct RenderMaterialFallbackUsage {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "reason", rename_all = "snake_case")]
 pub enum RenderMaterialFallbackReason {
+    Material {
+        material: ResourceId,
+    },
     Shader {
         reference: AssetReference,
     },
@@ -40,5 +43,17 @@ impl RenderMaterialReadinessReport {
 
     pub fn uses_fallback(&self) -> bool {
         !self.fallback_usages.is_empty()
+    }
+
+    pub fn push_validation_error_once(&mut self, error: RenderMaterialValidationError) {
+        if !self.validation_errors.contains(&error) {
+            self.validation_errors.push(error);
+        }
+    }
+
+    pub fn push_fallback_usage_once(&mut self, usage: RenderMaterialFallbackUsage) {
+        if !self.fallback_usages.contains(&usage) {
+            self.fallback_usages.push(usage);
+        }
     }
 }

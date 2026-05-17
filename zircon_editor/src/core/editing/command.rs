@@ -1,9 +1,11 @@
 //! Undoable editor commands that mutate the ECS world.
 
-use zircon_runtime::core::framework::scene::{ComponentPropertyPath, ScenePropertyValue};
 use zircon_runtime::scene::components::{NodeKind, NodeRecord};
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::math::Transform;
+use zircon_runtime_interface::reflect::{
+    ReflectObjectAddress, ReflectReadRequest, ReflectWriteRequest, ReflectedValue,
+};
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 #[derive(Clone, Debug)]
@@ -11,7 +13,7 @@ pub(crate) enum EditorCommand {
     CreateNode(CreateNodeCommand),
     DeleteNode(DeleteNodeCommand),
     UpdateNode(UpdateNodeCommand),
-    SetSceneProperty(SetScenePropertyCommand),
+    SetReflectedSceneField(SetReflectedSceneFieldCommand),
     Batch(BatchEditorCommand),
 }
 
@@ -80,38 +82,23 @@ impl EditorCommand {
         )
     }
 
-    pub(crate) fn update_node(
+    pub(crate) fn set_reflected_scene_field(
         scene: &mut Scene,
         selected: Option<NodeId>,
         node_id: NodeId,
-        name: String,
-        parent: Option<NodeId>,
-        transform: Transform,
+        component_type_path: impl Into<String>,
+        field_name: impl Into<String>,
+        after: ReflectedValue,
     ) -> Result<Option<Self>, String> {
-        Ok(UpdateNodeCommand::capture(
+        Ok(SetReflectedSceneFieldCommand::capture(
             scene,
             selected,
             node_id,
-            NodeEditState {
-                name,
-                parent,
-                transform,
-            },
+            component_type_path.into(),
+            field_name.into(),
+            after,
         )?
-        .map(Self::UpdateNode))
-    }
-
-    pub(crate) fn set_scene_property(
-        scene: &mut Scene,
-        selected: Option<NodeId>,
-        node_id: NodeId,
-        property_path: ComponentPropertyPath,
-        after: ScenePropertyValue,
-    ) -> Result<Option<Self>, String> {
-        Ok(
-            SetScenePropertyCommand::capture(scene, selected, node_id, property_path, after)?
-                .map(Self::SetSceneProperty),
-        )
+        .map(Self::SetReflectedSceneField))
     }
 
     pub(crate) fn batch(commands: Vec<Self>) -> Option<Self> {
@@ -123,7 +110,7 @@ impl EditorCommand {
             Self::CreateNode(command) => command.apply(scene),
             Self::DeleteNode(command) => command.apply(scene),
             Self::UpdateNode(command) => command.apply(scene),
-            Self::SetSceneProperty(command) => command.apply(scene),
+            Self::SetReflectedSceneField(command) => command.apply(scene),
             Self::Batch(command) => command.apply(scene),
         }
     }
@@ -133,7 +120,7 @@ impl EditorCommand {
             Self::CreateNode(command) => command.undo(scene),
             Self::DeleteNode(command) => command.undo(scene),
             Self::UpdateNode(command) => command.undo(scene),
-            Self::SetSceneProperty(command) => command.undo(scene),
+            Self::SetReflectedSceneField(command) => command.undo(scene),
             Self::Batch(command) => command.undo(scene),
         }
     }
@@ -143,7 +130,7 @@ impl EditorCommand {
             Self::CreateNode(command) => command.node_id(),
             Self::DeleteNode(command) => command.node_id(),
             Self::UpdateNode(command) => command.node_id(),
-            Self::SetSceneProperty(command) => command.node_id(),
+            Self::SetReflectedSceneField(command) => command.node_id(),
             Self::Batch(command) => command.node_id(),
         }
     }
@@ -153,7 +140,7 @@ impl EditorCommand {
             Self::CreateNode(command) => Some(command.node_id()),
             Self::DeleteNode(command) => command.selection_after,
             Self::UpdateNode(command) => command.selection_after,
-            Self::SetSceneProperty(command) => command.selection_after,
+            Self::SetReflectedSceneField(command) => command.selection_after,
             Self::Batch(command) => command.selection_after(),
         }
     }
@@ -463,33 +450,46 @@ fn normalize_edit_state(mut state: NodeEditState) -> Result<NodeEditState, Strin
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct SetScenePropertyCommand {
+pub(crate) struct SetReflectedSceneFieldCommand {
     node_id: NodeId,
-    property_path: ComponentPropertyPath,
-    before: ScenePropertyValue,
-    after: ScenePropertyValue,
+    component_type_path: String,
+    field_name: String,
+    before: ReflectedValue,
+    after: ReflectedValue,
     selection_before: Option<NodeId>,
     pub(crate) selection_after: Option<NodeId>,
 }
 
-impl SetScenePropertyCommand {
+impl SetReflectedSceneFieldCommand {
     fn capture(
         scene: &mut Scene,
         selected: Option<NodeId>,
         node_id: NodeId,
-        property_path: ComponentPropertyPath,
-        after: ScenePropertyValue,
+        component_type_path: String,
+        field_name: String,
+        after: ReflectedValue,
     ) -> Result<Option<Self>, String> {
-        let before = scene.property(node_id, &property_path)?;
+        let before =
+            read_reflected_component_field(scene, node_id, &component_type_path, &field_name)?;
         if before == after {
             return Ok(None);
         }
-        if !scene.set_property(node_id, &property_path, after.clone())? {
+
+        let (after, changed) = write_reflected_component_field(
+            scene,
+            node_id,
+            &component_type_path,
+            &field_name,
+            after,
+        )?;
+        if !changed {
             return Ok(None);
         }
+
         Ok(Some(Self {
             node_id,
-            property_path,
+            component_type_path,
+            field_name,
             before,
             after,
             selection_before: selected,
@@ -498,16 +498,57 @@ impl SetScenePropertyCommand {
     }
 
     fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene.set_property(self.node_id, &self.property_path, self.after.clone())?;
+        let _ = write_reflected_component_field(
+            scene,
+            self.node_id,
+            &self.component_type_path,
+            &self.field_name,
+            self.after.clone(),
+        )?;
         Ok(self.selection_after)
     }
 
     fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        scene.set_property(self.node_id, &self.property_path, self.before.clone())?;
+        let _ = write_reflected_component_field(
+            scene,
+            self.node_id,
+            &self.component_type_path,
+            &self.field_name,
+            self.before.clone(),
+        )?;
         Ok(self.selection_before)
     }
 
     fn node_id(&self) -> NodeId {
         self.node_id
     }
+}
+
+fn read_reflected_component_field(
+    scene: &Scene,
+    node_id: NodeId,
+    component_type_path: &str,
+    field_name: &str,
+) -> Result<ReflectedValue, String> {
+    let address = ReflectObjectAddress::component(node_id, component_type_path)
+        .map_err(|error| error.to_string())?;
+    scene
+        .reflect_read(ReflectReadRequest::new(address, field_name))
+        .map(|response| response.field.value)
+        .map_err(|error| error.to_string())
+}
+
+fn write_reflected_component_field(
+    scene: &mut Scene,
+    node_id: NodeId,
+    component_type_path: &str,
+    field_name: &str,
+    value: ReflectedValue,
+) -> Result<(ReflectedValue, bool), String> {
+    let address = ReflectObjectAddress::component(node_id, component_type_path)
+        .map_err(|error| error.to_string())?;
+    scene
+        .reflect_write(ReflectWriteRequest::new(address, field_name, value))
+        .map(|response| (response.field.value, response.changed))
+        .map_err(|error| error.to_string())
 }

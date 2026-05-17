@@ -1,0 +1,49 @@
+import { PluginData, UiTextData } from "shared.slint";
+import { CatalogListPanel, InfoRow, PageScrollSurface } from "components.slint";
+
+component PluginRow inherits InfoRow {
+    in property <PluginData> plugin;
+    in property <UiTextData> ui-text;
+
+    title: root.plugin.title;
+    detail: root.plugin.description;
+    meta: root.ui-text.plugin-packaging + ": " + root.plugin.packaging + "    " + root.ui-text.plugin-modules + ": " + root.plugin.modules + "    " + root.ui-text.plugin-maturity + ": " + root.plugin.maturity + "    " + root.plugin.path;
+    leading-image: @image-url("../assets/icons/nav/plugins.svg");
+    has-leading-image: true;
+    trailing-text: root.plugin.category;
+    trailing-tone: "accent";
+    show-trailing-badge: true;
+    row-height: 118px;
+}
+
+export component PluginsPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <[PluginData]> plugins;
+    in property <int> plugin-count;
+    in property <UiTextData> ui-text;
+    private property <length> list-scroll-y: 0px;
+
+    background: #11151a;
+
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: 620px;
+
+        CatalogListPanel {
+            scroll-y <=> root.list-scroll-y;
+            title: root.ui-text.plugin-catalog;
+            badge-text: root.plugin-count + " " + root.ui-text.plugins-found;
+            badge-tone: "accent";
+            empty-title: root.ui-text.no-plugins-found;
+            row-count: root.plugin-count;
+            row-height: 118px;
+
+            for plugin in root.plugins: PluginRow {
+                plugin: plugin;
+                ui-text: root.ui-text;
+            }
+        }
+    }
+}

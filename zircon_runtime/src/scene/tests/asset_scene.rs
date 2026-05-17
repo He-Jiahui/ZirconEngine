@@ -1,10 +1,13 @@
 use std::fs;
 
-use crate::asset::AssetUri;
+use crate::asset::{AssetUri, SceneCameraTargetAsset};
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::physics::{PhysicsCombineRule, PhysicsMaterialMetadata};
-use crate::core::math::Vec3;
-use crate::scene::components::{ColliderShape, JointKind, RigidBodyType};
+use crate::core::framework::render::{
+    ProjectionMode, RenderCameraClearColor, RenderCameraTarget, RenderViewportRect,
+};
+use crate::core::math::{UVec2, Vec3};
+use crate::scene::components::{CameraComponent, ColliderShape, JointKind, RigidBodyType};
 
 use crate::scene::components::NodeKind;
 use crate::scene::world::World;
@@ -38,7 +41,7 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
     );
     assert_eq!(
         mesh.material,
-        project_material_handle(&project, "res://materials/grid.material.toml")
+        project_material_handle(&project, "res://materials/grid.zmaterial")
     );
 
     let saved = world.to_scene_asset(&project).unwrap();
@@ -50,7 +53,7 @@ fn scene_assets_instantiate_world_with_asset_bound_meshes() {
     assert_eq!(saved_mesh.model.to_string(), "res://models/triangle.obj");
     assert_eq!(
         saved_mesh.material.to_string(),
-        "res://materials/grid.material.toml"
+        "res://materials/grid.zmaterial"
     );
 
     let _ = fs::remove_dir_all(root);
@@ -85,7 +88,7 @@ fn render_extract_keeps_asset_bound_meshes_without_editor_selection_overlay() {
     );
     assert_eq!(
         mesh.material,
-        project_material_handle(&project, "res://materials/grid.material.toml")
+        project_material_handle(&project, "res://materials/grid.zmaterial")
     );
     assert!(extract.overlays.selection.is_empty());
     assert!(extract
@@ -223,6 +226,70 @@ fn scene_assets_roundtrip_asset_bound_physics_and_animation_components() {
             .get("grounded"),
         Some(&AnimationParameterValue::Bool(true))
     );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn scene_assets_roundtrip_camera_product_fields() {
+    let root = unique_temp_project_root("scene_camera_products");
+    let project = create_test_project(&root);
+    let mut world = World::load_scene_from_uri(
+        &project,
+        &AssetUri::parse("res://scenes/main.scene.toml").unwrap(),
+    )
+    .unwrap();
+    let camera = world.active_camera();
+    *world.get_mut::<CameraComponent>(camera).unwrap() = CameraComponent {
+        projection_mode: ProjectionMode::Orthographic,
+        fov_y_radians: 0.7,
+        ortho_size: 18.0,
+        z_near: 0.02,
+        z_far: 900.0,
+        target: RenderCameraTarget::Headless {
+            size: UVec2::new(512, 256),
+        },
+        viewport: Some(RenderViewportRect::new(
+            UVec2::new(12, 24),
+            UVec2::new(320, 160),
+        )),
+        order: 7,
+        is_active: false,
+        hdr: true,
+        exposure_ev100: 10.5,
+        clear_color: RenderCameraClearColor::None,
+        msaa_samples: 8,
+    };
+
+    let saved = world.to_scene_asset(&project).unwrap();
+    let saved_camera = saved
+        .entities
+        .iter()
+        .find(|entity| entity.entity == camera)
+        .and_then(|entity| entity.camera.as_ref())
+        .unwrap();
+    assert_eq!(saved_camera.projection_mode, ProjectionMode::Orthographic);
+    assert!(matches!(
+        &saved_camera.target,
+        SceneCameraTargetAsset::Headless { size: [512, 256] }
+    ));
+    assert_eq!(saved_camera.order, 7);
+    assert!(!saved_camera.active);
+    assert!(saved_camera.hdr);
+    assert_eq!(saved_camera.msaa_samples, 8);
+
+    let loaded = World::from_scene_asset(&project, &saved).unwrap();
+    let loaded_camera = loaded.find_node(camera).unwrap().camera.unwrap();
+    assert_eq!(loaded_camera.projection_mode, ProjectionMode::Orthographic);
+    assert_eq!(loaded_camera.ortho_size, 18.0);
+    assert!(matches!(
+        loaded_camera.target,
+        RenderCameraTarget::Headless { size } if size == UVec2::new(512, 256)
+    ));
+    assert_eq!(loaded_camera.order, 7);
+    assert!(!loaded_camera.is_active);
+    assert!(loaded_camera.hdr);
+    assert_eq!(loaded_camera.clear_color, RenderCameraClearColor::None);
 
     let _ = fs::remove_dir_all(root);
 }

@@ -1,12 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::resource::AssetReference;
+use crate::core::resource::{AssetReference, ResourceId};
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "error", rename_all = "snake_case")]
 pub enum RenderMaterialValidationError {
     InvalidMaskCutoff {
         cutoff: f32,
+    },
+    UnresolvedMaterialReference {
+        material: ResourceId,
     },
     MissingRuntimeShaderSource,
     UnresolvedShaderReference {

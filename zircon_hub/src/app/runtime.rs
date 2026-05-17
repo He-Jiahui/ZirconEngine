@@ -2,31 +2,50 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 
-use slint::{ComponentHandle, PhysicalPosition};
+use crate::assets::AssetCatalogEntry;
+use slint::ComponentHandle;
 
-use crate::build::{run_build_command, BuildCommand, BuildCommandOptions};
-use crate::engines::{validate_source_engine, SourceEngineInstall, SourceEngineValidation};
+use crate::build::{run_build_command, BuildCommand, BuildCommandOptions, BuildExecutionReport};
+use crate::engines::{
+    active_source_engine, active_source_engine_mut, ensure_active_source_engine,
+    remove_source_engine, upsert_source_engine, validate_source_engine, SourceBuildRecord,
+    SourceEngineInstall, SourceEngineValidation,
+};
 use crate::error::HubError;
+use crate::learn::LearnCatalogEntry;
+use crate::plugins::PluginCatalogEntry;
 use crate::process::{
     launch_editor, open_folder, preferred_editor_executable, preferred_editor_executable_exists,
     EditorLaunchCommand, EditorLaunchRequest, OpenFolderCommand,
 };
 use crate::projects::{
-    load_editor_recent_projects, merge_recent_projects, save_editor_recent_projects,
-    save_editor_recent_projects_with_last_project, validate_project_root, CreateProjectRequest,
+    install_package_to_device, load_editor_recent_projects, merge_recent_projects, package_project,
+    save_editor_recent_projects, save_editor_recent_projects_with_last_project,
+    validate_project_root, CreateProjectRequest, DeviceInstallRequest, ProjectPackageRequest,
     ProjectTemplate, ProjectValidation, RecentProject,
 };
 use crate::settings::{default_hub_config_path, editor_config_path, HubConfig};
-use crate::state::{HubPage, HubSnapshot, ProjectSortMode, ProjectViewMode, TaskStatus};
+use crate::state::{
+    HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectViewMode, TaskStatus,
+};
+use crate::team::TeamOverview;
 
 use super::binding;
 use super::quick_action::HubQuickAction;
 use super::HubWindow;
 
+mod asset_catalog;
+mod folder_picker;
+mod learn_catalog;
+mod plugin_catalog;
+mod team_overview;
+mod window_controls;
+
 pub(super) fn run() -> Result<(), HubError> {
     let ui = HubWindow::new()?;
     let runtime = Rc::new(RefCell::new(HubRuntime::load()?));
     binding::apply_snapshot(&ui, &runtime.borrow().snapshot());
+    runtime.borrow().apply_window_state(&ui);
     wire_callbacks(&ui, runtime);
     ui.run()?;
     Ok(())
@@ -37,17 +56,16 @@ struct HubRuntime {
     editor_config_path: PathBuf,
     config: HubConfig,
     selected_page: HubPage,
+    project_filter: ProjectFilterMode,
     project_sort: ProjectSortMode,
     project_view_mode: ProjectViewMode,
     search_query: String,
+    selected_project_path: Option<PathBuf>,
     task_status: TaskStatus,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct WindowDragState {
-    origin: PhysicalPosition,
-    press_x: f32,
-    press_y: f32,
+    asset_catalog: Vec<AssetCatalogEntry>,
+    learn_catalog: Vec<LearnCatalogEntry>,
+    plugin_catalog: Vec<PluginCatalogEntry>,
+    team_overview: TeamOverview,
 }
 
 impl HubRuntime {
@@ -62,25 +80,42 @@ impl HubRuntime {
             editor_config_path,
             config,
             selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
             search_query: String::new(),
+            selected_project_path: None,
             task_status: TaskStatus::idle(),
+            asset_catalog: Vec::new(),
+            learn_catalog: Vec::new(),
+            plugin_catalog: Vec::new(),
+            team_overview: TeamOverview::empty(),
         };
         runtime.register_source_engine_from_settings();
-        runtime.persist_hub_config()?;
+        runtime.refresh_asset_catalog()?;
+        runtime.refresh_learn_catalog()?;
+        runtime.refresh_plugin_catalog()?;
+        runtime.refresh_team_overview()?;
+        runtime.persist()?;
         Ok(runtime)
     }
 
     fn snapshot(&self) -> HubSnapshot {
         HubSnapshot {
             selected_page: self.selected_page,
+            project_filter: self.project_filter,
             project_sort: self.project_sort,
             project_view_mode: self.project_view_mode,
             search_query: self.search_query.clone(),
+            selected_project_path: self.selected_project_path.clone(),
             task_status: self.task_status.clone(),
             recent_projects: self.config.recent_projects.clone(),
+            assets: self.asset_catalog.clone(),
+            learn_resources: self.learn_catalog.clone(),
+            plugins: self.plugin_catalog.clone(),
+            team: self.team_overview.clone(),
             engines: self.config.engines.clone(),
+            active_engine_id: self.config.active_engine_id.clone(),
             settings: self.config.settings.clone(),
         }
     }
@@ -99,6 +134,48 @@ impl HubRuntime {
 
     fn search_projects(&mut self, query: &str) {
         self.search_query = query.to_string();
+    }
+
+    fn select_project_path(&mut self, project_path: &str) -> Result<(), HubError> {
+        let path = PathBuf::from(project_path);
+        let Some(project) = self
+            .config
+            .recent_projects
+            .iter()
+            .find(|project| project.path == path)
+            .cloned()
+        else {
+            return Err(HubError::message(format!(
+                "Unknown recent project: {project_path}"
+            )));
+        };
+        self.selected_project_path = Some(project.path.clone());
+        self.task_status = TaskStatus {
+            label: "Project selected".to_string(),
+            detail: recent_project_display_name(&project),
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn view_all_projects(&mut self) {
+        self.search_query.clear();
+        self.project_filter = ProjectFilterMode::All;
+        self.project_view_mode = ProjectViewMode::Grid;
+        self.task_status = TaskStatus {
+            label: "All projects".to_string(),
+            detail: "Showing all recent projects".to_string(),
+            running: false,
+        };
+    }
+
+    fn cycle_project_filter(&mut self) {
+        self.project_filter = self.project_filter.next();
+        self.task_status = TaskStatus {
+            label: "Projects filtered".to_string(),
+            detail: format!("Showing {}", self.project_filter.label()),
+            running: false,
+        };
     }
 
     fn cycle_project_sort(&mut self) {
@@ -120,6 +197,118 @@ impl HubRuntime {
         Ok(())
     }
 
+    fn select_engine_by_id(&mut self, ui: &HubWindow, engine_id: &str) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let Some(engine) = self
+            .config
+            .engines
+            .iter()
+            .find(|engine| engine.id == engine_id)
+            .cloned()
+        else {
+            return Err(HubError::message(format!(
+                "Unknown source engine: {engine_id}"
+            )));
+        };
+        self.config.active_engine_id = Some(engine.id.clone());
+        self.config.settings.default_source_dir = engine.source_dir.clone();
+        self.config.settings.default_build_output_dir = engine.output_dir.clone();
+        self.refresh_asset_catalog()?;
+        self.refresh_learn_catalog()?;
+        self.refresh_plugin_catalog()?;
+        self.refresh_team_overview()?;
+        self.persist_hub_config()?;
+        self.task_status = TaskStatus {
+            label: "Engine selected".to_string(),
+            detail: engine.display_name,
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn rename_active_engine(&mut self, ui: &HubWindow, name: &str) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let name = name.trim();
+        if name.is_empty() {
+            self.task_status = TaskStatus {
+                label: "Rename skipped".to_string(),
+                detail: "Engine name cannot be empty".to_string(),
+                running: false,
+            };
+            return Ok(());
+        }
+        let Some(engine) = active_source_engine_mut(
+            &mut self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        ) else {
+            self.task_status = TaskStatus {
+                label: "No engine".to_string(),
+                detail: "Configure a source checkout before renaming".to_string(),
+                running: false,
+            };
+            return Ok(());
+        };
+        engine.display_name = name.to_string();
+        self.persist_hub_config()?;
+        self.task_status = TaskStatus {
+            label: "Engine renamed".to_string(),
+            detail: name.to_string(),
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn remove_engine_by_id(&mut self, ui: &HubWindow, engine_id: &str) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let Some(removed) = remove_source_engine(
+            &mut self.config.engines,
+            &mut self.config.active_engine_id,
+            engine_id,
+        ) else {
+            return Err(HubError::message(format!(
+                "Unknown source engine: {engine_id}"
+            )));
+        };
+        self.sync_settings_from_active_engine();
+        self.refresh_asset_catalog()?;
+        self.refresh_learn_catalog()?;
+        self.refresh_plugin_catalog()?;
+        self.refresh_team_overview()?;
+        self.persist_hub_config()?;
+        self.task_status = TaskStatus {
+            label: "Engine removed".to_string(),
+            detail: removed.display_name,
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn cycle_active_engine(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        if self.config.engines.is_empty() {
+            self.task_status = TaskStatus {
+                label: "No engines".to_string(),
+                detail: "Configure a source checkout first".to_string(),
+                running: false,
+            };
+            return Ok(());
+        }
+        let current_index = self
+            .config
+            .active_engine_id
+            .as_deref()
+            .and_then(|id| {
+                self.config
+                    .engines
+                    .iter()
+                    .position(|engine| engine.id == id)
+            })
+            .unwrap_or(0);
+        let next_index = (current_index + 1) % self.config.engines.len();
+        let next_id = self.config.engines[next_index].id.clone();
+        self.select_engine_by_id(ui, &next_id)
+    }
+
     fn sync_from_ui(&mut self, ui: &HubWindow) {
         self.search_query = ui.get_search_query().to_string();
         self.config.settings = binding::read_settings(ui, self.config.settings.clone());
@@ -128,6 +317,10 @@ impl HubRuntime {
     fn save_settings(&mut self, ui: &HubWindow) -> Result<(), HubError> {
         self.sync_from_ui(ui);
         self.register_source_engine_from_settings();
+        self.refresh_asset_catalog()?;
+        self.refresh_learn_catalog()?;
+        self.refresh_plugin_catalog()?;
+        self.refresh_team_overview()?;
         self.persist()?;
         self.task_status = TaskStatus {
             label: "Settings saved".to_string(),
@@ -197,19 +390,83 @@ impl HubRuntime {
     fn quick_action(&mut self, ui: &HubWindow, action_id: &str) -> Result<(), HubError> {
         match HubQuickAction::from_id(action_id) {
             Some(HubQuickAction::BuildProject) => self.build_editor_runtime(ui),
-            Some(HubQuickAction::OpenEditor) => self.launch_editor_without_project(ui),
-            Some(action @ (HubQuickAction::InstallToDevice | HubQuickAction::PackageProject)) => {
-                self.task_status = TaskStatus {
-                    label: "Action unavailable".to_string(),
-                    detail: action.unavailable_detail().to_string(),
-                    running: false,
-                };
-                Ok(())
-            }
+            Some(HubQuickAction::OpenEditor) => self.open_selected_project_or_editor(ui),
+            Some(HubQuickAction::PackageProject) => self.package_recent_project(ui),
+            Some(HubQuickAction::InstallToDevice) => self.install_recent_project_to_device(ui),
             None => Err(HubError::message(format!(
                 "Unknown quick action: {action_id}"
             ))),
         }
+    }
+
+    fn install_recent_project_to_device(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        let package_report = self.package_recent_project_to_output(ui)?;
+        let project_name = self.selected_project_label();
+        let install_report = install_package_to_device(&DeviceInstallRequest::new(
+            package_report.package_dir,
+            self.config.settings.default_device_install_dir.clone(),
+        ))?;
+        self.task_status = TaskStatus {
+            label: "Installed to device".to_string(),
+            detail: format!(
+                "{} -> {} ({} files)",
+                project_name,
+                install_report.install_dir.to_string_lossy(),
+                install_report.files_copied
+            ),
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn package_recent_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        let report = self.package_recent_project_to_output(ui)?;
+        let project_name = self.selected_project_label();
+        self.task_status = TaskStatus {
+            label: "Package created".to_string(),
+            detail: format!(
+                "{} -> {} ({} files)",
+                project_name,
+                report.package_dir.to_string_lossy(),
+                report.files_copied
+            ),
+            running: false,
+        };
+        Ok(())
+    }
+
+    fn package_recent_project_to_output(
+        &mut self,
+        ui: &HubWindow,
+    ) -> Result<crate::projects::ProjectPackageReport, HubError> {
+        self.sync_from_ui(ui);
+        let Some(project) = self.selected_or_latest_recent_project() else {
+            return Err(HubError::message(
+                "No recent project is available to package",
+            ));
+        };
+        if validate_project_root(&project.path) != ProjectValidation::Valid {
+            return Err(HubError::message(format!(
+                "Project root is not valid: {}",
+                project.path.to_string_lossy()
+            )));
+        }
+        let display_name = recent_project_display_name(&project);
+        let request = ProjectPackageRequest::new(
+            display_name.clone(),
+            project.path.clone(),
+            self.config.settings.default_build_output_dir.clone(),
+        );
+        package_project(&request)
+    }
+
+    fn open_selected_project_or_editor(&mut self, ui: &HubWindow) -> Result<(), HubError> {
+        self.sync_from_ui(ui);
+        let Some(project) = self.selected_recent_project() else {
+            return self.launch_editor_without_project(ui);
+        };
+        let display_name = recent_project_display_name(&project);
+        self.open_project_path(ui, project.path, Some(display_name))
     }
 
     fn create_project(&mut self, ui: &HubWindow) -> Result<(), HubError> {
@@ -255,28 +512,32 @@ impl HubRuntime {
         binding::apply_snapshot(ui, &self.snapshot());
         let command = BuildCommand::for_editor_runtime(&BuildCommandOptions::new(
             self.config.settings.python_path.clone(),
+            self.config.settings.cargo_path.clone(),
             self.config.settings.default_source_dir.clone(),
             self.config.settings.default_build_output_dir.clone(),
             self.config.settings.build_profile,
             Some(self.config.settings.jobs),
         ));
-        let report = run_build_command(&command)?;
+        let report = match run_build_command(&command) {
+            Ok(report) => report,
+            Err(error) => {
+                self.record_active_build(false, error.to_string());
+                self.persist_hub_config()?;
+                return Err(error);
+            }
+        };
         if !report.succeeded() {
+            let detail = build_failure_detail(&report);
+            self.record_active_build(false, detail.clone());
+            self.persist_hub_config()?;
             self.task_status = TaskStatus {
                 label: "Build failed".to_string(),
-                detail: report
-                    .stderr
-                    .lines()
-                    .last()
-                    .unwrap_or("build failed")
-                    .to_string(),
+                detail,
                 running: false,
             };
             return Err(HubError::message(self.task_status.detail.clone()));
         }
-        if let Some(engine) = self.config.engines.first_mut() {
-            engine.last_build_unix_ms = Some(crate::projects::now_unix_ms());
-        }
+        self.record_active_build(true, "Staged editor/runtime payload".to_string());
         self.persist()?;
         self.task_status = TaskStatus {
             label: "Build complete".to_string(),
@@ -325,11 +586,49 @@ impl HubRuntime {
 
     fn remember_project(&mut self, project: RecentProject) -> Result<(), HubError> {
         let last_project_path = project.path.clone();
+        self.selected_project_path = Some(last_project_path.clone());
         self.config.recent_projects = merge_recent_projects(
             std::iter::once(project),
             self.config.recent_projects.clone(),
         );
+        self.refresh_asset_catalog()?;
         self.persist_with_last_project(Some(&last_project_path))
+    }
+
+    fn selected_recent_project(&mut self) -> Option<RecentProject> {
+        let selected_path = self.selected_project_path.clone()?;
+        let project = self
+            .config
+            .recent_projects
+            .iter()
+            .find(|project| project.path == selected_path)
+            .cloned();
+        if project.is_none() {
+            self.selected_project_path = None;
+        }
+        project
+    }
+
+    fn selected_or_latest_recent_project(&mut self) -> Option<RecentProject> {
+        if let Some(project) = self.selected_recent_project() {
+            return Some(project);
+        }
+        let project = self
+            .config
+            .recent_projects
+            .iter()
+            .max_by_key(|project| project.last_opened_unix_ms)
+            .cloned();
+        if let Some(project) = &project {
+            self.selected_project_path = Some(project.path.clone());
+        }
+        project
+    }
+
+    fn selected_project_label(&mut self) -> String {
+        self.selected_recent_project()
+            .map(|project| recent_project_display_name(&project))
+            .unwrap_or_else(|| "Project".to_string())
     }
 
     fn register_source_engine_from_settings(&mut self) {
@@ -337,25 +636,73 @@ impl HubRuntime {
         if settings.default_source_dir.as_os_str().is_empty() {
             return;
         }
+        let engine_id = source_engine_id(&settings.default_source_dir);
+        let last_build_unix_ms = self
+            .config
+            .engines
+            .iter()
+            .find(|engine| engine.id == engine_id)
+            .and_then(|engine| engine.last_build_unix_ms);
+        let existing = self
+            .config
+            .engines
+            .iter()
+            .find(|engine| engine.id == engine_id);
         let engine = SourceEngineInstall {
-            id: "local-source".to_string(),
-            display_name: "Local Source".to_string(),
+            id: engine_id.clone(),
+            display_name: existing
+                .map(|engine| engine.display_name.clone())
+                .unwrap_or_else(|| source_engine_display_name(&settings.default_source_dir)),
             source_dir: settings.default_source_dir.clone(),
             output_dir: settings.default_build_output_dir.clone(),
-            last_build_unix_ms: self
-                .config
-                .engines
-                .first()
-                .and_then(|engine| engine.last_build_unix_ms),
+            last_build_unix_ms,
+            build_history: existing
+                .map(|engine| engine.build_history.clone())
+                .unwrap_or_default(),
         };
-        self.config.engines = vec![engine];
+        upsert_source_engine(&mut self.config.engines, engine);
+        self.config.active_engine_id = Some(engine_id);
+        ensure_active_source_engine(&self.config.engines, &mut self.config.active_engine_id);
     }
 
     fn staged_engine_dir(&self) -> PathBuf {
-        self.config
-            .settings
-            .default_build_output_dir
-            .join("ZirconEngine")
+        active_source_engine(
+            &self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        )
+        .map(SourceEngineInstall::staged_engine_dir)
+        .unwrap_or_else(|| {
+            self.config
+                .settings
+                .default_build_output_dir
+                .join("ZirconEngine")
+        })
+    }
+
+    fn sync_settings_from_active_engine(&mut self) {
+        if let Some(engine) = active_source_engine(
+            &self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        ) {
+            self.config.settings.default_source_dir = engine.source_dir.clone();
+            self.config.settings.default_build_output_dir = engine.output_dir.clone();
+        }
+    }
+
+    fn record_active_build(&mut self, success: bool, detail: String) {
+        if let Some(engine) = active_source_engine_mut(
+            &mut self.config.engines,
+            self.config.active_engine_id.as_deref(),
+        ) {
+            engine.record_build(SourceBuildRecord {
+                finished_unix_ms: crate::projects::now_unix_ms(),
+                status: if success { "success" } else { "failed" }.to_string(),
+                profile: self.config.settings.build_profile.as_mode().to_string(),
+                jobs: Some(self.config.settings.jobs),
+                output_dir: self.config.settings.default_build_output_dir.clone(),
+                detail,
+            });
+        }
     }
 
     fn persist(&self) -> Result<(), HubError> {
@@ -384,6 +731,48 @@ impl HubRuntime {
         }
         Ok(())
     }
+}
+
+fn source_engine_id(source_dir: &std::path::Path) -> String {
+    const FNV_OFFSET: u64 = 0xcbf29ce484222325;
+    const FNV_PRIME: u64 = 0x100000001b3;
+    let mut hash = FNV_OFFSET;
+    for byte in source_dir.to_string_lossy().to_ascii_lowercase().bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    format!("source-{hash:016x}")
+}
+
+fn source_engine_display_name(source_dir: &std::path::Path) -> String {
+    source_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .filter(|name| !name.trim().is_empty())
+        .map(|name| format!("{name} Source"))
+        .unwrap_or_else(|| "Local Source".to_string())
+}
+
+fn recent_project_display_name(project: &RecentProject) -> String {
+    if project.display_name.trim().is_empty() {
+        return project
+            .path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("Zircon Project")
+            .to_string();
+    }
+    project.display_name.clone()
+}
+
+fn build_failure_detail(report: &BuildExecutionReport) -> String {
+    report
+        .stderr
+        .lines()
+        .last()
+        .or_else(|| report.stdout.lines().last())
+        .unwrap_or("build failed")
+        .to_string()
 }
 
 fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
@@ -429,6 +818,40 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     });
 
     let weak = ui.as_weak();
+    let runtime_for_project_selection = Rc::clone(&runtime);
+    ui.on_select_project(move |path| {
+        with_runtime(&weak, &runtime_for_project_selection, |runtime, _ui| {
+            runtime.select_project_path(&path)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_view_all = Rc::clone(&runtime);
+    ui.on_view_all_projects(move || {
+        with_runtime(&weak, &runtime_for_view_all, |runtime, _ui| {
+            runtime.view_all_projects();
+            Ok(())
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_browse = Rc::clone(&runtime);
+    ui.on_browse_folder(move |target| {
+        with_runtime(&weak, &runtime_for_browse, |runtime, ui| {
+            runtime.browse_folder(ui, &target)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_filter = Rc::clone(&runtime);
+    ui.on_cycle_project_filter(move || {
+        with_runtime(&weak, &runtime_for_filter, |runtime, _ui| {
+            runtime.cycle_project_filter();
+            Ok(())
+        })
+    });
+
+    let weak = ui.as_weak();
     let runtime_for_sort = Rc::clone(&runtime);
     ui.on_cycle_project_sort(move || {
         with_runtime(&weak, &runtime_for_sort, |runtime, _ui| {
@@ -442,6 +865,38 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
     ui.on_set_project_view_mode(move |mode_id| {
         with_runtime(&weak, &runtime_for_view, |runtime, _ui| {
             runtime.set_project_view_mode_by_id(&mode_id)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_engine_select = Rc::clone(&runtime);
+    ui.on_select_engine(move |engine_id| {
+        with_runtime(&weak, &runtime_for_engine_select, |runtime, ui| {
+            runtime.select_engine_by_id(ui, &engine_id)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_engine_rename = Rc::clone(&runtime);
+    ui.on_rename_active_engine(move |name| {
+        with_runtime(&weak, &runtime_for_engine_rename, |runtime, ui| {
+            runtime.rename_active_engine(ui, &name)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_engine_remove = Rc::clone(&runtime);
+    ui.on_remove_engine(move |engine_id| {
+        with_runtime(&weak, &runtime_for_engine_remove, |runtime, ui| {
+            runtime.remove_engine_by_id(ui, &engine_id)
+        })
+    });
+
+    let weak = ui.as_weak();
+    let runtime_for_engine_cycle = Rc::clone(&runtime);
+    ui.on_cycle_engine(move || {
+        with_runtime(&weak, &runtime_for_engine_cycle, |runtime, ui| {
+            runtime.cycle_active_engine(ui)
         })
     });
 
@@ -477,8 +932,16 @@ fn wire_callbacks(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
         })
     });
 
+    let weak = ui.as_weak();
+    let runtime_for_learn = Rc::clone(&runtime);
+    ui.on_open_learn_resource(move |path| {
+        with_runtime(&weak, &runtime_for_learn, |runtime, _ui| {
+            runtime.open_learn_resource(&path)
+        })
+    });
+
     wire_quick_actions(ui, Rc::clone(&runtime));
-    wire_window_controls(ui);
+    window_controls::wire_window_controls(ui, runtime);
 }
 
 fn wire_quick_actions(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
@@ -487,66 +950,6 @@ fn wire_quick_actions(ui: &HubWindow, runtime: Rc<RefCell<HubRuntime>>) {
         with_runtime(&weak, &runtime, |runtime, ui| {
             runtime.quick_action(ui, &action_id)
         })
-    });
-}
-
-fn wire_window_controls(ui: &HubWindow) {
-    let weak = ui.as_weak();
-    ui.on_window_minimize(move || {
-        if let Some(ui) = weak.upgrade() {
-            ui.window().set_minimized(true);
-        }
-    });
-
-    let weak = ui.as_weak();
-    ui.on_window_toggle_maximize(move || {
-        if let Some(ui) = weak.upgrade() {
-            let maximized = ui.window().is_maximized();
-            ui.window().set_maximized(!maximized);
-        }
-    });
-
-    let weak = ui.as_weak();
-    ui.on_window_close(move || {
-        if let Some(ui) = weak.upgrade() {
-            let _ = ui.window().hide();
-        }
-        let _ = slint::quit_event_loop();
-    });
-
-    let drag_state = Rc::new(RefCell::new(None::<WindowDragState>));
-    let weak = ui.as_weak();
-    let drag_for_start = Rc::clone(&drag_state);
-    ui.on_window_drag_start(move |press_x, press_y| {
-        if let Some(ui) = weak.upgrade() {
-            *drag_for_start.borrow_mut() = Some(WindowDragState {
-                origin: ui.window().position(),
-                press_x,
-                press_y,
-            });
-        }
-    });
-
-    let weak = ui.as_weak();
-    let drag_for_move = Rc::clone(&drag_state);
-    ui.on_window_drag_move(move |mouse_x, mouse_y| {
-        let Some(ui) = weak.upgrade() else {
-            return;
-        };
-        let Some(state) = *drag_for_move.borrow() else {
-            return;
-        };
-        let scale = ui.window().scale_factor();
-        let delta_x = ((mouse_x - state.press_x) * scale) as i32;
-        let delta_y = ((mouse_y - state.press_y) * scale) as i32;
-        ui.window().set_position(PhysicalPosition::new(
-            state.origin.x + delta_x,
-            state.origin.y + delta_y,
-        ));
-    });
-
-    ui.on_window_drag_end(move || {
-        *drag_state.borrow_mut() = None;
     });
 }
 
@@ -567,4 +970,100 @@ fn with_runtime(
         };
     }
     binding::apply_snapshot(&ui, &runtime.snapshot());
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::HubConfig;
+
+    fn runtime_with_projects(projects: Vec<RecentProject>) -> HubRuntime {
+        HubRuntime {
+            config_path: PathBuf::from("hub.toml"),
+            editor_config_path: PathBuf::from("editor.json"),
+            config: HubConfig {
+                recent_projects: projects,
+                ..HubConfig::default()
+            },
+            selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::Grid,
+            search_query: String::new(),
+            selected_project_path: None,
+            task_status: TaskStatus::idle(),
+            asset_catalog: Vec::new(),
+            learn_catalog: Vec::new(),
+            plugin_catalog: Vec::new(),
+            team_overview: TeamOverview::empty(),
+        }
+    }
+
+    #[test]
+    fn selecting_project_records_path_and_status() {
+        let mut runtime = runtime_with_projects(vec![RecentProject::new(
+            "Stellar Outpost",
+            "E:/Projects/StellarOutpost",
+            20,
+        )]);
+
+        runtime
+            .select_project_path("E:/Projects/StellarOutpost")
+            .unwrap();
+
+        assert_eq!(
+            runtime.selected_project_path,
+            Some(PathBuf::from("E:/Projects/StellarOutpost"))
+        );
+        assert_eq!(runtime.task_status.label, "Project selected");
+        assert_eq!(runtime.task_status.detail, "Stellar Outpost");
+    }
+
+    #[test]
+    fn quick_action_target_prefers_selected_project_over_latest_recent() {
+        let mut runtime = runtime_with_projects(vec![
+            RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
+            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
+        ]);
+        runtime.selected_project_path = Some(PathBuf::from("E:/Projects/StellarOutpost"));
+
+        let project = runtime.selected_or_latest_recent_project().unwrap();
+
+        assert_eq!(project.display_name, "Stellar Outpost");
+        assert_eq!(
+            runtime.selected_project_path,
+            Some(PathBuf::from("E:/Projects/StellarOutpost"))
+        );
+    }
+
+    #[test]
+    fn quick_action_target_falls_back_to_latest_recent_project() {
+        let mut runtime = runtime_with_projects(vec![
+            RecentProject::new("Elysium", "E:/Projects/Elysium", 30),
+            RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 10),
+        ]);
+
+        let project = runtime.selected_or_latest_recent_project().unwrap();
+
+        assert_eq!(project.display_name, "Elysium");
+        assert_eq!(
+            runtime.selected_project_path,
+            Some(PathBuf::from("E:/Projects/Elysium"))
+        );
+    }
+
+    #[test]
+    fn view_all_projects_resets_filter_search_and_view_mode() {
+        let mut runtime = runtime_with_projects(Vec::new());
+        runtime.search_query = "stellar".to_string();
+        runtime.project_filter = ProjectFilterMode::Missing;
+        runtime.project_view_mode = ProjectViewMode::List;
+
+        runtime.view_all_projects();
+
+        assert!(runtime.search_query.is_empty());
+        assert_eq!(runtime.project_filter, ProjectFilterMode::All);
+        assert_eq!(runtime.project_view_mode, ProjectViewMode::Grid);
+        assert_eq!(runtime.task_status.label, "All projects");
+    }
 }

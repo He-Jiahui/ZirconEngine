@@ -1,34 +1,193 @@
 import {
     BrandMark,
+    AssetData,
+    CenteredIcon,
+    CloudServiceData,
+    CloudSummaryData,
+    HeaderStatusData,
     IconButton,
+    LearnData,
     MutedText,
     NavButton,
     NavItemData,
-    Panel,
+    PillButton,
+    PluginData,
     ProjectCardData,
     QuickActionData,
     RecentProjectRowData,
+    SettingStatusData,
+    SourceBuildHistoryRowData,
     SourceEngineData,
+    SourceEngineRowData,
     StatusPill,
+    TeamData,
+    TeamMemberData,
+    UiTextData,
     WindowButton,
 } from "shared.slint";
 import { ProjectsPage } from "projects.slint";
 import { EditorPage } from "editor.slint";
 import { BuildsPage } from "builds.slint";
-import { PlaceholderPage } from "placeholder.slint";
+import { AssetsPage } from "assets.slint";
+import { PluginsPage } from "plugins.slint";
+import { CloudPage } from "cloud.slint";
+import { LearnPage } from "learn.slint";
+import { TeamPage } from "team.slint";
 import { SettingsPage } from "settings.slint";
+import { Badge, DropDownButton, HeaderGroup, HubPanel } from "components.slint";
+
+component HeaderEngineOption inherits Rectangle {
+    in property <SourceEngineRowData> engine;
+    callback selected(string);
+
+    height: 58px;
+    border-radius: 7px;
+    border-width: root.engine.active ? 1px : 0px;
+    border-color: #18bbb2;
+    background: root.engine.active ? #073e3d : (area.has-hover ? #20262d : transparent);
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
+        alignment: center;
+
+        Rectangle {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: root.engine.active ? #0b7771 : #2a3038;
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: @image-url("../assets/brand/zircon-mark.svg");
+                image-fit: contain;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 2px;
+            Text {
+                text: root.engine.title;
+                overflow: elide;
+                color: #f3f6f9;
+                font-size: 13px;
+                font-weight: 800;
+            }
+            MutedText {
+                text: root.engine.status + " / " + root.engine.last-build;
+                overflow: elide;
+            }
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.selected(root.engine.id);
+        }
+    }
+}
+
+component HeaderEngineSelector inherits Rectangle {
+    in property <SourceEngineData> current-engine;
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <UiTextData> ui-text;
+    callback selected(string);
+
+    width: 168px;
+    height: 38px;
+
+    DropDownButton {
+        width: parent.width;
+        height: parent.height;
+        button-width: parent.width;
+        text: root.current-engine.title;
+        active: false;
+        clicked => {
+            popup.show();
+        }
+    }
+
+    popup := PopupWindow {
+        close-policy: close-on-click-outside;
+        x: 0px;
+        y: root.height + 6px;
+        width: 340px;
+        height: 286px;
+
+        HubPanel {
+            width: parent.width;
+            height: parent.height;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: 10px;
+                spacing: 8px;
+
+                HorizontalLayout {
+                    height: 28px;
+                    spacing: 8px;
+
+                    Text {
+                        text: root.ui-text.source-engines;
+                        color: #f3f6f9;
+                        font-size: 13px;
+                        font-weight: 800;
+                    }
+
+                    Rectangle { horizontal-stretch: 1; }
+
+                    Text {
+                        text: root.ui-text.registered;
+                        color: #9fa7b2;
+                        font-size: 12px;
+                    }
+                }
+
+                for engine in root.engines: HeaderEngineOption {
+                    engine: engine;
+                    selected(id) => {
+                        popup.close();
+                        root.selected(id);
+                    }
+                }
+
+                if root.engine-count == 0: MutedText {
+                    text: root.ui-text.no-source-engines;
+                }
+            }
+        }
+    }
+}
 
 export component HubWindow inherits Window {
     title: "Zircon Hub";
     no-frame: true;
     resize-border-width: 6px;
-    width: 1320px;
-    height: 820px;
+    width: 1600px;
+    height: 1024px;
 
+    in-out property <bool> nav-collapsed: false;
+    in-out property <bool> engine-picker-open: false;
     in-out property <string> selected-page: "projects";
+    in-out property <length> editor-scroll-y: 0px;
+    in-out property <length> assets-scroll-y: 0px;
+    in-out property <length> builds-scroll-y: 0px;
+    in-out property <length> plugins-scroll-y: 0px;
+    in-out property <length> cloud-scroll-y: 0px;
+    in-out property <length> team-scroll-y: 0px;
+    in-out property <length> learn-scroll-y: 0px;
+    in-out property <length> settings-scroll-y: 0px;
     in property <string> selected-page-title: "Projects";
     in property <string> selected-page-subtitle: "Manage your projects and start building worlds.";
+    in property <string> project-filter-label: "All Projects";
     in property <string> project-sort-label: "Last Modified";
+    in-out property <string> project-entry-mode: "none";
     in-out property <string> project-view-mode: "grid";
     in-out property <string> search-query;
     in-out property <string> project-path;
@@ -36,6 +195,8 @@ export component HubWindow inherits Window {
     in-out property <string> project-location;
     in-out property <string> source-path;
     in-out property <string> output-path;
+    in-out property <string> device-install-path;
+    in-out property <string> active-engine-name;
     in-out property <string> python-path;
     in-out property <string> cargo-path;
     in-out property <string> rustup-path;
@@ -45,17 +206,40 @@ export component HubWindow inherits Window {
     in property <[NavItemData]> nav-items;
     in property <[ProjectCardData]> project-cards;
     in property <int> project-card-count;
+    in-out property <bool> project-cards-expanded: false;
+    in property <[RecentProjectRowData]> project-list-rows;
+    in property <int> project-list-row-count;
     in property <[RecentProjectRowData]> recent-project-rows;
     in property <int> recent-project-row-count;
     in property <[QuickActionData]> quick-actions;
+    in property <[AssetData]> assets;
+    in property <int> asset-count;
+    in property <[LearnData]> learn-resources;
+    in property <int> learn-count;
+    in property <[PluginData]> plugins;
+    in property <int> plugin-count;
+    in property <TeamData> team-summary;
+    in property <[TeamMemberData]> team-members;
+    in property <int> team-member-count;
+    in property <CloudSummaryData> cloud-summary;
+    in property <[CloudServiceData]> cloud-services;
+    in property <int> cloud-service-count;
+    in property <[HeaderStatusData]> header-statuses;
+    in property <[SettingStatusData]> settings-statuses;
+    in property <[SourceEngineRowData]> source-engines;
+    in property <int> source-engine-count;
+    in property <[SourceBuildHistoryRowData]> source-build-history;
+    in property <int> source-build-history-count;
     in property <SourceEngineData> source-engine;
     in property <string> status-label: "Ready";
     in property <string> status-detail: "Hub is ready";
     in property <bool> task-running: false;
+    in property <UiTextData> ui-text;
 
     callback show-page(string);
     callback open-project();
     callback open-recent-project(string);
+    callback select-project(string);
     callback create-project();
     callback save-settings();
     callback build-engine();
@@ -63,6 +247,14 @@ export component HubWindow inherits Window {
     callback launch-editor();
     callback quick-action(string);
     callback search-projects(string);
+    callback view-all-projects();
+    callback browse-folder(string);
+    callback select-engine(string);
+    callback rename-active-engine(string);
+    callback remove-engine(string);
+    callback open-learn-resource(string);
+    callback cycle-engine();
+    callback cycle-project-filter();
     callback cycle-project-sort();
     callback set-project-view-mode(string);
     callback window-minimize();
@@ -72,69 +264,107 @@ export component HubWindow inherits Window {
     callback window-drag-move(float, float);
     callback window-drag-end();
 
+    function reset-page-scrolls() {
+        focus-sink.focus();
+        root.editor-scroll-y = 0px;
+        root.assets-scroll-y = 0px;
+        root.builds-scroll-y = 0px;
+        root.plugins-scroll-y = 0px;
+        root.cloud-scroll-y = 0px;
+        root.team-scroll-y = 0px;
+        root.learn-scroll-y = 0px;
+        root.settings-scroll-y = 0px;
+    }
+
     Rectangle {
+        width: root.width;
+        height: root.height;
         background: #11151a;
+
+        focus-sink := FocusScope {
+            width: 1px;
+            height: 1px;
+        }
 
         VerticalLayout {
             width: parent.width;
             height: parent.height;
             spacing: 0px;
 
-            Rectangle {
-                height: 66px;
-                background: #11151a;
-                border-width: 1px;
-                border-color: #2c323a;
-
-                HorizontalLayout {
+            HeaderGroup {
+                VerticalLayout {
                     width: parent.width;
                     height: parent.height;
-                    padding-left: 24px;
-                    padding-right: 8px;
-                    spacing: 12px;
-                    alignment: start;
+                    spacing: 0px;
+
+                    Rectangle {
+                        height: 10px;
+                        horizontal-stretch: 1;
+                        background: transparent;
+
+                        top-drag := TouchArea {
+                            pointer-event(event) => {
+                                if (event.button != PointerEventButton.left) {
+                                    return;
+                                }
+                                if (event.kind == PointerEventKind.down) {
+                                    root.window-drag-start(top-drag.mouse-x / 1px, top-drag.mouse-y / 1px);
+                                }
+                                if (event.kind == PointerEventKind.up) {
+                                    root.window-drag-end();
+                                }
+                            }
+                            moved => {
+                                root.window-drag-move(top-drag.mouse-x / 1px, top-drag.mouse-y / 1px);
+                            }
+                        }
+                    }
 
                     HorizontalLayout {
-                        width: 176px;
+                        height: 56px;
+                        horizontal-stretch: 1;
+                        padding-left: 24px;
+                        padding-right: 8px;
                         spacing: 12px;
-                        alignment: start;
-                        BrandMark {}
-                        VerticalLayout {
-                            spacing: 0px;
-                            Text {
-                                text: "ZIRCON HUB";
-                                color: #f6f8fb;
-                                font-size: 16px;
-                                font-weight: 900;
-                            }
-                            MutedText {
-                                text: "Game Engine";
-                            }
-                        }
-                    }
+                        alignment: stretch;
 
-                    Panel {
-                        width: 168px;
-                        height: 38px;
                         HorizontalLayout {
-                            padding-left: 14px;
-                            padding-right: 12px;
-                            spacing: 8px;
+                            width: 176px;
+                            spacing: 12px;
                             alignment: center;
-                            Text {
-                                text: root.source-engine.version;
-                                color: #f0f3f7;
-                                font-size: 13px;
-                                vertical-alignment: center;
-                            }
-                            Text {
-                                text: "v";
-                                color: #b7bec8;
-                                font-size: 12px;
-                                vertical-alignment: center;
+                            BrandMark {}
+                            VerticalLayout {
+                                height: parent.height;
+                                spacing: 0px;
+                                Rectangle {
+                                    vertical-stretch: 1;
+                                    min-height: 0px;
+                                }
+                                Text {
+                                    text: "ZIRCON HUB";
+                                    color: #f6f8fb;
+                                    font-size: 16px;
+                                    font-weight: 900;
+                                }
+                                MutedText {
+                                    text: root.ui-text.game-engine;
+                                }
+                                Rectangle {
+                                    vertical-stretch: 1;
+                                    min-height: 0px;
+                                }
                             }
                         }
-                    }
+
+                        HeaderEngineSelector {
+                            current-engine: root.source-engine;
+                            engines: root.source-engines;
+                            engine-count: root.source-engine-count;
+                            ui-text: root.ui-text;
+                            selected(id) => {
+                                root.select-engine(id);
+                            }
+                        }
 
                     Rectangle {
                         width: 1px;
@@ -142,18 +372,17 @@ export component HubWindow inherits Window {
                         background: #2a3038;
                     }
 
-                    StatusPill {
-                        icon: ">";
-                        text: root.task-running ? "Running" : "Idle";
-                        accent-color: root.task-running ? #22d8d1 : #6fdc7a;
+                    for pill in root.header-statuses: StatusPill {
+                        icon: pill.icon;
+                        icon-image: pill.icon-image;
+                        has-icon-image: pill.has-icon-image;
+                        text: pill.text;
+                        accent-color: pill.state == "running" ? #22d8d1 : (pill.state == "ok" ? #72dd7a : (pill.state == "warn" ? #f0b545 : (pill.state == "error" ? #e16666 : #6d7580)));
                     }
-                    StatusPill { icon: "o"; text: "Success"; accent-color: #72dd7a; }
-                    StatusPill { icon: "!"; text: "Warning"; accent-color: #f0b545; }
-                    StatusPill { icon: "x"; text: "Error"; accent-color: #e16666; }
 
                     Rectangle {
                         horizontal-stretch: 1;
-                        height: 66px;
+                        height: 42px;
                         drag := TouchArea {
                             pointer-event(event) => {
                                 if (event.button != PointerEventButton.left) {
@@ -172,11 +401,23 @@ export component HubWindow inherits Window {
                         }
                     }
 
-                    IconButton { icon: "!"; enabled: false; }
-                    IconButton { icon: "?"; enabled: false; }
                     IconButton {
-                        icon: "::";
-                        clicked => { root.show-page("settings"); }
+                        icon-image: @image-url("../assets/icons/ui/bell.svg");
+                        has-icon-image: true;
+                        enabled: false;
+                    }
+                    IconButton {
+                        icon-image: @image-url("../assets/icons/ui/help.svg");
+                        has-icon-image: true;
+                        enabled: false;
+                    }
+                    IconButton {
+                        icon-image: @image-url("../assets/icons/ui/settings.svg");
+                        has-icon-image: true;
+                        clicked => {
+                            root.reset-page-scrolls();
+                            root.show-page("settings");
+                        }
                     }
 
                     Rectangle {
@@ -189,14 +430,17 @@ export component HubWindow inherits Window {
                         width: 144px;
                         height: 42px;
                         HorizontalLayout {
+                            width: parent.width;
+                            height: parent.height;
                             spacing: 8px;
+                            alignment: start;
                             Rectangle {
                                 width: 34px;
                                 height: 34px;
                                 border-radius: 17px;
                                 background: #3a3e45;
                                 Text {
-                                    text: "AD";
+                                    text: root.ui-text.local-user-initials;
                                     color: #f6f8fb;
                                     font-size: 12px;
                                     font-weight: 800;
@@ -205,44 +449,50 @@ export component HubWindow inherits Window {
                                 }
                             }
                             Text {
-                                text: "Alex Developer";
+                                text: root.ui-text.local-user;
                                 color: #d5dae2;
                                 font-size: 12px;
                                 vertical-alignment: center;
+                                horizontal-stretch: 1;
+                                overflow: elide;
                             }
-                            Text {
-                                text: "v";
-                                color: #8d96a2;
-                                font-size: 11px;
-                                vertical-alignment: center;
+                            CenteredIcon {
+                                width: 14px;
+                                height: parent.height;
+                                icon-size: 14px;
+                                source-image: @image-url("../assets/icons/ui/chevron-down.svg");
+                                has-source-image: true;
                             }
                         }
                     }
 
                     WindowButton {
-                        icon: "-";
+                        icon-image: @image-url("../assets/icons/ui/minimize.svg");
+                        has-icon-image: true;
                         clicked => { root.window-minimize(); }
                     }
                     WindowButton {
-                        icon: "[]";
+                        icon-image: @image-url("../assets/icons/ui/maximize.svg");
+                        has-icon-image: true;
                         clicked => { root.window-toggle-maximize(); }
                     }
                     WindowButton {
-                        icon: "x";
+                        icon-image: @image-url("../assets/icons/ui/close.svg");
+                        has-icon-image: true;
                         danger: true;
                         clicked => { root.window-close(); }
+                    }
                     }
                 }
             }
 
             HorizontalLayout {
                 width: parent.width;
-                height: parent.height - 66px;
                 spacing: 0px;
                 vertical-stretch: 1;
 
                 Rectangle {
-                    width: 224px;
+                    width: root.nav-collapsed ? 68px : 224px;
                     vertical-stretch: 1;
                     background: #11151a;
                     border-width: 1px;
@@ -251,58 +501,122 @@ export component HubWindow inherits Window {
                     VerticalLayout {
                         width: parent.width;
                         height: parent.height;
-                        padding: 14px;
+                        padding: root.nav-collapsed ? 10px : 14px;
                         spacing: 10px;
 
                         for item in root.nav-items: NavButton {
                             item: item;
-                            clicked(id) => { root.show-page(id); }
+                            collapsed: root.nav-collapsed;
+                            clicked(id) => {
+                                root.reset-page-scrolls();
+                                root.show-page(id);
+                            }
                         }
 
                         Rectangle { vertical-stretch: 1; }
 
-                        Panel {
+                        if !root.nav-collapsed: HubPanel {
                             height: 170px;
                             VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
                                 padding: 14px;
                                 spacing: 8px;
+
                                 HorizontalLayout {
                                     spacing: 8px;
+
                                     Rectangle {
                                         width: 10px;
                                         height: 10px;
                                         border-radius: 5px;
                                         background: root.task-running ? #22d8d1 : #72dd7a;
                                     }
+
                                     Text {
-                                        text: "Engine Status";
+                                        text: root.ui-text.engine-status;
                                         color: #f3f6f9;
                                         font-size: 13px;
                                         font-weight: 800;
                                     }
                                 }
+
                                 MutedText { text: root.source-engine.version; }
-                                Text {
+
+                                Badge {
                                     text: root.source-engine.status;
-                                    color: #72dd7a;
-                                    font-size: 12px;
+                                    tone: "ok";
+                                    badge-width: 126px;
                                 }
+
                                 Rectangle { vertical-stretch: 1; }
-                                Panel {
+
+                                HubPanel {
+                                    variant: "interactive";
                                     height: 36px;
-                                    Text {
-                                        text: "Check for Updates";
-                                        color: #c8ced7;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
+
+                                    HorizontalLayout {
+                                        width: parent.width;
+                                        height: parent.height;
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        spacing: 8px;
+                                        alignment: start;
+
+                                        CenteredIcon {
+                                            width: 16px;
+                                            height: parent.height;
+                                            icon-size: 16px;
+                                            source-image: @image-url("../assets/icons/ui/refresh.svg");
+                                            has-source-image: true;
+                                        }
+
+                                        Text {
+                                            text: root.ui-text.check-for-updates;
+                                            overflow: elide;
+                                            color: #c8ced7;
+                                            font-size: 12px;
+                                            vertical-alignment: center;
+                                        }
                                     }
                                 }
                             }
                         }
 
                         Rectangle { height: 1px; background: #303641; }
-                        MutedText { text: "<  Collapse"; }
+                        Rectangle {
+                            height: 40px;
+                            border-radius: 8px;
+                            background: collapse-area.has-hover ? #1b2027 : transparent;
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding-left: root.nav-collapsed ? 0px : 8px;
+                                padding-right: root.nav-collapsed ? 0px : 8px;
+                                spacing: 8px;
+                                alignment: start;
+
+                                CenteredIcon {
+                                    width: root.nav-collapsed ? parent.width : 18px;
+                                    height: parent.height;
+                                    icon-size: 18px;
+                                    source-image: root.nav-collapsed ? @image-url("../assets/icons/ui/chevron-right.svg") : @image-url("../assets/icons/ui/collapse.svg");
+                                    has-source-image: true;
+                                }
+
+                                if !root.nav-collapsed: MutedText {
+                                    text: root.ui-text.collapse;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            collapse-area := TouchArea {
+                                clicked => {
+                                    root.nav-collapsed = !root.nav-collapsed;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -326,9 +640,14 @@ export component HubWindow inherits Window {
                                 padding-left: 28px;
                                 padding-right: 28px;
                                 spacing: 14px;
-                                alignment: start;
+                                alignment: stretch;
                                 VerticalLayout {
+                                    height: parent.height;
                                     spacing: 6px;
+                                    Rectangle {
+                                        vertical-stretch: 1;
+                                        min-height: 0px;
+                                    }
                                     Text {
                                         text: root.selected-page-title;
                                         color: #f7f9fc;
@@ -338,9 +657,52 @@ export component HubWindow inherits Window {
                                     MutedText {
                                         text: root.selected-page-subtitle;
                                     }
+                                    Rectangle {
+                                        vertical-stretch: 1;
+                                        min-height: 0px;
+                                    }
                                 }
                                 Rectangle { horizontal-stretch: 1; }
-                                Text {
+                                if root.selected-page == "projects": VerticalLayout {
+                                    height: parent.height;
+
+                                    Rectangle {
+                                        vertical-stretch: 1;
+                                        min-height: 0px;
+                                    }
+
+                                    HorizontalLayout {
+                                        height: 42px;
+                                        spacing: 12px;
+                                        alignment: start;
+
+                                        PillButton {
+                                            text: root.ui-text.import-project;
+                                            icon-image: @image-url("../assets/icons/ui/import.svg");
+                                            has-icon-image: true;
+                                            clicked => {
+                                                root.project-entry-mode = "open";
+                                            }
+                                        }
+
+                                        PillButton {
+                                            text: root.ui-text.create-project;
+                                            icon-image: @image-url("../assets/icons/ui/plus.svg");
+                                            has-icon-image: true;
+                                            primary: true;
+                                            clicked => {
+                                                root.project-entry-mode = "create";
+                                            }
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        vertical-stretch: 1;
+                                        min-height: 0px;
+                                    }
+                                }
+
+                                if root.selected-page != "projects": Text {
                                     text: root.status-label;
                                     color: root.task-running ? #22d8d1 : #aeb6c2;
                                     font-size: 13px;
@@ -356,32 +718,53 @@ export component HubWindow inherits Window {
                             if root.selected-page == "projects": ProjectsPage {
                                 width: parent.width;
                                 height: parent.height;
+                                project-entry-mode <=> root.project-entry-mode;
                                 search-query <=> root.search-query;
                                 project-path <=> root.project-path;
                                 project-name <=> root.project-name;
                                 project-location <=> root.project-location;
+                                project-filter-label: root.project-filter-label;
                                 project-sort-label: root.project-sort-label;
                                 project-view-mode <=> root.project-view-mode;
+                                project-cards-expanded <=> root.project-cards-expanded;
                                 project-cards: root.project-cards;
                                 project-card-count: root.project-card-count;
+                                project-list-rows: root.project-list-rows;
+                                project-list-row-count: root.project-list-row-count;
                                 recent-project-rows: root.recent-project-rows;
                                 recent-project-row-count: root.recent-project-row-count;
                                 quick-actions: root.quick-actions;
+                                ui-text: root.ui-text;
                                 open-project => { root.open-project(); }
                                 open-recent-project(path) => { root.open-recent-project(path); }
+                                select-project(path) => { root.select-project(path); }
                                 create-project => { root.create-project(); }
                                 quick-action(id) => { root.quick-action(id); }
                                 search-projects(query) => { root.search-projects(query); }
-                                cycle-project-sort => { root.cycle-project-sort(); }
-                                set-project-view-mode(mode) => { root.set-project-view-mode(mode); }
-                            }
+                                view-all-projects => { root.view-all-projects(); }
+                        browse-folder(target) => { root.browse-folder(target); }
+                        cycle-project-filter => { root.cycle-project-filter(); }
+                        cycle-project-sort => { root.cycle-project-sort(); }
+                        set-project-view-mode(mode) => { root.set-project-view-mode(mode); }
+                    }
                             if root.selected-page == "editor": EditorPage {
                                 width: parent.width;
                                 height: parent.height;
+                                scroll-y <=> root.editor-scroll-y;
                                 source-path <=> root.source-path;
                                 output-path <=> root.output-path;
+                                active-engine-name <=> root.active-engine-name;
                                 source-engine: root.source-engine;
+                                source-engines: root.source-engines;
+                                source-engine-count: root.source-engine-count;
+                                source-build-history: root.source-build-history;
+                                source-build-history-count: root.source-build-history-count;
+                                ui-text: root.ui-text;
                                 save-settings => { root.save-settings(); }
+                                browse-folder(target) => { root.browse-folder(target); }
+                                select-engine(id) => { root.select-engine(id); }
+                                rename-active-engine(name) => { root.rename-active-engine(name); }
+                                remove-engine(id) => { root.remove-engine(id); }
                                 build-engine => { root.build-engine(); }
                                 open-output => { root.open-output(); }
                                 launch-editor => { root.launch-editor(); }
@@ -389,66 +772,76 @@ export component HubWindow inherits Window {
                             if root.selected-page == "settings": SettingsPage {
                                 width: parent.width;
                                 height: parent.height;
+                                scroll-y <=> root.settings-scroll-y;
                                 python-path <=> root.python-path;
                                 cargo-path <=> root.cargo-path;
                                 rustup-path <=> root.rustup-path;
                                 project-location <=> root.project-location;
                                 source-path <=> root.source-path;
                                 output-path <=> root.output-path;
+                                device-install-path <=> root.device-install-path;
                                 build-jobs <=> root.build-jobs;
                                 build-profile <=> root.build-profile;
                                 language <=> root.language;
+                                settings-statuses: root.settings-statuses;
+                                ui-text: root.ui-text;
+                                browse-folder(target) => { root.browse-folder(target); }
                                 save-settings => { root.save-settings(); }
                             }
                             if root.selected-page == "builds": BuildsPage {
                                 width: parent.width;
                                 height: parent.height;
+                                scroll-y <=> root.builds-scroll-y;
                                 source-engine: root.source-engine;
                                 status-label: root.status-label;
                                 status-detail: root.status-detail;
+                                ui-text: root.ui-text;
                                 build-engine => { root.build-engine(); }
                                 open-output => { root.open-output(); }
                                 launch-editor => { root.launch-editor(); }
                             }
-                            if root.selected-page == "assets": PlaceholderPage {
+                            if root.selected-page == "assets": AssetsPage {
                                 width: parent.width;
                                 height: parent.height;
-                                title: root.selected-page-title;
-                                subtitle: root.selected-page-subtitle;
-                                action-label: "Open Editor";
-                                primary-action => { root.quick-action("open-editor"); }
+                                scroll-y <=> root.assets-scroll-y;
+                                assets: root.assets;
+                                asset-count: root.asset-count;
+                                ui-text: root.ui-text;
                             }
-                            if root.selected-page == "plugins": PlaceholderPage {
+                            if root.selected-page == "plugins": PluginsPage {
                                 width: parent.width;
                                 height: parent.height;
-                                title: root.selected-page-title;
-                                subtitle: root.selected-page-subtitle;
-                                action-label: "Open Editor";
-                                primary-action => { root.quick-action("open-editor"); }
+                                scroll-y <=> root.plugins-scroll-y;
+                                plugins: root.plugins;
+                                plugin-count: root.plugin-count;
+                                ui-text: root.ui-text;
                             }
-                            if root.selected-page == "cloud": PlaceholderPage {
+                            if root.selected-page == "cloud": CloudPage {
                                 width: parent.width;
                                 height: parent.height;
-                                title: root.selected-page-title;
-                                subtitle: root.selected-page-subtitle;
-                                action-label: "Open Editor";
-                                primary-action => { root.quick-action("open-editor"); }
+                                scroll-y <=> root.cloud-scroll-y;
+                                summary: root.cloud-summary;
+                                services: root.cloud-services;
+                                service-count: root.cloud-service-count;
+                                ui-text: root.ui-text;
                             }
-                            if root.selected-page == "team": PlaceholderPage {
+                            if root.selected-page == "team": TeamPage {
                                 width: parent.width;
                                 height: parent.height;
-                                title: root.selected-page-title;
-                                subtitle: root.selected-page-subtitle;
-                                action-label: "Open Editor";
-                                primary-action => { root.quick-action("open-editor"); }
+                                scroll-y <=> root.team-scroll-y;
+                                summary: root.team-summary;
+                                members: root.team-members;
+                                member-count: root.team-member-count;
+                                ui-text: root.ui-text;
                             }
-                            if root.selected-page == "learn": PlaceholderPage {
+                            if root.selected-page == "learn": LearnPage {
                                 width: parent.width;
                                 height: parent.height;
-                                title: root.selected-page-title;
-                                subtitle: root.selected-page-subtitle;
-                                action-label: "Open Editor";
-                                primary-action => { root.quick-action("open-editor"); }
+                                scroll-y <=> root.learn-scroll-y;
+                                resources: root.learn-resources;
+                                resource-count: root.learn-count;
+                                ui-text: root.ui-text;
+                                open-resource(path) => { root.open-learn-resource(path); }
                             }
                         }
 
@@ -458,17 +851,28 @@ export component HubWindow inherits Window {
                             background: #171b21;
                             border-color: #303641;
                             border-width: 1px;
-                            Text {
-                                x: 14px;
-                                y: 8px;
-                                text: root.status-detail;
-                                color: #8792a2;
-                                font-size: 12px;
+
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding-left: 14px;
+                                padding-right: 14px;
+                                alignment: center;
+
+                                Text {
+                                    text: root.status-detail;
+                                    color: #8792a2;
+                                    font-size: 12px;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                    horizontal-stretch: 1;
+                                }
                             }
                         }
                     }
                 }
             }
         }
+
     }
 }

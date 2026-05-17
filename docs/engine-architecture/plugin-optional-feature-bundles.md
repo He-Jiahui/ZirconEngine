@@ -43,7 +43,39 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract.rs
+implementation_files:
+  - zircon_runtime/src/plugin/package_manifest/plugin_feature_bundle_manifest.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_feature_dependency.rs
+  - zircon_runtime/src/plugin/package_manifest/plugin_package_manifest.rs
+  - zircon_runtime/src/plugin/runtime_profile.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_feature_registration_report.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog.rs
+  - zircon_runtime/src/plugin/runtime_plugin/builtin_catalog.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
+  - zircon_app/src/entry/entry_config.rs
+  - zircon_app/src/entry/first_party_runtime_plugins.rs
+  - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/entry_runner/bootstrap.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/reports/editor_plugin_status.rs
+  - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
+plan_sources:
+  - user: 2026-05-03 optional feature bundle validation
+  - user: 2026-05-08 实现 ZirconEngine Bevy 级插件完成度里程碑计划
+  - user: 2026-05-16 continue Bevy-style runtime profile plugin group selection completion
+  - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
+tests:
+  - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
+  - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
+  - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
+  - zircon_runtime/src/tests/plugin_extensions/native_plugin_loader.rs
+  - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
+  - zircon_app/src/entry/tests/profile_bootstrap.rs
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
+doc_type: module-detail
 ---
 
 # Plugin Optional Feature Bundles
@@ -102,6 +134,8 @@ Stable/default-style profiles reject required `Externalized`, `Stub`, and below-
 The M2 provider-aware path distinguishes descriptor maturity from actual provider availability. Linked first-party registration reports satisfy `linked`; native dynamic registration reports satisfy `native_dynamic`; required profile plugins with no linked/native provider now remain `externalized_missing` even when their catalog descriptor is mature enough for the profile. Provider reports do not bypass target, stub, or minimum-maturity gates; a linked provider only satisfies availability after descriptor metadata proves the plugin is acceptable for the selected profile.
 
 The default app-side linked provider is feature-gated in `zircon_app`. `EntryConfig::for_runtime_profile()` chooses the app entry mode and projected profile manifest, then `first_party_runtime_plugin_registrations_for_config()` converts enabled selections into linked `RuntimePluginRegistrationReport` values from compiled first-party plugin crates. This gives profile bootstrap the same provider shape as generated export hosts while preserving the runtime boundary: optional-feature dependency checks and module registration still consume reports, not concrete plugin crate types.
+
+The app provider path also keeps profile-owned platform/render configuration authoritative across activation. Bootstrap stores `PlatformConfig` and `RenderProfileBundle` before module activation and writes them again afterward, so module defaults cannot overwrite a selected headless render bundle or the minimal profile's disabled platform state.
 
 ## Export Flow
 
@@ -169,5 +203,12 @@ Fresh validation on 2026-05-03:
 - `$env:CARGO_INCREMENTAL='0'; cargo check -p zircon_app --lib --locked --jobs 1 --target-dir target-codex-runtime-check --message-format short --color never`
 - `$env:CARGO_INCREMENTAL='0'; cargo test -p zircon_app --lib --locked --jobs 1 --target-dir target-codex-runtime-check --message-format short --color never`
 - `git diff --check -- <optional-feature touched files>`
+
+Fresh M2 app-provider validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared target directories:
+
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed in WSL/Linux: 1 test, 0 failures. The Windows attempt hit the root lockfile's D3D12 `windows` 0.61/0.62 dependency skew before Zircon provider code compiled.
 
 Workspace-wide `cargo build --workspace` / `cargo test --workspace` was not run in this session because the checkout is under active multi-session churn and this milestone used targeted package validation for the optional-feature surfaces.

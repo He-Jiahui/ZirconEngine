@@ -22,6 +22,8 @@ impl World {
                 .transform,
             camera: self.cameras.get(&entity).cloned(),
             mesh: self.mesh_renderers.get(&entity).cloned(),
+            sprite_2d: self.sprite_2d.get(&entity).cloned(),
+            mesh_2d: self.mesh_2d.get(&entity).cloned(),
             directional_light: self.directional_lights.get(&entity).cloned(),
             point_light: self.point_lights.get(&entity).cloned(),
             spot_light: self.spot_lights.get(&entity).cloned(),
@@ -82,6 +84,12 @@ impl World {
         }
         if let Some(mesh) = record.mesh {
             self.mesh_renderers.insert(record.id, mesh);
+        }
+        if let Some(sprite_2d) = record.sprite_2d {
+            self.sprite_2d.insert(record.id, sprite_2d);
+        }
+        if let Some(mesh_2d) = record.mesh_2d {
+            self.mesh_2d.insert(record.id, mesh_2d);
         }
         if let Some(directional_light) = record.directional_light {
             self.directional_lights.insert(record.id, directional_light);

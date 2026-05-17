@@ -1,112 +1,414 @@
 import { LineEdit, ScrollView } from "std-widgets.slint";
-import { FieldLabel, Panel, PillButton } from "shared.slint";
+import { FieldLabel, PillButton, SettingStatusData, UiTextData } from "shared.slint";
+import {
+    HubPanel,
+    InfoRow,
+    PanelHeader,
+    ScrollablePanel,
+    SegmentButton,
+    TwoColumnSurface,
+} from "components.slint";
+
+component PathSettingRow inherits Rectangle {
+    in property <string> label;
+    in property <string> browse-label;
+    in-out property <string> value;
+    callback browse;
+
+    horizontal-stretch: 1;
+    height: 66px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 6px;
+
+        FieldLabel {
+            text: root.label;
+            height: 16px;
+            vertical-alignment: center;
+        }
+
+        HorizontalLayout {
+            height: 40px;
+            spacing: 10px;
+            alignment: start;
+
+            LineEdit {
+                placeholder-text: root.label;
+                text <=> root.value;
+                horizontal-stretch: 1;
+            }
+
+            PillButton {
+                width: 108px;
+                text: root.browse-label;
+                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.browse();
+                }
+            }
+        }
+    }
+}
+
+component SettingStatusRow inherits InfoRow {
+    in property <SettingStatusData> status;
+
+    title: root.status.label;
+    detail: "";
+    meta: "";
+    leading-image: root.status.state == "ok" ? @image-url("../assets/icons/status/success.svg") : (root.status.state == "warn" ? @image-url("../assets/icons/status/warning.svg") : (root.status.state == "error" ? @image-url("../assets/icons/status/error.svg") : @image-url("../assets/icons/status/running.svg")));
+    has-leading-image: true;
+    accent: root.status.state == "ok" ? 3 : (root.status.state == "warn" ? 2 : (root.status.state == "error" ? 2 : 1));
+    trailing-text: root.status.detail;
+    trailing-tone: root.status.state == "ok" ? "ok" : (root.status.state == "warn" ? "warning" : (root.status.state == "error" ? "error" : "info"));
+    show-trailing-badge: true;
+    row-height: 52px;
+}
+
+component ToolchainPanel inherits ScrollablePanel {
+    in-out property <string> python-path;
+    in-out property <string> cargo-path;
+    in-out property <string> rustup-path;
+    in property <UiTextData> ui-text;
+
+    height: 236px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 18px;
+        spacing: 10px;
+
+        PanelHeader { title: root.ui-text.toolchain; }
+
+        ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            content := Rectangle {
+                width: max(320px, parent.width);
+                height: 230px;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: 8px;
+
+                    FieldLabel { text: root.ui-text.python-executable; }
+                    LineEdit {
+                        placeholder-text: root.ui-text.python-executable;
+                        text <=> root.python-path;
+                    }
+                    FieldLabel { text: root.ui-text.cargo-executable; }
+                    LineEdit {
+                        placeholder-text: root.ui-text.cargo-executable;
+                        text <=> root.cargo-path;
+                    }
+                    FieldLabel { text: root.ui-text.rustup-executable; }
+                    LineEdit {
+                        placeholder-text: root.ui-text.rustup-executable;
+                        text <=> root.rustup-path;
+                    }
+                }
+            }
+        }
+    }
+}
+
+component BuildDefaultsPanel inherits ScrollablePanel {
+    in-out property <string> build-jobs;
+    in-out property <string> build-profile;
+    in-out property <string> language;
+    in property <UiTextData> ui-text;
+
+    height: 222px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 18px;
+        spacing: 10px;
+
+        PanelHeader { title: root.ui-text.build-defaults; }
+
+        ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            content := Rectangle {
+                width: max(320px, parent.width);
+                height: 238px;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: 8px;
+
+                    FieldLabel { text: root.ui-text.build-profile; }
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+                        SegmentButton {
+                            horizontal-stretch: 1;
+                            text: root.ui-text.debug;
+                            active: root.build-profile == "debug";
+                            clicked => {
+                                root.build-profile = "debug";
+                            }
+                        }
+                        SegmentButton {
+                            horizontal-stretch: 1;
+                            text: root.ui-text.release;
+                            active: root.build-profile == "release";
+                            clicked => {
+                                root.build-profile = "release";
+                            }
+                        }
+                    }
+
+                    FieldLabel { text: root.ui-text.build-jobs; }
+                    LineEdit {
+                        placeholder-text: root.ui-text.build-jobs;
+                        text <=> root.build-jobs;
+                    }
+
+                    FieldLabel { text: root.ui-text.language; }
+                    HorizontalLayout {
+                        height: 34px;
+                        spacing: 8px;
+                        SegmentButton {
+                            horizontal-stretch: 1;
+                            text: root.ui-text.english;
+                            active: root.language == "English";
+                            clicked => {
+                                root.language = "English";
+                            }
+                        }
+                        SegmentButton {
+                            horizontal-stretch: 1;
+                            text: root.ui-text.chinese;
+                            active: root.language == "Chinese";
+                            clicked => {
+                                root.language = "Chinese";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component DefaultPathsPanel inherits ScrollablePanel {
+    in-out property <string> project-location;
+    in-out property <string> source-path;
+    in-out property <string> output-path;
+    in-out property <string> device-install-path;
+    in property <UiTextData> ui-text;
+    callback browse-folder(string);
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 18px;
+        spacing: 10px;
+
+        PanelHeader { title: root.ui-text.default-paths; }
+
+        ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            content := Rectangle {
+                width: max(360px, parent.width);
+                height: 288px;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    spacing: 8px;
+
+                    PathSettingRow {
+                        label: root.ui-text.default-project-directory;
+                        browse-label: root.ui-text.browse;
+                        value <=> root.project-location;
+                        browse => {
+                            root.browse-folder("project-location");
+                        }
+                    }
+                    PathSettingRow {
+                        label: root.ui-text.default-source-directory;
+                        browse-label: root.ui-text.browse;
+                        value <=> root.source-path;
+                        browse => {
+                            root.browse-folder("source");
+                        }
+                    }
+                    PathSettingRow {
+                        label: root.ui-text.default-staged-output-directory;
+                        browse-label: root.ui-text.browse;
+                        value <=> root.output-path;
+                        browse => {
+                            root.browse-folder("output");
+                        }
+                    }
+                    PathSettingRow {
+                        label: root.ui-text.default-device-install-directory;
+                        browse-label: root.ui-text.browse;
+                        value <=> root.device-install-path;
+                        browse => {
+                            root.browse-folder("device-install");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+component ConfigurationHealthPanel inherits ScrollablePanel {
+    in property <[SettingStatusData]> settings-statuses;
+    in property <UiTextData> ui-text;
+    private property <length> health-scroll-y: 0px;
+
+    height: 220px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 18px;
+        spacing: 10px;
+
+        PanelHeader { title: root.ui-text.configuration-health; }
+
+        health-scroll := ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            viewport-y <=> root.health-scroll-y;
+            viewport-width: health-scroll.visible-width;
+            viewport-height: max(health-scroll.visible-height, 420px);
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            mouse-drag-pan-enabled: true;
+
+            Rectangle {
+                width: health-scroll.visible-width;
+                height: health-scroll.viewport-height;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    spacing: 6px;
+
+                    for status in root.settings-statuses: SettingStatusRow {
+                        status: status;
+                    }
+                }
+            }
+        }
+    }
+}
 
 export component SettingsPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
     in-out property <string> python-path;
     in-out property <string> cargo-path;
     in-out property <string> rustup-path;
     in-out property <string> project-location;
     in-out property <string> source-path;
     in-out property <string> output-path;
+    in-out property <string> device-install-path;
     in-out property <string> build-jobs;
     in-out property <string> build-profile;
     in-out property <string> language;
+    in property <[SettingStatusData]> settings-statuses;
+    in property <UiTextData> ui-text;
+    callback browse-folder(string);
     callback save-settings();
 
     background: #11151a;
+    forward-focus: page-focus;
+    clip: true;
 
-    ScrollView {
-        content := Rectangle {
-            width: root.width;
-            height: 860px;
-            background: #11151a;
+    page-focus := FocusScope {
+        width: 1px;
+        height: 1px;
+    }
+
+    TwoColumnSurface {
+        width: root.width;
+        height: root.height;
+
+        HorizontalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: 28px;
+            padding-right: 28px;
+            padding-top: 28px;
+            padding-bottom: 22px;
+            spacing: 14px;
 
             VerticalLayout {
-                width: parent.width;
-                height: parent.height;
-                padding-left: 28px;
-                padding-right: 28px;
-                padding-top: 184px;
-                padding-bottom: 28px;
-                spacing: 16px;
+                width: 490px;
+                spacing: 14px;
 
-                HorizontalLayout {
-                    spacing: 14px;
-
-                    Panel {
-                        horizontal-stretch: 1;
-                        height: 250px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Toolchain";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            FieldLabel { text: "Python executable"; }
-                            LineEdit { placeholder-text: "Python executable"; text <=> root.python-path; }
-                            FieldLabel { text: "Cargo executable"; }
-                            LineEdit { placeholder-text: "Cargo executable"; text <=> root.cargo-path; }
-                            FieldLabel { text: "Rustup executable"; }
-                            LineEdit { placeholder-text: "Rustup executable"; text <=> root.rustup-path; }
-                        }
-                    }
-
-                    Panel {
-                        width: 360px;
-                        height: 250px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Build Defaults";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            FieldLabel { text: "Build profile"; }
-                            LineEdit { placeholder-text: "debug or release"; text <=> root.build-profile; }
-                            FieldLabel { text: "Build jobs"; }
-                            LineEdit { placeholder-text: "Build jobs"; text <=> root.build-jobs; }
-                            FieldLabel { text: "Language"; }
-                            LineEdit { placeholder-text: "English or Chinese"; text <=> root.language; }
-                        }
-                    }
+                ToolchainPanel {
+                    python-path <=> root.python-path;
+                    cargo-path <=> root.cargo-path;
+                    rustup-path <=> root.rustup-path;
+                    ui-text: root.ui-text;
                 }
 
-                Panel {
-                    height: 250px;
-                    VerticalLayout {
-                        padding: 18px;
-                        spacing: 10px;
-                        Text {
-                            text: "Default Paths";
-                            color: #f3f6f9;
-                            font-size: 16px;
-                            font-weight: 800;
-                        }
-                        FieldLabel { text: "Default project directory"; }
-                        LineEdit { placeholder-text: "Default project directory"; text <=> root.project-location; }
-                        FieldLabel { text: "Default source directory"; }
-                        LineEdit { placeholder-text: "Default source directory"; text <=> root.source-path; }
-                        FieldLabel { text: "Default staged output directory"; }
-                        LineEdit { placeholder-text: "Default staged output directory"; text <=> root.output-path; }
-                    }
+                BuildDefaultsPanel {
+                    build-jobs <=> root.build-jobs;
+                    build-profile <=> root.build-profile;
+                    language <=> root.language;
+                    ui-text: root.ui-text;
                 }
 
                 HorizontalLayout {
+                    height: 42px;
                     spacing: 10px;
                     Rectangle { horizontal-stretch: 1; }
                     PillButton {
-                        text: "Save Settings";
-                        icon: ">";
+                        text: root.ui-text.save-settings;
+                        icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                        has-icon-image: true;
                         primary: true;
                         clicked => {
                             root.save-settings();
                         }
                     }
+                }
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 14px;
+
+                DefaultPathsPanel {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    project-location <=> root.project-location;
+                    source-path <=> root.source-path;
+                    output-path <=> root.output-path;
+                    device-install-path <=> root.device-install-path;
+                    ui-text: root.ui-text;
+                    browse-folder(target) => {
+                        root.browse-folder(target);
+                    }
+                }
+
+                ConfigurationHealthPanel {
+                    horizontal-stretch: 1;
+                    settings-statuses: root.settings-statuses;
+                    ui-text: root.ui-text;
                 }
             }
         }

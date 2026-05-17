@@ -3,16 +3,20 @@ use std::sync::Arc;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
     CapturedFrame, FallbackSkyboxKind, GraphicsDebuggerStatus, PreviewEnvironmentExtract,
-    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderNativeSurfaceTarget,
-    RenderPipelineHandle, RenderQualityProfile, RenderSceneGeometryExtract, RenderSceneSnapshot,
-    RenderStats, RenderViewportDescriptor, RenderViewportHandle, RenderViewportSurfaceDescriptor,
-    RenderVirtualGeometryDebugSnapshot, RenderWorldSnapshotHandle, ViewportCameraSnapshot,
+    RenderCameraTarget, RenderFrameExtract, RenderFramework, RenderFrameworkError,
+    RenderNativeSurfaceTarget, RenderPipelineHandle, RenderQualityProfile,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderViewportSurfaceDescriptor, RenderVirtualGeometryDebugSnapshot,
+    RenderWorldSnapshotHandle, ViewportCameraSnapshot,
 };
 use crate::core::math::{UVec2, Vec4};
+use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 use crate::graphics::WgpuRenderFramework;
 use crate::RenderPipelineAsset;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
+const CAMERA_TEXTURE_TARGET_CAPABILITY: &str = "camera texture render target";
+const HEADLESS_CAMERA_SURFACE_PRESENT_CAPABILITY: &str = "headless camera surface present";
 const SURFACE_PRESENT_CAPABILITY: &str = "viewport surface present";
 
 #[test]
@@ -126,6 +130,69 @@ fn graphics_surface_offscreen_submit_and_capture_survive_unbind_noop() {
 }
 
 #[test]
+fn graphics_camera_target_headless_size_controls_offscreen_capture_size() {
+    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
+        .unwrap();
+    let headless_size = UVec2::new(40, 24);
+
+    framework
+        .submit_frame_extract(
+            viewport,
+            empty_extract_with_target(RenderCameraTarget::Headless {
+                size: headless_size,
+            }),
+        )
+        .unwrap();
+    let frame = framework.capture_frame(viewport).unwrap().unwrap();
+
+    assert_eq!(frame.width, headless_size.x);
+    assert_eq!(frame.height, headless_size.y);
+}
+
+#[test]
+fn graphics_camera_target_texture_reports_unsupported_without_primary_fallback_capture() {
+    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
+        .unwrap();
+    let texture = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+        "tests/camera-target/texture",
+    ));
+
+    let error = framework
+        .submit_frame_extract(
+            viewport,
+            empty_extract_with_target(RenderCameraTarget::Texture(texture)),
+        )
+        .unwrap_err();
+
+    assert_eq!(error, unsupported_camera_texture_target());
+    assert_eq!(framework.capture_frame(viewport).unwrap(), None);
+    assert_eq!(framework.query_stats().unwrap().submitted_frames, 0);
+}
+
+#[test]
+fn graphics_camera_target_headless_present_reports_unsupported_surface_fallback() {
+    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let viewport = framework
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
+        .unwrap();
+
+    let error = framework
+        .present_frame_extract(
+            viewport,
+            empty_extract_with_target(RenderCameraTarget::Headless {
+                size: UVec2::new(40, 24),
+            }),
+        )
+        .unwrap_err();
+
+    assert_eq!(error, unsupported_headless_camera_surface_present());
+}
+
+#[test]
 fn graphics_surface_present_path_source_uses_swapchain_present_without_readback_fallback() {
     let framework_present_source = include_str!(
         "../runtime/render_framework/submit_frame_extract/submit/present_frame_extract.rs"
@@ -155,6 +222,24 @@ fn unsupported_surface_present() -> RenderFrameworkError {
     }
 }
 
+fn unsupported_camera_texture_target() -> RenderFrameworkError {
+    RenderFrameworkError::UnsupportedCapability {
+        capability: CAMERA_TEXTURE_TARGET_CAPABILITY.to_string(),
+    }
+}
+
+fn unsupported_headless_camera_surface_present() -> RenderFrameworkError {
+    RenderFrameworkError::UnsupportedCapability {
+        capability: HEADLESS_CAMERA_SURFACE_PRESENT_CAPABILITY.to_string(),
+    }
+}
+
+fn empty_extract_with_target(target: RenderCameraTarget) -> RenderFrameExtract {
+    let mut extract = empty_extract();
+    extract.view.camera.target = target;
+    extract
+}
+
 fn empty_extract() -> RenderFrameExtract {
     RenderFrameExtract::from_snapshot(
         RenderWorldSnapshotHandle::new(1),
@@ -165,6 +250,8 @@ fn empty_extract() -> RenderFrameExtract {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: Default::default(),
             preview: PreviewEnvironmentExtract {

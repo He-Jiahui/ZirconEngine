@@ -37,6 +37,11 @@ fn import_wgsl(context: &AssetImportContext) -> Result<AssetImportOutcome, Asset
             wgsl_source: source,
             entry_points,
             dependencies: Vec::new(),
+            source_files: Vec::new(),
+            imports: Vec::new(),
+            property_schema: Vec::new(),
+            texture_slots: Vec::new(),
+            editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
@@ -100,6 +105,11 @@ fn module_to_shader_asset(
             wgsl_source,
             entry_points,
             dependencies: Vec::new(),
+            source_files: Vec::new(),
+            imports: Vec::new(),
+            property_schema: Vec::new(),
+            texture_slots: Vec::new(),
+            editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),
         }),
@@ -164,7 +174,7 @@ fn hex_encode(bytes: &[u8]) -> String {
     encoded
 }
 
-fn shader_entry_points(module: &naga::Module) -> Vec<ShaderEntryPointAsset> {
+pub(super) fn shader_entry_points(module: &naga::Module) -> Vec<ShaderEntryPointAsset> {
     module
         .entry_points
         .iter()

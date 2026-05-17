@@ -1,6 +1,7 @@
 mod manager;
 mod manifest;
 mod uri;
+mod zmeta;
 
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};

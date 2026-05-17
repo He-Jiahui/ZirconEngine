@@ -4,12 +4,16 @@ use std::sync::Arc;
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
+use zircon_runtime::platform::{
+    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
+};
 use zircon_runtime::plugin::RuntimeProfileId;
+use zircon_runtime::RuntimeTargetMode;
 use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 
-use crate::plugins::{DefaultPlugins, HeadlessPlugins, PluginGroup};
+use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
 use crate::plugins::{PluginGroupBuilder, PluginGroupError, ResolvedPluginGroup};
 
 use super::{
@@ -36,6 +40,82 @@ impl From<EntryProfile> for EntryRunMode {
             EntryProfile::Editor => Self::Editor,
             EntryProfile::Runtime => Self::Runtime,
             EntryProfile::Headless => Self::Headless,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EntryModuleSelection {
+    pub name: String,
+    pub description: String,
+    pub driver_count: usize,
+    pub manager_count: usize,
+    pub plugin_count: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EntryModuleSelectionReport {
+    pub profile: EntryProfile,
+    pub run_mode: EntryRunMode,
+    pub runtime_profile: Option<RuntimeProfileId>,
+    pub target_mode: RuntimeTargetMode,
+    pub platform_config: PlatformConfig,
+    pub plugin_group: String,
+    pub modules: Vec<EntryModuleSelection>,
+}
+
+impl EntryModuleSelectionReport {
+    pub fn module_keys(&self) -> Vec<&str> {
+        self.modules
+            .iter()
+            .map(|module| module.name.as_str())
+            .collect()
+    }
+
+    pub fn diagnostic_lines(&self) -> Vec<String> {
+        let mut lines = Vec::with_capacity(self.modules.len() + 6);
+        lines.push(format!("entry.profile={:?}", self.profile));
+        lines.push(format!("entry.run_mode={:?}", self.run_mode));
+        lines.push(format!(
+            "entry.runtime_profile={}",
+            self.runtime_profile
+                .map(|profile| format!("{profile:?}"))
+                .unwrap_or_else(|| "none".to_string())
+        ));
+        lines.push(format!("entry.target_mode={:?}", self.target_mode));
+        lines.extend(self.platform_config.diagnostic_lines());
+        lines.push(format!("entry.plugin_group={}", self.plugin_group));
+        lines.push(format!("entry.modules={}", self.modules.len()));
+        lines.extend(
+            self.modules
+                .iter()
+                .map(EntryModuleSelection::diagnostic_line),
+        );
+        lines
+    }
+
+    pub fn format_diagnostics(&self) -> String {
+        self.diagnostic_lines().join("\n")
+    }
+}
+
+impl EntryModuleSelection {
+    fn diagnostic_line(&self) -> String {
+        format!(
+            "module={} drivers={} managers={} plugins={} description={}",
+            self.name, self.driver_count, self.manager_count, self.plugin_count, self.description
+        )
+    }
+}
+
+impl From<ModuleDescriptor> for EntryModuleSelection {
+    fn from(descriptor: ModuleDescriptor) -> Self {
+        Self {
+            name: descriptor.name,
+            description: descriptor.description,
+            driver_count: descriptor.drivers.len(),
+            manager_count: descriptor.managers.len(),
+            plugin_count: descriptor.plugins.len(),
         }
     }
 }
@@ -156,8 +236,30 @@ impl BuiltinEngineEntry {
         &self.plugin_group
     }
 
+    pub fn module_selection_report(&self) -> EntryModuleSelectionReport {
+        EntryModuleSelectionReport {
+            profile: self.profile,
+            run_mode: self.run_mode(),
+            runtime_profile: self.config.runtime_profile(),
+            target_mode: self.config.target_mode,
+            platform_config: platform_config_for_entry_config(&self.config),
+            plugin_group: self.plugin_group.name().to_string(),
+            modules: self
+                .module_descriptors()
+                .into_iter()
+                .map(EntryModuleSelection::from)
+                .collect(),
+        }
+    }
+
     fn store_entry_config(&self, runtime: &CoreRuntime) {
         let runtime_handle = runtime.handle();
+        runtime_handle
+            .store_config(
+                PLATFORM_CONFIG_KEY,
+                &platform_config_for_entry_config(&self.config),
+            )
+            .ok();
         runtime_handle
             .store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)
             .ok();
@@ -203,6 +305,7 @@ impl EngineEntry for BuiltinEngineEntry {
         for descriptor in &descriptors {
             runtime.activate_module(&descriptor.name)?;
         }
+        self.store_entry_config(&runtime);
 
         Ok(runtime.handle())
     }
@@ -213,10 +316,12 @@ fn plugin_group_for_config(
     modules: Vec<Arc<dyn EngineModule>>,
 ) -> Result<ResolvedPluginGroup, CoreError> {
     let mut builder = plugin_group_builder_for_config(config).map_err(plugin_group_core_error)?;
+    let append_unmatched_modules =
+        !matches!(config.runtime_profile(), Some(RuntimeProfileId::Minimal));
     for module in modules {
         if builder.contains(module.module_name()) {
             builder = builder.set(module).map_err(plugin_group_core_error)?;
-        } else {
+        } else if append_unmatched_modules {
             builder = builder.add(module).map_err(plugin_group_core_error)?;
         }
     }
@@ -226,9 +331,32 @@ fn plugin_group_for_config(
 fn plugin_group_builder_for_config(
     config: &EntryConfig,
 ) -> Result<PluginGroupBuilder, PluginGroupError> {
+    match config.runtime_profile() {
+        Some(RuntimeProfileId::Minimal) => return MinimalPlugins.build(),
+        Some(RuntimeProfileId::Dev) => return DevPlugins::default().build(),
+        _ => {}
+    }
     match config.profile {
         EntryProfile::Editor | EntryProfile::Runtime => DefaultPlugins::default().build(),
         EntryProfile::Headless => HeadlessPlugins::default().build(),
+    }
+}
+
+fn platform_config_for_entry_config(config: &EntryConfig) -> PlatformConfig {
+    let headless = matches!(config.target_mode, RuntimeTargetMode::ServerRuntime);
+    PlatformConfig {
+        enabled: !matches!(config.runtime_profile(), Some(RuntimeProfileId::Minimal)),
+        target: if headless {
+            PlatformTarget::Headless
+        } else {
+            PlatformTarget::current()
+        },
+        target_mode: config.target_mode,
+        features: if headless {
+            PlatformFeatureSelection::headless()
+        } else {
+            PlatformFeatureSelection::from_compiled_features()
+        },
     }
 }
 

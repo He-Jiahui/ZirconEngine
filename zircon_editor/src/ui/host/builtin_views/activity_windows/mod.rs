@@ -5,6 +5,7 @@ mod asset_browser_view_descriptor;
 mod component_showcase_view_descriptor;
 mod debug_observatory_view_descriptor;
 mod functional_window_view_descriptors;
+mod material_component_lab_view_descriptor;
 mod material_demo_view_descriptor;
 mod prefab_view_descriptor;
 mod workbench_window_view_descriptor;

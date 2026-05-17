@@ -1,10 +1,16 @@
 ---
 related_code:
   - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/diagnostics.rs
   - zircon_runtime/src/diagnostic_log/level.rs
+  - zircon_runtime/src/diagnostic_log/settings.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
+  - zircon_runtime/src/core/modules/log.rs
+  - zircon_runtime/src/core/diagnostics/store.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
@@ -16,10 +22,16 @@ related_code:
   - zircon_editor/src/ui/slint_host/host_contract/presenter.rs
 implementation_files:
   - zircon_runtime/src/diagnostic_log/mod.rs
+  - zircon_runtime/src/diagnostic_log/diagnostics.rs
   - zircon_runtime/src/diagnostic_log/level.rs
+  - zircon_runtime/src/diagnostic_log/settings.rs
   - zircon_runtime/src/diagnostic_log/platform.rs
   - zircon_runtime/src/diagnostic_log/sink.rs
   - zircon_runtime/src/diagnostic_log/timestamp.rs
+  - zircon_runtime/src/core/modules/log.rs
+  - zircon_runtime/src/core/diagnostics/store.rs
+  - zircon_runtime/src/core/diagnostics/collect.rs
+  - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/entry_runner/diagnostic_log_args.rs
   - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
@@ -27,8 +39,16 @@ implementation_files:
 plan_sources:
   - user: 2026-05-04 add console and file-backed startup diagnostics for exported editor/runtime diagnosis
   - user: 2026-05-04 keep verbose diagnostics on in debug builds and off by default in release builds while preserving log/warn/error
+  - user: 2026-05-16 continue Bevy-style default log diagnostics and dev profile completion
+  - user: 2026-05-16 continue Bevy-style runtime Time diagnostics integration
+  - dev/bevy/crates/bevy_log/src/lib.rs
+  - dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs
   - docs/superpowers/plans/2026-05-04-build-asset-staging.md
 tests:
+  - zircon_app/src/plugins/tests.rs
+  - zircon_runtime/src/diagnostic_log/diagnostics.rs
+  - zircon_runtime/src/dynamic_api/tests.rs
+  - zircon_runtime/src/tests/prelude.rs
   - cargo test -p zircon_runtime --lib diagnostic_log --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-runtime-test --message-format short --color never
   - cargo test -p zircon_app diagnostic_log_startup_args --no-default-features --features target-editor-host --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-level-app-test --message-format short --color never
   - cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir E:\zircon-build\targets\diagnostic-log-runtime-check --message-format short --color never
@@ -43,6 +63,12 @@ doc_type: module-detail
 `zircon_runtime::diagnostic_log` is the lightweight process-startup diagnostic sink used by exported editor/runtime binaries. It mirrors each accepted diagnostic line to stderr and, when a writable directory is available, appends the same line to a per-run file under `logs/<yyyy-MM-dd-hh-mm-ss>/<channel>.log`.
 
 The sink is intentionally small and process-local. It is for startup, asset-resolution, and presentation-boundary evidence; it is not a replacement for structured telemetry or the editor runtime diagnostics pane.
+
+`LogModule` and `LogDiagnosticsModule` are app-composition descriptors for this surface. They do not initialize the process sink; editor/runtime entry runners still parse `--log-level` and `--log-filter` and call the initialization functions before loading runtime hosts. `DefaultPlugins` and `HeadlessPlugins` include `LogModule`; `DevPlugins` adds `LogDiagnosticsModule` for development diagnostics.
+
+`format_diagnostic_store_snapshot(...)`, `write_diagnostic_store_snapshot(...)`, and `DiagnosticStoreLogSchedule` are the Bevy `LogDiagnosticsPlugin` counterpart for Zircon's runtime-owned `DiagnosticStore`. The formatter turns each series with a current value into a stable line containing current, smoothed, min, and max values. The writer sends those lines through the existing process log sink. The schedule mirrors Bevy's `LogDiagnosticsState` timer shape without introducing ECS resources: runtime owners tick it with their own frame delta and only collect/write the diagnostic store when the cadence elapses.
+
+`DiagnosticLogSettings` is the Bevy-style `LogSettings` surface for Zircon's process diagnostic sink. It groups the channel, minimum/scoped filter, directory policy, console sink toggle, and file sink toggle into one value before initialization. Existing helpers such as `initialize_process_log(...)` and `initialize_unity_process_log(...)` build the same settings with both sinks enabled, while `initialize_process_log_with_settings(...)` lets host code disable the console or file sink explicitly. `LogSettings` is a type alias for the same structure so Bevy-aligned code can name the concept without moving ownership out of `diagnostic_log`.
 
 ## Log Directory Policy
 
@@ -75,20 +101,24 @@ Each write replaces embedded newlines with `\n`, writes to stderr, writes to the
 
 ## Level Filter Policy
 
-`DiagnosticLogLevel` has five severities: `verbose`, `debug`, `log`, `warn`, and `error`. `DiagnosticLogFilter` either disables the sink with `off` or accepts a minimum level.
+`DiagnosticLogLevel` has five severities: `verbose`, `debug`, `log`, `warn`, and `error`. `DiagnosticLogFilter` either disables the sink with `off` or accepts a minimum level. Bevy's `LogPlugin` keeps a default runtime filter and then allows environment overrides; Zircon translates that pattern to process-diagnostic severities and the `ZIRCON_LOG_LEVEL` / `ZIRCON_LOG_FILTER` / `ZIRCON_LOG` startup surface instead of installing Bevy's global tracing subscriber.
 
 The default filter depends on the Rust build profile:
 
 1. Debug builds enable `verbose` and above, so the current asset, template, native host, and presenter diagnostic details are always available during development.
 2. Release builds enable `log` and above, so `verbose` and `debug` details are suppressed by default while normal startup log lines, warnings, and errors remain visible.
 
-The global runtime override is `ZIRCON_LOG_LEVEL=verbose|debug|log|warn|error|off`. The `trace`, `info`, `warning`, `err`, `none`, and `quiet` aliases are accepted for command-line friendliness, but documentation and scripts should prefer the canonical names.
+The global runtime override is `ZIRCON_LOG_LEVEL=verbose|debug|log|warn|error|off`. Scoped filter overrides use this precedence: `ZIRCON_LOG_FILTER`, then the shorter `ZIRCON_LOG` alias, then Bevy-style `RUST_LOG` as a fallback when no Zircon filter variable is set. The `trace`, `info`, `warning`, `err`, `none`, and `quiet` aliases are accepted for command-line friendliness, but documentation and scripts should prefer the canonical names.
 
 The exported editor and runtime binaries also accept `--log-level <level>` and `--log-level=<level>`. Startup arguments take precedence over `ZIRCON_LOG_LEVEL`. The editor strips `--log-level` before parsing headless operation-control arguments, so commands such as `--operation ... --headless --log-level warn` keep their existing operation semantics. The runtime binary currently accepts only diagnostic startup arguments; any remaining argument after diagnostic parsing is rejected as an unknown runtime argument.
 
 ## Current Diagnostic Producers
 
 The editor and runtime entry runners initialize the sink before loading the runtime library or constructing the editor host.
+
+The runtime-owned time spine records `time.frame_time`, `time.fps`, `time.frame_count`, and `time.fixed_steps` into `CoreRuntime`'s diagnostic store. `collect_runtime_diagnostics` preserves those runtime-owned measurements, and the diagnostic-log formatter can emit them for dev-profile logging.
+
+Dynamic runtime sessions keep that cadence inside `zircon_runtime`: `RuntimeDynamicSessionProfile::Dev` enables `DiagnosticStoreLogSchedule::repeating(DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT)`, while runtime, editor, minimal, and headless dynamic sessions leave the schedule disabled. `RuntimeDynamicSession::tick_frame()` advances runtime time first, then, when the schedule is due, collects `collect_runtime_diagnostics(&runtime.handle()).store` and writes it through `write_diagnostic_store_snapshot("runtime_diagnostics", ...)`. This preserves the boundary that `zircon_app` drives the host loop but does not inspect runtime diagnostic internals.
 
 The built-in asset resolver logs every root candidate set, selected root, final path, and file-existence result at `verbose`. This is what proves whether exported binaries are reading staged `ZirconEngine/assets`, a development checkout fallback, or a user override from `ZIRCON_ASSET_ROOT` during debug builds or explicit verbose sessions.
 

@@ -6,6 +6,8 @@ pub enum UiNavigationEventKind {
     Cancel,
     Next,
     Previous,
+    Home,
+    End,
     Up,
     Down,
     Left,

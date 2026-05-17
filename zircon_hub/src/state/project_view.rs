@@ -1,4 +1,47 @@
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ProjectFilterMode {
+    #[default]
+    All,
+    Existing,
+    Missing,
+}
+
+impl ProjectFilterMode {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Existing => "existing",
+            Self::Missing => "missing",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::All => "All Projects",
+            Self::Existing => "Existing",
+            Self::Missing => "Missing",
+        }
+    }
+
+    pub fn next(self) -> Self {
+        match self {
+            Self::All => Self::Existing,
+            Self::Existing => Self::Missing,
+            Self::Missing => Self::All,
+        }
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id.trim().to_ascii_lowercase().as_str() {
+            "all" | "all-projects" | "projects" => Some(Self::All),
+            "existing" | "available" => Some(Self::Existing),
+            "missing" | "missing-paths" => Some(Self::Missing),
+            _ => None,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ProjectSortMode {
     #[default]
     LastModified,
@@ -62,7 +105,21 @@ impl ProjectViewMode {
 
 #[cfg(test)]
 mod tests {
-    use super::{ProjectSortMode, ProjectViewMode};
+    use super::{ProjectFilterMode, ProjectSortMode, ProjectViewMode};
+
+    #[test]
+    fn project_filter_mode_cycles_through_supported_modes() {
+        assert_eq!(ProjectFilterMode::All.next(), ProjectFilterMode::Existing);
+        assert_eq!(
+            ProjectFilterMode::Existing.next(),
+            ProjectFilterMode::Missing
+        );
+        assert_eq!(ProjectFilterMode::Missing.next(), ProjectFilterMode::All);
+        assert_eq!(
+            ProjectFilterMode::from_id("available"),
+            Some(ProjectFilterMode::Existing)
+        );
+    }
 
     #[test]
     fn project_sort_mode_cycles_between_supported_modes() {

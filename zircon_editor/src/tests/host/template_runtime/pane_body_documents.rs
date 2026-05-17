@@ -129,6 +129,14 @@ fn assert_host_bool_property(node: &RetainedUiHostNodeModel, property: &str, exp
     assert_eq!(actual, expected);
 }
 
+fn assert_host_string_property(node: &RetainedUiHostNodeModel, property: &str, expected: &str) {
+    let actual = match node.properties.get(property) {
+        Some(RetainedUiHostValue::String(value)) => value.as_str(),
+        _ => panic!("missing string property `{property}` on `{}`", node.node_id),
+    };
+    assert_eq!(actual, expected);
+}
+
 fn assert_material_button_layout_properties(node: &RetainedUiHostNodeModel) {
     assert_host_numeric_property(node, "layout_padding_left", 12.0);
     assert_host_numeric_property(node, "layout_padding_right", 12.0);
@@ -455,11 +463,15 @@ fn component_showcase_projection_carries_runtime_component_semantics() {
         .node_by_control_id("ButtonDemo")
         .expect("component showcase should project ButtonDemo through the Material meta component");
     assert_eq!(material_button.component, "Button");
+    assert_host_string_property(material_button, "button_variant", "primary");
+    assert_host_string_property(material_button, "surface_variant", "accent");
+    assert_host_string_property(material_button, "validation_level", "normal");
     assert_material_button_layout_properties(material_button);
     assert_host_bool_property(material_button, "input_interactive", true);
     assert_host_bool_property(material_button, "input_clickable", true);
     assert_host_bool_property(material_button, "input_hoverable", true);
     assert_host_bool_property(material_button, "input_focusable", true);
+    assert_host_bool_property(material_button, "disabled", false);
     assert_desired_size_covers_projected_text_with_horizontal_padding(
         &surface,
         material_button,

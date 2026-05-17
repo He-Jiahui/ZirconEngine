@@ -9,6 +9,7 @@ use super::super::super::super::overlay::{ViewportIconSource, ViewportOverlayRen
 use super::super::super::super::particle::ParticleRenderer;
 use super::super::super::super::post_process::ScenePostProcessResources;
 use super::super::super::super::prepass::NormalPrepassPipeline;
+use super::super::super::super::sprite::SpriteRenderer;
 use super::super::super::super::ui::ScreenSpaceUiRenderer;
 use super::super::super::scene_renderer_core::{
     SceneRendererAdvancedPluginResources, SceneRendererCore,
@@ -51,6 +52,12 @@ impl SceneRendererCore {
         );
         let particle_renderer =
             ParticleRenderer::new(device, &scene_bind_group_bundle.layout, target_format);
+        let sprite_renderer = SpriteRenderer::new(
+            device,
+            &scene_bind_group_bundle.layout,
+            &texture_bind_group_layout,
+            target_format,
+        );
         let post_process = ScenePostProcessResources::new(device, queue, target_format);
         let overlay_renderer = ViewportOverlayRenderer::new(
             device,
@@ -76,6 +83,7 @@ impl SceneRendererCore {
             normal_prepass,
             deferred,
             particle_renderer,
+            sprite_renderer,
             post_process,
             overlay_renderer,
             screen_space_ui_renderer,

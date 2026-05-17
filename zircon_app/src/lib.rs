@@ -3,6 +3,7 @@
 mod entry;
 pub mod plugins;
 pub mod prelude;
+#[cfg(feature = "platform-window")]
 mod runtime_presenter;
 
 pub use entry::{
@@ -10,7 +11,9 @@ pub use entry::{
     first_party_runtime_plugin_registrations_for_manifest,
     first_party_runtime_plugin_registrations_for_runtime_profile,
 };
-pub use entry::{BuiltinEngineEntry, EngineEntry, EntryRunMode};
+pub use entry::{
+    BuiltinEngineEntry, EngineEntry, EntryModuleSelection, EntryModuleSelectionReport, EntryRunMode,
+};
 pub use entry::{EntryConfig, EntryProfile, EntryRunner, NativePluginRuntimeBootstrap};
 pub use plugins::{
     DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,

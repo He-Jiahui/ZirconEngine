@@ -5,6 +5,9 @@ use winit::event_loop::EventLoop;
 use super::super::runtime_entry_app::RuntimeEntryApp;
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
 use super::diagnostic_log_args::parse_diagnostic_log_startup_args;
+use super::runtime_session_args::{
+    parse_runtime_session_startup_args, RUNTIME_SESSION_STARTUP_HELP,
+};
 use super::EntryRunner;
 
 impl EntryRunner {
@@ -18,10 +21,16 @@ impl EntryRunner {
         S: Into<String>,
     {
         let diagnostic_args = parse_diagnostic_log_startup_args(args)?;
-        if !diagnostic_args.remaining_args.is_empty() {
+        let runtime_session_args =
+            parse_runtime_session_startup_args(diagnostic_args.remaining_args)?;
+        if runtime_session_args.help_requested {
+            println!("{RUNTIME_SESSION_STARTUP_HELP}");
+            return Ok(());
+        }
+        if !runtime_session_args.remaining_args.is_empty() {
             return Err(format!(
                 "unknown runtime argument `{}`",
-                diagnostic_args.remaining_args[0]
+                runtime_session_args.remaining_args[0]
             )
             .into());
         }
@@ -35,7 +44,8 @@ impl EntryRunner {
         let profile_capture =
             zircon_runtime::core::diagnostics::profiling::start_capture_from_env("runtime");
         let runtime = LoadedRuntime::load_default()?;
-        let session = RuntimeSession::create(runtime)?;
+        let session =
+            RuntimeSession::create_with_profile(runtime, runtime_session_args.profile.as_bytes())?;
         let event_loop = EventLoop::new()?;
         let app = RuntimeEntryApp::new(session);
         let result = event_loop.run_app(app);

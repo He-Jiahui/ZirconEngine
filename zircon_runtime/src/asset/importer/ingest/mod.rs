@@ -15,6 +15,7 @@ mod import_obj;
 mod import_physics_material;
 mod import_scene;
 mod import_shader;
+mod import_shader_package;
 #[cfg(test)]
 mod import_sound;
 #[cfg(test)]

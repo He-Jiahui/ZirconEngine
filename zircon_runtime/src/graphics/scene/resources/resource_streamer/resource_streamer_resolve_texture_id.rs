@@ -80,14 +80,16 @@ impl ResourceStreamer {
             }
         };
 
-        if let TexturePayload::Container { format, .. } = &texture.payload {
+        if matches!(&texture.payload, TexturePayload::Container { .. }) {
+            let descriptor = texture.texture_descriptor();
             return ResolvedTextureReference {
                 id: None,
                 validation_error: Some(RenderMaterialValidationError::TextureNotUploadReady {
                     slot: slot.to_string(),
                     reference: reference.clone(),
                     reason: format!(
-                        "container texture payload format {format} has no M3A GPU upload path"
+                        "container texture payload format {} has no M3A GPU upload path",
+                        descriptor.format
                     ),
                 }),
                 fallback_usage: Some(RenderMaterialFallbackUsage {

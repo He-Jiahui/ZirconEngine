@@ -181,7 +181,7 @@ struct LegacyAnimationBinaryHeader {
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 struct LegacyAnimationAssetReferenceBinary {
     uuid: String,
-    locator: String,
+    url: String,
 }
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
@@ -343,6 +343,6 @@ fn legacy_reference(
 ) -> LegacyAnimationAssetReferenceBinary {
     LegacyAnimationAssetReferenceBinary {
         uuid: reference.uuid.to_string(),
-        locator: reference.locator.to_string(),
+        url: reference.locator.to_string(),
     }
 }

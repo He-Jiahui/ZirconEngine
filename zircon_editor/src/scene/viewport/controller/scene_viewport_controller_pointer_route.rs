@@ -14,10 +14,11 @@ impl SceneViewportController {
         scene: &Scene,
     ) -> ViewportCameraSnapshot {
         let camera = self.current_camera(scene);
+        let selected = self.projected_selected_node(scene);
         let handles = self.handle_overlays(scene, &camera);
         self.pointer_bridge.sync_scene(
             scene,
-            self.selected_node(),
+            selected,
             &self.state.settings,
             &camera,
             self.state.viewport.size,

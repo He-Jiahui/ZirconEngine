@@ -1,0 +1,15 @@
+format_version = 6
+uuid = "44444444-5555-4666-8777-888888888888"
+url = "res://materials/hero_unlit.zmaterial"
+asset_kind = "Material"
+unit = "single"
+importer_id = "zircon.builtin.zmaterial"
+preview_state = "ready"
+importer_version = 1
+dependencies = ["res://shaders/unlit_shader", "res://textures/hero_albedo.png"]
+
+[[entries]]
+uuid = "44444444-5555-4666-8777-888888888888"
+url = "res://materials/hero_unlit.zmaterial"
+asset_kind = "Material"
+dependencies = ["res://shaders/unlit_shader", "res://textures/hero_albedo.png"]

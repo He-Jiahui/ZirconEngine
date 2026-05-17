@@ -47,6 +47,39 @@ pub struct RenderSpotLightSnapshot {
     pub outer_angle_radians: Real,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderAmbientLightSnapshot {
+    pub color: Vec3,
+    pub intensity: Real,
+    pub renderer_degraded: bool,
+    pub degradation_reason: Option<String>,
+}
+
+impl Default for RenderAmbientLightSnapshot {
+    fn default() -> Self {
+        Self {
+            color: Vec3::ZERO,
+            intensity: 0.0,
+            renderer_degraded: true,
+            degradation_reason: Some(
+                "ambient light has no authored scene component yet".to_string(),
+            ),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RenderRectLightSnapshot {
+    pub node_id: EntityId,
+    pub position: Vec3,
+    pub direction: Vec3,
+    pub color: Vec3,
+    pub intensity: Real,
+    pub size: crate::core::math::Vec2,
+    pub renderer_degraded: bool,
+    pub degradation_reason: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RenderBloomSettings {
     pub threshold: Real,
@@ -406,6 +439,8 @@ pub struct RenderSceneGeometryExtract {
     pub directional_lights: Vec<RenderDirectionalLightSnapshot>,
     pub point_lights: Vec<RenderPointLightSnapshot>,
     pub spot_lights: Vec<RenderSpotLightSnapshot>,
+    pub ambient_lights: Vec<RenderAmbientLightSnapshot>,
+    pub rect_lights: Vec<RenderRectLightSnapshot>,
 }
 
 #[derive(Clone, Debug, PartialEq)]

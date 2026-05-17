@@ -3,6 +3,8 @@ use std::fmt;
 
 pub const DIAGNOSTIC_LOG_LEVEL_ENV: &str = "ZIRCON_LOG_LEVEL";
 pub const DIAGNOSTIC_LOG_FILTER_ENV: &str = "ZIRCON_LOG_FILTER";
+pub const DIAGNOSTIC_LOG_ENV: &str = "ZIRCON_LOG";
+pub const RUST_LOG_ENV: &str = "RUST_LOG";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DiagnosticLogLevel {
@@ -50,8 +52,12 @@ pub struct DiagnosticLogModuleFilter {
 }
 
 impl DiagnosticLogFilter {
-    pub const fn default_for_debug_assertions(_debug_assertions: bool) -> Self {
-        Self::Minimum(DiagnosticLogLevel::Log)
+    pub const fn default_for_debug_assertions(debug_assertions: bool) -> Self {
+        if debug_assertions {
+            Self::Minimum(DiagnosticLogLevel::Verbose)
+        } else {
+            Self::Minimum(DiagnosticLogLevel::Log)
+        }
     }
 
     pub fn default_for_build_profile() -> Self {
@@ -109,14 +115,15 @@ impl DiagnosticLogFilterConfig {
 
     pub fn from_env_or_default() -> Self {
         let mut config = Self::new(DiagnosticLogFilter::from_env_or_default());
-        if let Some(raw_value) =
-            std::env::var_os(DIAGNOSTIC_LOG_FILTER_ENV).filter(|value| !value.is_empty())
-        {
-            let value = raw_value.to_string_lossy();
-            match Self::parse(value.as_ref(), config.minimum) {
+        if let Some((env_name, value)) = selected_filter_env_override(
+            non_empty_env_value(DIAGNOSTIC_LOG_FILTER_ENV),
+            non_empty_env_value(DIAGNOSTIC_LOG_ENV),
+            non_empty_env_value(RUST_LOG_ENV),
+        ) {
+            match Self::parse(value.as_str(), config.minimum) {
                 Ok(parsed) => config = parsed,
                 Err(error) => eprintln!(
-                    "invalid {DIAGNOSTIC_LOG_FILTER_ENV} override: {error}; using {}",
+                    "invalid {env_name} override: {error}; using {}",
                     config.minimum
                 ),
             }
@@ -163,6 +170,23 @@ impl DiagnosticLogFilterConfig {
             .map(|rule| rule.filter)
             .unwrap_or(self.minimum)
     }
+}
+
+fn non_empty_env_value(name: &'static str) -> Option<String> {
+    std::env::var_os(name)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.to_string_lossy().into_owned())
+}
+
+fn selected_filter_env_override(
+    zircon_log_filter: Option<String>,
+    zircon_log: Option<String>,
+    rust_log: Option<String>,
+) -> Option<(&'static str, String)> {
+    zircon_log_filter
+        .map(|value| (DIAGNOSTIC_LOG_FILTER_ENV, value))
+        .or_else(|| zircon_log.map(|value| (DIAGNOSTIC_LOG_ENV, value)))
+        .or_else(|| rust_log.map(|value| (RUST_LOG_ENV, value)))
 }
 
 impl From<DiagnosticLogFilter> for DiagnosticLogFilterConfig {
@@ -224,13 +248,16 @@ impl Error for DiagnosticLogLevelParseError {}
 
 #[cfg(test)]
 mod tests {
-    use super::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
+    use super::{
+        selected_filter_env_override, DiagnosticLogFilter, DiagnosticLogFilterConfig,
+        DiagnosticLogLevel, DIAGNOSTIC_LOG_ENV, DIAGNOSTIC_LOG_FILTER_ENV, RUST_LOG_ENV,
+    };
 
     #[test]
     fn default_filter_matches_build_profile_policy() {
         assert_eq!(
             DiagnosticLogFilter::default_for_debug_assertions(true),
-            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Log)
+            DiagnosticLogFilter::Minimum(DiagnosticLogLevel::Verbose)
         );
         assert_eq!(
             DiagnosticLogFilter::default_for_debug_assertions(false),
@@ -305,5 +332,30 @@ mod tests {
         assert!(config.allows(DiagnosticLogLevel::Debug, "zircon_runtime::asset::path"));
         assert!(!config.allows(DiagnosticLogLevel::Log, "zircon_runtime::ui"));
         assert!(config.allows(DiagnosticLogLevel::Warn, "zircon_runtime::ui"));
+    }
+
+    #[test]
+    fn filter_config_env_precedence_prefers_zircon_filter_alias_before_rust_log() {
+        assert_eq!(
+            selected_filter_env_override(
+                Some("warn".to_string()),
+                Some("debug".to_string()),
+                Some("error".to_string())
+            ),
+            Some((DIAGNOSTIC_LOG_FILTER_ENV, "warn".to_string()))
+        );
+        assert_eq!(
+            selected_filter_env_override(
+                None,
+                Some("debug".to_string()),
+                Some("error".to_string())
+            ),
+            Some((DIAGNOSTIC_LOG_ENV, "debug".to_string()))
+        );
+        assert_eq!(
+            selected_filter_env_override(None, None, Some("trace".to_string())),
+            Some((RUST_LOG_ENV, "trace".to_string()))
+        );
+        assert_eq!(selected_filter_env_override(None, None, None), None);
     }
 }

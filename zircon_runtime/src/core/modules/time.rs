@@ -12,7 +12,7 @@ impl EngineModule for TimeModule {
     }
 
     fn module_description(&self) -> &'static str {
-        "Core frame timing descriptor for FrameClock-backed runtime time"
+        "Core frame timing descriptor for runtime-owned real, virtual, and fixed clocks"
     }
 
     fn descriptor(&self) -> ModuleDescriptor {

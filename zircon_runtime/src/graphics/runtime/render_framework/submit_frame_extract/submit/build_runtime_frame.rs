@@ -22,6 +22,8 @@ pub(super) fn build_runtime_frame(
     prepared: &PreparedRuntimeSubmission,
 ) -> ViewportRenderFrame {
     let extract = apply_effective_advanced_extracts(extract, context);
+    let extract = apply_effective_post_process_graph(extract, context);
+    let extract = apply_submission_target_size(extract, context);
     let virtual_geometry_debug_snapshot = build_virtual_geometry_debug_snapshot(&extract, context);
     let extract = augment_virtual_geometry_debug_overlays(
         extract,
@@ -32,6 +34,25 @@ pub(super) fn build_runtime_frame(
         .with_ui(ui)
         .with_prepared_runtime_sidebands(prepared.prepared_runtime_sidebands())
         .with_virtual_geometry_debug_snapshot(virtual_geometry_debug_snapshot)
+}
+
+fn apply_submission_target_size(
+    mut extract: RenderFrameExtract,
+    context: &FrameSubmissionContext,
+) -> RenderFrameExtract {
+    extract.apply_viewport_size(context.size());
+    extract
+}
+
+fn apply_effective_post_process_graph(
+    mut extract: RenderFrameExtract,
+    context: &FrameSubmissionContext,
+) -> RenderFrameExtract {
+    extract.post_process.bloom = context.post_process_bloom();
+    extract.post_process.color_grading = context.post_process_color_grading();
+    extract.post_process.stack = context.post_process_stack().clone();
+    extract.post_process.graph = context.post_process_graph().clone();
+    extract
 }
 
 fn apply_effective_advanced_extracts(
@@ -327,11 +348,17 @@ mod tests {
             VisibilityContext::from_extract(&extract),
             Default::default(),
             Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
+            Default::default(),
             false,
             true,
             None,
             None,
             None,
+            Vec::new(),
+            Vec::new(),
             Vec::new(),
             Vec::new(),
             Vec::new(),
@@ -403,6 +430,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {

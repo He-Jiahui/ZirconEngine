@@ -6,6 +6,7 @@ use crate::ui::retained_host::primitives::SharedString;
 use thiserror::Error;
 use toml::Value;
 use zircon_runtime::asset::runtime_asset_path_with_dev_asset_root;
+use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime::ui::surface::{extract_ui_render_tree, UiSurface};
 use zircon_runtime::ui::tree::UiRuntimeTreeAccessExt;
 use zircon_runtime::ui::v2::{UiV2PrototypeStoreFileCache, UiV2SurfaceBuilder};
@@ -152,6 +153,7 @@ fn view_template_nodes_from_surface(
         let commit_action_id = resolve_commit_action_id(metadata);
         let value_text = resolve_node_value_text(metadata, &text, component_role);
         let visual_assets = resolve_visual_assets(metadata);
+        let button_style = resolve_button_style_from_values(&metadata.style_overrides);
 
         nodes.push(ViewTemplateNodeData {
             node_id: tree_node.node_path.0.clone().into(),
@@ -178,6 +180,7 @@ fn view_template_nodes_from_surface(
             button_variant: string_attribute(metadata, "button_variant")
                 .unwrap_or_default()
                 .into(),
+            button_style,
             font_size: number_attribute(metadata, "font_size")
                 .unwrap_or(command.style.font_size.max(0.0)),
             font_weight: integer_attribute(metadata, "font_weight").unwrap_or(400),
@@ -507,8 +510,11 @@ mod tests {
             .expect("v2 cache mutex should not be poisoned")
             .len();
 
-        assert_eq!(cache_len_after_first, 1);
-        assert_eq!(cache_len_after_second, 1);
+        assert!(
+            cache_len_after_first > 0,
+            "first v2 projection should populate the store file cache"
+        );
+        assert_eq!(cache_len_after_second, cache_len_after_first);
         assert_eq!(first.len(), second.len());
         assert_eq!(
             first

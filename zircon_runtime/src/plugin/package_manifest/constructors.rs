@@ -71,10 +71,14 @@ impl PluginModuleManifest {
 
 impl PluginPackageManifest {
     pub fn new(id: impl Into<String>, display_name: impl Into<String>) -> Self {
+        let id = id.into();
         Self {
-            id: id.into(),
+            id: id.clone(),
             version: "0.1.0".to_string(),
             sdk_api_version: "0.1.0".to_string(),
+            package_prefix: "com".to_string(),
+            package_company: "zircon".to_string(),
+            package_name: id,
             package_kind: PluginPackageKind::Standard,
             display_name: display_name.into(),
             category: "uncategorized".to_string(),
@@ -100,6 +104,18 @@ impl PluginPackageManifest {
                 ExportPackagingStrategy::LibraryEmbed,
             ],
         }
+    }
+
+    pub fn with_package_identity(
+        mut self,
+        prefix: impl Into<String>,
+        company: impl Into<String>,
+        name: impl Into<String>,
+    ) -> Self {
+        self.package_prefix = prefix.into();
+        self.package_company = company.into();
+        self.package_name = name.into();
+        self
     }
 
     pub fn with_category(mut self, category: impl Into<String>) -> Self {

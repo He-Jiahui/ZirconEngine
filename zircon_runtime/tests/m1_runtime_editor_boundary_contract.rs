@@ -273,6 +273,8 @@ fn overlay_only_snapshot(viewport_size: UVec2) -> RenderSceneSnapshot {
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             scene_gizmos: vec![SceneGizmoOverlayExtract {

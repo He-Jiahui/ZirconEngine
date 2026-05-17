@@ -1,6 +1,7 @@
 use std::time::Duration;
 
-use crate::core::math::{UVec2, Vec3, Vec4};
+use crate::core::math::{UVec2, Vec2, Vec3, Vec4};
+use crate::core::resource::{ResourceHandle, ResourceId, TextureMarker};
 
 use super::{
     animation::{AnimationParameterValue, AnimationPlaybackSettings, AnimationTrackPath},
@@ -9,15 +10,19 @@ use super::{
     physics::{PhysicsCombineRule, PhysicsMaterialMetadata, PhysicsSettings},
     render::{
         CapturedFrame, CorePipelineKind, FallbackSkyboxKind, FrameHistoryHandle, GeometryExtract,
-        GeometryPhaseInput, PreviewEnvironmentExtract, RenderCapabilityKind,
-        RenderCapabilityMismatchDetail, RenderDirectionalLightSnapshot,
-        RenderFeatureQualitySettings, RenderFrameExtract, RenderFrameworkError,
-        RenderHybridGiDebugView, RenderHybridGiExtract, RenderHybridGiQuality,
-        RenderMaterialAlphaMode, RenderOverlayExtract, RenderPhase, RenderPhaseMeshSource,
-        RenderPipelineHandle, RenderPointLightSnapshot, RenderProductFeature, RenderProductProfile,
-        RenderProfileBundle, RenderProfileValidationError, RenderQualityProfile,
+        GeometryPhaseInput, PostProcessEffectKind, PostProcessEffectSettings,
+        PostProcessGraphResourceNames, PostProcessGraphValidationError, PostProcessPassGraph,
+        PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
+        RenderCameraOrderAmbiguity, RenderCameraOrderInput, RenderCameraTarget,
+        RenderCameraTargetOrderKey, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+        RenderDirectionalLightSnapshot, RenderFeatureQualitySettings, RenderFrameExtract,
+        RenderFrameworkError, RenderHybridGiDebugView, RenderHybridGiExtract,
+        RenderHybridGiQuality, RenderLayerSet, RenderMaterialAlphaMode, RenderOverlayExtract,
+        RenderPhase, RenderPhaseMeshSource, RenderPipelineHandle, RenderPointLightSnapshot,
+        RenderProductFeature, RenderProductProfile, RenderProfileBundle,
+        RenderProfileValidationError, RenderQualityProfile, RenderRectLightSnapshot,
         RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderStats,
-        RenderViewportDescriptor, RenderViewportHandle, RenderingBackendInfo,
+        RenderViewportDescriptor, RenderViewportHandle, RenderViewportRect, RenderingBackendInfo,
         ViewportCameraSnapshot,
     },
     scene::{ComponentPropertyPath, EntityPath, LevelSummary, Mobility, WorldHandle},
@@ -145,6 +150,351 @@ fn render_product_pipeline_camera_projection_selects_core_pipeline_kind() {
         ..ViewportCameraSnapshot::default()
     };
     assert_eq!(orthographic.core_pipeline_kind(), CorePipelineKind::Core2d);
+}
+
+#[test]
+fn render_product_post_process_graph_elides_disabled_effects() {
+    let stack = PostProcessStackDescriptor::default();
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+
+    assert_eq!(graph.node_count(), 1);
+    assert_eq!(graph.skipped_node_count(), 3);
+    assert_eq!(
+        graph.final_composite_node.as_deref(),
+        Some("final-composite")
+    );
+}
+
+#[test]
+fn render_product_post_process_stack_elides_history_until_history_is_available() {
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &Default::default(),
+        &Default::default(),
+        true,
+        false,
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+
+    assert_eq!(graph.node_count(), 1);
+    assert!(!graph
+        .nodes
+        .iter()
+        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
+}
+
+#[test]
+fn render_product_post_process_stack_can_drop_history_from_validated_graph() {
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &Default::default(),
+        &Default::default(),
+        true,
+        true,
+    );
+
+    let stack = stack.without_history_resources();
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+
+    assert_eq!(graph.node_count(), 1);
+    assert!(!graph
+        .nodes
+        .iter()
+        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
+    assert!(graph
+        .skipped_nodes
+        .iter()
+        .any(|node| node.kind == PostProcessEffectKind::HistoryResolve));
+}
+
+#[test]
+fn render_product_post_process_graph_rejects_missing_scene_color() {
+    let stack = PostProcessStackDescriptor {
+        initial_resources: vec![PostProcessGraphResourceNames::SCENE_DEPTH.to_string()],
+        effects: vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR]),
+        ],
+    };
+
+    assert_eq!(
+        PostProcessPassGraph::validate_stack(&stack),
+        Err(PostProcessGraphValidationError::MissingRequiredInput {
+            node: "final-composite".to_string(),
+            resource: PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
+        })
+    );
+}
+
+#[test]
+fn render_product_post_process_graph_rejects_invalid_history_dependency() {
+    let stack = PostProcessStackDescriptor {
+        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        effects: vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
+                .with_required_inputs([
+                    PostProcessGraphResourceNames::SCENE_COLOR,
+                    PostProcessGraphResourceNames::HISTORY_COLOR,
+                ])
+                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_RESOLVED]),
+        ],
+    };
+
+    assert_eq!(
+        PostProcessPassGraph::validate_stack(&stack),
+        Err(PostProcessGraphValidationError::MissingRequiredInput {
+            node: "history-resolve".to_string(),
+            resource: PostProcessGraphResourceNames::HISTORY_COLOR.to_string(),
+        })
+    );
+}
+
+#[test]
+fn render_product_post_process_graph_rejects_duplicate_output_resource() {
+    let stack = PostProcessStackDescriptor {
+        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        effects: vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
+        ],
+    };
+
+    assert_eq!(
+        PostProcessPassGraph::validate_stack(&stack),
+        Err(PostProcessGraphValidationError::DuplicateOutputResource {
+            node: "color-grading".to_string(),
+            resource: PostProcessGraphResourceNames::BLOOM.to_string(),
+        })
+    );
+}
+
+#[test]
+fn render_product_post_process_graph_rejects_cycles() {
+    let stack = PostProcessStackDescriptor {
+        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        effects: vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::BLOOM])
+                .with_after([PostProcessEffectKind::ColorGrading]),
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
+                .with_after([PostProcessEffectKind::Bloom]),
+        ],
+    };
+
+    assert_eq!(
+        PostProcessPassGraph::validate_stack(&stack),
+        Err(PostProcessGraphValidationError::CycleDetected)
+    );
+}
+
+#[test]
+fn render_product_post_process_graph_rejects_missing_effect_dependency() {
+    let stack = PostProcessStackDescriptor {
+        initial_resources: vec![PostProcessGraphResourceNames::SCENE_COLOR.to_string()],
+        effects: vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
+                .with_after([PostProcessEffectKind::Bloom]),
+        ],
+    };
+
+    assert_eq!(
+        PostProcessPassGraph::validate_stack(&stack),
+        Err(PostProcessGraphValidationError::MissingDependency {
+            node: "final-composite".to_string(),
+            dependency: PostProcessEffectKind::Bloom,
+        })
+    );
+}
+
+#[test]
+fn render_product_post_process_graph_allows_color_grading_without_bloom() {
+    let stack = PostProcessStackDescriptor::from_extract_settings(
+        &Default::default(),
+        &super::render::RenderColorGradingSettings {
+            exposure: 1.05,
+            contrast: 1.0,
+            saturation: 1.0,
+            gamma: 1.0,
+            tint: Vec3::ONE,
+        },
+        false,
+        false,
+    );
+
+    let graph = PostProcessPassGraph::validate_stack(&stack).unwrap();
+
+    assert_eq!(
+        graph.nodes.iter().map(|node| node.kind).collect::<Vec<_>>(),
+        vec![
+            PostProcessEffectKind::ColorGrading,
+            PostProcessEffectKind::FinalComposite,
+        ]
+    );
+}
+
+#[test]
+fn render_camera_contracts_cover_viewports_and_bevy_layer_intersection() {
+    let viewport = RenderViewportRect::new(UVec2::new(600, 400), UVec2::new(100, 100))
+        .clamped_to_size(UVec2::new(640, 480));
+    assert_eq!(viewport.physical_position, UVec2::new(600, 400));
+    assert_eq!(viewport.physical_size, UVec2::new(40, 80));
+
+    let layers = RenderLayerSet::from_layers([0, 3, 70]);
+    assert!(layers.contains(0));
+    assert!(layers.contains(3));
+    assert!(layers.contains(70));
+    assert!(layers.intersects(&RenderLayerSet::layer(70)));
+    assert!(!layers.intersects(&RenderLayerSet::layer(4)));
+    assert!(!RenderLayerSet::none().intersects(&RenderLayerSet::none()));
+    assert_eq!(
+        RenderLayerSet::from_legacy_mask(0b1010).to_legacy_mask_lossy(),
+        0b1010
+    );
+
+    let mut camera = ViewportCameraSnapshot {
+        viewport: Some(RenderViewportRect::new(
+            UVec2::new(100, 0),
+            UVec2::new(320, 160),
+        )),
+        render_layers: RenderLayerSet::from_layers([3]),
+        hdr: true,
+        msaa_samples: 4,
+        ..ViewportCameraSnapshot::default()
+    };
+    camera.apply_viewport_size(UVec2::new(1920, 1080));
+
+    assert_eq!(camera.aspect_ratio, 2.0);
+    assert!(camera.hdr);
+    assert_eq!(camera.msaa_samples, 4);
+    assert!(camera.render_layers.intersects_legacy_mask(0b1000));
+    assert!(!camera.render_layers.intersects_legacy_mask(0b0010));
+}
+
+#[test]
+fn render_camera_ordering_sorts_by_order_then_target_and_tracks_target_hdr_index() {
+    let texture_a = ResourceHandle::<TextureMarker>::new(ResourceId::from_stable_label(
+        "res://textures/camera-a.png",
+    ));
+
+    let report = super::render::sort_render_cameras([
+        RenderCameraOrderInput::new(
+            40,
+            camera_order_input(2, RenderCameraTarget::PrimarySurface),
+        ),
+        RenderCameraOrderInput::new(
+            30,
+            ViewportCameraSnapshot {
+                target: RenderCameraTarget::Texture(texture_a),
+                hdr: true,
+                ..camera_order_input(2, RenderCameraTarget::PrimarySurface)
+            },
+        ),
+        RenderCameraOrderInput::new(
+            10,
+            camera_order_input(
+                -1,
+                RenderCameraTarget::Headless {
+                    size: UVec2::new(640, 480),
+                },
+            ),
+        ),
+        RenderCameraOrderInput::new(
+            20,
+            ViewportCameraSnapshot {
+                target: RenderCameraTarget::Texture(texture_a),
+                hdr: true,
+                ..camera_order_input(0, RenderCameraTarget::PrimarySurface)
+            },
+        ),
+        RenderCameraOrderInput::new(
+            50,
+            camera_order_input(0, RenderCameraTarget::PrimarySurface),
+        ),
+    ]);
+
+    assert!(!report.has_ambiguities());
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.entity)
+            .collect::<Vec<_>>(),
+        vec![10, 50, 20, 40, 30]
+    );
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.sorted_camera_index_for_target)
+            .collect::<Vec<_>>(),
+        vec![0, 0, 0, 1, 1]
+    );
+}
+
+#[test]
+fn render_camera_ordering_reports_ambiguities_and_skips_inactive_cameras() {
+    let report = super::render::sort_render_cameras([
+        RenderCameraOrderInput::new(30, inactive_camera_order_input(1)),
+        RenderCameraOrderInput::new(
+            20,
+            camera_order_input(1, RenderCameraTarget::PrimarySurface),
+        ),
+        RenderCameraOrderInput::new(
+            40,
+            camera_order_input(
+                1,
+                RenderCameraTarget::Headless {
+                    size: UVec2::new(320, 240),
+                },
+            ),
+        ),
+        RenderCameraOrderInput::new(
+            10,
+            camera_order_input(1, RenderCameraTarget::PrimarySurface),
+        ),
+    ]);
+
+    assert_eq!(
+        report
+            .cameras
+            .iter()
+            .map(|camera| camera.entity)
+            .collect::<Vec<_>>(),
+        vec![10, 20, 40]
+    );
+    assert_eq!(
+        report.ambiguities,
+        vec![RenderCameraOrderAmbiguity {
+            order: 1,
+            target: RenderCameraTargetOrderKey::PrimarySurface,
+        }]
+    );
+}
+
+fn camera_order_input(order: i32, target: RenderCameraTarget) -> ViewportCameraSnapshot {
+    ViewportCameraSnapshot {
+        order,
+        target,
+        ..ViewportCameraSnapshot::default()
+    }
+}
+
+fn inactive_camera_order_input(order: i32) -> ViewportCameraSnapshot {
+    ViewportCameraSnapshot {
+        order,
+        is_active: false,
+        ..ViewportCameraSnapshot::default()
+    }
 }
 
 fn assert_mesh_phase_order(pipeline: CorePipelineKind, expected: &[RenderPhase; 3]) {
@@ -556,6 +906,26 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
                 inner_angle_radians: 0.25,
                 outer_angle_radians: 0.5,
             }],
+            ambient_lights: vec![RenderAmbientLightSnapshot {
+                color: Vec3::new(0.05, 0.06, 0.07),
+                intensity: 0.2,
+                renderer_degraded: true,
+                degradation_reason: Some(
+                    "ambient light renderer path is deferred after M5A".to_string(),
+                ),
+            }],
+            rect_lights: vec![RenderRectLightSnapshot {
+                node_id: 40,
+                position: Vec3::new(1.0, 2.0, 3.0),
+                direction: Vec3::new(0.0, -1.0, 0.0),
+                color: Vec3::new(1.0, 0.8, 0.6),
+                intensity: 6.0,
+                size: Vec2::new(2.0, 0.5),
+                renderer_degraded: true,
+                degradation_reason: Some(
+                    "rect light renderer path is deferred after M5A".to_string(),
+                ),
+            }],
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -575,6 +945,11 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
     );
     assert_eq!(extract.lighting.point_lights, snapshot.scene.point_lights);
     assert_eq!(extract.lighting.spot_lights, snapshot.scene.spot_lights);
+    assert_eq!(
+        extract.lighting.ambient_lights,
+        snapshot.scene.ambient_lights
+    );
+    assert_eq!(extract.lighting.rect_lights, snapshot.scene.rect_lights);
 
     let roundtrip = extract.to_scene_snapshot();
     assert_eq!(
@@ -583,6 +958,73 @@ fn render_frame_extract_roundtrip_preserves_split_light_lists() {
     );
     assert_eq!(roundtrip.scene.point_lights, snapshot.scene.point_lights);
     assert_eq!(roundtrip.scene.spot_lights, snapshot.scene.spot_lights);
+    assert_eq!(
+        roundtrip.scene.ambient_lights,
+        snapshot.scene.ambient_lights
+    );
+    assert_eq!(roundtrip.scene.rect_lights, snapshot.scene.rect_lights);
+}
+
+#[test]
+fn render_product_pbr_lighting_extract_carries_ambient_and_rect_degradation_contracts() {
+    let mut extract = RenderFrameExtract::from_snapshot(
+        WorldHandle::new(8).into(),
+        RenderSceneSnapshot {
+            scene: RenderSceneGeometryExtract {
+                camera: ViewportCameraSnapshot::default(),
+                meshes: Vec::new(),
+                directional_lights: Vec::new(),
+                point_lights: Vec::new(),
+                spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
+            },
+            overlays: RenderOverlayExtract::default(),
+            preview: PreviewEnvironmentExtract {
+                lighting_enabled: true,
+                skybox_enabled: false,
+                fallback_skybox: FallbackSkyboxKind::None,
+                clear_color: Vec4::ZERO,
+            },
+            virtual_geometry_debug: None,
+        },
+    );
+    extract
+        .lighting
+        .ambient_lights
+        .push(RenderAmbientLightSnapshot {
+            color: Vec3::new(0.1, 0.2, 0.3),
+            intensity: 0.4,
+            renderer_degraded: true,
+            degradation_reason: Some(
+                "ambient light renderer path is deferred after M5A".to_string(),
+            ),
+        });
+    extract.lighting.rect_lights.push(RenderRectLightSnapshot {
+        node_id: 80,
+        position: Vec3::new(1.0, 2.0, 3.0),
+        direction: Vec3::new(0.0, -1.0, 0.0),
+        color: Vec3::new(1.0, 0.8, 0.6),
+        intensity: 5.0,
+        size: Vec2::new(2.0, 0.5),
+        renderer_degraded: true,
+        degradation_reason: Some("rect light renderer path is deferred after M5A".to_string()),
+    });
+
+    assert_eq!(extract.lighting.ambient_lights.len(), 1);
+    assert_eq!(extract.lighting.rect_lights.len(), 1);
+    assert!(extract.lighting.ambient_lights[0].renderer_degraded);
+    assert!(extract.lighting.rect_lights[0].renderer_degraded);
+    assert!(extract.lighting.ambient_lights[0]
+        .degradation_reason
+        .as_deref()
+        .unwrap()
+        .contains("deferred"));
+    assert!(extract.lighting.rect_lights[0]
+        .degradation_reason
+        .as_deref()
+        .unwrap()
+        .contains("deferred"));
 }
 
 #[test]

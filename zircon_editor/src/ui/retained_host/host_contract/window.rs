@@ -33,6 +33,7 @@ use super::native_pointer::{
 };
 use super::painter::{paint_host_frame, HostRgbaFrame};
 use super::presenter::{create_host_chrome_presenter, HostChromePresenter, HostPresenterBackend};
+use super::profiling_artifacts::export_present_artifacts;
 use super::redraw::{HostRedrawRequest, NativePointerDispatchResult};
 use crate::ui::retained_host::ui_perf::{
     enter_ui_perf_scenario, record_current_ui_perf_counter, UiPerfCounter, UiPerfScenario,
@@ -217,6 +218,17 @@ impl UiHostWindow {
     pub(crate) fn request_frame_update(&self) {
         self.global::<super::globals::UiHostContext>()
             .invoke_frame_requested();
+    }
+
+    pub(crate) fn mark_completed_frame_update_scenario(&self, scenario: UiPerfScenario) {
+        self.state.borrow_mut().completed_frame_update_scenario = Some(scenario);
+    }
+
+    fn take_completed_frame_update_scenario(&self) -> Option<UiPerfScenario> {
+        self.state
+            .borrow_mut()
+            .completed_frame_update_scenario
+            .take()
     }
 
     pub(crate) fn request_redraw_region(&self, frame: FrameRect) {
@@ -643,6 +655,7 @@ struct UiHostWindowEventLoop {
     host: UiHostWindow,
     window: Option<Arc<dyn Window>>,
     presenter: Option<Box<dyn HostChromePresenter>>,
+    presenter_backend: Option<HostPresenterBackend>,
     last_pointer_position: Option<(f32, f32)>,
     pending_redraw: HostRedrawRequest,
     ime_allowed: bool,
@@ -654,6 +667,7 @@ impl UiHostWindowEventLoop {
             host,
             window: None,
             presenter: None,
+            presenter_backend: None,
             last_pointer_position: None,
             pending_redraw: HostRedrawRequest::full_frame_for_scenario(
                 UiPerfScenario::Startup,
@@ -790,6 +804,7 @@ impl ApplicationHandler for UiHostWindowEventLoop {
         window.request_redraw();
         self.window = Some(window);
         self.presenter = Some(presenter);
+        self.presenter_backend = Some(presenter_backend);
     }
 
     fn window_event(
@@ -885,10 +900,17 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                 if !redraw.request_redraw() {
                     return;
                 }
-                let _scenario = enter_ui_perf_scenario(redraw.scenario());
+                let redraw_scenario = redraw.scenario();
+                let redraw_scenario_guard = enter_ui_perf_scenario(redraw_scenario);
                 if redraw.requires_frame_update() {
                     self.host.request_frame_update();
                 }
+                let present_scenario = self
+                    .host
+                    .take_completed_frame_update_scenario()
+                    .unwrap_or(redraw_scenario);
+                drop(redraw_scenario_guard);
+                let _present_scenario_guard = enter_ui_perf_scenario(present_scenario);
                 if let Some(presenter) = self.presenter.as_mut() {
                     let presentation = self.host.get_host_presentation();
                     let invalidation = self.host.refresh_invalidation_diagnostics();
@@ -898,6 +920,13 @@ impl ApplicationHandler for UiHostWindowEventLoop {
                         invalidation,
                     ) {
                         Ok(diagnostics) => {
+                            if let Some(backend) = self.presenter_backend {
+                                export_present_artifacts(
+                                    &presentation,
+                                    &self.host.window().size(),
+                                    backend,
+                                );
+                            }
                             self.host.set_host_refresh_diagnostics_overlay(diagnostics)
                         }
                         Err(error) => {
@@ -1066,5 +1095,20 @@ mod tests {
         assert!(redraw.request_redraw());
         assert!(redraw.requires_frame_update());
         assert_eq!(redraw.damage_region(), Some(&frame));
+    }
+
+    #[test]
+    fn completed_frame_update_scenario_is_one_shot() {
+        let host = UiHostWindow::new().expect("host window should construct for redraw test");
+
+        assert_eq!(host.take_completed_frame_update_scenario(), None);
+
+        host.mark_completed_frame_update_scenario(UiPerfScenario::DrawerResize);
+
+        assert_eq!(
+            host.take_completed_frame_update_scenario(),
+            Some(UiPerfScenario::DrawerResize)
+        );
+        assert_eq!(host.take_completed_frame_update_scenario(), None);
     }
 }

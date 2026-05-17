@@ -65,7 +65,7 @@ pub(super) fn material_capture_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("black.material.toml"),
+            .join("black.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [0.0, 0.0, 0.0],
     );
@@ -73,20 +73,20 @@ pub(super) fn material_capture_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("emissive.material.toml"),
+            .join("emissive.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [1.0, 0.2, 0.1],
     );
     write_scene_asset(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/black.material.toml",
+        "res://materials/black.zmaterial",
     );
 
     let asset_manager = open_test_project(&root);
     let black_material =
-        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/black.material.toml");
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/black.zmaterial");
     let emissive_material =
-        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/emissive.material.toml");
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/emissive.zmaterial");
 
     (asset_manager, root, black_material, emissive_material)
 }
@@ -120,7 +120,7 @@ pub(super) fn material_surface_response_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("smooth_white.material.toml"),
+            .join("smooth_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -130,7 +130,7 @@ pub(super) fn material_surface_response_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("rough_white.material.toml"),
+            .join("rough_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -140,7 +140,7 @@ pub(super) fn material_surface_response_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("dielectric_red.material.toml"),
+            .join("dielectric_red.zmaterial"),
         [1.0, 0.2, 0.1, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -150,7 +150,7 @@ pub(super) fn material_surface_response_test_assets() -> (
         paths
             .assets_root()
             .join("materials")
-            .join("metallic_red.material.toml"),
+            .join("metallic_red.zmaterial"),
         [1.0, 0.2, 0.1, 1.0],
         [0.0, 0.0, 0.0],
         1.0,
@@ -158,25 +158,25 @@ pub(super) fn material_surface_response_test_assets() -> (
     );
     write_scene_asset(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/smooth_white.material.toml",
+        "res://materials/smooth_white.zmaterial",
     );
 
     let asset_manager = open_test_project(&root);
     let smooth_white = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/smooth_white.material.toml",
+        "res://materials/smooth_white.zmaterial",
     );
     let rough_white = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/rough_white.material.toml",
+        "res://materials/rough_white.zmaterial",
     );
     let dielectric_red = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/dielectric_red.material.toml",
+        "res://materials/dielectric_red.zmaterial",
     );
     let metallic_red = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/metallic_red.material.toml",
+        "res://materials/metallic_red.zmaterial",
     );
 
     (
@@ -273,7 +273,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("base_red_texture.material.toml"),
+            .join("base_red_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -288,7 +288,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("base_blue_texture.material.toml"),
+            .join("base_blue_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -303,7 +303,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("emissive_warm_texture.material.toml"),
+            .join("emissive_warm_texture.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [1.0, 1.0, 1.0],
         0.0,
@@ -318,7 +318,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("emissive_cool_texture.material.toml"),
+            .join("emissive_cool_texture.zmaterial"),
         [0.0, 0.0, 0.0, 1.0],
         [1.0, 1.0, 1.0],
         0.0,
@@ -333,7 +333,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("rough_dielectric_texture.material.toml"),
+            .join("rough_dielectric_texture.zmaterial"),
         [1.0, 0.25, 0.1, 1.0],
         [0.0, 0.0, 0.0],
         1.0,
@@ -348,7 +348,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("smooth_metallic_texture.material.toml"),
+            .join("smooth_metallic_texture.zmaterial"),
         [1.0, 0.25, 0.1, 1.0],
         [0.0, 0.0, 0.0],
         1.0,
@@ -363,7 +363,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("flat_normal_texture.material.toml"),
+            .join("flat_normal_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -378,7 +378,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("tilted_normal_texture.material.toml"),
+            .join("tilted_normal_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -393,7 +393,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("open_occlusion_texture.material.toml"),
+            .join("open_occlusion_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -408,7 +408,7 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
         paths
             .assets_root()
             .join("materials")
-            .join("blocked_occlusion_texture.material.toml"),
+            .join("blocked_occlusion_texture.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -421,50 +421,50 @@ pub(super) fn material_texture_capture_test_assets() -> MaterialTextureCaptureTe
     );
     write_scene_asset(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/base_red_texture.material.toml",
+        "res://materials/base_red_texture.zmaterial",
     );
 
     let asset_manager = open_test_project(&root);
     MaterialTextureCaptureTestAssets {
         base_color_red: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/base_red_texture.material.toml",
+            "res://materials/base_red_texture.zmaterial",
         ),
         base_color_blue: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/base_blue_texture.material.toml",
+            "res://materials/base_blue_texture.zmaterial",
         ),
         emissive_warm: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/emissive_warm_texture.material.toml",
+            "res://materials/emissive_warm_texture.zmaterial",
         ),
         emissive_cool: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/emissive_cool_texture.material.toml",
+            "res://materials/emissive_cool_texture.zmaterial",
         ),
         rough_dielectric: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/rough_dielectric_texture.material.toml",
+            "res://materials/rough_dielectric_texture.zmaterial",
         ),
         smooth_metallic: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/smooth_metallic_texture.material.toml",
+            "res://materials/smooth_metallic_texture.zmaterial",
         ),
         flat_normal: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/flat_normal_texture.material.toml",
+            "res://materials/flat_normal_texture.zmaterial",
         ),
         tilted_normal: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/tilted_normal_texture.material.toml",
+            "res://materials/tilted_normal_texture.zmaterial",
         ),
         open_occlusion: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/open_occlusion_texture.material.toml",
+            "res://materials/open_occlusion_texture.zmaterial",
         ),
         blocked_occlusion: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/blocked_occlusion_texture.material.toml",
+            "res://materials/blocked_occlusion_texture.zmaterial",
         ),
         asset_manager,
         root,
@@ -493,7 +493,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         paths
             .assets_root()
             .join("materials")
-            .join("single_sided_white.material.toml"),
+            .join("single_sided_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -510,7 +510,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         paths
             .assets_root()
             .join("materials")
-            .join("double_sided_white.material.toml"),
+            .join("double_sided_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -527,7 +527,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         [1.0, 1.0, 1.0, 1.0],
         [0.0, 0.0, 0.0],
         0.0,
@@ -544,7 +544,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         paths
             .assets_root()
             .join("materials")
-            .join("masked_cutout_white.material.toml"),
+            .join("masked_cutout_white.zmaterial"),
         [1.0, 1.0, 1.0, 0.2],
         [0.0, 0.0, 0.0],
         0.0,
@@ -561,7 +561,7 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
         paths
             .assets_root()
             .join("materials")
-            .join("blended_white.material.toml"),
+            .join("blended_white.zmaterial"),
         [1.0, 1.0, 1.0, 0.2],
         [0.0, 0.0, 0.0],
         0.0,
@@ -576,30 +576,30 @@ pub(super) fn material_visibility_capture_test_assets() -> MaterialVisibilityCap
     );
     write_scene_asset(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/opaque_white.material.toml",
+        "res://materials/opaque_white.zmaterial",
     );
 
     let asset_manager = open_test_project(&root);
     MaterialVisibilityCaptureTestAssets {
         single_sided_white: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/single_sided_white.material.toml",
+            "res://materials/single_sided_white.zmaterial",
         ),
         double_sided_white: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/double_sided_white.material.toml",
+            "res://materials/double_sided_white.zmaterial",
         ),
         opaque_white: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/opaque_white.material.toml",
+            "res://materials/opaque_white.zmaterial",
         ),
         masked_cutout_white: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/masked_cutout_white.material.toml",
+            "res://materials/masked_cutout_white.zmaterial",
         ),
         blended_white: resource_handle::<MaterialMarker>(
             &asset_manager,
-            "res://materials/blended_white.material.toml",
+            "res://materials/blended_white.zmaterial",
         ),
         asset_manager,
         root,
@@ -712,6 +712,9 @@ fn write_material_asset_with_capture_options(
         emissive_texture: emissive_texture.map(asset_reference),
         alpha_mode,
         double_sided,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }
@@ -782,6 +785,7 @@ fn write_scene_asset(path: PathBuf, material_uri: &str) {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    ..SceneCameraAsset::default()
                 }),
                 mesh: None,
                 directional_light: None,

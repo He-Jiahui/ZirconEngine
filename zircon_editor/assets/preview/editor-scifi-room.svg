@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-label="Editor sci-fi room preview">
+  <defs>
+    <linearGradient id="room" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#1b2028"/><stop offset="0.55" stop-color="#12161d"/><stop offset="1" stop-color="#07090d"/></linearGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#30343a"/><stop offset="1" stop-color="#101319"/></linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#35f1e8"/><stop offset="1" stop-color="#1a80ff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="960" height="420" fill="url(#room)"/>
+  <path fill="#20242c" d="M0 0h960v48H0zM0 48l180 92h600l180-92v108l-156 70H156L0 156z"/>
+  <path fill="#0c0f14" d="M120 135h720v126H120z"/>
+  <path fill="#242b34" d="M175 160h610v78H175z"/>
+  <path fill="#111820" d="M420 142h120l58 48-58 48H420l-58-48z"/>
+  <path fill="url(#floor)" d="M0 420 188 238h584l188 182z"/>
+  <g fill="none" stroke="#59616e" stroke-width="2" opacity="0.7">
+    <path d="M188 238 68 420M280 238 222 420M372 238 360 420M480 238v182M588 238l12 182M680 238l58 182M772 238l120 182"/>
+    <path d="M102 372h716M150 326h660M198 284h564M242 253h476"/>
+  </g>
+  <path fill="url(#cyan)" d="M104 88h270v12H104z" opacity="0.9"/>
+  <path fill="url(#cyan)" d="M590 90h250v10H590z" opacity="0.65"/>
+  <g fill="#2a3038">
+    <rect x="92" y="220" width="110" height="70" rx="6"/><rect x="718" y="222" width="150" height="66" rx="6"/><rect x="640" y="250" width="70" height="44" rx="5"/>
+  </g>
+  <rect x="326" y="250" width="92" height="74" rx="4" fill="#242a31" stroke="#20d8d2" stroke-width="3"/>
+  <path fill="none" stroke="#45f05d" stroke-width="5" d="M372 285V200"/>
+  <path fill="#45f05d" d="m372 190 12 22h-24z"/>
+  <path fill="none" stroke="#ff4d3b" stroke-width="5" d="M372 285h96"/>
+  <path fill="#ff4d3b" d="m482 285-22 12v-24z"/>
+  <path fill="none" stroke="#297dff" stroke-width="5" d="M372 285 310 322"/>
+  <path fill="#297dff" d="m298 329 12-22 12 20z"/>
+  <path fill="none" stroke="#21d6d0" stroke-width="2" d="M326 250h92v74h-92z" opacity="0.55"/>
+  <path fill="#3a4049" d="M0 402h960v18H0z"/>
+</svg>

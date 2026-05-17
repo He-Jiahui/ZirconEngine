@@ -446,10 +446,11 @@ pub struct ScriptHostTypeDescriptor {
 
 impl ScriptHostTypeDescriptor {
     pub fn new(name: impl Into<String>, value_kind: ScriptHostValueKind) -> Self {
+        let name = name.into();
         Self {
-            name: name.into(),
+            type_ref: ScriptHostTypeRef::new(value_kind, name.clone()),
+            name,
             value_kind,
-            type_ref: ScriptHostTypeRef::from_value_kind(value_kind),
             prototype_kind: ScriptHostPrototypeKind::Struct,
             allow_value_construction: false,
             fields: Vec::new(),

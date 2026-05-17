@@ -384,10 +384,10 @@ impl RuntimeProfileDescriptor {
         )
         .with_minimum_maturity(PluginMaturity::Core)
         .with_required_capability("runtime.core.lifecycle")
-        .with_required_capability("runtime.core.asset")
-        .with_required_capability("runtime.core.scene")
-        .with_required_capability("runtime.core.render.base")
-        .with_required_capability("runtime.core.plugin_loader")
+        .with_required_capability("runtime.core.tasks")
+        .with_required_capability("runtime.core.time")
+        .with_required_capability("runtime.core.frame_count")
+        .with_required_capability("runtime.core.diagnostics")
     }
 
     fn client_2d() -> Self {

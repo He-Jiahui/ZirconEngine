@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use zircon_runtime::asset::project::AssetSourceUnit;
 use zircon_runtime_interface::resource::ResourceKind;
 
 use zircon_runtime::asset::project::PreviewState;
@@ -43,11 +44,24 @@ pub struct EditorAssetReferenceRecord {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EditorAssetSubassetRecord {
+    pub uuid: String,
+    pub locator: String,
+    pub kind: ResourceKind,
+    pub artifact_locator: Option<String>,
+    pub dependency_locators: Vec<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EditorAssetDetailsRecord {
     pub asset: EditorAssetCatalogRecord,
     pub direct_references: Vec<EditorAssetReferenceRecord>,
     pub referenced_by: Vec<EditorAssetReferenceRecord>,
     pub editor_adapter: Option<String>,
+    pub package_id: Option<String>,
+    pub unit: AssetSourceUnit,
+    pub included_files: Vec<String>,
+    pub subassets: Vec<EditorAssetSubassetRecord>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

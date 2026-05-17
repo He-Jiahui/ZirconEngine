@@ -4,6 +4,7 @@ related_code:
   - zircon_runtime/src/asset/importer/registry.rs
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/schema.rs
+  - zircon_runtime/src/asset/importer/image_decode.rs
   - zircon_runtime/src/asset/importer/ingest/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
@@ -12,6 +13,7 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_shader.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_runtime/src/asset/tests/assets/ui.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
@@ -24,7 +26,15 @@ related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/meta.rs
   - zircon_runtime/src/asset/assets/data.rs
-  - zircon_runtime/src/asset/assets/texture.rs
+  - zircon_runtime/src/asset/assets/texture/mod.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/metadata.rs
+  - zircon_runtime/src/asset/assets/texture/payload.rs
+  - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/core/framework/render/image/descriptor.rs
+  - zircon_runtime/src/core/framework/render/image/asset_usage.rs
+  - zircon_runtime/src/core/framework/render/image/dimension.rs
+  - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/asset/assets/shader.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_asset_manager.rs
@@ -48,6 +58,7 @@ related_code:
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/container.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
@@ -65,7 +76,17 @@ implementation_files:
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_runtime/src/asset/importer/ingest/import_ui_zui_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
+  - zircon_runtime/src/asset/importer/image_decode.rs
+  - zircon_runtime/src/asset/importer/ingest/import_texture.rs
   - zircon_runtime/src/asset/importer/ingest/primitive_from_indexed_mesh.rs
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs
+  - zircon_runtime/src/asset/assets/texture/metadata.rs
+  - zircon_runtime/src/asset/assets/texture/payload.rs
+  - zircon_runtime/src/asset/assets/texture/texture_asset.rs
+  - zircon_runtime/src/core/framework/render/image/descriptor.rs
+  - zircon_runtime/src/core/framework/render/image/asset_usage.rs
+  - zircon_runtime/src/core/framework/render/image/dimension.rs
+  - zircon_runtime/src/core/framework/render/image/mod.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
@@ -95,6 +116,7 @@ implementation_files:
   - zircon_plugins/texture_importer/plugin.toml
   - zircon_plugins/texture_importer/runtime/Cargo.toml
   - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/container.rs
   - zircon_plugins/asset_importers/texture/runtime/src/lib.rs
   - zircon_plugins/asset_importers/shader/runtime/Cargo.toml
   - zircon_plugins/asset_importers/shader/runtime/src/lib.rs
@@ -106,11 +128,98 @@ implementation_files:
 plan_sources:
   - user: 2026-05-02 Asset Importer 插件化补齐计划
   - user: 2026-05-03 Opus/libopus NativeDynamic importer gap
+  - user: 2026-05-16 continue Bevy-style asset/image completion toward M4
+  - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
+  - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
   - .codex/plans/ZirconEngine 独立插件补齐计划.md
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
   - docs/superpowers/specs/2026-05-03-opus-native-dynamic-importer-design.md
   - docs/superpowers/plans/2026-05-03-opus-native-dynamic-importer.md
 tests:
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/assets/importer.rs
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs
+  - zircon_runtime/src/asset/tests/assets/render_product.rs
+  - zircon_plugins/texture_importer/runtime/src/lib.rs
+  - zircon_plugins/texture_importer/runtime/src/container.rs
+  - zircon_plugins/texture_importer/runtime/src/container.rs::dds_dx10_container_importer_reads_cubemap_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container.rs::ktx1_3d_container_keeps_depth_separate_from_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container.rs::astc_container_importer_reads_3d_block_and_depth
+  - zircon_plugins/texture_importer/runtime/src/container.rs::ktx2_3d_container_keeps_depth_separate_from_array_layers
+  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_applies_descriptor_settings_without_expanding_payload
+  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_rejects_array_layout_without_decoded_rgba
+  - zircon_plugins/texture_importer/runtime/src/container.rs::container_importer_reports_layer_count_overflow_diagnostics
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::render_asset_usage_alias_accepts_single_token
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::depth_or_array_layers_updates_array_layer_count_for_2d_arrays
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::array_layer_count_updates_depth_or_array_layers_for_2d_arrays
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::mismatched_2d_extent_settings_report_error
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::dimension_3d_rejects_multiple_array_layers
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::dimension_3d_keeps_depth_and_single_array_layer
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::import_extent_override_replaces_existing_2d_container_layers
+  - zircon_runtime/src/asset/assets/texture/descriptor.rs::bevy_alias_diagnostics_report_actual_setting_keys
+  - zircon_runtime/src/asset/importer/image_decode.rs::default_format_reports_missing_extension
+  - zircon_runtime/src/asset/importer/image_decode.rs::explicit_source_format_reports_unsupported_token
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_decodes_common_extension_format_matrix
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_uses_extension_format_by_default
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_can_guess_format_when_requested
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_can_use_explicit_source_format
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_accepts_source_format_aliases
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_reports_actual_source_format_key
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_accepts_bevy_image_setting_aliases
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_reinterprets_stacked_array_layout
+  - zircon_runtime/src/asset/tests/assets/texture_importer.rs::importer_texture_fixture_rejects_invalid_array_layout
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_decodes_common_extension_format_matrix
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_uses_extension_format_by_default
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_can_guess_format_from_bytes_when_requested
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_can_use_explicit_source_format
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_accepts_source_format_aliases
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_reports_actual_source_format_key
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_accepts_bevy_image_setting_aliases
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_reinterprets_stacked_array_layout
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::image_importer_rejects_invalid_array_layout
+  - zircon_plugins/texture_importer/runtime/src/lib.rs::psd_importer_applies_texture_descriptor_settings
+  - rustfmt --edition 2021 --config skip_children=true --check on touched M4 texture/importer/runtime/plugin files (2026-05-17 focused M4 final: passed)
+  - git diff --check on touched M4 texture/importer/docs/session files (2026-05-17 focused M4 final: passed with LF/CRLF warnings only; trailing-whitespace content search found matches only in unrelated docs)
+  - cargo metadata --locked --no-deps --format-version 1 (2026-05-17 focused M4 final: passed)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-17 focused M4 final: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --tests --locked --offline --jobs 1 (2026-05-17 focused M4 final: passed)
+  - cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 (2026-05-17 focused M4 final: passed)
+  - cargo test -p zircon_runtime --lib texture_importer --locked --offline --jobs 1 (2026-05-17 focused M4 final: passed, 11 passed, 0 failed)
+  - cargo test -p zircon_runtime --lib render_product_assets_texture --locked --offline --jobs 1 (2026-05-17 focused M4 final: passed, 3 passed, 0 failed)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --offline --jobs 1 (2026-05-17 focused M4 final: passed, 28 passed, 0 failed)
+  - cargo test -p zircon_runtime --lib texture::descriptor --locked --offline --jobs 1 on Windows (2026-05-17 M4 descriptor follow-up: blocked before Zircon tests by root `Cargo.lock` `wgpu-hal`/`windows` D3D12 API mismatch)
+  - WSL cargo test -p zircon_runtime --lib texture::descriptor --locked --jobs 1 (2026-05-17 M4 descriptor follow-up: passed, 8 passed, 0 failed)
+  - WSL-built zircon_runtime test binary image_decode --nocapture (2026-05-17 M4 image-decode follow-up: passed, 2 passed, 0 failed)
+  - rustfmt --edition 2021 --config skip_children=true --check on shared image source decode files (2026-05-16 image source format selection: passed)
+  - git diff --check on shared image source decode/docs/session files (2026-05-16 image source format selection: passed with CRLF warnings only)
+  - rustfmt --edition 2021 --check on touched texture/importer/render-product files except root mod traversal (2026-05-16 M4 texture descriptor: passed)
+  - cargo metadata --locked --no-deps --format-version 1 (2026-05-16 M4 texture descriptor: passed)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-16 M4 texture descriptor: passed)
+  - cargo test -p zircon_runtime --lib render_product_assets_texture --locked --jobs 1 (2026-05-16 M4 texture descriptor: attempted, inconclusive because concurrent Cargo package-cache locks/active Cargo jobs prevented completion before test diagnostics)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib image_importer_applies_texture_descriptor_settings --locked --jobs 1 (2026-05-16 M4 texture descriptor: attempted, blocked by current plugin workspace lock/update state before test execution)
+  - rustfmt --edition 2021 --config skip_children=true --check on touched M4 image descriptor/importer files (2026-05-16 asset_usage/container dimension: passed)
+  - git diff --check on touched M4 image descriptor/importer/docs files (2026-05-16 asset_usage/container dimension: passed with CRLF warnings only)
+  - cargo metadata --locked --no-deps --format-version 1 (2026-05-16 asset_usage/container dimension: passed)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-16 asset_usage/container dimension: passed)
+  - cargo check/test for this slice (2026-05-16 asset_usage/container dimension: deferred; active unrelated Cargo jobs and lockfile update state prevent reliable `--locked` compile/test evidence)
+  - rustfmt --edition 2021 --config skip_children=true --check on texture importer lib/container files (2026-05-16 texture container split: passed)
+  - git diff --check on texture importer lib/container docs/session files (2026-05-16 texture container split: passed with CRLF warnings only)
+  - cargo metadata --locked --no-deps --format-version 1 (2026-05-16 texture container split: passed)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-16 texture container split: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-texture-importer-container-split (2026-05-16 texture container split: passed)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --tests --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-texture-importer-container-split (2026-05-16 texture container split: passed)
+  - cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --locked --offline --jobs 1 --target-dir E:\cargo-targets\zircon-texture-importer-container-split (2026-05-16 texture container split: attempted; Cargo exited -1 during dependency test-profile compilation before Rust diagnostics)
+  - rustfmt --edition 2021 --config skip_children=true --check on texture extent/importer files (2026-05-16 texture extent depth-or-array-layers: passed)
+  - git diff --check on texture extent/importer/docs/session files (2026-05-16 texture extent depth-or-array-layers: passed with CRLF warnings only)
+  - cargo metadata --locked --no-deps --format-version 1 (2026-05-16 texture extent depth-or-array-layers: passed)
+  - cargo metadata --manifest-path zircon_plugins/Cargo.toml --locked --no-deps --format-version 1 (2026-05-16 texture extent depth-or-array-layers: passed)
+  - cargo check -p zircon_runtime --lib/--tests --locked --offline --target-dir E:\cargo-targets\zircon-texture-extent-runtime-check (2026-05-16 texture extent depth-or-array-layers: attempted; Cargo exited -1 during dependency/runtime compilation before Rust diagnostics)
+  - cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_texture_importer_runtime --lib --tests --locked --offline --target-dir E:\cargo-targets\zircon-texture-importer-container-split (2026-05-16 texture extent depth-or-array-layers: attempted; package-cache lock caused immediate Cargo exit -1 before Rust diagnostics)
+  - cargo test -p zircon_runtime_interface --locked resource (2026-05-16 `.zmeta` M1 final: passed, 11 passed, 0 failed, 85 filtered out)
+  - cargo test -p zircon_runtime --locked asset::tests::project (2026-05-16 `.zmeta` M1 final: passed, 19 passed, 0 failed, 1350 filtered out)
+  - cargo test -p zircon_runtime --locked asset::tests::watcher (2026-05-16 `.zmeta` M1 final: passed, 2 passed, 0 failed, 1367 filtered out)
+  - cargo test -p zircon_runtime --locked asset::tests::assets::animation (2026-05-16 `.zmeta` M1 final: passed, 6 passed, 0 failed, 1363 filtered out)
+  - cargo test -p zircon_editor --lib --locked editor_asset_manager (2026-05-16 `.zmeta` M1 final: passed, 4 passed, 0 failed, 1315 filtered out)
   - cargo test -p zircon_runtime --lib zui --locked (2026-05-14 .zui M1 importer route: planned for milestone testing stage)
   - cargo check -p zircon_runtime --lib --locked (2026-05-14 .zui M1 importer route: planned for milestone testing stage)
   - 2026-05-03 review correction: cargo fmt --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_opus_importer_runtime --check (passed)
@@ -198,6 +307,7 @@ tests:
   - 2026-05-03: cargo test --manifest-path zircon_plugins\Cargo.toml -p zircon_plugin_ui_document_importer_runtime --lib --locked --jobs 1 --target-dir E:\cargo-targets\zircon-asset-importer-ui-binary-backend --message-format short --color never (passed, 8 tests)
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/tests/plugin_extensions/asset_importer_install.rs
   - zircon_runtime/src/tests/plugin_extensions/extension_registry.rs
   - zircon_runtime/src/tests/plugin_extensions/manifest_contributions.rs
@@ -239,9 +349,72 @@ STL and PLY decode through `stl_io` and `ply-rs-bw`; DXF decodes through the `dx
 `3DFACE`, `SOLID`, `TRACE`, and `POLYLINE` polyface mesh surfaces. These paths emit `ModelAsset`
 primitives with generated virtual-geometry metadata. The DXF importer implementation is isolated in
 `asset_importers/model/runtime/src/cad.rs`, while the package root keeps descriptor and registration
-wiring. The split `texture_importer` package decodes common image formats to RGBA8, parses DDS, KTX,
-KTX2, and ASTC container headers into `TexturePayload::Container`, and decodes PSD files through the
-Rust `psd` crate into flattened RGBA8 textures. The split `audio_importer` package decodes WAV
+wiring. The split `texture_importer` package decodes common image formats to RGBA8 through the shared
+`zircon_runtime::asset::decode_texture_source_image` helper, delegates DDS, KTX, KTX2, and ASTC
+header parsing to its focused `runtime/src/container.rs` module, stores those containers as
+`TexturePayload::Container`, and decodes PSD files through the Rust `psd` crate into flattened RGBA8
+textures. The shared image helper follows Bevy's default `ImageLoaderSettings.format =
+FromExtension` contract (`dev/bevy/crates/bevy_image/src/image_loader.rs:120` and
+`dev/bevy/crates/bevy_image/src/image_loader.rs:188`): source bytes are decoded using the source
+extension by default, mismatch failures say which extension-selected format was attempted, and
+`image_format = "guess"`, `image_format = "jpeg"`, or `source_format = "open_exr"` style settings
+opt into byte guessing or an explicit source container format. The parser reports the actual setting
+key (`image_format`, `decode_format`, or `source_format`) when a value has the wrong type or an
+unsupported token, and the default path reports a distinct missing-extension diagnostic rather than
+falling back to byte guessing. This keeps those settings scoped to source decoding while the existing `format`
+import setting continues to mean render texture format, matching Bevy's separate `texture_format`
+override role (`dev/bevy/crates/bevy_image/src/image_loader.rs:122`).
+
+All texture paths now emit an explicit `TextureAssetDescriptor`, and the same import settings table
+can override `format`, `color_space`, `dimension`, `depth_or_array_layers`/`depth`, `usage`,
+`asset_usage`, `mip_count`, `array_layer_count`/`array_layers`, and partial sampler address/filter
+modes. For 1D/2D textures the depth-or-array-layers and array-layer fields are normalized together:
+setting either one updates the other, while setting both to different values is rejected. For 3D
+textures, `depth_or_array_layers` remains native depth and explicit multi-layer array settings are
+rejected. The parser accepts Bevy `ImageLoaderSettings` aliases `texture_format` for render texture
+format and `is_srgb` for sRGB/linear color interpretation while preserving Zircon's existing
+`format` and `color_space` names. It also accepts `sampler = "linear"` and `sampler = "nearest"`
+as Bevy `ImageSamplerDescriptor::linear()`/`nearest()` shorthands, setting mag/min/mipmap filters
+together while preserving the default clamp-to-edge address modes
+(`dev/bevy/crates/bevy_image/src/image.rs:856` and
+`dev/bevy/crates/bevy_image/src/image.rs:867`). `asset_usage` accepts either a single residency
+token such as `"render_world"` or an array of tokens, matching Bevy's single
+`ImageLoaderSettings.asset_usage` role while keeping Zircon's explicit serialized residency list.
+Invalid Bevy-alias settings report the actual key that failed, including `texture_format`,
+`is_srgb`, `sampler`, and `render_asset_usage`.
+The runtime fixture tests for this texture source-format, descriptor, and `[array_layout]` behavior
+are split into `zircon_runtime/src/asset/tests/assets/texture_importer.rs`; the generic
+`importer.rs` module stays focused on registry routing plus non-texture fixture contracts.
+Decoded RGBA8 image textures also accept Bevy-style
+`[array_layout] row_count = N` or
+`row_height = pixels` settings: the importer reinterprets a vertical 2D stack as a 2D array texture
+by keeping the bytes in place, reducing the stored texture height to one layer, and setting
+`array_layer_count` plus `depth_or_array_layers` to the layer count. Invalid zero, non-divisible, or
+already-layered layouts fail with parse diagnostics before artifact output. The `dimension` field
+accepts 1D/2D/3D tokens and defaults to 2D for old artifacts, matching the existing image decode path
+while allowing container and future volume texture importers to advertise the intended render
+contract. `depth_or_array_layers` mirrors Bevy's
+`Extent3d.depth_or_array_layers`: for 1D/2D arrays it is the parsed layer/face count, and for 3D
+textures it is native depth. The `asset_usage` field accepts main-world/render-world residency
+tokens and defaults to both, mirroring Bevy's default `RenderAssetUsages` without changing GPU
+texture usage flags. DDS defaults to 2D and parses DX10 array/cubemap layer counts, while KTX1,
+KTX2, and ASTC header parsing now derives 1D/2D/3D descriptor dimensions from their native header
+fields before any import-setting override is applied. For 3D texture containers, native depth maps
+to `depth_or_array_layers` while `array_layer_count` remains one even if a malformed KTX header also
+sets layer/face counts. Container imports keep compressed
+payload bytes in `TexturePayload::Container` even when descriptor settings override render-facing
+format, sampler, or residency fields. `[array_layout]` remains decoded-image-only for container
+imports and fails with a parse diagnostic before any compressed payload can be misrepresented as an
+RGBA stack. Broken DDS, KTX1, KTX2, and ASTC header checks return format-specific parse diagnostics,
+and DDS/KTX layer-face products use checked `u32` arithmetic so malformed array counts become parse
+errors instead of panic or wraparound behavior. This keeps container failure reporting stable even
+when no GPU upload backend is available yet.
+The BMP/TGA/TIFF/GIF/WebP/HDR/EXR/QOI/PNM matrix is covered on both the runtime fixture importer
+and the split plugin importer, using float image fixtures for the high dynamic range formats. The
+PSD path flattens through the `psd` crate and then applies the same descriptor override table as the
+image crate formats, so `texture_format`, `is_srgb`, `sampler`, and `asset_usage` remain consistent
+across decoded image importers. This mirrors Bevy's `ImageLoaderSettings` role while keeping Zircon's
+neutral `RenderImageDescriptor` contract as the runtime-facing output. The split `audio_importer` package decodes WAV
 directly and decodes MP3/OGG/Vorbis/FLAC/AIFF/AIF through Symphonia into `SoundAsset` f32 PCM. Opus
 now has a split `opus_importer` package that owns the `.opus` `SoundAsset` importer slot and
 NativeDynamic/libopus command contract; importing still requires an installed native backend, and
@@ -255,19 +428,19 @@ plugin importers anymore; migration coverage must install explicit test fixtures
 
 Heavy or toolchain-backed formats are registered as diagnostic importers until a plugin backend is installed. This includes FBX/DAE/3DS/USD-family model containers, cubemap/DXGI texture authoring formats, and HLSL/CG/FX shader toolchains. The Opus split package uses the same diagnostic path when its NativeDynamic/libopus backend is absent. DXF linework, curves, blocks, and solid-kernel BREP payloads are still outside the Rust DXF mesh-surface backend. First-wave plugin-required diagnostics follow the same stable error-record path when the corresponding split plugin is absent.
 
-`TextureAsset` keeps the existing RGBA8 payload while reserving a container payload for future compressed formats. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
+`TextureAsset` keeps the existing RGBA8 payload while reserving a container payload for future compressed formats. The optional descriptor field is backward-compatible: old artifacts without it derive render metadata from `TexturePayload`, while newly imported assets store the descriptor explicitly for diagnostics and render prepare. `ShaderAsset` records source language, original source, normalized WGSL source, entry points, and validation diagnostics. `DataAsset` preserves source text and canonical JSON for TOML, JSON, YAML, and XML data. XML is normalized into a stable element tree JSON object with element name, optional namespace, attributes, text, and children.
 
 ## Project Scan Behavior
 
-`ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates meta with source hash, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset.
+`ProjectManager::scan_and_import` now processes every source file independently. A successful import validates that the outcome has exactly one unlabeled root entry, rejects duplicate subasset labels, writes one artifact per entry, updates `.zmeta` with source hash, import settings hash, importer id/version, root artifact locator, labeled `entries`, dependency locators, schema migration details, and `preview_state = ready`, then publishes ready `ResourceRecord` rows for the root and each subasset. Each entry has its own persistent UUID, and `ResourceId` is derived from that UUID instead of from the source UUID plus label.
 
-If an importer is missing, unsupported, malformed, or fails validation, the scan writes meta with the same source hash and importer identity when known, sets `preview_state = error`, and registers `ResourceState::Error` with diagnostics. The next source file continues importing. Runtime resource sync registers error records without trying to load a missing artifact.
+If an importer is missing, unsupported, malformed, or fails validation, the scan writes meta with the same source hash and importer identity when known, sets `preview_state = error`, and registers `ResourceState::Error` with diagnostics. The live registry only publishes the failed root record, but `.zmeta.entries` preserves prior root/subasset UUID rows with cleared artifact locators so transient failures do not break saved subasset references after a later successful reimport. The next source file continues importing. Runtime resource sync registers error records without trying to load a missing artifact.
 
 Editor catalog sync mirrors the same contract. `DefaultEditorAssetManager::sync_from_project` keeps failed assets visible in the catalog, carries their diagnostics, and leaves direct-reference edges empty instead of calling `load_artifact_by_id` on records that have no artifact locator. This keeps missing-plugin and parse-error assets inspectable without blocking editor manager startup.
 
-Meta documents are format version 3. Older meta files are upgraded in memory and saved with importer metadata fields, `artifact_locator`, and `config_hash`; future meta versions fail so the engine does not downgrade unknown schema.
+Runtime meta documents are `.zmeta` format version 6. The schema uses `uuid`, `url`, `asset_kind`, `unit`, `included_files`, importer metadata fields, `artifact_locator`, `config_hash`, root dependencies, and per-entry `uuid/url/asset_kind/artifact_locator/dependencies`. Future meta versions fail so the engine does not downgrade unknown schema, and old `*.meta.toml` files are ignored rather than treated as compatibility inputs.
 
-Ready meta can now restore an already-imported artifact after editor restart without rerunning the importer. The restore path requires `preview_state = ready`, unchanged source hash, unchanged import settings hash, a matching importer id/version contract when the importer is present, and a readable artifact at `artifact_locator`. This keeps model, texture, material/data, scene, and UI document imports stable across restarts even when only the artifact store and meta are available. If the artifact is missing, the source/config changed, or the importer contract no longer matches, the project scan falls back to a normal import attempt and rewrites meta from the fresh result.
+Ready meta can now restore an already-imported artifact after editor restart without rerunning the importer. The restore path requires `preview_state = ready`, unchanged source hash, unchanged import settings hash, a matching importer id/version contract when the importer is present, and a readable artifact at `artifact_locator`. It remaps every entry URL to the current source URI before building `ResourceRecord` rows, preserving UUID identity while allowing source files and their `.zmeta` sidecars to move together. This keeps model, texture, material/data, scene, and UI document imports stable across restarts even when only the artifact store and meta are available. If the artifact is missing, the source/config changed, or the importer contract no longer matches, the project scan falls back to a normal import attempt and rewrites meta from the fresh result.
 
 Successful imports now clear stale schema migration fields when the selected importer does not
 return a migration report. Failed imports clear the same fields before recording error state, so an

@@ -4,7 +4,8 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::view_projection::build_view_template_nodes;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::workbench::snapshot::{
-    AssetFolderSnapshot, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+    AssetFolderSnapshot, AssetSelectionSnapshot, AssetUtilityTab, AssetViewMode,
+    AssetWorkspaceSnapshot,
 };
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::layout::UiSize;
@@ -59,6 +60,9 @@ pub(crate) fn asset_browser_pane_nodes(
     } else {
         snapshot.selection.diagnostics.join("\n")
     };
+    let selection_metadata_summary = selection_metadata_summary(&snapshot.selection);
+    let selection_metadata_body =
+        selection_metadata_body(&snapshot.selection, &selection_diagnostics);
     let catalog_summary = format!(
         "{} folders • {} assets",
         snapshot.visible_folders.len(),
@@ -149,11 +153,7 @@ pub(crate) fn asset_browser_pane_nodes(
     );
     text_overrides.insert(
         "AssetBrowserDetailsMetadataAdapterValue".to_string(),
-        if snapshot.selection.adapter_key.is_empty() {
-            "No adapter".to_string()
-        } else {
-            snapshot.selection.adapter_key.clone()
-        },
+        selection_metadata_summary.clone(),
     );
     text_overrides.insert(
         "AssetBrowserDetailsDiagnosticsText".to_string(),
@@ -223,15 +223,19 @@ pub(crate) fn asset_browser_pane_nodes(
     );
     text_overrides.insert(
         "AssetBrowserAdapterValue".to_string(),
-        if snapshot.selection.adapter_key.is_empty() {
-            "No adapter".to_string()
-        } else {
-            snapshot.selection.adapter_key.clone()
-        },
+        selection_metadata_summary,
+    );
+    text_overrides.insert(
+        "AssetBrowserAdapterLabel".to_string(),
+        "Adapter / Package".to_string(),
     );
     text_overrides.insert(
         "AssetBrowserDiagnosticsText".to_string(),
-        selection_diagnostics,
+        selection_metadata_body,
+    );
+    text_overrides.insert(
+        "AssetBrowserDiagnosticsLabel".to_string(),
+        "Diagnostics / Subassets".to_string(),
     );
     text_overrides.insert(
         "AssetBrowserPluginsText".to_string(),
@@ -499,6 +503,58 @@ fn update_panel_variant(
     if let Some(node) = nodes.iter_mut().find(|node| node.control_id == control_id) {
         node.surface_variant = surface_variant.into();
     }
+}
+
+fn selection_metadata_summary(selection: &AssetSelectionSnapshot) -> String {
+    let mut parts = Vec::new();
+    parts.push(if selection.adapter_key.is_empty() {
+        "No adapter".to_string()
+    } else {
+        selection.adapter_key.clone()
+    });
+    if !selection.asset_unit.is_empty() {
+        parts.push(format!("unit {}", selection.asset_unit));
+    }
+    if let Some(package_id) = selection.package_id.as_ref() {
+        parts.push(format!("package {package_id}"));
+    }
+    if !selection.included_files.is_empty() {
+        parts.push(format!("{} included", selection.included_files.len()));
+    }
+    if !selection.subassets.is_empty() {
+        parts.push(format!("{} subassets", selection.subassets.len()));
+    }
+    parts.join(" | ")
+}
+
+fn selection_metadata_body(selection: &AssetSelectionSnapshot, diagnostics: &str) -> String {
+    let mut lines = Vec::new();
+    if selection.diagnostics.is_empty() {
+        lines.push("No active diagnostics".to_string());
+    } else {
+        lines.push(diagnostics.to_string());
+    }
+    if !selection.included_files.is_empty() {
+        lines.push("Included files:".to_string());
+        lines.extend(
+            selection
+                .included_files
+                .iter()
+                .map(|file| format!("- {file}")),
+        );
+    }
+    if !selection.subassets.is_empty() {
+        lines.push("Subassets:".to_string());
+        lines.extend(selection.subassets.iter().map(|subasset| {
+            format!(
+                "- {} {} ({})",
+                resource_kind_label(subasset.kind),
+                subasset.locator,
+                subasset.uuid
+            )
+        }));
+    }
+    lines.join("\n")
 }
 
 fn resource_kind_label(kind: ResourceKind) -> &'static str {

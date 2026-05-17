@@ -1,0 +1,184 @@
+import { ScrollView } from "std-widgets.slint";
+import { CloudServiceData, CloudSummaryData, MutedText, UiTextData } from "shared.slint";
+import { HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+
+component CloudMetric inherits HubPanel {
+    in property <string> label;
+    in property <string> value;
+    in property <string> status;
+
+    height: 104px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: 14px;
+        padding-bottom: 14px;
+        spacing: 7px;
+
+        MutedText {
+            text: root.label;
+            overflow: elide;
+        }
+
+        Text {
+            text: root.status;
+            overflow: elide;
+            color: #f3f6f9;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        MutedText {
+            text: root.value;
+            overflow: elide;
+        }
+    }
+}
+
+component CloudServiceRow inherits InfoRow {
+    in property <CloudServiceData> service;
+
+    title: root.service.title;
+    detail: root.service.detail;
+    meta: "";
+    leading-image: root.service.accent == 0 ? @image-url("../assets/icons/nav/cloud.svg") : (root.service.accent == 1 ? @image-url("../assets/icons/actions/build-project.svg") : @image-url("../assets/icons/actions/package-project.svg"));
+    has-leading-image: true;
+    accent: root.service.accent;
+    trailing-text: root.service.status;
+    trailing-tone: root.service.status == "Ready" ? "ok" : (root.service.status == "Not connected" ? "warning" : "neutral");
+    show-trailing-badge: true;
+    row-height: 86px;
+}
+
+export component CloudPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <CloudSummaryData> summary;
+    in property <[CloudServiceData]> services;
+    in property <int> service-count;
+    in property <UiTextData> ui-text;
+    private property <bool> compact: root.width < 920px;
+    private property <length> service-scroll-y: 0px;
+
+    background: #11151a;
+    clip: true;
+
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: root.compact ? 920px : 690px;
+
+        HubPanel {
+            height: 82px;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 18px;
+                padding-right: 18px;
+                padding-top: 14px;
+                padding-bottom: 14px;
+
+                PanelHeader {
+                    title: root.ui-text.cloud-overview;
+                    subtitle: root.ui-text.cloud-local-only;
+                    show-badge: true;
+                    badge-text: root.summary.status;
+                    badge-tone: "accent";
+                }
+            }
+        }
+
+        ResponsivePanelFlow {
+            flow-height: root.compact ? 452px : 220px;
+            spacing-horizontal: 12px;
+            spacing-vertical: 12px;
+
+            CloudMetric {
+                flex-basis: 320px;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: 260px;
+                label: root.ui-text.cloud-account;
+                value: root.ui-text.cloud-local-only;
+                status: root.summary.account-status;
+            }
+            CloudMetric {
+                flex-basis: 320px;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: 260px;
+                label: root.ui-text.cloud-output;
+                value: root.summary.output-path;
+                status: root.summary.output-status;
+            }
+            CloudMetric {
+                flex-basis: 320px;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: 260px;
+                label: root.ui-text.cloud-device-install;
+                value: root.summary.device-path;
+                status: root.summary.device-status;
+            }
+            CloudMetric {
+                flex-basis: 320px;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: 260px;
+                label: root.ui-text.cloud-packages;
+                value: root.summary.package-path;
+                status: root.summary.package-status;
+            }
+        }
+
+        HubPanel {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: 18px;
+                spacing: 10px;
+
+                PanelHeader {
+                    title: root.ui-text.cloud-services;
+                    show-badge: true;
+                    badge-text: root.service-count + " " + root.ui-text.cloud-service-slots;
+                    badge-tone: "neutral";
+                }
+
+                cloud-scroll := ScrollView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    viewport-y <=> root.service-scroll-y;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                    mouse-drag-pan-enabled: true;
+                    viewport-width: cloud-scroll.visible-width;
+                    viewport-height: max(cloud-scroll.visible-height, root.service-count * 94px + 8px);
+
+                    Rectangle {
+                        width: cloud-scroll.visible-width;
+                        height: cloud-scroll.viewport-height;
+                        background: transparent;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            spacing: 8px;
+
+                            for service in root.services: CloudServiceRow {
+                                service: service;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

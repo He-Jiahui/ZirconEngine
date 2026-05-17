@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Install to device">
+  <rect x="7" y="2.8" width="10" height="18.4" rx="2" fill="none" stroke="#eef3f7" stroke-width="1.7"/>
+  <path fill="none" stroke="#32ded3" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7" d="M12 7v7m0 0-2.6-2.6M12 14l2.6-2.6"/>
+  <circle cx="12" cy="18.1" r=".8" fill="#32ded3"/>
+</svg>

@@ -14,6 +14,7 @@ use super::data::{
 };
 use super::diagnostics::HostInvalidationDiagnostics;
 use super::redraw::HostRedrawRequest;
+use crate::ui::retained_host::ui_perf::UiPerfScenario;
 
 type Callback0 = Rc<dyn Fn()>;
 type Callback1<A> = Rc<dyn Fn(A)>;
@@ -42,6 +43,7 @@ pub(crate) struct HostContractState {
     pub(crate) external_redraw_queued_count: u64,
     pub(crate) external_redraw_drained_count: u64,
     pub(crate) external_redraw_coalesced_count: u64,
+    pub(crate) completed_frame_update_scenario: Option<UiPerfScenario>,
     pub(crate) viewport_image: Option<HostViewportImageData>,
     pub(crate) menu_state: HostMenuStateData,
     pub(crate) pane_interaction_state: HostPaneInteractionStateData,
@@ -69,6 +71,7 @@ impl HostContractState {
             external_redraw_queued_count: 0,
             external_redraw_drained_count: 0,
             external_redraw_coalesced_count: 0,
+            completed_frame_update_scenario: None,
             viewport_image: None,
             menu_state: HostMenuStateData::default(),
             pane_interaction_state: HostPaneInteractionStateData::default(),

@@ -1,4 +1,7 @@
-use crate::resource::{ResourceId, ResourceKind, ResourceLocator, ResourceRecord};
+use crate::resource::{
+    AssetReference, AssetUuid, ResourceId, ResourceKind, ResourceLocator, ResourceRecord,
+    ResourceScheme,
+};
 
 #[test]
 fn resource_contract_exposes_stable_identity_and_status_records() {
@@ -17,4 +20,23 @@ fn resource_contract_exposes_stable_identity_and_status_records() {
     assert_eq!(record.source_hash, "source-hash");
     assert_eq!(record.importer_version, 2);
     assert_eq!(record.dependency_ids, vec![dependency_id]);
+}
+
+#[test]
+fn resource_contract_parses_package_locators_and_asset_reference_urls() {
+    let locator =
+        ResourceLocator::parse("package://com.zircon.navigation/nav/agent.znav#mesh").unwrap();
+    let uuid = AssetUuid::from_stable_label("package://com.zircon.navigation/nav/agent.znav#mesh");
+    let reference = AssetReference::new(uuid, locator.clone());
+    let json = serde_json::to_string(&reference).unwrap();
+    let decoded: AssetReference = serde_json::from_str(&json).unwrap();
+
+    assert_eq!(locator.scheme(), ResourceScheme::Package);
+    assert_eq!(locator.package_id(), Some("com.zircon.navigation"));
+    assert_eq!(locator.package_path(), Some("nav/agent.znav"));
+    assert_eq!(locator.label(), Some("mesh"));
+    assert!(json.contains("\"url\""));
+    assert!(!json.contains("\"locator\""));
+    assert_eq!(decoded.uuid, uuid);
+    assert_eq!(decoded.locator, locator);
 }

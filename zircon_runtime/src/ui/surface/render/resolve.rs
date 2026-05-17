@@ -28,50 +28,50 @@ pub(super) fn resolve_command_kind(
 }
 
 pub(super) fn resolve_style(metadata: Option<&UiTemplateNodeMetadata>) -> UiResolvedStyle {
-    let font_size = resolve_table_number(metadata, "font", "size")
-        .or_else(|| resolve_number_attribute(metadata, "font_size"))
+    let font_size = resolve_style_table_number(metadata, "font", "size")
+        .or_else(|| resolve_style_number(metadata, "font_size"))
         .unwrap_or(UiResolvedStyle::DEFAULT_FONT_SIZE);
     UiResolvedStyle {
-        background_color: resolve_color_attribute(metadata, "background"),
-        foreground_color: resolve_color_attribute(metadata, "foreground"),
-        border_color: resolve_color_attribute(metadata, "border"),
-        border_width: resolve_table_number(metadata, "border", "width")
-            .or_else(|| resolve_number_attribute(metadata, "border_width"))
+        background_color: resolve_style_color(metadata, "background"),
+        foreground_color: resolve_style_color(metadata, "foreground"),
+        border_color: resolve_style_color(metadata, "border"),
+        border_width: resolve_style_table_number(metadata, "border", "width")
+            .or_else(|| resolve_style_number(metadata, "border_width"))
             .unwrap_or(0.0),
-        corner_radius: resolve_table_number(metadata, "border", "radius")
-            .or_else(|| resolve_number_attribute(metadata, "radius"))
-            .or_else(|| resolve_number_attribute(metadata, "corner_radius"))
+        corner_radius: resolve_style_table_number(metadata, "border", "radius")
+            .or_else(|| resolve_style_number(metadata, "radius"))
+            .or_else(|| resolve_style_number(metadata, "corner_radius"))
             .unwrap_or(0.0),
-        font: resolve_table_string(metadata, "font", "asset")
-            .or_else(|| resolve_table_string(metadata, "font", "path"))
-            .or_else(|| resolve_string_attribute(metadata, "font"))
+        font: resolve_style_table_string(metadata, "font", "asset")
+            .or_else(|| resolve_style_table_string(metadata, "font", "path"))
+            .or_else(|| resolve_style_string(metadata, "font"))
             .map(str::to_string),
-        font_family: resolve_table_string(metadata, "font", "family")
-            .or_else(|| resolve_string_attribute(metadata, "font_family"))
+        font_family: resolve_style_table_string(metadata, "font", "family")
+            .or_else(|| resolve_style_string(metadata, "font_family"))
             .map(str::to_string),
         font_size,
-        line_height: resolve_table_number(metadata, "font", "line_height")
-            .or_else(|| resolve_number_attribute(metadata, "line_height"))
+        line_height: resolve_style_table_number(metadata, "font", "line_height")
+            .or_else(|| resolve_style_number(metadata, "line_height"))
             .unwrap_or_else(|| UiResolvedStyle::default_line_height(font_size)),
-        text_align: resolve_table_string(metadata, "font", "align")
-            .or_else(|| resolve_string_attribute(metadata, "text_align"))
+        text_align: resolve_style_table_string(metadata, "font", "align")
+            .or_else(|| resolve_style_string(metadata, "text_align"))
             .and_then(parse_text_align)
             .unwrap_or_default(),
-        wrap: resolve_table_string(metadata, "font", "wrap")
-            .or_else(|| resolve_string_attribute(metadata, "wrap"))
+        wrap: resolve_style_table_string(metadata, "font", "wrap")
+            .or_else(|| resolve_style_string(metadata, "wrap"))
             .and_then(parse_text_wrap)
             .unwrap_or_default(),
-        text_direction: resolve_table_string(metadata, "font", "direction")
-            .or_else(|| resolve_string_attribute(metadata, "text_direction"))
+        text_direction: resolve_style_table_string(metadata, "font", "direction")
+            .or_else(|| resolve_style_string(metadata, "text_direction"))
             .and_then(parse_text_direction)
             .unwrap_or_default(),
-        text_overflow: resolve_table_string(metadata, "font", "overflow")
-            .or_else(|| resolve_string_attribute(metadata, "text_overflow"))
+        text_overflow: resolve_style_table_string(metadata, "font", "overflow")
+            .or_else(|| resolve_style_string(metadata, "text_overflow"))
             .and_then(parse_text_overflow)
             .unwrap_or_default(),
-        rich_text: resolve_bool_attribute(metadata, "rich_text").unwrap_or(false),
-        text_render_mode: resolve_table_string(metadata, "font", "render_mode")
-            .or_else(|| resolve_string_attribute(metadata, "text_render_mode"))
+        rich_text: resolve_style_bool(metadata, "rich_text").unwrap_or(false),
+        text_render_mode: resolve_style_table_string(metadata, "font", "render_mode")
+            .or_else(|| resolve_style_string(metadata, "text_render_mode"))
             .and_then(parse_text_render_mode)
             .unwrap_or_default(),
     }
@@ -107,7 +107,7 @@ pub(super) fn resolve_image(metadata: Option<&UiTemplateNodeMetadata>) -> Option
 }
 
 pub(super) fn resolve_opacity(metadata: Option<&UiTemplateNodeMetadata>) -> f32 {
-    resolve_number_attribute(metadata, "opacity")
+    resolve_style_number(metadata, "opacity")
         .unwrap_or(1.0)
         .clamp(0.0, 1.0)
 }
@@ -345,34 +345,62 @@ fn resolve_bool_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) 
         .and_then(Value::as_bool)
 }
 
-fn resolve_table_number(
+fn resolve_style_string<'a>(
+    metadata: Option<&'a UiTemplateNodeMetadata>,
+    key: &str,
+) -> Option<&'a str> {
+    metadata
+        .and_then(|metadata| style_value(metadata, key))
+        .and_then(Value::as_str)
+}
+
+fn resolve_style_number(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<f32> {
+    metadata
+        .and_then(|metadata| style_value(metadata, key))
+        .and_then(value_as_f32)
+}
+
+fn resolve_style_bool(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<bool> {
+    metadata
+        .and_then(|metadata| style_value(metadata, key))
+        .and_then(Value::as_bool)
+}
+
+fn resolve_style_table_number(
     metadata: Option<&UiTemplateNodeMetadata>,
     table_key: &str,
     value_key: &str,
 ) -> Option<f32> {
     metadata
-        .and_then(|metadata| metadata.attributes.get(table_key))
+        .and_then(|metadata| style_value(metadata, table_key))
         .and_then(Value::as_table)
         .and_then(|table| table.get(value_key))
         .and_then(value_as_f32)
 }
 
-fn resolve_table_string<'a>(
+fn resolve_style_table_string<'a>(
     metadata: Option<&'a UiTemplateNodeMetadata>,
     table_key: &str,
     value_key: &str,
 ) -> Option<&'a str> {
     metadata
-        .and_then(|metadata| metadata.attributes.get(table_key))
+        .and_then(|metadata| style_value(metadata, table_key))
         .and_then(Value::as_table)
         .and_then(|table| table.get(value_key))
         .and_then(Value::as_str)
 }
 
-fn resolve_color_attribute(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<String> {
+fn resolve_style_color(metadata: Option<&UiTemplateNodeMetadata>, key: &str) -> Option<String> {
     metadata
-        .and_then(|metadata| metadata.attributes.get(key))
+        .and_then(|metadata| style_value(metadata, key))
         .and_then(resolve_color_value)
+}
+
+fn style_value<'a>(metadata: &'a UiTemplateNodeMetadata, key: &str) -> Option<&'a Value> {
+    metadata
+        .style_overrides
+        .get(key)
+        .or_else(|| metadata.attributes.get(key))
 }
 
 fn resolve_color_value(value: &Value) -> Option<String> {

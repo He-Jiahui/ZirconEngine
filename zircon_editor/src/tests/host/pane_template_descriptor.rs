@@ -99,6 +99,12 @@ fn builtin_pane_views_expose_template_metadata() {
             PaneRouteNamespace::UiComponentShowcase,
             PaneInteractionMode::TemplateOnly,
         ),
+        (
+            "editor.material_component_lab",
+            PanePayloadKind::UiComponentShowcaseV1,
+            PaneRouteNamespace::UiComponentShowcase,
+            PaneInteractionMode::TemplateOnly,
+        ),
     ];
 
     for (descriptor_id, payload_kind, route_namespace, interaction_mode) in cases {

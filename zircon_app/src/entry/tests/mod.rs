@@ -167,6 +167,7 @@ fn runtime_entry_surface_present_switch_keeps_diagnostics_and_fallback_paths() {
     for required_path in [
         "present_viewport",
         "capture_frame",
+        "tick_frame",
         "SoftbufferRuntimePresenter::new",
         "about_to_wait",
         "request_redraw",
@@ -176,6 +177,70 @@ fn runtime_entry_surface_present_switch_keeps_diagnostics_and_fallback_paths() {
             "runtime entry surface-present switch should preserve `{required_path}`"
         );
     }
+}
+
+#[test]
+fn runtime_entry_ticks_dynamic_runtime_time_before_redraw_request() {
+    let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
+    let runtime_session_source = include_str!("../runtime_library/runtime_session.rs");
+
+    assert!(
+        runtime_session_source.contains("pub(crate) fn tick_frame"),
+        "runtime session should expose an optional dynamic runtime tick wrapper"
+    );
+    assert_source_order(
+        runtime_handler_source,
+        &[
+            "fn about_to_wait",
+            "self.session.tick_frame()",
+            "self.apply_runtime_host_requests(event_loop)",
+            "window.request_redraw();",
+        ],
+        "runtime entry should advance runtime time and apply host requests before requesting the next redraw",
+    );
+}
+
+#[test]
+fn runtime_runner_forwards_session_profile_to_dynamic_runtime() {
+    let runtime_runner_source = include_str!("../entry_runner/runtime.rs");
+    let runtime_session_args_source = include_str!("../entry_runner/runtime_session_args.rs");
+    let runtime_session_source = include_str!("../runtime_library/runtime_session.rs");
+
+    assert!(
+        runtime_session_args_source.contains("--runtime-session-profile"),
+        "runtime runner should expose an explicit dynamic session profile argument"
+    );
+    assert!(
+        runtime_session_args_source.contains("\"dev\"")
+            && runtime_session_args_source.contains("\"minimal\"")
+            && runtime_session_args_source.contains("\"headless\""),
+        "runtime session profile parser should accept the dynamic runtime's named profiles"
+    );
+    assert!(
+        runtime_session_args_source.contains("RUNTIME_SESSION_STARTUP_HELP")
+            && runtime_session_args_source.contains("ZIRCON_RUNTIME_LIBRARY")
+            && runtime_session_args_source.contains("ZIRCON_LOG_FILTER")
+            && runtime_session_args_source.contains("ZIRCON_LOG")
+            && runtime_session_args_source.contains("RUST_LOG")
+            && runtime_session_args_source.contains("ZIRCON_LOG_LEVEL"),
+        "runtime session profile parser should expose startup help for profiles, logging, and runtime library override"
+    );
+    assert_source_order(
+        runtime_runner_source,
+        &[
+            "parse_diagnostic_log_startup_args(args)?",
+            "parse_runtime_session_startup_args",
+            "if runtime_session_args.help_requested",
+            "return Ok(());",
+            "LoadedRuntime::load_default()",
+            "RuntimeSession::create_with_profile(runtime, runtime_session_args.profile.as_bytes())",
+        ],
+        "runtime runner should parse logging first, allow help before dynamic loading, then pass the selected session profile to the dynamic runtime",
+    );
+    assert!(
+        runtime_session_source.contains("profile: ZrByteSlice::from_static(profile)"),
+        "runtime session creation should pass the selected profile bytes through ZrRuntimeSessionConfigV1"
+    );
 }
 
 #[test]
@@ -214,11 +279,97 @@ fn runtime_viewport_interaction_is_owned_by_dynamic_runtime_session() {
 #[test]
 fn runtime_input_protocol_crosses_through_runtime_interface_events() {
     let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
+    let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
+    let runtime_gamepad_source = include_str!("../runtime_entry_app/gamepad.rs");
 
     assert!(
         runtime_handler_source.contains("ZrRuntimeEventV1"),
         "runtime window event handling should forward input through runtime interface events"
     );
+    for required in [
+        "WindowEvent::KeyboardInput",
+        "ZrRuntimeEventV1::keyboard",
+        "WindowEvent::Focused",
+        "ZrRuntimeEventV1::lifecycle",
+        "WindowEvent::CloseRequested",
+        "WindowEvent::Destroyed",
+        "WindowEvent::Moved",
+        "WindowEvent::Occluded",
+        "WindowEvent::ThemeChanged",
+        "WindowEvent::ScaleFactorChanged",
+        "ZrRuntimeEventV1::window_close_requested",
+        "ZrRuntimeEventV1::window_destroyed",
+        "ZrRuntimeEventV1::window_moved",
+        "ZrRuntimeEventV1::window_occluded",
+        "ZrRuntimeEventV1::window_theme_changed",
+        "ZrRuntimeEventV1::window_backend_scale_factor_changed",
+        "ZrRuntimeEventV1::window_scale_factor_changed",
+        "WindowEvent::PointerEntered",
+        "WindowEvent::PointerLeft",
+        "ZrRuntimeEventV1::cursor_entered",
+        "ZrRuntimeEventV1::cursor_left",
+        "WindowEvent::DragEntered",
+        "WindowEvent::DragDropped",
+        "WindowEvent::DragLeft",
+        "ZrRuntimeEventV1::file_hovered",
+        "ZrRuntimeEventV1::file_dropped",
+        "ZrRuntimeEventV1::file_drag_cancelled",
+        "PointerSource::Touch",
+        "PointerKind::Touch",
+        "ZrRuntimeEventV1::touch",
+        "DeviceEvent::PointerMotion",
+        "ZrRuntimeEventV1::mouse_motion",
+        "WindowEvent::MouseWheel",
+        "MouseScrollDelta::LineDelta",
+        "MouseScrollDelta::PixelDelta",
+        "ZrRuntimeEventV1::mouse_wheel_delta",
+        "ZR_RUNTIME_MOUSE_WHEEL_UNIT_LINE_V1",
+        "ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1",
+        "WindowEvent::Ime",
+        "Ime::Preedit",
+        "Ime::DeleteSurrounding",
+        "ZrRuntimeEventV1::ime_preedit",
+        "ZrRuntimeEventV1::ime_commit",
+        "ZrRuntimeEventV1::ime_delete_surrounding",
+        "ZrRuntimeEventV1::ime_enabled",
+        "ZrRuntimeEventV1::ime_disabled",
+        "drain_host_requests",
+        "ZrRuntimeHostRequestV1",
+        "request_ime_update",
+        "ImeRequest::Enable",
+        "ImeRequest::Update",
+        "ImeRequest::Disable",
+        "ImeCapabilities::new",
+        "ImeSurroundingText::new",
+    ] {
+        assert!(
+            runtime_handler_source.contains(required),
+            "runtime window event handling should preserve `{required}` translation"
+        );
+    }
+    for required in [
+        "mod gamepad;",
+        "gamepads: Option<gilrs::Gilrs>",
+        "self.poll_gamepads(event_loop)",
+    ] {
+        assert!(
+            runtime_app_source.contains(required) || runtime_handler_source.contains(required),
+            "runtime entry app should preserve gamepad host wiring `{required}`"
+        );
+    }
+    for required in [
+        "GilrsBuilder::new",
+        "EventType::ButtonChanged",
+        "EventType::AxisChanged",
+        "ZrRuntimeEventV1::gamepad_connection_with_ids",
+        "ZrRuntimeEventV1::gamepad_button",
+        "ZrRuntimeEventV1::gamepad_axis",
+    ] {
+        assert!(
+            runtime_gamepad_source.contains(required),
+            "runtime gamepad host should preserve `{required}` translation"
+        );
+    }
     assert!(
         !runtime_handler_source.contains("zircon_runtime::input"),
         "runtime window event handling should not import runtime implementation input types"

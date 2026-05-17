@@ -313,6 +313,25 @@ fn viewport_edit_mode_projection_ignores_stale_editor_selection() {
     assert!(projection.hierarchy_rows.iter().all(|row| !row.selected));
 }
 
+#[test]
+fn viewport_render_snapshot_ignores_stale_editor_selection() {
+    let scene = Scene::new();
+    let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
+    controller.set_selected_node(Some(999_999));
+    controller.settings_mut().gizmos_enabled = false;
+
+    let snapshot = controller.build_render_snapshot(&scene);
+
+    assert!(snapshot.overlays.selection.is_empty());
+    assert!(snapshot.overlays.selection_anchors.is_empty());
+    assert!(snapshot.overlays.handles.is_empty());
+    assert!(snapshot
+        .overlays
+        .scene_gizmos
+        .iter()
+        .all(|gizmo| !gizmo.selected));
+}
+
 fn test_camera() -> ViewportCameraSnapshot {
     ViewportCameraSnapshot {
         transform: Transform::looking_at(Vec3::new(0.0, 0.0, 8.0), Vec3::ZERO, Vec3::Y),
@@ -322,6 +341,7 @@ fn test_camera() -> ViewportCameraSnapshot {
         z_near: 0.1,
         z_far: 200.0,
         aspect_ratio: 1280.0 / 720.0,
+        ..ViewportCameraSnapshot::default()
     }
 }
 

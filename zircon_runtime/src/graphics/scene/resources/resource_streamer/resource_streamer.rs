@@ -14,4 +14,11 @@ pub(crate) struct ResourceStreamer {
     pub(super) textures: HashMap<ResourceId, PreparedTexture>,
     pub(super) shaders: HashMap<ResourceId, PreparedShader>,
     pub(super) fallback_texture: Arc<GpuTextureResource>,
+    pub(super) last_material_count: usize,
+    pub(super) last_material_ready_count: usize,
+    pub(super) last_material_fallback_count: usize,
+    pub(super) last_material_validation_error_count: usize,
+    pub(super) last_sprite_count: usize,
+    pub(super) last_sprite_ready_count: usize,
+    pub(super) last_sprite_texture_fallback_count: usize,
 }

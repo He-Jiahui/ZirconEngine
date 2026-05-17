@@ -22,7 +22,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_mesh_pipeline(
         },
         depth_stencil: Some(wgpu::DepthStencilState {
             format: super::super::super::core::DEPTH_FORMAT,
-            depth_write_enabled: Some(!key.alpha_blend),
+            depth_write_enabled: Some(!key.is_transparent()),
             depth_compare: Some(wgpu::CompareFunction::LessEqual),
             stencil: wgpu::StencilState::default(),
             bias: wgpu::DepthBiasState::default(),
@@ -34,7 +34,7 @@ pub(in crate::graphics::scene::scene_renderer::mesh) fn create_mesh_pipeline(
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: target_format,
-                blend: Some(if key.alpha_blend {
+                blend: Some(if key.is_transparent() {
                     wgpu::BlendState::ALPHA_BLENDING
                 } else {
                     wgpu::BlendState::REPLACE

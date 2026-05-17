@@ -18,7 +18,10 @@ mod transport;
 mod websocket;
 
 pub use diagnostics::NetDiagnostics;
-pub use download::{NetDownloadChunk, NetDownloadManifest, NetDownloadProgress, NetDownloadStatus};
+pub use download::{
+    NetDownloadAttemptDescriptor, NetDownloadChunk, NetDownloadManifest, NetDownloadProgress,
+    NetDownloadStatus,
+};
 pub use endpoint::NetEndpoint;
 pub use error::NetError;
 pub use event::NetEvent;
@@ -32,8 +35,10 @@ pub use ids::{
 pub use manager::NetManager;
 pub use packet::NetPacket;
 pub use reliable::{
-    ReliableDatagramAck, ReliableDatagramConfig, ReliableDatagramPacket,
-    ReliableDatagramSendReport, ReliableDatagramSendStatus, ReliableDatagramStats,
+    ReliableDatagramAck, ReliableDatagramConfig, ReliableDatagramDeliveryReport,
+    ReliableDatagramPacket, ReliableDatagramReceiveReport, ReliableDatagramReceiveStatus,
+    ReliableDatagramRecoveryReport, ReliableDatagramRecoveryState, ReliableDatagramSendReport,
+    ReliableDatagramSendStatus, ReliableDatagramSimulationProfile, ReliableDatagramStats,
 };
 pub use rpc::{
     RpcDescriptor, RpcDirection, RpcDispatchReport, RpcDispatchStatus, RpcInvocationDescriptor,
@@ -49,4 +54,7 @@ pub use sync::{
     SyncInterestDescriptor, SyncObjectSnapshot,
 };
 pub use transport::{NetCertificatePin, NetConnectionState, NetSecurityPolicy, NetTransportKind};
-pub use websocket::{NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame};
+pub use websocket::{
+    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor,
+};

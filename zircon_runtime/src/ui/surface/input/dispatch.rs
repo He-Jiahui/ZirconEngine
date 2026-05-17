@@ -5,9 +5,10 @@ use zircon_runtime_interface::ui::{
         UiComponentEventReport, UiDispatchAppliedEffect, UiDispatchDisposition, UiDispatchEffect,
         UiDispatchReply, UiDragDropEffectKind, UiDragDropInputEvent, UiDragDropInputEventKind,
         UiImeInputEvent, UiImeInputEventKind, UiInputDispatchResult, UiInputEvent,
-        UiNavigationInputEvent, UiPointerId, UiPopupEffectKind, UiPopupInputEvent,
-        UiPopupInputEventKind, UiTextByteRange, UiTextInputEvent, UiTooltipEffectKind,
-        UiTooltipTimerInputEvent, UiTooltipTimerInputEventKind,
+        UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationInputEvent, UiPointerId,
+        UiPopupEffectKind, UiPopupInputEvent, UiPopupInputEventKind, UiTextByteRange,
+        UiTextInputEvent, UiTooltipEffectKind, UiTooltipTimerInputEvent,
+        UiTooltipTimerInputEventKind,
     },
     event_ui::{UiNodeId, UiReflectedPropertySource},
     focus::UiFocusedInputKind,
@@ -16,6 +17,7 @@ use zircon_runtime_interface::ui::{
         UiTextComposition, UiTextEditAction, UiTextRange, UiTextSelection,
     },
     tree::UiTreeError,
+    widget::UiWidgetBehavior,
 };
 
 use crate::ui::dispatch::{UiNavigationDispatcher, UiPointerDispatcher};
@@ -24,7 +26,7 @@ use crate::ui::text::apply_text_edit_action;
 use crate::ui::tree::UiRuntimeTreeRoutingExt;
 
 use super::super::surface::UiSurface;
-use super::{apply_dispatch_reply, is_valid_input_owner};
+use super::{apply_dispatch_reply, is_valid_input_owner, text_keyboard::keyboard_text_edit_action};
 
 pub(crate) fn dispatch_input_event(
     surface: &mut UiSurface,
@@ -89,7 +91,7 @@ pub(crate) fn dispatch_input_event(
         UiInputEvent::Keyboard(keyboard) => {
             let target = surface.focus.focused;
             let mut result = UiInputDispatchResult::new(
-                UiInputEvent::Keyboard(keyboard),
+                UiInputEvent::Keyboard(keyboard.clone()),
                 UiDispatchReply::unhandled(),
             );
             result.diagnostics.routed = target.is_some();
@@ -100,6 +102,32 @@ pub(crate) fn dispatch_input_event(
                     .diagnostics
                     .notes
                     .push(format!("focused_route_len={}", route.len()));
+                if let Some(mut text_result) =
+                    dispatch_keyboard_text_edit(surface, keyboard.clone(), target)
+                {
+                    text_result
+                        .diagnostics
+                        .notes
+                        .insert(0, format!("focused_route_len={}", route.len()));
+                    return Ok(text_result);
+                }
+                if keyboard_requests_popup_dismissal(&keyboard) {
+                    let report = surface.apply_default_popup_dismissal_action(target)?;
+                    if report.handled {
+                        result.reply = UiDispatchReply::handled();
+                        result.diagnostics.handled_phase =
+                            Some("keyboard.popup_dismiss".to_string());
+                        result.component_events = report.component_events;
+                    }
+                }
+                if keyboard_requests_default_activation(&keyboard) {
+                    let report = surface.apply_default_keyboard_component_action(target)?;
+                    if report.handled {
+                        result.reply = UiDispatchReply::handled();
+                        result.diagnostics.handled_phase = Some("keyboard.widget".to_string());
+                        result.component_events = report.component_events;
+                    }
+                }
                 surface.record_focused_input(
                     UiFocusedInputKind::Keyboard,
                     target,
@@ -139,6 +167,39 @@ pub(crate) fn dispatch_input_event(
             crate::ui::accessibility::dispatch_accessibility_action(surface, accessibility),
         ),
     }
+}
+
+fn keyboard_requests_default_activation(keyboard: &UiKeyboardInputEvent) -> bool {
+    if keyboard.state != UiKeyboardInputState::Pressed {
+        return false;
+    }
+    let logical_key = keyboard.logical_key.as_str();
+    matches!(logical_key, "Enter" | "Space" | " ") || matches!(keyboard.key_code, 13 | 32)
+}
+
+fn keyboard_requests_popup_dismissal(keyboard: &UiKeyboardInputEvent) -> bool {
+    if keyboard.state != UiKeyboardInputState::Pressed {
+        return false;
+    }
+    keyboard.logical_key == "Escape" || keyboard.key_code == 27
+}
+
+fn dispatch_keyboard_text_edit(
+    surface: &mut UiSurface,
+    keyboard: UiKeyboardInputEvent,
+    target: UiNodeId,
+) -> Option<UiInputDispatchResult> {
+    let editable = editable_text_state_for_node(surface, target)?;
+    let action = keyboard_text_edit_action(&keyboard, &editable)?;
+    let next = apply_text_edit_action(editable, action);
+    Some(apply_editable_text_state(
+        surface,
+        UiInputEvent::Keyboard(keyboard),
+        target,
+        next,
+        "keyboard.text_edit",
+        TextComponentEventKind::Change,
+    ))
 }
 
 fn dispatch_navigation_input(
@@ -485,9 +546,10 @@ fn editable_text_state_for_node(
         return None;
     }
     let property = editable_value_property(surface, target)?;
-    let text = string_attribute(metadata, property)
+    let text = string_attribute(metadata, property.as_str())
         .or_else(|| string_attribute(metadata, "value_text"))
         .or_else(|| string_attribute(metadata, "text"))
+        .or_else(|| metadata.widget.value.as_ref().map(UiValue::display_text))
         .unwrap_or_default();
     let caret_offset = usize_attribute(metadata, "caret_offset").unwrap_or(text.len());
     let selection = usize_attribute(metadata, "selection_anchor")
@@ -547,10 +609,10 @@ fn apply_editable_text_state(
         return result;
     };
 
-    mutate_text_property(
+    let value_changed = mutate_text_property(
         surface,
         target,
-        value_property,
+        value_property.as_str(),
         UiValue::String(state.text.clone()),
         &mut result,
     );
@@ -629,16 +691,17 @@ fn apply_editable_text_state(
     push_text_component_event_report(
         surface,
         target,
-        value_property,
+        value_property.as_str(),
         &state,
         component_event_kind,
+        value_changed,
         &mut result,
     );
 
     result
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum TextComponentEventKind {
     Change,
     Submit,
@@ -650,8 +713,12 @@ fn push_text_component_event_report(
     value_property: &str,
     state: &UiEditableTextState,
     kind: TextComponentEventKind,
+    value_changed: bool,
     result: &mut UiInputDispatchResult,
 ) {
+    if kind == TextComponentEventKind::Change && !value_changed {
+        return;
+    }
     let Some(metadata) = surface
         .tree
         .nodes
@@ -694,7 +761,7 @@ fn mutate_text_property(
     property: &str,
     value: UiValue,
     result: &mut UiInputDispatchResult,
-) {
+) -> bool {
     let report = surface.mutate_property(
         UiPropertyMutationRequest::new(target, property, value)
             .with_source(UiReflectedPropertySource::RuntimeState),
@@ -706,6 +773,7 @@ fn mutate_text_property(
                     "text_property_changed:{}:{:?}",
                     report.property, report.invalidation.dirty
                 ));
+                return true;
             }
         }
         Err(error) => result
@@ -713,21 +781,24 @@ fn mutate_text_property(
             .notes
             .push(format!("text_property_rejected:{property}:{error}")),
     }
+    false
 }
 
-fn editable_value_property(surface: &UiSurface, target: UiNodeId) -> Option<&'static str> {
+fn editable_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {
     let metadata = surface
         .tree
         .nodes
         .get(&target)?
         .template_metadata
         .as_ref()?;
-    if metadata.attributes.contains_key("value") {
-        Some("value")
+    if let Some(property) = metadata.widget.value_property.as_ref() {
+        Some(property.clone())
+    } else if metadata.attributes.contains_key("value") {
+        Some("value".to_string())
     } else if metadata.attributes.contains_key("text") {
-        Some("text")
+        Some("text".to_string())
     } else {
-        Some("value")
+        Some("value".to_string())
     }
 }
 
@@ -735,6 +806,10 @@ fn is_editable_text_component(
     metadata: &zircon_runtime_interface::ui::tree::UiTemplateNodeMetadata,
 ) -> bool {
     bool_attribute(metadata, "editable_text").unwrap_or(false)
+        || metadata
+            .widget
+            .resolved_behavior(metadata.component.as_str())
+            == UiWidgetBehavior::TextInput
         || matches!(
             metadata.component.as_str(),
             "InputField" | "TextField" | "LineEdit" | "TextEdit" | "NumberField"

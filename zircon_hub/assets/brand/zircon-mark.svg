@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Zircon mark">
+  <defs>
+    <linearGradient id="a" x1="12" y1="8" x2="52" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9ffbf4"/>
+      <stop offset="0.45" stop-color="#1dc8c2"/>
+      <stop offset="1" stop-color="#0a646e"/>
+    </linearGradient>
+    <linearGradient id="b" x1="32" y1="6" x2="32" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d8fffb"/>
+      <stop offset="1" stop-color="#178c99"/>
+    </linearGradient>
+  </defs>
+  <path fill="#061f25" d="M32 2 57 18v28L32 62 7 46V18z"/>
+  <path fill="url(#a)" d="M32 5 54 19v26L32 59 10 45V19z"/>
+  <path fill="#66fff2" d="M32 5 45 20 32 16 19 20z" opacity="0.9"/>
+  <path fill="#0b7f8b" d="m10 19 9 1 13 39-22-14z"/>
+  <path fill="#27d5cc" d="m54 19-9 1-13 39 22-14z"/>
+  <path fill="url(#b)" d="m19 20 13-4 13 4-13 39z"/>
+  <path fill="#063944" d="M32 16v43L19 20z" opacity="0.35"/>
+  <path fill="#b9fffa" d="m32 5 7 13-7-2-7 2z" opacity="0.8"/>
+</svg>

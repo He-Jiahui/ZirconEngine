@@ -18,10 +18,10 @@ impl RuntimeCoreProfile {
             name: "runtime.core.minimal".to_string(),
             required_capabilities: [
                 "runtime.core.lifecycle",
-                "runtime.core.asset",
-                "runtime.core.scene",
-                "runtime.core.render.base",
-                "runtime.core.plugin_loader",
+                "runtime.core.tasks",
+                "runtime.core.time",
+                "runtime.core.frame_count",
+                "runtime.core.diagnostics",
             ]
             .into_iter()
             .map(str::to_string)

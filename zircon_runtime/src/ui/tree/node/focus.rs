@@ -97,13 +97,18 @@ impl UiRuntimeTreeFocusExt for UiTree {
                         }
                         UiNavigationEventKind::Activate
                         | UiNavigationEventKind::Cancel
+                        | UiNavigationEventKind::Home
+                        | UiNavigationEventKind::End
                         | UiNavigationEventKind::Next
                         | UiNavigationEventKind::Previous => None,
                     });
                 };
                 nearest_focusable_in_direction(self, current, kind, &focusable)
             }
-            UiNavigationEventKind::Activate | UiNavigationEventKind::Cancel => Ok(None),
+            UiNavigationEventKind::Activate
+            | UiNavigationEventKind::Cancel
+            | UiNavigationEventKind::Home
+            | UiNavigationEventKind::End => Ok(None),
         }
     }
 
@@ -120,7 +125,10 @@ impl UiRuntimeTreeFocusExt for UiTree {
             | UiNavigationEventKind::Down
             | UiNavigationEventKind::Left
             | UiNavigationEventKind::Right => next_directional_target(self, current, kind),
-            UiNavigationEventKind::Activate | UiNavigationEventKind::Cancel => Ok(None),
+            UiNavigationEventKind::Activate
+            | UiNavigationEventKind::Cancel
+            | UiNavigationEventKind::Home
+            | UiNavigationEventKind::End => Ok(None),
         }
     }
 }
@@ -340,6 +348,8 @@ fn target_for_direction(
         UiNavigationEventKind::Right => &directional.right,
         UiNavigationEventKind::Activate
         | UiNavigationEventKind::Cancel
+        | UiNavigationEventKind::Home
+        | UiNavigationEventKind::End
         | UiNavigationEventKind::Next
         | UiNavigationEventKind::Previous => &UiDirectionalNavigationTarget::Auto,
     }
@@ -414,6 +424,8 @@ fn nearest_focusable_in_direction(
             UiNavigationEventKind::Up => (-delta_y, delta_x.abs()),
             UiNavigationEventKind::Activate
             | UiNavigationEventKind::Cancel
+            | UiNavigationEventKind::Home
+            | UiNavigationEventKind::End
             | UiNavigationEventKind::Next
             | UiNavigationEventKind::Previous => continue,
         };
@@ -475,6 +487,8 @@ fn nearest_navigation_candidate_in_direction(
             UiNavigationEventKind::Up => (-delta_y, delta_x.abs()),
             UiNavigationEventKind::Activate
             | UiNavigationEventKind::Cancel
+            | UiNavigationEventKind::Home
+            | UiNavigationEventKind::End
             | UiNavigationEventKind::Next
             | UiNavigationEventKind::Previous => continue,
         };

@@ -32,11 +32,14 @@ fn artifact_store_roundtrips_material_assets_in_library() {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     let metadata = ResourceRecord::new(
         AssetId::new(),
         AssetKind::Material,
-        AssetUri::parse("res://materials/grid.material.toml").unwrap(),
+        AssetUri::parse("res://materials/grid.zmaterial").unwrap(),
     );
     let store = ArtifactStore::default();
 

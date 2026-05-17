@@ -14,9 +14,12 @@ path = "src/main.rs"
 [dependencies]
 serde.workspace = true
 serde_json = "1.0.149"
-slint = "1"
+slint = "1.16.1"
 thiserror.workspace = true
 toml.workspace = true
 
 [build-dependencies]
-slint-build = "1"
+i-slint-compiler = { version = "1.16.1", features = ["rust", "display-diagnostics", "software-renderer", "bundle-translations"] }
+prettyplease = "0.2.37"
+spin_on = "0.1.1"
+syn = { version = "2.0.117", features = ["full"] }

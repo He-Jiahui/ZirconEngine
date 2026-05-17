@@ -9,7 +9,9 @@ use super::super::super::graphics_debugger_capture::{
 use super::super::super::render_framework_backend_error::render_framework_backend_error;
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::super::wgpu_render_framework::WgpuRenderFramework;
-use super::super::build_frame_submission_context::build_frame_submission_context;
+use super::super::build_frame_submission_context::{
+    build_frame_submission_context, validate_camera_surface_present_target,
+};
 use super::super::prepare_runtime_submission::prepare_runtime_submission;
 use super::super::record_submission::record_present_submission;
 use super::super::update_stats::update_stats;
@@ -25,7 +27,7 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
     extract: RenderFrameExtract,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "present_frame_extract");
-    let _operation_guard = framework.operation_lock.lock().unwrap();
+    let _operation_guard = framework.lock_operation();
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context(framework, viewport, &extract, None) {
@@ -36,7 +38,11 @@ pub(in crate::graphics::runtime::render_framework) fn present_frame_extract(
             }
         }
     };
-    let mut state = framework.state.lock().unwrap();
+    if let Err(error) = validate_camera_surface_present_target(&extract.view.camera.target) {
+        fail_pending_capture_after_preflight_error(framework, viewport, &error);
+        return Err(error);
+    }
+    let mut state = framework.lock_state();
     if let Err(error) = preflight_bound_surface(&mut state, viewport) {
         fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
         return Err(error);
@@ -183,6 +189,6 @@ fn fail_pending_capture_after_preflight_error(
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
-    let mut state = framework.state.lock().unwrap();
+    let mut state = framework.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
 }

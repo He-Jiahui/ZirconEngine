@@ -1,6 +1,10 @@
 ---
 related_code:
+  - Cargo.toml
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime/reflection_macros/src/lib.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
@@ -8,8 +12,15 @@ related_code:
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
 implementation_files:
+  - Cargo.toml
+  - zircon_runtime/Cargo.toml
+  - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
+  - zircon_runtime/reflection_macros/src/lib.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
@@ -17,13 +28,35 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
+  - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
 plan_sources:
   - user: 2026-05-15 implement ZrVM language plugin and reflection registration plan
+  - user: 2026-05-16 continue precise VM host reflection macro implementation
 tests:
   - zircon_runtime/src/script/vm/tests.rs
   - "cargo test -p zircon_runtime script::vm: passed 2026-05-15"
+  - "cargo test -p zircon_runtime script::vm --locked --target-dir target\\codex-reflection-macros: passed 2026-05-16"
+  - "cargo fmt --manifest-path zircon_runtime/reflection_macros/Cargo.toml --check: passed 2026-05-16"
+  - "cargo test -p zircon_runtime script::vm --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-16"
+  - "cargo test -p zircon_runtime script::vm --locked --jobs 1: attempted 2026-05-16 in E:\\cargo-targets\\zircon-zrvm-continue; local machine remained saturated by concurrent cargo jobs before completion"
+  - "cargo test -p zircon_runtime script::vm --locked --offline --jobs 1 -- --nocapture --test-threads=1 with CARGO_HOME=D:\\cargo-home-zrvm and CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue: passed 2026-05-16; 16 passed, 0 failed, 1487 filtered out"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 with CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-runtime-check: passed 2026-05-16"
+  - "cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_zr_vm_language_runtime --features real-zr-vm --locked --offline --jobs 1 real_backend_loads_documented_minimal_example -- --nocapture --test-threads=1 with CARGO_HOME=D:\\cargo-home-zrvm, CARGO_TARGET_DIR=D:\\cargo-targets\\zircon-zrvm-continue, ZR_VM_RUST_BINDING_LIB_DIR=E:\\Git\\zr_vm\\build\\codex-msvc-debug\\lib\\Debug: passed 2026-05-16; 1 passed, 0 failed, 5 filtered out"
   - "cargo check --workspace --locked: passed 2026-05-15"
   - "cargo test --workspace --locked: attempted 2026-05-15; stopped by no space on device"
+  - "cargo test -p zircon_runtime script::vm --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: attempted 2026-05-18; blocked before reflection tests by unrelated graphics test compile errors in zircon_runtime/src/graphics/tests/render_product_ui.rs missing RenderStats UI fields"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-18"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-18; 0 unit tests and 0 doc-tests"
+  - "rustfmt --edition 2021 --check zircon_runtime/src/core/framework/script.rs zircon_runtime/src/script/vm/host/host_export_registry.rs zircon_runtime/src/script/vm/tests.rs zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/src/script/vm/host/builtin_host_modules.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-18"
+  - "cargo fmt --all --check: attempted 2026-05-18; blocked by unrelated unformatted asset/render/scene files owned by concurrent sessions"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: attempted 2026-05-18 after enum/default-type-ref hardening; blocked by unrelated graphics compile error E0061 in zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-18 after enum/default-type-ref hardening; 0 unit tests and 0 doc-tests"
+  - "rustfmt --edition 2021 --check zircon_runtime/src/core/framework/script.rs zircon_runtime/src/script/vm/host/host_export_registry.rs zircon_runtime/src/script/vm/tests.rs zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/src/script/vm/host/builtin_host_modules.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-18 after enum/default-type-ref hardening"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: red 2026-05-18 for unsupported-input macro tests before guards; async/generic function and generic type tests failed because macros still emitted descriptors"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-18 after unsupported-input guards; 3 passed, 0 failed, 0 doc-tests"
+  - "rustfmt --edition 2021 --check zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/src/script/vm/tests.rs zircon_runtime/src/core/framework/script.rs zircon_runtime/src/script/vm/host/host_export_registry.rs zircon_runtime/src/script/vm/host/builtin_host_modules.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-18 after unsupported-input guards"
 doc_type: module-detail
 ---
 
@@ -36,15 +69,38 @@ The VM host surface is split into two layers:
 
 VM code never receives Rust object pointers. Host objects are represented as `HostHandle` values, and framework-level values carry those handles as `u64` so the neutral contract does not depend on the VM subsystem.
 
+`zircon_runtime_reflection_macros` is the convenience layer for Rust-authored host libraries. `ZirconScriptType`, `zircon_host_function`, and `zircon_host_module` emit the same neutral descriptors as handwritten registrations. Function parameters now derive their exported type names from `ScriptHostFromValue::script_host_type_ref`, so Rust `f64` exports as the VM-facing `float` type instead of leaking a Rust-only spelling into ZrVM native module metadata.
+
+## Type Reflection Model
+
+`ScriptHostValueKind` remains the coarse ABI-lowering category used by host calls. `ScriptHostTypeRef` carries the VM-facing type name beside that value kind, allowing a host function to lower as `Float` while still registering a semantic type such as `Vec3`, `ColorRgba`, or `float` with a backend. Function and parameter descriptors default primitive type refs from their value kind, while type descriptors default the type ref name to the descriptor name so handwritten semantic types do not accidentally collapse back to `float` or `int`.
+
+`ScriptHostPrototypeKind` describes the VM prototype that should be used for a host type: module, class, interface, struct, enum, or native. The derive macro defaults Rust structs to `Struct` and Rust enums to `Enum`; callers can still override the prototype with `#[zircon_script(prototype = ...)]` when a host type intentionally maps to another VM shape. `ScriptHostTypeDescriptor::allow_value_construction` records whether the VM may construct values directly from the reflected descriptor. These fields are intentionally descriptor data only; scripts still receive values or `HostHandle` identifiers, not Rust object pointers.
+
+The conversion traits are the Rust-side source of default type refs:
+
+- `ScriptHostFromValue` converts script arguments into Rust parameters and exposes the exported argument type ref.
+- `ScriptHostIntoValue` converts Rust return values into `ScriptHostValue` and exposes the exported return type ref.
+- `ZirconScriptType` produces a complete `ScriptHostTypeDescriptor` for Rust-authored value types.
+
+The macro entry points reject unsupported Rust shapes instead of emitting descriptors that would fail later through trait-bound or runtime errors. `zircon_host_function` supports synchronous, non-generic free functions with simple identifier parameters. `ZirconScriptType` supports non-generic structs and enums; unions are rejected. Async functions, generic functions, and generic script types must be wrapped in a concrete host export before reflection.
+
+The proc-macro crate is a separate workspace member because Rust procedural macros must live in a `proc-macro` crate. `zircon_runtime` re-exports the macros so runtime-owned host modules can write `#[crate::zircon_host_function]`, `#[crate::zircon_host_module]`, and `#[derive(crate::ZirconScriptType)]` without depending on the macro crate directly.
+
 ## Registry Behavior
 
 `HostExportRegistry` validates a module before it becomes visible:
 
 - module, version, capability, type, function, and parameter names must be non-empty and trimmed;
 - module names, type names, function names, and parameter names must not duplicate within their scope;
+- type, field, parameter, and return `ScriptHostTypeRef` names must be non-empty and already trimmed;
+- every type ref value kind must match the descriptor value kind that will be used for call lowering;
+- a registered type descriptor's own `type_ref.type_name` must match its descriptor name;
+- field names must not duplicate within a reflected type;
 - function arity must be coherent with its parameter list;
 - function required capabilities must be declared on the module;
 - callbacks must exactly match declared function names.
+- duplicate callback names are rejected before callback storage, so a later callback cannot silently replace an earlier one.
 
 Each registered module receives a `HostHandle` through the shared `HostRegistry`, using a `host.module.<module>` capability label. This keeps script-visible handles stable and lets existing handle validation continue to work.
 
@@ -59,6 +115,8 @@ Calls go through `call_with_capabilities`. The registry checks arity and require
 - `zr.zircon.scene`: default world handle and handle validity helpers.
 - `zr.zircon.render`: read-only render metadata descriptors.
 - `zr.zircon.math`: pure value descriptors and deterministic vector helpers.
+
+`zr.zircon.math` is registered through the reflection macros. `Vec3` and `ColorRgba` derive `ZirconScriptType`, and pure helpers such as vector length and dot product use `zircon_host_function`, proving that macro-generated descriptors flow through the same registry validation and dispatch path as handwritten modules.
 
 This first wave deliberately favors stable values and handles over concrete manager references. Manager-backed behavior can replace the diagnostic placeholders once the target services expose stable trait-object access through `core::manager`.
 
@@ -76,3 +134,5 @@ execution_mode = "binary"
 ```
 
 Project packages store no bytecode in `VmPluginPackage::bytecode`; instead they populate `VmPluginPackage::zr_vm_project` and `VmPluginPackageSource::zr_vm_project_path`.
+
+The checked-in minimal example lives at `docs/zircon_runtime/script/vm/examples/zr_vm_minimal`. It uses the same package protocol, imports `zr.zircon.foundation`, calls `foundation.time_unix_millis()` and `foundation.log_info()` from `activate()`, and demonstrates hot-reload state through optional `saveState(): string` and `restoreState(state: string)` exports. The real ZrVM plugin tests copy that example to a temporary package root before loading it so validation does not leave compiled artifacts under `docs/`.

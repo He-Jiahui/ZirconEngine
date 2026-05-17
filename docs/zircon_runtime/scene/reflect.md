@@ -3,8 +3,14 @@ related_code:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/fixed/active_in_hierarchy.rs
   - zircon_runtime/src/scene/reflect/fixed/active_self.rs
+  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
+  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
+  - zircon_runtime/src/scene/reflect/fixed/lights.rs
   - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
+  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
+  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
   - zircon_runtime/src/scene/reflect/fixed/mod.rs
   - zircon_runtime/src/scene/reflect/fixed/name.rs
   - zircon_runtime/src/scene/reflect/fixed/render_layer_mask.rs
@@ -28,8 +34,14 @@ implementation_files:
   - zircon_runtime/src/scene/mod.rs
   - zircon_runtime/src/scene/reflect/conversion.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
+  - zircon_runtime/src/scene/reflect/fixed/active_in_hierarchy.rs
   - zircon_runtime/src/scene/reflect/fixed/active_self.rs
+  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
+  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
+  - zircon_runtime/src/scene/reflect/fixed/lights.rs
   - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
+  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
+  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
   - zircon_runtime/src/scene/reflect/fixed/mod.rs
   - zircon_runtime/src/scene/reflect/fixed/name.rs
   - zircon_runtime/src/scene/reflect/fixed/render_layer_mask.rs
@@ -52,11 +64,15 @@ plan_sources:
   - user: 2026-05-09 M8.4 Fixed Component Reflection Adapters
   - user: 2026-05-09 M8.5 Dynamic Plugin JSON Component Reflection
   - user: 2026-05-09 M8.6 Resource Reflection
+  - user: 2026-05-16 M8.7 Editor Inspector And Remote DTO Reuse Proof
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
+  - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
+  - docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md
   - docs/superpowers/plans/2026-05-08-reflection-type-registry-implementation.md
 tests:
   - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
   - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
@@ -78,6 +94,8 @@ The structural module root wires these child modules:
 - `registration.rs` owns the crate-visible builtin reflection bootstrap lifecycle.
 - `type_registry.rs` owns deterministic runtime registry storage and lookup rules.
 - `world_reflection.rs` owns the `WorldReflection` marker and the public immutable `World::type_registry()` accessor.
+
+Later M8 slices keep the same ownership split: `ReflectComponent` and `ReflectResource` become concrete adapter contracts, `dynamic_component.rs` projects plugin JSON descriptors into the registry, and `world_reflection.rs` remains the facade for schema/read/write DTO routing.
 
 ## Runtime Boundary
 
@@ -242,6 +260,28 @@ The transform adapter compares the current subfield first. Changed writes then u
 
 Read-only rigid-body fields are exposed for inspectors and remote diagnostics, but writes return `ReflectError::NonEditableField` until a later physics-authoring slice defines safe mutation semantics.
 
+## M10 Fixed Inspector Coverage
+
+M10 extends `reflect/fixed` so `World::editor_projection` can be the editor viewport inspector source instead of a separate hand-written `SceneNode` field list. The added fixed adapters cover:
+
+- `Hierarchy.parent` as an editable `Entity` field, but with `serializable = false` because `DynamicScene` already stores parent links in `NodeRecord`.
+- `ActiveInHierarchy.value` as a read-only, non-serializable derived `Bool` field.
+- `CameraComponent.fov_y_radians`, `z_near`, and `z_far` as editable scalar fields.
+- `MeshRenderer.model` and `material` as read-only resource fields, plus editable `tint: Vec4`.
+- `Mobility.kind` as an editable enum field using the existing runtime mobility validation path.
+- `DirectionalLight`, `PointLight`, and `SpotLight` authoring fields for color, direction, intensity, range, and spot cone angles.
+
+The editor crate maps these reflected type paths back to legacy command-compatible property paths such as `Transform.translation`, `Active.enabled`, `MeshRenderer.model`, and plugin paths like `weather.Component.CloudLayer.coverage`. This keeps the runtime reflection schema as the single field source while preserving editor command/history compatibility.
+
+M10 focused validation:
+
+```powershell
+cargo test -p zircon_runtime --lib scene::tests::editor_projection --locked --jobs 1 --message-format short
+cargo test -p zircon_editor --lib viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields --locked --jobs 1 --message-format short
+```
+
+The runtime command passed 2 tests with 0 failures and 1458 filtered out. The editor command passed 1 test with 0 failures and 1341 filtered out. A crate-level `cargo check -p zircon_editor --lib --locked --jobs 1 --message-format short` currently fails outside this reflection slice in `zircon_runtime/src/scene/world/render.rs`, where the active rendering parity work has a `PostProcessExtract` initializer missing `graph` and `stack` fields.
+
 ## Fixed Error Model
 
 Every fixed adapter returns structured errors consistently:
@@ -354,3 +394,32 @@ cargo test -p zircon_runtime --lib scene::tests::ecs_typed_api --locked --messag
 ```
 
 The focused `ecs_reflect` filter now reports 32 passing tests, including six resource reflection tests in `resources.rs`. The typed ECS filter reports 4 passing tests. The Cargo test commands emitted two unrelated dead-code warnings in graphics/plugin test helpers. Workspace-wide validation was not run or claimed for M8.6.
+
+## M8.7 Inspector And Remote DTO Reuse Proof
+
+M8.7 adds runtime-side acceptance coverage for the editor-inspector and remote/devtools seams without changing editor production code or adding transport endpoints. The tests live in `zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs` so the existing `ecs_reflect` test root remains structural.
+
+The inspector-style proof creates one entity with fixed `Name` and `ActiveSelf` components plus a dynamic plugin JSON component. It calls `world.reflect_fields(ReflectFieldsRequest::new(...))` for each reflected component type and asserts ordered `ReflectFieldValue` output. The test deliberately uses the `WorldReflection` facade rather than `component_type_descriptors()` or fixed component maps, matching the intended future source for editor `SceneInspectorField` projection.
+
+The remote-style proof keeps transport out of scope and validates the DTO boundary directly:
+
+- Serialized/deserialized `ReflectSchemaRequest` values preserve the default plugin-owned exclusion, and produce serializable plugin-owned schema data only when the request explicitly sets `include_plugin_owned = true`.
+- A serialized/deserialized `ReflectReadRequest` passes through `world.reflect_read(...)` and returns a serializable `ReflectReadResponse` for a component field.
+- A serialized/deserialized `ReflectWriteRequest` is passed back to `world.reflect_write(...)` and mutates the world through the same reflection facade.
+- The resulting `ReflectSchemaResponse`, `ReflectReadResponse`, and `ReflectWriteResponse` values are also serialized/deserialized to prove responses remain transport-shaped DTOs.
+- Serialized schema/read/write request and response DTOs are checked for absence of runtime-only tokens such as `World`, `TypeRegistry`, `ReflectComponent`, and `ReflectResource`.
+
+This milestone only documents the editor replacement point in `docs/zircon_editor/scene/viewport/edit_mode_projection.md`; it does not rewrite the current projection builder, editor history, selection, undo/redo, sockets, HTTP routes, BRP handlers, or remote authorization.
+
+## M8.7 Validation
+
+M8.7 scoped validation passed with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-m8`:
+
+```powershell
+$env:CARGO_TARGET_DIR = "E:\cargo-targets\zircon-reflect-m8"
+rustfmt --edition 2021 --check "zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs" "zircon_runtime/src/scene/tests/ecs_reflect/mod.rs"
+cargo check -p zircon_runtime --lib --locked --message-format short
+cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short
+```
+
+The focused reflection filter now reports 35 passing tests, including the three M8.7 inspector/remote DTO reuse tests in `editor_remote.rs`. After focused review found missing schema/read request roundtrip coverage, the schema/read test now serializes/deserializes `ReflectSchemaRequest` and `ReflectReadRequest` before executing the facade path, and the focused reflection filter passed again with 35 tests. The scoped whitespace check over the M8.7 test/doc/session files passed with LF-to-CRLF warnings only. Workspace-wide validation was not run or claimed for M8.7.

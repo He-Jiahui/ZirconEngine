@@ -6,9 +6,10 @@ use zircon_runtime::core::framework::sound::{
     SoundDynamicEventCatalog, SoundDynamicEventHandlerDescriptor, SoundDynamicEventInvocation,
     SoundError, SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
     SoundListenerDescriptor, SoundListenerId, SoundMixerGraph, SoundMixerSnapshot,
-    SoundParameterId, SoundPlaybackId, SoundRayTracedImpulseResponseDescriptor,
-    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceId, SoundTrackDescriptor,
-    SoundTrackId, SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
+    SoundParameterId, SoundPlaybackCompletionAction, SoundPlaybackFinished, SoundPlaybackId,
+    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
+    SoundSourceDescriptor, SoundSourceId, SoundTrackDescriptor, SoundTrackId, SoundTrackMeter,
+    SoundVolumeDescriptor, SoundVolumeId,
 };
 
 use crate::output::SoundOutputDeviceRuntimeState;
@@ -26,6 +27,7 @@ pub(crate) struct SoundEngineState {
     pub(crate) clips: HashMap<SoundClipId, LoadedClip>,
     pub(crate) external_sources: HashMap<ExternalAudioSourceHandle, SoundExternalSourceBlock>,
     pub(crate) playbacks: HashMap<SoundPlaybackId, ActivePlayback>,
+    pub(crate) finished_playbacks: Vec<SoundPlaybackFinished>,
     pub(crate) sources: HashMap<SoundSourceId, SourceVoice>,
     pub(crate) listeners: HashMap<SoundListenerId, SoundListenerDescriptor>,
     pub(crate) volumes: HashMap<SoundVolumeId, SoundVolumeDescriptor>,
@@ -60,6 +62,7 @@ impl SoundEngineState {
             clips: HashMap::new(),
             external_sources: HashMap::new(),
             playbacks: HashMap::new(),
+            finished_playbacks: Vec::new(),
             sources: HashMap::new(),
             listeners: HashMap::new(),
             volumes: HashMap::new(),
@@ -142,6 +145,11 @@ impl SoundEngineState {
         }
         super::validation::validate_graph(&graph)?;
         self.graph = graph;
+        for playback in self.playbacks.values_mut() {
+            if playback.output_track == track {
+                playback.output_track = SoundTrackId::master();
+            }
+        }
         for source in self.sources.values_mut() {
             if source.descriptor.output_track == track {
                 source.descriptor.output_track = SoundTrackId::master();
@@ -162,7 +170,13 @@ pub(crate) struct ActivePlayback {
     pub(crate) cursor_frame: usize,
     pub(crate) cursor_position: f64,
     pub(crate) gain: f32,
+    pub(crate) speed: f32,
     pub(crate) looped: bool,
+    pub(crate) completion_action: SoundPlaybackCompletionAction,
+    pub(crate) paused: bool,
+    pub(crate) muted: bool,
+    pub(crate) range_start_frame: usize,
+    pub(crate) range_end_frame: Option<usize>,
     pub(crate) output_track: SoundTrackId,
     pub(crate) pan: f32,
 }

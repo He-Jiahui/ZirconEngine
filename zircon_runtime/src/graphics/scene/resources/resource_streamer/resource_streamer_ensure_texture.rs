@@ -39,4 +39,14 @@ impl ResourceStreamer {
             .insert(id, PreparedTexture { revision, resource });
         Ok(())
     }
+
+    pub(crate) fn ensure_sprite_texture(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        texture_layout: &wgpu::BindGroupLayout,
+        id: ResourceId,
+    ) -> Result<(), GraphicsError> {
+        self.ensure_texture(device, queue, texture_layout, id)
+    }
 }

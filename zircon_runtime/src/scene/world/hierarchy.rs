@@ -2,6 +2,7 @@ use crate::core::math::Transform;
 
 use super::World;
 use crate::scene::components::{Hierarchy, LocalTransform, Mobility, NodeRecord};
+use crate::scene::ecs::LifecycleEventKind;
 use crate::scene::EntityId;
 
 impl World {
@@ -10,6 +11,11 @@ impl World {
             return false;
         };
         if let Some(internal) = self.internal_entity(entity) {
+            let component_ids = self.component_storage.component_ids_for_entity(internal);
+            for component_id in component_ids {
+                self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, component_id);
+                self.trigger_component_lifecycle(LifecycleEventKind::Despawn, entity, component_id);
+            }
             let removed_components = self.component_storage.remove_entity(internal);
             for component_id in removed_components {
                 if let Some((type_id, type_name)) =
@@ -29,6 +35,8 @@ impl World {
         self.world_matrices.remove(&entity);
         self.cameras.remove(&entity);
         self.mesh_renderers.remove(&entity);
+        self.sprite_2d.remove(&entity);
+        self.mesh_2d.remove(&entity);
         self.directional_lights.remove(&entity);
         self.point_lights.remove(&entity);
         self.spot_lights.remove(&entity);
@@ -59,6 +67,7 @@ impl World {
                 .find(|camera| *camera != entity)
                 .unwrap_or(0);
         }
+        self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         true
     }

@@ -24,7 +24,7 @@ where
     D: QueryData,
     F: QueryFilter,
 {
-    pub fn iter(&self) -> QueryIter<'_, D, F> {
+    pub fn iter(&self) -> QueryIter<'_, '_, D, F> {
         let world = unsafe { &*self.world };
         QueryIter::new(world, world.entity_ids_for_query(), self.ticks)
     }

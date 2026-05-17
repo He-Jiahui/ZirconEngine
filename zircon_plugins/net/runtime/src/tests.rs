@@ -1,8 +1,8 @@
 use zircon_runtime::core::framework::net::{
     NetConnectionState, NetEndpoint, NetError, NetEvent, NetHttpMethod, NetHttpRequestDescriptor,
     NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetManager, NetRequestId, NetRuntimeMode,
-    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame, RpcDescriptor,
-    RpcDirection,
+    NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor, RpcDescriptor, RpcDirection,
 };
 use zircon_runtime::{plugin::RuntimePlugin, plugin::RuntimePluginRegistrationReport};
 
@@ -279,8 +279,11 @@ fn base_net_runtime_requires_websocket_feature_for_real_handshake() {
     let net = DefaultNetManager::default();
 
     assert_eq!(
-        net.listen_websocket(&NetEndpoint::new("127.0.0.1", 0))
-            .unwrap_err(),
+        net.listen_websocket(NetWebSocketListenerDescriptor::new(NetEndpoint::new(
+            "127.0.0.1",
+            0,
+        )))
+        .unwrap_err(),
         NetError::ProtocolUnavailable {
             capability: "runtime.feature.net.websocket".to_string(),
         }

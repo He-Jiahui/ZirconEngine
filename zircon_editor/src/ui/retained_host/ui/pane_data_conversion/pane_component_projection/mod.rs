@@ -5,6 +5,7 @@ use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::RetainedUiHostNodeProjection;
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
+use zircon_runtime::ui::style::resolve_button_style_from_values;
 use zircon_runtime_interface::ui::{binding::UiEventKind, component::UiValue};
 
 mod collection_fields;
@@ -368,6 +369,7 @@ pub(super) fn host_template_node(
         .get("button_variant")
         .and_then(value_as_string)
         .unwrap_or_default();
+    let button_style = resolve_button_style_from_values(&node.attributes);
     let font_size = node
         .attributes
         .get("font_size")
@@ -397,6 +399,11 @@ pub(super) fn host_template_node(
     let border_width = node
         .attributes
         .get("border_width")
+        .and_then(value_as_f64)
+        .unwrap_or(0.0) as f32;
+    let elevation = node
+        .attributes
+        .get("elevation")
         .and_then(value_as_f64)
         .unwrap_or(0.0) as f32;
 
@@ -526,12 +533,14 @@ pub(super) fn host_template_node(
         surface_variant: surface_variant.into(),
         text_tone: text_tone.into(),
         button_variant: button_variant.into(),
+        button_style,
         font_size,
         font_weight,
         text_align: text_align.into(),
         overflow: overflow.into(),
         corner_radius,
         border_width,
+        elevation,
         has_clip_frame: node.clip_frame.is_some(),
         clip_frame: node
             .clip_frame
@@ -832,6 +841,7 @@ mod tests {
                 ("overflow", Value::String("clip".to_owned())),
                 ("corner_radius", Value::Float(5.0)),
                 ("border_width", Value::Float(1.0)),
+                ("elevation", Value::Float(3.0)),
                 ("validation_level", Value::String("error".to_owned())),
                 ("selected", Value::Boolean(true)),
                 ("hovered", Value::Boolean(true)),
@@ -857,6 +867,7 @@ mod tests {
         assert_eq!(button.overflow.as_str(), "clip");
         assert_eq!(button.corner_radius, 5.0);
         assert_eq!(button.border_width, 1.0);
+        assert_eq!(button.elevation, 3.0);
     }
 
     #[test]

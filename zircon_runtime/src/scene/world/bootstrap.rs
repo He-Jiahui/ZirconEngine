@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::core::math::{Quat, Transform, Vec3};
 use crate::core::resource::{MaterialMarker, ModelMarker, ResourceHandle, ResourceId};
 
-use super::World;
+use super::{world::QueryCacheRevision, World};
 use crate::scene::components::{
     default_render_layer_mask, ActiveInHierarchy, ActiveSelf, CameraComponent, DirectionalLight,
     Hierarchy, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight, RenderLayerMask,
@@ -23,6 +23,8 @@ impl World {
             world_matrices: HashMap::new(),
             cameras: HashMap::new(),
             mesh_renderers: HashMap::new(),
+            sprite_2d: HashMap::new(),
+            mesh_2d: HashMap::new(),
             directional_lights: HashMap::new(),
             point_lights: HashMap::new(),
             spot_lights: HashMap::new(),
@@ -51,7 +53,10 @@ impl World {
             resource_registry: Default::default(),
             resources: Default::default(),
             events: Default::default(),
+            messages: Default::default(),
+            observers: Default::default(),
             command_queue: Default::default(),
+            query_cache_revision: QueryCacheRevision::default(),
             change_tick: crate::scene::ecs::ChangeTick::INITIAL,
             active_change_tick: None,
             node_cache: Vec::new(),
@@ -140,6 +145,7 @@ impl World {
         }
 
         self.rebuild_fixed_component_presence_for_entity(id);
+        self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         id
     }

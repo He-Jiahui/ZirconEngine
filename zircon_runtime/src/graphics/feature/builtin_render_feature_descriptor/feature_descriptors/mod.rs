@@ -12,3 +12,5 @@ pub(super) mod ray_tracing;
 pub(super) mod reflection_probes;
 pub(super) mod screen_space_ambient_occlusion;
 pub(super) mod shadows;
+pub(super) mod sprite;
+pub(super) mod ui;

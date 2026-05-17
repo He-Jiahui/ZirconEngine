@@ -8,12 +8,22 @@ use zircon_runtime_interface::{
     },
     ZrByteSlice, ZrHostApiV1, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1,
     ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1, ZrRuntimeFrameRequestV1,
-    ZrRuntimeFrameV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1,
+    ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1, ZrRuntimeSessionConfigV1,
     ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus,
-    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
-use super::{frame::free_runtime_accessibility_bytes, zircon_runtime_get_api_v1};
+use crate::core::framework::input::{ImeCursorArea, ImeHostRequest, ImeSurroundingText};
+
+use super::{
+    frame::{
+        encode_host_request_batch, free_runtime_accessibility_bytes,
+        free_runtime_host_request_bytes,
+    },
+    session::runtime_ime_host_request,
+    zircon_runtime_get_api_v1,
+};
 
 #[test]
 fn dynamic_api_export_returns_versioned_function_table() {
@@ -32,6 +42,8 @@ fn dynamic_api_export_returns_versioned_function_table() {
     assert!(api.unbind_viewport_surface.is_some());
     assert!(api.present_viewport.is_some());
     assert!(api.profile_control.is_some());
+    assert!(api.tick_frame.is_some());
+    assert!(api.drain_host_requests.is_some());
 }
 
 #[test]
@@ -254,6 +266,101 @@ fn present_viewport_rejects_unknown_viewport_before_session_lookup() {
 }
 
 #[test]
+fn tick_frame_rejects_unknown_session() {
+    let api = runtime_api();
+    let tick_frame = api.tick_frame.expect("tick_frame");
+
+    let status = unsafe { tick_frame(ZrRuntimeSessionHandle::new(99_999)) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::NotFound);
+    assert_eq!(status_message(status), "runtime session not found");
+}
+
+#[test]
+fn tick_frame_accepts_valid_session() {
+    let api = runtime_api();
+    let tick_frame = api.tick_frame.expect("tick_frame");
+    let session = create_test_session(api);
+
+    let status = unsafe { tick_frame(session) };
+
+    destroy_test_session(api, session);
+    assert_eq!(status.status_code(), ZrStatusCode::Ok);
+}
+
+#[test]
+fn drain_host_requests_requires_output_pointer() {
+    let api = runtime_api();
+    let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+
+    let status = unsafe {
+        drain_host_requests(
+            ZrRuntimeSessionHandle::new(99_999),
+            core::ptr::null_mut::<ZrOwnedByteBuffer>(),
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "missing host request output");
+}
+
+#[test]
+fn drain_host_requests_rejects_unknown_session() {
+    let api = runtime_api();
+    let drain_host_requests = api.drain_host_requests.expect("drain_host_requests");
+    let mut output = ZrOwnedByteBuffer::empty();
+
+    let status = unsafe { drain_host_requests(ZrRuntimeSessionHandle::new(99_999), &mut output) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::NotFound);
+    assert_eq!(status_message(status), "runtime session not found");
+    assert!(output.is_empty());
+}
+
+#[test]
+fn host_request_batch_encodes_runtime_ime_requests() {
+    let batch = ZrRuntimeHostRequestBatchV1::new(
+        ZIRCON_RUNTIME_ABI_VERSION_V1,
+        vec![
+            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::Enable)),
+            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(ImeHostRequest::SetCursorArea(
+                ImeCursorArea::new(16.0, 24.0, 8.0, 18.0),
+            ))),
+            ZrRuntimeHostRequestV1::ime(runtime_ime_host_request(
+                ImeHostRequest::SetSurroundingText(ImeSurroundingText::new("search", 6, 0)),
+            )),
+        ],
+    );
+
+    let output = encode_host_request_batch(&batch).unwrap();
+    let batch = host_request_batch_from_output(output);
+
+    assert_eq!(batch.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
+    assert_eq!(batch.requests.len(), 3);
+    assert!(matches!(
+        batch.requests[0],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::Enable
+    ));
+    assert!(matches!(
+        batch.requests[1],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetCursorArea
+                && request.cursor_area.as_ref().map(|area| area.width) == Some(8.0)
+    ));
+    assert!(matches!(
+        batch.requests[2],
+        ZrRuntimeHostRequestV1::Ime(ref request)
+            if request.kind == ZrRuntimeImeHostRequestKindV1::SetSurroundingText
+                && request
+                    .surrounding_text
+                    .as_ref()
+                    .map(|text| text.value.as_str())
+                    == Some("search")
+    ));
+}
+
+#[test]
 fn unbind_viewport_surface_rejects_unknown_viewport_before_session_lookup() {
     let api = runtime_api();
     let unbind = api
@@ -283,6 +390,64 @@ fn create_session_requires_output_pointer() {
     };
 
     assert!(!status.is_ok());
+}
+
+#[test]
+fn create_session_rejects_unknown_profile_before_runtime_bootstrap() {
+    let api = runtime_api();
+    let create_session = api.create_session.expect("create_session");
+    let mut session = ZrRuntimeSessionHandle::invalid();
+    let profile = b"unknown-profile";
+
+    let status = unsafe {
+        create_session(
+            ZrRuntimeSessionConfigV1 {
+                abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+                profile: ZrByteSlice {
+                    data: profile.as_ptr(),
+                    len: profile.len(),
+                },
+                project_manifest: ZrByteSlice::empty(),
+            },
+            &mut session,
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "unknown runtime session profile");
+    assert!(!session.is_valid());
+}
+
+#[test]
+fn create_session_accepts_named_dev_profile() {
+    let api = runtime_api();
+    let create_session = api.create_session.expect("create_session");
+    let mut session = ZrRuntimeSessionHandle::invalid();
+
+    let status = unsafe {
+        create_session(
+            ZrRuntimeSessionConfigV1 {
+                abi_version: ZIRCON_RUNTIME_ABI_VERSION_V1,
+                profile: ZrByteSlice::from_static(b"dev"),
+                project_manifest: ZrByteSlice::empty(),
+            },
+            &mut session,
+        )
+    };
+
+    assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
+    assert!(session.is_valid());
+    destroy_test_session(api, session);
+}
+
+#[test]
+fn dev_profile_ticks_runtime_diagnostic_store_log_schedule() {
+    let source = include_str!("session.rs");
+
+    assert!(source.contains("DiagnosticStoreLogSchedule::repeating"));
+    assert!(source.contains("DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT"));
+    assert!(source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
+    assert!(source.contains("write_diagnostic_store_snapshot"));
 }
 
 #[test]
@@ -406,6 +571,26 @@ fn accessibility_free_rejects_wrong_owner_token() {
 }
 
 #[test]
+fn host_request_free_rejects_wrong_owner_token() {
+    let mut bytes = vec![1_u8, 2, 3];
+    let buffer = ZrOwnedByteBuffer {
+        data: bytes.as_mut_ptr(),
+        len: bytes.len(),
+        capacity: bytes.capacity(),
+        owner_token: 0,
+        free: Some(free_runtime_host_request_bytes),
+    };
+
+    let status = unsafe { free_runtime_host_request_bytes(buffer) };
+
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(
+        status_message(status),
+        "invalid runtime host request buffer"
+    );
+}
+
+#[test]
 fn accessibility_action_event_rejects_invalid_json_payload() {
     let api = runtime_api();
     let handle_event = api.handle_event.expect("handle_event");
@@ -462,6 +647,133 @@ fn accessibility_action_event_rejects_dynamic_preview_without_surface() {
     );
 }
 
+#[test]
+fn mouse_wheel_events_reject_invalid_unit_and_delta() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let session = create_test_session(api);
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::mouse_wheel_delta(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                99,
+                1.0,
+                2.0,
+            ),
+        )
+    };
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "unknown runtime mouse wheel unit");
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::mouse_wheel_delta(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+                f32::NAN,
+                2.0,
+            ),
+        )
+    };
+
+    destroy_test_session(api, session);
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "invalid runtime mouse wheel delta");
+}
+
+#[test]
+fn window_scale_factor_events_reject_non_positive_factor() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let session = create_test_session(api);
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::window_scale_factor_changed(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                0.0,
+            ),
+        )
+    };
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(
+        status_message(status),
+        "invalid runtime window scale factor"
+    );
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::window_backend_scale_factor_changed(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                -1.0,
+            ),
+        )
+    };
+
+    destroy_test_session(api, session);
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(
+        status_message(status),
+        "invalid runtime window scale factor"
+    );
+}
+
+#[test]
+fn ime_host_requests_reject_invalid_cursor_payloads() {
+    let api = runtime_api();
+    let handle_event = api.handle_event.expect("handle_event");
+    let session = create_test_session(api);
+    let payload = "你".as_bytes();
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::ime_surrounding_text(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                ZrByteSlice {
+                    data: payload.as_ptr(),
+                    len: payload.len(),
+                },
+                1,
+                0,
+            ),
+        )
+    };
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(
+        status_message(status),
+        "invalid runtime ime surrounding text"
+    );
+
+    let status = unsafe {
+        handle_event(
+            session,
+            ZrRuntimeEventV1::ime_cursor_area(
+                ZIRCON_RUNTIME_ABI_VERSION_V1,
+                ZrRuntimeViewportHandle::new(1),
+                16.0,
+                24.0,
+                0,
+                18,
+            ),
+        )
+    };
+
+    destroy_test_session(api, session);
+    assert_eq!(status.status_code(), ZrStatusCode::InvalidArgument);
+    assert_eq!(status_message(status), "invalid runtime ime cursor area");
+}
+
 fn runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV1 {
     unsafe { &*zircon_runtime_get_api_v1(core::ptr::null()) }
 }
@@ -504,6 +816,13 @@ fn status_message(status: ZrStatus) -> String {
     String::from_utf8(unsafe { status.diagnostics.as_slice() }.to_vec()).unwrap()
 }
 
+fn host_request_batch_from_output(output: ZrOwnedByteBuffer) -> ZrRuntimeHostRequestBatchV1 {
+    let bytes = unsafe { core::slice::from_raw_parts(output.data as *const u8, output.len) };
+    let batch = serde_json::from_slice(bytes).unwrap();
+    free_host_request_output(output);
+    batch
+}
+
 fn free_output(output: ZrOwnedByteBuffer) {
     let free = output.free.expect("free accessibility output");
     let status = unsafe { free(output) };
@@ -512,6 +831,12 @@ fn free_output(output: ZrOwnedByteBuffer) {
 
 fn free_profile_output(output: ZrOwnedByteBuffer) {
     let free = output.free.expect("free profile output");
+    let status = unsafe { free(output) };
+    assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
+}
+
+fn free_host_request_output(output: ZrOwnedByteBuffer) {
+    let free = output.free.expect("free host request output");
     let status = unsafe { free(output) };
     assert_eq!(status.status_code(), ZrStatusCode::Ok, "{status:?}");
 }

@@ -377,15 +377,18 @@ runtime foundation 现在统一使用中性命名：
 
 ### Runtime Meta Contraction
 
-`zircon_runtime::asset::project::AssetMetaDocument` 现在只保留 runtime 真正拥有的 project/import/preview 字段：
+`zircon_runtime::asset::project::AssetMetaDocument` 现在只保留 runtime 真正拥有的 project/import/preview 字段，并以 `*.zmeta` 格式持久化：
 
-- `asset_uuid`
-- `primary_locator`
-- `kind`
+- `uuid`
+- `url`
+- `asset_kind`
+- `unit`
+- `included_files`
 - `import_settings`
 - `source_mtime_unix_ms`
 - `source_hash`
 - `preview_state`
+- `entries[*].uuid/url/asset_kind/artifact_locator/dependencies`
 
 原先混在这里的 `editor_adapter` 已删除。runtime 继续负责 asset registry、import pipeline 和 preview state 持久化，但不再定义“这个 asset 该用哪个 editor adapter 打开”。
 
@@ -398,10 +401,10 @@ runtime foundation 现在统一使用中性命名：
 
 editor asset host 在 `sync_from_project()` 里现在同时读取两份文档：
 
-- runtime meta: `foo.ext.meta.toml`
+- runtime meta: `foo.ext.zmeta`
 - editor meta: `foo.ext.editor.meta.toml`
 
-`foo.ext.editor.meta.toml` 是 editor adapter 选择的唯一持久化来源。若 editor sidecar 不存在，editor 返回默认 editor metadata；不会再从 runtime meta 导入 `editor_adapter`，也不会自动生成 sidecar。这样运行时 `.meta.toml` 只承载 runtime/import/preview 字段，编辑器发行和运行时发行之间不会通过历史字段互相污染。
+`foo.ext.editor.meta.toml` 是 editor adapter 选择的唯一持久化来源。若 editor sidecar 不存在，editor 返回默认 editor metadata；不会再从 runtime meta 导入 `editor_adapter`，也不会自动生成 sidecar。这样运行时 `.zmeta` 只承载 runtime/import/preview 字段，编辑器发行和运行时发行之间不会通过历史字段互相污染。旧 `foo.ext.meta.toml` 不再是 runtime metadata 路径。
 
 ### Runtime Root-Surface Cut
 

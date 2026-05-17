@@ -9,8 +9,8 @@ pub(in crate::graphics::runtime::render_framework) fn reload_pipeline(
     server: &WgpuRenderFramework,
     pipeline: RenderPipelineHandle,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = server.operation_lock.lock().unwrap();
-    let state = server.state.lock().unwrap();
+    let _operation_guard = server.lock_operation();
+    let state = server.lock_state();
     let pipeline_asset =
         state
             .pipelines

@@ -645,6 +645,60 @@ fn ui_v2_surface_property_mutation_restyles_checked_and_disabled_pseudo_state() 
 }
 
 #[test]
+fn ui_v2_inline_style_overrides_cascade_values_in_style_overrides() {
+    let mut document = v2_document("asset://ui/tests/style_override_priority.v2.ui", "root");
+    document.nodes.insert(
+        "root".to_string(),
+        UiV2NodeDefinition {
+            component: "Button".to_string(),
+            control_id: Some("OverrideButton".to_string()),
+            classes: vec!["material-button".to_string()],
+            style: UiV2StyleDeclarationBlock {
+                self_values: BTreeMap::from([(
+                    "button_variant".to_string(),
+                    Value::String("outlined".to_string()),
+                )]),
+                slot: BTreeMap::new(),
+            },
+            ..Default::default()
+        },
+    );
+    document.stylesheets.push(UiV2StyleSheet {
+        id: "style_override_priority".to_string(),
+        rules: vec![style_rule(
+            "Button.material-button",
+            [("button_variant", "contained")],
+        )],
+    });
+
+    let compiled = UiV2DocumentCompiler::compile(&document).unwrap();
+    let surface = UiV2SurfaceBuilder::build_surface_from_compiled_document(
+        UiTreeId::new("runtime.ui.v2.style_override_priority"),
+        &document,
+        &compiled,
+    )
+    .unwrap();
+    let node_id = node_id_by_control_id(&surface, "OverrideButton");
+    let metadata = surface
+        .tree
+        .nodes
+        .get(&node_id)
+        .unwrap()
+        .template_metadata
+        .as_ref()
+        .unwrap();
+
+    assert_eq!(
+        metadata.attributes["button_variant"].as_str(),
+        Some("contained")
+    );
+    assert_eq!(
+        metadata.style_overrides["button_variant"].as_str(),
+        Some("outlined")
+    );
+}
+
+#[test]
 fn ui_v2_surface_default_toggle_click_mutates_checked_and_restyles_runtime_pseudo_state() {
     let mut document = v2_document("asset://ui/tests/runtime_toggle_click.v2.ui", "root");
     document.nodes.insert(
@@ -1452,7 +1506,7 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
 
     assert_eq!(
         runtime_color_attr(&surface, button_id, "background"),
-        Some("#242b35")
+        Some("#202830")
     );
 
     assert!(surface.component_states.set_hovered(button_id, true));
@@ -1461,11 +1515,11 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
         .unwrap();
     assert_eq!(
         runtime_color_attr(&surface, button_id, "background"),
-        Some("#2c3542")
+        Some("#2f4650")
     );
     assert_eq!(
         runtime_color_attr(&surface, button_id, "foreground"),
-        Some("#d2dceb")
+        Some("#e6f1f4")
     );
 
     assert!(surface.component_states.set_pressed(button_id, true));
@@ -1474,7 +1528,7 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
         .unwrap();
     assert_eq!(
         runtime_color_attr(&surface, button_id, "background"),
-        Some("#2f405e")
+        Some("#103c4a")
     );
 
     assert!(surface.component_states.set_focused(button_id, true));
@@ -1483,7 +1537,7 @@ fn editor_material_theme_runtime_pseudo_states_drive_imported_v2_surface() {
         .unwrap();
     assert_eq!(
         runtime_color_attr(&surface, button_id, "border"),
-        Some("#92b5ff")
+        Some("#80eaff")
     );
 }
 
@@ -1498,7 +1552,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
 
     assert_eq!(
         render_command_background(&surface, button_id),
-        Some("#242b35")
+        Some("#202830")
     );
 
     surface
@@ -1513,7 +1567,7 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
     assert!(!hover_report.arranged_rebuilt);
     assert_eq!(
         render_command_background(&surface, button_id),
-        Some("#2c3542")
+        Some("#2f4650")
     );
 
     surface
@@ -1528,9 +1582,9 @@ fn editor_material_runtime_pseudo_states_rebuild_render_extract_variants() {
     assert!(!press_report.layout_recomputed);
     assert_eq!(
         render_command_background(&surface, button_id),
-        Some("#2f405e")
+        Some("#103c4a")
     );
-    assert_eq!(render_command_border(&surface, button_id), Some("#92b5ff"));
+    assert_eq!(render_command_border(&surface, button_id), Some("#80eaff"));
 }
 
 #[test]

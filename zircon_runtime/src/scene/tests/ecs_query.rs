@@ -162,3 +162,53 @@ fn ref_and_mut_query_items_report_change_ticks() {
     });
     assert_eq!(changed, vec![(entity, 15, true)]);
 }
+
+#[test]
+fn query_state_cached_iteration_rebuilds_only_for_structural_changes() {
+    let mut world = World::empty();
+    let player = world
+        .spawn((Name("Player".to_string()), Health(10), Player))
+        .unwrap();
+    let enemy = world
+        .spawn((Name("Enemy".to_string()), Health(4), Enemy))
+        .unwrap();
+
+    let mut query = world.query_filtered::<(EntityId, &Health), Without<Enemy>>();
+    assert_eq!(query.cache_rebuilds(), 1);
+    assert_eq!(query.cached_entity_count(), 1);
+    let initial_revision = query.cached_revision();
+
+    let first = query
+        .iter_cached(&world)
+        .map(|(entity, health)| (entity, health.0))
+        .collect::<Vec<_>>();
+    assert_eq!(first, vec![(player, 10)]);
+    assert_eq!(query.cache_rebuilds(), 1);
+
+    world.insert(player, Health(11)).unwrap();
+    let replaced = query
+        .iter_cached(&world)
+        .map(|(entity, health)| (entity, health.0))
+        .collect::<Vec<_>>();
+    assert_eq!(replaced, vec![(player, 11)]);
+    assert_eq!(query.cache_rebuilds(), 1);
+    assert_eq!(query.cached_revision(), initial_revision);
+
+    let prop = world.spawn((Name("Prop".to_string()), Health(2))).unwrap();
+    let after_spawn = query
+        .iter_cached(&world)
+        .map(|(entity, health)| (entity, health.0))
+        .collect::<Vec<_>>();
+    assert_eq!(after_spawn, vec![(player, 11), (prop, 2)]);
+    assert_eq!(query.cache_rebuilds(), 2);
+    assert!(query.cached_revision() > initial_revision);
+
+    world.remove::<Health>(player).unwrap();
+    let after_remove = query
+        .iter_cached(&world)
+        .map(|(entity, health)| (entity, health.0))
+        .collect::<Vec<_>>();
+    assert_eq!(after_remove, vec![(prop, 2)]);
+    assert_eq!(query.cache_rebuilds(), 3);
+    assert_eq!(world.get::<Health>(enemy), Some(&Health(4)));
+}

@@ -1,7 +1,7 @@
 use super::{
     import_animation_asset, import_authoring_asset, import_data_asset, import_font_asset,
     import_material, import_model, import_physics_material, import_scene, import_shader,
-    import_ui_zui_asset,
+    import_shader_package, import_ui_zui_asset,
 };
 #[cfg(test)]
 use super::{
@@ -70,8 +70,8 @@ impl AssetImporter {
         )?;
 
         self.register_function(
-            descriptor("zircon.builtin.toml.material", AssetKind::Material, 1)
-                .with_full_suffixes([".material.toml"]),
+            descriptor("zircon.builtin.zmaterial", AssetKind::Material, 1)
+                .with_full_suffixes([".zmaterial"]),
             import_material::import_material,
         )?;
         self.register_function(
@@ -232,6 +232,16 @@ impl AssetImporter {
             )?;
         }
 
+        self.register_function(
+            descriptor(
+                "zircon.builtin.shader.zshader_package",
+                AssetKind::Shader,
+                1,
+            )
+            .with_full_suffixes([".zmeta"])
+            .with_additional_output_kinds([AssetKind::Data]),
+            import_shader_package::import_shader_package,
+        )?;
         self.register_optional(
             plugin_required_descriptor("zircon.plugin_required.shader.wgsl", AssetKind::Shader, 1)
                 .with_source_extensions(["wgsl"])

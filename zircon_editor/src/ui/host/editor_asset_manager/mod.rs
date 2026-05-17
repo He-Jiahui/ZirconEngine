@@ -15,7 +15,7 @@ pub use preview::{PreviewArtifactKey, PreviewCache, PreviewScheduler};
 pub use records::{
     EditorAssetCatalogRecord, EditorAssetCatalogSnapshotRecord, EditorAssetChange,
     EditorAssetChangeKind, EditorAssetChangeRecord, EditorAssetDetailsRecord,
-    EditorAssetFolderRecord, EditorAssetReferenceRecord,
+    EditorAssetFolderRecord, EditorAssetReferenceRecord, EditorAssetSubassetRecord,
 };
 pub use reference_graph::ReferenceGraph;
 pub use resolver::{resolve_editor_asset_manager, EditorAssetManagerHandle};

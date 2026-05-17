@@ -1,5 +1,9 @@
 ---
 related_code:
+  - zircon_runtime/src/core/tasks/mod.rs
+  - zircon_runtime/src/core/tasks/pool.rs
+  - zircon_runtime/src/core/tasks/pools.rs
+  - zircon_runtime/src/core/tasks/thread_assignment.rs
   - zircon_runtime/src/core/framework/tasks/mod.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_kind.rs
   - zircon_runtime/src/core/framework/tasks/task_pool_descriptor.rs
@@ -20,12 +24,17 @@ implementation_files:
   - zircon_runtime/src/core/framework/tasks/async_task_descriptor.rs
   - zircon_runtime/src/core/framework/tasks/async_task_state.rs
   - zircon_runtime/src/core/framework/tasks/async_task_status.rs
+  - zircon_runtime/src/core/tasks/mod.rs
+  - zircon_runtime/src/core/tasks/pool.rs
+  - zircon_runtime/src/core/tasks/pools.rs
+  - zircon_runtime/src/core/tasks/thread_assignment.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs
   - dev/bevy/crates/bevy_tasks/src/usages.rs
 tests:
   - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/tests/tasks.rs
   - cargo test -p zircon_runtime --lib task_framework --locked
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
@@ -37,7 +46,7 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::tasks` is the neutral contract layer for Bevy-inspired task-pool vocabulary. It gives runtime modules, asset importers, render preparation, diagnostics, and future app profile wiring a shared way to describe compute, async-compute, and IO task ownership without making the framework layer own a concrete executor.
 
-This slice is intentionally contract-only. The existing `zircon_runtime::core::JobScheduler` remains the concrete rayon-backed runtime primitive. `TasksModule` remains the built-in lifecycle descriptor. Future slices may bridge these contracts into `CoreRuntime`, profile selection, diagnostics, or async executors after their owning sessions coordinate the integration.
+This framework layer is intentionally contract-only. The concrete rayon-backed bridge now lives in `zircon_runtime::core::tasks`, where `TaskPools` owns runtime-local compute, async-compute, and IO pools. `TasksModule` remains the built-in lifecycle descriptor.
 
 ## Reference Evidence
 
@@ -50,9 +59,9 @@ Zircon keeps the same product semantics but does not copy Bevy's global singleto
 
 ## Ownership Boundary
 
-The task contracts live under `zircon_runtime::core::framework` because they are shared DTOs and narrow helper types. They do not spawn threads, schedule work, poll futures, or install global executors. Concrete behavior belongs in the runtime kernel, a manager facade, or a subsystem-specific executor owner.
+The task contracts live under `zircon_runtime::core::framework` because they are shared DTOs and narrow helper types. They do not spawn threads, schedule work, poll futures, or install global executors. Concrete behavior belongs in `zircon_runtime::core::tasks`, runtime manager facades, or subsystem-specific executor owners.
 
-The module deliberately avoids `zircon_app` profile wiring, `zircon_runtime::prelude` exports, asset/resource dependency state, UI focus behavior, and scene ECS scheduling. Those areas have active session ownership and should consume these contracts later through a coordinated slice.
+The framework module deliberately avoids `zircon_app` profile wiring, concrete prelude policy, asset/resource dependency state, UI focus behavior, and scene ECS scheduling. `zircon_runtime::core::tasks` and the runtime prelude may expose the concrete pool facade, while higher-level systems should consume the framework contracts through coordinated runtime-owned slices.
 
 ## Data Model
 
@@ -79,7 +88,7 @@ Current behavior is limited to pure helpers and invariants:
 - terminal-state helpers classify completed, failed, and cancelled tasks,
 - poll budget helpers report remaining per-frame main-thread polls or unlimited polling.
 
-No task is executed by these helpers. A future executor manager should use these contracts as its public description and diagnostic payload instead of exposing concrete rayon, async-executor, or platform thread-pool types.
+No task is executed by these helpers. `TaskPools` consumes the pool descriptors and kinds as its public description, while future async task managers should use the async task contracts as diagnostic payloads instead of exposing concrete rayon, async-executor, or platform thread-pool types.
 
 ## Test Coverage
 

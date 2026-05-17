@@ -1,45 +1,52 @@
-//! Rayon-backed background job pool.
+//! Compatibility facade for compute work scheduled on the runtime task pools.
 
 use std::fmt;
-use std::sync::Arc;
 
-use rayon::ThreadPool;
+use crate::core::tasks::{TaskPool, TaskPoolDescriptor};
 
 #[derive(Clone)]
 pub struct JobScheduler {
-    parallelism: usize,
-    pool: Arc<ThreadPool>,
+    pool: TaskPool,
 }
 
 impl fmt::Debug for JobScheduler {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("JobScheduler")
-            .field("parallelism", &self.parallelism)
+            .field("parallelism", &self.parallelism())
             .finish()
     }
 }
 
 impl Default for JobScheduler {
     fn default() -> Self {
-        let parallelism = std::thread::available_parallelism().map_or(1, |value| value.get());
-        let pool = rayon::ThreadPoolBuilder::new()
-            .thread_name(|index| format!("zircon-job-{index}"))
-            .num_threads(parallelism.max(1))
-            .build()
-            .expect("job scheduler thread pool");
-        Self {
-            parallelism,
-            pool: Arc::new(pool),
-        }
+        Self::from_pool(TaskPool::new(TaskPoolDescriptor::compute()))
     }
 }
 
 impl JobScheduler {
+    pub(crate) fn from_pool(pool: TaskPool) -> Self {
+        Self { pool }
+    }
+
     pub fn spawn(&self, task: impl FnOnce() + Send + 'static) {
         self.pool.spawn(task);
     }
 
+    pub fn install<R: Send>(&self, task: impl FnOnce() -> R + Send) -> R {
+        self.pool.install(task)
+    }
+
+    pub fn join<A, B, RA, RB>(&self, task_a: A, task_b: B) -> (RA, RB)
+    where
+        A: FnOnce() -> RA + Send,
+        B: FnOnce() -> RB + Send,
+        RA: Send,
+        RB: Send,
+    {
+        self.pool.join(task_a, task_b)
+    }
+
     pub fn parallelism(&self) -> usize {
-        self.parallelism
+        self.pool.parallelism()
     }
 }

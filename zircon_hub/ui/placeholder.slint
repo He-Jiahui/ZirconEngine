@@ -1,9 +1,11 @@
-import { MutedText, Panel, PillButton } from "shared.slint";
+import { MutedText, PillButton } from "shared.slint";
+import { HubPanel, PanelHeader } from "components.slint";
 
 export component PlaceholderPage inherits Rectangle {
     in property <string> title;
     in property <string> subtitle;
     in property <string> action-label: "Open Editor";
+    in property <string> reserved-text;
     callback primary-action();
 
     background: #11151a;
@@ -13,33 +15,37 @@ export component PlaceholderPage inherits Rectangle {
         height: parent.height;
         padding-left: 28px;
         padding-right: 28px;
-        padding-top: 184px;
+        padding-top: 28px;
         padding-bottom: 28px;
         spacing: 18px;
 
-        Panel {
+        HubPanel {
             height: 240px;
+
             VerticalLayout {
+                width: parent.width;
+                height: parent.height;
                 padding: 24px;
                 spacing: 12px;
-                Text {
-                    text: root.title;
-                    color: #f3f6f9;
-                    font-size: 24px;
-                    font-weight: 900;
+
+                PanelHeader {
+                    title: root.title;
+                    subtitle: root.subtitle;
                 }
+
                 MutedText {
-                    text: root.subtitle;
+                    text: root.reserved-text;
                 }
-                MutedText {
-                    text: "This section is wired into the Hub shell and reserved for the next feature slice.";
-                }
+
                 Rectangle { vertical-stretch: 1; }
+
                 HorizontalLayout {
                     spacing: 10px;
+
                     PillButton {
                         text: root.action-label;
-                        icon: ">";
+                        icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                        has-icon-image: true;
                         clicked => {
                             root.primary-action();
                         }

@@ -5,16 +5,7 @@ use super::MaterialAsset;
 
 pub fn material_dependency_set(material: &MaterialAsset) -> RenderMaterialDependencySet {
     let mut dependencies = RenderMaterialDependencySet::new(material.shader.clone());
-    for texture in [
-        material.base_color_texture.as_ref(),
-        material.normal_texture.as_ref(),
-        material.metallic_roughness_texture.as_ref(),
-        material.occlusion_texture.as_ref(),
-        material.emissive_texture.as_ref(),
-    ]
-    .into_iter()
-    .flatten()
-    {
+    for (_, texture) in material.all_texture_slots() {
         dependencies.push_texture(texture.clone());
     }
     dependencies

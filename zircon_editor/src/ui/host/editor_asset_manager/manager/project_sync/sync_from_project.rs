@@ -27,6 +27,9 @@ impl DefaultEditorAssetManager {
 
         for metadata in project.registry().values() {
             let locator = metadata.primary_locator().clone();
+            if locator.label().is_some() {
+                continue;
+            }
             let source_path = project.source_path_for_uri(&locator)?;
             let meta_path = meta_path_for_source(&source_path);
             let meta = AssetMetaDocument::load(&meta_path)?;
@@ -40,7 +43,7 @@ impl DefaultEditorAssetManager {
                 Vec::new()
             };
             let preview_artifact_path =
-                preview_cache.path_for(&PreviewArtifactKey::thumbnail(meta.asset_uuid));
+                preview_cache.path_for(&PreviewArtifactKey::thumbnail(meta.uuid));
             let file_name = source_path
                 .file_name()
                 .and_then(|name| name.to_str())
@@ -56,9 +59,10 @@ impl DefaultEditorAssetManager {
                 .iter()
                 .map(|diagnostic| diagnostic.message.clone())
                 .collect::<Vec<_>>();
+            let asset_uuid = meta.uuid;
 
             let record = AssetCatalogRecord {
-                asset_uuid: meta.asset_uuid,
+                asset_uuid,
                 asset_id: metadata.id(),
                 locator: locator.clone(),
                 kind: metadata.kind,
@@ -122,8 +126,11 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
-    use zircon_runtime::asset::AssetUri;
+    use zircon_runtime::asset::project::{
+        AssetMetaDocument, AssetSourceUnit, ProjectManifest, ProjectPaths,
+    };
+    use zircon_runtime::asset::{AssetKind, AssetUri, AssetUuid};
+    use zircon_runtime::plugin::PluginPackageManifest;
 
     use super::*;
 
@@ -164,6 +171,129 @@ mod tests {
         assert!(broken.direct_reference_uuids.is_empty());
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn sync_from_project_exposes_zmeta_package_and_compound_shader_details() {
+        let root = unique_temp_project_root("sync_zmeta_compound_shader");
+        let package_root = unique_temp_project_root("sync_zmeta_package");
+        let paths = ProjectPaths::from_root(&root).unwrap();
+        paths.ensure_layout().unwrap();
+        ProjectManifest::new(
+            "ZMetaEditorProject",
+            AssetUri::parse("res://shaders/unlit_shader").unwrap(),
+            1,
+        )
+        .save(paths.manifest_path())
+        .unwrap();
+
+        let shader_uri = AssetUri::parse("res://shaders/unlit_shader").unwrap();
+        let shader_meta_path = paths
+            .assets_root()
+            .join("shaders")
+            .join("unlit_shader.zmeta");
+        let mut shader_meta =
+            AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+        shader_meta.unit = AssetSourceUnit::Compound;
+        shader_meta.save(&shader_meta_path).unwrap();
+
+        let shader_dir = paths.assets_root().join("shaders").join("unlit_shader");
+        fs::create_dir_all(&shader_dir).unwrap();
+        fs::write(
+            shader_dir.join("unlit.zshader"),
+            r#"
+version = 1
+wgsl_files = ["unlit.wgsl"]
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+file = "unlit.wgsl"
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+file = "unlit.wgsl"
+"#,
+        )
+        .unwrap();
+        fs::write(
+            shader_dir.join("unlit.wgsl"),
+            r#"
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
+    return vec4f(f32(vertex_index), 0.0, 0.0, 1.0);
+}
+
+@fragment
+fn fs_main() -> @location(0) vec4f {
+    return vec4f(1.0, 1.0, 1.0, 1.0);
+}
+"#,
+        )
+        .unwrap();
+
+        let package_asset_path = package_root.join("assets").join("nav").join("agent.json");
+        fs::create_dir_all(package_asset_path.parent().unwrap()).unwrap();
+        fs::write(&package_asset_path, r#"{ "agent": true }"#).unwrap();
+        let package_manifest = PluginPackageManifest::new("navigation", "Navigation")
+            .with_package_identity("com", "zircon", "navigation");
+
+        let mut project = ProjectManager::open(&root).unwrap();
+        project
+            .register_package_manifest_asset_roots(&package_manifest, &package_root)
+            .unwrap();
+        project.scan_and_import().unwrap();
+
+        let manager = DefaultEditorAssetManager::new();
+        manager.sync_from_project(project).unwrap();
+
+        let catalog = manager.catalog_snapshot_record();
+        assert!(catalog
+            .folders
+            .iter()
+            .any(|folder| folder.folder_id == "package://com.zircon.navigation"));
+        let shader = catalog
+            .assets
+            .iter()
+            .find(|asset| asset.locator == "res://shaders/unlit_shader")
+            .expect("compound shader is visible in editor catalog");
+        let details = manager
+            .asset_details_record(&shader.uuid)
+            .expect("shader details");
+        assert_eq!(details.unit, AssetSourceUnit::Compound);
+        assert!(details.package_id.is_none());
+        assert!(details
+            .included_files
+            .contains(&"res://shaders/unlit_shader/unlit.zshader".to_string()));
+        assert!(details
+            .included_files
+            .contains(&"res://shaders/unlit_shader/unlit.wgsl".to_string()));
+        assert!(details
+            .subassets
+            .iter()
+            .any(|subasset| subasset.locator.ends_with("#zshader:unlit.zshader")));
+        assert!(details
+            .subassets
+            .iter()
+            .any(|subasset| subasset.locator.ends_with("#wgsl:unlit.wgsl")));
+
+        let package_asset = catalog
+            .assets
+            .iter()
+            .find(|asset| asset.locator == "package://com.zircon.navigation/nav/agent.json")
+            .expect("package asset is visible in editor catalog");
+        let package_details = manager
+            .asset_details_record(&package_asset.uuid)
+            .expect("package details");
+        assert_eq!(
+            package_details.package_id.as_deref(),
+            Some("com.zircon.navigation")
+        );
+        assert_eq!(package_details.unit, AssetSourceUnit::Single);
+
+        let _ = fs::remove_dir_all(root);
+        let _ = fs::remove_dir_all(package_root);
     }
 
     fn unique_temp_project_root(label: &str) -> PathBuf {

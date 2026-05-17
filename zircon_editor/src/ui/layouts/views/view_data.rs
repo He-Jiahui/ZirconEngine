@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::ui::retained_host::primitives::{Image, ModelRc, SharedString};
+use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
 
 #[derive(Clone)]
 pub(crate) struct SceneViewportChromeData {
@@ -131,6 +132,7 @@ pub(crate) struct ViewTemplateNodeData {
     pub surface_variant: SharedString,
     pub text_tone: SharedString,
     pub button_variant: SharedString,
+    pub button_style: ResolvedButtonStyle,
     pub font_size: f32,
     pub font_weight: i32,
     pub text_align: SharedString,
@@ -168,6 +170,7 @@ impl fmt::Debug for ViewTemplateNodeData {
             .field("surface_variant", &self.surface_variant)
             .field("text_tone", &self.text_tone)
             .field("button_variant", &self.button_variant)
+            .field("button_style", &self.button_style)
             .field("font_size", &self.font_size)
             .field("font_weight", &self.font_weight)
             .field("text_align", &self.text_align)
@@ -209,6 +212,7 @@ impl PartialEq for ViewTemplateNodeData {
             && self.surface_variant == other.surface_variant
             && self.text_tone == other.text_tone
             && self.button_variant == other.button_variant
+            && self.button_style == other.button_style
             && self.font_size == other.font_size
             && self.font_weight == other.font_weight
             && self.text_align == other.text_align
@@ -246,6 +250,7 @@ impl Default for ViewTemplateNodeData {
             surface_variant: SharedString::default(),
             text_tone: SharedString::default(),
             button_variant: SharedString::default(),
+            button_style: ResolvedButtonStyle::default(),
             font_size: 0.0,
             font_weight: 0,
             text_align: SharedString::default(),

@@ -440,5 +440,6 @@ fn test_camera(projection_mode: ProjectionMode) -> ViewportCameraSnapshot {
         z_near: 0.1,
         z_far: 200.0,
         aspect_ratio: 16.0 / 9.0,
+        ..ViewportCameraSnapshot::default()
     }
 }

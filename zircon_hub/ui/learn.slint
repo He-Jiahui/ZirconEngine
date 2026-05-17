@@ -1,0 +1,56 @@
+import { LearnData, UiTextData } from "shared.slint";
+import { CatalogListPanel, InfoRow, PageScrollSurface } from "components.slint";
+
+component LearnRow inherits InfoRow {
+    in property <LearnData> resource;
+    in property <UiTextData> ui-text;
+    callback open-resource(string);
+
+    title: root.resource.title;
+    detail: root.resource.summary;
+    meta: root.resource.path;
+    leading-image: @image-url("../assets/icons/ui/help.svg");
+    has-leading-image: true;
+    trailing-text: root.resource.category;
+    trailing-tone: "accent";
+    show-trailing-badge: true;
+    show-arrow: true;
+    row-height: 108px;
+    clicked => {
+        root.open-resource(root.resource.path);
+    }
+}
+
+export component LearnPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <[LearnData]> resources;
+    in property <int> resource-count;
+    in property <UiTextData> ui-text;
+    private property <length> list-scroll-y: 0px;
+    callback open-resource(string);
+
+    background: #11151a;
+
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: 620px;
+
+        CatalogListPanel {
+            scroll-y <=> root.list-scroll-y;
+            title: root.ui-text.learn-library;
+            badge-text: root.resource-count + " " + root.ui-text.learn-resources-found;
+            badge-tone: "accent";
+            empty-title: root.ui-text.no-learn-resources-found;
+            row-count: root.resource-count;
+            row-height: 108px;
+
+            for resource in root.resources: LearnRow {
+                resource: resource;
+                ui-text: root.ui-text;
+                open-resource(path) => { root.open-resource(path); }
+            }
+        }
+    }
+}

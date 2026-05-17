@@ -424,6 +424,8 @@ fn empty_extract() -> RenderFrameExtract {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -469,6 +471,8 @@ fn extract_with_camera_and_mesh(
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {

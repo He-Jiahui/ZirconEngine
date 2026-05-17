@@ -6,12 +6,17 @@ use super::geometry::{frame_from_template, intersect, is_visible_frame, translat
 use super::render_commands::{draw_host_paint_commands, HostPaintCommand};
 use super::theme::PALETTE;
 use super::visual_assets::{raster_size_from_frame, template_image_pixels, template_image_tint};
+use zircon_runtime_interface::ui::style::{
+    ButtonColor, ButtonInteractionState, ButtonVariant, UiStyleColor,
+};
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
 const DEFAULT_TEMPLATE_FONT_SIZE: f32 = 12.0;
 const TEXT_HORIZONTAL_INSET: f32 = 5.0;
 const TEXT_VERTICAL_INSET: f32 = 5.0;
 const MIN_TEXT_RECT_HEIGHT: f32 = 12.0;
+const MATERIAL_ELEVATION_SHADOW_OFFSET: f32 = 2.0;
+const MATERIAL_ELEVATION_SHADOW_OPACITY: f32 = 0.72;
 
 pub(super) fn draw_template_nodes(
     frame: &mut HostRgbaFrame,
@@ -101,14 +106,28 @@ fn push_template_node_commands(
     }
 
     if draws_surface(node) {
+        let border_width = template_border_width(node);
+        let corner_radius = template_corner_radius(node);
+        if draws_elevation_shadow(node) {
+            commands.push(HostPaintCommand::quad(
+                elevation_shadow_rect(&rect, node.elevation),
+                Some(node_clip.clone()),
+                order * 4 - 1,
+                Some(PALETTE.shadow),
+                None,
+                0.0,
+                corner_radius,
+                MATERIAL_ELEVATION_SHADOW_OPACITY,
+            ));
+        }
         commands.push(HostPaintCommand::quad(
             rect.clone(),
             Some(node_clip.clone()),
             order * 4,
             Some(surface_color(node)),
             draws_border(node).then_some(border_color(node)),
-            node.border_width.max(0.0),
-            node.corner_radius.max(0.0),
+            border_width,
+            corner_radius,
             1.0,
         ));
     }
@@ -319,6 +338,10 @@ fn draws_surface(node: &TemplatePaneNodeData) -> bool {
     matches!(node.role.as_str(), "Panel" | "Button" | "Mount")
         || !node.surface_variant.is_empty()
         || !node.button_variant.is_empty()
+        || node.button_style.element.background_color.is_some()
+        || node.button_style.element.border_color.is_some()
+        || node.button_style.element.border_width > 0.0
+        || node.button_style.element.corner_radius > 0.0
         || node.border_width > 0.0
         || node.corner_radius > 0.0
         || node.selected
@@ -329,7 +352,9 @@ fn draws_surface(node: &TemplatePaneNodeData) -> bool {
 }
 
 fn draws_border(node: &TemplatePaneNodeData) -> bool {
-    node.border_width > 0.0
+    node.button_style.element.border_width > 0.0
+        || node.button_style.element.border_color.is_some()
+        || node.border_width > 0.0
         || node.corner_radius > 0.0
         || node.selected
         || node.checked
@@ -341,8 +366,45 @@ fn draws_border(node: &TemplatePaneNodeData) -> bool {
         || matches!(node.role.as_str(), "Button" | "Mount")
 }
 
+fn template_border_width(node: &TemplatePaneNodeData) -> f32 {
+    let width = node
+        .border_width
+        .max(node.button_style.element.border_width)
+        .max(0.0);
+    if matches!(
+        button_interaction_state(node),
+        ButtonInteractionState::Pressed | ButtonInteractionState::Focused
+    ) || node.selected
+        || node.checked
+    {
+        width.max(2.0)
+    } else {
+        width
+    }
+}
+
+fn template_corner_radius(node: &TemplatePaneNodeData) -> f32 {
+    node.corner_radius
+        .max(node.button_style.element.corner_radius)
+        .max(0.0)
+}
+
+fn draws_elevation_shadow(node: &TemplatePaneNodeData) -> bool {
+    node.elevation > 0.0 && !is_button_disabled(node)
+}
+
+fn elevation_shadow_rect(rect: &FrameRect, elevation: f32) -> FrameRect {
+    let offset = elevation.max(1.0) * MATERIAL_ELEVATION_SHADOW_OFFSET;
+    FrameRect {
+        x: rect.x + offset,
+        y: rect.y + offset,
+        width: rect.width,
+        height: rect.height,
+    }
+}
+
 fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
+    if is_button_disabled(node) {
         return PALETTE.surface_disabled;
     }
     if matches!(node.validation_level.as_str(), "error" | "danger")
@@ -359,22 +421,29 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if node.validation_level.as_str() == "info" || node.surface_variant.as_str() == "info" {
         return PALETTE.info_container;
     }
-    if node.pressed {
-        return PALETTE.surface_pressed;
+    match button_interaction_state(node) {
+        ButtonInteractionState::Pressed => return PALETTE.surface_pressed,
+        ButtonInteractionState::Focused => return PALETTE.surface_selected,
+        ButtonInteractionState::Hover => {
+            return if is_primary_contained_button(node) {
+                PALETTE.accent_soft
+            } else {
+                PALETTE.surface_hover
+            };
+        }
+        ButtonInteractionState::Disabled => return PALETTE.surface_disabled,
+        ButtonInteractionState::Loading | ButtonInteractionState::Normal => {}
     }
-    if node.selected || node.checked || node.focused {
-        return PALETTE.surface_selected;
+    if let Some(color) = resolved_style_color(node.button_style.element.background_color.as_ref()) {
+        return color;
+    }
+    if let Some(color) = typed_button_variant_background(node) {
+        return color;
     }
     if matches!(node.button_variant.as_str(), "primary" | "filled")
         || matches!(node.surface_variant.as_str(), "accent" | "primary")
     {
-        if node.hovered || node.drop_hovered || node.active_drag_target {
-            return PALETTE.accent_soft;
-        }
         return PALETTE.accent;
-    }
-    if node.hovered || node.drop_hovered || node.active_drag_target {
-        return PALETTE.surface_hover;
     }
     match node.surface_variant.as_str() {
         "inset" | "scroll-body" | "asset-tree-row" | "reference-row" => PALETTE.surface_inset,
@@ -382,6 +451,9 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         "panel" | "asset-preview" | "asset-preview-visual" => PALETTE.surface,
         "shell" => PALETTE.shell_background,
         _ => match node.role.as_str() {
+            "Button" if node.surface_variant.is_empty() && is_explicit_text_button(node) => {
+                [0, 0, 0, 0]
+            }
             "Button" if node.surface_variant.is_empty() => PALETTE.surface_hover,
             _ => PALETTE.surface,
         },
@@ -389,7 +461,7 @@ fn surface_color(node: &TemplatePaneNodeData) -> [u8; 4] {
 }
 
 fn border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
+    if is_button_disabled(node) {
         return PALETTE.border_disabled;
     }
     if matches!(node.validation_level.as_str(), "error" | "danger")
@@ -406,13 +478,24 @@ fn border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
     if node.validation_level.as_str() == "info" || node.surface_variant.as_str() == "info" {
         return PALETTE.info;
     }
-    if node.selected || node.checked || node.focused || node.pressed {
+    if let Some(color) = resolved_style_color(node.button_style.element.border_color.as_ref()) {
+        return color;
+    }
+    if matches!(
+        button_interaction_state(node),
+        ButtonInteractionState::Pressed | ButtonInteractionState::Focused
+    ) || node.selected
+        || node.checked
+    {
         PALETTE.focus_ring
+    } else if let Some(color) = typed_button_tone_color(node) {
+        color
     } else if matches!(node.button_variant.as_str(), "primary" | "filled")
         || matches!(node.surface_variant.as_str(), "accent" | "primary")
-        || node.hovered
-        || node.drop_hovered
-        || node.active_drag_target
+        || matches!(
+            button_interaction_state(node),
+            ButtonInteractionState::Hover
+        )
     {
         PALETTE.focus_ring
     } else {
@@ -421,8 +504,19 @@ fn border_color(node: &TemplatePaneNodeData) -> [u8; 4] {
 }
 
 fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
-    if node.disabled {
+    if is_button_disabled(node) {
         return PALETTE.text_disabled;
+    }
+    if let Some(color) = resolved_style_color(node.button_style.element.foreground_color.as_ref()) {
+        return color;
+    }
+    if is_primary_contained_button(node)
+        && matches!(
+            button_interaction_state(node),
+            ButtonInteractionState::Normal | ButtonInteractionState::Hover
+        )
+    {
+        return [8, 20, 22, 255];
     }
     match node.text_tone.as_str() {
         "muted" | "subtle" => PALETTE.text_muted,
@@ -432,6 +526,160 @@ fn text_color(node: &TemplatePaneNodeData) -> [u8; 4] {
         "success" => PALETTE.success,
         "info" => PALETTE.info,
         _ => PALETTE.text,
+    }
+}
+
+fn is_button_disabled(node: &TemplatePaneNodeData) -> bool {
+    node.disabled
+        || node.button_style.disabled
+        || matches!(
+            node.button_style.interaction_state,
+            ButtonInteractionState::Disabled
+        )
+}
+
+fn button_interaction_state(node: &TemplatePaneNodeData) -> ButtonInteractionState {
+    if is_button_disabled(node) {
+        return ButtonInteractionState::Disabled;
+    }
+    if node.pressed
+        || matches!(
+            node.button_style.interaction_state,
+            ButtonInteractionState::Pressed
+        )
+    {
+        return ButtonInteractionState::Pressed;
+    }
+    if node.selected
+        || node.checked
+        || node.focused
+        || matches!(
+            node.button_style.interaction_state,
+            ButtonInteractionState::Focused
+        )
+    {
+        return ButtonInteractionState::Focused;
+    }
+    if node.hovered
+        || node.drop_hovered
+        || node.active_drag_target
+        || matches!(
+            node.button_style.interaction_state,
+            ButtonInteractionState::Hover
+        )
+    {
+        return ButtonInteractionState::Hover;
+    }
+    if matches!(
+        node.button_style.interaction_state,
+        ButtonInteractionState::Loading
+    ) {
+        ButtonInteractionState::Loading
+    } else {
+        ButtonInteractionState::Normal
+    }
+}
+
+fn typed_button_variant_background(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+    if !matches!(node.role.as_str(), "Button" | "IconButton") {
+        return None;
+    }
+    match node.button_style.variant.normalized() {
+        ButtonVariant::Contained => Some(button_container_color(&node.button_style.color)),
+        ButtonVariant::Outlined => Some(PALETTE.surface_inset),
+        ButtonVariant::Text | ButtonVariant::Default => None,
+    }
+}
+
+fn is_explicit_text_button(node: &TemplatePaneNodeData) -> bool {
+    matches!(node.button_variant.as_str(), "default" | "text")
+        || (!node.button_variant.is_empty()
+            && node.button_style.variant.normalized() == ButtonVariant::Text)
+}
+
+fn is_primary_contained_button(node: &TemplatePaneNodeData) -> bool {
+    (node.button_style.variant.normalized() == ButtonVariant::Contained
+        && is_primary_button_color(&node.button_style.color))
+        || matches!(node.button_variant.as_str(), "primary" | "filled")
+        || matches!(node.surface_variant.as_str(), "accent" | "primary")
+}
+
+fn button_container_color(color: &ButtonColor) -> [u8; 4] {
+    match color {
+        ButtonColor::Warning => PALETTE.warning_container,
+        ButtonColor::Error => PALETTE.error_container,
+        ButtonColor::Success => PALETTE.success_container,
+        ButtonColor::Info => PALETTE.info_container,
+        ButtonColor::Custom(color) => color.to_u8(),
+        ButtonColor::Style(role) => material_role_color(role).unwrap_or(PALETTE.surface_selected),
+        ButtonColor::Default | ButtonColor::Primary => PALETTE.accent,
+        ButtonColor::Secondary | ButtonColor::Inherit => PALETTE.surface_selected,
+    }
+}
+
+fn typed_button_tone_color(node: &TemplatePaneNodeData) -> Option<[u8; 4]> {
+    if !matches!(node.role.as_str(), "Button" | "IconButton") {
+        return None;
+    }
+    match &node.button_style.color {
+        ButtonColor::Warning => Some(PALETTE.warning),
+        ButtonColor::Error => Some(PALETTE.error),
+        ButtonColor::Success => Some(PALETTE.success),
+        ButtonColor::Info => Some(PALETTE.info),
+        ButtonColor::Custom(color) => Some(color.to_u8()),
+        ButtonColor::Style(role) => material_role_color(role),
+        ButtonColor::Default | ButtonColor::Primary
+            if matches!(
+                node.button_style.variant.normalized(),
+                ButtonVariant::Contained | ButtonVariant::Outlined
+            ) =>
+        {
+            Some(PALETTE.focus_ring)
+        }
+        ButtonColor::Secondary
+        | ButtonColor::Inherit
+        | ButtonColor::Default
+        | ButtonColor::Primary => None,
+    }
+}
+
+fn is_primary_button_color(color: &ButtonColor) -> bool {
+    matches!(color, ButtonColor::Default | ButtonColor::Primary)
+}
+
+fn resolved_style_color(color: Option<&UiStyleColor>) -> Option<[u8; 4]> {
+    match color? {
+        UiStyleColor::Rgba(color) => Some(color.to_u8()),
+        UiStyleColor::Transparent => Some([0, 0, 0, 0]),
+        UiStyleColor::Inherit => None,
+        UiStyleColor::Role(role) => material_role_color(role),
+    }
+}
+
+fn material_role_color(role: &str) -> Option<[u8; 4]> {
+    match role {
+        "primary" | "accent" | "material.primary" | "material_color_primary" => {
+            Some(PALETTE.accent)
+        }
+        "on_primary" | "material.on_primary" | "material_color_on_primary" => {
+            Some([8, 20, 22, 255])
+        }
+        "surface" | "material.surface" => Some(PALETTE.surface),
+        "surface_inset" | "material.surface_inset" => Some(PALETTE.surface_inset),
+        "surface_hover" | "material.surface_hover" => Some(PALETTE.surface_hover),
+        "surface_pressed" | "material.surface_pressed" => Some(PALETTE.surface_pressed),
+        "surface_selected" | "material.surface_selected" => Some(PALETTE.surface_selected),
+        "disabled" | "material.disabled" => Some(PALETTE.surface_disabled),
+        "border" | "outline" | "material.outline" => Some(PALETTE.border),
+        "focus" | "focus_ring" | "material.focus_ring" => Some(PALETTE.focus_ring),
+        "text" | "on_surface" | "material.text" | "material.on_surface" => Some(PALETTE.text),
+        "text_muted" | "muted" | "material.text_muted" => Some(PALETTE.text_muted),
+        "text_disabled" | "material.text_disabled" => Some(PALETTE.text_disabled),
+        "warning" | "material.warning" => Some(PALETTE.warning),
+        "error" | "danger" | "material.error" => Some(PALETTE.error),
+        "success" | "material.success" => Some(PALETTE.success),
+        "info" | "material.info" => Some(PALETTE.info),
+        _ => None,
     }
 }
 

@@ -34,7 +34,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
     ui: Option<UiRenderExtract>,
 ) -> Result<(), RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "submit_frame_extract");
-    let _operation_guard = server.operation_lock.lock().unwrap();
+    let _operation_guard = server.lock_operation();
     let context = {
         crate::profile_scope!("runtime", "render_framework", "build_submission_context");
         match build_frame_submission_context(server, viewport, &extract, ui.as_ref()) {
@@ -45,7 +45,7 @@ pub(in crate::graphics::runtime::render_framework) fn submit_frame_extract_with_
             }
         }
     };
-    let mut state = server.state.lock().unwrap();
+    let mut state = server.lock_state();
     let active_capture = begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = {
         crate::profile_scope!("runtime", "render_framework", "prepare_runtime_submission");
@@ -128,6 +128,6 @@ fn fail_pending_capture_after_preflight_error(
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
-    let mut state = server.state.lock().unwrap();
+    let mut state = server.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
 }

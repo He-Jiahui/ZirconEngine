@@ -2,10 +2,10 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    FrameHistoryHandle, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderFrameExtract, RenderFramework, RenderFrameworkError,
-    RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion, RenderPipelineHandle,
-    RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
+    FrameHistoryHandle, RenderBloomSettings, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+    RenderCapabilitySummary, RenderColorGradingSettings, RenderFrameExtract, RenderFramework,
+    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
     RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
     RenderWorldSnapshotHandle,
 };
@@ -181,10 +181,99 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         stats.last_graph_executed_passes.first().map(String::as_str),
         Some("depth-prepass")
     );
+    assert!(stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == "overlay-gizmo"));
+}
+
+#[test]
+fn render_framework_stats_report_executed_product_postprocess_nodes() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    let mut extract = test_extract();
+    extract.post_process.bloom = RenderBloomSettings {
+        threshold: 0.6,
+        intensity: 1.0,
+        radius: 0.8,
+    };
+    extract.post_process.color_grading = RenderColorGradingSettings {
+        exposure: 1.05,
+        contrast: 1.1,
+        saturation: 0.9,
+        gamma: 1.0,
+        tint: Vec3::new(1.08, 0.95, 0.9),
+    };
+
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("post-process-product")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(false),
+        )
+        .unwrap();
+    server.submit_frame_extract(viewport, extract).unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert_eq!(stats.last_post_process_graph_node_count, 3);
+    assert_eq!(stats.last_post_process_graph_skipped_node_count, 1);
     assert_eq!(
-        stats.last_graph_executed_passes.last().map(String::as_str),
-        Some("overlay-gizmo")
+        stats.last_post_process_final_composite_node.as_deref(),
+        Some("final-composite")
     );
+    assert_eq!(
+        stats.last_post_process_graph_executed_nodes,
+        vec![
+            "bloom".to_string(),
+            "color-grading".to_string(),
+            "final-composite".to_string(),
+        ]
+    );
+    assert!(stats
+        .last_graph_executed_passes
+        .iter()
+        .any(|pass| pass == "overlay-gizmo"));
+}
+
+#[test]
+fn render_framework_records_history_resolve_after_compatible_history_exists() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("history-product")
+                .with_clustered_lighting(false)
+                .with_screen_space_ambient_occlusion(false)
+                .with_history_resolve(true)
+                .with_bloom(false)
+                .with_color_grading(false),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let first_stats = server.query_stats().unwrap();
+    assert!(!first_stats
+        .last_post_process_graph_executed_nodes
+        .contains(&"history-resolve".to_string()));
+
+    server
+        .submit_frame_extract(viewport, test_extract())
+        .unwrap();
+    let second_stats = server.query_stats().unwrap();
+    assert!(second_stats
+        .last_post_process_graph_executed_nodes
+        .contains(&"history-resolve".to_string()));
 }
 
 #[test]
@@ -207,6 +296,15 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
     assert_eq!(stats.last_ui_command_count, 1);
     assert_eq!(stats.last_ui_quad_count, 1);
     assert_eq!(stats.last_ui_text_payload_count, 1);
+    assert!(stats
+        .last_graph_executed_executor_ids
+        .contains(&"ui.screen-space".to_string()));
+    assert_eq!(stats.last_ui_graph_executed_pass_count, 1);
+    assert_eq!(stats.last_ui_target_size, Some(UVec2::new(320, 240)));
+    assert_eq!(
+        stats.last_ui_graph_pass_order.as_deref(),
+        Some("postprocess-ui-overlay")
+    );
 }
 
 #[test]
@@ -548,7 +646,7 @@ fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
 }
 
 #[test]
-fn render_framework_rejects_pipeline_asset_with_culled_unknown_executor_id() {
+fn render_framework_accepts_pipeline_asset_with_culled_unknown_executor_id() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
@@ -575,17 +673,9 @@ fn render_framework_rejects_pipeline_asset_with_culled_unknown_executor_id() {
             .write_texture("unused-custom-target")],
         ));
 
-    let error = server.register_pipeline_asset(custom_pipeline).unwrap_err();
+    let handle = server.register_pipeline_asset(custom_pipeline).unwrap();
 
-    assert_eq!(
-        error,
-        RenderFrameworkError::GraphCompileFailure {
-            pipeline: 79,
-            message:
-                "render pass `bad-culled-executor-pass` references unregistered executor `custom.culled-missing`"
-                    .to_string(),
-        }
-    );
+    assert_eq!(handle, RenderPipelineHandle::new(79));
 }
 
 #[test]

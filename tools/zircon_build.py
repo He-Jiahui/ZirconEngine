@@ -78,6 +78,7 @@ class PluginPackage:
 class BuildConfig:
     repo_root: Path
     out_root: Path
+    cargo: str
     mode: str
     targets: tuple[str, ...]
     plugins: tuple[PluginPackage, ...]
@@ -137,6 +138,11 @@ Plugin carrier boundary:
     )
     parser.add_argument("--out", "--output", help="Build output directory.")
     parser.add_argument("--mode", choices=MODES, help="Cargo profile mode.")
+    parser.add_argument(
+        "--cargo",
+        default="cargo",
+        help="Cargo executable to invoke. Default: cargo.",
+    )
     parser.add_argument(
         "--plugins",
         help="Plugin ids, numbers, ranges, all, native, or rlib when plugins target is selected.",
@@ -198,6 +204,7 @@ def resolve_config(
     return BuildConfig(
         repo_root=repo_root,
         out_root=out_root,
+        cargo=args.cargo,
         mode=mode,
         targets=targets,
         plugins=selected_plugins,
@@ -428,6 +435,7 @@ def print_plan(config: BuildConfig) -> None:
     print("Zircon build plan")
     print(f"  repo:    {config.repo_root}")
     print(f"  out:     {config.out_root}")
+    print(f"  cargo:   {config.cargo}")
     print(f"  mode:    {config.mode}")
     print(f"  targets: {','.join(config.targets)}")
     print(f"  locked:  {config.locked}")
@@ -628,7 +636,7 @@ def run_plugin_cargo(config: BuildConfig, target_dir: Path, package_names: Seque
 
 
 def run_cargo(config: BuildConfig, args: list[str]) -> None:
-    command = ["cargo", *args]
+    command = [config.cargo, *args]
     if config.locked:
         command.append("--locked")
     if config.mode == "release":

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" role="img" aria-label="Stellar outpost project cover">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0a2637"/><stop offset="0.5" stop-color="#123d59"/><stop offset="1" stop-color="#071016"/></linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#7ef8ff"/><stop offset="1" stop-color="#2c8cff" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="420" height="160" fill="url(#bg)"/>
+  <path fill="#0d1a24" d="M0 0h420v26H0zm0 134h420v26H0z"/>
+  <path fill="none" stroke="#315b74" stroke-width="4" d="M30 25 92 80l-62 55M390 25l-62 55 62 55"/>
+  <path fill="none" stroke="#3e728d" stroke-width="2" d="M91 80h238M154 26l-28 108M266 26l28 108"/>
+  <ellipse cx="210" cy="80" rx="66" ry="39" fill="#102a3a" stroke="#4bb8d8" stroke-width="2"/>
+  <ellipse cx="210" cy="80" rx="34" ry="20" fill="#081820" stroke="#8afcff" stroke-width="2"/>
+  <path fill="url(#beam)" d="M0 33 236 72l-6 18L0 56z" opacity="0.9"/>
+  <path fill="#55ecff" d="M47 36h78v6H47zM268 118h92v5h-92z" opacity="0.8"/>
+  <circle cx="348" cy="130" r="4" fill="#43dfff"/>
+  <circle cx="374" cy="48" r="2" fill="#aefcff"/>
+</svg>

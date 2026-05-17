@@ -1,287 +1,318 @@
-import { ScrollView } from "std-widgets.slint";
-import { MutedText, Panel, PillButton, SourceEngineData } from "shared.slint";
-
-component BuildStep inherits Rectangle {
-    in property <string> title;
-    in property <string> detail;
-    in property <string> state;
-    in property <bool> active: false;
-
-    height: 54px;
-    border-radius: 7px;
-    border-width: 1px;
-    border-color: active ? #1aaea6 : #303641;
-    background: active ? #073e3d : #171b21;
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 12px;
-        alignment: start;
-
-        Rectangle {
-            width: 28px;
-            height: 28px;
-            border-radius: 14px;
-            background: root.active ? #0d8b85 : #2a3038;
-            Text {
-                text: root.active ? ">" : "-";
-                color: root.active ? #dcfffb : #aeb6c2;
-                font-size: 14px;
-                font-weight: 800;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
-        }
-
-        VerticalLayout {
-            spacing: 2px;
-            Text {
-                text: root.title;
-                color: #f3f6f9;
-                font-size: 13px;
-                font-weight: 800;
-            }
-            MutedText { text: root.detail; }
-        }
-
-        Rectangle { horizontal-stretch: 1; }
-
-        Text {
-            text: root.state;
-            color: root.active ? #73f7ed : #9fa7b2;
-            font-size: 12px;
-            vertical-alignment: center;
-        }
-    }
-}
+import { MutedText, SourceEngineData, UiTextData } from "shared.slint";
+import { ActionRow, Badge, HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
 
 export component BuildsPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
     in property <SourceEngineData> source-engine;
     in property <string> status-label;
     in property <string> status-detail;
+    in property <UiTextData> ui-text;
     callback build-engine();
     callback open-output();
     callback launch-editor();
+    private property <bool> compact: root.width < 1120px;
 
     background: #11151a;
+    clip: true;
 
-    ScrollView {
-        content := Rectangle {
-            width: root.width;
-            height: 820px;
-            background: #11151a;
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: root.compact ? 1360px : 780px;
+        page-padding: 0px;
+        bottom-padding: 0px;
+        gap: 0px;
 
-            VerticalLayout {
+        VerticalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: 28px;
+            padding-right: 28px;
+            padding-top: 28px;
+            padding-bottom: 28px;
+            spacing: 18px;
+
+            ResponsivePanelFlow {
                 width: parent.width;
-                height: parent.height;
-                padding-left: 28px;
-                padding-right: 28px;
-                padding-top: 184px;
-                padding-bottom: 28px;
-                spacing: 18px;
+                horizontal-stretch: 1;
+                flow-height: root.compact ? 626px : 306px;
+                spacing-horizontal: 14px;
+                spacing-vertical: 14px;
 
-                HorizontalLayout {
-                    spacing: 14px;
+                HubPanel {
+                    flex-basis: 600px;
+                    flex-grow: 1;
+                    flex-shrink: 1;
+                    min-width: 420px;
+                    height: 306px;
 
-                    Panel {
-                        horizontal-stretch: 1;
-                        height: 238px;
                         VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
                             padding: 18px;
                             spacing: 12px;
 
-                            HorizontalLayout {
-                                spacing: 14px;
-                                Rectangle {
-                                    width: 52px;
-                                    height: 52px;
-                                    border-radius: 10px;
-                                    background: #073e3d;
-                                    border-width: 1px;
-                                    border-color: #24d5ca;
-                                    Text {
-                                        text: "/>";
-                                        color: #a6fff7;
-                                        font-size: 18px;
-                                        font-weight: 900;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                VerticalLayout {
-                                    spacing: 4px;
-                                    Text {
-                                        text: "Source Build";
-                                        color: #f3f6f9;
-                                        font-size: 20px;
-                                        font-weight: 900;
-                                    }
-                                    MutedText {
-                                        text: root.source-engine.version + " / " + root.source-engine.status;
-                                    }
-                                }
-                                Rectangle { horizontal-stretch: 1; }
-                                PillButton {
-                                    text: "Build Now";
-                                    icon: "/>";
-                                    primary: true;
-                                    clicked => {
-                                        root.build-engine();
-                                    }
-                                }
-                            }
-
-                            Rectangle { height: 1px; background: #303641; }
-
-                            MutedText { text: "Source: " + root.source-engine.source-path; }
-                            MutedText { text: "Output: " + root.source-engine.output-path; }
-                            MutedText { text: "Last build: " + root.source-engine.last-build; }
-
-                            HorizontalLayout {
-                                spacing: 10px;
-                                Rectangle {
-                                    width: 86px;
-                                    height: 26px;
-                                    border-radius: 5px;
-                                    background: #063f3e;
-                                    border-width: 1px;
-                                    border-color: #0f7d78;
-                                    Text {
-                                        text: root.source-engine.build-profile;
-                                        color: #72f7ee;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                Rectangle {
-                                    width: 86px;
-                                    height: 26px;
-                                    border-radius: 5px;
-                                    background: #2a2f36;
-                                    border-width: 1px;
-                                    border-color: #3a4049;
-                                    Text {
-                                        text: root.source-engine.jobs + " jobs";
-                                        color: #c9cfd8;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Panel {
-                        width: 360px;
-                        height: 238px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Build Controls";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            PillButton {
-                                text: "Build Editor";
-                                icon: "/>";
-                                primary: true;
-                                clicked => {
+                            PanelHeader {
+                                title: root.ui-text.source-build;
+                                subtitle: root.source-engine.version + " / " + root.source-engine.status;
+                                show-badge: true;
+                                badge-text: root.status-label;
+                                badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
+                                show-action: true;
+                                action-text: root.ui-text.build-now;
+                                action-clicked => {
                                     root.build-engine();
                                 }
                             }
-                            PillButton {
-                                text: "Open Output";
-                                icon: "[]";
-                                clicked => {
-                                    root.open-output();
-                                }
-                            }
-                            PillButton {
-                                text: "Launch Editor";
-                                icon: ">";
-                                clicked => {
-                                    root.launch-editor();
-                                }
-                            }
-                        }
-                    }
-                }
 
-                HorizontalLayout {
-                    spacing: 14px;
-
-                    Panel {
-                        horizontal-stretch: 1;
-                        height: 300px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Build Pipeline";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            BuildStep {
-                                title: "Validate Source";
-                                detail: root.source-engine.source-path;
-                                state: root.source-engine.status;
-                                active: true;
-                            }
-                            BuildStep {
-                                title: "Compile Editor";
-                                detail: "tools/zircon_build.py --targets editor,runtime";
-                                state: root.status-label;
-                                active: root.status-label == "Building";
-                            }
-                            BuildStep {
-                                title: "Stage Runtime";
-                                detail: root.source-engine.output-path;
-                                state: root.source-engine.last-build;
-                                active: false;
-                            }
-                            BuildStep {
-                                title: "Package Project";
-                                detail: "Reserved for project export";
-                                state: "Unavailable";
-                                active: false;
-                            }
-                        }
-                    }
-
-                    Panel {
-                        width: 420px;
-                        height: 300px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Current Task";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            Text {
-                                text: root.status-label;
-                                color: #73f7ed;
-                                font-size: 24px;
-                                font-weight: 900;
-                            }
-                            MutedText {
-                                text: root.status-detail;
-                            }
-                            Rectangle { vertical-stretch: 1; }
                             Rectangle {
                                 height: 1px;
                                 background: #303641;
                             }
-                            MutedText {
-                                text: "Profile " + root.source-engine.build-profile + " / " + root.source-engine.jobs + " jobs";
+
+                            InfoRow {
+                                row-height: 64px;
+                                title: root.ui-text.source-prefix;
+                                detail: root.source-engine.source-path;
+                                meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
+                                leading-image: @image-url("../assets/icons/nav/builds.svg");
+                                has-leading-image: true;
+                                trailing-text: root.source-engine.status;
+                                trailing-tone: "ok";
+                                show-trailing-badge: true;
+                            }
+
+                            InfoRow {
+                                row-height: 64px;
+                                title: root.ui-text.output-prefix;
+                                detail: root.source-engine.output-path;
+                                meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
+                                leading-image: @image-url("../assets/icons/ui/folder.svg");
+                                has-leading-image: true;
+                                trailing-text: root.source-engine.jobs + root.ui-text.jobs-suffix;
+                                trailing-tone: "neutral";
+                                show-trailing-badge: true;
+                            }
+
+                            HorizontalLayout {
+                                spacing: 10px;
+
+                                Badge {
+                                    text: root.source-engine.build-profile;
+                                    tone: "accent";
+                                    badge-width: 86px;
+                                }
+
+                                Badge {
+                                    text: root.source-engine.jobs + root.ui-text.jobs-suffix;
+                                    tone: "neutral";
+                                    badge-width: 86px;
+                                }
+                            }
+                        }
+                }
+
+                HubPanel {
+                    flex-basis: 380px;
+                    flex-grow: 0;
+                    flex-shrink: 1;
+                    min-width: 340px;
+                    height: 306px;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: 18px;
+                            spacing: 10px;
+
+                            PanelHeader {
+                                title: root.ui-text.build-controls;
+                                subtitle: "";
+                            }
+
+                            ActionRow {
+                                action: {
+                                    id: "build-editor",
+                                    icon: "",
+                                    icon-image: @image-url("../assets/icons/actions/build-project.svg"),
+                                    has-icon-image: true,
+                                    title: root.ui-text.build-editor,
+                                    detail: root.ui-text.compile-editor,
+                                    enabled: true,
+                                };
+                                activate(id) => {
+                                    root.build-engine();
+                                }
+                            }
+
+                            ActionRow {
+                                action: {
+                                    id: "open-output",
+                                    icon: "",
+                                    icon-image: @image-url("../assets/icons/ui/folder.svg"),
+                                    has-icon-image: true,
+                                    title: root.ui-text.open-output,
+                                    detail: root.source-engine.output-path,
+                                    enabled: true,
+                                };
+                                activate(id) => {
+                                    root.open-output();
+                                }
+                            }
+
+                            ActionRow {
+                                action: {
+                                    id: "open-editor",
+                                    icon: "",
+                                    icon-image: @image-url("../assets/icons/actions/open-editor.svg"),
+                                    has-icon-image: true,
+                                    title: root.ui-text.open-editor,
+                                    detail: root.source-engine.title,
+                                    enabled: true,
+                                };
+                                activate(id) => {
+                                    root.launch-editor();
+                                }
+                            }
+                        }
+                }
+            }
+
+            ResponsivePanelFlow {
+                width: parent.width;
+                horizontal-stretch: 1;
+                flow-height: root.compact ? 650px : 360px;
+                spacing-horizontal: 14px;
+                spacing-vertical: 14px;
+
+                HubPanel {
+                    flex-basis: 600px;
+                    flex-grow: 1;
+                    flex-shrink: 1;
+                    min-width: 420px;
+                    height: 360px;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 18px;
+                        spacing: 10px;
+
+                        PanelHeader {
+                            title: root.ui-text.build-pipeline;
+                            subtitle: "";
+                            show-badge: true;
+                            badge-text: "4";
+                            badge-tone: "info";
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.validate-source;
+                            detail: root.source-engine.source-path;
+                            meta: "";
+                            leading-image: @image-url("../assets/icons/status/success.svg");
+                            has-leading-image: true;
+                            trailing-text: root.source-engine.status;
+                            trailing-tone: "ok";
+                            show-trailing-badge: true;
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.compile-editor;
+                            detail: "tools/zircon_build.py --targets editor,runtime";
+                            meta: "";
+                            leading-image: @image-url("../assets/icons/actions/build-project.svg");
+                            has-leading-image: true;
+                            trailing-text: root.status-label;
+                            trailing-tone: root.status-label == "Building" ? "accent" : "neutral";
+                            show-trailing-badge: true;
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.stage-runtime;
+                            detail: root.source-engine.output-path;
+                            meta: "";
+                            leading-image: @image-url("../assets/icons/ui/folder.svg");
+                            has-leading-image: true;
+                            trailing-text: root.source-engine.last-build;
+                            trailing-tone: "info";
+                            show-trailing-badge: true;
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.package-project;
+                            detail: root.ui-text.reserved-project-export;
+                            meta: "";
+                            leading-image: @image-url("../assets/icons/actions/package-project.svg");
+                            has-leading-image: true;
+                            trailing-text: root.ui-text.unavailable;
+                            trailing-tone: "warning";
+                            show-trailing-badge: true;
+                        }
+                    }
+                }
+
+                HubPanel {
+                    flex-basis: 360px;
+                    flex-grow: 0;
+                    flex-shrink: 1;
+                    min-width: 340px;
+                    height: 360px;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 18px;
+                        spacing: 14px;
+
+                        PanelHeader {
+                            title: root.ui-text.current-task;
+                            subtitle: "";
+                            show-badge: true;
+                            badge-text: root.status-label;
+                            badge-tone: root.status-label == "Ready" ? "ok" : (root.status-label == "Building" ? "accent" : "neutral");
+                        }
+
+                        Text {
+                            text: root.status-label;
+                            overflow: elide;
+                            color: #73f7ed;
+                            font-size: 24px;
+                            font-weight: 900;
+                        }
+
+                        MutedText {
+                            text: root.status-detail;
+                            overflow: elide;
+                        }
+
+                        Rectangle {
+                            vertical-stretch: 1;
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: #303641;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            Badge {
+                                text: root.source-engine.build-profile;
+                                tone: "accent";
+                                badge-width: 96px;
+                            }
+
+                            Badge {
+                                text: root.source-engine.jobs + root.ui-text.jobs-suffix;
+                                tone: "neutral";
+                                badge-width: 96px;
                             }
                         }
                     }

@@ -27,18 +27,31 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
         },
     );
 
-    for record in state
-        .catalog_by_uuid
-        .values()
-        .filter(|record| record.locator.scheme() == ResourceScheme::Res)
-    {
-        let path_segments = record.locator.path().split('/').collect::<Vec<_>>();
+    for record in state.catalog_by_uuid.values().filter(|record| {
+        matches!(
+            record.locator.scheme(),
+            ResourceScheme::Res | ResourceScheme::Package
+        )
+    }) {
+        let Some((root_id, root_display_name, asset_path)) = folder_root_for_record(record) else {
+            continue;
+        };
+        folders
+            .entry(root_id.clone())
+            .or_insert_with(|| FolderBuilder {
+                parent_folder_id: None,
+                locator_prefix: root_id.clone(),
+                display_name: root_display_name,
+                ..FolderBuilder::default()
+            });
+
+        let path_segments = asset_path.split('/').collect::<Vec<_>>();
         let folder_segments = if path_segments.len() > 1 {
             &path_segments[..path_segments.len() - 1]
         } else {
             &[][..]
         };
-        let mut parent_id = "res://".to_string();
+        let mut parent_id = root_id;
         for segment in folder_segments {
             let folder_id = if parent_id == "res://" {
                 format!("res://{segment}")
@@ -123,4 +136,26 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
             recursive_asset_count: folder.recursive_asset_count,
         })
         .collect()
+}
+
+fn folder_root_for_record(
+    record: &super::super::AssetCatalogRecord,
+) -> Option<(String, String, &str)> {
+    match record.locator.scheme() {
+        ResourceScheme::Res => Some((
+            "res://".to_string(),
+            "Assets".to_string(),
+            record.locator.path(),
+        )),
+        ResourceScheme::Package => {
+            let package_id = record.locator.package_id()?;
+            let package_path = record.locator.package_path()?;
+            Some((
+                format!("package://{package_id}"),
+                package_id.to_string(),
+                package_path,
+            ))
+        }
+        _ => None,
+    }
 }

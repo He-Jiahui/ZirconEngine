@@ -58,6 +58,9 @@ pub use output::{
     SoundBackendCallbackBlock, SoundBackendCallbackReport, SoundBackendCapability,
     SoundOutputDeviceDescriptor, SoundOutputDeviceState, SoundOutputDeviceStatus,
 };
-pub use playback::{SoundClipInfo, SoundPlaybackSettings};
+pub use playback::{
+    SoundClipInfo, SoundPlaybackCompletionAction, SoundPlaybackFinishReason, SoundPlaybackFinished,
+    SoundPlaybackSettings, SoundPlaybackStatus,
+};
 pub use preset::SoundMixerPresetDescriptor;
 pub use status::{SoundBackendState, SoundBackendStatus};

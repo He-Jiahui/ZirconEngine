@@ -1,12 +1,11 @@
 use std::fs;
 use std::path::Path;
 
-use image::{ImageBuffer, ImageFormat, Rgb, Rgba};
-
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
-    sample_animation_sequence_asset, sample_physics_material_asset,
-    write_default_animation_sequence, write_default_physics_material,
+    importer_with_first_wave_plugin_fixtures, sample_animation_sequence_asset,
+    sample_physics_material_asset, write_default_animation_sequence,
+    write_default_physics_material,
 };
 use crate::asset::{
     AssetImportContext, AssetImportOutcome, AssetImporter, AssetImporterDescriptor,
@@ -37,67 +36,6 @@ fn importer_subtree_uses_ingest_namespace_without_service_shell() {
         !importer_root.join("service").exists(),
         "asset importer service subtree should be deleted after the hard cutover"
     );
-}
-
-#[test]
-fn importer_decodes_png_and_jpeg_textures() {
-    let root = unique_temp_project_root("texture_import");
-    fs::create_dir_all(&root).unwrap();
-    let png_path = root.join("checker.png");
-    let jpg_path = root.join("checker.jpg");
-
-    ImageBuffer::<Rgba<u8>, _>::from_fn(2, 2, |x, y| {
-        if (x + y) % 2 == 0 {
-            Rgba([255, 255, 255, 255])
-        } else {
-            Rgba([0, 0, 0, 255])
-        }
-    })
-    .save_with_format(&png_path, ImageFormat::Png)
-    .unwrap();
-
-    ImageBuffer::<Rgb<u8>, _>::from_fn(2, 2, |x, y| {
-        if (x + y) % 2 == 0 {
-            Rgb([255, 0, 0])
-        } else {
-            Rgb([0, 0, 255])
-        }
-    })
-    .save_with_format(&jpg_path, ImageFormat::Jpeg)
-    .unwrap();
-
-    let importer = importer_with_first_wave_plugin_fixtures();
-    let png = importer
-        .import_from_source(
-            &png_path,
-            &AssetUri::parse("res://textures/checker.png").unwrap(),
-        )
-        .unwrap();
-    let jpg = importer
-        .import_from_source(
-            &jpg_path,
-            &AssetUri::parse("res://textures/checker.jpg").unwrap(),
-        )
-        .unwrap();
-
-    match png {
-        ImportedAsset::Texture(texture) => {
-            assert_eq!(texture.width, 2);
-            assert_eq!(texture.height, 2);
-            assert_eq!(texture.rgba.len(), 16);
-        }
-        other => panic!("unexpected imported asset: {other:?}"),
-    }
-    match jpg {
-        ImportedAsset::Texture(texture) => {
-            assert_eq!(texture.width, 2);
-            assert_eq!(texture.height, 2);
-            assert_eq!(texture.rgba.len(), 16);
-        }
-        other => panic!("unexpected imported asset: {other:?}"),
-    }
-
-    let _ = fs::remove_dir_all(root);
 }
 
 #[test]
@@ -177,6 +115,29 @@ fn importer_registry_routes_zui_to_component_backend() {
     assert!(matches!(imported, ImportedAsset::UiV2Component(_)));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn importer_default_routes_zmaterial_and_rejects_legacy_material_toml() {
+    let default_importer = AssetImporter::default();
+    let zmaterial_descriptor = default_importer
+        .registry()
+        .descriptor_for_source(Path::new("hero.zmaterial"))
+        .unwrap();
+
+    assert_eq!(zmaterial_descriptor.id, "zircon.builtin.zmaterial");
+    assert_eq!(zmaterial_descriptor.full_suffixes, vec![".zmaterial"]);
+
+    let error = default_importer
+        .registry()
+        .descriptor_for_source(Path::new("hero.material.toml"))
+        .unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("typed toml asset suffix `.material.toml` has no registered importer"),
+        "unexpected error: {error}"
+    );
 }
 
 #[test]
@@ -623,14 +584,6 @@ fn fs_main() -> @location(0) vec4f {
     return vec4f(1.0, 0.4, 0.2, 1.0);
 }
 "#
-}
-
-fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
-    let mut importer = AssetImporter::default();
-    importer
-        .register_first_wave_plugin_fixture_importers_for_test()
-        .unwrap();
-    importer
 }
 
 fn version_one_ui_layout_toml() -> &'static str {

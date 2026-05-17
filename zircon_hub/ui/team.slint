@@ -1,0 +1,219 @@
+import { ScrollView } from "std-widgets.slint";
+import { MutedText, TeamData, TeamMemberData, UiTextData } from "shared.slint";
+import { HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+
+component TeamSummaryItem inherits Rectangle {
+    in property <string> label;
+    in property <string> primary;
+    in property <string> secondary;
+
+    min-height: 70px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 6px;
+
+        MutedText {
+            text: root.label;
+            overflow: elide;
+        }
+
+        Text {
+            text: root.primary;
+            overflow: elide;
+            color: #f3f6f9;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        MutedText {
+            text: root.secondary;
+            overflow: elide;
+        }
+    }
+}
+
+component TeamSummaryCard inherits HubPanel {
+    in property <string> label;
+    in property <string> primary;
+    in property <string> secondary;
+
+    height: 112px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 18px;
+        padding-right: 18px;
+        padding-top: 18px;
+        padding-bottom: 18px;
+
+        TeamSummaryItem {
+            horizontal-stretch: 1;
+            label: root.label;
+            primary: root.primary;
+            secondary: root.secondary;
+        }
+    }
+}
+
+component TeamMemberRow inherits InfoRow {
+    in property <TeamMemberData> member;
+    in property <UiTextData> ui-text;
+
+    title: root.member.name;
+    detail: root.member.email;
+    meta: "";
+    leading-image: @image-url("../assets/icons/nav/team.svg");
+    has-leading-image: true;
+    accent: root.member.accent;
+    trailing-text: root.member.commits + " " + root.ui-text.team-commits;
+    trailing-tone: "accent";
+    show-trailing-badge: true;
+    row-height: 78px;
+}
+
+export component TeamPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <TeamData> summary;
+    in property <[TeamMemberData]> members;
+    in property <int> member-count;
+    in property <UiTextData> ui-text;
+    private property <bool> compact: root.width < 920px;
+    private property <length> member-scroll-y: 0px;
+
+    background: #11151a;
+    clip: true;
+
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: root.compact ? 820px : 650px;
+
+        HubPanel {
+            height: 82px;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 18px;
+                padding-right: 18px;
+                padding-top: 14px;
+                padding-bottom: 14px;
+
+                PanelHeader {
+                    title: root.ui-text.team-workspace;
+                    subtitle: root.summary.status;
+                    show-badge: true;
+                    badge-text: root.member-count + " " + root.ui-text.team-members-found;
+                    badge-tone: "accent";
+                }
+            }
+        }
+
+        ResponsivePanelFlow {
+            flow-height: root.compact ? 238px : 112px;
+            spacing-horizontal: 14px;
+            spacing-vertical: 14px;
+
+            TeamSummaryCard {
+                flex-basis: 280px;
+                flex-grow: 0;
+                flex-shrink: 1;
+                min-width: 260px;
+                label: root.ui-text.team-git-identity;
+                primary: root.summary.identity-name;
+                secondary: root.summary.identity-email;
+            }
+
+            TeamSummaryCard {
+                flex-basis: 520px;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: 300px;
+                label: root.ui-text.team-repository;
+                primary: root.summary.repository-path;
+                secondary: root.ui-text.team-local-only;
+            }
+        }
+
+        HubPanel {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: 18px;
+                spacing: 10px;
+
+                PanelHeader {
+                    title: root.ui-text.team-members-found;
+                    show-badge: true;
+                    badge-text: root.member-count + "";
+                    badge-tone: "neutral";
+                }
+
+                team-scroll := ScrollView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    viewport-y <=> root.member-scroll-y;
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                    mouse-drag-pan-enabled: true;
+                    viewport-width: team-scroll.visible-width;
+                    viewport-height: max(team-scroll.visible-height, root.member-count * 86px + 8px);
+
+                    Rectangle {
+                        width: team-scroll.visible-width;
+                        height: team-scroll.viewport-height;
+                        background: transparent;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            spacing: 8px;
+
+                            if root.member-count == 0: HubPanel {
+                                height: 96px;
+
+                                VerticalLayout {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    padding: 18px;
+                                    spacing: 8px;
+
+                                    Text {
+                                        text: root.ui-text.no-team-members-found;
+                                        color: #d5dbe5;
+                                        font-size: 14px;
+                                        font-weight: 700;
+                                    }
+
+                                    MutedText {
+                                        text: root.summary.repository-path;
+                                        overflow: elide;
+                                    }
+                                }
+                            }
+
+                            for member in root.members: Rectangle {
+                                width: parent.width;
+                                height: 78px;
+
+                                TeamMemberRow {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    member: member;
+                                    ui-text: root.ui-text;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

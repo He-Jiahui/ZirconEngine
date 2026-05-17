@@ -5,17 +5,37 @@ use crate::scene::components::{
     ActiveInHierarchy, ActiveSelf, AnimationGraphPlayerComponent, AnimationPlayerComponent,
     AnimationSequencePlayerComponent, AnimationSkeletonComponent,
     AnimationStateMachinePlayerComponent, CameraComponent, ColliderComponent, DirectionalLight,
-    Hierarchy, JointComponent, LocalTransform, MeshRenderer, Mobility, Name, NodeKind, PointLight,
-    RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight, WorldMatrix,
+    Hierarchy, JointComponent, LocalTransform, Mesh2dComponent, MeshRenderer, Mobility, Name,
+    NodeKind, PointLight, RenderLayerMask, RigidBodyComponent, SceneNode, SpotLight,
+    Sprite2dComponent, WorldMatrix,
 };
 use crate::scene::ecs::{
     ChangeTick, CommandQueue, ComponentRegistry, ComponentStorage, EntityRegistry, EventStore,
-    RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
+    MessageStore, ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
 
 use super::{dirty_state::DerivedStateDirty, ComponentTypeRegistry};
+
+#[derive(Clone, Copy, Debug, Default)]
+pub(super) struct QueryCacheRevision(u64);
+
+impl QueryCacheRevision {
+    pub(super) const fn get(self) -> u64 {
+        self.0
+    }
+
+    pub(super) fn advance(&mut self) {
+        self.0 = self.0.saturating_add(1);
+    }
+}
+
+impl PartialEq for QueryCacheRevision {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct World {
@@ -29,6 +49,10 @@ pub struct World {
     pub(super) world_matrices: HashMap<EntityId, WorldMatrix>,
     pub(super) cameras: HashMap<EntityId, CameraComponent>,
     pub(super) mesh_renderers: HashMap<EntityId, MeshRenderer>,
+    #[serde(default)]
+    pub(super) sprite_2d: HashMap<EntityId, Sprite2dComponent>,
+    #[serde(default)]
+    pub(super) mesh_2d: HashMap<EntityId, Mesh2dComponent>,
     pub(super) directional_lights: HashMap<EntityId, DirectionalLight>,
     #[serde(default)]
     pub(super) point_lights: HashMap<EntityId, PointLight>,
@@ -84,7 +108,13 @@ pub struct World {
     #[serde(skip, default)]
     pub(super) events: EventStore,
     #[serde(skip, default)]
+    pub(super) messages: MessageStore,
+    #[serde(skip, default)]
+    pub(super) observers: ObserverStore,
+    #[serde(skip, default)]
     pub(super) command_queue: CommandQueue,
+    #[serde(skip, default)]
+    pub(super) query_cache_revision: QueryCacheRevision,
     #[serde(skip, default = "default_change_tick")]
     pub(super) change_tick: ChangeTick,
     #[serde(skip, default)]
@@ -105,6 +135,10 @@ struct WorldPersistentState {
     local_transforms: HashMap<EntityId, LocalTransform>,
     cameras: HashMap<EntityId, CameraComponent>,
     mesh_renderers: HashMap<EntityId, MeshRenderer>,
+    #[serde(default)]
+    sprite_2d: HashMap<EntityId, Sprite2dComponent>,
+    #[serde(default)]
+    mesh_2d: HashMap<EntityId, Mesh2dComponent>,
     directional_lights: HashMap<EntityId, DirectionalLight>,
     #[serde(default)]
     point_lights: HashMap<EntityId, PointLight>,
@@ -153,6 +187,8 @@ impl<'de> Deserialize<'de> for World {
             world_matrices: HashMap::new(),
             cameras: state.cameras,
             mesh_renderers: state.mesh_renderers,
+            sprite_2d: state.sprite_2d,
+            mesh_2d: state.mesh_2d,
             directional_lights: state.directional_lights,
             point_lights: state.point_lights,
             spot_lights: state.spot_lights,
@@ -181,7 +217,10 @@ impl<'de> Deserialize<'de> for World {
             resource_registry: Default::default(),
             resources: Default::default(),
             events: Default::default(),
+            messages: Default::default(),
+            observers: Default::default(),
             command_queue: Default::default(),
+            query_cache_revision: QueryCacheRevision::default(),
             change_tick: default_change_tick(),
             active_change_tick: None,
             node_cache: Vec::new(),

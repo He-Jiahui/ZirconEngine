@@ -43,9 +43,11 @@ plan_sources:
   - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
   - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M3
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
+  - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 tests:
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
+  - zircon_runtime/src/asset/tests/project/zmeta.rs
   - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
 doc_type: module-detail
@@ -74,7 +76,7 @@ The facade follows Bevy's typed `Handle<T>`, `Assets<T>`, typed asset events, an
 
 M2 adds dependency graph behavior without moving authority out of `ResourceManager`. `ImportedAssetEntry.dependencies` is persisted into the project meta document as locator data for each root or labeled subasset entry, then the completed `ProjectManager` registry resolves those locators to `ResourceRecord.dependency_ids`. This two-phase resolution lets forward references within a project scan resolve to the target asset's UUID-derived `ResourceId` instead of a locator-derived fallback ID. Unresolved dependency locators become `ResourceDiagnostic::error("unresolved asset dependency ...")` on the owning record.
 
-M3 adds labeled subasset identity to the same facade path. Importers now return `AssetImportOutcome.entries`; the root entry keeps the source locator, and each subasset uses the existing `ResourceLocator` label syntax. The project scanner stores a separate `ResourceRecord` and artifact for each entry, so a typed `Handle<TAsset>` for `res://bundle.multi#Texture0` points at `AssetId::from_asset_uuid_label(source_uuid, Some("Texture0"))` instead of collapsing to the root asset. Scene/project references resolve labels through `ProjectManager::asset_id_for_reference`, and unknown label loads use `AssetImportError::MissingAssetLabel` so editor diagnostics can distinguish “source missing” from “subasset label missing”.
+M3 adds labeled subasset identity to the same facade path. Importers now return `AssetImportOutcome.entries`; the root entry keeps the source locator, and each subasset uses the existing `ResourceLocator` label syntax. The project scanner stores a separate `ResourceRecord` and artifact for each entry, so a typed `Handle<TAsset>` for `res://bundle.multi#Texture0` points at `AssetId::from_asset_uuid(entry.uuid)`. Scene/project references resolve by `AssetReference.uuid` first and use `AssetReference.url` only as a repair locator, while unknown label loads use `AssetImportError::MissingAssetLabel` so editor diagnostics can distinguish “source missing” from “subasset label missing”.
 
 `ProjectAssetManager::recursive_dependency_load_state(handle)` now walks `ResourceRecord.dependency_ids` from the root handle. The root asset must first be directly `Loaded`; otherwise the direct state is returned. Dependency aggregation uses precedence `Failed > Reloading > Loading > NotLoaded > Loaded`, treats missing dependency records as `Failed`, and protects against cycles with a visited ID set. This deliberately diverges from Bevy's unknown-dependency behavior, which can remain indefinitely loading; Zircon reports missing graph edges deterministically because project/editor diagnostics need stable failure rows.
 
@@ -86,4 +88,4 @@ Typed event filtering must work even after removal, when the registry entry no l
 
 `zircon_runtime/src/asset/tests/facade.rs` covers typed handle kind mismatch, typed payload access, acquire/release residency behavior, event filtering across kinds including removed events, rename/reload/remove event ordering, load-state mapping, wrong concrete payload residency, failed reload preserving last-good payload, `Assets<TAsset>::insert/remove_by_locator`, recursive dependency graph state, missing dependency failure, and `ProjectAssetManager` generic load/handle/state/event entry points.
 
-`zircon_runtime/src/asset/tests/project/manager.rs` covers entry dependency resolution into `ResourceRecord.dependency_ids`, unresolved dependency diagnostics, restart restore through the meta-persisted dependency locator list, root plus labeled subasset artifact persistence, duplicate label failure records, and structured unknown-label load errors. `zircon_runtime/src/core/resource/tests.rs` covers dependency ID changes as revision-bearing record changes.
+`zircon_runtime/src/asset/tests/project/manager.rs` covers entry dependency resolution into `ResourceRecord.dependency_ids`, unresolved dependency diagnostics, restart restore through the meta-persisted dependency locator list, root plus labeled subasset artifact persistence, duplicate label failure records, and structured unknown-label load errors. `zircon_runtime/src/asset/tests/project/zmeta.rs` covers `.zmeta` schema generation, ignored old sidecars, UUID-first stale-URL lookup, restored entry URL remapping after source rename, and subasset UUID preservation across transient failed reimport. `zircon_runtime/src/core/resource/tests.rs` covers dependency ID changes as revision-bearing record changes.

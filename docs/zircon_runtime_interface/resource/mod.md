@@ -34,6 +34,7 @@ plan_sources:
   - user: 2026-05-02 keep zircon_runtime_interface as strict ABI/DTO/serialization contract layer
   - user: 2026-05-08 implement Bevy-Style Asset Stack Completion Plan M1
   - user: 2026-05-08 continue Bevy-Style Asset Stack Completion Plan M2
+  - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 tests:
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/tests/resource_contracts.rs
@@ -59,8 +60,8 @@ This module is deliberately limited to contract data: locators, stable IDs, type
 
 The interface resource surface exposes:
 
-- `ResourceLocator` for normalized `res://`, `lib://`, `builtin://`, and `mem://` locator strings.
-- `AssetUuid` and `ResourceId` for stable identity derivation where serialized resources need deterministic IDs.
+- `ResourceLocator` for normalized `res://`, `lib://`, `package://`, `builtin://`, and `mem://` locator strings. `package://{package_id}/{path}#label` exposes both `package_id()` and `package_path()` for package asset roots.
+- `AssetUuid`, `AssetReference { uuid, url }`, and `ResourceId::from_asset_uuid(...)` for stable identity derivation where serialized resources need deterministic IDs.
 - `ResourceKind`, marker structs, `ResourceHandle<T>`, and `UntypedResourceHandle` for typed resource references without runtime object ownership.
 - `ResourceRecord`, `ResourceState`, `ResourceDiagnostic`, and `ResourceEvent` for serialized status and synchronization reports. `ResourceEvent` carries the affected `resource_kind` so typed asset subscribers can filter removed events after the record has already left the registry. `ResourceRecord` carries importer-facing status fields (`source_hash`, `importer_id`, `importer_version`, and `config_hash`) plus `dependency_ids` because asset pipeline status, editor lists, runtime handles, dependency graph queries, and future plugin importers all need the same serialized identity instead of parallel runtime-only records.
 - `ResourceRecord` exposes fluent builder helpers for artifact locator, source/importer/config hashes, state, diagnostics, and dependency IDs. These helpers are part of the shared contract because asset import paths consume `ResourceRecord` through `zircon_runtime::core::resource`, which re-exports the interface-owned DTO.

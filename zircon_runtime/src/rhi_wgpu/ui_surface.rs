@@ -12,18 +12,22 @@ use crate::rhi::{
 mod batching;
 mod geometry;
 mod pipeline;
+mod retained_cache;
 mod text;
 
 use batching::{batch_draw_plan, BatchDrawPlanStats, DrawOp};
-use geometry::command_effective_rect;
+use geometry::{command_effective_rect, ImageVertex, SolidVertex};
 use pipeline::{
     create_image_bind_group_layout, create_image_pipeline, create_image_sampler,
-    create_solid_pipeline, WgpuBlitResources,
+    create_solid_pipeline,
 };
+use retained_cache::WgpuRetainedSurfaceCache;
 use text::WgpuUiTextRenderer;
 
 const SURFACE_FRAME_LATENCY: u32 = 2;
-const OFFSCREEN_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8UnormSrgb;
+// Editor image bytes are byte-space UI colors; keep upload textures out of sRGB
+// so sampling them into the direct swapchain path stays byte-parity friendly.
+const UI_IMAGE_TEXTURE_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 const MAX_UI_IMAGE_CACHE_ENTRIES: usize = 256;
 
 pub struct WgpuUiSurfacePresenter {
@@ -104,16 +108,22 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
         if draw_list.surface_size != self.descriptor.clamped_size() {
             self.resize(draw_list.surface_size.0, draw_list.surface_size.1)?;
         }
-        let batch_stats = match &mut self.backend {
+        let presentation = match &mut self.backend {
             WgpuUiSurfaceBackend::Native(renderer) => renderer.present(draw_list)?,
-            WgpuUiSurfaceBackend::Headless => batch_draw_plan(draw_list).stats,
+            WgpuUiSurfaceBackend::Headless => {
+                let draw_plan = batch_draw_plan(draw_list);
+                WgpuUiSurfacePresentation {
+                    draw_list_stats: draw_list.stats(),
+                    batch_stats: draw_plan.stats,
+                }
+            }
         };
 
-        let mut stats = draw_list.stats();
-        stats.draw_calls = batch_stats.draw_calls;
-        stats.visible_draw_item_count = batch_stats.visible_draw_item_count;
-        stats.batch_layer_count = batch_stats.batch_layer_count;
-        stats.batch_dependency_count = batch_stats.batch_dependency_count;
+        let mut stats = presentation.draw_list_stats;
+        stats.draw_calls = presentation.batch_stats.draw_calls;
+        stats.visible_draw_item_count = presentation.batch_stats.visible_draw_item_count;
+        stats.batch_layer_count = presentation.batch_stats.batch_layer_count;
+        stats.batch_dependency_count = presentation.batch_stats.batch_dependency_count;
         self.presented_frame_count = self.presented_frame_count.saturating_add(1);
         stats.presented_frame_count = self.presented_frame_count;
         self.last_stats = stats.clone();
@@ -125,6 +135,11 @@ impl UiSurfacePresenter for WgpuUiSurfacePresenter {
     }
 }
 
+struct WgpuUiSurfacePresentation {
+    draw_list_stats: UiSurfacePresentStats,
+    batch_stats: BatchDrawPlanStats,
+}
+
 struct WgpuUiSurfaceRenderer {
     _instance: wgpu::Instance,
     _adapter: wgpu::Adapter,
@@ -132,15 +147,13 @@ struct WgpuUiSurfaceRenderer {
     queue: wgpu::Queue,
     surface: wgpu::Surface<'static>,
     config: wgpu::SurfaceConfiguration,
-    offscreen: WgpuOffscreenTarget,
     solid_pipeline: wgpu::RenderPipeline,
     image_pipeline: wgpu::RenderPipeline,
     image_bind_group_layout: wgpu::BindGroupLayout,
     image_sampler: wgpu::Sampler,
+    retained_cache: WgpuRetainedSurfaceCache,
     image_cache: HashMap<String, WgpuUiImageResource>,
     text: WgpuUiTextRenderer,
-    blit: WgpuBlitResources,
-    offscreen_initialized: bool,
     present_index: u64,
 }
 
@@ -160,14 +173,19 @@ impl WgpuUiSurfaceRenderer {
         let (device, queue) = request_device(&adapter)?;
         let size = descriptor.clamped_size();
         let config = configure_surface(&surface, &adapter, &device, size)?;
-        let offscreen = WgpuOffscreenTarget::new(&device, size);
-        let solid_pipeline = create_solid_pipeline(&device, OFFSCREEN_FORMAT);
+        let solid_pipeline = create_solid_pipeline(&device, config.format);
         let image_bind_group_layout = create_image_bind_group_layout(&device);
         let image_sampler = create_image_sampler(&device);
         let image_pipeline =
-            create_image_pipeline(&device, OFFSCREEN_FORMAT, &image_bind_group_layout);
-        let text = WgpuUiTextRenderer::new(&device, &queue, OFFSCREEN_FORMAT);
-        let blit = WgpuBlitResources::new(&device, config.format, &image_bind_group_layout);
+            create_image_pipeline(&device, config.format, &image_bind_group_layout);
+        let retained_cache = WgpuRetainedSurfaceCache::new(
+            &device,
+            config.format,
+            size,
+            &image_bind_group_layout,
+            &image_sampler,
+        );
+        let text = WgpuUiTextRenderer::new(&device, &queue, config.format);
 
         Ok(Self {
             _instance: instance,
@@ -176,15 +194,13 @@ impl WgpuUiSurfaceRenderer {
             queue,
             surface,
             config,
-            offscreen,
             solid_pipeline,
             image_pipeline,
             image_bind_group_layout,
             image_sampler,
+            retained_cache,
             image_cache: HashMap::new(),
             text,
-            blit,
-            offscreen_initialized: false,
             present_index: 0,
         })
     }
@@ -194,14 +210,35 @@ impl WgpuUiSurfaceRenderer {
         self.config.width = size.0;
         self.config.height = size.1;
         self.surface.configure(&self.device, &self.config);
-        self.offscreen = WgpuOffscreenTarget::new(&self.device, size);
-        self.offscreen_initialized = false;
+        self.retained_cache.resize(
+            &self.device,
+            self.config.format,
+            size,
+            &self.image_bind_group_layout,
+            &self.image_sampler,
+        );
         Ok(())
     }
 
-    fn present(&mut self, draw_list: &UiSurfaceDrawList) -> Result<BatchDrawPlanStats, RhiError> {
+    fn present(
+        &mut self,
+        draw_list: &UiSurfaceDrawList,
+    ) -> Result<WgpuUiSurfacePresentation, RhiError> {
         self.resize_if_needed(draw_list.surface_size)?;
         self.present_index = self.present_index.saturating_add(1);
+        let cache_ready = self
+            .retained_cache
+            .matches(self.config.format, draw_list.surface_size)
+            && self.retained_cache.initialized();
+        let mode = surface_render_mode(draw_list, cache_ready);
+        let render_draw_list;
+        let draw_list = match mode {
+            SurfaceRenderMode::FullRedraw => {
+                render_draw_list = full_redraw_draw_list(draw_list);
+                &render_draw_list
+            }
+            SurfaceRenderMode::DamagePatch => draw_list,
+        };
         let draw_plan = batch_draw_plan(draw_list);
         self.prepare_image_resources(draw_list);
         self.text.prepare(
@@ -211,10 +248,16 @@ impl WgpuUiSurfaceRenderer {
             draw_list,
             &draw_plan.ops,
         );
-        self.render_draw_list_to_offscreen(draw_list, &draw_plan.ops);
+        self.render_draw_list_to_surface(draw_list, &draw_plan.ops, mode)?;
         self.prune_image_cache();
-        self.blit_offscreen_to_surface()?;
-        Ok(draw_plan.stats)
+        let mut batch_stats = draw_plan.stats;
+        if mode == SurfaceRenderMode::DamagePatch {
+            batch_stats.draw_calls = batch_stats.draw_calls.saturating_add(1);
+        }
+        Ok(WgpuUiSurfacePresentation {
+            draw_list_stats: draw_list.stats(),
+            batch_stats,
+        })
     }
 
     fn resize_if_needed(&mut self, size: (u32, u32)) -> Result<(), RhiError> {
@@ -297,149 +340,12 @@ impl WgpuUiSurfaceRenderer {
         }
     }
 
-    fn render_draw_list_to_offscreen(
+    fn render_draw_list_to_surface(
         &mut self,
         draw_list: &UiSurfaceDrawList,
         draw_ops: &[DrawOp],
-    ) {
-        let solid_vertices = draw_ops
-            .iter()
-            .filter_map(|op| match op {
-                DrawOp::Solid(draw) => Some(draw.vertices.as_slice()),
-                DrawOp::Image(_) => None,
-                DrawOp::Text(_) => None,
-            })
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
-        let image_vertices = draw_ops
-            .iter()
-            .filter_map(|op| match op {
-                DrawOp::Solid(_) => None,
-                DrawOp::Image(draw) => Some(draw.vertices.as_slice()),
-                DrawOp::Text(_) => None,
-            })
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>();
-        let solid_buffer = (!solid_vertices.is_empty()).then(|| {
-            self.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("zircon-ui-solid-vertices"),
-                    contents: bytemuck::cast_slice(&solid_vertices),
-                    usage: wgpu::BufferUsages::VERTEX,
-                })
-        });
-        let image_buffer = (!image_vertices.is_empty()).then(|| {
-            self.device
-                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                    label: Some("zircon-ui-image-vertices"),
-                    contents: bytemuck::cast_slice(&image_vertices),
-                    usage: wgpu::BufferUsages::VERTEX,
-                })
-        });
-        let retain_existing = draw_list.damage.is_some() && self.offscreen_initialized;
-        let mut encoder = self
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("zircon-ui-offscreen-encoder"),
-            });
-        if draw_ops.is_empty() {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("zircon-ui-offscreen-pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.offscreen.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: if retain_existing {
-                            wgpu::LoadOp::Load
-                        } else {
-                            wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
-                        },
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-                multiview_mask: None,
-            });
-            pass.set_viewport(
-                0.0,
-                0.0,
-                draw_list.surface_size.0 as f32,
-                draw_list.surface_size.1 as f32,
-                0.0,
-                1.0,
-            );
-        } else {
-            let mut first_pass = true;
-            let mut op_index = 0;
-            while op_index < draw_ops.len() {
-                let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("zircon-ui-offscreen-pass"),
-                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &self.offscreen.view,
-                        resolve_target: None,
-                        ops: wgpu::Operations {
-                            load: if first_pass && !retain_existing {
-                                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT)
-                            } else {
-                                wgpu::LoadOp::Load
-                            },
-                            store: wgpu::StoreOp::Store,
-                        },
-                        depth_slice: None,
-                    })],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                    multiview_mask: None,
-                });
-                first_pass = false;
-                match &draw_ops[op_index] {
-                    DrawOp::Solid(_) => {
-                        let Some(buffer) = solid_buffer.as_ref() else {
-                            op_index += 1;
-                            continue;
-                        };
-                        pass.set_pipeline(&self.solid_pipeline);
-                        pass.set_vertex_buffer(0, buffer.slice(..));
-                        let DrawOp::Solid(draw) = &draw_ops[op_index] else {
-                            unreachable!("draw op kind checked above");
-                        };
-                        pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
-                        op_index += 1;
-                    }
-                    DrawOp::Image(_) => {
-                        let Some(buffer) = image_buffer.as_ref() else {
-                            op_index += 1;
-                            continue;
-                        };
-                        pass.set_pipeline(&self.image_pipeline);
-                        pass.set_vertex_buffer(0, buffer.slice(..));
-                        let DrawOp::Image(draw) = &draw_ops[op_index] else {
-                            unreachable!("draw op kind checked above");
-                        };
-                        if let Some(resource) = self.image_cache.get(&draw.resource_key) {
-                            pass.set_bind_group(0, &resource.bind_group, &[]);
-                            pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
-                        }
-                        op_index += 1;
-                    }
-                    DrawOp::Text(draw) => {
-                        self.text.render_batch(draw.batch_index, &mut pass);
-                        op_index += 1;
-                    }
-                }
-            }
-        }
-        self.queue.submit(Some(encoder.finish()));
-        self.offscreen_initialized = true;
-    }
-
-    fn blit_offscreen_to_surface(&mut self) -> Result<(), RhiError> {
+        mode: SurfaceRenderMode,
+    ) -> Result<(), RhiError> {
         let surface_texture = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(surface_texture)
             | wgpu::CurrentSurfaceTexture::Suboptimal(surface_texture) => surface_texture,
@@ -459,41 +365,262 @@ impl WgpuUiSurfaceRenderer {
         let target_view = surface_texture
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
-        self.blit.blit(
-            &self.device,
-            &self.queue,
-            &self.offscreen.view,
-            &target_view,
-            (self.config.width, self.config.height),
-        );
+        let buffers = WgpuUiDrawBuffers::new(&self.device, draw_ops);
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("zircon-ui-surface-encoder"),
+            });
+
+        match mode {
+            SurfaceRenderMode::FullRedraw => {
+                record_draw_ops_to_view(
+                    &mut encoder,
+                    &target_view,
+                    TargetLoad::ClearBlack,
+                    draw_list.surface_size,
+                    draw_ops,
+                    &buffers,
+                    &self.solid_pipeline,
+                    &self.image_pipeline,
+                    &self.image_cache,
+                    &mut self.text,
+                );
+                record_draw_ops_to_view(
+                    &mut encoder,
+                    self.retained_cache.view(),
+                    TargetLoad::ClearBlack,
+                    draw_list.surface_size,
+                    draw_ops,
+                    &buffers,
+                    &self.solid_pipeline,
+                    &self.image_pipeline,
+                    &self.image_cache,
+                    &mut self.text,
+                );
+                self.retained_cache.mark_initialized();
+            }
+            SurfaceRenderMode::DamagePatch => {
+                self.retained_cache.record_restore(
+                    &mut encoder,
+                    &self.image_pipeline,
+                    &target_view,
+                    draw_list.surface_size,
+                );
+                record_draw_ops_to_view(
+                    &mut encoder,
+                    &target_view,
+                    TargetLoad::Load,
+                    draw_list.surface_size,
+                    draw_ops,
+                    &buffers,
+                    &self.solid_pipeline,
+                    &self.image_pipeline,
+                    &self.image_cache,
+                    &mut self.text,
+                );
+                record_draw_ops_to_view(
+                    &mut encoder,
+                    self.retained_cache.view(),
+                    TargetLoad::Load,
+                    draw_list.surface_size,
+                    draw_ops,
+                    &buffers,
+                    &self.solid_pipeline,
+                    &self.image_pipeline,
+                    &self.image_cache,
+                    &mut self.text,
+                );
+                self.retained_cache.mark_initialized();
+            }
+        }
+
+        self.queue.submit(Some(encoder.finish()));
         surface_texture.present();
         Ok(())
     }
 }
 
-struct WgpuOffscreenTarget {
-    view: wgpu::TextureView,
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SurfaceRenderMode {
+    FullRedraw,
+    DamagePatch,
 }
 
-impl WgpuOffscreenTarget {
-    fn new(device: &wgpu::Device, size: (u32, u32)) -> Self {
-        let texture = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("zircon-ui-offscreen"),
-            size: wgpu::Extent3d {
-                width: size.0.max(1),
-                height: size.1.max(1),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: wgpu::TextureDimension::D2,
-            format: OFFSCREEN_FORMAT,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::TEXTURE_BINDING,
-            view_formats: &[],
-        });
-        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        Self { view }
+fn surface_render_mode(draw_list: &UiSurfaceDrawList, cache_ready: bool) -> SurfaceRenderMode {
+    if draw_list.damage.is_some() && cache_ready {
+        SurfaceRenderMode::DamagePatch
+    } else {
+        SurfaceRenderMode::FullRedraw
     }
+}
+
+fn full_redraw_draw_list(draw_list: &UiSurfaceDrawList) -> UiSurfaceDrawList {
+    let mut draw_list = draw_list.clone();
+    draw_list.damage = None;
+    draw_list
+}
+
+struct WgpuUiDrawBuffers {
+    solid: Option<wgpu::Buffer>,
+    image: Option<wgpu::Buffer>,
+}
+
+impl WgpuUiDrawBuffers {
+    fn new(device: &wgpu::Device, draw_ops: &[DrawOp]) -> Self {
+        let solid_vertices = draw_ops
+            .iter()
+            .filter_map(|op| match op {
+                DrawOp::Solid(draw) => Some(draw.vertices.as_slice()),
+                DrawOp::Image(_) | DrawOp::Text(_) => None,
+            })
+            .flatten()
+            .copied()
+            .collect::<Vec<SolidVertex>>();
+        let image_vertices = draw_ops
+            .iter()
+            .filter_map(|op| match op {
+                DrawOp::Image(draw) => Some(draw.vertices.as_slice()),
+                DrawOp::Solid(_) | DrawOp::Text(_) => None,
+            })
+            .flatten()
+            .copied()
+            .collect::<Vec<ImageVertex>>();
+
+        Self {
+            solid: (!solid_vertices.is_empty()).then(|| {
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-ui-solid-vertices"),
+                    contents: bytemuck::cast_slice(&solid_vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                })
+            }),
+            image: (!image_vertices.is_empty()).then(|| {
+                device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-ui-image-vertices"),
+                    contents: bytemuck::cast_slice(&image_vertices),
+                    usage: wgpu::BufferUsages::VERTEX,
+                })
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum TargetLoad {
+    ClearBlack,
+    Load,
+}
+
+impl TargetLoad {
+    fn load_op(self) -> wgpu::LoadOp<wgpu::Color> {
+        match self {
+            Self::ClearBlack => wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+            Self::Load => wgpu::LoadOp::Load,
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn record_draw_ops_to_view(
+    encoder: &mut wgpu::CommandEncoder,
+    target_view: &wgpu::TextureView,
+    initial_load: TargetLoad,
+    surface_size: (u32, u32),
+    draw_ops: &[DrawOp],
+    buffers: &WgpuUiDrawBuffers,
+    solid_pipeline: &wgpu::RenderPipeline,
+    image_pipeline: &wgpu::RenderPipeline,
+    image_cache: &HashMap<String, WgpuUiImageResource>,
+    text: &mut WgpuUiTextRenderer,
+) {
+    if draw_ops.is_empty() {
+        let mut pass = begin_ui_surface_pass(encoder, target_view, initial_load);
+        set_surface_viewport(&mut pass, surface_size);
+        return;
+    }
+
+    let mut first_pass = true;
+    let mut op_index = 0;
+    while op_index < draw_ops.len() {
+        let load = if first_pass {
+            initial_load
+        } else {
+            TargetLoad::Load
+        };
+        let mut pass = begin_ui_surface_pass(encoder, target_view, load);
+        set_surface_viewport(&mut pass, surface_size);
+        first_pass = false;
+        match &draw_ops[op_index] {
+            DrawOp::Solid(_) => {
+                let Some(buffer) = buffers.solid.as_ref() else {
+                    op_index += 1;
+                    continue;
+                };
+                pass.set_pipeline(solid_pipeline);
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                let DrawOp::Solid(draw) = &draw_ops[op_index] else {
+                    unreachable!("draw op kind checked above");
+                };
+                pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
+                op_index += 1;
+            }
+            DrawOp::Image(_) => {
+                let Some(buffer) = buffers.image.as_ref() else {
+                    op_index += 1;
+                    continue;
+                };
+                pass.set_pipeline(image_pipeline);
+                pass.set_vertex_buffer(0, buffer.slice(..));
+                let DrawOp::Image(draw) = &draw_ops[op_index] else {
+                    unreachable!("draw op kind checked above");
+                };
+                if let Some(resource) = image_cache.get(&draw.resource_key) {
+                    pass.set_bind_group(0, &resource.bind_group, &[]);
+                    pass.draw(draw.vertex_start..draw.vertex_end, 0..1);
+                }
+                op_index += 1;
+            }
+            DrawOp::Text(draw) => {
+                text.render_batch(draw.batch_index, &mut pass);
+                op_index += 1;
+            }
+        }
+    }
+}
+
+fn begin_ui_surface_pass<'encoder>(
+    encoder: &'encoder mut wgpu::CommandEncoder,
+    target_view: &'encoder wgpu::TextureView,
+    load: TargetLoad,
+) -> wgpu::RenderPass<'encoder> {
+    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some("zircon-ui-surface-pass"),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: target_view,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: load.load_op(),
+                store: wgpu::StoreOp::Store,
+            },
+            depth_slice: None,
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    })
+}
+
+fn set_surface_viewport(pass: &mut wgpu::RenderPass<'_>, surface_size: (u32, u32)) {
+    pass.set_viewport(
+        0.0,
+        0.0,
+        surface_size.0 as f32,
+        surface_size.1 as f32,
+        0.0,
+        1.0,
+    );
 }
 
 struct WgpuUiImageResource {
@@ -522,7 +649,7 @@ impl WgpuUiImageResource {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: OFFSCREEN_FORMAT,
+            format: UI_IMAGE_TEXTURE_FORMAT,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -595,11 +722,7 @@ fn configure_surface(
         height: size.1.max(1),
         present_mode,
         desired_maximum_frame_latency: SURFACE_FRAME_LATENCY,
-        alpha_mode: caps
-            .alpha_modes
-            .first()
-            .copied()
-            .unwrap_or(wgpu::CompositeAlphaMode::Auto),
+        alpha_mode: choose_alpha_mode(&caps.alpha_modes),
         view_formats: vec![],
     };
     surface.configure(device, &config);
@@ -608,14 +731,11 @@ fn configure_surface(
 
 fn choose_surface_format(formats: &[wgpu::TextureFormat]) -> Option<wgpu::TextureFormat> {
     [
-        wgpu::TextureFormat::Bgra8UnormSrgb,
-        wgpu::TextureFormat::Rgba8UnormSrgb,
         wgpu::TextureFormat::Bgra8Unorm,
         wgpu::TextureFormat::Rgba8Unorm,
     ]
     .into_iter()
     .find(|format| formats.contains(format))
-    .or_else(|| formats.first().copied())
 }
 
 fn choose_present_mode(present_modes: &[wgpu::PresentMode]) -> Option<wgpu::PresentMode> {
@@ -625,6 +745,19 @@ fn choose_present_mode(present_modes: &[wgpu::PresentMode]) -> Option<wgpu::Pres
         Some(wgpu::PresentMode::Fifo)
     } else {
         present_modes.first().copied()
+    }
+}
+
+fn choose_alpha_mode(alpha_modes: &[wgpu::CompositeAlphaMode]) -> wgpu::CompositeAlphaMode {
+    if alpha_modes.contains(&wgpu::CompositeAlphaMode::Opaque) {
+        wgpu::CompositeAlphaMode::Opaque
+    } else if alpha_modes.contains(&wgpu::CompositeAlphaMode::Auto) {
+        wgpu::CompositeAlphaMode::Auto
+    } else {
+        alpha_modes
+            .first()
+            .copied()
+            .unwrap_or(wgpu::CompositeAlphaMode::Auto)
     }
 }
 
@@ -767,7 +900,47 @@ mod tests {
     }
 
     #[test]
-    fn wgpu_ui_surface_presenter_stats_skip_disjoint_patch_commands() {
+    fn wgpu_ui_surface_prefers_opaque_swapchain_alpha() {
+        assert_eq!(
+            choose_alpha_mode(&[
+                wgpu::CompositeAlphaMode::PreMultiplied,
+                wgpu::CompositeAlphaMode::Opaque,
+            ]),
+            wgpu::CompositeAlphaMode::Opaque
+        );
+        assert_eq!(
+            choose_alpha_mode(&[wgpu::CompositeAlphaMode::PostMultiplied]),
+            wgpu::CompositeAlphaMode::PostMultiplied
+        );
+    }
+
+    #[test]
+    fn wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity() {
+        assert_eq!(UI_IMAGE_TEXTURE_FORMAT, wgpu::TextureFormat::Rgba8Unorm);
+        assert_eq!(
+            choose_surface_format(&[
+                wgpu::TextureFormat::Bgra8UnormSrgb,
+                wgpu::TextureFormat::Bgra8Unorm,
+                wgpu::TextureFormat::Rgba8UnormSrgb,
+                wgpu::TextureFormat::Rgba8Unorm,
+            ]),
+            Some(wgpu::TextureFormat::Bgra8Unorm)
+        );
+        assert_eq!(
+            choose_surface_format(&[wgpu::TextureFormat::Rgba8Unorm]),
+            Some(wgpu::TextureFormat::Rgba8Unorm)
+        );
+        assert_eq!(
+            choose_surface_format(&[
+                wgpu::TextureFormat::Bgra8UnormSrgb,
+                wgpu::TextureFormat::Rgba8UnormSrgb,
+            ]),
+            None
+        );
+    }
+
+    #[test]
+    fn wgpu_ui_surface_presenter_uses_damage_for_patch_stats() {
         let mut presenter = WgpuUiSurfacePresenter::new_headless(100, 100);
         let draw_list = UiSurfaceDrawList::new(
             (100, 100),
@@ -808,6 +981,28 @@ mod tests {
         assert_eq!(stats.batch_dependency_count, 0);
         assert_eq!(stats.image_count, 1);
         assert_eq!(stats.image_upload_bytes, 16);
+    }
+
+    #[test]
+    fn wgpu_ui_surface_render_mode_requires_initialized_cache_for_damage_patch() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            Some(UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0)),
+            Vec::new(),
+        );
+
+        assert_eq!(
+            surface_render_mode(&draw_list, false),
+            SurfaceRenderMode::FullRedraw
+        );
+        assert_eq!(
+            surface_render_mode(&draw_list, true),
+            SurfaceRenderMode::DamagePatch
+        );
+        assert_eq!(
+            surface_render_mode(&UiSurfaceDrawList::new((100, 100), None, Vec::new()), true),
+            SurfaceRenderMode::FullRedraw
+        );
     }
 
     #[test]

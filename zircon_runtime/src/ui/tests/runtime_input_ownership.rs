@@ -819,6 +819,7 @@ fn input_method_request(kind: UiInputMethodRequestKind, owner: UiNodeId) -> UiIn
         owner,
         cursor_rect: None,
         composition_rects: Vec::new(),
+        surrounding_text: None,
     }
 }
 

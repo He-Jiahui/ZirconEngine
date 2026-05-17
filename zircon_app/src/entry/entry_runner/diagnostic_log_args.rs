@@ -1,8 +1,8 @@
 use std::error::Error;
 
 use zircon_runtime::diagnostic_log::{
-    DiagnosticLogFilter, DiagnosticLogFilterConfig, DIAGNOSTIC_LOG_FILTER_ENV,
-    DIAGNOSTIC_LOG_LEVEL_ENV,
+    DiagnosticLogFilter, DiagnosticLogFilterConfig, DIAGNOSTIC_LOG_ENV, DIAGNOSTIC_LOG_FILTER_ENV,
+    DIAGNOSTIC_LOG_LEVEL_ENV, RUST_LOG_ENV,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -55,7 +55,7 @@ where
             }
             let Some(value) = args.next() else {
                 return Err(format!(
-                    "--log-filter requires a comma-separated filter such as warn,zircon_runtime::asset=debug; {DIAGNOSTIC_LOG_FILTER_ENV} accepts the same values"
+                    "--log-filter requires a comma-separated filter such as warn,zircon_runtime::asset=debug; {DIAGNOSTIC_LOG_FILTER_ENV}, {DIAGNOSTIC_LOG_ENV}, and {RUST_LOG_ENV} accept the same values"
                 )
                 .into());
             };

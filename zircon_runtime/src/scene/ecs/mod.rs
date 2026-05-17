@@ -14,6 +14,9 @@ mod entity_registry_error;
 mod events;
 mod internal_entity;
 mod internal_scene_system;
+mod lifecycle;
+mod messages;
+mod observer;
 mod query;
 mod removal;
 mod resource;
@@ -47,6 +50,9 @@ pub use entity_registry_error::EntityRegistryError;
 pub use events::{EventStore, Events};
 pub use internal_entity::InternalEntity;
 pub use internal_scene_system::InternalSceneSystem;
+pub use lifecycle::{ComponentLifecycleEvent, LifecycleEventKind};
+pub use messages::{Message, MessageCursor, MessageId, MessageReadIter, MessageStore, Messages};
+pub use observer::{ObserverId, ObserverStore};
 pub use query::{
     Added, Changed, QueryAccess, QueryAccessError, QueryData, QueryDataAccess, QueryFilter,
     QueryIter, QueryMutData, QueryState, With, Without,
@@ -64,9 +70,10 @@ pub use stable_entity_location::StableEntityLocation;
 pub use storage::{ComponentRemoveResult, ComponentStorage, StorageError};
 pub use storage_type::StorageType;
 pub use system::{
-    EventReader, EventReaderParam, EventWriter, EventWriterParam, Local, LocalParam, ParamSet,
-    ParamSetItem, ParamSetParam, Query, RemovedComponents, RemovedComponentsParam, Res, ResMut,
-    ResMutParam, ResParam, SystemParam, SystemParamAccess, SystemParamError, SystemState,
+    EventReader, EventReaderParam, EventWriter, EventWriterParam, Local, LocalParam, MessageReader,
+    MessageReaderParam, MessageWriter, MessageWriterParam, ParamSet, ParamSetItem, ParamSetParam,
+    Query, RemovedComponents, RemovedComponentsParam, Res, ResMut, ResMutParam, ResParam,
+    SystemParam, SystemParamAccess, SystemParamError, SystemState,
 };
 pub use system_stage::SystemStage;
 

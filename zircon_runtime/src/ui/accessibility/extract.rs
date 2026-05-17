@@ -2,14 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use zircon_runtime_interface::ui::{
     accessibility::{
-        UiA11yRole, UiA11yState, UiAccessibilityAction, UiAccessibilityDiagnostic,
-        UiAccessibilityDiagnosticCode, UiAccessibilityDiagnosticSeverity, UiAccessibilityNode,
-        UiAccessibilityTreeSnapshot,
+        UiA11yCheckedState, UiA11yRole, UiA11yState, UiAccessibilityAction,
+        UiAccessibilityDiagnostic, UiAccessibilityDiagnosticCode,
+        UiAccessibilityDiagnosticSeverity, UiAccessibilityNode, UiAccessibilityTreeSnapshot,
     },
+    component::{UiComponentState, UiValue},
     event_ui::UiNodeId,
     layout::UiFrame,
     tree::{UiTemplateNodeMetadata, UiTreeNode},
-    widget::UiWidgetContract,
+    widget::{UiWidgetBehavior, UiWidgetContract},
 };
 
 use crate::ui::{surface::UiSurface, tree::UiRuntimeTreeAccessExt};
@@ -150,8 +151,12 @@ fn include_node(
         return false;
     }
     let metadata = node.template_metadata.as_ref();
+    let explicit_accessibility = has_explicit_accessibility(metadata);
+    if is_headless_scrollbar_widget(metadata) && !explicit_accessibility && !is_relation_target {
+        return false;
+    }
     surface.tree.roots.contains(&node.node_id)
-        || has_explicit_accessibility(metadata)
+        || explicit_accessibility
         || has_explicit_widget(metadata)
         || is_interactive(node)
         || name::own_text(metadata).is_some()
@@ -186,8 +191,7 @@ fn build_node(
     effectively_hidden: bool,
 ) -> (UiAccessibilityNode, Vec<UiAccessibilityDiagnostic>) {
     let metadata = node.template_metadata.as_ref();
-    let disabled =
-        !node.state_flags.enabled || metadata.is_some_and(|metadata| metadata.widget.disabled);
+    let disabled = disabled_state_for(surface, node, metadata);
     let focused = surface.focus.focused == Some(node.node_id) && !disabled && !effectively_hidden;
     let role = role_for(node, metadata);
     let (actions, mut diagnostics) = actions_for(node, metadata, disabled);
@@ -220,22 +224,11 @@ fn build_node(
                 disabled,
                 hidden: effectively_hidden,
                 focused,
-                selected: false,
-                expanded: None,
-                checked: metadata
-                    .and_then(|metadata| metadata.widget.checked)
-                    .or_else(|| node.state_flags.checked.then_some(true))
-                    .map(|checked| {
-                        if checked {
-                            zircon_runtime_interface::ui::accessibility::UiA11yCheckedState::True
-                        } else {
-                            zircon_runtime_interface::ui::accessibility::UiA11yCheckedState::False
-                        }
-                    }),
-                pressed: node.state_flags.pressed.then_some(true),
-                value: metadata
-                    .and_then(|metadata| metadata.widget.value.as_ref())
-                    .map(|value| value.display_text()),
+                selected: selected_state_for(surface, node, metadata),
+                expanded: expanded_state_for(surface, node, metadata),
+                checked: checked_state_for(surface, node, metadata, role),
+                pressed: pressed_state_for(surface, node, metadata),
+                value: value_state_for(surface, node, metadata, role),
             },
             actions,
             children: Vec::new(),
@@ -450,11 +443,16 @@ fn role_for(node: &UiTreeNode, metadata: Option<&UiTemplateNodeMetadata>) -> UiA
 }
 
 fn inferred_role(node: &UiTreeNode, metadata: Option<&UiTemplateNodeMetadata>) -> UiA11yRole {
+    if let Some(role) = metadata.and_then(role_for_widget_behavior) {
+        return role;
+    }
+
     let component = metadata.map_or("", |metadata| metadata.component.as_str());
     match component {
         "Button" | "IconButton" | "ToggleButton" => UiA11yRole::Button,
         "Checkbox" | "Switch" => UiA11yRole::Checkbox,
-        "Radio" => UiA11yRole::Radio,
+        "RadioGroup" | "ButtonGroup" => UiA11yRole::RadioGroup,
+        "Radio" | "RadioButton" => UiA11yRole::Radio,
         "Slider" | "RangeField" => UiA11yRole::Slider,
         "InputField" | "TextField" | "LineEdit" | "TextEdit" => UiA11yRole::TextInput,
         "Label" | "Text" => UiA11yRole::Text,
@@ -472,6 +470,299 @@ fn inferred_role(node: &UiTreeNode, metadata: Option<&UiTemplateNodeMetadata>) -
     }
 }
 
+fn role_for_widget_behavior(metadata: &UiTemplateNodeMetadata) -> Option<UiA11yRole> {
+    match widget_behavior(metadata) {
+        UiWidgetBehavior::Button => Some(UiA11yRole::Button),
+        UiWidgetBehavior::MenuItem => Some(UiA11yRole::MenuItem),
+        UiWidgetBehavior::Toggle => Some(UiA11yRole::Checkbox),
+        UiWidgetBehavior::RadioGroup => Some(UiA11yRole::RadioGroup),
+        UiWidgetBehavior::Radio => Some(UiA11yRole::Radio),
+        UiWidgetBehavior::Disclosure | UiWidgetBehavior::Popup => Some(UiA11yRole::Button),
+        UiWidgetBehavior::Range => Some(UiA11yRole::Slider),
+        UiWidgetBehavior::TextInput => Some(UiA11yRole::TextInput),
+        UiWidgetBehavior::Auto
+        | UiWidgetBehavior::Passive
+        | UiWidgetBehavior::Scrollbar
+        | UiWidgetBehavior::ScrollbarThumb => None,
+    }
+}
+
+fn expanded_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> Option<bool> {
+    let metadata = metadata?;
+    match widget_behavior(metadata) {
+        UiWidgetBehavior::Disclosure => {
+            let property = metadata
+                .widget
+                .open_property
+                .as_deref()
+                .unwrap_or("expanded");
+            Some(open_state_for(
+                surface,
+                node,
+                metadata,
+                property,
+                "expanded",
+                &["expanded"],
+                default_expanded_state(metadata),
+            ))
+        }
+        UiWidgetBehavior::Popup => {
+            let property = metadata
+                .widget
+                .open_property
+                .as_deref()
+                .unwrap_or("popup_open");
+            Some(open_state_for(
+                surface,
+                node,
+                metadata,
+                property,
+                "popup_open",
+                &["popup_open", "open"],
+                false,
+            ))
+        }
+        _ => bool_attribute_value(&metadata.attributes, "expanded"),
+    }
+}
+
+fn open_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: &UiTemplateNodeMetadata,
+    property: &str,
+    canonical_property: &str,
+    legacy_properties: &[&str],
+    default_value: bool,
+) -> bool {
+    let component_state = surface.component_states.get(node.node_id);
+    bool_attribute_value(&metadata.attributes, property)
+        .or_else(|| component_state.and_then(|state| bool_component_state_value(state, property)))
+        .or_else(|| {
+            legacy_properties
+                .iter()
+                .copied()
+                .filter(|legacy_property| *legacy_property != property)
+                .find_map(|legacy_property| {
+                    bool_attribute_value(&metadata.attributes, legacy_property)
+                })
+        })
+        .or_else(|| {
+            component_state.and_then(|state| {
+                legacy_properties
+                    .iter()
+                    .copied()
+                    .filter(|legacy_property| *legacy_property != property)
+                    .find_map(|legacy_property| bool_component_state_value(state, legacy_property))
+            })
+        })
+        .or_else(|| {
+            component_state.and_then(|state| open_component_state_flag(state, canonical_property))
+        })
+        .unwrap_or(default_value)
+}
+
+fn open_component_state_flag(state: &UiComponentState, canonical_property: &str) -> Option<bool> {
+    match canonical_property {
+        "expanded" => state.flags.expanded.then_some(true),
+        "popup_open" => state.flags.popup_open.then_some(true),
+        _ => None,
+    }
+}
+
+fn default_expanded_state(metadata: &UiTemplateNodeMetadata) -> bool {
+    matches!(
+        metadata.component.as_str(),
+        "Group" | "InspectorSection" | "TreeView"
+    )
+}
+
+fn disabled_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> bool {
+    let component_state = surface.component_states.get(node.node_id);
+    !node.state_flags.enabled
+        || component_state
+            .and_then(disabled_component_state_value)
+            .unwrap_or(false)
+        || metadata.is_some_and(|metadata| {
+            metadata.widget.disabled
+                || bool_attribute_value(&metadata.attributes, "disabled") == Some(true)
+        })
+}
+
+fn disabled_component_state_value(state: &UiComponentState) -> Option<bool> {
+    bool_component_state_value(state, "disabled")
+        .or_else(|| bool_component_state_value(state, "enabled").map(|enabled| !enabled))
+        .or_else(|| state.flags.disabled.then_some(true))
+}
+
+fn selected_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> bool {
+    metadata
+        .and_then(|metadata| bool_attribute_value(&metadata.attributes, "selected"))
+        .or_else(|| {
+            surface
+                .component_states
+                .get(node.node_id)
+                .and_then(|state| {
+                    bool_component_state_value(state, "selected")
+                        .or_else(|| state.flags.selected.then_some(true))
+                })
+        })
+        .unwrap_or(false)
+}
+
+fn pressed_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> Option<bool> {
+    let pressed = surface
+        .component_states
+        .get(node.node_id)
+        .is_some_and(|state| {
+            bool_component_state_value(state, "pressed")
+                .or_else(|| bool_component_state_value(state, "active"))
+                .or_else(|| state.flags.pressed.then_some(true))
+                .unwrap_or(false)
+        })
+        || metadata.is_some_and(|metadata| {
+            bool_attribute_value(&metadata.attributes, "pressed") == Some(true)
+                || bool_attribute_value(&metadata.attributes, "active") == Some(true)
+        })
+        || node.state_flags.pressed;
+    pressed.then_some(true)
+}
+
+fn checked_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+    role: UiA11yRole,
+) -> Option<UiA11yCheckedState> {
+    let checked = metadata
+        .and_then(checked_attribute_value_for)
+        .or_else(|| checked_component_state_value_for(surface, node, metadata))
+        .or_else(|| metadata.and_then(|metadata| metadata.widget.checked))
+        .or_else(|| {
+            if node.state_flags.checked {
+                Some(true)
+            } else if matches!(role, UiA11yRole::Checkbox | UiA11yRole::Radio) {
+                Some(false)
+            } else {
+                None
+            }
+        })?;
+    Some(if checked {
+        UiA11yCheckedState::True
+    } else {
+        UiA11yCheckedState::False
+    })
+}
+
+fn checked_attribute_value_for(metadata: &UiTemplateNodeMetadata) -> Option<bool> {
+    let property = metadata
+        .widget
+        .checked_property
+        .as_deref()
+        .unwrap_or("checked");
+    bool_attribute_value(&metadata.attributes, property)
+}
+
+fn checked_component_state_value_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) -> Option<bool> {
+    let state = surface.component_states.get(node.node_id)?;
+    let property = metadata
+        .and_then(|metadata| metadata.widget.checked_property.as_deref())
+        .unwrap_or("checked");
+    if property == "checked" {
+        return bool_component_state_value(state, property)
+            .or_else(|| state.flags.checked.then_some(true));
+    }
+    bool_component_state_value(state, property)
+}
+
+fn value_state_for(
+    surface: &UiSurface,
+    node: &UiTreeNode,
+    metadata: Option<&UiTemplateNodeMetadata>,
+    role: UiA11yRole,
+) -> Option<String> {
+    let metadata = metadata?;
+    value_attribute_text(metadata, role)
+        .or_else(|| component_state_value_text(surface, node.node_id, metadata, role))
+        .or_else(|| {
+            metadata
+                .widget
+                .value
+                .as_ref()
+                .map(|value| value.display_text())
+        })
+}
+
+fn value_attribute_text(metadata: &UiTemplateNodeMetadata, role: UiA11yRole) -> Option<String> {
+    if let Some(property) = metadata.widget.value_property.as_deref() {
+        return metadata
+            .attributes
+            .get(property)
+            .and_then(attribute_display_text);
+    }
+    metadata
+        .attributes
+        .get("value")
+        .and_then(attribute_display_text)
+        .or_else(|| {
+            matches!(role, UiA11yRole::TextInput)
+                .then(|| {
+                    metadata
+                        .attributes
+                        .get("text")
+                        .and_then(attribute_display_text)
+                })
+                .flatten()
+        })
+}
+
+fn bool_component_state_value(state: &UiComponentState, property: &str) -> Option<bool> {
+    match state.value(property) {
+        Some(UiValue::Bool(value)) => Some(*value),
+        _ => None,
+    }
+}
+
+fn component_state_value_text(
+    surface: &UiSurface,
+    node_id: UiNodeId,
+    metadata: &UiTemplateNodeMetadata,
+    role: UiA11yRole,
+) -> Option<String> {
+    let state = surface.component_states.get(node_id)?;
+    if let Some(property) = metadata.widget.value_property.as_deref() {
+        return state.value(property).map(|value| value.display_text());
+    }
+    state
+        .value("value")
+        .map(|value| value.display_text())
+        .or_else(|| {
+            matches!(role, UiA11yRole::TextInput)
+                .then(|| state.value("text").map(|value| value.display_text()))
+                .flatten()
+        })
+}
+
 fn actions_for(
     node: &UiTreeNode,
     metadata: Option<&UiTemplateNodeMetadata>,
@@ -480,11 +771,23 @@ fn actions_for(
     let mut actions = metadata
         .map(|metadata| metadata.a11y.actions.clone())
         .unwrap_or_default();
-    if actions.is_empty() && (node.state_flags.clickable || node.state_flags.pressed) {
+    let headless_scrollbar = is_headless_scrollbar_widget(metadata);
+    if actions.is_empty() && !headless_scrollbar {
+        if let Some(metadata) = metadata {
+            actions.extend(default_actions_for_widget_behavior(metadata));
+        }
+    }
+    if actions.is_empty()
+        && !headless_scrollbar
+        && (node.state_flags.clickable || node.state_flags.pressed)
+    {
         actions.push(UiAccessibilityAction::Activate);
     }
     if node.state_flags.focusable || node.focus.focusable {
         actions.push(UiAccessibilityAction::Focus);
+    }
+    if node.container.is_scrollable() {
+        actions.push(UiAccessibilityAction::ScrollTo);
     }
     actions.sort();
     actions.dedup();
@@ -501,6 +804,61 @@ fn actions_for(
         Vec::new()
     };
     (actions, diagnostics)
+}
+
+fn default_actions_for_widget_behavior(
+    metadata: &UiTemplateNodeMetadata,
+) -> Vec<UiAccessibilityAction> {
+    match widget_behavior(metadata) {
+        UiWidgetBehavior::Button
+        | UiWidgetBehavior::MenuItem
+        | UiWidgetBehavior::Toggle
+        | UiWidgetBehavior::Radio
+        | UiWidgetBehavior::Disclosure
+        | UiWidgetBehavior::Popup => vec![UiAccessibilityAction::Activate],
+        UiWidgetBehavior::Range => vec![
+            UiAccessibilityAction::Increment,
+            UiAccessibilityAction::Decrement,
+            UiAccessibilityAction::SetValue,
+        ],
+        UiWidgetBehavior::TextInput => vec![UiAccessibilityAction::SetValue],
+        UiWidgetBehavior::Auto
+        | UiWidgetBehavior::Passive
+        | UiWidgetBehavior::RadioGroup
+        | UiWidgetBehavior::Scrollbar
+        | UiWidgetBehavior::ScrollbarThumb => Vec::new(),
+    }
+}
+
+fn widget_behavior(metadata: &UiTemplateNodeMetadata) -> UiWidgetBehavior {
+    metadata.widget.resolved_behavior(&metadata.component)
+}
+
+fn is_headless_scrollbar_widget(metadata: Option<&UiTemplateNodeMetadata>) -> bool {
+    metadata.is_some_and(|metadata| {
+        matches!(
+            widget_behavior(metadata),
+            UiWidgetBehavior::Scrollbar | UiWidgetBehavior::ScrollbarThumb
+        )
+    })
+}
+
+fn bool_attribute_value(
+    attributes: &BTreeMap<String, toml::Value>,
+    property: &str,
+) -> Option<bool> {
+    attributes.get(property).and_then(toml::Value::as_bool)
+}
+
+fn attribute_display_text(value: &toml::Value) -> Option<String> {
+    match value {
+        toml::Value::String(value) => Some(value.clone()),
+        toml::Value::Integer(value) => Some(value.to_string()),
+        toml::Value::Float(value) if value.is_finite() => Some(value.to_string()),
+        toml::Value::Boolean(value) => Some(value.to_string()),
+        toml::Value::Datetime(value) => Some(value.to_string()),
+        _ => None,
+    }
 }
 
 fn bounds_for(surface: &UiSurface, node: &UiTreeNode) -> Option<UiFrame> {

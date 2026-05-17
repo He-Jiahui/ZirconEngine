@@ -42,6 +42,13 @@ pub fn sound_options() -> Vec<PluginOptionManifest> {
         PluginOptionManifest::new("sound.backend", "Audio Backend", "string", "software-mixer"),
         PluginOptionManifest::new("sound.sample_rate_hz", "Sample Rate", "integer", "48000"),
         PluginOptionManifest::new("sound.channel_count", "Channel Count", "integer", "2"),
+        PluginOptionManifest::new("sound.global_volume_gain", "Global Volume", "number", "1.0"),
+        PluginOptionManifest::new(
+            "sound.default_spatial_scale",
+            "Default Spatial Scale",
+            "number",
+            "1.0",
+        ),
         PluginOptionManifest::new("sound.block_size_frames", "Block Size", "integer", "256"),
         PluginOptionManifest::new("sound.max_voices", "Max Voices", "integer", "128"),
         PluginOptionManifest::new("sound.max_tracks", "Max Tracks", "integer", "64"),

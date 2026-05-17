@@ -64,7 +64,7 @@ pub(in crate::graphics::runtime::render_framework) fn finish_active_capture_and_
     // The operation lock remains held while state is unlocked, so no second frame
     // or viewport mutation can enter the active capture before wgpu stop/poll completes.
     let stop_error = stop_prepared_graphics_debugger_capture(capture_stop);
-    let mut state = framework.state.lock().unwrap();
+    let mut state = framework.lock_state();
     record_graphics_debugger_capture_finish(&mut state, frame_generation, submit_error, stop_error);
     state
 }

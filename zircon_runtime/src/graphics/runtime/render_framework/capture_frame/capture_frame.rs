@@ -7,8 +7,8 @@ pub(in crate::graphics::runtime::render_framework) fn capture_frame(
     viewport: RenderViewportHandle,
 ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
     crate::profile_scope!("runtime", "render_framework", "capture_frame");
-    let _operation_guard = server.operation_lock.lock().unwrap();
-    let mut state = server.state.lock().unwrap();
+    let _operation_guard = server.lock_operation();
+    let mut state = server.lock_state();
     let frame = state
         .viewports
         .get(&viewport)

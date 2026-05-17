@@ -34,7 +34,7 @@ impl ProjectAssetManager {
                         metadata.primary_locator
                     ))
                 })?,
-            ResourceScheme::Res | ResourceScheme::Library => {
+            ResourceScheme::Res | ResourceScheme::Library | ResourceScheme::Package => {
                 let project = self.project_read();
                 let project = project
                     .as_ref()

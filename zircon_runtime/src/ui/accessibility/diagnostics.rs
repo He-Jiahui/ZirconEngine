@@ -276,7 +276,7 @@ fn role_supports_action(role: UiA11yRole, action: UiAccessibilityAction) -> bool
         UiAccessibilityAction::SetValue => {
             matches!(role, UiA11yRole::TextInput | UiA11yRole::Slider)
         }
-        UiAccessibilityAction::ScrollTo => matches!(role, UiA11yRole::Scrollbar),
+        UiAccessibilityAction::ScrollTo => true,
         UiAccessibilityAction::Dismiss => matches!(role, UiA11yRole::Dialog | UiA11yRole::Tooltip),
     }
 }

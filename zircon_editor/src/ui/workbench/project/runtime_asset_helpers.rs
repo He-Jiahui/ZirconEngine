@@ -43,6 +43,9 @@ pub(in crate::ui::workbench::project) fn default_material_asset(
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     })
 }
 

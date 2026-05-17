@@ -26,37 +26,37 @@ related_code:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
-  - zircon_asset/src/project/manifest.rs
-  - zircon_asset/src/project/paths.rs
-  - zircon_asset/src/project/manager/mod.rs
-  - zircon_asset/src/project/manager/open.rs
-  - zircon_asset/src/project/manager/scan_and_import.rs
-  - zircon_asset/src/project/manager/asset_lookup.rs
-  - zircon_asset/src/project/manager/artifact_access.rs
-  - zircon_asset/src/project/manager/source_path_for_uri.rs
-  - zircon_asset/src/lib.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_asset/src/pipeline/manager/mod.rs
-  - zircon_asset/src/formats/mod.rs
-  - zircon_asset/src/formats/obj/mod.rs
-  - zircon_asset/src/formats/obj/decode_obj_file.rs
-  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
-  - zircon_asset/src/formats/obj/resolve_obj_index.rs
-  - zircon_asset/src/watch/mod.rs
-  - zircon_asset/src/watch/asset_change.rs
-  - zircon_asset/src/watch/asset_change_kind.rs
-  - zircon_asset/src/watch/asset_watch_event.rs
-  - zircon_asset/src/watch/asset_watcher.rs
-  - zircon_asset/src/watch/spawn.rs
-  - zircon_asset/src/watch/fold_events.rs
-  - zircon_asset/src/watch/watch_loop.rs
-  - zircon_asset/src/watch/map_notify_event.rs
-  - zircon_manager/src/lib.rs
+  - zircon_runtime/src/asset/project/manifest.rs
+  - zircon_runtime/src/asset/project/paths.rs
+  - zircon_runtime/src/asset/project/manager/mod.rs
+  - zircon_runtime/src/asset/project/manager/open.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
+  - zircon_runtime/src/asset/pipeline/manager/mod.rs
+  - zircon_runtime/src/asset/formats/mod.rs
+  - zircon_runtime/src/asset/formats/obj/mod.rs
+  - zircon_runtime/src/asset/formats/obj/decode_obj_file.rs
+  - zircon_runtime/src/asset/formats/obj/parse_obj_face_vertex.rs
+  - zircon_runtime/src/asset/formats/obj/resolve_obj_index.rs
+  - zircon_runtime/src/asset/watch/mod.rs
+  - zircon_runtime/src/asset/watch/asset_change.rs
+  - zircon_runtime/src/asset/watch/asset_change_kind.rs
+  - zircon_runtime/src/asset/watch/asset_watch_event.rs
+  - zircon_runtime/src/asset/watch/asset_watcher.rs
+  - zircon_runtime/src/asset/watch/spawn.rs
+  - zircon_runtime/src/asset/watch/fold_events.rs
+  - zircon_runtime/src/asset/watch/watch_loop.rs
+  - zircon_runtime/src/asset/watch/map_notify_event.rs
+  - zircon_runtime/src/core/manager/mod.rs
   - zircon_scene/src/components.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
@@ -228,36 +228,36 @@ implementation_files:
   - zircon_runtime/src/asset/project/manager/scan_and_import.rs
   - zircon_runtime/src/asset/project/manager/artifact_access.rs
   - zircon_runtime/src/asset/project/manager/asset_lookup.rs
-  - zircon_asset/src/project/manifest.rs
-  - zircon_asset/src/project/paths.rs
-  - zircon_asset/src/project/manager/mod.rs
-  - zircon_asset/src/project/manager/open.rs
-  - zircon_asset/src/project/manager/scan_and_import.rs
-  - zircon_asset/src/project/manager/asset_lookup.rs
-  - zircon_asset/src/project/manager/artifact_access.rs
-  - zircon_asset/src/project/manager/source_path_for_uri.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/mod.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/mod.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/load_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
-  - zircon_asset/src/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
-  - zircon_asset/src/pipeline/manager/mod.rs
-  - zircon_asset/src/formats/mod.rs
-  - zircon_asset/src/formats/obj/mod.rs
-  - zircon_asset/src/formats/obj/decode_obj_file.rs
-  - zircon_asset/src/formats/obj/parse_obj_face_vertex.rs
-  - zircon_asset/src/formats/obj/resolve_obj_index.rs
-  - zircon_asset/src/watch/mod.rs
-  - zircon_asset/src/watch/asset_change.rs
-  - zircon_asset/src/watch/asset_change_kind.rs
-  - zircon_asset/src/watch/asset_watch_event.rs
-  - zircon_asset/src/watch/asset_watcher.rs
-  - zircon_asset/src/watch/spawn.rs
-  - zircon_asset/src/watch/fold_events.rs
-  - zircon_asset/src/watch/watch_loop.rs
-  - zircon_asset/src/watch/map_notify_event.rs
-  - zircon_manager/src/lib.rs
+  - zircon_runtime/src/asset/project/manifest.rs
+  - zircon_runtime/src/asset/project/paths.rs
+  - zircon_runtime/src/asset/project/manager/mod.rs
+  - zircon_runtime/src/asset/project/manager/open.rs
+  - zircon_runtime/src/asset/project/manager/scan_and_import.rs
+  - zircon_runtime/src/asset/project/manager/asset_lookup.rs
+  - zircon_runtime/src/asset/project/manager/artifact_access.rs
+  - zircon_runtime/src/asset/project/manager/source_path_for_uri.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/mod.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_imported_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/load_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/acquire_asset.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/loading/ensure_resident.rs
+  - zircon_runtime/src/asset/pipeline/manager/mod.rs
+  - zircon_runtime/src/asset/formats/mod.rs
+  - zircon_runtime/src/asset/formats/obj/mod.rs
+  - zircon_runtime/src/asset/formats/obj/decode_obj_file.rs
+  - zircon_runtime/src/asset/formats/obj/parse_obj_face_vertex.rs
+  - zircon_runtime/src/asset/formats/obj/resolve_obj_index.rs
+  - zircon_runtime/src/asset/watch/mod.rs
+  - zircon_runtime/src/asset/watch/asset_change.rs
+  - zircon_runtime/src/asset/watch/asset_change_kind.rs
+  - zircon_runtime/src/asset/watch/asset_watch_event.rs
+  - zircon_runtime/src/asset/watch/asset_watcher.rs
+  - zircon_runtime/src/asset/watch/spawn.rs
+  - zircon_runtime/src/asset/watch/fold_events.rs
+  - zircon_runtime/src/asset/watch/watch_loop.rs
+  - zircon_runtime/src/asset/watch/map_notify_event.rs
+  - zircon_runtime/src/core/manager/mod.rs
   - zircon_scene/src/components.rs
   - zircon_scene/src/world/bootstrap.rs
   - zircon_scene/src/world/project_io.rs
@@ -443,7 +443,7 @@ tests:
   - zircon_runtime/src/core/resource/tests.rs
   - zircon_runtime/src/asset/tests/facade.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
-  - zircon_asset/src/tests/pipeline/manager.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_scene/src/lib.rs
   - zircon_graphics/src/tests/project_render.rs
   - zircon_rhi/src/tests/capabilities.rs
@@ -502,7 +502,8 @@ doc_type: category-index
 
 ## Documents
 
-- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_runtime_interface::resource` locator/handle/state/record 合同与 `zircon_runtime::core::resource` 执行层分工，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`builtin://`/`mem://` 统一来源，importer dependency locator -> `AssetMetaDocument.entries[*].dependencies` -> `ResourceRecord.dependency_ids` 的 M2 graph path，root/subasset `AssetMetaDocument.entries` -> one artifact/record per label 的 M3 path，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [Directory Project Asset Rendering](./directory-project-asset-rendering.md): `zircon_runtime_interface::resource` locator/handle/state/record 合同与 `zircon_runtime::core::resource` 执行层分工，`Project/assets` 与 `Project/library` 的职责，`res://`/`lib://`/`package://`/`builtin://`/`mem://` 统一来源，`.zmeta` schema，importer dependency locator -> `AssetMetaDocument.entries[*].dependencies` -> `ResourceRecord.dependency_ids` 的 M2 graph path，root/subasset `AssetMetaDocument.entries` -> one artifact/record per entry UUID 的 M3 path，`AssetManager`/`ResourceManager`/asset-owned `EditorAssetManager`、`SceneAssetSerializer`、`LevelManager -> LevelSystem -> World` 与 graphics revision cache 的自动刷新路径。
+- [ZMeta Shader Material Assets](../zircon_runtime/asset/zmeta-shader-material.md): `.zmeta` UUID/URL identity、`package://{package_id}/path`、single/compound source units、`.zshader` TOML、compound shader subassets，以及 material `property_values` 对 shader property schema 的校验规则。
 - [Zircon Runtime Asset Facade](../zircon_runtime/asset/facade.md): Bevy-style `Asset`、`Handle<TAsset>`、`Assets<TAsset>`、`AssetEvent<TAsset>`、`AssetEventReceiver<TAsset>`、`AssetLoadState` 与 `RecursiveDependencyLoadState` 如何复用 `ResourceManager`、`ResourceRecord`、`ResourceEvent` 和 `ResourceLease`，以及 Zircon 对 handle residency、missing dependency diagnostics 与 `Reloading` 状态的 deliberate divergence。
 - [Runtime Physics And Animation Assets](./runtime-physics-animation-assets.md): `PhysicsMaterial`、五类 `.zranim` 动画资产，以及 `SceneAsset <-> World` 的 physics/animation 组件 roundtrip 如何一起收进 `zircon_runtime::{asset,scene}`。
 - [Bevy Rendering Capability Matrix](./bevy-rendering-capability-matrix.md): M0 source-backed matrix that maps local `dev/bevy` render feature collections and modules to Zircon runtime product profiles, neutral contract owners, concrete graphics owners, and later milestone gaps.
@@ -620,7 +621,7 @@ doc_type: category-index
 
 - `zircon_runtime_interface::resource` 作为跨 crate 资源 ABI/DTO/序列化合同层，统一 locator、typed handle、state、record、event 和 marker DTO；`zircon_runtime::core::resource` 继续拥有 manager/IO/lease/registry 执行逻辑
 - `zircon-project.toml` + `assets/` + `library/` 的目录式项目根
-- `res://` / `lib://` / `builtin://` / `mem://` 的统一资源来源模型
+- `res://` / `lib://` / `package://` / `builtin://` / `mem://` 的统一资源来源模型
 - `zircon_runtime::graphics` 的窄公开面与 runtime 生产 `.ui.toml` 资源必须放在 crate `assets/` 的规则
 - PNG/JPEG、WGSL、TOML material、TOML scene、OBJ、glTF/GLB 的导入与 library artifact 持久化
 - `PhysicsMaterial` 与 `Animation{Skeleton, Clip, Sequence, Graph, StateMachine}` 的 source/import/artifact/editor surface

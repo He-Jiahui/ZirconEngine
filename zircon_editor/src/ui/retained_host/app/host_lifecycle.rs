@@ -9,9 +9,10 @@ use crate::ui::retained_host::floating_window_projection::{
 };
 use crate::ui::retained_host::root_shell_projection::resolve_root_viewport_content_frame;
 use crate::ui::retained_host::ui_perf::{
-    enter_ui_perf_scenario, record_current_ui_perf_counter, time_ui_perf_scenario, UiPerfCounter,
-    UiPerfScenario,
+    current_ui_perf_scenario, enter_ui_perf_scenario, record_current_ui_perf_counter,
+    time_ui_perf_scenario, UiPerfCounter, UiPerfScenario,
 };
+use crate::ui::workbench::startup::{EditorSessionMode, NewProjectDraft};
 use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;
 use zircon_runtime::diagnostic_log::{
     diagnostic_log_allows, write_diagnostic_log, DiagnosticLogLevel,
@@ -299,6 +300,7 @@ impl RetainedEditorHost {
                 pending_close_prompt: None,
                 presentation_cache: HostPresentationCache::default(),
                 invalidation: HostInvalidationRoot::with_initial_full_rebuild(),
+                pending_ui_perf_scenario: None,
                 presentation_dirty: true,
                 layout_dirty: true,
                 window_metrics_dirty: true,
@@ -324,60 +326,68 @@ impl RetainedEditorHost {
             }
         }
 
-        self.sync_shell_size();
-        self.recompute_if_dirty();
-
-        if self.render_dirty {
-            let pending_render = self
-                .invalidation
-                .consume_recompute_reasons(HostInvalidationMask::RENDER);
-            let render_reasons = if pending_render.is_empty() {
-                HostInvalidationMask::RENDER
-            } else {
-                pending_render
-            };
-            let render_rebuild = self.invalidation.record_render_rebuild();
-            record_current_ui_perf_counter(UiPerfCounter::RenderPathCount, 1.0);
-            self.publish_refresh_invalidation_diagnostics();
-            if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
-                write_diagnostic_log(
-                    "editor_host_invalidation",
-                    format!(
-                        "render_path count={} reasons={} {}",
-                        render_rebuild,
-                        render_reasons.summary(),
-                        self.invalidation.stats_summary()
-                    ),
-                );
+        {
+            let frame_scenario = self.pending_ui_perf_scenario.take();
+            let _frame_scenario_guard = frame_scenario.map(enter_ui_perf_scenario);
+            if let Some(scenario) = frame_scenario {
+                self.ui.mark_completed_frame_update_scenario(scenario);
             }
-            let mut keep_render_dirty = false;
-            if let Some(submission) = self.runtime.render_frame_submission() {
-                zircon_runtime::profile_scope!(
-                    "editor",
-                    "retained_host",
-                    "submit_viewport_extract"
-                );
-                match self.viewport.submit_extract_with_ui(
-                    submission.extract,
-                    submission.ui,
-                    self.viewport_size,
-                ) {
-                    Ok(true) => {}
-                    Ok(false) => {
-                        keep_render_dirty = true;
-                    }
-                    Err(error) => {
-                        self.set_status_line(format!("Viewport submit failed: {error}"));
+
+            self.sync_shell_size();
+            self.recompute_if_dirty();
+
+            if self.render_dirty {
+                let pending_render = self
+                    .invalidation
+                    .consume_recompute_reasons(HostInvalidationMask::RENDER);
+                let render_reasons = if pending_render.is_empty() {
+                    HostInvalidationMask::RENDER
+                } else {
+                    pending_render
+                };
+                let render_rebuild = self.invalidation.record_render_rebuild();
+                record_current_ui_perf_counter(UiPerfCounter::RenderPathCount, 1.0);
+                self.publish_refresh_invalidation_diagnostics();
+                if diagnostic_log_allows(DiagnosticLogLevel::Verbose) {
+                    write_diagnostic_log(
+                        "editor_host_invalidation",
+                        format!(
+                            "render_path count={} reasons={} {}",
+                            render_rebuild,
+                            render_reasons.summary(),
+                            self.invalidation.stats_summary()
+                        ),
+                    );
+                }
+                let mut keep_render_dirty = false;
+                if let Some(submission) = self.runtime.render_frame_submission() {
+                    zircon_runtime::profile_scope!(
+                        "editor",
+                        "retained_host",
+                        "submit_viewport_extract"
+                    );
+                    match self.viewport.submit_extract_with_ui(
+                        submission.extract,
+                        submission.ui,
+                        self.viewport_size,
+                    ) {
+                        Ok(true) => {}
+                        Ok(false) => {
+                            keep_render_dirty = true;
+                        }
+                        Err(error) => {
+                            self.set_status_line(format!("Viewport submit failed: {error}"));
+                        }
                     }
                 }
-            }
-            self.render_dirty = keep_render_dirty;
-            if keep_render_dirty {
-                // Lazy viewport backend startup completes off-thread; queue a
-                // non-reentrant frame update so the next redraw can submit the
-                // extract once the backend is ready.
-                let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
-                self.ui.request_frame_update_region(frame);
+                self.render_dirty = keep_render_dirty;
+                if keep_render_dirty {
+                    // Lazy viewport backend startup completes off-thread; queue a
+                    // non-reentrant frame update so the next redraw can submit the
+                    // extract once the backend is ready.
+                    let frame = self.ui.get_host_window_bootstrap().viewport_content_frame;
+                    self.ui.request_frame_update_region(frame);
+                }
             }
         }
 
@@ -1221,6 +1231,7 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn invalidate_host(&mut self, mask: HostInvalidationMask) {
+        self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
         self.invalidation.invalidate(mask);
         if mask.requires_window_metrics() {
@@ -1239,9 +1250,17 @@ impl RetainedEditorHost {
 
     pub(super) fn record_paint_only_invalidation(&mut self, mask: HostInvalidationMask) {
         let mask = mask.union(HostInvalidationMask::PAINT_ONLY);
+        self.capture_pending_ui_perf_scenario();
         record_ui_dirty_mask(mask);
         self.invalidation.invalidate(mask);
         self.publish_refresh_invalidation_diagnostics();
+    }
+
+    fn capture_pending_ui_perf_scenario(&mut self) {
+        let scenario = current_ui_perf_scenario();
+        if scenario != UiPerfScenario::Startup {
+            self.pending_ui_perf_scenario = Some(scenario);
+        }
     }
 
     pub(super) fn mark_layout_dirty(&mut self) {
@@ -1360,6 +1379,16 @@ fn resolve_editor_startup_session(
     match startup_request {
         Some(EditorGuiStartupRequest::OpenProject { project_path }) => {
             editor_manager.open_project_and_remember(project_path)
+        }
+        Some(EditorGuiStartupRequest::OpenBuiltinView { descriptor_id }) => {
+            Ok(EditorStartupSessionDocument {
+                mode: EditorSessionMode::Welcome,
+                project: None,
+                open_builtin_view: Some(descriptor_id.clone()),
+                recent_projects: Vec::new(),
+                draft: NewProjectDraft::renderable_empty_default(),
+                status_message: format!("Opened {descriptor_id}"),
+            })
         }
         Some(EditorGuiStartupRequest::CreateProject(draft)) => {
             editor_manager.create_project_and_open(draft)

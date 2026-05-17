@@ -6,6 +6,14 @@ use crate::scene::ecs::Schedule;
 use crate::scene::EntityId;
 
 impl World {
+    pub(crate) fn query_cache_revision(&self) -> u64 {
+        self.query_cache_revision.get()
+    }
+
+    pub(super) fn bump_query_cache_revision(&mut self) {
+        self.query_cache_revision.advance();
+    }
+
     pub fn schedule(&self) -> &Schedule {
         &self.schedule
     }

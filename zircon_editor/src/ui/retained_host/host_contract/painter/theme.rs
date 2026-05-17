@@ -24,6 +24,7 @@ pub(super) struct HostMaterialPalette {
     pub track: [u8; 4],
     pub focus_ring: [u8; 4],
     pub border_disabled: [u8; 4],
+    pub shadow: [u8; 4],
 }
 
 pub(super) const PALETTE: HostMaterialPalette = HostMaterialPalette {
@@ -52,4 +53,5 @@ pub(super) const PALETTE: HostMaterialPalette = HostMaterialPalette {
     track: [42, 52, 60, 255],
     focus_ring: [128, 234, 255, 255],
     border_disabled: [51, 72, 82, 255],
+    shadow: [0, 0, 0, 102],
 };

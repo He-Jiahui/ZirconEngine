@@ -38,12 +38,7 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_scene(paths.assets_root().join("scenes").join("main.scene.toml"));
 
     let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
@@ -57,7 +52,7 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
         .is_some());
     assert!(manager
         .registry()
-        .get_by_locator(&AssetUri::parse("res://materials/grid.material.toml").unwrap())
+        .get_by_locator(&AssetUri::parse("res://materials/grid.zmaterial").unwrap())
         .is_some());
 
     let model = manager
@@ -77,7 +72,7 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
     let model_meta_path = paths
         .assets_root()
         .join("models")
-        .join("triangle.obj.meta.toml");
+        .join("triangle.obj.zmeta");
     assert!(
         model_meta_path.exists(),
         "expected sidecar meta file to be generated"
@@ -88,13 +83,11 @@ fn project_manager_scans_assets_imports_library_and_loads_artifacts() {
         .get_by_locator(&AssetUri::parse("res://models/triangle.obj").unwrap())
         .unwrap();
     assert_eq!(
-        model_meta.primary_locator,
+        model_meta.url,
         AssetUri::parse("res://models/triangle.obj").unwrap()
     );
-    assert_eq!(
-        model_record.id(),
-        AssetId::from_asset_uuid_label(model_meta.asset_uuid, None)
-    );
+    assert_eq!(model_meta.asset_kind, AssetKind::Model);
+    assert_eq!(model_record.id(), AssetId::from_asset_uuid(model_meta.uuid));
 
     let _ = fs::remove_dir_all(root);
 }
@@ -228,11 +221,11 @@ fn project_manager_imports_physics_and_animation_assets_into_runtime_library() {
             .assets_root()
             .join("physics")
             .join("materials")
-            .join("default.physics_material.toml.meta.toml"),
+            .join("default.physics_material.toml.zmeta"),
     )
     .unwrap();
     assert_eq!(
-        physics_meta.primary_locator,
+        physics_meta.url,
         AssetUri::parse("res://physics/materials/default.physics_material.toml").unwrap()
     );
 
@@ -310,7 +303,7 @@ fn project_manager_restores_ready_artifacts_from_meta_after_restart() {
         paths
             .assets_root()
             .join("data")
-            .join("settings.counted.meta.toml"),
+            .join("settings.counted.zmeta"),
     )
     .unwrap();
     assert_eq!(
@@ -394,7 +387,7 @@ fn project_manager_records_failed_imports_and_continues_scanning() {
         paths
             .assets_root()
             .join("models")
-            .join("missing_backend.fbx.meta.toml"),
+            .join("missing_backend.fbx.zmeta"),
     )
     .unwrap();
     assert_eq!(failed_meta.importer_id, "zircon.optional.model.fbx");
@@ -428,13 +421,8 @@ fn project_manager_records_ui_schema_migration_in_meta() {
     let mut manager = project_manager_with_first_wave_plugin_fixtures(&root);
     manager.scan_and_import().unwrap();
 
-    let meta = AssetMetaDocument::load(
-        paths
-            .assets_root()
-            .join("ui")
-            .join("legacy.ui.toml.meta.toml"),
-    )
-    .unwrap();
+    let meta = AssetMetaDocument::load(paths.assets_root().join("ui").join("legacy.ui.toml.zmeta"))
+        .unwrap();
     assert_eq!(meta.importer_id, "ui_document_importer.typed_toml");
     assert_eq!(meta.source_schema_version, Some(1));
     assert_eq!(
@@ -471,24 +459,15 @@ fn project_manager_clears_stale_migration_meta_for_non_migrating_importer() {
     stale_meta.target_schema_version = Some(99);
     stale_meta.migration_summary = "stale migration data".to_string();
     stale_meta
-        .save(
-            paths
-                .assets_root()
-                .join("data")
-                .join("settings.json.meta.toml"),
-        )
+        .save(paths.assets_root().join("data").join("settings.json.zmeta"))
         .unwrap();
 
     let mut manager = ProjectManager::open(&root).unwrap();
     manager.scan_and_import().unwrap();
 
-    let meta = AssetMetaDocument::load(
-        paths
-            .assets_root()
-            .join("data")
-            .join("settings.json.meta.toml"),
-    )
-    .unwrap();
+    let meta =
+        AssetMetaDocument::load(paths.assets_root().join("data").join("settings.json.zmeta"))
+            .unwrap();
     assert_eq!(meta.importer_id, "zircon.builtin.data.json");
     assert_eq!(meta.source_schema_version, None);
     assert_eq!(meta.target_schema_version, None);
@@ -610,19 +589,28 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
         paths
             .assets_root()
             .join("bundles")
-            .join("atlas.multi.meta.toml"),
+            .join("atlas.multi.zmeta"),
     )
     .unwrap();
 
     assert_eq!(imported.len(), 2);
     assert_eq!(meta.entries.len(), 2);
-    assert_eq!(
-        root_record.id(),
-        AssetId::from_asset_uuid_label(meta.asset_uuid, None)
-    );
+    let root_entry = meta
+        .entries
+        .iter()
+        .find(|entry| entry.url == root_uri)
+        .expect("root entry");
+    let texture_entry = meta
+        .entries
+        .iter()
+        .find(|entry| entry.url == texture_uri)
+        .expect("texture entry");
+    assert_eq!(root_entry.uuid, meta.uuid);
+    assert_ne!(texture_entry.uuid, meta.uuid);
+    assert_eq!(root_record.id(), AssetId::from_asset_uuid(root_entry.uuid));
     assert_eq!(
         texture_record.id(),
-        AssetId::from_asset_uuid_label(meta.asset_uuid, Some("Texture0"))
+        AssetId::from_asset_uuid(texture_entry.uuid)
     );
     assert_ne!(
         root_record.artifact_locator(),
@@ -631,7 +619,7 @@ fn project_manager_imports_labeled_subassets_as_separate_artifacts() {
     assert!(meta
         .entries
         .iter()
-        .any(|entry| entry.locator == texture_uri && entry.kind == AssetKind::Texture));
+        .any(|entry| entry.url == texture_uri && entry.asset_kind == AssetKind::Texture));
 
     match manager.load_artifact(&root_uri).unwrap() {
         ImportedAsset::Data(asset) => assert_eq!(asset.text, "atlas"),
@@ -820,6 +808,9 @@ fn import_material_with_dependencies(
             emissive_texture: None,
             alpha_mode: crate::asset::AlphaMode::Opaque,
             double_sided: false,
+            property_values: Default::default(),
+            texture_slots: Default::default(),
+            validation_diagnostics: Vec::new(),
         }),
     )
     .with_dependency(AssetUri::parse("res://textures/checker.deptex").unwrap())
@@ -831,13 +822,12 @@ fn import_texture_dependency(
 ) -> Result<AssetImportOutcome, AssetImportError> {
     Ok(AssetImportOutcome::new(
         context.uri.clone(),
-        ImportedAsset::Texture(crate::asset::TextureAsset {
-            uri: context.uri.clone(),
-            width: 1,
-            height: 1,
-            rgba: vec![255, 255, 255, 255],
-            payload: crate::asset::TexturePayload::Rgba8,
-        }),
+        ImportedAsset::Texture(crate::asset::TextureAsset::new_rgba8(
+            context.uri.clone(),
+            1,
+            1,
+            vec![255, 255, 255, 255],
+        )),
     ))
 }
 
@@ -857,13 +847,12 @@ fn import_multi_asset_bundle(
     )
     .with_entry(ImportedAssetEntry::new(
         texture_uri.clone(),
-        ImportedAsset::Texture(crate::asset::TextureAsset {
-            uri: texture_uri,
-            width: 1,
-            height: 1,
-            rgba: vec![255, 0, 255, 255],
-            payload: crate::asset::TexturePayload::Rgba8,
-        }),
+        ImportedAsset::Texture(crate::asset::TextureAsset::new_rgba8(
+            texture_uri,
+            1,
+            1,
+            vec![255, 0, 255, 255],
+        )),
     )))
 }
 
@@ -883,22 +872,20 @@ fn import_duplicate_label_bundle(
     )
     .with_entry(ImportedAssetEntry::new(
         texture_uri.clone(),
-        ImportedAsset::Texture(crate::asset::TextureAsset {
-            uri: texture_uri,
-            width: 1,
-            height: 1,
-            rgba: vec![255, 0, 0, 255],
-            payload: crate::asset::TexturePayload::Rgba8,
-        }),
+        ImportedAsset::Texture(crate::asset::TextureAsset::new_rgba8(
+            texture_uri,
+            1,
+            1,
+            vec![255, 0, 0, 255],
+        )),
     ))
     .with_entry(ImportedAssetEntry::new(
         duplicate_uri.clone(),
-        ImportedAsset::Texture(crate::asset::TextureAsset {
-            uri: duplicate_uri,
-            width: 1,
-            height: 1,
-            rgba: vec![0, 255, 0, 255],
-            payload: crate::asset::TexturePayload::Rgba8,
-        }),
+        ImportedAsset::Texture(crate::asset::TextureAsset::new_rgba8(
+            duplicate_uri,
+            1,
+            1,
+            vec![0, 255, 0, 255],
+        )),
     )))
 }

@@ -1,5 +1,6 @@
 mod contract;
 mod error;
+mod image_decode;
 mod ingest;
 mod native;
 mod registry;
@@ -11,6 +12,7 @@ pub use contract::{
     ImportedAssetEntry,
 };
 pub use error::AssetImportError;
+pub use image_decode::{decode_texture_source_image, DecodedTextureImage};
 pub use ingest::AssetImporter;
 pub use native::{
     NativeAssetImportEntryMetadata, NativeAssetImportRequestMetadata,

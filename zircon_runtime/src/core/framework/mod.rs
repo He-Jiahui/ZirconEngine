@@ -16,6 +16,7 @@ pub mod sound;
 pub mod tasks;
 pub mod time;
 pub mod ui;
+pub mod window;
 
 #[cfg(test)]
 mod tests;

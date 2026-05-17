@@ -5,6 +5,30 @@ use super::super::super::constants::SSAO_WORKGROUP_SIZE;
 use super::super::super::scene_post_process_resources::ScenePostProcessResources;
 use super::super::super::ssao_params::SsaoParams;
 
+fn ssao_pipeline(
+    device: &wgpu::Device,
+    ssao_bind_group_layout: &wgpu::BindGroupLayout,
+) -> wgpu::ComputePipeline {
+    let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("zircon-ssao-shader"),
+        source: wgpu::ShaderSource::Wgsl(include_str!("../../shaders/ssao.wgsl").into()),
+    });
+    let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+        label: Some("zircon-ssao-pipeline-layout"),
+        bind_group_layouts: &[Some(ssao_bind_group_layout)],
+        immediate_size: 0,
+    });
+
+    device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+        label: Some("zircon-ssao-pipeline"),
+        layout: Some(&pipeline_layout),
+        module: &shader,
+        entry_point: Some("cs_main"),
+        compilation_options: wgpu::PipelineCompilationOptions::default(),
+        cache: None,
+    })
+}
+
 impl ScenePostProcessResources {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn execute_ssao(
@@ -70,11 +94,14 @@ impl ScenePostProcessResources {
             ],
         });
 
+        let ssao_pipeline = self
+            .ssao_pipeline
+            .get_or_init(|| ssao_pipeline(device, &self.ssao_bind_group_layout));
         let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
             label: Some("SsaoEvaluatePass"),
             timestamp_writes: None,
         });
-        pass.set_pipeline(&self.ssao_pipeline);
+        pass.set_pipeline(ssao_pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.dispatch_workgroups(
             viewport_size.x.max(1).div_ceil(SSAO_WORKGROUP_SIZE),

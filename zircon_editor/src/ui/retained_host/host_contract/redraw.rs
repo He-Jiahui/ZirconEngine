@@ -147,11 +147,7 @@ impl HostRedrawRequest {
             ) => Self::Region {
                 frame: union_frame(&current, &next),
                 frame_update: frame_update || next_update,
-                scenario: if next_update && !frame_update {
-                    next_scenario
-                } else {
-                    scenario
-                },
+                scenario: if next_update { next_scenario } else { scenario },
             },
             (Self::None, next @ Self::Full { .. }) => next,
             (Self::None, next @ Self::Region { .. }) => next,
@@ -325,5 +321,46 @@ mod tests {
                 height: 20.0,
             })
         );
+    }
+
+    #[test]
+    fn redraw_merge_uses_latest_frame_update_scenario() {
+        let click_frame = FrameRect {
+            x: 8.0,
+            y: 10.0,
+            width: 20.0,
+            height: 12.0,
+        };
+        let resize_frame = FrameRect {
+            x: 24.0,
+            y: 6.0,
+            width: 10.0,
+            height: 20.0,
+        };
+
+        let redraw = HostRedrawRequest::region_for_scenario_with_frame_update(
+            UiPerfScenario::Click,
+            click_frame.clone(),
+            true,
+        )
+        .merge(HostRedrawRequest::region_for_scenario_with_frame_update(
+            UiPerfScenario::DrawerResize,
+            resize_frame.clone(),
+            true,
+        ));
+
+        assert!(redraw.requires_frame_update());
+        assert_eq!(redraw.scenario(), UiPerfScenario::DrawerResize);
+
+        let redraw = HostRedrawRequest::full_frame_for_scenario(UiPerfScenario::Click, true).merge(
+            HostRedrawRequest::region_for_scenario_with_frame_update(
+                UiPerfScenario::AssetRefresh,
+                resize_frame,
+                true,
+            ),
+        );
+
+        assert!(redraw.requires_frame_update());
+        assert_eq!(redraw.scenario(), UiPerfScenario::AssetRefresh);
     }
 }

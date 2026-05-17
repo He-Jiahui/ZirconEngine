@@ -1,0 +1,143 @@
+[asset]
+kind = "component"
+id = "res://ui/editor/material_components/material_mui_x_bar_chart.zui"
+version = 2
+display_name = "Material Bar Chart Prototype"
+
+[imports]
+widgets = []
+styles = []
+
+[components.MaterialMuiXBarChartPrototype]
+root = "root"
+default_classes = ["material-lab-prototype", "material-surface"]
+
+[nodes.title]
+component = "Label"
+control_id = "mui-x-bar-chart_Title"
+classes = ["material-lab-title"]
+props = { text = "Bar Chart", text_tone = "primary", font_size = 13.0, font_weight = 700 }
+layout = { width = { stretch = "Stretch" }, height = { min = 22.0, preferred = 22.0, max = 22.0, stretch = "Fixed" } }
+
+[nodes.meta]
+component = "HorizontalBox"
+control_id = "mui_x_bar_chart_Meta"
+classes = ["material-lab-meta-strip", "material-lab-meta"]
+layout = { width = { stretch = "Stretch" }, height = { min = 18.0, preferred = 18.0, max = 18.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "meta_group" },
+  { node = "meta_response" },
+  { node = "meta_variant" },
+  { node = "meta_layout" },
+]
+
+[nodes.meta_group]
+component = "Label"
+control_id = "mui_x_bar_chart_MetaGroup"
+classes = ["material-lab-meta-chip", "material-lab-meta-group"]
+props = { text = "MUI X", text_tone = "secondary", font_size = 8.0, surface_variant = "elevated", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 53, preferred = 53, max = 53, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.meta_response]
+component = "Label"
+control_id = "mui_x_bar_chart_MetaResponse"
+classes = ["material-lab-meta-chip", "material-lab-meta-response"]
+props = { text = "hover / preview", text_tone = "success", font_size = 8.0, surface_variant = "elevated", response_mechanism = "hover / preview", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.meta_variant]
+component = "Label"
+control_id = "mui_x_bar_chart_MetaVariant"
+classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
+props = { text = "stacked / grouped", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "stacked / grouped", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 117, preferred = 117, max = 117, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+
+[nodes.meta_layout]
+component = "Label"
+control_id = "mui_x_bar_chart_MetaLayout"
+classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
+props = { text = "data viewport", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "data viewport", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 97, preferred = 97, max = 97, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.sample]
+component = "Canvas"
+control_id = "mui-x-bar-chart_Sample"
+classes = ["material-control", "material-lab-sample"]
+props = { text = "Bar Chart", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+events = [
+  { id = "MaterialLab/MuiXBarChart/Hover", event = "Hover", route = "MaterialLab.MuiXBarChart.Hover" },
+]
+
+[nodes.state_strip]
+component = "HorizontalBox"
+control_id = "mui_x_bar_chart_StateStrip"
+classes = ["material-lab-state-strip"]
+layout = { width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 20.0, max = 20.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "state_default" },
+  { node = "state_hover" },
+  { node = "state_pressed" },
+  { node = "state_focus" },
+  { node = "state_disabled" },
+  { node = "state_selected" },
+  { node = "state_open" },
+  { node = "state_error" },
+]
+[nodes.state_default]
+component = "Label"
+control_id = "mui_x_bar_chart_StateDefault"
+classes = ["material-lab-state-pill", "material-lab-state-default"]
+props = { text = "Default", text_tone = "secondary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_hover]
+component = "Label"
+control_id = "mui_x_bar_chart_StateHover"
+classes = ["material-lab-state-pill", "material-lab-state-hover"]
+props = { text = "Hover", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_pressed]
+component = "Label"
+control_id = "mui_x_bar_chart_StatePressed"
+classes = ["material-lab-state-pill", "material-lab-state-pressed"]
+props = { text = "Pressed", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = true, pressed = true, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_focus]
+component = "Label"
+control_id = "mui_x_bar_chart_StateFocus"
+classes = ["material-lab-state-pill", "material-lab-state-focus"]
+props = { text = "Focus", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_disabled]
+component = "Label"
+control_id = "mui_x_bar_chart_StateDisabled"
+classes = ["material-lab-state-pill", "material-lab-state-disabled"]
+props = { text = "Disabled", text_tone = "disabled", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_selected]
+component = "Label"
+control_id = "mui_x_bar_chart_StateSelected"
+classes = ["material-lab-state-pill", "material-lab-state-selected"]
+props = { text = "Selected", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_open]
+component = "Label"
+control_id = "mui_x_bar_chart_StateOpen"
+classes = ["material-lab-state-pill", "material-lab-state-open"]
+props = { text = "Open", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.state_error]
+component = "Label"
+control_id = "mui_x_bar_chart_StateError"
+classes = ["material-lab-state-pill", "material-lab-state-error"]
+props = { text = "Error", text_tone = "error", font_size = 8.0, surface_variant = "elevated", button_variant = "text", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 38.0, preferred = 48.0, max = 62.0, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+[nodes.root]
+component = "VerticalBox"
+control_id = "mui-x-bar-chart_Root"
+classes = ["material-lab-card", "material-surface", "material-mui_x_bar_chart"]
+layout = { width = { stretch = "Stretch" }, height = { min = 104.0, preferred = 120.0, max = 140.0, stretch = "Fixed" }, container = { kind = "VerticalBox", gap = 6.0 } }
+children = [
+  { node = "title" },
+  { node = "meta" },
+  { node = "sample" },
+  { node = "state_strip" },
+]

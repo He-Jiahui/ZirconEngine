@@ -5,5 +5,5 @@ mod task_status;
 
 pub use hub_snapshot::HubSnapshot;
 pub use navigation::HubPage;
-pub use project_view::{ProjectSortMode, ProjectViewMode};
+pub use project_view::{ProjectFilterMode, ProjectSortMode, ProjectViewMode};
 pub use task_status::TaskStatus;

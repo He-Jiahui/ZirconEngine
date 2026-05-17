@@ -4,9 +4,9 @@ use std::slice;
 use zircon_runtime_interface::{ProfileControlRequest, ProfileControlResponse};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
-    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle,
-    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1,
+    ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::{LoadedRuntime, RuntimeLibraryError};
@@ -124,6 +124,42 @@ impl RuntimeSession {
             "present runtime viewport",
         )?;
         Ok(true)
+    }
+
+    pub(crate) fn tick_frame(&self) -> Result<bool, RuntimeLibraryError> {
+        let Some(tick_frame) = self.runtime.tick_frame() else {
+            return Ok(false);
+        };
+        ensure_status(unsafe { tick_frame(self.handle) }, "tick runtime frame")?;
+        Ok(true)
+    }
+
+    pub(crate) fn drain_host_requests(
+        &self,
+    ) -> Result<Vec<ZrRuntimeHostRequestV1>, RuntimeLibraryError> {
+        let Some(drain_host_requests) = self.runtime.drain_host_requests() else {
+            return Ok(Vec::new());
+        };
+        let mut output = ZrOwnedByteBuffer::empty();
+        let status = unsafe { drain_host_requests(self.handle, &mut output) };
+        ensure_status(status, "drain runtime host requests")?;
+        if output.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let bytes = unsafe { slice::from_raw_parts(output.data.cast_const(), output.len) };
+        let batch = serde_json::from_slice::<ZrRuntimeHostRequestBatchV1>(bytes)
+            .map_err(|error| RuntimeLibraryError::new(error.to_string()));
+        if let Some(free) = output.free {
+            ensure_status(unsafe { free(output) }, "free runtime host requests")?;
+        }
+        let batch = batch?;
+        if batch.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+            return Err(RuntimeLibraryError::new(
+                "runtime host request batch used an unsupported ABI version",
+            ));
+        }
+        Ok(batch.requests)
     }
 
     pub(crate) fn supports_viewport_surface_present(&self) -> bool {

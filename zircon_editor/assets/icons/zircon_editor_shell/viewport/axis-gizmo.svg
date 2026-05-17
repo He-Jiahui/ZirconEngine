@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Viewport axis gizmo">
+  <path fill="none" stroke="#54df60" stroke-linecap="round" stroke-width="4" d="M32 34V10"/>
+  <path fill="#54df60" d="m32 4 6 10H26z"/>
+  <path fill="none" stroke="#ff5b43" stroke-linecap="round" stroke-width="4" d="M32 34 52 45"/>
+  <path fill="#ff5b43" d="m58 48-12 1 6-10z"/>
+  <path fill="none" stroke="#3484ff" stroke-linecap="round" stroke-width="4" d="M32 34 14 48"/>
+  <path fill="#3484ff" d="m8 52 5-11 7 9z"/>
+  <circle cx="32" cy="34" r="5" fill="#9efff8" stroke="#16212b" stroke-width="2"/>
+  <text x="31" y="9" fill="#54df60" font-family="Arial" font-size="8" text-anchor="middle">Y</text>
+  <text x="59" y="55" fill="#ff5b43" font-family="Arial" font-size="8" text-anchor="middle">X</text>
+  <text x="6" y="59" fill="#3484ff" font-family="Arial" font-size="8" text-anchor="middle">Z</text>
+</svg>

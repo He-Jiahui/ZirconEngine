@@ -2,7 +2,7 @@ use zircon_runtime_interface::ui::{
     component::{UiValue, UiValueKind},
     event_ui::{UiNodeId, UiPropertyInvalidationReason, UiReflectedPropertySource},
     focus::UiFocusChangeEvent,
-    tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiVisibility},
+    tree::{UiDirtyFlags, UiInputPolicy, UiTree, UiTreeError, UiTreeNode, UiVisibility},
 };
 
 use crate::ui::tree::UiRuntimeTreeAccessExt;
@@ -124,7 +124,13 @@ pub fn mutate_tree_property(
         "hoverable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.hoverable, input_dirty()),
         "focusable" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.focusable, input_dirty()),
         "pressed" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.pressed, render_dirty()),
-        "checked" => mutate_node_state_bool(&request, node, |node| &mut node.state_flags.checked, render_dirty()),
+        "checked" => mutate_node_state_bool_and_optional_attribute(
+            &request,
+            node,
+            |node| &mut node.state_flags.checked,
+            "checked",
+            render_dirty(),
+        ),
         "input_policy" => match input_policy_value(&request.value) {
             Some(next) if node.input_policy == next => UiPropertyMutationReport::unchanged(&request),
             Some(next) => {
@@ -179,8 +185,8 @@ fn mutate_state_bool(
 
 fn mutate_node_state_bool(
     request: &UiPropertyMutationRequest,
-    node: &mut zircon_runtime_interface::ui::tree::UiTreeNode,
-    field: impl FnOnce(&mut zircon_runtime_interface::ui::tree::UiTreeNode) -> &mut bool,
+    node: &mut UiTreeNode,
+    field: impl FnOnce(&mut UiTreeNode) -> &mut bool,
     dirty: UiDirtyFlags,
 ) -> UiPropertyMutationReport {
     let report = mutate_state_bool(request, field(node), dirty);
@@ -188,6 +194,49 @@ fn mutate_node_state_bool(
         mark_state_dirty(node, dirty);
     }
     report
+}
+
+fn mutate_node_state_bool_and_optional_attribute(
+    request: &UiPropertyMutationRequest,
+    node: &mut UiTreeNode,
+    field: impl FnOnce(&mut UiTreeNode) -> &mut bool,
+    attribute: &str,
+    dirty: UiDirtyFlags,
+) -> UiPropertyMutationReport {
+    let Some(next) = bool_value(&request.value) else {
+        return UiPropertyMutationReport::rejected(
+            request,
+            format!("{} expects a boolean value", request.property),
+        );
+    };
+
+    let mut changed = false;
+    {
+        let current = field(node);
+        if *current != next {
+            *current = next;
+            changed = true;
+        }
+    }
+
+    if let Some(metadata) = node.template_metadata.as_mut() {
+        if metadata.attributes.contains_key(attribute) {
+            let next_value = request.value.to_toml();
+            if metadata.attributes.get(attribute) != Some(&next_value) {
+                metadata
+                    .attributes
+                    .insert(attribute.to_string(), next_value);
+                changed = true;
+            }
+        }
+    }
+
+    if !changed {
+        return UiPropertyMutationReport::unchanged(request);
+    }
+
+    mark_state_dirty(node, dirty);
+    UiPropertyMutationReport::accepted(request, dirty)
 }
 
 fn bool_value(value: &UiValue) -> Option<bool> {

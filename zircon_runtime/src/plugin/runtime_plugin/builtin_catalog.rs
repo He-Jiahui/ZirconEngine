@@ -221,6 +221,18 @@ impl RuntimePluginDescriptor {
                     RuntimeTargetMode::EditorHost,
                 ][..],
             ),
+            (
+                "zr_vm_language",
+                "ZrVM Language",
+                RuntimePluginId::ZrVmLanguage,
+                "zircon_plugin_zr_vm_language_runtime",
+                "runtime.plugin.zr_vm_language",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::ServerRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
         ]
         .into_iter()
         .map(
@@ -234,6 +246,7 @@ impl RuntimePluginDescriptor {
             "animation" => {
                 descriptor.with_capability("runtime.feature.animation.timeline_event_track")
             }
+            "zr_vm_language" => descriptor.with_capability("runtime.script.backend.zr_vm_project"),
             "terrain" | "tilemap_2d" | "prefab_tools" => descriptor.with_category("authoring"),
             "physics" => descriptor.with_capability("runtime.capability.physics.raycast"),
             "gltf_importer" => descriptor
@@ -392,6 +405,16 @@ fn classify_descriptor(descriptor: RuntimePluginDescriptor) -> RuntimePluginDesc
             .with_maturity(PluginMaturity::Experimental)
             .with_capability_status(capability_status(
                 format!("runtime.plugin.{package_id}"),
+                CapabilityStatus::Partial,
+            )),
+        "zr_vm_language" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability_status(capability_status(
+                "runtime.plugin.zr_vm_language",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(capability_status(
+                "runtime.script.backend.zr_vm_project",
                 CapabilityStatus::Partial,
             )),
         _ => descriptor.with_capability_status(capability_status(

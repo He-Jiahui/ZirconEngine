@@ -127,6 +127,49 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
 }
 
 #[test]
+fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
+    let pipeline = RenderPipelineAsset::default_core2d();
+    let compiled = pipeline.compile(&orthographic_extract()).unwrap();
+
+    assert_eq!(
+        compiled.stages,
+        vec![
+            RenderPassStage::Opaque2d,
+            RenderPassStage::AlphaMask2d,
+            RenderPassStage::Transparent2d,
+            RenderPassStage::PostProcess,
+            RenderPassStage::Ui,
+            RenderPassStage::Overlay,
+            RenderPassStage::Debug,
+        ]
+    );
+    assert_eq!(
+        compiled
+            .graph
+            .passes()
+            .iter()
+            .map(|pass| (pass.name.as_str(), pass.executor_id.as_deref()))
+            .collect::<Vec<_>>(),
+        vec![
+            ("opaque-sprite", Some("sprite.opaque")),
+            ("alpha-mask-sprite", Some("sprite.alpha-mask")),
+            ("transparent-sprite", Some("sprite.transparent")),
+            ("overlay-gizmo", Some("overlay.gizmo")),
+        ]
+    );
+    assert_eq!(
+        compiled.required_extract_sections,
+        vec![
+            "debug".to_string(),
+            "sprites".to_string(),
+            "view".to_string(),
+            "visibility".to_string(),
+        ]
+    );
+    assert_eq!(compiled.history_bindings, Vec::<FrameHistoryBinding>::new());
+}
+
+#[test]
 fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
     for pipeline in [
         RenderPipelineAsset::default_forward_plus(),
@@ -1411,6 +1454,8 @@ fn test_extract() -> RenderFrameExtract {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: Default::default(),
             preview: PreviewEnvironmentExtract {
@@ -1437,6 +1482,8 @@ fn orthographic_extract() -> RenderFrameExtract {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: Default::default(),
             preview: PreviewEnvironmentExtract {

@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use crate::core::framework::render::{PostProcessEffectKind, PostProcessGraphResourceNames};
 use crate::graphics::RenderFeatureDescriptor;
 use crate::CompiledRenderPipeline;
 
@@ -23,6 +24,29 @@ impl RenderPassExecutorRegistry {
                 noop_render_pass_executor,
             );
         }
+        registry.register("post.bloom".into(), bloom_postprocess_executor);
+        registry.register(
+            "post.color-grade".into(),
+            color_grading_postprocess_executor,
+        );
+        registry.register(
+            "post.history-resolve".into(),
+            history_resolve_postprocess_executor,
+        );
+        registry.register(
+            "post.final-composite".into(),
+            final_composite_postprocess_executor,
+        );
+        registry.register("sprite.opaque".into(), sprite_executor);
+        registry.register("sprite.alpha-mask".into(), sprite_executor);
+        registry.register("sprite.transparent".into(), sprite_executor);
+        registry.register("ui.screen-space".into(), screen_space_ui_executor);
+        registry.register("post.stack".into(), noop_render_pass_executor);
+        registry.register(
+            "history.scene-color".into(),
+            history_resolve_postprocess_executor,
+        );
+        registry.register("post.bloom-extract".into(), noop_render_pass_executor);
         registry
     }
 
@@ -98,12 +122,9 @@ impl RenderPassExecutorRegistry {
         &self,
         pipeline: &CompiledRenderPipeline,
     ) -> Result<(), String> {
-        for pass in pipeline.graph.passes() {
+        for pass in pipeline.graph.passes().iter().filter(|pass| !pass.culled) {
             let Some(executor_id) = pass.executor_id.as_ref() else {
-                if !pass.culled {
-                    return Err(format!("render pass `{}` has no executor id", pass.name));
-                }
-                continue;
+                return Err(format!("render pass `{}` has no executor id", pass.name));
             };
             let executor_id = RenderPassExecutorId::new(executor_id.clone());
             if !self.executors.contains_key(&executor_id) {
@@ -142,20 +163,97 @@ fn noop_render_pass_executor(_context: &mut RenderPassExecutionContext<'_>) -> R
     Ok(())
 }
 
+fn bloom_postprocess_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+    product_postprocess_executor(context, PostProcessEffectKind::Bloom)
+}
+
+fn color_grading_postprocess_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    product_postprocess_executor(context, PostProcessEffectKind::ColorGrading)
+}
+
+fn history_resolve_postprocess_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    product_postprocess_executor(context, PostProcessEffectKind::HistoryResolve)
+}
+
+fn final_composite_postprocess_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+) -> Result<(), String> {
+    product_postprocess_executor(context, PostProcessEffectKind::FinalComposite)
+}
+
+fn product_postprocess_executor(
+    context: &mut RenderPassExecutionContext<'_>,
+    kind: PostProcessEffectKind,
+) -> Result<(), String> {
+    let executor_id = context.executor_id.as_str().to_string();
+    let gpu = context.require_gpu()?;
+    let required_resources = {
+        let frame_extract = gpu.frame_extract();
+        let node = frame_extract
+            .post_process
+            .graph
+            .nodes
+            .iter()
+            .find(|node| node.kind == kind)
+            .ok_or_else(|| {
+                format!(
+                    "product postprocess executor `{executor_id}` cannot find enabled `{}` postprocess node",
+                    kind.label()
+                )
+            })?;
+        node.required_inputs
+            .iter()
+            .chain(&node.produced_outputs)
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+
+    for resource in required_resources {
+        gpu.resources.require_texture_view(&resource)?;
+    }
+
+    Ok(())
+}
+
+fn sprite_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+    let gpu = context.require_gpu()?;
+    gpu.resources.require_texture_view(
+        crate::core::framework::render::PostProcessGraphResourceNames::SCENE_COLOR,
+    )?;
+    Ok(())
+}
+
+fn screen_space_ui_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+    let gpu = context.require_gpu()?;
+    gpu.record_screen_space_ui_to_resource(PostProcessGraphResourceNames::FINAL_COLOR)
+}
+
 fn registry_register_noop_executor(
     registry: &mut RenderPassExecutorRegistry,
     executor_id: RenderPassExecutorId,
 ) {
-    registry.register(executor_id, noop_render_pass_executor);
+    if !registry.executors.contains_key(&executor_id) {
+        registry.register(executor_id, noop_render_pass_executor);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
 
+    use crate::asset::ProjectAssetManager;
     use crate::core::framework::render::{
-        RenderFrameExtract, RenderPipelineHandle, RenderWorldSnapshotHandle,
+        PostProcessGraphResourceNames, RenderFrameExtract, RenderPipelineHandle,
+        RenderPluginRendererOutputs, RenderWorldSnapshotHandle,
     };
+    use crate::core::math::UVec2;
+    use crate::graphics::backend::RenderBackend;
+    use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
+    use crate::graphics::ViewportRenderFrame;
     use crate::render_graph::{
         PassFlags, QueueLane, RenderGraphBuilder, RenderGraphPassResourceAccess,
         RenderGraphResourceAccessKind, RenderGraphResourceKind, RenderPassId,
@@ -169,8 +267,8 @@ mod tests {
     };
 
     use super::super::{
-        RenderPassExecutionContext, RenderPassExecutor, RenderPassExecutorId,
-        RenderPassExecutorRegistration,
+        RenderGraphExecutionResources, RenderPassExecutionContext, RenderPassExecutor,
+        RenderPassExecutorId, RenderPassExecutorRegistration, RenderPassGpuExecutionContext,
     };
     use super::RenderPassExecutorRegistry;
 
@@ -307,6 +405,100 @@ mod tests {
     }
 
     #[test]
+    fn builtin_registry_covers_product_postprocess_executor_ids() {
+        let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+
+        for executor_id in [
+            "post.bloom",
+            "post.bloom-extract",
+            "post.color-grade",
+            "post.stack",
+            "history.scene-color",
+            "post.history-resolve",
+            "post.final-composite",
+        ] {
+            assert!(
+                registry.contains(&RenderPassExecutorId::new(executor_id)),
+                "product postprocess executor `{executor_id}` should be registered"
+            );
+        }
+    }
+
+    #[test]
+    fn builtin_registry_covers_runtime_ui_executor_id() {
+        let registry = RenderPassExecutorRegistry::with_builtin_noop_executors();
+
+        assert!(
+            registry.contains(&RenderPassExecutorId::new("ui.screen-space")),
+            "runtime UI executor should be registered as a graph-owned built-in"
+        );
+    }
+
+    #[test]
+    fn product_postprocess_executor_rejects_missing_gpu_resources() {
+        let backend = RenderBackend::new_offscreen().unwrap();
+        let mut extract = test_extract();
+        extract.post_process.rebuild_graph(true, true);
+        let frame = ViewportRenderFrame::from_extract(extract, UVec2::new(16, 16));
+        let mut encoder = backend
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("postprocess-product-test"),
+            });
+        let scene_bind_group_layout =
+            backend
+                .device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: Some("postprocess-product-test-empty-layout"),
+                    entries: &[],
+                });
+        let scene_bind_group = backend
+            .device
+            .create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("postprocess-product-test-empty-bind-group"),
+                layout: &scene_bind_group_layout,
+                entries: &[],
+            });
+        let mut resources = RenderGraphExecutionResources::new();
+        let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+            Arc::new(ProjectAssetManager::default()),
+            &backend.device,
+            &backend.queue,
+            wgpu::TextureFormat::Rgba8Unorm,
+        );
+        import_test_texture(
+            &mut resources,
+            &backend.device,
+            PostProcessGraphResourceNames::SCENE_COLOR,
+        );
+        let mut plugin_outputs = RenderPluginRendererOutputs::default();
+        let gpu = RenderPassGpuExecutionContext::new_for_test(
+            &backend.device,
+            &backend.queue,
+            &mut encoder,
+            &frame,
+            &scene_bind_group,
+            &mut resources,
+            &mut plugin_outputs,
+            &mut screen_space_ui_renderer,
+        );
+        let mut context = RenderPassExecutionContext::new(
+            "history-resolve",
+            RenderPassExecutorId::new("post.history-resolve"),
+        )
+        .with_gpu(gpu);
+
+        let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
+            .execute(&mut context)
+            .unwrap_err();
+
+        assert_eq!(
+            error,
+            "render graph execution texture resource `history-scene-color` is not bound"
+        );
+    }
+
+    #[test]
     fn plugin_render_feature_descriptors_register_noop_executor_ids() {
         let mut pipeline = RenderPipelineAsset::default_forward_plus();
         let descriptor = plugin_virtual_geometry_descriptor();
@@ -430,7 +622,7 @@ mod tests {
     }
 
     #[test]
-    fn registry_rejects_culled_pass_with_unknown_executor_id() {
+    fn registry_ignores_culled_pass_with_unknown_executor_id() {
         let mut graph = RenderGraphBuilder::new("custom-pipeline");
         let unused = graph.create_transient_texture(TextureDesc::new(
             "unused-target",
@@ -463,14 +655,9 @@ mod tests {
             graph: compiled_graph,
         };
 
-        let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
+        RenderPassExecutorRegistry::with_builtin_noop_executors()
             .validate_compiled_pipeline(&pipeline)
-            .unwrap_err();
-
-        assert_eq!(
-            error,
-            "render pass `culled-pass` references unregistered executor `custom.culled`"
-        );
+            .expect("culled passes should not require executor registration");
     }
 
     fn test_extract() -> RenderFrameExtract {
@@ -478,6 +665,31 @@ mod tests {
             RenderWorldSnapshotHandle::new(1),
             World::new().to_render_snapshot(),
         )
+    }
+
+    fn import_test_texture(
+        resources: &mut RenderGraphExecutionResources,
+        device: &wgpu::Device,
+        name: &'static str,
+    ) {
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some(name),
+            size: wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
+        });
+        resources.import_texture_view(
+            name,
+            texture.create_view(&wgpu::TextureViewDescriptor::default()),
+        );
     }
 
     fn plugin_virtual_geometry_descriptor() -> RenderFeatureDescriptor {

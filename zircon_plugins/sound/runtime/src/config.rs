@@ -8,6 +8,7 @@ pub struct SoundConfig {
     pub block_size_frames: usize,
     pub max_voices: usize,
     pub max_tracks: usize,
+    pub default_spatial_scale: f32,
     pub hrtf_enabled: bool,
     pub convolution_enabled: bool,
     pub ray_tracing_quality: zircon_runtime::core::framework::sound::SoundRayTracingQuality,
@@ -26,6 +27,7 @@ impl Default for SoundConfig {
             block_size_frames: 256,
             max_voices: 128,
             max_tracks: 64,
+            default_spatial_scale: 1.0,
             hrtf_enabled: false,
             convolution_enabled: true,
             ray_tracing_quality:

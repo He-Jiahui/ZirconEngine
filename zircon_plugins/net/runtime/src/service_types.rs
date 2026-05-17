@@ -12,6 +12,7 @@ use zircon_runtime::core::framework::net::{
     NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetListenerId,
     NetPacket, NetRequestId, NetRouteId, NetRuntimeMode, NetSocketId, NetTransportKind,
     NetWebSocketCloseReason, NetWebSocketConnectDescriptor, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor,
 };
 
 use crate::http::{HttpRouteHandler, ManagedHttpRoute};
@@ -727,11 +728,13 @@ impl zircon_runtime::core::framework::net::NetManager for DefaultNetManager {
         Ok(connection)
     }
 
-    fn listen_websocket(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError> {
-        let bind_addr = bind.to_socket_addr()?;
+    fn listen_websocket(
+        &self,
+        descriptor: NetWebSocketListenerDescriptor,
+    ) -> Result<NetListenerId, NetError> {
         let listener = self
             .websocket_backend()?
-            .listen_websocket(&self.state.runtime, bind_addr)?;
+            .listen_websocket(&self.state.runtime, descriptor)?;
         let local_endpoint = listener.local_endpoint();
         let listener_id = self.next_listener_id();
         self.state

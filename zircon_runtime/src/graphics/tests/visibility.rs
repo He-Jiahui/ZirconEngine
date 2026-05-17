@@ -19,11 +19,11 @@ fn visibility_context_partitions_static_and_dynamic_meshes() {
 
     let static_mesh = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     let dynamic_mesh = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     world
         .set_mobility(static_mesh, Mobility::Static)
@@ -34,6 +34,9 @@ fn visibility_context_partitions_static_and_dynamic_meshes() {
     world
         .set_render_layer_mask(dynamic_mesh, 0x0000_0002)
         .expect("render layer assignment should succeed");
+    world
+        .set_render_layer_mask(world.active_camera(), 0x0000_0006)
+        .expect("camera layer assignment should include test meshes");
 
     let context = VisibilityContext::from(&world.to_render_frame_extract());
 
@@ -49,19 +52,19 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
 
     let crate_a = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let statue = world.spawn_mesh_node(
         model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.material.toml"),
+        material_handle("res://materials/statue.zmaterial"),
     );
     let crate_b = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let tree = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     world
         .set_render_layer_mask(crate_a, 0x0000_0001)
@@ -78,6 +81,9 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
     world
         .set_mobility(tree, Mobility::Static)
         .expect("static mobility assignment should succeed");
+    world
+        .set_render_layer_mask(world.active_camera(), 0x0000_0009)
+        .expect("camera layer assignment should include all test batches");
 
     let mut extract = world.to_render_frame_extract();
     extract.geometry.meshes.reverse();
@@ -92,7 +98,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
         VisibilityBatch {
             key: VisibilityBatchKey {
                 render_layer_mask: 0x0000_0008,
-                material_id: ResourceId::from_stable_label("res://materials/statue.material.toml"),
+                material_id: ResourceId::from_stable_label("res://materials/statue.zmaterial"),
                 model_id: ResourceId::from_stable_label("res://models/statue.obj"),
                 mobility: Mobility::Dynamic,
             },
@@ -101,7 +107,7 @@ fn visibility_context_builds_deterministic_batches_and_instancing_candidates() {
         VisibilityBatch {
             key: VisibilityBatchKey {
                 render_layer_mask: 0x0000_0008,
-                material_id: ResourceId::from_stable_label("res://materials/tree.material.toml"),
+                material_id: ResourceId::from_stable_label("res://materials/tree.zmaterial"),
                 model_id: ResourceId::from_stable_label("res://models/tree.obj"),
                 mobility: Mobility::Static,
             },
@@ -132,11 +138,11 @@ fn visibility_context_filters_visible_batches_through_camera_frustum() {
 
     let visible = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let culled = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     world
         .update_transform(visible, Transform::from_translation(Vec3::ZERO))
@@ -171,11 +177,11 @@ fn visibility_context_without_history_marks_bvh_full_rebuild() {
 
     let crate_entity = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let tree_entity = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     world
         .set_mobility(tree_entity, Mobility::Static)
@@ -216,11 +222,11 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
 
     let moving = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let removed = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     let previous_context = VisibilityContext::from(&world.to_render_frame_extract());
 
@@ -233,7 +239,7 @@ fn visibility_context_with_history_tracks_bvh_dirty_entities() {
     assert!(world.remove_entity(removed));
     let inserted = world.spawn_mesh_node(
         model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.material.toml"),
+        material_handle("res://materials/statue.zmaterial"),
     );
 
     let context = VisibilityContext::from_extract_with_history(
@@ -269,11 +275,11 @@ fn visibility_context_without_history_marks_particle_emitters_dirty() {
 
     let emitter_a = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let emitter_b = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     let mut extract = world.to_render_frame_extract();
     extract.particles.emitters = vec![emitter_a, emitter_b];
@@ -298,11 +304,11 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
 
     let emitter_a = world.spawn_mesh_node(
         model_handle("res://models/crate.obj"),
-        material_handle("res://materials/crate.material.toml"),
+        material_handle("res://materials/crate.zmaterial"),
     );
     let removed_emitter = world.spawn_mesh_node(
         model_handle("res://models/tree.obj"),
-        material_handle("res://materials/tree.material.toml"),
+        material_handle("res://materials/tree.zmaterial"),
     );
     let mut previous_extract = world.to_render_frame_extract();
     previous_extract.particles.emitters = vec![emitter_a, removed_emitter];
@@ -310,7 +316,7 @@ fn visibility_context_with_history_tracks_particle_upload_changes() {
 
     let inserted_emitter = world.spawn_mesh_node(
         model_handle("res://models/statue.obj"),
-        material_handle("res://materials/statue.material.toml"),
+        material_handle("res://materials/statue.zmaterial"),
     );
     let mut current_extract = world.to_render_frame_extract();
     current_extract.particles.emitters = vec![emitter_a, inserted_emitter];
@@ -341,7 +347,7 @@ fn visibility_context_builds_virtual_geometry_visibility_feedback_and_page_plan(
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -427,7 +433,7 @@ fn visibility_context_with_history_tracks_virtual_geometry_requested_pages() {
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -513,7 +519,7 @@ fn visibility_context_refines_virtual_geometry_parent_cluster_into_visible_child
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -593,7 +599,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_visible_while_reques
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -662,7 +668,7 @@ fn visibility_context_keeps_resident_virtual_geometry_children_visible_while_req
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -745,7 +751,7 @@ fn visibility_context_holds_resident_parent_one_frame_after_requested_children_b
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -909,7 +915,7 @@ fn visibility_context_holds_resident_child_page_one_frame_when_frontier_merges_b
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1033,7 +1039,7 @@ fn visibility_context_keeps_resident_child_frontier_hot_across_repeated_budget_c
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1137,7 +1143,7 @@ fn visibility_context_requests_nonresident_ancestor_page_and_holds_descendants_w
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1246,7 +1252,7 @@ fn visibility_context_keeps_resident_grandchild_pages_hot_while_multi_level_casc
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1341,7 +1347,7 @@ fn visibility_context_keeps_intermediate_virtual_geometry_lineage_pages_hot_whil
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1446,7 +1452,7 @@ fn visibility_context_only_holds_requested_virtual_geometry_lineage_when_frontie
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1548,7 +1554,7 @@ fn visibility_context_splits_virtual_geometry_draw_segments_across_parent_lineag
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1638,7 +1644,7 @@ fn visibility_context_keeps_parent_virtual_geometry_cluster_when_children_exceed
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1700,7 +1706,7 @@ fn visibility_context_prioritizes_virtual_geometry_pages_backing_more_visible_cl
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1757,7 +1763,7 @@ fn visibility_context_uses_aggregate_screen_space_error_to_break_virtual_geometr
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/virtual_geometry.obj"),
-        material_handle("res://materials/virtual_geometry.material.toml"),
+        material_handle("res://materials/virtual_geometry.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1813,7 +1819,7 @@ fn crate_batch(entities: Vec<u64>) -> VisibilityBatch {
 fn crate_batch_key() -> VisibilityBatchKey {
     VisibilityBatchKey {
         render_layer_mask: 0x0000_0001,
-        material_id: ResourceId::from_stable_label("res://materials/crate.material.toml"),
+        material_id: ResourceId::from_stable_label("res://materials/crate.zmaterial"),
         model_id: ResourceId::from_stable_label("res://models/crate.obj"),
         mobility: Mobility::Dynamic,
     }

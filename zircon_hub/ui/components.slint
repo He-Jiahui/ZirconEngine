@@ -1,0 +1,1061 @@
+import { ScrollView } from "std-widgets.slint";
+import {
+    QuickActionData,
+    RecentProjectRowData,
+    CenteredIcon,
+    IconButton,
+    PillButton,
+    MutedText,
+} from "shared.slint";
+
+export component HubPanel inherits Rectangle {
+    in property <string> variant: "default";
+
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.variant == "danger" ? #653035 : (root.variant == "selected" ? #18bbb2 : (root.variant == "interactive" && area.has-hover ? #4a525d : (root.variant == "elevated" ? #424852 : #343942)));
+    background: root.variant == "danger" ? #29181b : (root.variant == "selected" ? #0d2f31 : (root.variant == "interactive" && area.has-hover ? #20252d : (root.variant == "elevated" ? #1b2027 : #181c22)));
+    clip: true;
+
+    area := TouchArea {}
+}
+
+export component HeaderGroup inherits Rectangle {
+    height: 66px;
+    background: #11151a;
+    border-width: 1px;
+    border-color: #2c323a;
+    clip: true;
+}
+
+export component Badge inherits Rectangle {
+    in property <string> text;
+    in property <string> tone: "neutral";
+    in property <length> badge-width: 64px;
+    in property <length> badge-height: 24px;
+
+    width: root.badge-width;
+    height: root.badge-height;
+    border-radius: 5px;
+    border-width: 1px;
+    border-color: root.tone == "ok" ? #245c44 : (root.tone == "warning" ? #6d5425 : (root.tone == "error" ? #653035 : (root.tone == "info" ? #30495d : (root.tone == "accent" ? #0f7d78 : #3a4049))));
+    background: root.tone == "ok" ? #14251d : (root.tone == "warning" ? #261f14 : (root.tone == "error" ? #29181b : (root.tone == "info" ? #161f27 : (root.tone == "accent" ? #063f3e : #2a2f36))));
+
+    Text {
+        text: root.text;
+        overflow: elide;
+        color: root.tone == "ok" ? #8be696 : (root.tone == "warning" ? #efc46d : (root.tone == "error" ? #ed8686 : (root.tone == "info" ? #82bce7 : (root.tone == "accent" ? #72f7ee : #c9cfd8))));
+        font-size: 12px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component StatusBadge inherits Badge {
+    badge-width: 128px;
+    badge-height: 30px;
+}
+
+export component PanelHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-badge: false;
+    in property <string> action-text;
+    in property <bool> show-action: false;
+    in property <length> action-width: 172px;
+    callback action-clicked;
+
+    height: subtitle == "" ? 42px : 52px;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 100%;
+    background: transparent;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 12px;
+        alignment: stretch;
+
+        VerticalLayout {
+            spacing: 3px;
+            min-width: 1px;
+
+            Text {
+                text: root.title;
+                overflow: elide;
+                color: #f3f6f9;
+                font-size: 16px;
+                font-weight: 800;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+            }
+
+            if root.subtitle != "": MutedText {
+                text: root.subtitle;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 8px;
+        }
+
+        if root.show-badge: StatusBadge {
+            text: root.badge-text;
+            tone: root.badge-tone;
+        }
+
+        if root.show-action: Rectangle {
+            width: root.action-width;
+            height: 36px;
+            border-radius: 7px;
+            border-width: 1px;
+            border-color: panel-action-area.has-hover ? #424852 : #30353d;
+            background: panel-action-area.pressed ? #242a31 : (panel-action-area.has-hover ? #20262d : #171b21);
+            clip: true;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: 14px;
+                padding-right: 10px;
+                spacing: 8px;
+                alignment: stretch;
+
+                Text {
+                    text: root.action-text;
+                    overflow: elide;
+                    color: #f2f5f7;
+                    font-size: 13px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+
+                CenteredIcon {
+                    width: 18px;
+                    height: parent.height;
+                    icon-size: 14px;
+                    source-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                    has-source-image: true;
+                }
+            }
+
+            panel-action-area := TouchArea {
+                clicked => {
+                    root.action-clicked();
+                }
+            }
+        }
+    }
+}
+
+export component SearchBox inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <length> box-width: 330px;
+    callback edited(string);
+
+    forward-focus: search-field;
+    width: root.box-width;
+    height: 42px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: search-field.has-focus ? #4ee8df : #37404b;
+    background: #171b21;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 10px;
+        alignment: stretch;
+
+        CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 18px;
+            source-image: @image-url("../assets/icons/ui/search.svg");
+            has-source-image: true;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            height: parent.height;
+            clip: true;
+
+            search-field := TextInput {
+                width: parent.width;
+                height: parent.height;
+                text <=> root.text;
+                single-line: true;
+                color: #f2f5f7;
+                font-size: 13px;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+                selection-background-color: #0a8f88;
+                selection-foreground-color: #f2f5f7;
+                edited => {
+                    root.edited(search-field.text);
+                }
+            }
+
+            if root.text == "": Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.placeholder;
+                color: #7f8894;
+                font-size: 13px;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+export component ToolbarSelect inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
+    in property <string> text;
+    in property <length> select-width: 138px;
+    callback clicked;
+
+    width: root.select-width;
+    height: 38px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: area.has-hover ? #424b56 : #303641;
+    background: area.has-hover ? #20262d : #171b21;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 12px;
+        padding-right: 10px;
+        spacing: 8px;
+        alignment: stretch;
+
+        if root.has-icon-image || root.icon != "": CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 18px;
+            source-image: root.icon-image;
+            has-source-image: root.has-icon-image;
+            fallback-image: @image-url("../assets/icons/ui/alert.svg");
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            height: parent.height;
+            clip: true;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.text;
+                overflow: elide;
+                color: #d7dde6;
+                font-size: 13px;
+                vertical-alignment: center;
+            }
+        }
+
+        CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 14px;
+            source-image: @image-url("../assets/icons/ui/chevron-down.svg");
+            has-source-image: true;
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component InfoRow inherits Rectangle {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> meta;
+    in property <image> leading-image;
+    in property <bool> has-leading-image: false;
+    in property <int> accent: 0;
+    in property <string> trailing-text;
+    in property <string> trailing-tone: "neutral";
+    in property <bool> show-trailing-badge: false;
+    in property <bool> show-arrow: false;
+    in property <bool> enabled: true;
+    in property <length> row-height: 72px;
+    callback clicked;
+
+    horizontal-stretch: 1;
+    height: root.row-height;
+    min-width: 1px;
+    preferred-width: 100%;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: area.has-hover && root.enabled ? #424b56 : #303641;
+    background: area.has-hover && root.enabled ? #20252d : #171b21;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: root.row-height;
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+        alignment: start;
+
+        Rectangle {
+            width: 44px;
+            height: 44px;
+            border-radius: 7px;
+            border-width: 1px;
+            border-color: root.accent == 0 ? #18bbb2 : (root.accent == 1 ? #5ba3ff : (root.accent == 2 ? #f0b545 : #72dd7a));
+            background: root.accent == 0 ? #073e3d : (root.accent == 1 ? #132d48 : (root.accent == 2 ? #352914 : #15351f));
+
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.has-leading-image ? root.leading-image : @image-url("../assets/brand/zircon-mark.svg");
+                image-fit: contain;
+            }
+        }
+
+        Rectangle {
+            preferred-width: 360px;
+            min-width: 1px;
+            height: root.row-height;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 4px;
+
+                Text {
+                    text: root.title;
+                    overflow: elide;
+                    color: root.enabled ? #f3f6f9 : #8c939d;
+                    font-size: 14px;
+                    font-weight: 800;
+                }
+
+                if root.detail != "": MutedText {
+                    text: root.detail;
+                    overflow: elide;
+                }
+
+                if root.meta != "": MutedText {
+                    text: root.meta;
+                    overflow: elide;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 8px;
+            height: root.row-height;
+        }
+
+        Rectangle {
+            width: root.show-trailing-badge ? (root.show-arrow ? 168px : 132px) : (root.show-arrow ? 30px : 0px);
+            height: root.row-height;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+                alignment: end;
+
+                if root.show-trailing-badge: StatusBadge {
+                    text: root.trailing-text;
+                    tone: root.trailing-tone;
+                }
+
+                if root.show-arrow: IconButton {
+                    width: 28px;
+                    height: 28px;
+                    icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                    has-icon-image: true;
+                    enabled: root.enabled;
+                }
+            }
+        }
+    }
+
+    area := TouchArea {
+        enabled: root.enabled;
+        clicked => {
+            if (root.enabled) {
+                root.clicked();
+            }
+        }
+    }
+}
+
+export component ActionRow inherits Rectangle {
+    in property <QuickActionData> action;
+    callback activate(string);
+
+    horizontal-stretch: 1;
+    height: 48px;
+    min-width: 1px;
+    preferred-width: 100%;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: area.has-hover && root.action.enabled ? #4a525d : #303641;
+    background: area.has-hover && root.action.enabled ? #20252d : #171b21;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+        alignment: stretch;
+
+        CenteredIcon {
+            width: 32px;
+            height: parent.height;
+            icon-size: 32px;
+            source-image: root.action.icon-image;
+            has-source-image: root.action.has-icon-image;
+            fallback-image: @image-url("../assets/icons/ui/alert.svg");
+        }
+
+        Rectangle {
+            preferred-width: 260px;
+            min-width: 1px;
+            height: parent.height;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 2px;
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    min-height: 0px;
+                }
+
+                Text {
+                    text: root.action.title;
+                    overflow: elide;
+                    color: root.action.enabled ? #f3f6f9 : #8c939d;
+                    font-size: 13px;
+                    font-weight: 800;
+                }
+
+                MutedText {
+                    text: root.action.detail;
+                    overflow: elide;
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    min-height: 0px;
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 8px;
+            height: parent.height;
+        }
+
+        Rectangle {
+            width: 32px;
+            height: parent.height;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    min-height: 0px;
+                }
+
+                HorizontalLayout {
+                    height: 28px;
+                    alignment: end;
+
+                    IconButton {
+                        width: 28px;
+                        height: 28px;
+                        icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                        has-icon-image: true;
+                        enabled: root.action.enabled;
+                        clicked => {
+                            root.activate(root.action.id);
+                        }
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                    min-height: 0px;
+                }
+            }
+        }
+    }
+
+    area := TouchArea {
+        enabled: root.action.enabled;
+        clicked => {
+            if (root.action.enabled) {
+                root.activate(root.action.id);
+            }
+        }
+    }
+}
+
+export component DropDownButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
+    in property <bool> active: false;
+    in property <length> button-width: 168px;
+    callback clicked;
+
+    width: root.button-width;
+    height: 38px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: root.active ? #18bbb2 : (area.has-hover ? #424b56 : #303641);
+    background: area.has-hover ? #20262d : #171b21;
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 12px;
+        padding-right: 10px;
+        spacing: 8px;
+        alignment: stretch;
+
+        if root.has-icon-image: CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 18px;
+            source-image: root.icon-image;
+            has-source-image: true;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            height: parent.height;
+            clip: true;
+
+            Text {
+                width: parent.width;
+                height: parent.height;
+                text: root.text;
+                overflow: elide;
+                color: #f0f3f7;
+                font-size: 13px;
+                vertical-alignment: center;
+            }
+        }
+
+        CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 14px;
+            source-image: @image-url("../assets/icons/ui/chevron-down.svg");
+            has-source-image: true;
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component TableColumnHeader inherits Rectangle {
+    in property <string> text;
+
+    height: 26px;
+    background: transparent;
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        overflow: elide;
+        color: #a7b0bb;
+        font-size: 12px;
+        vertical-alignment: center;
+    }
+}
+
+export component ProjectTableRow inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    in property <string> action-tooltip: "";
+    callback select(string);
+    callback open(string);
+
+    height: 28px;
+    border-radius: 6px;
+    border-width: root.project.selected ? 1px : 0px;
+    border-color: root.project.selected ? #18bbb2 : transparent;
+    background: root.project.selected ? #0d2f31 : (area.has-hover ? #20252d : transparent);
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 12px;
+        alignment: center;
+
+        Rectangle {
+            horizontal-stretch: 2;
+            min-width: 140px;
+            height: parent.height;
+            clip: true;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: 8px;
+                alignment: start;
+
+                Rectangle {
+                    width: 24px;
+                    height: 24px;
+                    border-radius: 5px;
+                    border-width: 1px;
+                    border-color: #18bbb2;
+                    background: root.project.accent == 0 ? #24352e : (root.project.accent == 1 ? #143242 : (root.project.accent == 2 ? #3a2d20 : #1f3327));
+                    clip: true;
+                    if root.project.has-cover: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: root.project.cover-image;
+                        image-fit: cover;
+                    }
+                    if !root.project.has-cover: Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: @image-url("../assets/brand/zircon-mark.svg");
+                        image-fit: contain;
+                    }
+                }
+
+                Text {
+                    text: root.project.title;
+                    overflow: elide;
+                    color: #f2f5f7;
+                    font-size: 13px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
+        }
+
+        Text {
+            text: root.project.version;
+            overflow: elide;
+            color: #b8c0cb;
+            font-size: 12px;
+            vertical-alignment: center;
+            preferred-width: 126px;
+            min-width: 110px;
+        }
+
+        Text {
+            text: root.project.modified;
+            overflow: elide;
+            color: #b8c0cb;
+            font-size: 12px;
+            vertical-alignment: center;
+            preferred-width: 108px;
+            min-width: 86px;
+        }
+
+        Text {
+            text: root.project.project-path;
+            overflow: elide;
+            color: #b8c0cb;
+            font-size: 12px;
+            vertical-alignment: center;
+            horizontal-stretch: 2;
+            min-width: 120px;
+        }
+
+        IconButton {
+            width: 28px;
+            height: 28px;
+            icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
+            has-icon-image: true;
+            clicked => {
+                root.open(root.project.project-path);
+            }
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.select(root.project.project-path);
+        }
+    }
+}
+
+export component DataTable inherits Rectangle {
+    in property <[RecentProjectRowData]> rows;
+    in property <int> row-count;
+    in property <string> name-label;
+    in property <string> version-label;
+    in property <string> modified-label;
+    in property <string> location-label;
+    in property <string> empty-text;
+    callback select(string);
+    callback open(string);
+
+    private property <length> scroll-y: 0px;
+
+    clip: true;
+    background: transparent;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 4px;
+
+        HorizontalLayout {
+            height: 28px;
+            spacing: 12px;
+            alignment: start;
+
+            TableColumnHeader {
+                text: root.name-label;
+                horizontal-stretch: 2;
+                min-width: 140px;
+            }
+            TableColumnHeader {
+                text: root.version-label;
+                preferred-width: 126px;
+                min-width: 110px;
+            }
+            TableColumnHeader {
+                text: root.modified-label;
+                preferred-width: 108px;
+                min-width: 86px;
+            }
+            TableColumnHeader {
+                text: root.location-label;
+                horizontal-stretch: 2;
+                min-width: 120px;
+            }
+            Rectangle {
+                width: 28px;
+                height: 28px;
+            }
+        }
+
+        Rectangle {
+            height: 1px;
+            horizontal-stretch: 1;
+            background: #303641;
+        }
+
+        table-scroll := ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            viewport-y <=> root.scroll-y;
+            viewport-width: table-scroll.visible-width;
+            viewport-height: max(table-scroll.visible-height, root.row-count * 30px + 8px);
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            mouse-drag-pan-enabled: true;
+
+            Rectangle {
+                width: table-scroll.visible-width;
+                height: table-scroll.viewport-height;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    spacing: 2px;
+
+                    for row in root.rows: ProjectTableRow {
+                        project: row;
+                        select(path) => {
+                            root.select(path);
+                        }
+                        open(path) => {
+                            root.open(path);
+                        }
+                    }
+
+                    if root.row-count == 0: MutedText {
+                        text: root.empty-text;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component PageScrollSurface inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <length> content-height: 620px;
+    in property <length> page-padding: 28px;
+    in property <length> bottom-padding: 22px;
+    in property <length> gap: 14px;
+
+    background: #11151a;
+    clip: true;
+
+    page-scroll := ScrollView {
+        width: root.width;
+        height: root.height;
+        viewport-y <=> root.scroll-y;
+        viewport-width: page-scroll.visible-width;
+        viewport-height: max(page-scroll.visible-height, root.content-height);
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        mouse-drag-pan-enabled: true;
+
+        Rectangle {
+            width: page-scroll.visible-width;
+            height: page-scroll.viewport-height;
+            background: #11151a;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: root.page-padding;
+                padding-right: root.page-padding;
+                padding-top: root.page-padding;
+                padding-bottom: root.bottom-padding;
+                spacing: root.gap;
+
+                @children
+            }
+        }
+    }
+}
+
+export component CatalogListPanel inherits HubPanel {
+    in-out property <length> scroll-y: 0px;
+    in property <string> title;
+    in property <string> badge-text;
+    in property <string> badge-tone: "accent";
+    in property <string> empty-title;
+    in property <string> empty-detail;
+    in property <int> row-count;
+    in property <length> row-height: 86px;
+
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-height: 300px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 16px;
+        spacing: 10px;
+
+        PanelHeader {
+            title: root.title;
+            show-badge: true;
+            badge-text: root.badge-text;
+            badge-tone: root.badge-tone;
+        }
+
+        catalog-scroll := ScrollView {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            viewport-y <=> root.scroll-y;
+            viewport-width: catalog-scroll.visible-width;
+            viewport-height: max(catalog-scroll.visible-height, (root.row-count == 0 ? 96px : root.row-count * (root.row-height + 8px) + 8px));
+            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+            mouse-drag-pan-enabled: true;
+
+            Rectangle {
+                width: catalog-scroll.visible-width;
+                height: catalog-scroll.viewport-height;
+                background: transparent;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    spacing: 8px;
+
+                    if root.row-count == 0: Rectangle {
+                        horizontal-stretch: 1;
+                        height: 88px;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: 14px;
+                            spacing: 6px;
+
+                            Text {
+                                text: root.empty-title;
+                                overflow: elide;
+                                color: #d5dbe5;
+                                font-size: 14px;
+                                font-weight: 800;
+                            }
+
+                            if root.empty-detail != "": MutedText {
+                                text: root.empty-detail;
+                                overflow: elide;
+                            }
+                        }
+                    }
+
+                    @children
+                }
+            }
+        }
+    }
+}
+
+export component ResponsivePanelFlow inherits Rectangle {
+    in property <length> flow-height: 312px;
+    in property <length> spacing-horizontal: 14px;
+    in property <length> spacing-vertical: 14px;
+
+    horizontal-stretch: 1;
+    height: root.flow-height;
+    background: transparent;
+    clip: true;
+
+    FlexboxLayout {
+        width: parent.width;
+        height: parent.height;
+        flex-direction: FlexboxLayoutDirection.row;
+        flex-wrap: FlexboxLayoutWrap.wrap;
+        alignment: stretch;
+        align-content: FlexboxLayoutAlignContent.start;
+        align-items: FlexboxLayoutAlignItems.start;
+        spacing-horizontal: root.spacing-horizontal;
+        spacing-vertical: root.spacing-vertical;
+
+        @children
+    }
+}
+
+export component ScrollablePanel inherits HubPanel {
+    // Styling shell for panel-owned ScrollView composition. Pages provide the
+    // concrete ScrollView child so data loops stay close to their page state.
+}
+
+export component TwoColumnSurface inherits Rectangle {
+    background: transparent;
+    clip: true;
+}
+
+export component SegmentButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked;
+
+    height: 34px;
+    border-radius: 7px;
+    border-width: 1px;
+    border-color: root.active ? #18bbb2 : (area.has-hover ? #424b56 : #303641);
+    background: root.active ? #073e3d : (area.has-hover ? #20262d : #171b21);
+    clip: true;
+
+    Text {
+        text: root.text;
+        overflow: elide;
+        color: root.active ? #7bf8ef : #d7dde6;
+        font-size: 13px;
+        font-weight: root.active ? 800 : 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component ComponentSamples inherits Rectangle {
+    background: #11151a;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 18px;
+        spacing: 12px;
+
+        HubPanel {
+            height: 120px;
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: 16px;
+                spacing: 10px;
+                PanelHeader {
+                    title: "PanelHeader";
+                    subtitle: "Stable title, badge, and action alignment";
+                    show-badge: true;
+                    badge-text: "Ready";
+                    badge-tone: "ok";
+                }
+                SearchBox {
+                    placeholder: "Search components...";
+                }
+            }
+        }
+
+        InfoRow {
+            title: "InfoRow";
+            detail: "Thumbnail, text stack, and right badge stay aligned.";
+            meta: "Used by projects, cloud, team, and engine rows.";
+            trailing-text: "Status";
+            trailing-tone: "accent";
+            show-trailing-badge: true;
+        }
+
+        ActionRow {
+            action: {
+                id: "sample",
+                icon: "",
+                icon-image: @image-url("../assets/icons/actions/open-editor.svg"),
+                has-icon-image: true,
+                title: "ActionRow",
+                detail: "The arrow stays fixed at the right edge.",
+                enabled: true,
+            };
+        }
+    }
+}

@@ -22,7 +22,8 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     viewport: RenderViewportHandle,
     mut frame: ViewportRenderFrame,
 ) -> Result<(), RenderFrameworkError> {
-    let _operation_guard = server.operation_lock.lock().unwrap();
+    crate::profile_scope!("runtime", "render_framework", "submit_runtime_frame");
+    let _operation_guard = server.lock_operation();
     let context =
         match build_frame_submission_context(server, viewport, &frame.extract, frame.ui.as_ref()) {
             Ok(context) => context,
@@ -31,8 +32,10 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
                 return Err(error);
             }
         };
+    apply_submission_target_size_to_runtime_frame(&mut frame, &context);
     apply_effective_advanced_extracts_to_runtime_frame(&mut frame, &context);
-    let mut state = server.state.lock().unwrap();
+    apply_effective_post_process_graph_to_runtime_frame(&mut frame, &context);
+    let mut state = server.lock_state();
     let active_capture = begin_graphics_debugger_capture(&mut state, viewport);
     let prepared = match prepare_runtime_submission(&mut state, viewport, &context) {
         Ok(prepared) => prepared,
@@ -50,22 +53,25 @@ pub(in crate::graphics::runtime::render_framework) fn submit_runtime_frame(
     let resolved_history = resolve_history_handle(&mut state, viewport, &context);
     state.last_virtual_geometry_debug_snapshot = frame.virtual_geometry_debug_snapshot.clone();
     let frame = attach_prepared_sidebands_to_runtime_frame(frame, &prepared);
-    let frame = match state.renderer.render_frame_with_pipeline(
-        &frame,
-        context.compiled_pipeline(),
-        resolved_history.current_history_handle(),
-    ) {
-        Ok(frame) => frame,
-        Err(error) => {
-            let error = render_framework_backend_error(error);
-            drop(finish_active_capture_and_relock(
-                server,
-                state,
-                active_capture,
-                None,
-                Some(error.to_string()),
-            ));
-            return Err(error);
+    let frame = {
+        crate::profile_scope!("runtime", "render_framework", "render_frame_with_pipeline");
+        match state.renderer.render_frame_with_pipeline(
+            &frame,
+            context.compiled_pipeline(),
+            resolved_history.current_history_handle(),
+        ) {
+            Ok(frame) => frame,
+            Err(error) => {
+                let error = render_framework_backend_error(error);
+                drop(finish_active_capture_and_relock(
+                    server,
+                    state,
+                    active_capture,
+                    None,
+                    Some(error.to_string()),
+                ));
+                return Err(error);
+            }
         }
     };
     let frame_generation = frame.generation;
@@ -100,8 +106,16 @@ fn fail_pending_capture_after_preflight_error(
     viewport: RenderViewportHandle,
     error: &RenderFrameworkError,
 ) {
-    let mut state = server.state.lock().unwrap();
+    let mut state = server.lock_state();
     fail_pending_graphics_debugger_capture(&mut state, viewport, error.to_string());
+}
+
+fn apply_submission_target_size_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.viewport_size = context.size();
+    frame.extract.apply_viewport_size(context.size());
 }
 
 fn apply_effective_advanced_extracts_to_runtime_frame(
@@ -112,6 +126,16 @@ fn apply_effective_advanced_extracts_to_runtime_frame(
     if !context.hybrid_gi_enabled() {
         frame.extract.lighting.hybrid_global_illumination = None;
     }
+}
+
+fn apply_effective_post_process_graph_to_runtime_frame(
+    frame: &mut ViewportRenderFrame,
+    context: &super::super::frame_submission_context::FrameSubmissionContext,
+) {
+    frame.extract.post_process.bloom = context.post_process_bloom();
+    frame.extract.post_process.color_grading = context.post_process_color_grading();
+    frame.extract.post_process.stack = context.post_process_stack().clone();
+    frame.extract.post_process.graph = context.post_process_graph().clone();
 }
 
 fn attach_prepared_sidebands_to_runtime_frame(
@@ -188,6 +212,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {

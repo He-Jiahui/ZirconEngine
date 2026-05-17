@@ -52,6 +52,17 @@ impl RenderGraphExecutionResources {
     pub fn has_buffer(&self, name: &str) -> bool {
         self.buffers.contains_key(name)
     }
+
+    pub fn import_texture_alias(
+        &mut self,
+        alias: impl Into<String>,
+        source: &wgpu::Texture,
+    ) -> Option<wgpu::TextureView> {
+        self.import_texture_view(
+            alias,
+            source.create_view(&wgpu::TextureViewDescriptor::default()),
+        )
+    }
 }
 
 #[cfg(test)]

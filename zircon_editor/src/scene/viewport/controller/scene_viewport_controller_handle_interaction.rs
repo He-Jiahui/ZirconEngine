@@ -7,13 +7,23 @@ use crate::scene::viewport::GizmoAxis;
 use super::{viewport_drag_session::ViewportDragSession, SceneViewportController};
 
 impl SceneViewportController {
+    pub(in crate::scene::viewport::controller) fn projected_selected_node(
+        &self,
+        scene: &Scene,
+    ) -> Option<u64> {
+        scene
+            .editor_projection(self.selected_node())
+            .selected_entity
+    }
+
     pub(in crate::scene::viewport::controller) fn handle_overlays(
         &self,
         scene: &Scene,
         camera: &ViewportCameraSnapshot,
     ) -> Vec<HandleOverlayExtract> {
+        let selected = self.projected_selected_node(scene);
         self.handles
-            .build_overlays(scene, self.selected_node(), &self.state.settings, camera)
+            .build_overlays(scene, selected, &self.state.settings, camera)
     }
 
     pub(in crate::scene::viewport::controller) fn begin_handle_drag(
@@ -23,14 +33,11 @@ impl SceneViewportController {
         axis: GizmoAxis,
     ) -> bool {
         let camera = self.current_camera(scene);
-        let Some(session) = self.handles.begin_drag(
-            scene,
-            self.selected_node(),
-            &self.state.settings,
-            &camera,
-            cursor,
-            axis,
-        ) else {
+        let selected = self.projected_selected_node(scene);
+        let Some(session) =
+            self.handles
+                .begin_drag(scene, selected, &self.state.settings, &camera, cursor, axis)
+        else {
             return false;
         };
 

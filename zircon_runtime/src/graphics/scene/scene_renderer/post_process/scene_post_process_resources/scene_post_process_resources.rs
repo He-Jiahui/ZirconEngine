@@ -10,7 +10,7 @@ pub(crate) struct ScenePostProcessResources {
     pub(in crate::graphics::scene::scene_renderer::post_process) bloom_pipeline:
         wgpu::RenderPipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) ssao_pipeline:
-        wgpu::ComputePipeline,
+        std::sync::OnceLock<wgpu::ComputePipeline>,
     pub(in crate::graphics::scene::scene_renderer::post_process) cluster_pipeline:
         wgpu::ComputePipeline,
     pub(in crate::graphics::scene::scene_renderer::post_process) post_process_pipeline:

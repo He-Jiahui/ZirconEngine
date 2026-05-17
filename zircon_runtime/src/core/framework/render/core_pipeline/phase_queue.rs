@@ -1,8 +1,9 @@
 use super::{CorePipelineKind, RenderPhase, RenderPhaseItem, RenderPhaseMeshSource};
 use crate::core::framework::render::RenderMaterialAlphaMode;
 use crate::core::framework::scene::EntityId;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RenderPhaseQueue {
     pub items: Vec<RenderPhaseItem>,
 }
@@ -47,6 +48,18 @@ pub fn build_mesh_phase_queue<'a>(
     )
 }
 
+pub fn build_sprite_phase_queue(
+    pipeline: CorePipelineKind,
+    sprites: impl IntoIterator<Item = SpritePhaseInput>,
+) -> RenderPhaseQueue {
+    RenderPhaseQueue::new(
+        sprites
+            .into_iter()
+            .map(|sprite| sprite.into_phase_item(pipeline))
+            .collect(),
+    )
+}
+
 #[derive(Clone, Copy, Debug)]
 pub struct MeshPhaseInput<'a> {
     pub entity: EntityId,
@@ -68,6 +81,37 @@ impl MeshPhaseInput<'_> {
             phase,
             sort_key: super::RenderPhaseSortKey::for_mesh(phase, self.depth, self.entity),
             mesh_source: RenderPhaseMeshSource::MeshIndex(self.mesh_index),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct SpritePhaseInput {
+    pub entity: EntityId,
+    pub sprite_index: usize,
+    pub material_alpha_mode: RenderMaterialAlphaMode,
+    pub z_order: i32,
+    pub depth: f32,
+}
+
+impl SpritePhaseInput {
+    fn into_phase_item(self, pipeline: CorePipelineKind) -> RenderPhaseItem {
+        let (alpha_mask, transparent) = match self.material_alpha_mode {
+            RenderMaterialAlphaMode::Opaque => (false, false),
+            RenderMaterialAlphaMode::Mask { .. } => (true, false),
+            RenderMaterialAlphaMode::Blend => (false, true),
+        };
+        let phase = RenderPhase::mesh_phase(pipeline, alpha_mask, transparent);
+        RenderPhaseItem {
+            entity: self.entity,
+            phase,
+            sort_key: super::RenderPhaseSortKey::for_sprite(
+                phase,
+                self.z_order,
+                self.depth,
+                self.entity,
+            ),
+            mesh_source: RenderPhaseMeshSource::SpriteIndex(self.sprite_index),
         }
     }
 }

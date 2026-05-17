@@ -1,0 +1,35 @@
+version = 1
+name = "Unlit Shader"
+wgsl_files = ["unlit.wgsl"]
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+file = "unlit.wgsl"
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+file = "unlit.wgsl"
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+required = true
+default = [1.0, 1.0, 1.0, 1.0]
+
+[properties.editor]
+display_name = "Base Color"
+widget = "color"
+
+[[texture_slots]]
+name = "base_color"
+kind = "texture2d"
+default = "white"
+sampler = "linear_repeat"
+group = "Surface"
+label = "Base Color Texture"
+
+[editor]
+category = "Surface"
+preview = "quad"

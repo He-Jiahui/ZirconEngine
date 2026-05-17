@@ -22,6 +22,9 @@ related_code:
   - zircon_runtime/src/scene/ecs/events.rs
   - zircon_runtime/src/scene/ecs/internal_entity.rs
   - zircon_runtime/src/scene/ecs/internal_scene_system.rs
+  - zircon_runtime/src/scene/ecs/lifecycle.rs
+  - zircon_runtime/src/scene/ecs/messages.rs
+  - zircon_runtime/src/scene/ecs/observer.rs
   - zircon_runtime/src/scene/ecs/query/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
   - zircon_runtime/src/scene/ecs/query/query_access_error.rs
@@ -48,6 +51,7 @@ related_code:
   - zircon_runtime/src/scene/ecs/system/mod.rs
   - zircon_runtime/src/scene/ecs/system/events.rs
   - zircon_runtime/src/scene/ecs/system/local.rs
+  - zircon_runtime/src/scene/ecs/system/messages.rs
   - zircon_runtime/src/scene/ecs/system/param_set.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
   - zircon_runtime/src/scene/ecs/system/removed_components.rs
@@ -69,12 +73,17 @@ related_code:
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
+  - zircon_runtime/src/scene/world/messages.rs
+  - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
+  - zircon_runtime/src/scene/reflect/dynamic_component.rs
 implementation_files:
   - zircon_runtime/src/scene/ecs/archetype_id.rs
   - zircon_runtime/src/scene/ecs/bundle.rs
@@ -97,6 +106,9 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/events.rs
   - zircon_runtime/src/scene/ecs/internal_entity.rs
   - zircon_runtime/src/scene/ecs/internal_scene_system.rs
+  - zircon_runtime/src/scene/ecs/lifecycle.rs
+  - zircon_runtime/src/scene/ecs/messages.rs
+  - zircon_runtime/src/scene/ecs/observer.rs
   - zircon_runtime/src/scene/ecs/query/mod.rs
   - zircon_runtime/src/scene/ecs/query/query_access.rs
   - zircon_runtime/src/scene/ecs/query/query_access_error.rs
@@ -123,6 +135,7 @@ implementation_files:
   - zircon_runtime/src/scene/ecs/system/mod.rs
   - zircon_runtime/src/scene/ecs/system/events.rs
   - zircon_runtime/src/scene/ecs/system/local.rs
+  - zircon_runtime/src/scene/ecs/system/messages.rs
   - zircon_runtime/src/scene/ecs/system/param_set.rs
   - zircon_runtime/src/scene/ecs/system/query.rs
   - zircon_runtime/src/scene/ecs/system/removed_components.rs
@@ -144,26 +157,41 @@ implementation_files:
   - zircon_runtime/src/scene/world/events.rs
   - zircon_runtime/src/scene/world/hierarchy.rs
   - zircon_runtime/src/scene/world/identity.rs
+  - zircon_runtime/src/scene/world/messages.rs
+  - zircon_runtime/src/scene/world/observers.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/world/records.rs
   - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/typed_api/fixed_components.rs
   - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/reflect/type_registry.rs
+  - zircon_runtime/src/scene/reflect/world_reflection.rs
+  - zircon_runtime/src/scene/reflect/dynamic_component.rs
 plan_sources:
   - user: 2026-05-08 ECS to render chain milestone execution
   - .codex/plans/ZirconEngine ECS 到渲染链路完善里程碑计划.md
   - .codex/plans/ECS SystemParam Commands Change Detection 下一阶段计划.md
   - user: 2026-05-08 Bevy-grade ECS / Reflect / Scene / Transform roadmap implementation
+  - user: 2026-05-16 continue Bevy-grade M6 observers and messages
+  - user: 2026-05-16 M8.8 reflection documentation cleanup
+  - user: 2026-05-17 M11 query cache performance-parity slice
   - .codex/plans/ZirconEngine Bevy-Grade ECS Reflect Scene Transform Roadmap.md
   - .codex/plans/ZirconEngine Bevy-Style 自研 ECS 与场景编辑模式计划.md
+  - dev/bevy/crates/bevy_ecs/src/query/state.rs
+  - dev/bevy/crates/bevy_ecs/src/archetype.rs
 tests:
   - zircon_runtime/src/scene/tests/ecs_identity_storage.rs
+  - zircon_runtime/src/scene/tests/ecs_observers_messages.rs
   - zircon_runtime/src/scene/tests/ecs_query.rs
   - zircon_runtime/src/scene/tests/ecs_change_detection.rs
   - zircon_runtime/src/scene/tests/ecs_schedule.rs
   - zircon_runtime/src/scene/tests/ecs_systems.rs
   - zircon_runtime/src/scene/tests/ecs_typed_api.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/foundation.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/dynamic_components.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs
+  - zircon_runtime/src/scene/tests/ecs_reflect/resources.rs
   - zircon_runtime/src/scene/tests/component_structure.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - tests/acceptance/ecs-to-render-chain.md
@@ -179,6 +207,7 @@ doc_type: module-detail
 - typed component/resource/bundle contracts and registries for the M2 public `World` API without importing `bevy_ecs`;
 - typed resource and event stores for systems without ad hoc global maps;
 - typed query/access descriptors for M3 runtime borrow-safety checks;
+- cached query state metadata for the first M11 performance-parity step;
 - typed deferred command queues, Bevy-style system parameter state, event params, and per-system run windows for M4-style systems;
 - per-component/resource change ticks plus `Added<T>`, `Changed<T>`, `Ref<T>`, `Mut<T>`, and removed-component readers for M5 change detection;
 - stage/system descriptors that let `WorldDriver` run native scene systems and plugin hooks in one deterministic schedule.
@@ -201,6 +230,19 @@ The implementation follows Bevy's split between external entity values, entity l
 - `ResourceRegistry` assigns `ResourceId` values for Rust `Resource` types. This ECS `ResourceId` is separate from asset/resource-manager ids.
 - `ComponentStorage` is a type-erased lower-layer storage primitive for M1 tests and the M2 typed component API. It enforces one storage type per component ID and reports type mismatch rather than silently changing storage semantics. Each stored component also carries `ComponentTicks { added, changed }` so query filters can evaluate Bevy-style `Added<T>` and `Changed<T>` windows. Despawning a scene entity removes all typed component storage entries for its internal entity.
 
+## Registry And Reflection Relationship
+
+The ECS registries and the reflection registry are deliberately separate layers:
+
+- `ComponentRegistry` assigns runtime `ComponentId` values for typed Rust components and dynamic plugin component presence. It is the storage/query identity layer.
+- `ResourceRegistry` assigns runtime `ResourceId` values for typed scene resources. It is the system-param/resource-store identity layer.
+- `ComponentTypeRegistry` remains the plugin-facing JSON descriptor input/cache for dynamic components. Plugins still submit `ComponentTypeDescriptor` values there.
+- `TypeRegistry` is the schema/read/write reflection authority. It stores neutral `ReflectTypeRegistration` metadata plus optional component/resource adapter slots used by `WorldReflection`.
+
+Dynamic plugin component registration now feeds both paths in one mutation sequence: validate/project the `ComponentTypeDescriptor` into a reflected JSON schema, reject duplicate reflected type paths before mutating descriptor state, register the descriptor in `ComponentTypeRegistry`, then insert the dynamic `ReflectComponent` adapter into `TypeRegistry`. This lets ECS storage/query code keep stable component IDs while editor inspectors, resources, remote DTO tests, and future scene serialization use one reflected schema surface.
+
+`WorldReflection` is not a storage owner. It resolves type paths through `TypeRegistry`, routes component addresses to `ReflectComponent`, routes resource addresses to `ReflectResource`, and calls normal `World` mutation/read APIs so change ticks, dynamic JSON property validation, fixed component dirty bits, and resource ticks stay coherent with the ECS layer.
+
 ## World Integration
 
 `World` owns `EntityRegistry`, `ComponentRegistry`, `ComponentStorage`, `ResourceRegistry`, `ResourceStore`, `CommandQueue`, and the current `ChangeTick` as skipped runtime state. Spawning, inserting saved node records, despawning, and project loading update or rebuild those runtime-only maps while serialized scene files remain unchanged. This keeps current scene roundtrips stable and gives later milestones live internal identity/component/resource maps for archetype movement, queries, deferred commands, and change detection.
@@ -221,7 +263,27 @@ The M2 typed API is intentionally narrow:
 
 `World::resource_id`, `World::registered_resource_id`, `World::insert_resource`, `World::resource`, `World::get_resource`, `World::resource_mut`, `World::get_resource_mut`, and `World::remove_resource` expose the M2 resource API over `ResourceRegistry` and `ResourceStore`. `World::resource` and `World::resource_mut` intentionally panic on missing resources; use the `get_*` variants for optional access.
 
-`World::send_event`, `World::update_events`, and `World::events` expose the runtime event queue. `EventWriterParam<T>` writes through `EventStore::send` into `next`, and `EventReaderParam<T>` reads only the current queue. This mirrors Bevy's current/next event visibility rule without adding observer/lifecycle hooks in this milestone.
+`World::send_event`, `World::update_events`, and `World::events` expose the older runtime event queue. `EventWriterParam<T>` writes through `EventStore::send` into `next`, and `EventReaderParam<T>` reads only the current queue. This mirrors Bevy's current/next event visibility rule and remains separate from the M6 immediate observer and cursor-message paths below.
+
+## Observers, Lifecycle, And Messages
+
+M6 adds the first Bevy-style push observer and scheduled message foundations without replacing the older `Events<T>` queue. The split is intentional:
+
+- `World::trigger_event(event)` and `World::trigger_entity_event(entity, event)` are immediate observer paths. Registered callbacks run during the trigger call, before control returns to the caller.
+- `World::send_message(message)` writes to a retained `Messages<T>` buffer. `MessageReaderParam<T>` owns a persistent `MessageCursor<T>` so a system only reads messages it has not consumed before.
+- Existing `Events<T>` remains the current/next frame queue used by earlier system-param tests and plugin-adjacent runtime flows.
+
+`ObserverStore` is runtime-only skipped world state. It stores cloneable function-table callbacks for three scopes:
+
+- component lifecycle observers keyed by `LifecycleEventKind` plus `ComponentId`;
+- global immediate event observers keyed by Rust `TypeId`;
+- entity-targeted immediate event observers keyed by Rust `TypeId` plus stable `EntityId`.
+
+Observer callbacks are cloned out of the store before invocation. This avoids borrowing `World::observers` while user code receives `&mut World`, and allows observers to mutate the world through the normal typed API. `ObserverId` is an opaque runtime handle; `World::remove_observer` removes matching callbacks across all observer scopes.
+
+`LifecycleEventKind` currently covers `Add`, `Insert`, `Replace`, `Remove`, and `Despawn`, matching the milestone language while staying close to Bevy's lifecycle split between add/insert and removal/despawn behavior. `World::insert<T>` triggers `Add` for first presence, `Replace` for an existing component, and `Insert` after every successful insert. `World::remove<T>` triggers `Remove` before the component leaves storage. `World::remove_entity` triggers `Remove` and `Despawn` for every component id still present on that entity before storage and fixed scene maps are cleared.
+
+`MessageStore` is the scheduled counterpart to immediate observers. It stores `Messages<T>` by `TypeId`, assigns monotonically increasing `MessageId<T>` values, and exposes typed `MessageWriterParam<T>` / `MessageReaderParam<T>` system params. Message reads do not clear the shared buffer; the reader cursor advances per system state, matching Bevy's reader-cursor model. `World::clear_messages<T>` is the explicit retention boundary for later schedule maintenance.
 
 ## Query Model
 
@@ -243,6 +305,10 @@ The initial supported data forms are deliberately narrow:
 
 This is Bevy-inspired but intentionally smaller than Bevy's full `WorldQuery` system. Mutable tuple query data is still deferred; the current mutable path supports one mutable data item (`&mut T` or `Mut<T>`) so M3/M5 can establish borrow-safety diagnostics and change-tick behavior before wider system execution.
 
+M11 starts the performance-parity path by adding explicit query cache metadata without changing the default query API. Bevy's `QueryState` stores matched table/archetype bitsets plus an archetype generation and updates them when the world gains new archetypes. Zircon does not yet have full archetype/table groups on the hot path, so the first cache is entity-set based: `QueryState::update_cache(world)` stores stable entity ids that structurally match the query data and filter, and `QueryState::iter_cached(world)` iterates that cached set while still fetching current component values and evaluating temporal filters such as `Added<T>` and `Changed<T>` against the active tick window. `World` owns a runtime-only query cache revision that advances on entity spawn/despawn and component presence add/remove, but not on value replacement. This means component replacement can reuse the cached entity list while still reading fresh component values from the world. The revision is ignored for `World` equality because it is runtime execution metadata, not scene data.
+
+This cache is intentionally a stepping stone, not the final M11 hot path. The next performance slice can replace the entity-set cache with archetype/table storage ids once `EntityLocation::archetype_id` starts tracking real component sets instead of the current compatibility `ArchetypeId::EMPTY` location.
+
 ## System Params, Commands, And Change Detection
 
 `SystemState<P>` is the local system execution wrapper. It caches `P::State`, records `SystemParamAccess`, tracks the system's `last_run` tick, advances `World` to a fresh `ChangeTick` for each run, and fetches `P::Item<'_>` for the user closure. Tuple params compose up to eight items and share one access descriptor so duplicate mutable resource, component, or event access is rejected before a system runs.
@@ -254,6 +320,7 @@ Supported system params in this slice are:
 - `Option<ResParam<T>>` and `Option<ResMutParam<T>>`, returning `None` when a resource is absent while still recording the declared access. Required `ResParam<T>` and `ResMutParam<T>` fail `SystemState::new(...)` with `SystemParamError::MissingResource` if the resource is missing.
 - `CommandsParam`, yielding `Commands`, which queues deferred `spawn`, `spawn_empty`, `entity`, `entity_or_spawn`, `despawn`, component insert/remove, bundle insert, resource insert/remove, or custom `Command`/closure work.
 - `EventReaderParam<T>` and `EventWriterParam<T>`, yielding current-queue readers and next-queue writers over runtime `EventStore`.
+- `MessageReaderParam<T>` and `MessageWriterParam<T>`, yielding cursor-based scheduled message reads and immediate writes to runtime `MessageStore`.
 - `RemovedComponentsParam<T>`, yielding a stateful `RemovedComponents<T>` reader that reports entities whose `T` was removed after the reader's last cursor.
 - `ParamSet<(P0, P1, ...)>` for arities one through eight, allowing potentially conflicting params to be declared together while exposing only segmented `p0()` through `p7()` access.
 - `LocalParam<T>`, yielding persistent local state initialized from `T::default()` and preserved across `SystemState::run(...)` calls.
@@ -308,6 +375,8 @@ The typed ECS M3 query tests cover required component reads, optional component 
 
 The typed ECS system-param/change-detection tests cover deferred command visibility before/after `World::apply_deferred()`, entity command builder ordering, tuple system params up to eight items, tuple params combining query/resource/commands access, optional and required resource params, `ParamSet` segmented conflicting access up to eight items, event reader/writer current/next queues, persistent local params, `Ref<T>`/`Mut<T>` query wrappers, `Added<T>` windows, `Changed<T>` windows after direct mutable component access, removed-component readers, and explicit `ApplyDeferred` schedule flushing.
 
+The M11 query-cache test in `ecs_query.rs` verifies that cached iteration is built once for an existing query, reuses the cache across component value replacement, rebuilds after a matching entity is spawned, and rebuilds after a queried component is removed.
+
 The transform/active dirty-state M2 tests cover dirty-only mutators, direct read projection without clearing dirty bits, `PostUpdate` cache propagation, `RenderExtract` flushing after parent reorder and active changes, and mobility changes that dirty cached node/render state without forcing transform propagation.
 
 The canonical render-extract M3 tests cover direct `RenderFrameExtract` section population from `World`, including request-driven camera aspect, visibility buckets, postprocess defaults, VG debug/default sidebands, and disabled Hybrid GI sidebands. A structure guard also rejects reintroducing `RenderFrameExtract::from_snapshot(...)` in the scene render-extract producer.
@@ -325,3 +394,5 @@ Fresh 2026-05-08 M3 boundary evidence passed in `E:\cargo-targets\zircon-ecs-ren
 Fresh 2026-05-08 SystemParam/Commands/change-detection evidence: `cargo check -p zircon_runtime --lib --locked --message-format short` finished successfully with warning-only output. `cargo test -p zircon_runtime --lib scene::tests::ecs_systems --locked --message-format short` passed with `4 passed; 0 failed; 1080 filtered out`. `cargo test -p zircon_runtime --lib scene::tests::ecs_query --locked --message-format short` passed with `5 passed; 0 failed; 1079 filtered out`. `cargo test -p zircon_runtime --lib scene::tests::ecs_typed_api --locked --message-format short` passed with `4 passed; 0 failed; 1080 filtered out`. Broader scene validation with `cargo test -p zircon_runtime --lib scene::tests --locked --message-format short` passed with `51 passed; 0 failed; 1033 filtered out`.
 
 Fresh focused evidence for this document is recorded in `tests/acceptance/ecs-to-render-chain.md`.
+
+Fresh 2026-05-16 M6 observer/message implementation evidence: `cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir target/codex-ecs-m6 --message-format short` passed through a hidden background Cargo process with `EXIT=0`. The focused `cargo check -p zircon_runtime --lib --tests --locked --offline --jobs 1 --target-dir target/codex-ecs-m6 --message-format short` test-configuration check also passed with `EXIT=0`. The first isolated focused test attempts were interrupted with process exit `-1` while compiling third-party dependencies, before `zircon_runtime` test diagnostics executed. After reusing the warmed default target, `cargo test -p zircon_runtime --lib scene::tests::ecs_observers_messages --locked --jobs 1 --message-format short` passed with `4 passed; 0 failed; 1399 filtered out`.

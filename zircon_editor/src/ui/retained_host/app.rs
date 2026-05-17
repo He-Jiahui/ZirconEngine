@@ -41,6 +41,7 @@ use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorManager;
 use crate::ui::host::SharedEditorRuntimeClient;
+use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use crate::ui::workbench::autolayout::{
     compute_workbench_shell_geometry, ShellRegionId, ShellSizePx, WorkbenchChromeMetrics,
@@ -254,6 +255,7 @@ struct RetainedEditorHost {
     pending_close_prompt: Option<close_prompt::PendingClosePrompt>,
     presentation_cache: HostPresentationCache,
     invalidation: HostInvalidationRoot,
+    pending_ui_perf_scenario: Option<UiPerfScenario>,
     presentation_dirty: bool,
     layout_dirty: bool,
     window_metrics_dirty: bool,

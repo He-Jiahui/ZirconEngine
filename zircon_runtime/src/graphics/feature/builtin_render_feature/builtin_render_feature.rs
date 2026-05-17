@@ -1,6 +1,7 @@
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum BuiltinRenderFeature {
     Mesh,
+    Sprite,
     DeferredGeometry,
     DeferredLighting,
     ClusteredLighting,
@@ -12,6 +13,7 @@ pub enum BuiltinRenderFeature {
     HistoryResolve,
     Shadows,
     PostProcess,
+    Ui,
     DebugOverlay,
     Particle,
     GlobalIllumination,

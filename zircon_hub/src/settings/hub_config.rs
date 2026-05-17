@@ -7,7 +7,9 @@ use crate::engines::SourceEngineInstall;
 use crate::error::HubError;
 use crate::projects::RecentProject;
 
-use super::{default_build_output_dir, default_project_dir, default_source_dir};
+use super::{
+    default_build_output_dir, default_device_install_dir, default_project_dir, default_source_dir,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HubConfig {
@@ -17,6 +19,10 @@ pub struct HubConfig {
     pub recent_projects: Vec<RecentProject>,
     #[serde(default)]
     pub engines: Vec<SourceEngineInstall>,
+    #[serde(default)]
+    pub active_engine_id: Option<String>,
+    #[serde(default)]
+    pub window: HubWindowState,
 }
 
 impl HubConfig {
@@ -47,8 +53,24 @@ impl Default for HubConfig {
             settings: HubSettings::default(),
             recent_projects: Vec::new(),
             engines: Vec::new(),
+            active_engine_id: None,
+            window: HubWindowState::default(),
         }
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HubWindowState {
+    #[serde(default)]
+    pub position_x: Option<i32>,
+    #[serde(default)]
+    pub position_y: Option<i32>,
+    #[serde(default)]
+    pub width: Option<u32>,
+    #[serde(default)]
+    pub height: Option<u32>,
+    #[serde(default)]
+    pub maximized: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -65,6 +87,8 @@ pub struct HubSettings {
     pub default_source_dir: PathBuf,
     #[serde(default = "default_build_output_dir")]
     pub default_build_output_dir: PathBuf,
+    #[serde(default = "default_device_install_dir")]
+    pub default_device_install_dir: PathBuf,
     #[serde(default)]
     pub language: HubLanguage,
     #[serde(default)]
@@ -82,6 +106,7 @@ impl Default for HubSettings {
             default_project_dir: default_project_dir(),
             default_source_dir: default_source_dir(),
             default_build_output_dir: default_build_output_dir(),
+            default_device_install_dir: default_device_install_dir(),
             language: HubLanguage::default(),
             build_profile: BuildProfile::default(),
             jobs: default_jobs(),
@@ -161,19 +186,32 @@ mod tests {
     fn hub_config_round_trips_settings_and_engines() {
         let mut config = HubConfig::default();
         config.settings.jobs = 4;
+        config.settings.default_device_install_dir = PathBuf::from("E:/zircon-device");
         config.engines.push(SourceEngineInstall {
             id: "local".to_string(),
             display_name: "Local Source".to_string(),
             source_dir: PathBuf::from("E:/Git/ZirconEngine"),
             output_dir: PathBuf::from("E:/zircon-build"),
             last_build_unix_ms: Some(7),
+            build_history: Vec::new(),
         });
+        config.active_engine_id = Some("local".to_string());
+        config.window.width = Some(1320);
+        config.window.height = Some(820);
+        config.window.maximized = true;
 
         let encoded = toml::to_string(&config).unwrap();
         let decoded: HubConfig = toml::from_str(&encoded).unwrap();
 
         assert_eq!(decoded.settings.jobs, 4);
+        assert_eq!(
+            decoded.settings.default_device_install_dir,
+            PathBuf::from("E:/zircon-device")
+        );
         assert_eq!(decoded.engines[0].id, "local");
+        assert_eq!(decoded.active_engine_id.as_deref(), Some("local"));
+        assert_eq!(decoded.window.width, Some(1320));
+        assert!(decoded.window.maximized);
     }
 
     #[test]

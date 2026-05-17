@@ -3,7 +3,7 @@ use std::time::Duration;
 use crate::asset::{
     AlphaMode, AssetEvent, AssetLoadState, AssetReference, AssetUri, Assets, Handle, MaterialAsset,
     ProjectAssetManager, RecursiveDependencyLoadState, ShaderAsset, ShaderEntryPointAsset,
-    ShaderSourceLanguage, TextureAsset, TexturePayload, UiLayoutAsset, UiV2ViewAsset,
+    ShaderSourceLanguage, TextureAsset, UiLayoutAsset, UiV2ViewAsset,
 };
 use crate::core::resource::{
     ResourceDiagnostic, ResourceHandle, ResourceId, ResourceKind, ResourceManager, ResourceRecord,
@@ -20,13 +20,7 @@ fn record(locator_text: &str, kind: ResourceKind) -> ResourceRecord {
 }
 
 fn texture_asset(uri: &str) -> TextureAsset {
-    TextureAsset {
-        uri: locator(uri),
-        width: 1,
-        height: 1,
-        rgba: vec![255, 0, 0, 255],
-        payload: TexturePayload::Rgba8,
-    }
+    TextureAsset::new_rgba8(locator(uri), 1, 1, vec![255, 0, 0, 255])
 }
 
 fn shader_asset(uri: &str) -> ShaderAsset {
@@ -40,6 +34,11 @@ fn shader_asset(uri: &str) -> ShaderAsset {
             stage: "fragment".to_string(),
         }],
         dependencies: Vec::new(),
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        property_schema: Vec::new(),
+        texture_slots: Vec::new(),
+        editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     }
@@ -60,6 +59,9 @@ fn material_asset(shader_uri: &str) -> MaterialAsset {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     }
 }
 
@@ -81,7 +83,7 @@ fn typed_handle_roundtrips_and_rejects_kind_mismatch() {
 fn assets_get_acquire_release_and_kind_filtering_use_resource_manager_storage() {
     let manager = ResourceManager::new();
     let texture_record = record("res://textures/checker.png", ResourceKind::Texture);
-    let material_record = record("res://materials/grid.material.toml", ResourceKind::Material);
+    let material_record = record("res://materials/grid.zmaterial", ResourceKind::Material);
     let texture_id = texture_record.id;
     let material_id = material_record.id;
     let texture_handle = manager
@@ -335,9 +337,9 @@ fn project_asset_manager_load_returns_typed_handle_and_state() {
     assert!(manager.load::<ShaderAsset>(&texture_locator).is_err());
 
     let pending_record = ResourceRecord::new(
-        ResourceId::from_locator(&locator("res://materials/pending.material.toml")),
+        ResourceId::from_locator(&locator("res://materials/pending.zmaterial")),
         ResourceKind::Material,
-        locator("res://materials/pending.material.toml"),
+        locator("res://materials/pending.zmaterial"),
     )
     .with_state(ResourceState::Pending);
     let pending_id = pending_record.id;
@@ -392,7 +394,7 @@ fn recursive_dependency_load_state_walks_nested_resource_dependencies() {
         .assets::<ShaderAsset>()
         .insert(shader, shader_asset("res://shaders/pbr.wgsl"))
         .expect("shader handle");
-    let mut material = record("res://materials/grid.material.toml", ResourceKind::Material);
+    let mut material = record("res://materials/grid.zmaterial", ResourceKind::Material);
     material.dependency_ids = vec![shader_id];
     let material_handle = manager
         .assets::<MaterialAsset>()
@@ -455,10 +457,7 @@ props = { text = "Panel" }
 fn recursive_dependency_load_state_marks_missing_dependency_as_failed() {
     let manager = ProjectAssetManager::default();
     let missing_id = ResourceId::from_stable_label("missing dependency");
-    let mut material = record(
-        "res://materials/missing.material.toml",
-        ResourceKind::Material,
-    );
+    let mut material = record("res://materials/missing.zmaterial", ResourceKind::Material);
     material.dependency_ids = vec![missing_id];
     let material_handle = manager
         .assets::<MaterialAsset>()

@@ -20,6 +20,13 @@ impl ResourceStreamer {
             textures: HashMap::new(),
             shaders: HashMap::new(),
             fallback_texture: Arc::new(create_fallback_texture(device, queue, texture_layout)),
+            last_material_count: 0,
+            last_material_ready_count: 0,
+            last_material_fallback_count: 0,
+            last_material_validation_error_count: 0,
+            last_sprite_count: 0,
+            last_sprite_ready_count: 0,
+            last_sprite_texture_fallback_count: 0,
         }
     }
 }

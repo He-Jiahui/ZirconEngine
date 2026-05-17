@@ -123,6 +123,18 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
 }
 
 #[test]
+fn editor_state_snapshot_ignores_stale_editor_selection() {
+    let mut state = test_state();
+    state.viewport_controller.set_selected_node(Some(999_999));
+
+    let snapshot = state.snapshot();
+
+    assert!(snapshot.inspector.is_none());
+    assert!(snapshot.scene_entries.iter().all(|entry| !entry.selected));
+    assert_eq!(state.viewport_controller.selected_node(), Some(999_999));
+}
+
+#[test]
 fn play_mode_restores_edit_world_and_history_on_exit() {
     let manager = DefaultLevelManager::default();
     let mut state = EditorState::project(

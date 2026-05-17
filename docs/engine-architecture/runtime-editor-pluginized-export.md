@@ -817,7 +817,7 @@ The minimal runtime/editor split is expressed through shared runtime contracts, 
 
 ## Minimal Core Boundary
 
-`RuntimeCoreProfile::minimal()` describes the runtime minimum: lifecycle, assets, scene, base render, and plugin loader capabilities. `GraphicsBase` is now loaded by the runtime core module list rather than selected as an optional plugin. `EditorCoreProfile::minimal()` describes the editor minimum: UI shell, asset core, scene interaction, runtime render embedding, plugin management, and capability bridge.
+`RuntimeCoreProfile::minimal()` describes the Bevy-style minimal runtime loop: lifecycle, tasks, time, frame count, and diagnostics. Asset, scene, base render, platform/input, and plugin-loader product surfaces belong to wider default/client profiles rather than the minimal core loop. `EditorCoreProfile::minimal()` describes the editor minimum: UI shell, asset core, scene interaction, runtime render embedding, plugin management, and capability bridge.
 
 Optional capabilities are represented by project plugin selections and editor capability IDs. Advanced features such as physics, animation, runtime diagnostics, native window hosting, and UI asset authoring are no longer implied by the editor shell itself; views declare `required_capabilities` and the registry hides, rejects registration, or rejects opening when those capabilities are absent. The `editor.module_plugins` view is part of the minimal editor shell so module state remains reachable even when all optional editor subsystems are disabled.
 

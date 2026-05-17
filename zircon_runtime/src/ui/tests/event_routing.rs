@@ -7,10 +7,10 @@ use crate::ui::{
 use zircon_runtime_interface::ui::dispatch::{
     UiDispatchDisposition, UiDispatchEffect, UiDispatchHostRequestKind, UiDispatchReply,
     UiFocusEffectReason, UiImeInputEvent, UiImeInputEventKind, UiInputEvent, UiInputEventMetadata,
-    UiInputMethodRequest, UiInputMethodRequestKind, UiInputSequence, UiInputTimestamp,
-    UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationRequestPolicy, UiPointerCaptureReason,
-    UiPointerComponentEventReason, UiPointerDispatchEffect, UiPointerEvent, UiPointerId,
-    UiPointerInputEvent, UiPointerLockPolicy, UiPreciseScrollDelta, UiTextInputEvent,
+    UiInputMethodRequest, UiInputMethodRequestKind, UiInputMethodSurroundingText, UiInputSequence,
+    UiInputTimestamp, UiKeyboardInputEvent, UiKeyboardInputState, UiNavigationRequestPolicy,
+    UiPointerCaptureReason, UiPointerComponentEventReason, UiPointerDispatchEffect, UiPointerEvent,
+    UiPointerId, UiPointerInputEvent, UiPointerLockPolicy, UiPreciseScrollDelta, UiTextInputEvent,
 };
 use zircon_runtime_interface::ui::{
     binding::UiEventKind,
@@ -856,6 +856,7 @@ fn dispatch_reply_applies_navigation_and_host_owned_input_effects() {
         owner: UiNodeId::new(3),
         cursor_rect: Some(UiFrame::new(10.0, 50.0, 1.0, 20.0)),
         composition_rects: vec![UiFrame::new(10.0, 50.0, 30.0, 20.0)],
+        surrounding_text: Some(UiInputMethodSurroundingText::new("foobar", 3, 3).unwrap()),
     };
     let reply = UiDispatchReply::handled().with_effects([
         UiDispatchEffect::RequestNavigation {
@@ -892,6 +893,7 @@ fn dispatch_reply_applies_navigation_and_host_owned_input_effects() {
         owner: UiNodeId::new(3),
         cursor_rect: None,
         composition_rects: Vec::new(),
+        surrounding_text: None,
     };
     let disabled = surface.apply_dispatch_reply(
         keyboard_event(),
@@ -937,6 +939,7 @@ fn dispatch_reply_applies_navigation_and_host_owned_input_effects() {
                 owner: UiNodeId::new(3),
                 cursor_rect: None,
                 composition_rects: Vec::new(),
+                surrounding_text: None,
             },
         }),
     );
@@ -947,6 +950,39 @@ fn dispatch_reply_applies_navigation_and_host_owned_input_effects() {
     assert!(invalid_enable.rejected_effects[0]
         .reason
         .starts_with("invalid input owner"));
+}
+
+#[test]
+fn input_method_request_rejects_invalid_surrounding_text_before_host_request() {
+    let mut surface = two_button_surface(None, None);
+    let invalid = UiInputMethodRequest {
+        kind: UiInputMethodRequestKind::Enable,
+        owner: UiNodeId::new(3),
+        cursor_rect: Some(UiFrame::new(10.0, 50.0, 1.0, 20.0)),
+        composition_rects: Vec::new(),
+        surrounding_text: Some(UiInputMethodSurroundingText {
+            text: "你好".to_string(),
+            cursor_byte: 1,
+            anchor_byte: 1,
+        }),
+    };
+
+    let rejected = surface.apply_dispatch_reply(
+        keyboard_event(),
+        UiDispatchReply::handled()
+            .with_effect(UiDispatchEffect::RequestInputMethod { request: invalid }),
+    );
+
+    assert_eq!(surface.input.input_method_owner, None);
+    assert!(rejected.host_requests.is_empty());
+    assert_eq!(rejected.rejected_effects.len(), 1);
+    assert!(
+        rejected.rejected_effects[0]
+            .reason
+            .starts_with("invalid input method surrounding text"),
+        "{}",
+        rejected.rejected_effects[0].reason
+    );
 }
 
 #[test]

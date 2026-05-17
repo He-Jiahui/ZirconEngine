@@ -1,9 +1,8 @@
-use crate::asset::assets::AlphaMode;
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::asset::TextureAsset;
 use std::sync::Arc;
 
-use crate::core::framework::render::RenderMaterialReadinessReport;
+use crate::core::framework::render::{RenderMaterialAlphaMode, RenderMaterialReadinessReport};
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
 
@@ -39,47 +38,54 @@ impl ResourceStreamer {
                 self.asset_manager
                     .load_material_asset(*id)
                     .ok()
-                    .map(|material| MaterialCaptureSeed {
-                        base_color: Vec4::from_array(material.base_color),
-                        emissive: Vec3::from_array(material.emissive),
-                        metallic: material.metallic,
-                        roughness: material.roughness,
-                        double_sided: material.double_sided,
-                        alpha_blend: matches!(material.alpha_mode, AlphaMode::Blend),
-                        alpha_cutoff: match material.alpha_mode {
-                            AlphaMode::Mask { cutoff } => Some(cutoff),
-                            _ => None,
-                        },
-                        base_color_texture: self
-                            .resolve_texture_reference(
-                                "base_color_texture",
-                                material.base_color_texture.as_ref(),
-                            )
-                            .id(),
-                        normal_texture: self
-                            .resolve_texture_reference(
-                                "normal_texture",
-                                material.normal_texture.as_ref(),
-                            )
-                            .id(),
-                        metallic_roughness_texture: self
-                            .resolve_texture_reference(
-                                "metallic_roughness_texture",
-                                material.metallic_roughness_texture.as_ref(),
-                            )
-                            .id(),
-                        occlusion_texture: self
-                            .resolve_texture_reference(
-                                "occlusion_texture",
-                                material.occlusion_texture.as_ref(),
-                            )
-                            .id(),
-                        emissive_texture: self
-                            .resolve_texture_reference(
-                                "emissive_texture",
-                                material.emissive_texture.as_ref(),
-                            )
-                            .id(),
+                    .map(|material| {
+                        let descriptor = material.standard_material_descriptor();
+                        MaterialCaptureSeed {
+                            base_color: Vec4::from_array(descriptor.base_color),
+                            emissive: Vec3::from_array(descriptor.emissive),
+                            metallic: descriptor.metallic,
+                            roughness: descriptor.roughness,
+                            double_sided: descriptor.double_sided,
+                            alpha_blend: matches!(
+                                descriptor.alpha_mode,
+                                RenderMaterialAlphaMode::Blend
+                            ),
+                            alpha_cutoff: match descriptor.alpha_mode {
+                                RenderMaterialAlphaMode::Mask { cutoff } => Some(cutoff),
+                                _ => None,
+                            },
+                            unlit: descriptor.unlit,
+                            base_color_texture: self
+                                .resolve_texture_reference(
+                                    "base_color_texture",
+                                    descriptor.base_color_texture.as_ref(),
+                                )
+                                .id(),
+                            normal_texture: self
+                                .resolve_texture_reference(
+                                    "normal_texture",
+                                    descriptor.normal_texture.as_ref(),
+                                )
+                                .id(),
+                            metallic_roughness_texture: self
+                                .resolve_texture_reference(
+                                    "metallic_roughness_texture",
+                                    descriptor.metallic_roughness_texture.as_ref(),
+                                )
+                                .id(),
+                            occlusion_texture: self
+                                .resolve_texture_reference(
+                                    "occlusion_texture",
+                                    descriptor.occlusion_texture.as_ref(),
+                                )
+                                .id(),
+                            emissive_texture: self
+                                .resolve_texture_reference(
+                                    "emissive_texture",
+                                    descriptor.emissive_texture.as_ref(),
+                                )
+                                .id(),
+                        }
                     })
             })
     }
@@ -107,6 +113,34 @@ impl ResourceStreamer {
         self.shaders
             .get(shader_id)
             .map(|shader| shader.runtime.source.as_str())
+    }
+
+    pub(crate) fn last_material_count(&self) -> usize {
+        self.last_material_count
+    }
+
+    pub(crate) fn last_material_ready_count(&self) -> usize {
+        self.last_material_ready_count
+    }
+
+    pub(crate) fn last_material_fallback_count(&self) -> usize {
+        self.last_material_fallback_count
+    }
+
+    pub(crate) fn last_material_validation_error_count(&self) -> usize {
+        self.last_material_validation_error_count
+    }
+
+    pub(crate) fn last_sprite_count(&self) -> usize {
+        self.last_sprite_count
+    }
+
+    pub(crate) fn last_sprite_ready_count(&self) -> usize {
+        self.last_sprite_ready_count
+    }
+
+    pub(crate) fn last_sprite_texture_fallback_count(&self) -> usize {
+        self.last_sprite_texture_fallback_count
     }
 }
 

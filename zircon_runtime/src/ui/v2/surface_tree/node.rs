@@ -180,10 +180,11 @@ fn arena_node_style_overrides(
     node: &UiV2ArenaNode,
     resolved_styles: &UiV2ResolvedStyleSheet,
 ) -> BTreeMap<String, Value> {
-    let mut style_overrides = node.style.self_values.clone();
+    let mut style_overrides = BTreeMap::new();
     if let Some(resolved) = resolved_styles.nodes.get(&node.source_id) {
         style_overrides.extend(resolved.self_values.clone());
     }
+    style_overrides.extend(node.style.self_values.clone());
     style_overrides
 }
 

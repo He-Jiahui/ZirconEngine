@@ -5,11 +5,11 @@ use super::{
     SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
     SoundListenerDescriptor, SoundListenerId, SoundMixBlock, SoundMixerGraph,
     SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
-    SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackId, SoundPlaybackSettings,
-    SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
-    SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence, SoundTimelineSequenceAdvance,
-    SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
-    SoundVolumeDescriptor, SoundVolumeId,
+    SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackFinished, SoundPlaybackId,
+    SoundPlaybackSettings, SoundPlaybackStatus, SoundRayTracedImpulseResponseDescriptor,
+    SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence,
+    SoundTimelineSequenceAdvance, SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId,
+    SoundTrackSend, SoundVolumeDescriptor, SoundVolumeId,
 };
 use super::{
     SoundDynamicEventCatalog, SoundDynamicEventDelivery, SoundDynamicEventDescriptor,
@@ -29,6 +29,10 @@ pub trait SoundManager: Send + Sync {
     fn render_output_device_block(&self) -> Result<SoundMixBlock, SoundError>;
     fn available_output_backends(&self) -> Result<Vec<SoundBackendCapability>, SoundError>;
     fn pull_output_backend_callback(&self) -> Result<SoundBackendCallbackBlock, SoundError>;
+    fn global_volume_gain(&self) -> Result<f32, SoundError>;
+    fn set_global_volume_gain(&self, gain: f32) -> Result<(), SoundError>;
+    fn default_spatial_scale(&self) -> Result<f32, SoundError>;
+    fn set_default_spatial_scale(&self, scale: f32) -> Result<(), SoundError>;
     fn load_clip(&self, locator: &str) -> Result<SoundClipId, SoundError>;
     fn clip_info(&self, clip: SoundClipId) -> Result<SoundClipInfo, SoundError>;
     fn play_clip(
@@ -37,6 +41,23 @@ pub trait SoundManager: Send + Sync {
         settings: SoundPlaybackSettings,
     ) -> Result<SoundPlaybackId, SoundError>;
     fn stop_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn pause_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn resume_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn toggle_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn set_playback_gain(&self, playback: SoundPlaybackId, gain: f32) -> Result<(), SoundError>;
+    fn set_playback_speed(&self, playback: SoundPlaybackId, speed: f32) -> Result<(), SoundError>;
+    fn seek_playback_seconds(
+        &self,
+        playback: SoundPlaybackId,
+        seconds: f32,
+    ) -> Result<(), SoundError>;
+    fn mute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn unmute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn toggle_mute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError>;
+    fn playback_empty(&self, playback: SoundPlaybackId) -> Result<bool, SoundError>;
+    fn playback_status(&self, playback: SoundPlaybackId)
+        -> Result<SoundPlaybackStatus, SoundError>;
+    fn drain_finished_playbacks(&self) -> Result<Vec<SoundPlaybackFinished>, SoundError>;
     fn available_mixer_presets(&self) -> Result<Vec<SoundMixerPresetDescriptor>, SoundError>;
     fn apply_mixer_preset(&self, locator: &str) -> Result<(), SoundError>;
     fn configure_mixer(&self, graph: SoundMixerGraph) -> Result<(), SoundError>;

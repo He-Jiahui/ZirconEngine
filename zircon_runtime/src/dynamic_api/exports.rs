@@ -2,7 +2,8 @@ use zircon_runtime_interface::{ZrHostApiV1, ZrRuntimeApiV1, ZIRCON_RUNTIME_ABI_V
 
 use super::session::{
     bind_viewport_surface, capture_accessibility_tree, capture_frame, create_session,
-    destroy_session, handle_event, present_viewport, profile_control, unbind_viewport_surface,
+    destroy_session, drain_host_requests, handle_event, present_viewport, profile_control,
+    tick_frame, unbind_viewport_surface,
 };
 
 static RUNTIME_API_V1: ZrRuntimeApiV1 = ZrRuntimeApiV1 {
@@ -17,6 +18,8 @@ static RUNTIME_API_V1: ZrRuntimeApiV1 = ZrRuntimeApiV1 {
     unbind_viewport_surface: Some(unbind_viewport_surface),
     present_viewport: Some(present_viewport),
     profile_control: Some(profile_control),
+    tick_frame: Some(tick_frame),
+    drain_host_requests: Some(drain_host_requests),
 };
 
 #[no_mangle]

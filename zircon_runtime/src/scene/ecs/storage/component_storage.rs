@@ -236,6 +236,22 @@ impl ComponentStorage {
         removed
     }
 
+    pub(crate) fn component_ids_for_entity(&self, entity: InternalEntity) -> Vec<ComponentId> {
+        let mut component_ids = Vec::new();
+        for (component_id, storage) in &self.table_components {
+            if storage.contains(entity) {
+                component_ids.push(*component_id);
+            }
+        }
+        for (component_id, storage) in &self.sparse_components {
+            if storage.contains(entity) {
+                component_ids.push(*component_id);
+            }
+        }
+        component_ids.sort_unstable();
+        component_ids
+    }
+
     pub fn storage_type(&self, component_id: ComponentId) -> Option<StorageType> {
         self.storage_types.get(&component_id).copied()
     }

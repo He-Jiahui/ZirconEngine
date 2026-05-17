@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::NetSecurityPolicy;
+use super::{NetEndpoint, NetSecurityPolicy};
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NetWebSocketConnectDescriptor {
@@ -9,6 +9,44 @@ pub struct NetWebSocketConnectDescriptor {
     pub protocols: Vec<String>,
     pub timeout_ms: u64,
     pub security: NetSecurityPolicy,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetWebSocketListenerDescriptor {
+    pub bind: NetEndpoint,
+    pub allowed_paths: Vec<String>,
+    pub required_headers: Vec<(String, String)>,
+    pub allowed_protocols: Vec<String>,
+}
+
+impl NetWebSocketListenerDescriptor {
+    pub fn new(bind: NetEndpoint) -> Self {
+        Self {
+            bind,
+            allowed_paths: Vec::new(),
+            required_headers: Vec::new(),
+            allowed_protocols: Vec::new(),
+        }
+    }
+
+    pub fn with_allowed_path(mut self, path: impl Into<String>) -> Self {
+        self.allowed_paths.push(path.into());
+        self
+    }
+
+    pub fn with_required_header(
+        mut self,
+        name: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        self.required_headers.push((name.into(), value.into()));
+        self
+    }
+
+    pub fn with_allowed_protocol(mut self, protocol: impl Into<String>) -> Self {
+        self.allowed_protocols.push(protocol.into());
+        self
+    }
 }
 
 impl NetWebSocketConnectDescriptor {

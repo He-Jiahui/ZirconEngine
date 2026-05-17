@@ -18,6 +18,7 @@ pub mod component;
 pub mod dispatch;
 pub mod event_ui;
 pub mod layout;
+pub mod style;
 pub mod surface;
 pub mod template;
 pub(crate) mod text;

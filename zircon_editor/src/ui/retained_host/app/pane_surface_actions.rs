@@ -2,7 +2,10 @@ use super::showcase_event_inputs::{
     demo_input_for_showcase_action, demo_input_for_showcase_edit, select_option,
 };
 use super::*;
+use crate::ui::template_runtime::builtin::MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID;
 use crate::ui::template_runtime::{UiComponentShowcaseDemoEventInput, SHOWCASE_DOCUMENT_ID};
+
+const MATERIAL_LAB_BINDING_PREFIX: &str = "MaterialLab/";
 
 impl RetainedEditorHost {
     pub(super) fn dispatch_pane_surface_control_clicked(
@@ -167,6 +170,10 @@ impl RetainedEditorHost {
         action_id: &str,
         input: UiComponentShowcaseDemoEventInput,
     ) {
+        if action_id.starts_with(MATERIAL_LAB_BINDING_PREFIX) {
+            self.dispatch_material_lab_event(control_id, action_id);
+            return;
+        }
         if let Err(error) = self.ensure_component_showcase_runtime_loaded() {
             self.set_status_line(error);
             return;
@@ -205,6 +212,33 @@ impl RetainedEditorHost {
                 self.set_status_line(format!("Showcase event failed: {error}"));
             }
         }
+    }
+
+    fn dispatch_material_lab_event(&mut self, control_id: &str, action_id: &str) {
+        if let Err(error) = self.ensure_component_showcase_runtime_loaded() {
+            self.set_status_line(error);
+            return;
+        }
+
+        let binding = self
+            .component_showcase_runtime
+            .project_document(MATERIAL_COMPONENT_LAB_WINDOW_DOCUMENT_ID)
+            .ok()
+            .and_then(|projection| {
+                projection
+                    .bindings
+                    .into_iter()
+                    .find(|binding| binding.binding_id == action_id)
+            });
+        if binding.is_none() {
+            self.set_status_line(format!("Unknown Material Lab action {action_id}"));
+            return;
+        }
+
+        self.set_status_line(format!(
+            "Material Lab feedback: {control_id} -> {}",
+            action_id.replace('/', ".")
+        ));
     }
 
     fn demo_input_for_showcase_action(

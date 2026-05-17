@@ -2,12 +2,12 @@ use std::collections::BTreeMap;
 
 use zircon_runtime::asset::{
     self, AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
-    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationGraphAsset, AnimationGraphNodeAsset,
-    AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
-    AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
-    AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetReference, AssetUri,
-    ProjectAssetManager,
+    AnimationClipAsset, AnimationClipBoneTrackAsset, AnimationEventTrackAsset, AnimationGraphAsset,
+    AnimationGraphNodeAsset, AnimationGraphParameterAsset, AnimationInterpolationAsset,
+    AnimationSequenceAsset, AnimationSequenceBindingAsset, AnimationSequenceTrackAsset,
+    AnimationSkeletonAsset, AnimationSkeletonBoneAsset, AnimationStateAsset,
+    AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
+    AssetReference, AssetUri, ProjectAssetManager,
 };
 use zircon_runtime::core::framework::animation::{
     AnimationGraphBlendMode, AnimationParameterValue,
@@ -17,7 +17,7 @@ use zircon_runtime::core::framework::scene::{ComponentPropertyPath, EntityPath};
 use zircon_runtime::core::manager::{resolve_animation_manager, resolve_physics_manager};
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{
-    AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
+    AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
     AnimationStateMachineMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
 };
 use zircon_runtime::core::{CoreHandle, CoreRuntime};
@@ -25,9 +25,9 @@ use zircon_runtime::plugin::{
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
 };
 use zircon_runtime::scene::components::{
-    AnimationGraphPlayerComponent, AnimationSequencePlayerComponent, AnimationSkeletonComponent,
-    AnimationStateMachinePlayerComponent, ColliderComponent, ColliderShape, NodeKind,
-    RigidBodyComponent, RigidBodyType,
+    AnimationGraphPlayerComponent, AnimationPlayerComponent, AnimationSequencePlayerComponent,
+    AnimationSkeletonComponent, AnimationStateMachinePlayerComponent, ColliderComponent,
+    ColliderShape, NodeKind, RigidBodyComponent, RigidBodyType,
 };
 use zircon_runtime::{foundation, scene};
 
@@ -198,6 +198,366 @@ fn level_tick_applies_loaded_animation_sequences_to_world_properties() {
 }
 
 #[test]
+fn level_tick_emits_animation_clip_event_tracks_crossed_by_player_time() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/event.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/event.clip.zranim").unwrap();
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![
+        AnimationEventTrackAsset {
+            target_id: Some("Root/Hand".to_string()),
+            event: "footstep".to_string(),
+            time_seconds: 0.25,
+            payload: Some("left".to_string()),
+        },
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "land".to_string(),
+            time_seconds: 0.75,
+            payload: None,
+        },
+    ];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri),
+        clip,
+    );
+    let level = scene::create_default_level(&core).unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_player(
+                entity,
+                Some(AnimationPlayerComponent {
+                    clip: ResourceHandle::<AnimationClipMarker>::new(clip_id),
+                    playback_speed: 1.0,
+                    time_seconds: 0.2,
+                    weight: 1.0,
+                    looping: false,
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    level.tick(&core, 0.1).unwrap();
+    let events = drain_animation_clip_events(&level);
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].entity, entity);
+    assert_eq!(events[0].event, "footstep");
+    assert_eq!(events[0].payload.as_deref(), Some("left"));
+    assert_eq!(events[0].clip_time_seconds, 0.25);
+    assert_eq!(events[0].playback_time_seconds, 0.25);
+}
+
+#[test]
+fn clip_event_sampling_reports_loop_boundary_occurrences_in_playback_order() {
+    let skeleton_uri = AssetUri::parse("res://animation/event-loop.skeleton.zranim").unwrap();
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "loop_start".to_string(),
+            time_seconds: 0.0,
+            payload: None,
+        },
+        AnimationEventTrackAsset {
+            target_id: None,
+            event: "mid".to_string(),
+            time_seconds: 0.5,
+            payload: None,
+        },
+    ];
+
+    let events = zircon_plugin_animation_runtime::sample_clip_events(&clip, 7, 0.75, 1.6, true);
+
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| (event.event.as_str(), event.playback_time_seconds))
+            .collect::<Vec<_>>(),
+        vec![("loop_start", 1.0), ("mid", 1.5)]
+    );
+}
+
+#[test]
+fn graph_player_emits_clip_events_using_graph_clip_playback_speed() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/graph-event.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/graph-event.clip.zranim").unwrap();
+    let graph_uri = AssetUri::parse("res://animation/graph-event.graph.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let graph_id = ResourceId::from_locator(&graph_uri);
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![AnimationEventTrackAsset {
+        target_id: Some("Root/Hand".to_string()),
+        event: "graph_hit".to_string(),
+        time_seconds: 0.5,
+        payload: Some("fast".to_string()),
+    }];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            skeleton_id,
+            ResourceKind::AnimationSkeleton,
+            skeleton_uri.clone(),
+        ),
+        two_bone_skeleton(),
+    );
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri.clone()),
+        clip,
+    );
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(graph_id, ResourceKind::AnimationGraph, graph_uri),
+        AnimationGraphAsset {
+            name: Some("GraphEvent".to_string()),
+            parameters: Vec::new(),
+            nodes: vec![
+                AnimationGraphNodeAsset::Clip {
+                    id: "clip".to_string(),
+                    clip: AssetReference::from_locator(clip_uri),
+                    playback_speed: 2.0,
+                    looping: false,
+                },
+                AnimationGraphNodeAsset::Output {
+                    source: "clip".to_string(),
+                },
+            ],
+        },
+    );
+    let level = scene::create_default_level(&core).unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_graph_player(
+                entity,
+                Some(AnimationGraphPlayerComponent {
+                    graph: ResourceHandle::<AnimationGraphMarker>::new(graph_id),
+                    parameters: BTreeMap::new(),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    level.tick(&core, 0.3).unwrap();
+    let events = drain_animation_clip_events(&level);
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].entity, entity);
+    assert_eq!(events[0].event, "graph_hit");
+    assert_eq!(events[0].payload.as_deref(), Some("fast"));
+    assert_eq!(events[0].clip_time_seconds, 0.5);
+    assert_eq!(events[0].playback_time_seconds, 0.5);
+}
+
+#[test]
+fn state_machine_player_emits_active_graph_clip_events() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/state-event.skeleton.zranim").unwrap();
+    let clip_uri = AssetUri::parse("res://animation/state-event.clip.zranim").unwrap();
+    let graph_uri = AssetUri::parse("res://animation/state-event.graph.zranim").unwrap();
+    let machine_uri = AssetUri::parse("res://animation/state-event.machine.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let clip_id = ResourceId::from_locator(&clip_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            skeleton_id,
+            ResourceKind::AnimationSkeleton,
+            skeleton_uri.clone(),
+        ),
+        two_bone_skeleton(),
+    );
+    let mut clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    clip.event_tracks = vec![AnimationEventTrackAsset {
+        target_id: Some("Root/Hand".to_string()),
+        event: "state_hit".to_string(),
+        time_seconds: 0.4,
+        payload: Some("idle".to_string()),
+    }];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(clip_id, ResourceKind::AnimationClip, clip_uri.clone()),
+        clip,
+    );
+    register_single_clip_graph(&asset_manager, &graph_uri, &clip_uri);
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            machine_id,
+            ResourceKind::AnimationStateMachine,
+            machine_uri.clone(),
+        ),
+        single_state_machine(&graph_uri),
+    );
+
+    let level = scene::create_default_level(&core).unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_state_machine_player(
+                entity,
+                Some(AnimationStateMachinePlayerComponent {
+                    state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
+                    parameters: BTreeMap::new(),
+                    active_state: Some("Idle".to_string()),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    level.tick(&core, 0.5).unwrap();
+    let events = drain_animation_clip_events(&level);
+
+    assert_eq!(events.len(), 1);
+    assert_eq!(events[0].entity, entity);
+    assert_eq!(events[0].target_id.as_deref(), Some("Root/Hand"));
+    assert_eq!(events[0].event, "state_hit");
+    assert_eq!(events[0].payload.as_deref(), Some("idle"));
+    assert_eq!(events[0].clip_time_seconds, 0.4);
+    assert_eq!(events[0].playback_time_seconds, 0.4);
+}
+
+#[test]
+fn state_machine_transition_emits_from_and_to_graph_clip_events() {
+    let runtime = runtime_with_physics_animation_scene_asset();
+    let core = runtime.handle();
+    let asset_manager = runtime_asset_manager(&core);
+    let skeleton_uri = AssetUri::parse("res://animation/transition-event.skeleton.zranim").unwrap();
+    let idle_clip_uri =
+        AssetUri::parse("res://animation/transition-event-idle.clip.zranim").unwrap();
+    let run_clip_uri = AssetUri::parse("res://animation/transition-event-run.clip.zranim").unwrap();
+    let idle_graph_uri =
+        AssetUri::parse("res://animation/transition-event-idle.graph.zranim").unwrap();
+    let run_graph_uri =
+        AssetUri::parse("res://animation/transition-event-run.graph.zranim").unwrap();
+    let machine_uri = AssetUri::parse("res://animation/transition-event.machine.zranim").unwrap();
+    let skeleton_id = ResourceId::from_locator(&skeleton_uri);
+    let idle_clip_id = ResourceId::from_locator(&idle_clip_uri);
+    let run_clip_id = ResourceId::from_locator(&run_clip_uri);
+    let machine_id = ResourceId::from_locator(&machine_uri);
+
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            skeleton_id,
+            ResourceKind::AnimationSkeleton,
+            skeleton_uri.clone(),
+        ),
+        two_bone_skeleton(),
+    );
+    let mut idle_clip = single_hand_translation_clip(&skeleton_uri, 0.0);
+    idle_clip.event_tracks = vec![AnimationEventTrackAsset {
+        target_id: None,
+        event: "idle_exit".to_string(),
+        time_seconds: 0.05,
+        payload: None,
+    }];
+    let mut run_clip = single_hand_translation_clip(&skeleton_uri, 10.0);
+    run_clip.event_tracks = vec![AnimationEventTrackAsset {
+        target_id: None,
+        event: "run_enter".to_string(),
+        time_seconds: 0.05,
+        payload: None,
+    }];
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            idle_clip_id,
+            ResourceKind::AnimationClip,
+            idle_clip_uri.clone(),
+        ),
+        idle_clip,
+    );
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            run_clip_id,
+            ResourceKind::AnimationClip,
+            run_clip_uri.clone(),
+        ),
+        run_clip,
+    );
+    register_single_clip_graph(&asset_manager, &idle_graph_uri, &idle_clip_uri);
+    register_single_clip_graph(&asset_manager, &run_graph_uri, &run_clip_uri);
+    asset_manager.resource_manager().register_ready(
+        ResourceRecord::new(
+            machine_id,
+            ResourceKind::AnimationStateMachine,
+            machine_uri.clone(),
+        ),
+        timed_transition_state_machine(&idle_graph_uri, &run_graph_uri),
+    );
+
+    let level = scene::create_default_level(&core).unwrap();
+    let entity = level.with_world_mut(|world| {
+        let entity = world.spawn_node(NodeKind::Cube);
+        world
+            .set_animation_skeleton(
+                entity,
+                Some(AnimationSkeletonComponent {
+                    skeleton: ResourceHandle::<AnimationSkeletonMarker>::new(skeleton_id),
+                }),
+            )
+            .unwrap();
+        world
+            .set_animation_state_machine_player(
+                entity,
+                Some(AnimationStateMachinePlayerComponent {
+                    state_machine: ResourceHandle::<AnimationStateMachineMarker>::new(machine_id),
+                    parameters: BTreeMap::from([(
+                        "advance".to_string(),
+                        AnimationParameterValue::Bool(true),
+                    )]),
+                    active_state: Some("Idle".to_string()),
+                    playing: true,
+                }),
+            )
+            .unwrap();
+        entity
+    });
+
+    level.tick(&core, 0.1).unwrap();
+    let mut events = drain_animation_clip_events(&level);
+    events.sort_by(|a, b| a.event.cmp(&b.event));
+
+    assert_eq!(events.len(), 2);
+    assert!(events.iter().all(|event| event.entity == entity));
+    assert_eq!(
+        events
+            .iter()
+            .map(|event| (event.event.as_str(), event.clip_time_seconds))
+            .collect::<Vec<_>>(),
+        vec![("idle_exit", 0.05), ("run_enter", 0.05)]
+    );
+}
+
+#[test]
 fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
     let runtime = runtime_with_scene_asset_only();
     let core = runtime.handle();
@@ -241,6 +601,18 @@ fn level_tick_without_animation_plugin_does_not_advance_sequence_players() {
     assert_eq!(translation, Vec3::ZERO);
     assert_eq!(player_time, 0.0);
     assert!(level.animation_pose(cube).is_none());
+}
+
+fn drain_animation_clip_events(
+    level: &zircon_runtime::scene::LevelSystem,
+) -> Vec<zircon_plugin_animation_runtime::AnimationClipEvent> {
+    level.with_world_mut(|world| {
+        world.update_events::<zircon_plugin_animation_runtime::AnimationClipEvent>();
+        world
+            .events::<zircon_plugin_animation_runtime::AnimationClipEvent>()
+            .map(|events| events.iter().cloned().collect())
+            .unwrap_or_default()
+    })
 }
 
 #[test]
@@ -898,6 +1270,18 @@ fn timed_transition_state_machine(
                 value: Some(AnimationParameterValue::Bool(true)),
             }],
         }],
+    }
+}
+
+fn single_state_machine(graph_uri: &AssetUri) -> AnimationStateMachineAsset {
+    AnimationStateMachineAsset {
+        name: Some("SingleState".to_string()),
+        entry_state: "Idle".to_string(),
+        states: vec![AnimationStateAsset {
+            name: "Idle".to_string(),
+            graph: AssetReference::from_locator(graph_uri.clone()),
+        }],
+        transitions: Vec::new(),
     }
 }
 

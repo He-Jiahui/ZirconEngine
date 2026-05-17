@@ -2,8 +2,11 @@ use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
 use std::collections::BTreeMap;
-use zircon_runtime::plugin::{ComponentPropertyDescriptor, ComponentTypeDescriptor};
 use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime_interface::reflect::{
+    ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
+    ReflectedValue,
+};
 
 use super::super::{
     AssetSurfaceMode, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
@@ -23,20 +26,19 @@ impl EditorState {
         let (scene_entries, inspector) = self
             .world
             .try_with_world(|scene| {
-                let inspector = selected
-                    .and_then(|id| scene.find_node(id).map(|node| (id, node)))
-                    .map(|(id, _node)| InspectorSnapshot {
+                let selected = scene.editor_projection(selected).selected_entity;
+                let inspector = selected.map(|id| InspectorSnapshot {
+                    id,
+                    name: self.name_field.clone(),
+                    parent: self.parent_field.clone(),
+                    translation: self.transform_fields.clone(),
+                    plugin_components: inspector_plugin_components(
+                        scene,
                         id,
-                        name: self.name_field.clone(),
-                        parent: self.parent_field.clone(),
-                        translation: self.transform_fields.clone(),
-                        plugin_components: inspector_plugin_components(
-                            scene,
-                            id,
-                            &self.inspector_dynamic_fields,
-                            component_drawers,
-                        ),
-                    });
+                        &self.inspector_dynamic_fields,
+                        component_drawers,
+                    ),
+                });
                 let scene_entries = scene
                     .node_records()
                     .iter()
@@ -87,27 +89,59 @@ fn inspector_plugin_components(
         .dynamic_components_for_entity(node_id)
         .into_iter()
         .map(|component| {
-            let descriptor = component.descriptor.as_ref();
             let component_id = component.component_id;
-            let plugin_id = descriptor
-                .map(|descriptor| descriptor.plugin_id.clone())
+            let schema = scene.reflect_schema(&component_id).ok();
+            let plugin_id = schema
+                .as_ref()
+                .and_then(|schema| schema.plugin_id.clone())
+                .or_else(|| {
+                    component
+                        .descriptor
+                        .as_ref()
+                        .map(|descriptor| descriptor.plugin_id.clone())
+                })
                 .unwrap_or_else(|| plugin_id_from_component_id(&component_id));
-            let display_name = descriptor
-                .map(|descriptor| descriptor.display_name.clone())
+            let display_name = schema
+                .as_ref()
+                .map(|schema| schema.display_name.clone())
+                .or_else(|| {
+                    component
+                        .descriptor
+                        .as_ref()
+                        .map(|descriptor| descriptor.display_name.clone())
+                })
                 .unwrap_or_else(|| component_display_name(&component_id));
             let drawer = component_drawers.get(&component_id);
-            let drawer_available = descriptor.is_some() && drawer.is_some();
+            let drawer_available = schema.is_some() && drawer.is_some();
             let diagnostic = inspector_plugin_component_diagnostic(
                 &component_id,
-                descriptor.is_some(),
+                schema.is_some(),
                 drawer.is_some(),
             );
-            let properties = inspector_plugin_component_properties(
-                &component_id,
-                &component.value,
-                descriptor,
-                draft_fields,
-            );
+            let properties = if let Some(schema) = schema.as_ref() {
+                inspector_plugin_component_reflected_properties(
+                    scene,
+                    node_id,
+                    &component_id,
+                    schema,
+                    draft_fields,
+                )
+                .unwrap_or_else(|| {
+                    inspector_plugin_component_json_properties(
+                        &component_id,
+                        &component.value,
+                        false,
+                        draft_fields,
+                    )
+                })
+            } else {
+                inspector_plugin_component_json_properties(
+                    &component_id,
+                    &component.value,
+                    false,
+                    draft_fields,
+                )
+            };
             InspectorPluginComponentSnapshot {
                 component_id,
                 display_name,
@@ -149,28 +183,47 @@ fn inspector_plugin_component_diagnostic(
     None
 }
 
-fn inspector_plugin_component_properties(
+fn inspector_plugin_component_reflected_properties(
+    scene: &Scene,
+    node_id: NodeId,
+    component_id: &str,
+    schema: &ReflectTypeRegistration,
+    draft_fields: &BTreeMap<String, String>,
+) -> Option<Vec<InspectorPluginComponentPropertySnapshot>> {
+    let address = ReflectObjectAddress::component(node_id, component_id).ok()?;
+    let fields = scene
+        .reflect_fields(ReflectFieldsRequest::new(address))
+        .ok()?
+        .fields;
+    let mut properties = schema
+        .type_info
+        .fields
+        .iter()
+        .filter(|field| field.editor_visible)
+        .filter_map(|field| {
+            let value = fields
+                .iter()
+                .find(|candidate| candidate.field_name == field.name)?;
+            Some(inspector_plugin_component_property_from_reflected_field(
+                component_id,
+                value,
+                &field.display_name,
+                &field.value_type_path,
+                field.editable,
+                draft_fields,
+            ))
+        })
+        .collect::<Vec<_>>();
+    properties.sort_by(|left, right| left.name.cmp(&right.name));
+    Some(properties)
+}
+
+fn inspector_plugin_component_json_properties(
     component_id: &str,
     value: &Value,
-    descriptor: Option<&ComponentTypeDescriptor>,
+    editable: bool,
     draft_fields: &BTreeMap<String, String>,
 ) -> Vec<InspectorPluginComponentPropertySnapshot> {
-    if let Some(descriptor) = descriptor.filter(|descriptor| !descriptor.properties.is_empty()) {
-        return descriptor
-            .properties
-            .iter()
-            .map(|property| {
-                inspector_plugin_component_property_from_descriptor(
-                    component_id,
-                    value,
-                    property,
-                    draft_fields,
-                )
-            })
-            .collect();
-    }
-
-    let editable = descriptor.is_some();
     let Some(object) = value.as_object() else {
         return vec![InspectorPluginComponentPropertySnapshot {
             field_id: format!("{component_id}.value"),
@@ -201,25 +254,23 @@ fn inspector_plugin_component_properties(
     properties
 }
 
-fn inspector_plugin_component_property_from_descriptor(
+fn inspector_plugin_component_property_from_reflected_field(
     component_id: &str,
-    component_value: &Value,
-    property: &ComponentPropertyDescriptor,
+    field: &ReflectFieldValue,
+    display_name: &str,
+    value_type_path: &str,
+    editable: bool,
     draft_fields: &BTreeMap<String, String>,
 ) -> InspectorPluginComponentPropertySnapshot {
-    let field_id = format!("{component_id}.{}", property.name);
-    let value = component_value
-        .as_object()
-        .and_then(|object| object.get(&property.name))
-        .unwrap_or(&Value::Null);
-    let (value, primitive_editable) = json_edit_value(value);
+    let field_id = format!("{component_id}.{}", field.field_name);
+    let value = reflected_value_label(&field.value);
     InspectorPluginComponentPropertySnapshot {
         field_id: field_id.clone(),
-        name: property.name.clone(),
-        label: property_label(&property.name),
+        name: field.field_name.clone(),
+        label: property_label(display_name),
         value: draft_fields.get(&field_id).cloned().unwrap_or(value),
-        value_kind: property.value_type.clone(),
-        editable: property.editable && primitive_editable,
+        value_kind: value_type_path.to_string(),
+        editable: editable && reflected_value_primitive_editable(&field.value),
     }
 }
 
@@ -289,6 +340,47 @@ fn json_value_kind(value: &Value) -> &'static str {
         Value::Object(_) => "object",
         Value::Null => "null",
     }
+}
+
+fn reflected_value_label(value: &ReflectedValue) -> String {
+    match value {
+        ReflectedValue::Null => String::new(),
+        ReflectedValue::Bool(value) => value.to_string(),
+        ReflectedValue::Integer(value) => value.to_string(),
+        ReflectedValue::Unsigned(value) => value.to_string(),
+        ReflectedValue::Scalar(value) => value.to_string(),
+        ReflectedValue::String(value)
+        | ReflectedValue::Enum(value)
+        | ReflectedValue::Resource(value) => value.clone(),
+        ReflectedValue::Vec2(value) => format!("{}, {}", value[0], value[1]),
+        ReflectedValue::Vec3(value) => format!("{}, {}, {}", value[0], value[1], value[2]),
+        ReflectedValue::Vec4(value) | ReflectedValue::Quaternion(value) => {
+            format!("{}, {}, {}, {}", value[0], value[1], value[2], value[3])
+        }
+        ReflectedValue::Entity(Some(value)) => value.to_string(),
+        ReflectedValue::Entity(None) => String::new(),
+        ReflectedValue::List(values) => format!("{} items", values.len()),
+        ReflectedValue::Map(values) => format!("{} fields", values.len()),
+        ReflectedValue::Json(value) => json_value_label(value),
+    }
+}
+
+fn reflected_value_primitive_editable(value: &ReflectedValue) -> bool {
+    matches!(
+        value,
+        ReflectedValue::Bool(_)
+            | ReflectedValue::Integer(_)
+            | ReflectedValue::Unsigned(_)
+            | ReflectedValue::Scalar(_)
+            | ReflectedValue::String(_)
+            | ReflectedValue::Enum(_)
+            | ReflectedValue::Resource(_)
+            | ReflectedValue::Vec2(_)
+            | ReflectedValue::Vec3(_)
+            | ReflectedValue::Vec4(_)
+            | ReflectedValue::Quaternion(_)
+            | ReflectedValue::Entity(_)
+    )
 }
 
 fn hierarchy_depth(scene: &Scene, node_id: zircon_runtime::scene::NodeId) -> usize {

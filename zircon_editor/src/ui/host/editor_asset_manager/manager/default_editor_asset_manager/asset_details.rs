@@ -1,4 +1,6 @@
-use super::super::super::{EditorAssetDetailsRecord, EditorAssetReferenceRecord};
+use super::super::super::{
+    EditorAssetDetailsRecord, EditorAssetReferenceRecord, EditorAssetSubassetRecord,
+};
 use super::{
     record_to_view::record_to_view, reference_to_view::reference_to_view, DefaultEditorAssetManager,
 };
@@ -44,6 +46,31 @@ impl DefaultEditorAssetManager {
             direct_references,
             referenced_by,
             editor_adapter: record.editor_meta.editor_adapter.clone(),
+            package_id: record.locator.package_id().map(str::to_string),
+            unit: record.meta.unit,
+            included_files: record
+                .meta
+                .included_files
+                .iter()
+                .map(ToString::to_string)
+                .collect(),
+            subassets: record
+                .meta
+                .entries
+                .iter()
+                .filter(|entry| entry.url.label().is_some())
+                .map(|entry| EditorAssetSubassetRecord {
+                    uuid: entry.uuid.to_string(),
+                    locator: entry.url.to_string(),
+                    kind: entry.asset_kind,
+                    artifact_locator: entry.artifact_locator.as_ref().map(ToString::to_string),
+                    dependency_locators: entry
+                        .dependencies
+                        .iter()
+                        .map(ToString::to_string)
+                        .collect(),
+                })
+                .collect(),
         })
     }
 }

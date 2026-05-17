@@ -1,5 +1,8 @@
 ---
 related_code:
+  - zircon_runtime/src/core/time.rs
+  - zircon_runtime/src/core/runtime/runtime.rs
+  - zircon_runtime/src/core/runtime/handle/time.rs
   - zircon_runtime/src/core/framework/time/mod.rs
   - zircon_runtime/src/core/framework/time/clock.rs
   - zircon_runtime/src/core/framework/time/real.rs
@@ -14,6 +17,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/time/virtual_clock.rs
   - zircon_runtime/src/core/framework/time/fixed.rs
   - zircon_runtime/src/core/framework/time/fixed_step_plan.rs
+  - zircon_runtime/src/core/time.rs
 plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
@@ -22,6 +26,7 @@ plan_sources:
   - dev/bevy/crates/bevy_time/src/fixed.rs
   - dev/godot/core/os/main_loop.h
 tests:
+  - zircon_runtime/src/tests/time.rs
   - zircon_runtime/src/core/framework/tests.rs
   - cargo test -p zircon_runtime --lib time_framework --locked
   - cargo test -p zircon_runtime --lib framework_contract_types_are_constructible --locked
@@ -32,9 +37,9 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_runtime::core::framework::time` is the neutral contract layer for Bevy-inspired runtime clocks. It gives runtime modules, future app plugin groups, scene schedules, physics stepping, diagnostics, and editor tooling a common vocabulary for real time, virtual game time, and fixed timestep planning without replacing `CoreRuntime` or wiring a new scheduler in this slice.
+`zircon_runtime::core::framework::time` is the neutral contract layer for Bevy-inspired runtime clocks. It gives runtime modules, app plugin groups, scene schedules, physics stepping, diagnostics, and editor tooling a common vocabulary for real time, virtual game time, and fixed timestep planning.
 
-This is a lower-layer M4 foundation from the Bevy completion roadmap. It deliberately stops at framework contracts and pure helpers. Entry runner integration, `FrameClock` migration, state scheduling, diagnostics emission, and app plugin group wiring are later milestones owned by their corresponding sessions.
+This was originally a lower-layer M4 foundation from the Bevy completion roadmap. The current runtime slice keeps those contracts here and adds `zircon_runtime::core::time` as the concrete owner that stores and advances one clock bundle per `CoreRuntime`. State scheduling, diagnostics emission, and app runner frame-loop consumption remain later milestones.
 
 ## Reference Evidence
 
@@ -52,7 +57,7 @@ Fyrox provides a Rust-engine cross-check through its engine, plugin, renderer, a
 
 The time module lives under `zircon_runtime::core::framework` because it defines shared neutral data and helpers. It does not own process startup, frame pacing, rendering cadence, physics execution, or scene schedule dispatch. Those remain in `zircon_app`, `CoreRuntime`, scene systems, physics plugins, and render systems respectively.
 
-The existing `FrameClock` remains available in `zircon_runtime::core` as a narrow wall-clock implementation. `Time<Real>`, `Time<Virtual>`, and `Time<Fixed>` are the new public contract vocabulary that later migration slices can consume when replacing direct `FrameClock` usage.
+The existing `FrameClock` remains available in `zircon_runtime::core` as a narrow wall-clock implementation. `CoreRuntime` now owns both a `FrameClock` and a `RuntimeTimeClocks` bundle, so callers can use deterministic `advance_time_by(...)` in tests/replay paths or wall-clock `tick_time(...)` in app loops while preserving the same `Time<Real>`, `Time<Virtual>`, and `Time<Fixed>` contract vocabulary.
 
 ## Data Model
 
@@ -72,11 +77,11 @@ The module is folder-backed so the root stays structural:
 
 `Time<Virtual>::advance_from_real_delta(...)` applies pause, relative speed, and max-delta clamping before advancing game time. A paused clock records a zero delta and does not accumulate elapsed virtual time.
 
-`Time<Fixed>::drain_steps(max_steps)` consumes whole timestep chunks from the overstep accumulator, advances fixed time once per drained step, caps the number of steps to avoid spirals, and returns a `FixedStepPlan` for scheduler and diagnostics consumers.
+`Time<Fixed>::drain_steps(max_steps)` consumes whole timestep chunks from the overstep accumulator, advances fixed time once per drained step, caps the number of steps to avoid spirals, and returns a `FixedStepPlan` for scheduler and diagnostics consumers. `RuntimeTimeClocks::advance_by(...)` feeds this accumulator from the current virtual delta, matching Bevy's rule that fixed time follows virtual time instead of raw wall-clock time.
 
 ## Intentional Divergence
 
-Bevy wires time as ECS resources through `TimePlugin` and fixed-main schedules. Zircon's current foundation layer is not the ECS scheduler, so this slice keeps time as plain framework contracts. Later scene/ECS and app-host milestones can install these clocks into runtime services or schedules without changing the contract vocabulary.
+Bevy wires time as ECS resources through `TimePlugin` and fixed-main schedules. Zircon's current foundation layer is not the ECS scheduler, so runtime integration stops at `CoreRuntime` clock ownership and fixed-step planning. Later scene/ECS and app-host milestones can consume the clocks from `CoreHandle` without changing the contract vocabulary.
 
 ## Test Coverage
 
@@ -87,6 +92,8 @@ Bevy wires time as ECS resources through `TimePlugin` and fixed-main schedules. 
 - virtual max-delta clamping, pause, relative speed, and effective speed,
 - fixed timestep draining with max-step capping and retained overstep,
 - root module structure so implementation stays in child files rather than `time/mod.rs`.
+
+`zircon_runtime/src/tests/time.rs` covers the runtime-owned clock bundle, including real/virtual/fixed advancement, virtual pause, relative speed, max-delta clamp, and fixed-step planning from virtual time.
 
 Milestone testing evidence is recorded in the active session note for `20260508-0455-bevy-time-foundation` and should be refreshed when app-host `FrameClock` migration begins.
 

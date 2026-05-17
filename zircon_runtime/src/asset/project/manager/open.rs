@@ -19,6 +19,8 @@ impl ProjectManager {
             registry: ResourceRegistry::default(),
             asset_ids_by_uuid: HashMap::new(),
             asset_uuids_by_id: HashMap::new(),
+            asset_urls_by_uuid: HashMap::new(),
+            package_assets: Default::default(),
             importer: AssetImporter::default(),
             artifact_store: ArtifactStore,
         })

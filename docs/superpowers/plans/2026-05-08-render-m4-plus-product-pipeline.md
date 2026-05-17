@@ -1,3 +1,126 @@
+---
+related_code:
+  - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/mod.rs
+  - zircon_runtime/src/core/framework/render/sprite/sprite.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/post_process/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/core/framework/render/post_process/validation.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/scene/components/render2d/mod.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/scene/components/render2d/mesh2d.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
+implementation_files:
+  - zircon_runtime/src/core/framework/render/post_process/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_node.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/core/framework/render/post_process/validation.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/mod.rs
+  - zircon_runtime/src/core/framework/render/sprite/sprite.rs
+  - zircon_runtime/src/core/framework/render/sprite/atlas.rs
+  - zircon_runtime/src/core/framework/render/sprite/rect.rs
+  - zircon_runtime/src/core/framework/render/sprite/anchor.rs
+  - zircon_runtime/src/core/framework/render/sprite/bounds.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/build_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/submit/submit_runtime_frame.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/scene/components/render2d/mod.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/scene/components/render2d/mesh2d.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_vertex.rs
+plan_sources:
+  - user: 2026-05-16 continue Render M4B postprocess pass graph productization
+  - user: 2026-05-17 continue M5A PBR material and light runtime baseline
+  - user: 2026-05-17 continue M6A sprite/default 2D renderer productization
+  - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
+tests:
+  - zircon_runtime/src/core/framework/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
+  - zircon_runtime/src/graphics/tests/render_product_submit.rs
+  - zircon_runtime/src/graphics/tests/render_product_sprite.rs
+  - zircon_runtime/src/scene/tests/world_basics.rs
+  - zircon_runtime/src/graphics/tests/pipeline_compile.rs
+  - tests/acceptance/render-product-m3a-assets.md
+  - tests/acceptance/render-product-m4a-core-pipeline.md
+  - tests/acceptance/render-product-m4b-post-process.md
+  - tests/acceptance/render-product-m5a-pbr-light.md
+  - tests/acceptance/render-product-m6a-sprite-default-2d.md
+  - cargo test -p zircon_runtime --locked render_product_post_process
+  - cargo test -p zircon_runtime --locked render_graph
+  - cargo test -p zircon_runtime --locked render_product_pbr
+  - cargo test -p zircon_runtime --locked render_product_assets
+  - cargo test -p zircon_runtime --locked render_product_sprite
+  - cargo test -p zircon_runtime --locked render_product_pipeline
+  - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
+  - cargo check -p zircon_runtime --lib --locked
+doc_type: milestone-detail
+---
+
 # Render M4+ Product Pipeline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
@@ -291,26 +414,27 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `PostProcessEffectKind`, `PostProcessEffectSettings`, `PostProcessStackDescriptor`, `PostProcessPassNode`, `PostProcessPassGraph`, and `PostProcessGraphValidationError`.
-- [ ] Extend `PostProcessExtract` with a validated stack descriptor and graph summary.
-- [ ] Add postprocess graph build and execute modules under `scene_renderer/post_process/pass_graph/`.
-- [ ] Register concrete postprocess executors in `render_pass_executor_registry.rs` for bloom, color grading, history resolve, and final composite.
-- [ ] Update `render_graph_execution_resources.rs` to import scene color, scene depth, history color, and postprocess intermediate resources by declared graph resource name.
-- [ ] Update renderer stats to report postprocess graph node count, skipped node count, and final composite node.
-- [ ] Add negative tests for missing scene color, invalid history dependency, duplicate output resource, and postprocess cycles.
-- [ ] Update `docs/zircon_runtime/core/framework/render/post_process.md` and `docs/assets-and-rendering/render-framework-architecture.md`.
+- [x] Add `PostProcessEffectKind`, `PostProcessEffectSettings`, `PostProcessStackDescriptor`, `PostProcessPassNode`, `PostProcessPassGraph`, and `PostProcessGraphValidationError`.
+- [x] Extend `PostProcessExtract` with a validated stack descriptor and graph summary.
+- [x] Add postprocess graph build and execute modules under `scene_renderer/post_process/pass_graph/`.
+- [x] Register concrete postprocess executors in `render_pass_executor_registry.rs` for bloom, color grading, history resolve, and final composite.
+- [x] Update `render_graph_execution_resources.rs` to import scene color, scene depth, history color, and postprocess intermediate resources by declared graph resource name.
+- [x] Update renderer stats to report postprocess graph node count, skipped node count, and final composite node.
+- [x] Add negative tests for missing scene color, invalid history dependency, duplicate output resource, and postprocess cycles.
+- [x] Update `docs/zircon_runtime/core/framework/render/post_process.md` and `docs/assets-and-rendering/render-framework-architecture.md`.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_post_process`.
-- Run `cargo test -p zircon_runtime --locked render_graph`.
-- Run `cargo check -p zircon_runtime --lib --locked`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_post_process`.
+- [x] Run `cargo test -p zircon_runtime --locked render_graph`.
+- [x] Run `cargo check -p zircon_runtime --lib --locked`.
 - Debug order: neutral graph validation, render graph resource imports, concrete executor registration, renderer stats.
 
 **Exit evidence:**
 
+- Accepted in `tests/acceptance/render-product-m4b-post-process.md` for narrowed `zircon_runtime` scope; no workspace-wide validation was run for this closeout.
 - Postprocess pass graph tests cover normal stack, disabled effects, missing inputs, duplicate outputs, and ordering.
-- Renderer tests prove enabled bloom/color-grading graph nodes are executed through graph records.
+- Renderer tests prove enabled bloom/color-grading/final-composite graph nodes are executed through renderer graph records, and `history-resolve` evidence is gated on actual renderer history availability.
 
 ## Milestone M5A: PBR Material And Light Product Baseline
 
@@ -327,25 +451,27 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Wire `StandardMaterialDescriptor` into `resource_streamer_ensure_material.rs` and mesh pipeline cache keys.
-- [ ] Extend mesh draw phase classification to use `AlphaMode` and `double_sided` contract data.
-- [ ] Add ambient and rect-light neutral DTOs under the light portion of render contracts or extend `scene_extract.rs` with narrow declarations.
-- [ ] Add extraction from runtime scene components into `LightingExtract` for every light kind present in runtime components.
-- [ ] Ensure missing material, missing shader, and missing texture are reported through `RenderMaterialReadinessReport` and renderer stats.
-- [ ] Update PBR docs and matrix status.
+- [x] Wire `StandardMaterialDescriptor` into `resource_streamer_ensure_material.rs` and mesh pipeline cache keys.
+- [x] Extend mesh draw phase classification to use `AlphaMode` and `double_sided` contract data.
+- [x] Add ambient and rect-light neutral DTOs under the light portion of render contracts or extend `scene_extract.rs` with narrow declarations.
+- [x] Add extraction from runtime scene components into `LightingExtract` for every light kind present in runtime components.
+- [x] Ensure missing material, missing shader, and missing texture are reported through `RenderMaterialReadinessReport` and renderer stats.
+- [x] Update PBR docs and matrix status.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_pbr`.
-- Run `cargo test -p zircon_runtime --locked render_product_assets`.
-- Run `cargo check -p zircon_runtime --lib --locked`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_pbr`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_assets`.
+- [x] Run `cargo check -p zircon_runtime --lib --locked`.
 - Debug order: material descriptor conversion, phase keys, light extraction, renderer fallback stats.
 
 **Exit evidence:**
 
-- StandardMaterial fields roundtrip into renderer keys and phase classification.
-- Missing dependencies emit readiness diagnostics instead of silent fallback-only behavior.
-- Default 3D fixture submits with lights and PBR material fields without advanced profile features.
+- Accepted for runtime-only M5A scope in `tests/acceptance/render-product-m5a-pbr-light.md` using WSL/Linux focused validation.
+- StandardMaterial fields roundtrip into renderer keys and phase classification: scalar/color fields, alpha-mask cutoff, double-sided, unlit, and authored PBR texture-slot key bits are covered by `render_product_pbr_streamer_projects_standard_material_into_runtime_key` and existing phase-queue tests.
+- Missing dependencies emit readiness diagnostics instead of silent fallback-only behavior: missing material, missing shader, missing texture, unsupported texture upload, and missing runtime WGSL are covered by `render_product_pbr` / `render_product_assets` tests.
+- Default 3D fixture submits with lights and PBR material fields without advanced profile features: the M5A submit test records material fallback stats, ambient/rect light counts, and zero VG/HGI executed graph passes.
+- Windows-native validation is currently blocked before source by dirty-lockfile dependency skew between `windows 0.61.3` from `gpu-allocator` and `windows 0.62.2` from `wgpu-hal 29.0.3`; do not treat this milestone as full Windows or workspace acceptance.
 
 ## Milestone M6A: Sprite And Default 2D Renderer
 
@@ -363,26 +489,29 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add render2d scene component modules for `Sprite2dComponent`, `Mesh2dComponent`, and 2D material handle fields.
-- [ ] Add `RenderSpriteSnapshot`, `RenderSpriteAtlasRegion`, `RenderSpriteAnchor`, `RenderSpriteBounds`, and `SpriteExtract` under framework render contracts.
-- [ ] Add scene extract code that projects runtime sprite components into `RenderFrameExtract`.
-- [ ] Add sprite phase queue builder and sort policy for z order, camera order, and transparent back-to-front ordering.
-- [ ] Add sprite renderer pipeline, vertex layout, bind groups, and texture fallback integration.
-- [ ] Add tests proving particle sprites do not count as product sprites.
-- [ ] Update `docs/zircon_runtime/core/framework/render/sprite.md`.
+- [x] Add render2d scene component modules for `Sprite2dComponent`, `Mesh2dComponent`, and 2D material handle fields.
+- [x] Add `RenderSpriteSnapshot`, `RenderSpriteAtlasRegion`, `RenderSpriteAnchor`, `RenderSpriteBounds`, and `SpriteExtract` under framework render contracts.
+- [x] Add scene extract code that projects runtime sprite components into `RenderFrameExtract`.
+- [x] Add sprite phase queue builder and sort policy for z order, camera order, and transparent back-to-front ordering.
+- [x] Add sprite renderer pipeline, vertex layout, bind groups, and texture fallback integration.
+- [x] Add tests proving particle sprites do not count as product sprites.
+- [x] Update `docs/zircon_runtime/core/framework/render/sprite.md`.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_sprite`.
-- Run `cargo test -p zircon_runtime --locked render_product_pipeline`.
-- Run `cargo check -p zircon_runtime --lib --locked`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_sprite`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_pipeline`.
+- [x] Run `cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes`.
+- [x] Run `cargo check -p zircon_runtime --lib --locked`.
 - Debug order: scene component extraction, sprite bounds, phase queue, texture/material readiness, WGPU renderer.
 
 **Exit evidence:**
 
-- A Bevy-style `Camera2d + Sprite image` fixture submits and records sprite draw stats.
-- Atlas, flip, anchor, custom size, and visibility-layer tests pass.
-- DefaultRender product acceptance no longer relies on particle billboard rendering for Sprite.
+- Accepted for narrowed runtime-only M6A scope in `tests/acceptance/render-product-m6a-sprite-default-2d.md`; no workspace-wide validation or plugin workspace validation was run for this closeout.
+- A Bevy-style orthographic `Camera2d + Sprite image` fixture submits through Core2d and records sprite draw stats: `last_sprite_count = 1`, `last_sprite_texture_fallback_count = 1`, `last_sprite_graph_executed_pass_count = 3`, and `last_particle_graph_executed_pass_count = 0`.
+- Atlas, rect, flip, anchor, custom size, z order, alpha policy, and visibility-layer extraction tests pass through `render_product_sprite_world_frame_extract_exposes_runtime_sprite_components` and `render_product_sprite_world_frame_extract_filters_by_camera_layers`.
+- DefaultRender product acceptance no longer relies on particle billboard rendering for Sprite: product sprite and particle sprite payloads are asserted distinct, and `Mesh2dComponent` does not count as a product sprite.
+- Known remaining risks: opaque/alpha-mask/transparent sprite GPU passes currently share one alpha-blended pipeline; alpha-mask cutoff discard, per-phase depth-write/blend specialization, batching, atlas asset import, materialized Mesh2d drawing, AA, UI placement, VG/HGI profile integration, Solari, workspace validation, and plugin workspace validation remain later work.
 
 ## Milestone M7A: Runtime UI Placement In Product Pipeline
 

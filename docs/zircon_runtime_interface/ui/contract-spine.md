@@ -8,6 +8,7 @@ related_code:
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/picking.rs
   - zircon_runtime_interface/src/ui/text.rs
+  - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/document.rs
@@ -43,6 +44,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/tree/node/tree_node.rs
   - zircon_runtime_interface/src/ui/picking.rs
   - zircon_runtime_interface/src/ui/text.rs
+  - zircon_runtime_interface/src/ui/style.rs
   - zircon_runtime_interface/src/ui/widget.rs
   - zircon_runtime_interface/src/ui/template/asset/document.rs
   - zircon_runtime_interface/src/ui/template/document.rs
@@ -77,6 +79,8 @@ tests:
   - target: cargo check -p zircon_runtime_interface --locked
   - target: cargo test -p zircon_runtime --lib ui_asset_compiler_preserves_m1_contract_sections_from_source_nodes --locked
   - target: cargo test -p zircon_runtime --lib focus_navigation --locked
+  - 2026-05-17 scrollbar-widget-contract-validation: cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-scrollbar-contract --message-format short --color never (passed, 6 tests)
+  - 2026-05-17 typed-style-contract-validation: WSL cargo test -p zircon_runtime_interface --lib ui_contract_spine --locked --jobs 1 (passed)
 doc_type: module-detail
 ---
 
@@ -98,9 +102,11 @@ M1 does not implement widget reducers, text shaping, AccessKit bridging, or edit
 
 `ui::accessibility` defines neutral a11y roles, states, actions, nodes, diagnostics, `UiAccessibilityTreeSnapshot`, and `UiAccessibilityContract`. The snapshot is AccessKit-independent: runtime M9 may map it to AccessKit, but the shared contract stores node ids, paths, role/name/description, bounds, state, actions, label links, tooltip text, focused node, and diagnostics such as missing accessible names.
 
-`ui::widget` defines the headless widget event vocabulary requested by M1: `Activate`, `ValueChange`, `TextEditChange`, `OpenChanged`, and `SelectionChanged`. `UiWidgetContract` carries defaulted template-facing widget metadata such as disabled, checked, value, label-for, and tooltip. These widget events intentionally remain separate from `UiComponentEventKind` in M1 because no concrete component-envelope variant or reducer bridge exists yet.
+`ui::widget` defines the headless widget event vocabulary requested by M1: `Activate`, `ValueChange`, `TextEditChange`, `OpenChanged`, and `SelectionChanged`. `UiWidgetContract` carries defaulted template-facing widget metadata such as disabled, checked, value, label-for, tooltip, value/checked/open aliases, and scrollbar ownership fields. `UiWidgetBehavior::Scrollbar` and `ScrollbarThumb` mirror Bevy's headless scrollbar split: the track targets a scrollable container through `scroll_target`, may declare `scroll_axis`, and records `min_thumb_extent` for later thumb layout, while the thumb is a passive child marker. These widget events intentionally remain separate from `UiComponentEventKind` in M1 because no concrete component-envelope variant or reducer bridge exists yet.
 
 `ui::text` defines `UiTextEdit` and `UiTextCursorStyle` around the existing `UiEditableTextState` and `UiTextEditAction` render-surface text DTOs. It records the edit source and before/after state while leaving actual editing behavior and shaping to later runtime text milestones.
+
+`ui::style` defines shared typed style values that must cross runtime/editor boundaries without Rust trait objects or host-local string enums. The first covered family is Material Button style: `ButtonVariant`, `ButtonColor`, `ButtonSize`, `ButtonIconPlacement`, `ButtonInteractionState`, `UiStyleColor`, `StyleDimension`, `UiResolvedElementStyle`, and `ResolvedButtonStyle`. These DTOs let runtime style resolution and editor retained painting agree on Button/IconButton variant, tone, size, icon placement, state, disabled/loading flags, and resolved element colors/border/radius while keeping authored `.ui.toml/.zui` values as the source input.
 
 `ui::surface::render` now exposes `UiRenderExtractKind` and `UiRenderStats` beside the existing `UiRenderExtract`. The existing extract shape remains compatible with legacy `{ tree_id, list }` JSON because the new classification and stats DTOs are separate rather than required fields.
 
@@ -126,4 +132,4 @@ Editor code may consume these DTOs for authoring and presentation, but it must n
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/ui_contract_spine.rs` covers serde roundtrips and default compatibility for the new focus/navigation/picking, a11y snapshot/diagnostics, widget/text/cursor, render kind/stats, compiled-template sections, and source `.ui.toml` section contracts. It also verifies that legacy TOML without new sections still deserializes with safe defaults. `zircon_runtime/src/ui/tests/asset_contract_spine.rs` covers the runtime compiler path that preserves authored source sections through component expansion.
+`zircon_runtime_interface/src/tests/ui_contract_spine.rs` covers serde roundtrips and default compatibility for the new focus/navigation/picking, a11y snapshot/diagnostics, widget/text/cursor, scrollbar target fields, render kind/stats, compiled-template sections, and source `.ui.toml` section contracts. It also verifies that legacy TOML without new sections still deserializes with safe defaults. `zircon_runtime/src/ui/tests/asset_contract_spine.rs` covers the runtime compiler path that preserves authored source sections through component expansion.

@@ -81,7 +81,7 @@ The request and response are JSON-encoded `ProfileControlRequest` and `ProfileCo
 - `export_report`.
 - `reset`.
 
-`ZrRuntimeApiV1` appends `profile_control` after `present_viewport`. It remains optional so hosts can safely load older runtimes by checking the advertised function-table size before reading the field. The required v1 prefix still ends at `capture_frame`; viewport surface present and profile control are both optional extensions.
+`ZrRuntimeApiV1` appends `profile_control` after `present_viewport`. It remains optional so hosts can safely load older runtimes by checking the advertised function-table size before reading the field. The required v1 prefix still ends at `capture_frame`; viewport surface present and profile control are both optional extensions. The later Bevy-style time continuation appends `tick_frame` after `profile_control`; that field is not part of profiling, but it keeps the same optional-extension ABI rule.
 
 ## Buffer Ownership
 
@@ -89,4 +89,4 @@ Dynamic runtime responses use `ZrOwnedByteBuffer` with a runtime-owned free call
 
 ## Test Coverage
 
-`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. `zircon_runtime` UI hotspot tests verify the retained-host GPU counters aggregate actual batch draws, visible commands/items, layer counts, dependency counts, no-draw failures, upload failures, and batch degeneration alerts. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.
+`zircon_runtime_interface/src/tests/contracts.rs` verifies the runtime API table size, optional `profile_control` field ordering, and JSON roundtrip for `ProfileControlRequest`; the same table-size test now also confirms that `tick_frame` follows `profile_control` as a separate optional extension. Runtime dynamic API tests verify invalid JSON is rejected before session lookup and that a valid snapshot request returns a serialized response. `zircon_runtime` UI hotspot tests verify the retained-host GPU counters aggregate actual batch draws, visible commands/items, layer counts, dependency counts, no-draw failures, upload failures, and batch degeneration alerts. App runtime-library tests verify `profile_control` remains an optional extension after the viewport-present prefix, while the release build gates verify ordinary release builds stay profiling-free and `--release --features profiling` is rejected with the `--profile profiling` guidance.

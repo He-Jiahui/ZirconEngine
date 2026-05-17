@@ -4,7 +4,7 @@ use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::engine_module::EngineModule;
 
 use super::{
-    DefaultPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,
+    DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup, PluginGroupBuilder,
     PluginGroupError,
 };
 
@@ -161,6 +161,7 @@ fn plugin_group_builder_reports_disabled_anchor_reordering() {
 fn builtin_plugin_groups_resolve_expected_module_sets() {
     let minimal = MinimalPlugins.build().unwrap().finish();
     let default = DefaultPlugins::default().build().unwrap().finish();
+    let dev = DevPlugins::default().build().unwrap().finish();
     let headless = HeadlessPlugins::default().build().unwrap().finish();
 
     assert_eq!(
@@ -173,6 +174,42 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
             zircon_runtime::core::modules::DIAGNOSTICS_CORE_MODULE_NAME,
         ]
     );
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(!minimal
+        .module_keys()
+        .contains(&zircon_runtime::platform::PLATFORM_MODULE_NAME));
+    assert!(!minimal
+        .module_keys()
+        .contains(&zircon_runtime::input::INPUT_MODULE_NAME));
+    assert!(default
+        .module_keys()
+        .contains(&zircon_runtime::core::modules::LOG_MODULE_NAME));
+    assert!(!default
+        .module_keys()
+        .contains(&zircon_runtime::core::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+    assert!(dev
+        .module_keys()
+        .contains(&zircon_runtime::core::modules::LOG_DIAGNOSTICS_MODULE_NAME));
+    assert!(headless
+        .module_keys()
+        .contains(&zircon_runtime::core::modules::LOG_MODULE_NAME));
     assert!(default
         .module_keys()
         .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));

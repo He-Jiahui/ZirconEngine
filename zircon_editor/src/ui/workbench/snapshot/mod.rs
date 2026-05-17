@@ -8,7 +8,8 @@ mod workbench;
 pub use super::startup::{NewProjectFormSnapshot, RecentProjectItemSnapshot, WelcomePaneSnapshot};
 pub use asset::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSurfaceMode, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
+    AssetSubassetSnapshot, AssetSurfaceMode, AssetUtilityTab, AssetViewMode,
+    AssetWorkspaceSnapshot,
 };
 pub use data::{
     EditorChromeSnapshot, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,

@@ -45,15 +45,12 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
     write_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
+        paths.assets_root().join("materials").join("grid.zmaterial"),
         "res://shaders/pbr.wgsl",
     );
     write_scene(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/grid.material.toml",
+        "res://materials/grid.zmaterial",
     );
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
@@ -105,12 +102,12 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_scene(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/flat_green.material.toml",
+        "res://materials/flat_green.zmaterial",
     );
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
@@ -166,15 +163,12 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
     write_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
+        paths.assets_root().join("materials").join("grid.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_scene(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/grid.material.toml",
+        "res://materials/grid.zmaterial",
     );
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
@@ -248,14 +242,14 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
     );
     write_material(
         paths
             .assets_root()
             .join("materials")
-            .join("flat_black.material.toml"),
+            .join("flat_black.zmaterial"),
         "res://shaders/flat_black.wgsl",
     );
 
@@ -267,14 +261,10 @@ fn history_resolve_rotates_history_when_scene_material_changes() {
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
-    let black_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_black.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
+    let black_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_black.zmaterial");
     let viewport_size = UVec2::new(160, 120);
 
     let server = WgpuRenderFramework::new(asset_manager).unwrap();
@@ -393,7 +383,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_gray.material.toml"),
+            .join("flat_gray.zmaterial"),
         "res://shaders/flat_gray.wgsl",
     );
 
@@ -405,10 +395,8 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_gray.material.toml",
-    );
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_gray.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let snapshot = build_snapshot(
         vec![
@@ -502,7 +490,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
         paths
             .assets_root()
             .join("materials")
-            .join("flat_white.material.toml"),
+            .join("flat_white.zmaterial"),
         "res://shaders/flat_white.wgsl",
     );
 
@@ -514,10 +502,8 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_white.material.toml",
-    );
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let lights = vec![RenderDirectionalLightSnapshot {
         node_id: 7,
@@ -631,14 +617,14 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         paths
             .assets_root()
             .join("materials")
-            .join("forward_green.material.toml"),
+            .join("forward_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         [1.0, 0.08, 0.08, 1.0],
         "res://textures/white.png",
     );
     write_scene(
         paths.assets_root().join("scenes").join("main.scene.toml"),
-        "res://materials/forward_green.material.toml",
+        "res://materials/forward_green.zmaterial",
     );
 
     let asset_manager = project_asset_manager_with_first_wave_plugin_importers();
@@ -651,7 +637,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/forward_green.material.toml",
+        "res://materials/forward_green.zmaterial",
     );
     let viewport_size = UVec2::new(160, 120);
     let snapshot = build_snapshot(
@@ -969,6 +955,9 @@ fn write_material_with_base_color_and_texture(
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }
@@ -995,6 +984,7 @@ fn write_scene(path: PathBuf, material_uri: &str) {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    ..SceneCameraAsset::default()
                 }),
                 mesh: None,
                 directional_light: None,
@@ -1083,6 +1073,8 @@ fn build_snapshot(
             directional_lights: lights,
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {

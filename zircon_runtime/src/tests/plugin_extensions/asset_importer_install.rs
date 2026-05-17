@@ -78,7 +78,7 @@ fn assert_weather_asset_imported(manager: &ProjectAssetManager, paths: &ProjectP
         paths
             .assets_root()
             .join("weather")
-            .join("storm.weather.meta.toml"),
+            .join("storm.weather.zmeta"),
     )
     .unwrap();
     assert_eq!(meta.importer_id, "weather.data");

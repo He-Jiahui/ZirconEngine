@@ -1,8 +1,10 @@
 mod asset_workspace;
+mod editor_projection;
 mod history;
 mod import;
 mod inspector;
 mod node_ops;
+mod reflected_command;
 mod state;
 mod support;
 mod ui_asset;

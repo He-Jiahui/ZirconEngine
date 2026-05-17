@@ -49,6 +49,7 @@ pub(crate) fn runtime_features_from_pipeline(
             BuiltinRenderFeature::BakedLighting,
             "baked_lighting",
         ),
+        sprite_rendering_enabled: feature_enabled(BuiltinRenderFeature::Sprite),
         particle_rendering_enabled: render_feature_enabled(
             BuiltinRenderFeature::Particle,
             "particle",

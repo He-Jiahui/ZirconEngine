@@ -87,10 +87,7 @@ impl HostExportRegistry {
         callbacks: impl IntoIterator<Item = HostExportFunction>,
     ) -> Result<HostHandle, VmError> {
         validate_module_descriptor(&descriptor)?;
-        let callbacks = callbacks
-            .into_iter()
-            .map(|callback| (callback.name, callback.callback))
-            .collect::<HashMap<_, _>>();
+        let callbacks = collect_callbacks(&descriptor.name, callbacks)?;
         validate_callbacks(&descriptor, &callbacks)?;
 
         let mut modules = self.modules.lock().unwrap();
@@ -203,6 +200,23 @@ impl HostExportRegistry {
     }
 }
 
+fn collect_callbacks(
+    module_name: &str,
+    callbacks: impl IntoIterator<Item = HostExportFunction>,
+) -> Result<HashMap<String, HostExportCallback>, VmError> {
+    let mut by_name = HashMap::new();
+    for callback in callbacks {
+        let HostExportFunction { name, callback } = callback;
+        if by_name.contains_key(&name) {
+            return Err(VmError::Operation(format!(
+                "duplicate host export callback: {module_name}.{name}"
+            )));
+        }
+        by_name.insert(name, callback);
+    }
+    Ok(by_name)
+}
+
 fn validate_module_descriptor(descriptor: &ScriptHostModuleDescriptor) -> Result<(), VmError> {
     validate_identifier("host export module", &descriptor.name)?;
     validate_identifier("host export module version", &descriptor.version)?;
@@ -302,6 +316,12 @@ fn validate_type_descriptor(
         &type_descriptor.type_ref,
         type_descriptor.value_kind,
     )?;
+    if type_descriptor.type_ref.type_name != type_descriptor.name {
+        return Err(VmError::Operation(format!(
+            "host export type {module_name}.{} type ref {} does not match descriptor name",
+            type_descriptor.name, type_descriptor.type_ref.type_name
+        )));
+    }
     let mut field_names = HashSet::new();
     for field in &type_descriptor.fields {
         validate_identifier("host export field", &field.name)?;

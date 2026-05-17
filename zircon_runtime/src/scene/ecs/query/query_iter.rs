@@ -3,26 +3,26 @@ use std::marker::PhantomData;
 use crate::scene::ecs::{ChangeTickWindow, QueryData, QueryFilter};
 use crate::scene::{EntityId, World};
 
-pub struct QueryIter<'world, D, F = ()>
+pub struct QueryIter<'world, 'entities, D, F = ()>
 where
     D: QueryData,
     F: QueryFilter,
 {
     world: &'world World,
-    entities: &'world [EntityId],
+    entities: &'entities [EntityId],
     index: usize,
     ticks: ChangeTickWindow,
     _marker: PhantomData<fn() -> (D, F)>,
 }
 
-impl<'world, D, F> QueryIter<'world, D, F>
+impl<'world, 'entities, D, F> QueryIter<'world, 'entities, D, F>
 where
     D: QueryData,
     F: QueryFilter,
 {
     pub(crate) fn new(
         world: &'world World,
-        entities: &'world [EntityId],
+        entities: &'entities [EntityId],
         ticks: ChangeTickWindow,
     ) -> Self {
         Self {
@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<'world, D, F> Iterator for QueryIter<'world, D, F>
+impl<'world, 'entities, D, F> Iterator for QueryIter<'world, 'entities, D, F>
 where
     D: QueryData,
     F: QueryFilter,

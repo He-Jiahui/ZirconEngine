@@ -8,4 +8,5 @@ mod model;
 mod physics_material;
 mod render_product;
 mod scene;
+mod texture_importer;
 mod ui;

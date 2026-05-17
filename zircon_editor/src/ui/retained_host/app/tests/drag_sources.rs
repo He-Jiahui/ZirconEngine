@@ -7,7 +7,7 @@ use crate::ui::workbench::layout::ActivityDrawerSlot;
 use crate::ui::workbench::snapshot::{
     AssetItemSnapshot, AssetReferenceSnapshot, AssetWorkspaceSnapshot,
 };
-use zircon_runtime::asset::project::PreviewState;
+use zircon_runtime::asset::project::{AssetSourceUnit, PreviewState};
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::component::{
     UiDragPayload, UiDragPayloadKind, UiDragSourceMetadata,
@@ -544,7 +544,7 @@ fn asset_drag_source_catalog() -> EditorAssetCatalogSnapshotRecord {
             file_name: "grid.albedo.png".to_string(),
             extension: "png".to_string(),
             preview_state: PreviewState::Ready,
-            meta_path: "E:/Sandbox/assets/grid.albedo.png.meta.toml".to_string(),
+            meta_path: "E:/Sandbox/assets/grid.albedo.png.zmeta".to_string(),
             preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
             source_mtime_unix_ms: 1,
             source_hash: "grid".to_string(),
@@ -577,7 +577,7 @@ fn asset_drag_source_catalog_with_reference() -> (
         file_name: "runtime_demo.mat".to_string(),
         extension: "mat".to_string(),
         preview_state: PreviewState::Ready,
-        meta_path: "E:/Sandbox/assets/materials/runtime_demo.mat.meta.toml".to_string(),
+        meta_path: "E:/Sandbox/assets/materials/runtime_demo.mat.zmeta".to_string(),
         preview_artifact_path: "E:/Sandbox/library/editor-previews/runtime_demo.png".to_string(),
         source_mtime_unix_ms: 2,
         source_hash: "runtime-demo".to_string(),
@@ -691,6 +691,10 @@ fn asset_reference_pointer_down_arms_active_asset_drag_payload() {
                 }],
                 referenced_by: Vec::new(),
                 editor_adapter: None,
+                package_id: None,
+                unit: AssetSourceUnit::Single,
+                included_files: Vec::new(),
+                subassets: Vec::new(),
             }));
         host.mark_layout_dirty();
         host.refresh_ui();

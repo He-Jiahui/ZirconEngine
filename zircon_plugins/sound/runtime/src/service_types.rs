@@ -12,7 +12,8 @@ use zircon_runtime::core::framework::sound::{
     SoundExternalSourceBlock, SoundHrtfProfileDescriptor, SoundImpulseResponseId,
     SoundListenerDescriptor, SoundListenerId, SoundMixBlock, SoundMixerGraph,
     SoundMixerPresetDescriptor, SoundMixerSnapshot, SoundOutputDeviceDescriptor,
-    SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackId, SoundPlaybackSettings,
+    SoundOutputDeviceStatus, SoundParameterId, SoundPlaybackFinishReason, SoundPlaybackFinished,
+    SoundPlaybackId, SoundPlaybackSettings, SoundPlaybackStatus,
     SoundRayTracedImpulseResponseDescriptor, SoundRayTracingConvolutionStatus,
     SoundSourceDescriptor, SoundSourceId, SoundTimelineSequence, SoundTimelineSequenceAdvance,
     SoundTimelineSequenceId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
@@ -249,6 +250,42 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         }
     }
 
+    fn global_volume_gain(&self) -> Result<f32, SoundError> {
+        Ok(self.config().master_gain)
+    }
+
+    fn set_global_volume_gain(&self, gain: f32) -> Result<(), SoundError> {
+        ensure_finite_value("global volume gain", gain)?;
+        if gain < 0.0 {
+            return Err(SoundError::InvalidParameter(
+                "global volume gain must be non-negative".to_string(),
+            ));
+        }
+        self.config
+            .lock()
+            .expect("sound config mutex poisoned")
+            .master_gain = gain;
+        Ok(())
+    }
+
+    fn default_spatial_scale(&self) -> Result<f32, SoundError> {
+        Ok(self.config().default_spatial_scale)
+    }
+
+    fn set_default_spatial_scale(&self, scale: f32) -> Result<(), SoundError> {
+        ensure_finite_value("default spatial scale", scale)?;
+        if scale < 0.0 {
+            return Err(SoundError::InvalidParameter(
+                "default spatial scale must be non-negative".to_string(),
+            ));
+        }
+        self.config
+            .lock()
+            .expect("sound config mutex poisoned")
+            .default_spatial_scale = scale;
+        Ok(())
+    }
+
     fn load_clip(&self, locator: &str) -> Result<SoundClipId, SoundError> {
         let uri = AssetUri::parse(locator).map_err(|_| SoundError::InvalidLocator {
             locator: locator.to_string(),
@@ -299,9 +336,12 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
         settings: SoundPlaybackSettings,
     ) -> Result<SoundPlaybackId, SoundError> {
         let mut state = self.state.lock().expect("sound state mutex poisoned");
-        if !state.clips.contains_key(&clip) {
-            return Err(SoundError::UnknownClip { clip });
-        }
+        let loaded_clip = state
+            .clips
+            .get(&clip)
+            .ok_or(SoundError::UnknownClip { clip })?;
+        validate_playback_settings(&settings)?;
+        let playback_range = playback_range_for_settings(loaded_clip, &settings)?;
         if !state
             .graph
             .tracks
@@ -319,10 +359,16 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             playback_id,
             ActivePlayback {
                 clip,
-                cursor_frame: 0,
-                cursor_position: 0.0,
+                cursor_frame: playback_range.start_frame,
+                cursor_position: playback_range.start_frame as f64,
                 gain: settings.gain,
+                speed: validate_playback_speed(settings.speed)?,
                 looped: settings.looped,
+                completion_action: settings.completion_action,
+                paused: settings.paused,
+                muted: settings.muted,
+                range_start_frame: playback_range.start_frame,
+                range_end_frame: playback_range.end_frame,
                 output_track: settings.output_track,
                 pan: settings.pan,
             },
@@ -331,13 +377,195 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
     }
 
     fn stop_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
             .playbacks
             .remove(&playback)
-            .map(|_| ())
-            .ok_or(SoundError::UnknownPlayback { playback })
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        state.finished_playbacks.push(SoundPlaybackFinished {
+            playback,
+            clip: active.clip,
+            reason: SoundPlaybackFinishReason::Stopped,
+            completion_action: active.completion_action,
+            output_track: active.output_track,
+        });
+        Ok(())
+    }
+
+    fn pause_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.paused = true;
+        Ok(())
+    }
+
+    fn resume_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.paused = false;
+        Ok(())
+    }
+
+    fn toggle_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.paused = !active.paused;
+        Ok(())
+    }
+
+    fn set_playback_gain(&self, playback: SoundPlaybackId, gain: f32) -> Result<(), SoundError> {
+        ensure_finite_value("playback gain", gain)?;
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.gain = gain;
+        Ok(())
+    }
+
+    fn set_playback_speed(&self, playback: SoundPlaybackId, speed: f32) -> Result<(), SoundError> {
+        let speed = validate_playback_speed(speed)?;
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.speed = speed;
+        Ok(())
+    }
+
+    fn seek_playback_seconds(
+        &self,
+        playback: SoundPlaybackId,
+        seconds: f32,
+    ) -> Result<(), SoundError> {
+        ensure_finite_value("playback seek seconds", seconds)?;
+        if seconds < 0.0 {
+            return Err(SoundError::InvalidParameter(
+                "playback seek seconds must be non-negative".to_string(),
+            ));
+        }
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        let active_clip = active.clip;
+        let range_start_frame = active.range_start_frame;
+        let range_end_frame = active.range_end_frame;
+        let clip = state
+            .clips
+            .get(&active_clip)
+            .ok_or(SoundError::UnknownClip { clip: active_clip })?;
+        let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
+        let frame_count = clip.asset.frame_count();
+        let requested_frame = (seconds * sample_rate).round() as usize;
+        let range_end = range_end_frame.unwrap_or(frame_count).min(frame_count);
+        let clamped_frame = requested_frame.max(range_start_frame).min(range_end);
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.cursor_frame = clamped_frame;
+        active.cursor_position = clamped_frame as f64;
+        Ok(())
+    }
+
+    fn mute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.muted = true;
+        Ok(())
+    }
+
+    fn unmute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.muted = false;
+        Ok(())
+    }
+
+    fn toggle_mute_playback(&self, playback: SoundPlaybackId) -> Result<(), SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        active.muted = !active.muted;
+        Ok(())
+    }
+
+    fn playback_empty(&self, playback: SoundPlaybackId) -> Result<bool, SoundError> {
+        let state = self.state.lock().expect("sound state mutex poisoned");
+        if state.playbacks.contains_key(&playback) {
+            return Ok(false);
+        }
+        if state
+            .finished_playbacks
+            .iter()
+            .any(|finished| finished.playback == playback)
+        {
+            return Ok(true);
+        }
+        Err(SoundError::UnknownPlayback { playback })
+    }
+
+    fn playback_status(
+        &self,
+        playback: SoundPlaybackId,
+    ) -> Result<SoundPlaybackStatus, SoundError> {
+        let state = self.state.lock().expect("sound state mutex poisoned");
+        let active = state
+            .playbacks
+            .get(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?;
+        let cursor_seconds = state
+            .clips
+            .get(&active.clip)
+            .map(|clip| {
+                if clip.asset.sample_rate_hz == 0 {
+                    0.0
+                } else {
+                    active.cursor_position as f32 / clip.asset.sample_rate_hz as f32
+                }
+            })
+            .unwrap_or_default();
+        Ok(SoundPlaybackStatus {
+            playback,
+            clip: active.clip,
+            paused: active.paused,
+            muted: active.muted,
+            looped: active.looped,
+            completion_action: active.completion_action,
+            gain: active.gain,
+            speed: active.speed,
+            range_start_frame: active.range_start_frame,
+            range_end_frame: active.range_end_frame,
+            cursor_frame: active.cursor_frame,
+            cursor_seconds,
+            output_track: active.output_track,
+        })
+    }
+
+    fn drain_finished_playbacks(&self) -> Result<Vec<SoundPlaybackFinished>, SoundError> {
+        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        Ok(state.finished_playbacks.drain(..).collect())
     }
 
     fn available_mixer_presets(&self) -> Result<Vec<SoundMixerPresetDescriptor>, SoundError> {
@@ -954,4 +1182,74 @@ impl zircon_runtime::core::framework::sound::SoundManager for DefaultSoundManage
             .expect("sound state mutex poisoned")
             .render_mix(&config, frames)
     }
+}
+
+fn validate_playback_speed(speed: f32) -> Result<f32, SoundError> {
+    ensure_finite_value("playback speed", speed)?;
+    if speed <= 0.0 {
+        return Err(SoundError::InvalidParameter(
+            "playback speed must be greater than zero".to_string(),
+        ));
+    }
+    Ok(speed)
+}
+
+fn validate_playback_settings(settings: &SoundPlaybackSettings) -> Result<(), SoundError> {
+    ensure_finite_value("playback gain", settings.gain)?;
+    ensure_finite_value("playback pan", settings.pan)?;
+    validate_playback_speed(settings.speed)?;
+    Ok(())
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PlaybackRange {
+    start_frame: usize,
+    end_frame: Option<usize>,
+}
+
+fn playback_range_for_settings(
+    clip: &LoadedClip,
+    settings: &SoundPlaybackSettings,
+) -> Result<PlaybackRange, SoundError> {
+    let frame_count = clip.asset.frame_count();
+    let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
+    let start_frame = seconds_to_frame(
+        "playback start seconds",
+        settings.start_seconds,
+        sample_rate,
+    )?
+    .unwrap_or_default()
+    .min(frame_count);
+    let end_frame = seconds_to_frame(
+        "playback duration seconds",
+        settings.duration_seconds,
+        sample_rate,
+    )?
+    .map(|duration_frames| start_frame.saturating_add(duration_frames).min(frame_count));
+    if matches!(end_frame, Some(end) if end <= start_frame) {
+        return Err(SoundError::InvalidParameter(
+            "playback duration must cover at least one frame".to_string(),
+        ));
+    }
+    Ok(PlaybackRange {
+        start_frame,
+        end_frame,
+    })
+}
+
+fn seconds_to_frame(
+    label: &str,
+    seconds: Option<f32>,
+    sample_rate: f32,
+) -> Result<Option<usize>, SoundError> {
+    let Some(seconds) = seconds else {
+        return Ok(None);
+    };
+    ensure_finite_value(label, seconds)?;
+    if seconds < 0.0 {
+        return Err(SoundError::InvalidParameter(format!(
+            "{label} must be non-negative"
+        )));
+    }
+    Ok(Some((seconds * sample_rate).round() as usize))
 }

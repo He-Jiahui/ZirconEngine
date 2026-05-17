@@ -6,6 +6,7 @@ use std::sync::{Mutex, OnceLock};
 use super::level::{DiagnosticLogFilter, DiagnosticLogFilterConfig, DiagnosticLogLevel};
 pub use super::platform::DiagnosticLogLocation;
 use super::platform::{log_directory_candidates, LogDirectoryCandidate};
+use super::settings::DiagnosticLogSettings;
 use super::timestamp::current_log_timestamp;
 
 static LOG_STATE: OnceLock<DiagnosticLogState> = OnceLock::new();
@@ -70,19 +71,39 @@ pub fn initialize_process_log_with_location_and_filter(
     location: DiagnosticLogLocation,
     filter: impl Into<DiagnosticLogFilterConfig>,
 ) -> Option<PathBuf> {
-    let filter = filter.into();
-    let requested_channel = sanitize_channel_name(channel.into());
+    initialize_process_log_with_settings(
+        DiagnosticLogSettings::new(channel)
+            .with_location(location)
+            .with_filter(filter),
+    )
+}
+
+pub fn initialize_process_log_with_settings(settings: DiagnosticLogSettings) -> Option<PathBuf> {
+    let requested_channel = sanitize_channel_name(settings.channel.clone());
+    let requested_filter = settings.filter.clone();
+    let requested_console_enabled = settings.console_enabled;
+    let requested_file_enabled = settings.file_enabled;
     let state = LOG_STATE.get_or_init(|| {
-        DiagnosticLogState::new(requested_channel.clone(), location, filter.clone())
+        DiagnosticLogState::new(
+            requested_channel.clone(),
+            settings.location,
+            settings.filter,
+            settings.console_enabled,
+            settings.file_enabled,
+        )
     });
     write_log(
         "diagnostic_log",
         format!(
-            "active channel={} requested_channel={} active_filter={} requested_filter={} file={}",
+            "active channel={} requested_channel={} active_filter={} requested_filter={} active_console_enabled={} requested_console_enabled={} active_file_enabled={} requested_file_enabled={} file={}",
             state.channel,
             requested_channel,
             state.filter,
-            filter,
+            requested_filter,
+            state.console_enabled,
+            requested_console_enabled,
+            state.file_enabled,
+            requested_file_enabled,
             state
                 .file_path
                 .as_ref()
@@ -133,6 +154,8 @@ pub fn write_diagnostic_log_at(level: DiagnosticLogLevel, scope: &str, message: 
 struct DiagnosticLogState {
     channel: String,
     filter: DiagnosticLogFilterConfig,
+    console_enabled: bool,
+    file_enabled: bool,
     file_path: Option<PathBuf>,
     file: Mutex<Option<File>>,
 }
@@ -142,19 +165,30 @@ impl DiagnosticLogState {
         channel: String,
         location: DiagnosticLogLocation,
         filter: DiagnosticLogFilterConfig,
+        console_enabled: bool,
+        file_enabled: bool,
     ) -> Self {
         let timestamp = current_log_timestamp();
         let candidates = log_directory_candidates(&timestamp, location);
         let mut notes = Vec::new();
-        let (file_path, mut file) = open_first_available_log_file(&channel, candidates, &mut notes);
+        let (file_path, mut file) =
+            open_first_available_log_file(&channel, candidates, file_enabled, &mut notes);
 
         for note in &notes {
-            write_initial_note(&mut file, &filter, note.level, &note.message);
+            write_initial_note(
+                &mut file,
+                &filter,
+                console_enabled,
+                note.level,
+                &note.message,
+            );
         }
 
         Self {
             channel,
             filter,
+            console_enabled,
+            file_enabled,
             file_path,
             file: Mutex::new(file),
         }
@@ -165,7 +199,9 @@ impl DiagnosticLogState {
             return;
         }
         let line = diagnostic_log_line(&current_log_timestamp(), level, scope, message);
-        eprint!("{line}");
+        if self.console_enabled {
+            eprint!("{line}");
+        }
 
         if let Ok(mut file) = self.file.lock() {
             if let Some(file) = file.as_mut() {
@@ -194,6 +230,7 @@ impl DiagnosticLogNote {
 fn write_initial_note(
     file: &mut Option<File>,
     filter: &DiagnosticLogFilterConfig,
+    console_enabled: bool,
     level: DiagnosticLogLevel,
     message: &str,
 ) {
@@ -202,7 +239,9 @@ fn write_initial_note(
     }
 
     let line = diagnostic_log_line(&current_log_timestamp(), level, "diagnostic_log", message);
-    eprint!("{line}");
+    if console_enabled {
+        eprint!("{line}");
+    }
     if let Some(file) = file.as_mut() {
         let _ = file.write_all(line.as_bytes());
         let _ = file.flush();
@@ -224,8 +263,17 @@ fn diagnostic_log_line(
 fn open_first_available_log_file(
     channel: &str,
     candidates: Vec<LogDirectoryCandidate>,
+    file_enabled: bool,
     notes: &mut Vec<DiagnosticLogNote>,
 ) -> (Option<PathBuf>, Option<File>) {
+    if !file_enabled {
+        notes.push(DiagnosticLogNote::new(
+            DiagnosticLogLevel::Log,
+            "file-backed log sink disabled by diagnostic log settings",
+        ));
+        return (None, None);
+    }
+
     for candidate in candidates {
         if let Err(error) = std::fs::create_dir_all(&candidate.path) {
             notes.push(DiagnosticLogNote::new(
@@ -294,7 +342,12 @@ fn sanitize_channel_name(channel: String) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{diagnostic_log_line, sanitize_channel_name};
+    use std::path::PathBuf;
+
+    use super::{
+        diagnostic_log_line, open_first_available_log_file, sanitize_channel_name,
+        LogDirectoryCandidate,
+    };
     use crate::diagnostic_log::DiagnosticLogLevel;
 
     #[test]
@@ -320,5 +373,24 @@ mod tests {
             line,
             "[2026-05-04-16-30-00] [warn] [runtime_asset_path] first\\nsecond\n"
         );
+    }
+
+    #[test]
+    fn disabled_file_sink_skips_directory_candidates() {
+        let mut notes = Vec::new();
+        let (path, file) = open_first_available_log_file(
+            "runtime",
+            vec![LogDirectoryCandidate {
+                source: "test",
+                path: PathBuf::from("should-not-be-created"),
+            }],
+            false,
+            &mut notes,
+        );
+
+        assert!(path.is_none());
+        assert!(file.is_none());
+        assert_eq!(notes.len(), 1);
+        assert!(notes[0].message.contains("file-backed log sink disabled"));
     }
 }

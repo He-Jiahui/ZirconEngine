@@ -181,6 +181,7 @@ fn meshes_from_phase_queue<'a>(
         .iter()
         .filter_map(|item| match item.mesh_source {
             RenderPhaseMeshSource::MeshIndex(index) => frame.meshes().get(index),
+            RenderPhaseMeshSource::SpriteIndex(_) => None,
         })
         .collect()
 }
@@ -253,6 +254,8 @@ mod tests {
                     directional_lights: Vec::new(),
                     point_lights: Vec::new(),
                     spot_lights: Vec::new(),
+                    ambient_lights: Vec::new(),
+                    rect_lights: Vec::new(),
                 },
                 overlays: RenderOverlayExtract::default(),
                 preview: PreviewEnvironmentExtract {

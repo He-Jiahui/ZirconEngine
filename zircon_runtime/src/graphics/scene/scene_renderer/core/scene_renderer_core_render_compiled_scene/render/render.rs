@@ -2,7 +2,7 @@ use crate::core::framework::render::RenderPluginRendererOutputs;
 use crate::graphics::backend::OffscreenTarget;
 use crate::graphics::debug_markers::{
     insert_marker, RENDERDOC_MARKER_FRAME_EXTRACT, RENDERDOC_MARKER_HISTORY_COPY,
-    RENDERDOC_MARKER_OVERLAY, RENDERDOC_MARKER_POST_PROCESS, RENDERDOC_MARKER_UI,
+    RENDERDOC_MARKER_OVERLAY, RENDERDOC_MARKER_POST_PROCESS,
 };
 use crate::graphics::pipeline::RenderPassStage;
 use crate::graphics::scene::resources::ResourceStreamer;
@@ -10,7 +10,9 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
     RenderGraphExecutionRecord, RenderGraphExecutionResources, RenderPassExecutorRegistry,
 };
 use crate::graphics::scene::scene_renderer::history::SceneFrameHistoryTextures;
-use crate::graphics::scene::scene_renderer::post_process::SceneRuntimeFeatureFlags;
+use crate::graphics::scene::scene_renderer::post_process::{
+    build_post_process_pass_graph, execute_post_process_pass_graph, SceneRuntimeFeatureFlags,
+};
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::CompiledRenderPipeline;
 
@@ -99,6 +101,17 @@ impl SceneRendererCore {
             self.execute_runtime_prepare_passes(device, queue, &mut encoder, streamer, frame)?;
         let mut graph_resources = RenderGraphExecutionResources::new();
         import_frame_targets(&mut graph_resources, target);
+        if let Some(history_textures) = history_available
+            .then(|| history_textures.as_deref())
+            .flatten()
+        {
+            graph_resources.import_texture_view(
+                crate::core::framework::render::PostProcessGraphResourceNames::HISTORY_COLOR,
+                history_textures
+                    .scene_color
+                    .create_view(&wgpu::TextureViewDescriptor::default()),
+            );
+        }
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
         let mut graph_plugin_outputs = RenderPluginRendererOutputs::default();
         let mut graph_execution = RenderGraphStageExecution::new(
@@ -116,6 +129,7 @@ impl SceneRendererCore {
                 &mut encoder,
                 frame,
                 &self.scene_bind_group,
+                &mut self.screen_space_ui_renderer,
                 &mut graph_execution,
             )?;
         }
@@ -134,6 +148,16 @@ impl SceneRendererCore {
             &opaque_mesh_draws,
             &transparent_mesh_draws,
         )?;
+        let mut runtime_frame = frame.clone();
+        if !history_available {
+            runtime_frame.extract.post_process.stack = runtime_frame
+                .extract
+                .post_process
+                .stack
+                .without_history_resources();
+            runtime_frame.extract.post_process.graph =
+                runtime_frame.extract.post_process.stack.validated_graph();
+        }
         insert_marker(&mut encoder, RENDERDOC_MARKER_POST_PROCESS);
         execute_graph_stage(
             pipeline,
@@ -142,16 +166,27 @@ impl SceneRendererCore {
             device,
             queue,
             &mut encoder,
-            frame,
+            &runtime_frame,
             &self.scene_bind_group,
+            &mut self.screen_space_ui_renderer,
             &mut graph_execution,
         )?;
+        let post_process_graph =
+            build_post_process_pass_graph(&runtime_frame.extract.post_process.graph);
+        execute_post_process_pass_graph(
+            &post_process_graph,
+            &*graph_execution.resources,
+            &mut *graph_execution.record,
+        );
+        graph_execution
+            .record
+            .set_post_process_graph(post_process_graph);
         self.execute_post_process_stack(
             device,
             queue,
             &mut encoder,
             target,
-            frame,
+            &runtime_frame,
             runtime_features,
             None,
             history_textures.as_deref(),
@@ -175,6 +210,7 @@ impl SceneRendererCore {
                 &mut encoder,
                 frame,
                 &self.scene_bind_group,
+                &mut self.screen_space_ui_renderer,
                 &mut graph_execution,
             )?;
         }
@@ -187,15 +223,6 @@ impl SceneRendererCore {
             frame,
             &prepared_overlays,
         );
-        insert_marker(&mut encoder, RENDERDOC_MARKER_UI);
-        self.screen_space_ui_renderer.record(
-            device,
-            queue,
-            &mut encoder,
-            &target.final_color_view,
-            frame,
-        );
-
         drop(graph_execution);
         queue.submit([encoder.finish()]);
         let mut renderer_outputs = advanced_plugin_readbacks.into_outputs();

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" role="img" aria-label="Elysium project cover">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b9c9c6"/><stop offset="0.55" stop-color="#5d7b7a"/><stop offset="1" stop-color="#14231e"/></linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#f6d48a" stop-opacity="0.8"/><stop offset="1" stop-color="#4ee8df" stop-opacity="0"/></linearGradient>
+  </defs>
+  <rect width="420" height="160" fill="url(#sky)"/>
+  <circle cx="70" cy="42" r="28" fill="#f8dd9b" opacity="0.55"/>
+  <path fill="#e5e0c8" d="m0 105 70-58 35 33 48-58 78 83z"/>
+  <path fill="#a7b19f" d="m33 111 67-51 34 36 45-43 64 58z"/>
+  <path fill="#24382f" d="m0 129 60-38 49 18 67-29 83 49z"/>
+  <path fill="#12251f" d="M0 160v-38c45-16 87-20 130-8 42 11 77 10 118-4 62-22 117-13 172 9v41z"/>
+  <path fill="#1a3029" d="M255 126V71l22-27 23 27v55z"/>
+  <path fill="#203d34" d="M292 126V60l28-34 28 34v66z"/>
+  <path fill="#0f211c" d="M276 126V84h15v42zm35 0V76h18v50z"/>
+  <path fill="#b7fff8" d="M292 60h56l-28-34z" opacity="0.35"/>
+  <path fill="url(#glow)" d="M0 74h260v34H0z"/>
+</svg>

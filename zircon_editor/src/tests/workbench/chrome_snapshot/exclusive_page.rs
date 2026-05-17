@@ -4,6 +4,7 @@ use zircon_runtime_interface::math::UVec2;
 
 use crate::scene::viewport::SceneViewportSettings;
 use crate::ui::workbench::layout::{MainHostPageLayout, MainPageId, WorkbenchLayout};
+use crate::ui::workbench::snapshot::ViewContentKind;
 use crate::ui::workbench::snapshot::{
     AssetWorkspaceSnapshot, EditorChromeSnapshot, EditorDataSnapshot, MainPageSnapshot,
     ProjectOverviewSnapshot,
@@ -77,4 +78,70 @@ fn chrome_builder_marks_exclusive_activity_window_pages() {
     };
     assert_eq!(view.instance_id, asset_browser.instance_id);
     assert!(!view.placeholder);
+}
+
+#[test]
+fn chrome_builder_resolves_material_component_lab_as_showcase_content() {
+    let material_lab = ViewInstance {
+        instance_id: ViewInstanceId::new("editor.material_component_lab#1"),
+        descriptor_id: ViewDescriptorId::new("editor.material_component_lab"),
+        title: "Material Component Lab".to_string(),
+        serializable_payload: serde_json::Value::Null,
+        dirty: false,
+        host: ViewHost::ExclusivePage(MainPageId::new("material-lab")),
+    };
+    let layout = WorkbenchLayout {
+        active_main_page: MainPageId::new("material-lab"),
+        main_pages: vec![MainHostPageLayout::ExclusiveActivityWindowPage {
+            id: MainPageId::new("material-lab"),
+            title: "Material Component Lab".to_string(),
+            window_instance: material_lab.instance_id.clone(),
+        }],
+        drawers: BTreeMap::new(),
+        activity_windows: Default::default(),
+        floating_windows: Vec::new(),
+        region_overrides: BTreeMap::new(),
+        view_overrides: BTreeMap::new(),
+    };
+    let descriptors = vec![ViewDescriptor::new(
+        ViewDescriptorId::new("editor.material_component_lab"),
+        ViewKind::ActivityWindow,
+        "Material Component Lab",
+    )
+    .with_preferred_host(PreferredHost::ExclusiveMainPage)];
+
+    let chrome = EditorChromeSnapshot::build(
+        empty_editor_data(),
+        &layout,
+        vec![material_lab.clone()],
+        descriptors,
+    );
+
+    let MainPageSnapshot::Exclusive { view, .. } = &chrome.workbench.main_pages[0] else {
+        panic!("expected exclusive page");
+    };
+    assert_eq!(view.instance_id, material_lab.instance_id);
+    assert_eq!(view.content_kind, ViewContentKind::UiComponentShowcase);
+    assert!(!view.placeholder);
+}
+
+fn empty_editor_data() -> EditorDataSnapshot {
+    EditorDataSnapshot {
+        scene_entries: Vec::new(),
+        inspector: None,
+        status_line: "Ready".to_string(),
+        hovered_axis: None,
+        viewport_size: UVec2::new(1280, 720),
+        scene_viewport_settings: SceneViewportSettings::default(),
+        mesh_import_path: String::new(),
+        project_overview: ProjectOverviewSnapshot::default(),
+        asset_activity: AssetWorkspaceSnapshot::default(),
+        asset_browser: AssetWorkspaceSnapshot::default(),
+        project_path: String::new(),
+        session_mode: EditorSessionMode::Welcome,
+        welcome: WelcomePaneSnapshot::default(),
+        project_open: false,
+        can_undo: false,
+        can_redo: false,
+    }
 }

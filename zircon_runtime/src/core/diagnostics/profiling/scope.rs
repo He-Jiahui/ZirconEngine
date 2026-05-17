@@ -22,7 +22,7 @@ pub(crate) struct ProfileScopeToken {
     frame_index: Option<u64>,
     stream: &'static str,
     category: &'static str,
-    name: &'static str,
+    name: String,
     path: String,
     start_us: u64,
     depth: u16,
@@ -46,6 +46,17 @@ impl ProfileScope {
     pub fn enter(stream: &'static str, category: &'static str, name: &'static str) -> Self {
         Self {
             token: super::begin_scope(stream, category, name),
+        }
+    }
+
+    pub fn enter_named(
+        stream: &'static str,
+        category: &'static str,
+        name: impl Into<String>,
+    ) -> Self {
+        let name = name.into();
+        Self {
+            token: super::begin_scope_named(stream, category, name),
         }
     }
 }
@@ -79,10 +90,10 @@ impl Drop for ProfileFrameScope {
     }
 }
 
-pub(crate) fn begin_scope(
+pub(crate) fn begin_scope_named(
     stream: &'static str,
     category: &'static str,
-    name: &'static str,
+    name: String,
 ) -> Option<ProfileScopeToken> {
     let (parent_id, parent_path, depth) = SPAN_STACK.with(|stack| {
         let stack = stack.borrow();
@@ -141,7 +152,7 @@ pub(crate) fn finish_scope(token: ProfileScopeToken) {
             frame_index: token.frame_index,
             stream: token.stream.to_string(),
             category: token.category.to_string(),
-            name: token.name.to_string(),
+            name: token.name,
             path: token.path,
             start_us: token.start_us,
             duration_us,

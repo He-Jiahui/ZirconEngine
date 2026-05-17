@@ -1,4 +1,5 @@
 use super::editor_state::EditorState;
+use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest};
 
 impl EditorState {
     pub fn update_translation_field(&mut self, axis: usize, value: String) -> bool {
@@ -19,7 +20,7 @@ impl EditorState {
     }
 
     pub(crate) fn can_edit_dynamic_component_field(&self, field_id: &str) -> bool {
-        let Some((component_id, property)) = field_id.rsplit_once('.') else {
+        let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
             return false;
         };
         let Some(selected) = self.viewport_controller.selected_node() else {
@@ -27,17 +28,23 @@ impl EditorState {
         };
         self.world
             .try_with_world(|scene| {
-                let Some(descriptor) = scene.component_type_descriptor(component_id) else {
+                let Ok(schema) = scene.reflect_schema(component_type_path) else {
                     return false;
                 };
-                if scene.dynamic_component(selected, component_id).is_none() {
+                let field_editable = schema.type_info.fields.iter().any(|field| {
+                    field.name == field_name && field.editor_visible && field.editable
+                });
+                if !field_editable {
                     return false;
                 }
-                descriptor.properties.is_empty()
-                    || descriptor
-                        .properties
-                        .iter()
-                        .any(|candidate| candidate.name == property && candidate.editable)
+
+                let Ok(address) = ReflectObjectAddress::component(selected, component_type_path)
+                else {
+                    return false;
+                };
+                scene
+                    .reflect_read(ReflectReadRequest::new(address, field_name))
+                    .is_ok()
             })
             .unwrap_or(false)
     }

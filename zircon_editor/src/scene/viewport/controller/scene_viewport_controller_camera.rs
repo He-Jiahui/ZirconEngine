@@ -119,6 +119,7 @@ fn build_scene_camera_snapshot(
         z_near: component.map(|camera| camera.z_near).unwrap_or(0.1),
         z_far: component.map(|camera| camera.z_far).unwrap_or(200.0),
         aspect_ratio: 16.0 / 9.0,
+        ..ViewportCameraSnapshot::default()
     };
     snapshot.apply_viewport_size(viewport_size);
     snapshot

@@ -1,7 +1,7 @@
 use zircon_plugin_net_runtime::DefaultNetManager;
 use zircon_runtime::core::framework::net::{
     NetEndpoint, NetError, NetManager, NetSecurityPolicy, NetWebSocketConnectDescriptor,
-    NetWebSocketFrame,
+    NetWebSocketFrame, NetWebSocketListenerDescriptor,
 };
 
 use super::{
@@ -38,7 +38,10 @@ fn websocket_feature_manager_connects_over_real_handshake() {
     let net = websocket_runtime_manager();
     assert!(net.backend_name().contains("+websocket"));
     let listener = net
-        .listen_websocket(&NetEndpoint::new("127.0.0.1", 0))
+        .listen_websocket(NetWebSocketListenerDescriptor::new(NetEndpoint::new(
+            "127.0.0.1",
+            0,
+        )))
         .unwrap();
     let endpoint = net.listener_endpoint(listener).unwrap();
     let connector = net.clone();
@@ -67,6 +70,77 @@ fn websocket_feature_manager_connects_over_real_handshake() {
     assert_eq!(
         poll_websocket_until(&net, client),
         NetWebSocketFrame::Text("echo-real".to_string())
+    );
+}
+
+#[test]
+fn websocket_feature_manager_enforces_server_path_header_and_subprotocol_policy() {
+    let net = websocket_runtime_manager();
+    let listener = net
+        .listen_websocket(
+            NetWebSocketListenerDescriptor::new(NetEndpoint::new("127.0.0.1", 0))
+                .with_allowed_path("/socket")
+                .with_required_header("x-zircon-net", "enabled")
+                .with_allowed_protocol("zircon.rpc"),
+        )
+        .unwrap();
+    let endpoint = net.listener_endpoint(listener).unwrap();
+
+    assert_websocket_policy_rejects(
+        &net,
+        listener,
+        NetWebSocketConnectDescriptor::new(format!(
+            "ws://{}:{}/wrong",
+            endpoint.host, endpoint.port
+        ))
+        .with_header("x-zircon-net", "enabled")
+        .with_protocol("zircon.rpc"),
+    );
+
+    assert_websocket_policy_rejects(
+        &net,
+        listener,
+        NetWebSocketConnectDescriptor::new(format!(
+            "ws://{}:{}/socket",
+            endpoint.host, endpoint.port
+        ))
+        .with_protocol("zircon.rpc"),
+    );
+
+    assert_websocket_policy_rejects(
+        &net,
+        listener,
+        NetWebSocketConnectDescriptor::new(format!(
+            "ws://{}:{}/socket",
+            endpoint.host, endpoint.port
+        ))
+        .with_header("x-zircon-net", "enabled")
+        .with_protocol("other.protocol"),
+    );
+
+    let connector = net.clone();
+    let client_thread = std::thread::spawn(move || {
+        connector
+            .connect_websocket(
+                NetWebSocketConnectDescriptor::new(format!(
+                    "ws://{}:{}/socket",
+                    endpoint.host, endpoint.port
+                ))
+                .with_header("x-zircon-net", "enabled")
+                .with_protocol("zircon.rpc"),
+            )
+            .unwrap()
+    });
+    let server = accept_until_websocket(&net, listener);
+    let client = client_thread
+        .join()
+        .expect("websocket connect thread panicked");
+
+    net.send_websocket_frame(client, NetWebSocketFrame::Text("policy-ok".to_string()))
+        .unwrap();
+    assert_eq!(
+        poll_websocket_until(&net, server),
+        NetWebSocketFrame::Text("policy-ok".to_string())
     );
 }
 
@@ -131,6 +205,31 @@ fn accept_until_websocket(
         std::thread::sleep(std::time::Duration::from_millis(1));
     }
     panic!("expected accepted WebSocket connection");
+}
+
+fn assert_websocket_policy_rejects(
+    net: &DefaultNetManager,
+    listener: zircon_runtime::core::framework::net::NetListenerId,
+    descriptor: NetWebSocketConnectDescriptor,
+) {
+    let connector = net.clone();
+    let client_thread = std::thread::spawn(move || connector.connect_websocket(descriptor));
+    for _ in 0..100 {
+        assert!(net.accept_websocket(listener, 4).unwrap().is_empty());
+        if client_thread.is_finished() {
+            let error = client_thread
+                .join()
+                .expect("websocket rejected connect thread panicked")
+                .expect_err("websocket policy should reject connection");
+            assert!(
+                matches!(error, NetError::Io(ref message) if message.contains("HTTP error: 403")),
+                "unexpected websocket policy error: {error:?}"
+            );
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+    panic!("expected WebSocket policy rejection");
 }
 
 fn poll_websocket_until(

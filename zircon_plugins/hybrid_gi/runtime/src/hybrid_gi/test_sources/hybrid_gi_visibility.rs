@@ -17,7 +17,7 @@ fn visibility_context_builds_hybrid_gi_probe_and_trace_plan() {
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -96,7 +96,7 @@ fn visibility_context_with_history_tracks_hybrid_gi_requested_probes() {
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -183,7 +183,7 @@ fn visibility_context_prioritizes_hybrid_gi_probe_requests_supported_by_schedule
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -237,7 +237,7 @@ fn visibility_context_prefers_previously_requested_hybrid_gi_lineage_when_trace_
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -329,7 +329,7 @@ fn visibility_context_holds_newly_resident_hybrid_gi_probe_out_of_evictable_list
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -428,7 +428,7 @@ fn visibility_context_keeps_hybrid_gi_parent_probe_visible_while_requesting_nonr
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -491,7 +491,7 @@ fn visibility_context_requests_nonresident_hybrid_gi_descendant_supported_by_tra
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -554,7 +554,7 @@ fn visibility_context_prefers_deeper_nonresident_hybrid_gi_descendant_when_trace
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -609,7 +609,7 @@ fn visibility_context_prefers_nonresident_hybrid_gi_descendant_supported_by_ance
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -665,7 +665,7 @@ fn visibility_context_spreads_hybrid_gi_probe_budget_across_active_lineages_befo
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -722,7 +722,7 @@ fn visibility_context_holds_resident_hybrid_gi_child_probe_one_frame_when_fronti
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -830,7 +830,7 @@ fn visibility_context_keeps_resident_hybrid_gi_descendant_probe_hot_while_ancest
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -917,7 +917,7 @@ fn visibility_context_deduplicates_legacy_hybrid_gi_probe_payloads_first_payload
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -967,7 +967,7 @@ fn visibility_context_deduplicates_legacy_hybrid_gi_trace_region_payloads_first_
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1011,7 +1011,7 @@ fn visibility_context_ignores_legacy_hybrid_gi_payloads_when_scene_representatio
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1069,7 +1069,7 @@ fn visibility_context_ignores_disabled_hybrid_gi_extract_payloads() {
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))
@@ -1116,7 +1116,7 @@ fn visibility_context_breaks_legacy_hybrid_gi_probe_parent_cycles_before_frontie
 
     let mesh = world.spawn_mesh_node(
         model_handle("res://models/hybrid_gi.obj"),
-        material_handle("res://materials/hybrid_gi.material.toml"),
+        material_handle("res://materials/hybrid_gi.zmaterial"),
     );
     world
         .update_transform(mesh, Transform::from_translation(Vec3::ZERO))

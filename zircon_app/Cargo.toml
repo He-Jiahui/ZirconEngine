@@ -33,6 +33,8 @@ default-platform = [
     "zircon_runtime/default-platform",
     "platform-window",
     "platform-winit",
+    "platform-x11",
+    "platform-wayland",
     "input-mouse",
     "input-keyboard",
     "input-touch",
@@ -53,6 +55,7 @@ input-touch = ["zircon_runtime/input-touch"]
 input-gestures = ["zircon_runtime/input-gestures"]
 input-gamepad = ["zircon_runtime/input-gamepad"]
 gamepad-gilrs = ["zircon_runtime/gamepad-gilrs", "dep:gilrs"]
+gamepad-browser = ["zircon_runtime/gamepad-browser", "input-gamepad"]
 profiling = ["zircon_runtime/profiling", "zircon_editor?/profiling"]
 profiling-chrome = ["profiling", "zircon_runtime/profiling-chrome", "zircon_editor?/profiling-chrome"]
 profiling-tracy = ["profiling", "zircon_runtime/profiling-tracy", "zircon_editor?/profiling-tracy"]

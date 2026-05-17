@@ -455,9 +455,9 @@ doc_type: module-detail
 - clip 内部对 skeleton 的引用直接指向派生 sibling locator，而不是额外的临时 ID
 - `ProjectManager::scan_and_import()` 会忽略 glTF 外部 buffer sidecar `.bin`
   - 这些文件是模型源辅助物，不是独立 runtime 资产；否则项目重导入会在真正处理派生 `.zranim` 前就因为 unsupported format 失败
-- 现有 editor/runtime 联合回归测试已经钉住：重复执行 `derive_animation_assets_from_model_source(...)` 再调用 `scan_and_import()` 时，派生 skeleton/clip 的 `.meta.toml` `asset_uuid` 和 registry `AssetId` 都保持稳定
+- 现有 editor/runtime 联合回归测试已经钉住：重复执行 `derive_animation_assets_from_model_source(...)` 再调用 `scan_and_import()` 时，派生 skeleton/clip 的 `.zmeta` `uuid` 和 registry `AssetId::from_asset_uuid(uuid)` 都保持稳定
 
-这让 scene / graph / state-machine 对 clip 和 skeleton 的引用可以继续依赖现有 sidecar meta 稳定 UUID 规则，而不需要改写 `ImportedAsset` 或 `ProjectManager::scan_and_import()`。
+这让 scene / graph / state-machine 对 clip 和 skeleton 的引用可以继续依赖现有 `.zmeta` 稳定 UUID 规则，而不需要改写 `ImportedAsset` 或 `ProjectManager::scan_and_import()`。
 
 ## Scene Component Surface
 

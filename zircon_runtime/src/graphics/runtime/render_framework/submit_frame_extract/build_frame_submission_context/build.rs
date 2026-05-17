@@ -1,4 +1,5 @@
 use crate::core::framework::render::{
+    PostProcessStackDescriptor, RenderBloomSettings, RenderColorGradingSettings,
     RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, RenderVirtualGeometryExtract,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
@@ -12,6 +13,7 @@ use super::super::frame_submission_context::{FrameSubmissionContext, UiSubmissio
 use super::compile_pipeline::compile_submission_pipeline;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
+use super::target_resolution::resolve_camera_target_size;
 
 pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn build_frame_submission_context(
     server: &WgpuRenderFramework,
@@ -20,9 +22,32 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     ui_extract: Option<&UiRenderExtract>,
 ) -> Result<FrameSubmissionContext, RenderFrameworkError> {
     let mut viewport_state = resolve_viewport_record_state(server, viewport, extract)?;
+    let submission_size =
+        resolve_camera_target_size(viewport_state.size(), &extract.view.camera.target)?;
+    let mut sized_extract = extract.clone();
+    sized_extract.apply_viewport_size(submission_size);
+    let extract = &sized_extract;
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline);
+    let bloom_enabled = compiled_pipeline
+        .enabled_features
+        .iter()
+        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::Bloom));
+    let color_grading_enabled = compiled_pipeline
+        .enabled_features
+        .iter()
+        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::ColorGrading));
+    let history_resolve_enabled = compiled_pipeline
+        .enabled_features
+        .iter()
+        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::HistoryResolve));
+    let effective_bloom = bloom_enabled
+        .then_some(extract.post_process.bloom)
+        .unwrap_or_else(RenderBloomSettings::default);
+    let effective_color_grading = color_grading_enabled
+        .then_some(extract.post_process.color_grading)
+        .unwrap_or_else(RenderColorGradingSettings::default);
     let authored_virtual_geometry_extract = apply_virtual_geometry_debug_override(
         extract.geometry.virtual_geometry.clone(),
         extract.geometry.virtual_geometry_debug,
@@ -45,6 +70,11 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
     );
+    let effective_history_key_extract = post_process_extract_with_effective_settings(
+        &visibility_extract,
+        effective_bloom,
+        effective_color_grading,
+    );
     let virtual_geometry_cpu_reference_instances = automatic_virtual_geometry_output
         .as_ref()
         .map(|output| output.cpu_reference_instances().to_vec())
@@ -58,9 +88,25 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         viewport_state.previous_visibility(),
     );
     let history_validation_key = FrameHistoryValidationKey::from_extract(
-        &visibility_extract,
+        &effective_history_key_extract,
         compiled_feature_names(&compiled_pipeline),
     );
+    let history_available = history_resolve_enabled
+        && has_compatible_frame_history(
+            server,
+            viewport,
+            submission_size,
+            viewport_state.pipeline_handle(),
+            &compiled_pipeline,
+            &history_validation_key,
+        );
+    let post_process_stack = PostProcessStackDescriptor::from_extract_settings(
+        &effective_bloom,
+        &effective_color_grading,
+        history_resolve_enabled,
+        history_available,
+    );
+    let post_process_graph = post_process_stack.validated_graph();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
@@ -71,7 +117,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         virtual_geometry_enabled.then(|| visibility_context.virtual_geometry_feedback.clone());
 
     Ok(FrameSubmissionContext::new(
-        viewport_state.size(),
+        submission_size,
         viewport_state.pipeline_handle(),
         viewport_state.viewport_generation(),
         viewport_state.take_quality_profile(),
@@ -81,6 +127,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         ui_extract
             .map(compute_ui_submission_stats)
             .unwrap_or_default(),
+        effective_bloom,
+        effective_color_grading,
+        post_process_stack,
+        post_process_graph,
         hybrid_gi_enabled,
         virtual_geometry_enabled,
         hybrid_gi_enabled
@@ -92,6 +142,8 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         extract.lighting.directional_lights.clone(),
         extract.lighting.point_lights.clone(),
         extract.lighting.spot_lights.clone(),
+        extract.lighting.ambient_lights.clone(),
+        extract.lighting.rect_lights.clone(),
         virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
@@ -101,6 +153,41 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         virtual_geometry_feedback,
         viewport_state.predicted_generation(),
     ))
+}
+
+fn post_process_extract_with_effective_settings(
+    extract: &RenderFrameExtract,
+    bloom: RenderBloomSettings,
+    color_grading: RenderColorGradingSettings,
+) -> RenderFrameExtract {
+    let mut extract = extract.clone();
+    extract.post_process.bloom = bloom;
+    extract.post_process.color_grading = color_grading;
+    extract.post_process.rebuild_graph(false, false);
+    extract
+}
+
+fn has_compatible_frame_history(
+    server: &WgpuRenderFramework,
+    viewport: RenderViewportHandle,
+    size: crate::core::math::UVec2,
+    pipeline_handle: crate::core::framework::render::RenderPipelineHandle,
+    compiled_pipeline: &crate::CompiledRenderPipeline,
+    history_validation_key: &FrameHistoryValidationKey,
+) -> bool {
+    let state = server.lock_state();
+    state
+        .viewports
+        .get(&viewport)
+        .and_then(|record| record.history())
+        .is_some_and(|history| {
+            history.is_compatible(
+                size,
+                pipeline_handle,
+                &compiled_pipeline.history_bindings,
+                history_validation_key,
+            )
+        })
 }
 
 fn apply_virtual_geometry_debug_override(
@@ -119,7 +206,7 @@ fn build_automatic_virtual_geometry_extract(
     extract: &RenderFrameExtract,
 ) -> Option<VirtualGeometryRuntimeExtractOutput> {
     let (registration, asset_manager) = {
-        let state = server.state.lock().unwrap();
+        let state = server.lock_state();
         (
             state.virtual_geometry_runtime_provider.clone()?,
             state.renderer.asset_manager_for_runtime_extract(),

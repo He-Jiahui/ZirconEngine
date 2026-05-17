@@ -2,7 +2,7 @@ use super::{
     NetConnectionId, NetConnectionState, NetDiagnostics, NetEndpoint, NetError, NetEvent,
     NetHttpRequestDescriptor, NetHttpResponseDescriptor, NetHttpRouteDescriptor, NetListenerId,
     NetPacket, NetRouteId, NetRuntimeMode, NetSocketId, NetWebSocketConnectDescriptor,
-    NetWebSocketFrame,
+    NetWebSocketFrame, NetWebSocketListenerDescriptor,
 };
 
 pub trait NetManager: Send + Sync {
@@ -48,7 +48,10 @@ pub trait NetManager: Send + Sync {
         &self,
         descriptor: NetWebSocketConnectDescriptor,
     ) -> Result<NetConnectionId, NetError>;
-    fn listen_websocket(&self, bind: &NetEndpoint) -> Result<NetListenerId, NetError>;
+    fn listen_websocket(
+        &self,
+        descriptor: NetWebSocketListenerDescriptor,
+    ) -> Result<NetListenerId, NetError>;
     fn accept_websocket(
         &self,
         listener: NetListenerId,

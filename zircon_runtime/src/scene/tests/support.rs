@@ -128,12 +128,7 @@ pub(super) fn create_test_project(root: &PathBuf) -> ProjectManager {
     write_valid_wgsl(paths.assets_root().join("shaders").join("pbr.wgsl"));
     write_checker_png(paths.assets_root().join("textures").join("checker.png"));
     write_triangle_obj(paths.assets_root().join("models").join("triangle.obj"));
-    write_default_material(
-        paths
-            .assets_root()
-            .join("materials")
-            .join("grid.material.toml"),
-    );
+    write_default_material(paths.assets_root().join("materials").join("grid.zmaterial"));
     write_default_physics_material(
         paths
             .assets_root()
@@ -252,6 +247,9 @@ fn write_default_material(path: PathBuf) {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }
@@ -278,6 +276,7 @@ fn write_default_scene(path: PathBuf) {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    ..SceneCameraAsset::default()
                 }),
                 mesh: None,
                 directional_light: None,
@@ -310,7 +309,7 @@ fn write_default_scene(path: PathBuf) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.obj"),
-                    material: asset_reference("res://materials/grid.material.toml"),
+                    material: asset_reference("res://materials/grid.zmaterial"),
                 }),
                 directional_light: None,
                 point_light: None,

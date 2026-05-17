@@ -18,6 +18,12 @@ pub fn default_build_output_dir() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("ZirconBuilds"))
 }
 
+pub fn default_device_install_dir() -> PathBuf {
+    user_home_dir()
+        .map(|home| home.join("ZirconDevices").join("LocalDevice"))
+        .unwrap_or_else(|| PathBuf::from("ZirconDevices").join("LocalDevice"))
+}
+
 fn user_home_dir() -> Option<PathBuf> {
     std::env::var_os("USERPROFILE")
         .or_else(|| std::env::var_os("HOME"))

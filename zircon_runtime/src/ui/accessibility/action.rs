@@ -13,6 +13,7 @@ use zircon_runtime_interface::ui::{
 };
 
 use crate::ui::surface::{UiPropertyMutationRequest, UiPropertyMutationStatus, UiSurface};
+use crate::ui::tree::UiRuntimeTreeScrollExt;
 
 pub(crate) fn dispatch_accessibility_action(
     surface: &mut UiSurface,
@@ -51,18 +52,18 @@ pub(crate) fn dispatch_accessibility_action(
 
     match request.action {
         UiAccessibilityAction::Focus => dispatch_focus(surface, target, &snapshot_node, result),
-        UiAccessibilityAction::Activate => dispatch_activate(target, &snapshot_node, result),
+        UiAccessibilityAction::Activate => {
+            dispatch_activate(surface, target, &snapshot_node, result)
+        }
         UiAccessibilityAction::SetValue => {
             dispatch_set_value(surface, &request, &snapshot_node, result)
         }
         UiAccessibilityAction::Increment | UiAccessibilityAction::Decrement => {
             dispatch_adjust_value(surface, &request, &snapshot_node, result)
         }
-        UiAccessibilityAction::ScrollTo => unsupported_role_action(
-            result,
-            target,
-            "generic accessibility action behavior is not available for this role",
-        ),
+        UiAccessibilityAction::ScrollTo => {
+            dispatch_scroll_to(surface, &request, &snapshot_node, result)
+        }
         UiAccessibilityAction::Dismiss => finish_unhandled_with_note(
             result,
             Some(target),
@@ -72,6 +73,63 @@ pub(crate) fn dispatch_accessibility_action(
             "accessibility dismiss requires popup id",
         ),
     }
+}
+
+fn dispatch_scroll_to(
+    surface: &mut UiSurface,
+    request: &zircon_runtime_interface::ui::accessibility::UiAccessibilityActionRequest,
+    snapshot_node: &UiAccessibilityNode,
+    result: UiInputDispatchResult,
+) -> UiInputDispatchResult {
+    let target = request.target;
+    if !snapshot_node
+        .actions
+        .contains(&UiAccessibilityAction::ScrollTo)
+    {
+        return unsupported_role_action(result, target, "target does not expose scroll action");
+    }
+    let Some(offset) = scroll_to_offset(request) else {
+        return finish_unhandled(
+            result,
+            Some(target),
+            UiAccessibilityActionStatus::Rejected,
+            "missing_value",
+            "scroll to action requires value or numeric_value",
+        );
+    };
+
+    match surface.tree.set_scroll_offset(target, offset as f32) {
+        Ok(true) => finish_handled(result, target, "accessibility.scroll_to"),
+        Ok(false) => {
+            let mut result = finish_handled(result, target, "accessibility.scroll_to");
+            result
+                .diagnostics
+                .notes
+                .push("accessibility_scroll_unchanged".to_string());
+            result
+        }
+        Err(error) => finish_unhandled(
+            result,
+            Some(target),
+            UiAccessibilityActionStatus::Rejected,
+            "mutation_error",
+            &format!("scroll to action failed: {error}"),
+        ),
+    }
+}
+
+fn scroll_to_offset(
+    request: &zircon_runtime_interface::ui::accessibility::UiAccessibilityActionRequest,
+) -> Option<f64> {
+    request
+        .numeric_value
+        .or_else(|| {
+            request
+                .value
+                .as_deref()
+                .and_then(|value| value.parse::<f64>().ok())
+        })
+        .filter(|value| value.is_finite())
 }
 
 fn dispatch_adjust_value(
@@ -203,6 +261,7 @@ fn dispatch_focus(
 }
 
 fn dispatch_activate(
+    surface: &mut UiSurface,
     target: UiNodeId,
     snapshot_node: &UiAccessibilityNode,
     result: UiInputDispatchResult,
@@ -212,6 +271,24 @@ fn dispatch_activate(
         .contains(&UiAccessibilityAction::Activate)
     {
         return unsupported_role_action(result, target, "target does not expose activate action");
+    }
+
+    match surface.apply_default_keyboard_component_action(target) {
+        Ok(report) if report.handled => {
+            let mut result = finish_handled(result, target, "accessibility.activate");
+            result.component_events.extend(report.component_events);
+            return result;
+        }
+        Ok(_) => {}
+        Err(error) => {
+            return finish_unhandled(
+                result,
+                Some(target),
+                UiAccessibilityActionStatus::Rejected,
+                "mutation_error",
+                &format!("activate widget action failed: {error}"),
+            );
+        }
     }
 
     let mut result = finish_handled(result, target, "accessibility.activate");
@@ -315,18 +392,28 @@ fn dispatch_set_value(
     }
 }
 
-fn set_value_property(surface: &UiSurface, target: UiNodeId) -> Option<&'static str> {
-    let attributes = &surface
+fn set_value_property(surface: &UiSurface, target: UiNodeId) -> Option<String> {
+    let metadata = surface
         .tree
         .nodes
         .get(&target)?
         .template_metadata
-        .as_ref()?
-        .attributes;
+        .as_ref()?;
+    let attributes = &metadata.attributes;
+    if let Some(property) = metadata.widget.value_property.as_deref() {
+        return (attributes.contains_key(property)
+            || surface
+                .component_states
+                .get(target)
+                .and_then(|state| state.value(property))
+                .is_some()
+            || metadata.widget.value.is_some())
+        .then(|| property.to_string());
+    }
     if attributes.contains_key("value") {
-        Some("value")
+        Some("value".to_string())
     } else if attributes.contains_key("text") {
-        Some("text")
+        Some("text".to_string())
     } else {
         None
     }

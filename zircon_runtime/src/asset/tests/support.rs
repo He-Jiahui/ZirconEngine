@@ -12,9 +12,9 @@ use crate::asset::{
     AnimationGraphParameterAsset, AnimationInterpolationAsset, AnimationSequenceAsset,
     AnimationSequenceBindingAsset, AnimationSequenceTrackAsset, AnimationSkeletonAsset,
     AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateMachineAsset,
-    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetReference, AssetUri,
-    MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset, SceneEntityAsset,
-    SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
+    AnimationStateTransitionAsset, AnimationTransitionConditionAsset, AssetImporter,
+    AssetReference, AssetUri, MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
+    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
 };
 
 pub(crate) fn write_valid_wgsl(path: PathBuf) {
@@ -52,6 +52,14 @@ pub(crate) fn write_checker_png(path: PathBuf) {
     })
     .save_with_format(path, ImageFormat::Png)
     .unwrap();
+}
+
+pub(crate) fn importer_with_first_wave_plugin_fixtures() -> AssetImporter {
+    let mut importer = AssetImporter::default();
+    importer
+        .register_first_wave_plugin_fixture_importers_for_test()
+        .unwrap();
+    importer
 }
 
 pub(crate) fn write_triangle_obj(path: PathBuf) {
@@ -136,6 +144,9 @@ pub(crate) fn write_default_material(path: PathBuf) {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }
@@ -162,6 +173,7 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                     fov_y_radians: 1.0471976,
                     z_near: 0.1,
                     z_far: 200.0,
+                    ..SceneCameraAsset::default()
                 }),
                 mesh: None,
                 directional_light: None,
@@ -194,7 +206,7 @@ pub(crate) fn write_default_scene(path: PathBuf) {
                 camera: None,
                 mesh: Some(SceneMeshInstanceAsset {
                     model: asset_reference("res://models/triangle.obj"),
-                    material: asset_reference("res://materials/grid.material.toml"),
+                    material: asset_reference("res://materials/grid.zmaterial"),
                 }),
                 directional_light: None,
                 point_light: None,

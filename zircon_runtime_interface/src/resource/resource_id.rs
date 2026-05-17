@@ -16,9 +16,10 @@ impl ResourceId {
     pub fn from_locator(locator: &ResourceLocator) -> Self {
         match locator.scheme() {
             ResourceScheme::Memory => Self::new(),
-            ResourceScheme::Res | ResourceScheme::Library | ResourceScheme::Builtin => {
-                Self::from_stable_label(&locator.to_string())
-            }
+            ResourceScheme::Res
+            | ResourceScheme::Library
+            | ResourceScheme::Package
+            | ResourceScheme::Builtin => Self::from_stable_label(&locator.to_string()),
         }
     }
 
@@ -29,19 +30,11 @@ impl ResourceId {
         ))
     }
 
-    pub fn from_asset_uuid_label(uuid: AssetUuid, label: Option<&str>) -> Self {
-        let uuid_text = uuid.to_string();
-        let stable = match label {
-            Some(label) => stable_uuid_from_components(
-                "zircon-resource-id/asset-uuid-label",
-                &[uuid_text.as_str(), label],
-            ),
-            None => stable_uuid_from_components(
-                "zircon-resource-id/asset-uuid-label",
-                &[uuid_text.as_str()],
-            ),
-        };
-        Self(stable)
+    pub fn from_asset_uuid(uuid: AssetUuid) -> Self {
+        Self(stable_uuid_from_components(
+            "zircon-resource-id/asset-uuid",
+            &[uuid.to_string().as_str()],
+        ))
     }
 }
 

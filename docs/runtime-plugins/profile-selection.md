@@ -21,12 +21,15 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/bootstrap.rs
 plan_sources:
   - user: 2026-05-08 实现 ZirconEngine Bevy 级插件完成度里程碑计划
+  - user: 2026-05-16 continue Bevy-style MinimalPlugins/runtime profile convergence
   - .codex/plans/ZirconEngine Bevy 级插件完成度里程碑计划.md
 tests:
   - zircon_runtime/src/tests/plugin_extensions/profile_maturity.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - cargo test -p zircon_runtime --lib plugin_extensions::profile_maturity --locked -- --nocapture
   - cargo test -p zircon_app --locked profile_bootstrap
+  - cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1
+  - cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
 ---
@@ -39,7 +42,7 @@ doc_type: module-detail
 
 Profiles are exposed by `RuntimeProfileId`:
 
-- `Minimal`: core runtime capability list only; no first-party external plugin requirement.
+- `Minimal`: Bevy-style minimal core loop: lifecycle, task, time, frame-count, and diagnostics capabilities only; no platform/input/asset/scene/render/script module and no first-party external plugin requirement.
 - `Client2d`: client runtime target with sound, rendering, and texture baseline plus optional tilemap, particles, and animation.
 - `Client3d`: client runtime target with sound, rendering, and texture baseline plus optional animation, navigation, particles, virtual geometry, and hybrid GI.
 - `Editor`: editor host target with UI, sound, rendering, texture, and optional authoring-facing runtime plugins.
@@ -73,9 +76,11 @@ M2 begins by making provider availability explicit without moving `zircon_runtim
 
 `availability_report_for_registration_reports()` derives those provider sets from `RuntimePluginRegistrationReport` values. `LibraryEmbed` and source-style registration reports count as `linked`; `NativeDynamic` registration reports count as `native_dynamic`. Disabled or wrong-target registration reports are ignored. This keeps the runtime-side contract provider-chain shaped while allowing app/export/editor layers to supply actual first-party or native reports.
 
-`runtime_modules_for_runtime_profile()` and `runtime_modules_for_runtime_profile_with_plugin_registration_reports()` provide runtime-only profile bootstrap helpers. They project the selected profile into a `ProjectPluginManifest` and then reuse the existing target/module loader against that exact profile manifest, so profile helpers do not inherit legacy target defaults such as the default client UI plugin. The older `runtime_modules_for_target*` helpers still merge target baselines for compatibility with existing bootstrap callers.
+`runtime_modules_for_runtime_profile()` and `runtime_modules_for_runtime_profile_with_plugin_registration_reports()` provide runtime-only profile bootstrap helpers. They project the selected profile into a `ProjectPluginManifest` and then reuse the existing target/module loader against that exact profile manifest, so profile helpers do not inherit legacy target defaults such as the default client UI plugin. `RuntimeProfileId::Minimal` is stricter: it returns the Bevy-style minimal core module set directly instead of the wider client baseline. The older `runtime_modules_for_target*` helpers still merge target baselines for compatibility with existing bootstrap callers.
 
 `zircon_app` now owns the linked first-party registration provider for profile bootstrap. `EntryConfig::for_runtime_profile()` maps `RuntimeProfileId` into the appropriate app `EntryProfile`, target mode, and projected profile manifest. `first_party_runtime_plugin_registrations_for_config()` then selects compiled-in first-party provider reports from that manifest and feeds them into `BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations()` or `EntryRunner::bootstrap_with_first_party_runtime_plugin_registrations()`. The app feature `first-party-runtime-plugins` links the non-native profile-provider crates; `first-party-navigation-runtime-plugin` links the Recast-backed navigation crate separately.
+
+Profile bootstrap also persists app-owned platform and render config before and after module activation. The second write is intentional: runtime modules may install defaults during activation, but the selected entry profile must remain authoritative for `PLATFORM_CONFIG_KEY` and `RENDER_PROFILE_CONFIG_KEY`. Headless profile validation therefore checks both headless platform features and the `Headless` render bundle, while minimal profile validation still records disabled platform state because `MinimalPlugins` excludes the platform module.
 
 First-party importer capability statuses use explicit package-id mappings rather than deriving capability names from package slugs. This keeps built-in catalog metadata aligned with the authoritative `[[capability_statuses]]` entries in `zircon_plugins/*_importer/plugin.toml`, including category-specific names such as `runtime.asset.importer.model.gltf`, `runtime.asset.importer.model.obj`, and `runtime.asset.importer.audio.wav`.
 
@@ -99,3 +104,13 @@ Fresh M2 validation after sibling scene ECS updates and review fixes:
 - `cargo test -p zircon_runtime --lib tests::plugin_extensions::profile_maturity::builtin_catalog_statuses_match_importer_and_physics_capability_metadata --locked --target-dir target\codex-shared-a -- --nocapture` passed after importer capability-status mappings were aligned with first-party plugin manifests.
 - `cargo test -p zircon_runtime --lib plugin_extensions::manifest_contributions::builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_members --locked -- --nocapture` passed the catalog-to-plugin-manifest matching test with 0 failures.
 - `.\.opencode\skills\zircon-dev\scripts\validate-matrix.ps1 -Package zircon_runtime` passed Cargo build and Cargo test for the package.
+
+Fresh M2 app-provider validation on 2026-05-16 used `CARGO_TARGET_DIR=C:\Users\HeJiahui\AppData\Local\Temp\opencode\zircon-profile-provider-target` because other active sessions were using the shared target directories:
+
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" entry_config_can_select_headless_render_profile_bundle -- --nocapture --test-threads=1` passed: 1 test, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 --features "plugin-ui,first-party-runtime-plugins" profile_bootstrap -- --nocapture --test-threads=1` passed: 15 tests, 0 failures.
+- `cargo test -p zircon_app --locked --offline --jobs 1 profile_bootstrap -- --nocapture --test-threads=1` passed: 13 tests, 0 failures.
+
+Fresh M2 navigation-provider validation on 2026-05-16 used WSL/Linux because the Windows root lockfile currently resolves `wgpu-hal v29.0.3` against `windows 0.62.2` while `gpu-allocator v0.28.0` is unified with `windows 0.61.3`, causing a D3D12 type mismatch before Zircon provider code is compiled. WSL evidence:
+
+- `CARGO_INCREMENTAL=0 CARGO_TARGET_DIR=/tmp/opencode/zircon-profile-provider-target cargo test -p zircon_app --locked --jobs 1 --no-default-features --features "plugin-ui,first-party-runtime-plugins,first-party-navigation-runtime-plugin" runtime_profile_bootstrap_can_link_navigation_when_native_provider_feature_is_enabled --message-format short -- --nocapture --test-threads=1` passed: 1 test, 0 failures.

@@ -1,8 +1,9 @@
 use std::sync::{Arc, Mutex};
 
 use crate::core::framework::render::{
-    DisplayMode, RenderExtractContext, RenderMaterialAlphaMode, RenderPhase,
-    RenderVirtualGeometryDebugState, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    DisplayMode, ProjectionMode, RenderCameraClearColor, RenderExtractContext, RenderLayerSet,
+    RenderMaterialAlphaMode, RenderPhase, RenderViewportRect, RenderVirtualGeometryDebugState,
+    RenderWorldSnapshotHandle, SceneViewportExtractRequest, ViewportCameraSnapshot,
     ViewportRenderSettings,
 };
 use crate::core::math::{Transform, UVec2, Vec3};
@@ -11,7 +12,7 @@ use crate::plugin::{
     RuntimeExtensionRegistry, SceneRuntimeHook, SceneRuntimeHookContext,
     SceneRuntimeHookDescriptor, SceneRuntimeHookRegistration,
 };
-use crate::scene::components::{MeshRenderer, Mobility};
+use crate::scene::components::{CameraComponent, MeshRenderer, Mobility};
 use crate::scene::ecs::{
     CommandsParam, Component, EventStore, Events, InternalSceneSystem, ResourceStore,
     SceneSystemDescriptor, Schedule, SystemStage, SystemState,
@@ -276,7 +277,9 @@ fn render_extract_prepare_flushes_parent_reorder_and_active_changes() {
 #[test]
 fn canonical_render_frame_extract_populates_scene_sections_directly() {
     let mut world = crate::scene::World::new();
+    let camera = world.active_camera();
     let mesh = world.spawn_node(NodeKind::Mesh);
+    world.set_render_layer_mask(camera, 0b1010).unwrap();
     world.set_render_layer_mask(mesh, 0b1010).unwrap();
     world
         .update_transform(mesh, Transform::from_translation(Vec3::new(4.0, 5.0, 6.0)))
@@ -394,6 +397,158 @@ fn prepared_render_frame_extract_queues_meshes_from_mesh_renderer_alpha_hints() 
         .phase_queue
         .items_for_phase(RenderPhase::Transparent3d)
         .any(|item| item.entity == transparent_mesh));
+}
+
+#[test]
+fn render_extract_filters_meshes_by_active_camera_layers() {
+    let mut world = crate::scene::World::new();
+    let camera = world.active_camera();
+    let visible_mesh = world.spawn_node(NodeKind::Mesh);
+    let hidden_mesh = world.spawn_node(NodeKind::Mesh);
+    world.set_render_layer_mask(camera, 0b0010).unwrap();
+    world.set_render_layer_mask(visible_mesh, 0b0010).unwrap();
+    world.set_render_layer_mask(hidden_mesh, 0b0100).unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(57),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == visible_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .all(|mesh| mesh.node_id != hidden_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .all(|mesh| mesh.render_layer_mask & 0b0010 != 0));
+    assert!(extract
+        .view
+        .camera
+        .render_layers
+        .intersects_legacy_mask(0b0010));
+}
+
+#[test]
+fn explicit_render_camera_snapshot_layers_override_scene_camera_layers() {
+    let mut world = crate::scene::World::new();
+    let camera = world.active_camera();
+    let visible_mesh = world.spawn_node(NodeKind::Mesh);
+    let hidden_mesh = world.spawn_node(NodeKind::Mesh);
+    world.set_render_layer_mask(camera, 0b0010).unwrap();
+    world.set_render_layer_mask(visible_mesh, 0b0100).unwrap();
+    world.set_render_layer_mask(hidden_mesh, 0b0010).unwrap();
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(58),
+        SceneViewportExtractRequest {
+            camera: Some(ViewportCameraSnapshot {
+                render_layers: RenderLayerSet::from_legacy_mask(0b0100),
+                ..ViewportCameraSnapshot::default()
+            }),
+            ..SceneViewportExtractRequest::default()
+        },
+    ));
+
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .any(|mesh| mesh.node_id == visible_mesh));
+    assert!(extract
+        .geometry
+        .meshes
+        .iter()
+        .all(|mesh| mesh.node_id != hidden_mesh));
+    assert!(extract
+        .view
+        .camera
+        .render_layers
+        .intersects_legacy_mask(0b0100));
+}
+
+#[test]
+fn render_extract_projects_scene_camera_component_product_fields() {
+    let mut world = crate::scene::World::new();
+    let camera = world.active_camera();
+    *world.get_mut::<CameraComponent>(camera).unwrap() = CameraComponent {
+        projection_mode: ProjectionMode::Orthographic,
+        fov_y_radians: 0.85,
+        ortho_size: 14.0,
+        z_near: 0.05,
+        z_far: 750.0,
+        viewport: Some(RenderViewportRect::new(
+            UVec2::new(16, 32),
+            UVec2::new(400, 200),
+        )),
+        order: 4,
+        is_active: false,
+        hdr: true,
+        exposure_ev100: 12.0,
+        clear_color: RenderCameraClearColor::None,
+        msaa_samples: 4,
+        ..CameraComponent::default()
+    };
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(59),
+        SceneViewportExtractRequest {
+            viewport_size: Some(UVec2::new(1280, 720)),
+            ..SceneViewportExtractRequest::default()
+        },
+    ));
+
+    assert_eq!(
+        extract.view.camera.projection_mode,
+        ProjectionMode::Orthographic
+    );
+    assert_eq!(extract.view.camera.fov_y_radians, 0.85);
+    assert_eq!(extract.view.camera.ortho_size, 14.0);
+    assert_eq!(extract.view.camera.z_near, 0.05);
+    assert_eq!(extract.view.camera.z_far, 750.0);
+    assert_eq!(extract.view.camera.aspect_ratio, 2.0);
+    assert_eq!(extract.view.camera.order, 4);
+    assert!(!extract.view.camera.is_active);
+    assert!(extract.view.camera.hdr);
+    assert_eq!(extract.view.camera.exposure_ev100, 12.0);
+    assert_eq!(
+        extract.view.camera.clear_color,
+        RenderCameraClearColor::None
+    );
+    assert_eq!(extract.view.camera.msaa_samples, 4);
+}
+
+#[test]
+fn inactive_render_camera_extracts_no_scene_renderables() {
+    let mut world = crate::scene::World::new();
+    let camera = world.active_camera();
+    world.get_mut::<CameraComponent>(camera).unwrap().is_active = false;
+    world.spawn_node(NodeKind::Mesh);
+    world.spawn_node(NodeKind::DirectionalLight);
+
+    let extract = world.build_prepared_render_frame_extract(&RenderExtractContext::new(
+        RenderWorldSnapshotHandle::new(60),
+        SceneViewportExtractRequest::default(),
+    ));
+
+    assert!(!extract.view.camera.is_active);
+    assert!(extract.geometry.meshes.is_empty());
+    assert!(extract.geometry.phase_inputs.is_empty());
+    assert!(extract.visibility.renderable_entities.is_empty());
+    assert!(extract.visibility.renderables.is_empty());
+    assert!(extract.lighting.directional_lights.is_empty());
+
+    let packet = world.build_viewport_render_packet(&SceneViewportExtractRequest::default());
+    assert!(!packet.scene.camera.is_active);
+    assert!(packet.scene.meshes.is_empty());
+    assert!(packet.scene.directional_lights.is_empty());
 }
 
 #[test]

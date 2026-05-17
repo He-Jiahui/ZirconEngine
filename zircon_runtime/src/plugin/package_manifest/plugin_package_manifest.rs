@@ -18,6 +18,12 @@ pub struct PluginPackageManifest {
     #[serde(default = "default_sdk_api_version")]
     pub sdk_api_version: String,
     #[serde(default)]
+    pub package_prefix: String,
+    #[serde(default)]
+    pub package_company: String,
+    #[serde(default)]
+    pub package_name: String,
+    #[serde(default)]
     pub package_kind: PluginPackageKind,
     pub display_name: String,
     #[serde(default = "default_plugin_category")]
@@ -66,4 +72,26 @@ fn default_plugin_category() -> String {
 
 fn default_sdk_api_version() -> String {
     "0.1.0".to_string()
+}
+
+impl PluginPackageManifest {
+    pub fn package_id(&self) -> String {
+        if self.package_prefix.is_empty()
+            || self.package_company.is_empty()
+            || self.package_name.is_empty()
+        {
+            return self.id.clone();
+        }
+        format!(
+            "{}.{}.{}",
+            self.package_prefix, self.package_company, self.package_name
+        )
+    }
+
+    pub fn asset_roots_or_default(&self) -> Vec<String> {
+        if self.asset_roots.is_empty() {
+            return vec!["assets".to_string()];
+        }
+        self.asset_roots.clone()
+    }
 }

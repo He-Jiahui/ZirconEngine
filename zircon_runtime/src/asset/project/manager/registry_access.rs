@@ -1,6 +1,6 @@
 use crate::core::resource::ResourceRegistry;
 
-use super::super::{ProjectManifest, ProjectPaths};
+use super::super::{PackageAssetRegistry, ProjectManifest, ProjectPaths};
 use super::ProjectManager;
 
 impl ProjectManager {
@@ -14,5 +14,9 @@ impl ProjectManager {
 
     pub fn registry(&self) -> &ResourceRegistry {
         &self.registry
+    }
+
+    pub fn package_assets(&self) -> &PackageAssetRegistry {
+        &self.package_assets
     }
 }

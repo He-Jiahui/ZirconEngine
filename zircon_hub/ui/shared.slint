@@ -2,6 +2,8 @@ export struct NavItemData {
     id: string,
     title: string,
     icon: string,
+    icon-image: image,
+    has-icon-image: bool,
     active: bool,
 }
 
@@ -11,6 +13,9 @@ export struct ProjectCardData {
     modified: string,
     version: string,
     platform: string,
+    cover-image: image,
+    has-cover: bool,
+    selected: bool,
     accent: int,
 }
 
@@ -19,15 +24,94 @@ export struct RecentProjectRowData {
     project-path: string,
     modified: string,
     version: string,
+    cover-image: image,
+    has-cover: bool,
+    selected: bool,
     accent: int,
 }
 
 export struct QuickActionData {
     id: string,
     icon: string,
+    icon-image: image,
+    has-icon-image: bool,
     title: string,
     detail: string,
     enabled: bool,
+}
+
+export struct PluginData {
+    id: string,
+    title: string,
+    category: string,
+    maturity: string,
+    packaging: string,
+    modules: string,
+    description: string,
+    path: string,
+}
+
+export struct AssetData {
+    name: string,
+    kind: string,
+    source: string,
+    size: string,
+    path: string,
+    accent: int,
+}
+
+export struct LearnData {
+    title: string,
+    category: string,
+    summary: string,
+    path: string,
+    accent: int,
+}
+
+export struct TeamData {
+    repository-path: string,
+    identity-name: string,
+    identity-email: string,
+    status: string,
+}
+
+export struct TeamMemberData {
+    name: string,
+    email: string,
+    commits: string,
+    accent: int,
+}
+
+export struct CloudSummaryData {
+    status: string,
+    account-status: string,
+    output-path: string,
+    output-status: string,
+    device-path: string,
+    device-status: string,
+    package-path: string,
+    package-status: string,
+}
+
+export struct CloudServiceData {
+    title: string,
+    detail: string,
+    status: string,
+    accent: int,
+}
+
+export struct SettingStatusData {
+    label: string,
+    detail: string,
+    state: string,
+}
+
+export struct HeaderStatusData {
+    icon: string,
+    icon-image: image,
+    has-icon-image: bool,
+    text: string,
+    state: string,
 }
 
 export struct SourceEngineData {
@@ -41,36 +125,200 @@ export struct SourceEngineData {
     jobs: string,
 }
 
+export struct SourceEngineRowData {
+    id: string,
+    title: string,
+    version: string,
+    source-path: string,
+    output-path: string,
+    last-build: string,
+    status: string,
+    active: bool,
+}
+
+export struct SourceBuildHistoryRowData {
+    status: string,
+    finished: string,
+    profile: string,
+    output-path: string,
+    detail: string,
+    success: bool,
+}
+
+export struct UiTextData {
+    game-engine: string,
+    local-user: string,
+    local-user-initials: string,
+    engine-status: string,
+    check-for-updates: string,
+    collapse: string,
+    source-engines: string,
+    registered: string,
+    no-source-engines: string,
+    open-editor: string,
+    back-to-projects: string,
+    placeholder-reserved: string,
+    projects-empty-title: string,
+    projects-empty-detail: string,
+    project-list: string,
+    recent-projects: string,
+    name-column: string,
+    engine-version-column: string,
+    last-modified-column: string,
+    location-column: string,
+    quick-actions: string,
+    open-path: string,
+    view-all-projects: string,
+    create-project: string,
+    import-project: string,
+    project-root-path: string,
+    project-name: string,
+    location: string,
+    browse: string,
+    open: string,
+    create: string,
+    search-projects: string,
+    no-projects-match: string,
+    show-more-projects: string,
+    collapse-projects: string,
+    modified-prefix: string,
+    editor-actions: string,
+    save-source: string,
+    build: string,
+    open-output: string,
+    source-engine: string,
+    active-engine-name: string,
+    rename: string,
+    source-checkout-path: string,
+    staged-output-directory: string,
+    build-history: string,
+    no-build-history: string,
+    toolchain: string,
+    python-executable: string,
+    cargo-executable: string,
+    rustup-executable: string,
+    build-defaults: string,
+    build-profile: string,
+    debug: string,
+    release: string,
+    build-jobs: string,
+    language: string,
+    english: string,
+    chinese: string,
+    default-paths: string,
+    default-project-directory: string,
+    default-source-directory: string,
+    default-staged-output-directory: string,
+    default-device-install-directory: string,
+    configuration-health: string,
+    save-settings: string,
+    source-build: string,
+    build-now: string,
+    source-prefix: string,
+    output-prefix: string,
+    last-build-prefix: string,
+    jobs-suffix: string,
+    build-controls: string,
+    build-editor: string,
+    build-pipeline: string,
+    validate-source: string,
+    compile-editor: string,
+    stage-runtime: string,
+    package-project: string,
+    reserved-project-export: string,
+    unavailable: string,
+    current-task: string,
+    profile-prefix: string,
+    asset-catalog: string,
+    assets-found: string,
+    no-assets-found: string,
+    asset-kind: string,
+    asset-source: string,
+    asset-size: string,
+    learn-library: string,
+    learn-resources-found: string,
+    no-learn-resources-found: string,
+    learn-category: string,
+    learn-open: string,
+    team-workspace: string,
+    team-members-found: string,
+    no-team-members-found: string,
+    team-git-identity: string,
+    team-repository: string,
+    team-local-only: string,
+    team-commits: string,
+    cloud-overview: string,
+    cloud-local-only: string,
+    cloud-account: string,
+    cloud-output: string,
+    cloud-device-install: string,
+    cloud-packages: string,
+    cloud-services: string,
+    cloud-service-slots: string,
+    plugin-catalog: string,
+    plugins-found: string,
+    no-plugins-found: string,
+    plugin-packaging: string,
+    plugin-modules: string,
+    plugin-maturity: string,
+}
+
 export component BrandMark inherits Rectangle {
     width: 34px;
     height: 34px;
     border-radius: 6px;
-    background: #073d3f;
-    border-width: 1px;
-    border-color: #24d5ca;
+    background: transparent;
 
-    Rectangle {
-        x: 8px;
-        y: 7px;
-        width: 9px;
-        height: 20px;
-        border-radius: 2px;
-        background: #23c8c2;
+    Image {
+        width: parent.width;
+        height: parent.height;
+        source: @image-url("../assets/brand/zircon-mark.svg");
+        image-fit: contain;
     }
+}
 
-    Rectangle {
-        x: 18px;
-        y: 7px;
-        width: 8px;
-        height: 20px;
-        border-radius: 2px;
-        background: #8bf5e8;
+export component CenteredIcon inherits Rectangle {
+    in property <image> source-image;
+    in property <image> fallback-image: @image-url("../assets/icons/ui/alert.svg");
+    in property <bool> has-source-image: false;
+    in property <length> icon-size: 18px;
+
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: 0px;
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
+
+        HorizontalLayout {
+            height: root.icon-size;
+            alignment: center;
+
+            Image {
+                width: root.icon-size;
+                height: root.icon-size;
+                source: root.has-source-image ? root.source-image : root.fallback-image;
+                image-fit: contain;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            min-height: 0px;
+        }
     }
 }
 
 export component PillButton inherits Rectangle {
     in property <string> text;
     in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
     in property <bool> primary: false;
     in property <bool> enabled: true;
     callback clicked;
@@ -83,16 +331,20 @@ export component PillButton inherits Rectangle {
     background: !enabled ? #1d2228 : (primary ? (area.pressed ? #08756f : (area.has-hover ? #0a8f88 : #086b66)) : (area.pressed ? #242a31 : (area.has-hover ? #22272e : #181c22)));
 
     HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
         padding-left: 14px;
         padding-right: 14px;
         spacing: 8px;
         alignment: center;
 
-        Text {
-            text: root.icon;
-            color: root.enabled ? (root.primary ? #d8fffb : #f2f5f7) : #767d86;
-            font-size: 17px;
-            vertical-alignment: center;
+        if root.has-icon-image || root.icon != "": CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 18px;
+            source-image: root.icon-image;
+            has-source-image: root.has-icon-image;
+            fallback-image: @image-url("../assets/icons/ui/alert.svg");
         }
 
         Text {
@@ -116,6 +368,8 @@ export component PillButton inherits Rectangle {
 
 export component IconButton inherits Rectangle {
     in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
     in property <bool> active: false;
     in property <bool> enabled: true;
     callback clicked;
@@ -127,12 +381,13 @@ export component IconButton inherits Rectangle {
     border-color: active ? #13aaa2 : (area.has-hover ? #424852 : #30353d);
     background: !enabled ? #1a1e24 : (active ? #073e3d : (area.pressed ? #252b33 : (area.has-hover ? #20262d : #171b21)));
 
-    Text {
-        text: root.icon;
-        color: root.enabled ? (root.active ? #61f3e9 : #c8ced7) : #737b85;
-        font-size: 18px;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    CenteredIcon {
+        width: parent.width;
+        height: parent.height;
+        icon-size: 18px;
+        source-image: root.icon-image;
+        has-source-image: root.has-icon-image;
+        fallback-image: @image-url("../assets/icons/ui/alert.svg");
     }
 
     area := TouchArea {
@@ -147,6 +402,7 @@ export component IconButton inherits Rectangle {
 
 export component NavButton inherits Rectangle {
     in property <NavItemData> item;
+    in property <bool> collapsed: false;
     callback clicked(string);
 
     height: 46px;
@@ -155,19 +411,36 @@ export component NavButton inherits Rectangle {
     border-color: #1ec8be;
     background: root.item.active ? #0a4644 : (area.has-hover ? #1b2027 : transparent);
 
-    HorizontalLayout {
+    if root.collapsed: HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        alignment: center;
+
+        CenteredIcon {
+            width: parent.width;
+            height: parent.height;
+            icon-size: 24px;
+            source-image: root.item.icon-image;
+            has-source-image: root.item.has-icon-image;
+            fallback-image: @image-url("../assets/icons/nav/projects.svg");
+        }
+    }
+
+    if !root.collapsed: HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
         padding-left: 14px;
         padding-right: 12px;
         spacing: 12px;
         alignment: start;
 
-        Text {
+        CenteredIcon {
             width: 24px;
-            text: root.item.icon;
-            color: root.item.active ? #a6fff7 : #b7bec8;
-            font-size: 16px;
-            font-weight: 700;
-            vertical-alignment: center;
+            height: parent.height;
+            icon-size: 24px;
+            source-image: root.item.icon-image;
+            has-source-image: root.item.has-icon-image;
+            fallback-image: @image-url("../assets/icons/nav/projects.svg");
         }
 
         Text {
@@ -176,6 +449,8 @@ export component NavButton inherits Rectangle {
             font-size: 14px;
             font-weight: root.item.active ? 700 : 500;
             vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
         }
     }
 
@@ -188,6 +463,8 @@ export component NavButton inherits Rectangle {
 
 export component StatusPill inherits Rectangle {
     in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
     in property <string> text;
     in property <color> accent-color;
 
@@ -199,16 +476,20 @@ export component StatusPill inherits Rectangle {
     background: #171b20;
 
     HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
         padding-left: 14px;
         padding-right: 14px;
         spacing: 8px;
         alignment: center;
 
-        Text {
-            text: root.icon;
-            color: root.accent-color;
-            font-size: 14px;
-            vertical-alignment: center;
+        CenteredIcon {
+            width: 18px;
+            height: parent.height;
+            icon-size: 18px;
+            source-image: root.icon-image;
+            has-source-image: root.has-icon-image;
+            fallback-image: @image-url("../assets/icons/status/running.svg");
         }
 
         Text {
@@ -223,6 +504,8 @@ export component StatusPill inherits Rectangle {
 
 export component WindowButton inherits Rectangle {
     in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
     in property <bool> danger: false;
     callback clicked;
 
@@ -230,12 +513,13 @@ export component WindowButton inherits Rectangle {
     height: 36px;
     background: root.danger && area.has-hover ? #6d2025 : (area.has-hover ? #242a31 : transparent);
 
-    Text {
-        text: root.icon;
-        color: root.danger && area.has-hover ? #fff3f3 : #c6ccd5;
-        font-size: 15px;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    CenteredIcon {
+        width: parent.width;
+        height: parent.height;
+        icon-size: 16px;
+        source-image: root.icon-image;
+        has-source-image: root.has-icon-image;
+        fallback-image: @image-url("../assets/icons/ui/close.svg");
     }
 
     area := TouchArea {

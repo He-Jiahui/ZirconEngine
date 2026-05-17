@@ -116,6 +116,7 @@ impl EditorGuiStartupRequestArgs {
     {
         let mut args = args.into_iter();
         let mut project_path = None;
+        let mut builtin_view = None;
         let mut create_project = false;
         let mut project_name = None;
         let mut location = None;
@@ -132,6 +133,16 @@ impl EditorGuiStartupRequestArgs {
                         return Err("--project requires a project path".into());
                     };
                     project_path = Some(value);
+                    saw_gui_arg = true;
+                }
+                "--builtin-view" => {
+                    if builtin_view.is_some() {
+                        return Err("--builtin-view was provided more than once".into());
+                    }
+                    let Some(value) = args.next() else {
+                        return Err("--builtin-view requires a view descriptor id".into());
+                    };
+                    builtin_view = Some(value);
                     saw_gui_arg = true;
                 }
                 "--create-project" => {
@@ -185,8 +196,10 @@ impl EditorGuiStartupRequestArgs {
             return Ok(None);
         }
         if create_project {
-            if project_path.is_some() {
-                return Err("--project cannot be combined with --create-project".into());
+            if project_path.is_some() || builtin_view.is_some() {
+                return Err(
+                    "--project and --builtin-view cannot be combined with --create-project".into(),
+                );
             }
             let Some(project_name) = project_name else {
                 return Err("--create-project requires --project-name".into());
@@ -206,6 +219,14 @@ impl EditorGuiStartupRequestArgs {
             return Err(
                 "--project-name, --location, and --template require --create-project".into(),
             );
+        }
+        if project_path.is_some() && builtin_view.is_some() {
+            return Err("--project cannot be combined with --builtin-view".into());
+        }
+        if let Some(descriptor_id) = builtin_view {
+            return Ok(Some(EditorGuiStartupRequest::open_builtin_view(
+                descriptor_id,
+            )));
         }
         let Some(project_path) = project_path else {
             return Ok(None);
@@ -595,6 +616,21 @@ mod tests {
     }
 
     #[test]
+    fn editor_gui_startup_parser_accepts_builtin_view_request() {
+        let request = EditorGuiStartupRequestArgs::parse([
+            "--builtin-view".to_string(),
+            "editor.material_component_lab".to_string(),
+        ])
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(
+            request,
+            EditorGuiStartupRequest::open_builtin_view("editor.material_component_lab")
+        );
+    }
+
+    #[test]
     fn editor_gui_startup_parser_accepts_create_project_request() {
         let request = EditorGuiStartupRequestArgs::parse([
             "--create-project".to_string(),
@@ -635,6 +671,22 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(error.to_string(), "--create-project requires --location");
+    }
+
+    #[test]
+    fn editor_gui_startup_parser_rejects_builtin_view_with_project_path() {
+        let error = EditorGuiStartupRequestArgs::parse([
+            "--project".to_string(),
+            "E:/Projects/My Game".to_string(),
+            "--builtin-view".to_string(),
+            "editor.material_component_lab".to_string(),
+        ])
+        .unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "--project cannot be combined with --builtin-view"
+        );
     }
 
     #[test]

@@ -4,8 +4,9 @@ use zircon_runtime::asset::SoundAsset;
 use zircon_runtime::core::framework::sound::{
     ExternalAudioSourceHandle, SoundAttenuationMode, SoundError, SoundExternalSourceBlock,
     SoundHrtfProfileDescriptor, SoundImpulseResponseId, SoundListenerDescriptor, SoundMixBlock,
-    SoundParameterId, SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundSourceInput,
-    SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
+    SoundParameterId, SoundPlaybackCompletionAction, SoundPlaybackFinishReason,
+    SoundPlaybackFinished, SoundRayTracingConvolutionStatus, SoundSourceDescriptor,
+    SoundSourceInput, SoundTrackId, SoundVolumeDescriptor, SoundVolumeShape,
 };
 
 use crate::SoundConfig;
@@ -127,7 +128,7 @@ impl SoundEngineState {
         let mut finished = Vec::new();
         for (playback_id, playback) in self.playbacks.iter_mut() {
             let Some(clip) = clips.get(&playback.clip) else {
-                finished.push(*playback_id);
+                finished.push((*playback_id, SoundPlaybackFinishReason::MissingClip));
                 continue;
             };
             let output_track = if track_buffers.contains_key(&playback.output_track) {
@@ -145,7 +146,7 @@ impl SoundEngineState {
                     playback,
                     config,
                 ) {
-                    finished.push(*playback_id);
+                    finished.push((*playback_id, SoundPlaybackFinishReason::Completed));
                 }
                 continue;
             }
@@ -156,11 +157,19 @@ impl SoundEngineState {
                 false
             };
             if finished_playback {
-                finished.push(*playback_id);
+                finished.push((*playback_id, SoundPlaybackFinishReason::Completed));
             }
         }
-        for playback_id in finished {
-            self.playbacks.remove(&playback_id);
+        for (playback_id, reason) in finished {
+            if let Some(active) = self.playbacks.remove(&playback_id) {
+                self.finished_playbacks.push(SoundPlaybackFinished {
+                    playback: playback_id,
+                    clip: active.clip,
+                    reason,
+                    completion_action: active.completion_action,
+                    output_track: active.output_track,
+                });
+            }
         }
     }
 
@@ -213,6 +222,7 @@ impl SoundEngineState {
                 config.sample_rate_hz,
                 &source_descriptor,
                 active_listener_for(&listeners, output_track),
+                config.default_spatial_scale,
                 &volumes,
                 &impulse_responses,
                 &hrtf_profiles,
@@ -329,21 +339,26 @@ fn mix_clip_playback(
     playback: &mut ActivePlayback,
     config: &SoundConfig,
 ) -> bool {
+    if playback.paused {
+        return false;
+    }
     let clip_channels = clip.channel_count as usize;
     let frame_count = clip.frame_count();
     if frame_count == 0 || clip_channels == 0 {
         return true;
     }
-    let step = resample_step(clip.sample_rate_hz, config.sample_rate_hz);
+    let step = resample_step(clip.sample_rate_hz, config.sample_rate_hz) * playback.speed as f64;
 
     for frame_index in 0..frames {
-        let Some(source_frame_position) = next_source_frame_position(
+        let Some(source_frame_position) = next_clip_source_frame_position(
             &mut playback.cursor_position,
             frame_count,
+            playback.range_start_frame,
+            playback.range_end_frame,
             step,
             playback.looped,
         ) else {
-            playback.cursor_frame = frame_count;
+            playback.cursor_frame = playback.range_end_frame.unwrap_or(frame_count);
             return true;
         };
 
@@ -353,6 +368,8 @@ fn mix_clip_playback(
                 &clip.samples,
                 clip_channels,
                 frame_count,
+                playback.range_start_frame,
+                playback.range_end_frame,
                 source_frame_position,
                 channel,
                 output_channels,
@@ -372,7 +389,9 @@ fn mix_clip_playback(
                     1.0
                 };
             }
-            destination[output_offset + channel] += sample;
+            if !playback.muted {
+                destination[output_offset + channel] += sample;
+            }
         }
         playback.cursor_frame = playback.cursor_position.floor() as usize;
     }
@@ -401,7 +420,13 @@ fn mix_source_voice(
                 cursor_frame: voice.cursor_frame,
                 cursor_position: voice.cursor_position,
                 gain: descriptor.gain,
+                speed: 1.0,
                 looped: descriptor.looped,
+                completion_action: SoundPlaybackCompletionAction::None,
+                paused: false,
+                muted: false,
+                range_start_frame: 0,
+                range_end_frame: None,
                 output_track: descriptor.output_track,
                 pan: 0.0,
             };
@@ -527,6 +552,8 @@ fn mix_external_source_block(
                 &block.samples,
                 source_channels,
                 frame_count,
+                0,
+                None,
                 source_frame_position,
                 channel,
                 output_channels,
@@ -562,10 +589,46 @@ fn next_source_frame_position(
     Some(frame_position)
 }
 
+fn next_clip_source_frame_position(
+    cursor_position: &mut f64,
+    frame_count: usize,
+    range_start_frame: usize,
+    range_end_frame: Option<usize>,
+    step: f64,
+    looped: bool,
+) -> Option<f64> {
+    if frame_count == 0 {
+        return None;
+    }
+    let start = range_start_frame.min(frame_count);
+    let end = range_end_frame
+        .unwrap_or(frame_count)
+        .min(frame_count)
+        .max(start);
+    if start >= end {
+        return None;
+    }
+    if *cursor_position < start as f64 {
+        *cursor_position = start as f64;
+    }
+    if *cursor_position >= end as f64 {
+        if looped {
+            *cursor_position = start as f64;
+        } else {
+            return None;
+        }
+    }
+    let frame_position = *cursor_position;
+    *cursor_position += step;
+    Some(frame_position)
+}
+
 fn interpolated_source_sample(
     samples: &[f32],
     source_channels: usize,
     frame_count: usize,
+    range_start_frame: usize,
+    range_end_frame: Option<usize>,
     frame_position: f64,
     output_channel: usize,
     output_channel_count: usize,
@@ -577,10 +640,15 @@ fn interpolated_source_sample(
 
     let base_position = frame_position.floor().max(0.0);
     let base_frame = (base_position as usize).min(frame_count - 1);
-    let next_frame = if base_frame + 1 < frame_count {
+    let range_start = range_start_frame.min(frame_count);
+    let range_end = range_end_frame
+        .unwrap_or(frame_count)
+        .min(frame_count)
+        .max(range_start);
+    let next_frame = if base_frame + 1 < range_end {
         base_frame + 1
     } else if looped {
-        0
+        range_start
     } else {
         base_frame
     };
@@ -647,6 +715,7 @@ fn apply_source_environment(
     sample_rate_hz: u32,
     source: &SoundSourceDescriptor,
     listener: Option<&SoundListenerDescriptor>,
+    spatial_scale: f32,
     volumes: &[SoundVolumeDescriptor],
     impulse_responses: &HashMap<SoundImpulseResponseId, Vec<f32>>,
     hrtf_profiles: &HashMap<String, SoundHrtfProfileDescriptor>,
@@ -656,7 +725,7 @@ fn apply_source_environment(
     let mut pan = 0.0;
 
     if let Some(listener) = listener {
-        let spatial = spatial_profile(source, listener, sample_rate_hz);
+        let spatial = spatial_profile(source, listener, sample_rate_hz, spatial_scale);
         if !apply_loaded_hrtf_profile(buffer, channels, listener, hrtf_profiles) {
             apply_hrtf_preview(buffer, channels, spatial);
         }
@@ -731,6 +800,7 @@ fn spatial_profile(
     source: &SoundSourceDescriptor,
     listener: &SoundListenerDescriptor,
     sample_rate_hz: u32,
+    spatial_scale: f32,
 ) -> SpatialProfile {
     let blend = source.spatial.spatial_blend.clamp(0.0, 1.0);
     if blend <= 0.0 {
@@ -744,7 +814,8 @@ fn spatial_profile(
         };
     }
 
-    let offset = sub3(source.position, listener.position);
+    let spatial_scale = spatial_scale.max(0.0);
+    let offset = scale3(sub3(source.position, listener.position), spatial_scale);
     let distance = length3(offset);
     let attenuation = attenuation_gain(
         distance,
@@ -761,7 +832,7 @@ fn spatial_profile(
     let doppler = doppler_preview_gain(source, listener, offset);
     let listener_right = normalize3(cross3(listener.up, listener.forward));
     let direction = normalize3(offset);
-    let hrtf = hrtf_preview_profile(source, listener, sample_rate_hz, blend);
+    let hrtf = hrtf_preview_profile(source, listener, sample_rate_hz, blend, spatial_scale);
 
     SpatialProfile {
         gain: ((1.0 - blend) + attenuation * blend) * cone * occlusion * doppler,
@@ -786,6 +857,7 @@ fn hrtf_preview_profile(
     listener: &SoundListenerDescriptor,
     sample_rate_hz: u32,
     blend: f32,
+    spatial_scale: f32,
 ) -> HrtfPreviewProfile {
     if listener
         .hrtf_profile
@@ -801,10 +873,18 @@ fn hrtf_preview_profile(
         };
     }
 
-    let left_ear = add3(listener.position, listener.left_ear_offset);
-    let right_ear = add3(listener.position, listener.right_ear_offset);
-    let left_distance = length3(sub3(source.position, left_ear)).max(0.0001);
-    let right_distance = length3(sub3(source.position, right_ear)).max(0.0001);
+    let source_position = scale3(source.position, spatial_scale);
+    let listener_position = scale3(listener.position, spatial_scale);
+    let left_ear = add3(
+        listener_position,
+        scale3(listener.left_ear_offset, spatial_scale),
+    );
+    let right_ear = add3(
+        listener_position,
+        scale3(listener.right_ear_offset, spatial_scale),
+    );
+    let left_distance = length3(sub3(source_position, left_ear)).max(0.0001);
+    let right_distance = length3(sub3(source_position, right_ear)).max(0.0001);
     let average_distance = (left_distance + right_distance) * 0.5;
     let left_gain =
         (average_distance / left_distance).clamp(HRTF_PREVIEW_GAIN_MIN, HRTF_PREVIEW_GAIN_MAX);
@@ -1124,6 +1204,10 @@ fn sub3(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
 
 fn add3(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
     [a[0] + b[0], a[1] + b[1], a[2] + b[2]]
+}
+
+fn scale3(value: [f32; 3], scale: f32) -> [f32; 3] {
+    [value[0] * scale, value[1] * scale, value[2] * scale]
 }
 
 fn dot3(a: [f32; 3], b: [f32; 3]) -> f32 {

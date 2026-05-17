@@ -1,6 +1,8 @@
 use crate::core::framework::render::{
-    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMeshSnapshot,
-    RenderPipelineHandle, RenderPointLightSnapshot, RenderSpotLightSnapshot,
+    PostProcessPassGraph, PostProcessStackDescriptor, RenderAmbientLightSnapshot,
+    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
+    RenderHybridGiExtract, RenderMeshSnapshot, RenderPipelineHandle, RenderPointLightSnapshot,
+    RenderRectLightSnapshot, RenderSpotLightSnapshot,
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryCpuReferenceInstance,
     RenderVirtualGeometryExtract,
 };
@@ -31,6 +33,10 @@ pub(super) struct FrameSubmissionContext {
     visibility_context: VisibilityContext,
     history_validation_key: FrameHistoryValidationKey,
     ui_stats: UiSubmissionStats,
+    post_process_bloom: RenderBloomSettings,
+    post_process_color_grading: RenderColorGradingSettings,
+    post_process_stack: PostProcessStackDescriptor,
+    post_process_graph: PostProcessPassGraph,
     hybrid_gi_enabled: bool,
     virtual_geometry_enabled: bool,
     hybrid_gi_extract: Option<RenderHybridGiExtract>,
@@ -40,6 +46,8 @@ pub(super) struct FrameSubmissionContext {
     scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
     scene_point_lights: Vec<RenderPointLightSnapshot>,
     scene_spot_lights: Vec<RenderSpotLightSnapshot>,
+    scene_ambient_lights: Vec<RenderAmbientLightSnapshot>,
+    scene_rect_lights: Vec<RenderRectLightSnapshot>,
     virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
     virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
     virtual_geometry_bvh_visualization_instances:
@@ -60,6 +68,10 @@ impl FrameSubmissionContext {
         visibility_context: VisibilityContext,
         history_validation_key: FrameHistoryValidationKey,
         ui_stats: UiSubmissionStats,
+        post_process_bloom: RenderBloomSettings,
+        post_process_color_grading: RenderColorGradingSettings,
+        post_process_stack: PostProcessStackDescriptor,
+        post_process_graph: PostProcessPassGraph,
         hybrid_gi_enabled: bool,
         virtual_geometry_enabled: bool,
         hybrid_gi_extract: Option<RenderHybridGiExtract>,
@@ -69,6 +81,8 @@ impl FrameSubmissionContext {
         scene_directional_lights: Vec<RenderDirectionalLightSnapshot>,
         scene_point_lights: Vec<RenderPointLightSnapshot>,
         scene_spot_lights: Vec<RenderSpotLightSnapshot>,
+        scene_ambient_lights: Vec<RenderAmbientLightSnapshot>,
+        scene_rect_lights: Vec<RenderRectLightSnapshot>,
         virtual_geometry_extract: Option<RenderVirtualGeometryExtract>,
         virtual_geometry_cpu_reference_instances: Vec<RenderVirtualGeometryCpuReferenceInstance>,
         virtual_geometry_bvh_visualization_instances: Vec<
@@ -107,6 +121,10 @@ impl FrameSubmissionContext {
             visibility_context,
             history_validation_key,
             ui_stats,
+            post_process_bloom,
+            post_process_color_grading,
+            post_process_stack,
+            post_process_graph,
             hybrid_gi_enabled,
             virtual_geometry_enabled,
             hybrid_gi_extract,
@@ -116,6 +134,8 @@ impl FrameSubmissionContext {
             scene_directional_lights,
             scene_point_lights,
             scene_spot_lights,
+            scene_ambient_lights,
+            scene_rect_lights,
             virtual_geometry_extract,
             virtual_geometry_cpu_reference_instances,
             virtual_geometry_bvh_visualization_instances,
@@ -157,6 +177,22 @@ impl FrameSubmissionContext {
         &self.ui_stats
     }
 
+    pub(super) fn post_process_bloom(&self) -> RenderBloomSettings {
+        self.post_process_bloom
+    }
+
+    pub(super) fn post_process_color_grading(&self) -> RenderColorGradingSettings {
+        self.post_process_color_grading
+    }
+
+    pub(super) fn post_process_stack(&self) -> &PostProcessStackDescriptor {
+        &self.post_process_stack
+    }
+
+    pub(super) fn post_process_graph(&self) -> &PostProcessPassGraph {
+        &self.post_process_graph
+    }
+
     pub(super) fn hybrid_gi_enabled(&self) -> bool {
         self.hybrid_gi_enabled
     }
@@ -191,6 +227,14 @@ impl FrameSubmissionContext {
 
     pub(super) fn scene_spot_lights(&self) -> &[RenderSpotLightSnapshot] {
         &self.scene_spot_lights
+    }
+
+    pub(super) fn scene_ambient_lights(&self) -> &[RenderAmbientLightSnapshot] {
+        &self.scene_ambient_lights
+    }
+
+    pub(super) fn scene_rect_lights(&self) -> &[RenderRectLightSnapshot] {
+        &self.scene_rect_lights
     }
 
     pub(super) fn virtual_geometry_extract(&self) -> Option<&RenderVirtualGeometryExtract> {

@@ -637,6 +637,12 @@ fn builtin_view_operation_descriptors() -> Vec<EditorOperationDescriptor> {
             "editor.material_demo_window",
         ),
         (
+            "Window.MaterialComponentLab.Open",
+            "Open Material Component Lab",
+            "Window/Material Component Lab",
+            "editor.material_component_lab",
+        ),
+        (
             "Window.UiAssetEditor.Open",
             "Open UI Asset Editor",
             "Window/UI Asset Editor",

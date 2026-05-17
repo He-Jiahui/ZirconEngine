@@ -1,18 +1,18 @@
 use std::collections::VecDeque;
-use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tokio::runtime::Runtime;
 use zircon_runtime::core::framework::net::{
     NetConnectionId, NetConnectionState, NetEndpoint, NetError, NetEvent, NetWebSocketFrame,
+    NetWebSocketListenerDescriptor,
 };
 
 pub trait WebSocketRuntimeBackend: Send + Sync + std::fmt::Debug {
     fn listen_websocket(
         &self,
         runtime: &Runtime,
-        bind: SocketAddr,
+        descriptor: NetWebSocketListenerDescriptor,
     ) -> Result<Box<dyn WebSocketRuntimeListener>, NetError>;
 
     fn connect_websocket(

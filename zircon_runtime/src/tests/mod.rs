@@ -8,4 +8,6 @@ mod runtime_absorption;
 mod runtime_diagnostics;
 mod scene_boundary;
 mod state;
+mod tasks;
+mod time;
 mod ui_boundary;

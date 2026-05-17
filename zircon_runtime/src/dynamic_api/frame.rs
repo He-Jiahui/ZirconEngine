@@ -10,6 +10,7 @@ use crate::core::framework::render::CapturedFrame;
 const RUNTIME_FRAME_BUFFER_OWNER_TOKEN: u64 = 0x5a52_4652_414d_4501;
 const RUNTIME_ACCESSIBILITY_BUFFER_OWNER_TOKEN: u64 = 0x5a52_4131_3159_0001;
 const RUNTIME_PROFILE_BUFFER_OWNER_TOKEN: u64 = 0x5a52_5052_4f46_0001;
+const RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN: u64 = 0x5a52_484f_5354_0001;
 
 pub(super) fn encode_frame(frame: CapturedFrame) -> ZrRuntimeFrameV1 {
     ZrRuntimeFrameV1 {
@@ -71,6 +72,12 @@ pub(super) fn encode_profile_response<T: serde::Serialize>(
     serde_json::to_vec(response).map(owned_profile_buffer)
 }
 
+pub(super) fn encode_host_request_batch<T: serde::Serialize>(
+    response: &T,
+) -> Result<ZrOwnedByteBuffer, serde_json::Error> {
+    serde_json::to_vec(response).map(owned_host_request_buffer)
+}
+
 fn owned_accessibility_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
     if bytes.is_empty() {
         return ZrOwnedByteBuffer::empty();
@@ -125,6 +132,21 @@ fn owned_profile_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
     buffer
 }
 
+fn owned_host_request_buffer(mut bytes: Vec<u8>) -> ZrOwnedByteBuffer {
+    if bytes.is_empty() {
+        return ZrOwnedByteBuffer::empty();
+    }
+    let buffer = ZrOwnedByteBuffer {
+        data: bytes.as_mut_ptr(),
+        len: bytes.len(),
+        capacity: bytes.capacity(),
+        owner_token: RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN,
+        free: Some(free_runtime_host_request_bytes),
+    };
+    std::mem::forget(bytes);
+    buffer
+}
+
 pub(super) unsafe extern "C" fn free_runtime_profile_bytes(buffer: ZrOwnedByteBuffer) -> ZrStatus {
     if buffer.is_empty() {
         return ZrStatus::ok();
@@ -141,6 +163,34 @@ pub(super) unsafe extern "C" fn free_runtime_profile_bytes(buffer: ZrOwnedByteBu
         return ZrStatus::new(
             ZrStatusCode::InvalidArgument,
             zircon_runtime_interface::ZrByteSlice::from_static(b"invalid runtime profile buffer"),
+        );
+    }
+    let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
+    ZrStatus::ok()
+}
+
+pub(super) unsafe extern "C" fn free_runtime_host_request_bytes(
+    buffer: ZrOwnedByteBuffer,
+) -> ZrStatus {
+    if buffer.is_empty() {
+        return ZrStatus::ok();
+    }
+    if buffer.owner_token != RUNTIME_HOST_REQUEST_BUFFER_OWNER_TOKEN || buffer.data.is_null() {
+        return ZrStatus::new(
+            ZrStatusCode::InvalidArgument,
+            zircon_runtime_interface::ZrByteSlice::from_static(
+                b"invalid runtime host request buffer",
+            ),
+        );
+    }
+    let len = buffer.len;
+    let capacity = buffer.capacity;
+    if len > capacity {
+        return ZrStatus::new(
+            ZrStatusCode::InvalidArgument,
+            zircon_runtime_interface::ZrByteSlice::from_static(
+                b"invalid runtime host request buffer",
+            ),
         );
     }
     let _ = unsafe { Vec::from_raw_parts(buffer.data, len, capacity) };
@@ -194,6 +244,22 @@ pub(super) fn write_profile_response(
         return ZrStatus::new(
             ZrStatusCode::InvalidArgument,
             zircon_runtime_interface::ZrByteSlice::from_static(b"missing profile output"),
+        );
+    }
+    unsafe {
+        ptr::write(destination, buffer);
+    }
+    ZrStatus::ok()
+}
+
+pub(super) fn write_host_requests(
+    destination: *mut ZrOwnedByteBuffer,
+    buffer: ZrOwnedByteBuffer,
+) -> ZrStatus {
+    if destination.is_null() {
+        return ZrStatus::new(
+            ZrStatusCode::InvalidArgument,
+            zircon_runtime_interface::ZrByteSlice::from_static(b"missing host request output"),
         );
     }
     unsafe {

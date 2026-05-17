@@ -1,7 +1,10 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
-use zircon_runtime_interface::ui::{component::UiComponentState, event_ui::UiNodeId};
+use zircon_runtime_interface::ui::{
+    component::{UiComponentState, UiValue},
+    event_ui::UiNodeId,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct UiSurfaceComponentStateStore {
@@ -82,6 +85,23 @@ impl UiSurfaceComponentStateStore {
             return false;
         }
         state.flags.selected = selected;
+        true
+    }
+
+    pub(crate) fn set_value(
+        &mut self,
+        node_id: UiNodeId,
+        property: impl Into<String>,
+        value: UiValue,
+    ) -> bool {
+        let state = self.states.entry(node_id).or_default();
+        let property = property.into();
+        if state.values.get(&property) == Some(&value) {
+            return false;
+        }
+        // A direct runtime value write supersedes any drag/drop provenance for that property.
+        state.reference_sources.remove(&property);
+        state.values.insert(property, value);
         true
     }
 

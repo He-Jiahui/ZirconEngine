@@ -1,5 +1,6 @@
 mod events;
 mod local;
+mod messages;
 mod param_set;
 mod query;
 mod removed_components;
@@ -11,6 +12,7 @@ mod system_state;
 
 pub use events::{EventReader, EventReaderParam, EventWriter, EventWriterParam};
 pub use local::{Local, LocalParam};
+pub use messages::{MessageReader, MessageReaderParam, MessageWriter, MessageWriterParam};
 pub use param_set::{ParamSet, ParamSetItem, ParamSetParam};
 pub use query::Query;
 pub use removed_components::{RemovedComponents, RemovedComponentsParam};

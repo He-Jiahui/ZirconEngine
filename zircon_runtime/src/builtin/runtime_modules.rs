@@ -198,6 +198,16 @@ fn runtime_core_modules_for_target(target: RuntimeTargetMode) -> Vec<Arc<dyn Eng
     )
 }
 
+fn minimal_profile_runtime_modules() -> Vec<Arc<dyn EngineModule>> {
+    vec![
+        Arc::new(foundation::FoundationModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::modules::TasksModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::modules::TimeModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::modules::FrameCountModule) as Arc<dyn EngineModule>,
+        Arc::new(crate::core::modules::DiagnosticsCoreModule) as Arc<dyn EngineModule>,
+    ]
+}
+
 fn runtime_core_modules_for_target_with_render_features(
     target: RuntimeTargetMode,
     asset_importers: &AssetImporterRegistry,
@@ -345,6 +355,10 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
 pub fn runtime_modules_for_runtime_profile(
     profile_id: RuntimeProfileId,
 ) -> RuntimeModuleLoadReport {
+    if profile_id == RuntimeProfileId::Minimal {
+        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules());
+    }
+
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
     let manifest = profile.project_manifest();
     runtime_modules_for_target_with_linked_plugins_and_render_features_for_manifest(
@@ -364,6 +378,11 @@ pub fn runtime_modules_for_runtime_profile_with_plugin_registration_reports<'a>(
     profile_id: RuntimeProfileId,
     registrations: impl IntoIterator<Item = &'a RuntimePluginRegistrationReport>,
 ) -> RuntimeModuleLoadReport {
+    if profile_id == RuntimeProfileId::Minimal {
+        let _ = registrations;
+        return RuntimeModuleLoadReport::new(minimal_profile_runtime_modules());
+    }
+
     let profile = RuntimeProfileDescriptor::for_id(profile_id);
     let manifest = profile.project_manifest();
     runtime_modules_for_profile_manifest_with_plugin_registration_reports(

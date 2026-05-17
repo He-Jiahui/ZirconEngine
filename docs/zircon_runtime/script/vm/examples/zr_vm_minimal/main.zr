@@ -1,11 +1,12 @@
 %module "main";
 
 var foundation = %import("zr.zircon.foundation");
-var loadedAt = foundation.time_unix_millis();
-var restoredState = "";
+var savedState = "created";
 
 pub activate(): void {
+    var now = foundation.time_unix_millis();
     foundation.log_info("zr_vm_minimal activated");
+    savedState = "activated";
 }
 
 pub deactivate(): void {
@@ -13,9 +14,9 @@ pub deactivate(): void {
 }
 
 pub saveState(): string {
-    return "loadedAt=" + loadedAt + ";restoredState=" + restoredState;
+    return savedState;
 }
 
 pub restoreState(state: string): void {
-    restoredState = state;
+    savedState = state + ":restored";
 }

@@ -11,6 +11,7 @@ pub mod navigation;
 pub mod picking;
 pub mod pipeline;
 pub mod skin;
+pub mod style;
 pub mod surface;
 pub mod template;
 pub mod text;

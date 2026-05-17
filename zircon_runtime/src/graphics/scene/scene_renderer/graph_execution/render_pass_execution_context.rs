@@ -1,11 +1,11 @@
 use crate::core::framework::render::{RenderFrameExtract, RenderPluginRendererOutputs};
 use crate::core::math::UVec2;
+use crate::graphics::scene::scene_renderer::ui::ScreenSpaceUiRenderer;
 use crate::graphics::types::ViewportRenderFrame;
 use crate::render_graph::{PassFlags, QueueLane, RenderGraphPassResourceAccess, RenderPassId};
 
 use super::{RenderGraphExecutionResources, RenderPassExecutorId};
 
-#[derive(Debug)]
 pub struct RenderPassGpuExecutionContext<'a> {
     pub device: &'a wgpu::Device,
     pub queue: &'a wgpu::Queue,
@@ -14,6 +14,17 @@ pub struct RenderPassGpuExecutionContext<'a> {
     pub scene_bind_group: &'a wgpu::BindGroup,
     pub resources: &'a mut RenderGraphExecutionResources,
     pub plugin_outputs: &'a mut RenderPluginRendererOutputs,
+    pub(in crate::graphics::scene::scene_renderer) screen_space_ui_renderer:
+        &'a mut ScreenSpaceUiRenderer,
+}
+
+impl std::fmt::Debug for RenderPassGpuExecutionContext<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RenderPassGpuExecutionContext")
+            .field("viewport_size", &self.frame.viewport_size)
+            .finish_non_exhaustive()
+    }
 }
 
 impl<'a> RenderPassGpuExecutionContext<'a> {
@@ -26,6 +37,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         scene_bind_group: &'a wgpu::BindGroup,
         resources: &'a mut RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
+        screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
     ) -> Self {
         Self {
             device,
@@ -35,11 +47,12 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_bind_group,
             resources,
             plugin_outputs,
+            screen_space_ui_renderer,
         }
     }
 
     #[cfg(test)]
-    pub fn new_for_test(
+    pub(in crate::graphics::scene::scene_renderer) fn new_for_test(
         device: &'a wgpu::Device,
         queue: &'a wgpu::Queue,
         encoder: &'a mut wgpu::CommandEncoder,
@@ -47,6 +60,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
         scene_bind_group: &'a wgpu::BindGroup,
         resources: &'a mut RenderGraphExecutionResources,
         plugin_outputs: &'a mut RenderPluginRendererOutputs,
+        screen_space_ui_renderer: &'a mut ScreenSpaceUiRenderer,
     ) -> Self {
         Self::new(
             device,
@@ -56,6 +70,7 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
             scene_bind_group,
             resources,
             plugin_outputs,
+            screen_space_ui_renderer,
         )
     }
 
@@ -66,9 +81,23 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     pub fn viewport_size(&self) -> UVec2 {
         self.frame.viewport_size
     }
+
+    pub(in crate::graphics::scene::scene_renderer) fn record_screen_space_ui_to_resource(
+        &mut self,
+        resource_name: &str,
+    ) -> Result<(), String> {
+        let color_view = self.resources.require_texture_view(resource_name)?;
+        self.screen_space_ui_renderer.record(
+            self.device,
+            self.queue,
+            self.encoder,
+            color_view,
+            self.frame,
+        );
+        Ok(())
+    }
 }
 
-#[derive(Debug)]
 pub struct RenderPassExecutionContext<'a> {
     pub pass_name: String,
     pub executor_id: RenderPassExecutorId,
@@ -78,6 +107,22 @@ pub struct RenderPassExecutionContext<'a> {
     pub dependencies: Vec<RenderPassId>,
     pub resources: Vec<RenderGraphPassResourceAccess>,
     gpu: Option<RenderPassGpuExecutionContext<'a>>,
+}
+
+impl std::fmt::Debug for RenderPassExecutionContext<'_> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("RenderPassExecutionContext")
+            .field("pass_name", &self.pass_name)
+            .field("executor_id", &self.executor_id)
+            .field("declared_queue", &self.declared_queue)
+            .field("queue", &self.queue)
+            .field("flags", &self.flags)
+            .field("dependencies", &self.dependencies)
+            .field("resources", &self.resources)
+            .field("has_gpu", &self.gpu.is_some())
+            .finish()
+    }
 }
 
 impl<'a> RenderPassExecutionContext<'a> {

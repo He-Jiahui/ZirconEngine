@@ -9,6 +9,8 @@ pub struct SystemParamAccess {
     resource_writes: Vec<ResourceId>,
     event_reads: Vec<TypeId>,
     event_writes: Vec<TypeId>,
+    message_reads: Vec<TypeId>,
+    message_writes: Vec<TypeId>,
     has_deferred_commands: bool,
 }
 
@@ -84,6 +86,36 @@ impl SystemParamAccess {
         Ok(())
     }
 
+    pub fn add_message_read<T>(&mut self) -> Result<(), SystemParamError>
+    where
+        T: 'static,
+    {
+        let type_id = TypeId::of::<T>();
+        if contains_type_id(&self.message_writes, type_id) {
+            return Err(SystemParamError::ConflictingMessageAccess {
+                type_name: std::any::type_name::<T>(),
+            });
+        }
+        insert_type_id(&mut self.message_reads, type_id);
+        Ok(())
+    }
+
+    pub fn add_message_write<T>(&mut self) -> Result<(), SystemParamError>
+    where
+        T: 'static,
+    {
+        let type_id = TypeId::of::<T>();
+        if contains_type_id(&self.message_reads, type_id)
+            || contains_type_id(&self.message_writes, type_id)
+        {
+            return Err(SystemParamError::ConflictingMessageAccess {
+                type_name: std::any::type_name::<T>(),
+            });
+        }
+        insert_type_id(&mut self.message_writes, type_id);
+        Ok(())
+    }
+
     pub(crate) fn merge_param_set_access(&mut self, other: &Self) {
         for resource_id in other.resource_reads.iter().copied() {
             insert_id(&mut self.resource_reads, resource_id);
@@ -96,6 +128,12 @@ impl SystemParamAccess {
         }
         for type_id in other.event_writes.iter().copied() {
             insert_type_id(&mut self.event_writes, type_id);
+        }
+        for type_id in other.message_reads.iter().copied() {
+            insert_type_id(&mut self.message_reads, type_id);
+        }
+        for type_id in other.message_writes.iter().copied() {
+            insert_type_id(&mut self.message_writes, type_id);
         }
         self.has_deferred_commands |= other.has_deferred_commands;
         self.component_access

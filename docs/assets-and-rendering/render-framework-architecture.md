@@ -39,9 +39,45 @@ related_code:
   - zircon_runtime/src/render_graph/types.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
+  - zircon_runtime/src/core/framework/render/post_process/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/core/framework/render/post_process/validation.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/mod.rs
+  - zircon_runtime/src/core/framework/render/sprite/sprite.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/atlas.rs
+  - zircon_runtime/src/core/framework/render/sprite/rect.rs
+  - zircon_runtime/src/core/framework/render/sprite/anchor.rs
+  - zircon_runtime/src/core/framework/render/sprite/bounds.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
   - zircon_runtime/src/core/framework/render/virtual_geometry_debug_snapshot.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame.rs
   - zircon_runtime/src/graphics/types/viewport_render_frame_with_prepared_runtime_sidebands.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/scene/components/render2d/mod.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/scene/components/render2d/mesh2d.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_runtime/src/graphics/pipeline/declarations/renderer_feature_asset.rs
   - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
@@ -287,7 +323,7 @@ related_code:
   - zircon_render_graph/src/graph.rs
   - zircon_render_graph/src/types.rs
   - zircon_framework/src/lib.rs
-  - zircon_manager/src/resolver.rs
+  - zircon_runtime/src/core/manager/resolver.rs
   - zircon_framework/src/render/framework.rs
   - zircon_framework/src/render/backend_types.rs
   - zircon_framework/src/render/camera.rs
@@ -562,6 +598,24 @@ implementation_files:
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/core/framework/render/post_process/mod.rs
+  - zircon_runtime/src/core/framework/render/post_process/effect.rs
+  - zircon_runtime/src/core/framework/render/post_process/stack.rs
+  - zircon_runtime/src/core/framework/render/post_process/pass_graph.rs
+  - zircon_runtime/src/core/framework/render/post_process/validation.rs
+  - zircon_runtime/src/core/framework/render/material/readiness_report.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
+  - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/core/framework/render/frame_extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/mod.rs
+  - zircon_runtime/src/core/framework/render/sprite/sprite.rs
+  - zircon_runtime/src/core/framework/render/sprite/extract.rs
+  - zircon_runtime/src/core/framework/render/sprite/atlas.rs
+  - zircon_runtime/src/core/framework/render/sprite/rect.rs
+  - zircon_runtime/src/core/framework/render/sprite/anchor.rs
+  - zircon_runtime/src/core/framework/render/sprite/bounds.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_queue.rs
+  - zircon_runtime/src/core/framework/render/core_pipeline/phase_sort.rs
   - zircon_runtime/src/core/framework/render/framework.rs
   - zircon_runtime/src/core/framework/render/plugin_renderer_outputs.rs
   - zircon_runtime/src/core/framework/render/prepared_runtime_sidebands.rs
@@ -615,7 +669,32 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/history/copy_history_textures.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/build.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
+  - tests/acceptance/render-product-m4b-post-process.md
+  - tests/acceptance/render-product-m5a-pbr-light.md
+  - tests/acceptance/render-product-m6a-sprite-default-2d.md
   - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/frame_submission_context.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
+  - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_accessors.rs
+  - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
+  - zircon_runtime/src/graphics/scene/resources/pipeline/pipeline_key.rs
+  - zircon_runtime/src/scene/components/render2d/mod.rs
+  - zircon_runtime/src/scene/components/render2d/sprite.rs
+  - zircon_runtime/src/scene/components/render2d/mesh2d.rs
+  - zircon_runtime/src/scene/world/render.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_vertex.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/scene_post_process_resources/scene_post_process_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/post_process/resources/execute_ssao/execute_ssao.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/gpu_completion.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/runtime_feedback.rs
   - zircon_plugins/hybrid_gi/runtime/src/hybrid_gi/scene_inputs.rs
@@ -727,7 +806,7 @@ implementation_files:
   - zircon_render_graph/src/graph.rs
   - zircon_render_graph/src/types.rs
   - zircon_framework/src/lib.rs
-  - zircon_manager/src/resolver.rs
+  - zircon_runtime/src/core/manager/resolver.rs
   - zircon_framework/src/render/framework.rs
   - zircon_framework/src/render/backend_types.rs
   - zircon_framework/src/render/camera.rs
@@ -1034,6 +1113,7 @@ plan_sources:
   - docs/superpowers/plans/2026-05-03-particles-full-render-graph-refactor.md
   - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
+  - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
 tests:
   - "M0 docs acceptance only: no runtime tests required by plan"
   - cargo test -p zircon_runtime render_profile --locked
@@ -1098,6 +1178,12 @@ tests:
   - zircon_app/src/entry/tests/profile_bootstrap.rs
   - zircon_runtime/src/tests/graphics_surface/host_wiring.rs
   - tests/acceptance/render-framework-lazy-bootstrap.md
+  - tests/acceptance/render-product-m5a-pbr-light.md
+  - cargo test -p zircon_runtime --locked render_product_pbr
+  - cargo test -p zircon_runtime --locked render_product_assets
+  - cargo test -p zircon_runtime --locked render_product_sprite
+  - cargo test -p zircon_runtime --locked render_product_pipeline
+  - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_gpu_runtime_source -- --nocapture
   - cargo test -p zircon_graphics --offline --locked hybrid_gi_ -- --nocapture
   - cargo test -p zircon_runtime encode_hybrid_gi_probes_ignores_surface_cache_proxy --lib --locked -- --nocapture
@@ -1242,6 +1328,28 @@ Shader assets now select runtime WGSL by preferring non-empty emitted `wgsl_sour
 
 Material assets now expose StandardMaterial and ColorMaterial descriptors, shader plus texture dependency sets, alpha-mask cutoff validation, readiness reports, and fallback policy. Resolver-aware readiness reports unresolved shader/texture references as validation errors plus fallback usage records, while existing renderer fallback behavior remains minimally compatible. This milestone deliberately stops at asset readiness: Core2d/Core3d phases, sprite rendering, anti-aliasing, Solari, and VG/HGI deep integration remain later product milestones.
 
+## 2026-05-17 M5A Runtime PBR Material And Light Baseline
+
+M5A makes the M3A StandardMaterial contract visible to concrete runtime submission without entering the coordinated `.zmaterial` / material-editor implementation lane. `resource_streamer_ensure_material.rs` reads `StandardMaterialDescriptor`, resolves shader and PBR texture dependencies, stores scalar/color material fields on `MaterialRuntime`, and builds a renderer-owned `PipelineKey`. The key now includes shader identity, double-sided state, alpha blend/mask/cutoff, unlit state, and authored texture-slot presence bits for base color, normal, metallic-roughness, occlusion, and emissive textures. Texture presence is descriptor-driven rather than upload-driven, so unsupported container textures still select the authored PBR variant while falling back to default GPU texture resources.
+
+Material readiness is now part of renderer telemetry. Missing material handles resolve to `builtin://missing-material` and add `UnresolvedMaterialReference` plus `RenderMaterialFallbackReason::Material` to the readiness report stored under the requested material id. Missing shader and texture dependencies continue to merge into the same report. `ensure_scene_resources(...)` counts submitted materials, ready materials, fallback materials, and validation errors, and `RenderStats` exposes those counts through `last_material_*` fields.
+
+The light contract is widened but intentionally neutral. `RenderSceneGeometryExtract` and `LightingExtract` carry `ambient_lights` and `rect_lights` beside directional, point, and spot lights, and `RenderFrameExtract::from_snapshot(...)` / `to_scene_snapshot()` preserve those lists. Runtime `World` extraction still has no ambient or rect-light scene components, so world-produced ambient and rect lists remain empty. Authored or test-supplied ambient/rect DTOs include explicit `renderer_degraded` state and reason strings until concrete shader/light accumulation is implemented.
+
+Submit-time context and stats carry the new material/light evidence through `FrameSubmissionContext` and `update_base_stats(...)`. The M5A focused submit fixture disables SSAO through `RenderQualityProfile::with_screen_space_ambient_occlusion(false)` to keep the baseline PBR/material/light evidence independent from the post-process SSAO shader path. SSAO pipeline creation is now lazy via `OnceLock`, so non-SSAO frames do not eagerly compile the SSAO compute pipeline, while SSAO-enabled frames still compile the real shader on first execution.
+
+This is a runtime-only baseline. It does not add `.zmaterial` schema/importer behavior, material editor UI, ambient/rect scene components, full light shading, sprite, anti-aliasing, VG/HGI deep integration, or Solari. `DefaultRender` still excludes Virtual Geometry, Hybrid GI, and Solari by default.
+
+## 2026-05-17 M6A Sprite And Default 2D Renderer
+
+M6A makes the `RenderProductFeature::Sprite` claim concrete without reusing particle billboard ownership. `zircon_runtime::core::framework::render::sprite` now defines the neutral DTO family for product sprites: `RenderSpriteSnapshot`, atlas region, source rect, anchor, bounds, and `SpriteExtract`. `RenderFrameExtract` stores this section beside, not inside, `ParticleExtract`, so particle systems and default 2D sprite rendering remain independently testable product paths.
+
+Runtime scene data now has folder-backed `render2d` components. `Sprite2dComponent` stores image/material handles, atlas region, source rect, flip flags, anchor, custom size, tint, z order, and alpha policy; `Mesh2dComponent` reserves the parallel 2D mesh shape but does not count as a sprite in M6A. `World` extraction filters sprites through the active camera render layers, sorts by `(z_order, entity)`, writes `SpriteExtract::from_sprites(...)`, and adds visible sprites to `VisibilityInput` as dynamic renderables for renderer/debug parity.
+
+Core2d has a concrete default renderer path now. `RenderPipelineAsset::default_core2d()` enables `BuiltinRenderFeature::Sprite` and compiles `Opaque2d`, `AlphaMask2d`, and `Transparent2d` sprite graph passes with executor ids `sprite.opaque`, `sprite.alpha-mask`, and `sprite.transparent`. `build_sprite_phase_queue(...)` classifies by `RenderMaterialAlphaMode` and uses z order plus transparent back-to-front depth sorting. The WGPU sprite renderer consumes `ViewportRenderFrame::sprites()` and the sprite phase queue to draw texture-tinted quads through the existing texture streamer fallback path.
+
+Telemetry is explicit. `ResourceStreamer::ensure_scene_resources(...)` records sprite count, texture-ready count, and texture fallback count independently from material stats. `RenderStats` records those fields plus `last_sprite_graph_executed_pass_count`, and focused M6A submit evidence proves sprite graph passes execute while particle graph passes stay at zero. This still leaves batching, atlas asset import, per-alpha-mode GPU pipelines, alpha-mask fragment discard, and materialized `Mesh2d` rendering to later milestones; it does not enable Virtual Geometry, Hybrid GI, or Solari by default.
+
 ## 2026-05-12 Runtime Window Surface Present
 
 Runtime preview now has two viewport target modes at the framework boundary. `OffscreenReadback` is the existing capture path: runtime renders into the offscreen product target, `capture_frame()` finishes the frame through `finish_viewport_frame()`, `read_texture_rgba()` copies final color into CPU memory, and `zircon_app` presents those pixels through `SoftbufferRuntimePresenter`. This mode remains required for unsupported native surfaces, headless/test use, and editor viewport import until editor GPU embedding has its own milestone.
@@ -1268,7 +1376,7 @@ Hybrid GI 与 Virtual Geometry 的高级 renderer/runtime/type owner 已经从 `
 
 2026-05-04 particles M6 full graph refactor replaces the old metadata-only executor loop with renderer-owned staged execution. `CompiledRenderPipeline` now stores `CompiledRenderPipelinePassStage` entries so renderer code can execute passes by stage without rediscovering descriptor order. `RenderPassExecutorRegistry` stores executor objects behind `Arc<dyn RenderPassExecutor>` and still adapts function-pointer registrations, but all executors now receive a mutable `RenderPassExecutionContext<'_>`. That context keeps pass metadata available and can optionally carry a renderer-owned `RenderPassGpuExecutionContext` with `wgpu::Device`, `wgpu::Queue`, live `wgpu::CommandEncoder`, frame extract access, scene bind group, named `RenderGraphExecutionResources`, and a neutral `RenderPluginRendererOutputs` sink.
 
-The scene renderer owns graph execution timing. `render_frame_with_pipeline(...)` no longer runs the compiled graph before rendering as metadata validation. Instead, `SceneRendererCore::render_compiled_scene(...)` validates executor ids once, creates the command encoder, imports frame targets into `RenderGraphExecutionResources` as `scene-color` and `scene-depth`, executes the pre-transparent stage slices while the encoder is live, then calls `render_scene_passes(...)`. The `Transparent` graph slice is executed at the transparent boundary before CPU particle billboard fallback, so plugin graph work can prepare or consume transparent resources in the same encoder lifetime. Post-process and overlay graph slices run at their matching renderer boundaries. The resulting `RenderGraphExecutionRecord` is stored through `SceneRendererCompiledSceneOutputs` / `store_last_runtime_outputs(...)`, and `RenderStats` now exposes particle-prefixed and transparent-stage executed pass counts from the real renderer execution record.
+The scene renderer owns graph execution timing. `render_frame_with_pipeline(...)` no longer runs the compiled graph before rendering as metadata validation. Instead, `SceneRendererCore::render_compiled_scene(...)` validates executor ids once, creates the command encoder, imports frame targets into `RenderGraphExecutionResources` as `scene-color` and `scene-depth`, executes the pre-transparent stage slices while the encoder is live, then calls `render_scene_passes(...)`. The `Transparent` graph slice is executed at the transparent boundary before CPU particle billboard fallback, so plugin graph work can prepare or consume transparent resources in the same encoder lifetime. Post-process and overlay graph slices run at their matching renderer boundaries. Post-process graph node accounting uses the same `RenderGraphExecutionRecord` held by `RenderGraphStageExecution`; `render_compiled_scene(...)` reborrows `graph_execution.record` only for the `execute_post_process_pass_graph(...)` call so the record owner stays live for later stages without creating a second mutable borrow of the underlying record. The resulting `RenderGraphExecutionRecord` is stored through `SceneRendererCompiledSceneOutputs` / `store_last_runtime_outputs(...)`, and `RenderStats` now exposes particle-prefixed and transparent-stage executed pass counts from the real renderer execution record.
 
 Named graph execution resources are neutral. `RenderGraphExecutionResources` owns imported texture views and owned buffers keyed by graph resource names; shared runtime code does not special-case particle, VG, or HGI types. Frame target views are recreated from `OffscreenTarget.scene_color` and `OffscreenTarget.depth` using `wgpu::TextureViewDescriptor::default()` because `wgpu::TextureView` handles are not cloned across the graph registry. Plugin readback packets from runtime-prepare collectors and staged graph executors are merged as `RenderPluginRendererOutputs`, keeping the root renderer independent from `zircon_plugins/particles` while allowing particle executors to emit `RenderParticleGpuReadbackOutputs` through the same mailbox family as VG/HGI.
 
@@ -1532,6 +1640,7 @@ RenderDoc 启动路径通过环境变量而不是新 editor/dynamic API 扩展 f
 - `PostProcessExtract` 现在额外携带 `RenderBloomSettings` 与 `RenderColorGradingSettings`
 - `LightingExtract` 现在额外携带 `reflection_probes` 与 `baked_lighting`
 - `ParticleExtract` 现在额外携带 billboard 级 `sprites`
+- `SpriteExtract` 现在额外携带非粒子 2D sprite payload 与 Core2d phase queue
 - `GeometryExtract` 现在额外预埋 `virtual_geometry: Option<RenderVirtualGeometryExtract>`
 - `LightingExtract` 现在额外预埋 `hybrid_global_illumination: Option<RenderHybridGiExtract>`
 - `zircon_runtime::core::framework::render` 公开了 `RenderReflectionProbeSnapshot`、`RenderBakedLightingExtract`、`RenderParticleSpriteSnapshot` 这组新的 runtime-internal snapshot 契约
@@ -1540,9 +1649,15 @@ RenderDoc 启动路径通过环境变量而不是新 editor/dynamic API 扩展 f
 
 M4A 进一步收束了这条边界：`CorePipelineKind::Core2d` / `CorePipelineKind::Core3d` 是 `zircon_runtime::core::framework::render` 的中立调度名字，camera projection 负责选择 pipeline kind，`GeometryExtract` 负责携带材质 alpha 分类后的 phase queue。graphics pipeline asset 只把这些中立 phase 映射到具体 `RenderPassStage` / render graph pass，不把 Core2d/Core3d 的所有权搬进 renderer。unset viewport submit 会按 extract 选择 Core2d 默认 pipeline 或 Core3d Forward+ pipeline；显式 viewport pipeline 与 quality-profile override 仍然优先，但 `RenderPipelineAsset::compile_with_options(...)` 会拒绝 pipeline/extract 的 Core2d/Core3d 不匹配。product submit 也不再把 `RenderFrameExtract::to_scene_snapshot()` 当绘制权威；renderer 内部通过 `ViewportRenderFrame` accessor 读取 extract-backed camera、mesh、light、overlay 与 preview 数据，保留的 `scene` 字段只服务 legacy adapter 和旧 public runtime path。
 
+M6A 在这条边界上继续补齐默认 2D：`SpriteExtract` 由 world extract 直接写入，`ViewportRenderFrame::sprites()` 是 concrete renderer 的访问入口，Core2d 的默认 pipeline 通过 sprite feature descriptor 生成 `Opaque2d` / `AlphaMask2d` / `Transparent2d` graph pass。sprite renderer 只消费 sprite extract，不回读 particle billboard DTO，也不依赖旧 snapshot authority。
+
 Core3d 的默认 Forward+ 与 Deferred 声明现在都包含 `AlphaMask3d` phase/stage，mesh draw 构建优先消费 `GeometryExtract.phase_queue`，只在队列为空时回退到 mesh vector 顺序。这让 opaque、alpha-mask、transparent mesh 顺序成为 framework extract contract，而不是 renderer 内部偶然遍历顺序。
 
 提交阶段还新增 viewport generation revalidation。`build_frame_submission_context(...)` 在第一把锁里捕获 viewport generation；runtime prepare 在触碰 viewport runtime state 前调用 generation guard，render 完成后写回 record 前再次检查 viewport 是否仍存在且 generation 未变。viewport 被删除时返回 `RenderFrameworkError::UnknownViewport`，pipeline/quality/profile 等 viewport mutation 造成 generation 改变时返回 `RenderFrameworkError::ViewportChanged`，不再依赖 checked-then-`expect` 的 panic path。
+
+M4B 把 `PostProcessExtract` 从 renderer-local flags 提升为 per-camera product graph surface。`zircon_runtime::core::framework::render::post_process` 现在定义 `PostProcessEffectKind`、`PostProcessEffectSettings`、`PostProcessStackDescriptor`、`PostProcessPassNode`、`PostProcessPassGraph` 和 `PostProcessGraphValidationError`；stack validation 会拒绝缺失输入、重复输出、缺失 effect dependency 和 cycle，同时把 disabled bloom/color-grading/history-resolve 保留为 skipped nodes。`build_frame_submission_context(...)` 会按 compiled feature availability 重建 effective postprocess graph，`ViewportRenderFrame` submit path 再把该 graph 写回 frame extract，确保 stats 和 renderer evidence 反映 active profile 而不是 raw authored settings。
+
+Concrete renderer execution keeps the existing shader-backed `ScenePostProcessResources::execute_post_process(...)` path for pixels, but it now also consumes the product graph for evidence. `RenderGraphExecutionRecord` has a separate `executed_post_process_nodes` channel, and `RenderStats` reports node count, skipped node count, final composite node, and executed product nodes without appending synthetic passes to the normal render graph pass list. The submitted effective graph stays intact as the source graph, while compiled-scene execution derives a frame-local no-history graph only when `prepare_history_textures(...)` proves actual renderer history is unavailable; in that case `history-resolve` is skipped and cannot appear in executed-node evidence. The compiled-scene resource registry imports `scene-color`, `scene-depth`, `history-scene-color`, `bloom-texture`, `postprocess.color-graded`, `postprocess.history-resolved`, and `final-color` by the neutral names from `PostProcessGraphResourceNames`, so later graph-native postprocess passes can depend on the same resource vocabulary.
 
 ## `zircon_runtime::graphics` Current Shape
 

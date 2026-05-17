@@ -7,7 +7,9 @@ use zircon_runtime::core::framework::animation::AnimationTrackPath;
 use zircon_runtime::scene::components::NodeKind;
 use zircon_runtime_interface::resource::ResourceKind;
 use zircon_runtime_interface::ui::{
-    binding::UiBindingValue, event_ui::UiControlRequest, event_ui::UiControlResponse,
+    binding::{UiBindingCall, UiBindingValue},
+    event_ui::UiControlRequest,
+    event_ui::UiControlResponse,
     event_ui::UiNodePath,
 };
 
@@ -17,7 +19,10 @@ use crate::core::editor_event::{
     LayoutCommand, MenuAction, ViewDescriptorId as EventViewDescriptorId,
     ViewInstanceId as EventViewInstanceId,
 };
-use crate::ui::retained_host::callback_dispatch::retained_menu_action;
+use crate::ui::retained_host::{
+    callback_dispatch::{dispatch_builtin_template_binding, retained_menu_action},
+    HostInvalidationMask,
+};
 use crate::ui::workbench::event::menu_action_binding;
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::view::ViewDescriptorId;
@@ -54,6 +59,10 @@ fn editor_operation_registry_exposes_builtin_menu_operations_by_path() {
             "Window/UI Component Showcase",
         ),
         ("Window.MaterialDemo.Open", "Window/Material Demo"),
+        (
+            "Window.MaterialComponentLab.Open",
+            "Window/Material Component Lab",
+        ),
         ("Window.UiAssetEditor.Open", "Window/UI Asset Editor"),
         ("Window.AnimationEditor.Open", "Window/Animation Editor"),
         ("Window.AssetBrowser.Open", "Window/Asset Browser"),
@@ -2768,6 +2777,40 @@ fn open_project_menu_event_requests_welcome_surface_without_project_open_side_ef
         runtime.runtime.editor_snapshot().status_line,
         "Open an existing project or create a renderable empty project."
     );
+}
+
+#[test]
+fn material_component_lab_binding_records_feedback_without_business_effects() {
+    let _guard = env_lock().lock().unwrap();
+
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_material_lab_feedback");
+    let binding = EditorUiBinding::new(
+        "MaterialComponentLab",
+        "MaterialLabChips",
+        EditorUiEventKind::Click,
+        EditorUiBindingPayload::Custom(UiBindingCall::new("MaterialComponentLab")),
+    );
+
+    let record = runtime
+        .runtime
+        .dispatch_binding(binding, EditorEventSource::RetainedHost)
+        .expect("Material Lab prototype binding should dispatch");
+
+    assert!(record.effects.is_empty());
+    assert_eq!(record.before_revision, record.after_revision);
+    assert_eq!(
+        record.operation_group.as_deref(),
+        Some("MaterialComponentLab")
+    );
+    assert!(record.result.error.is_none());
+
+    let effects = dispatch_builtin_template_binding(&runtime.runtime, "MaterialLab/Chips/Click")
+        .expect("Material Lab builtin binding should exist")
+        .expect("Material Lab builtin binding should dispatch");
+    let dirty_domains = effects.dirty_domains();
+    assert!(dirty_domains.contains(HostInvalidationMask::PAINT_ONLY));
+    assert!(!dirty_domains.requires_layout());
+    assert!(!dirty_domains.requires_presentation());
 }
 
 #[test]

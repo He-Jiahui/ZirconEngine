@@ -54,6 +54,10 @@ fn builtin_activity_windows_expose_window_template_documents() {
             "editor.window.ui_component_showcase",
         ),
         ("editor.material_demo_window", "editor.window.material_demo"),
+        (
+            "editor.material_component_lab",
+            "editor.window.material_component_lab",
+        ),
     ] {
         let descriptor = descriptors
             .iter()
@@ -260,6 +264,48 @@ fn functional_editor_internal_view_descriptors_use_document_host() {
         assert_eq!(descriptor.kind, ViewKind::ActivityView);
         assert_eq!(descriptor.preferred_host, PreferredHost::DocumentCenter);
     }
+}
+
+#[test]
+fn material_component_lab_window_descriptor_opens_as_exclusive_demo_page() {
+    let _guard = crate::tests::support::env_lock().lock().unwrap();
+    let runtime = editor_runtime();
+    let manager = runtime
+        .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
+        .unwrap();
+    let descriptors = manager.descriptors();
+    let descriptor = descriptors
+        .iter()
+        .find(|descriptor| {
+            descriptor.descriptor_id == ViewDescriptorId::new("editor.material_component_lab")
+        })
+        .expect("missing Material Component Lab descriptor");
+
+    assert_eq!(descriptor.kind, ViewKind::ActivityWindow);
+    assert_eq!(descriptor.default_title, "Material Component Lab");
+    assert_eq!(descriptor.preferred_host, PreferredHost::ExclusiveMainPage);
+    assert_eq!(descriptor.icon_key, "material-component-lab");
+    assert_eq!(
+        descriptor
+            .activity_window_template
+            .as_ref()
+            .map(|template| template.document_id.as_str()),
+        Some("editor.window.material_component_lab")
+    );
+
+    let instance_id = manager
+        .open_view(ViewDescriptorId::new("editor.material_component_lab"), None)
+        .expect("Material Component Lab should open through the view registry");
+    let page_id = MainPageId::new("page:editor.material_component_lab#1");
+    assert_eq!(
+        manager
+            .current_view_instances()
+            .into_iter()
+            .find(|instance| instance.instance_id == instance_id)
+            .map(|instance| instance.host),
+        Some(ViewHost::ExclusivePage(page_id.clone()))
+    );
+    assert_eq!(manager.current_layout().active_main_page, page_id);
 }
 
 #[test]

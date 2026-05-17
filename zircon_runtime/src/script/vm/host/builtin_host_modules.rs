@@ -2,7 +2,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::script::{
     ScriptHostCallContext, ScriptHostError, ScriptHostFunctionDescriptor,
-    ScriptHostModuleDescriptor, ScriptHostParameterDescriptor, ScriptHostValue, ScriptHostValueKind,
+    ScriptHostModuleDescriptor, ScriptHostParameterDescriptor, ScriptHostValue,
+    ScriptHostValueKind,
 };
 
 use super::super::{CapabilitySet, HostHandle, VmError};

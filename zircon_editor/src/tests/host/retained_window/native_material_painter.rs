@@ -4,6 +4,9 @@ use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 use crate::ui::retained_host::{
     paint_template_nodes_for_test, TemplateNodeFrameData, TemplatePaneNodeData,
 };
+use zircon_runtime_interface::ui::style::{
+    ButtonColor, ButtonInteractionState, ButtonVariant, ResolvedButtonStyle,
+};
 
 const BACKGROUND: [u8; 4] = [0, 0, 0, 255];
 const SURFACE_INSET: [u8; 4] = [18, 24, 30, 255];
@@ -15,6 +18,7 @@ const ACCENT: [u8; 4] = [53, 199, 208, 255];
 const ACCENT_SOFT: [u8; 4] = [15, 101, 116, 255];
 const BORDER: [u8; 4] = [75, 98, 109, 255];
 const FOCUS_RING: [u8; 4] = [128, 234, 255, 255];
+const BORDER_DISABLED: [u8; 4] = [51, 72, 82, 255];
 const WARNING: [u8; 4] = [242, 184, 75, 255];
 const WARNING_CONTAINER: [u8; 4] = [70, 49, 18, 255];
 const ERROR: [u8; 4] = [239, 112, 102, 255];
@@ -24,6 +28,7 @@ const SUCCESS_CONTAINER: [u8; 4] = [29, 71, 47, 255];
 const INFO: [u8; 4] = [99, 179, 255, 255];
 const INFO_CONTAINER: [u8; 4] = [24, 57, 91, 255];
 const TEXT_DISABLED: [u8; 4] = [88, 101, 108, 255];
+const SHADOW: [u8; 4] = [0, 0, 0, 73];
 
 #[test]
 fn native_template_painter_uses_material_state_palette_for_controls() {
@@ -170,12 +175,187 @@ fn native_template_painter_applies_rounded_material_corners() {
     assert_eq!(pixel(&bytes, 96, 8, 8), SURFACE_INSET);
 }
 
+#[test]
+fn native_template_painter_uses_resolved_button_style_for_material_buttons() {
+    let nodes = model_rc(vec![TemplatePaneNodeData {
+        control_id: "ResolvedContained".into(),
+        node_id: "ResolvedContained.node".into(),
+        button_style: ResolvedButtonStyle {
+            variant: ButtonVariant::Contained,
+            color: ButtonColor::Primary,
+            ..ResolvedButtonStyle::default()
+        },
+        frame: frame(4.0, 4.0),
+        ..material_button_base()
+    }]);
+
+    let bytes = paint_template_nodes_for_test(96, 32, nodes);
+
+    assert_eq!(pixel(&bytes, 96, 8, 8), ACCENT);
+    assert_eq!(pixel(&bytes, 96, 40, 4), FOCUS_RING);
+}
+
+#[test]
+fn native_template_painter_resolves_button_variants_and_interaction_priority() {
+    let nodes = model_rc(vec![
+        styled_button_node(
+            "ContainedPrimary",
+            4.0,
+            button_style(
+                ButtonVariant::Contained,
+                ButtonColor::Primary,
+                ButtonInteractionState::Normal,
+            ),
+        ),
+        styled_button_node(
+            "ContainedError",
+            32.0,
+            button_style(
+                ButtonVariant::Contained,
+                ButtonColor::Error,
+                ButtonInteractionState::Normal,
+            ),
+        ),
+        styled_button_node(
+            "OutlinedPrimary",
+            60.0,
+            button_style(
+                ButtonVariant::Outlined,
+                ButtonColor::Primary,
+                ButtonInteractionState::Normal,
+            ),
+        ),
+        styled_button_node(
+            "OutlinedPressed",
+            88.0,
+            button_style(
+                ButtonVariant::Outlined,
+                ButtonColor::Primary,
+                ButtonInteractionState::Pressed,
+            ),
+        ),
+        styled_button_node(
+            "OutlinedFocused",
+            116.0,
+            button_style(
+                ButtonVariant::Outlined,
+                ButtonColor::Primary,
+                ButtonInteractionState::Focused,
+            ),
+        ),
+        TemplatePaneNodeData {
+            disabled: true,
+            ..styled_button_node(
+                "DisabledStyle",
+                144.0,
+                button_style(
+                    ButtonVariant::Contained,
+                    ButtonColor::Primary,
+                    ButtonInteractionState::Normal,
+                ),
+            )
+        },
+        TemplatePaneNodeData {
+            button_variant: "text".into(),
+            border_width: 0.0,
+            ..styled_button_node(
+                "TextStyle",
+                172.0,
+                button_style(
+                    ButtonVariant::Text,
+                    ButtonColor::Primary,
+                    ButtonInteractionState::Normal,
+                ),
+            )
+        },
+    ]);
+
+    let bytes = paint_template_nodes_for_test(96, 200, nodes);
+
+    assert_eq!(pixel(&bytes, 96, 8, 8), ACCENT);
+    assert_eq!(pixel(&bytes, 96, 40, 4), FOCUS_RING);
+    assert_eq!(pixel(&bytes, 96, 8, 36), ERROR_CONTAINER);
+    assert_eq!(pixel(&bytes, 96, 40, 32), ERROR);
+    assert_eq!(pixel(&bytes, 96, 8, 64), SURFACE_INSET);
+    assert_eq!(pixel(&bytes, 96, 40, 60), FOCUS_RING);
+    assert_eq!(pixel(&bytes, 96, 8, 92), SURFACE_PRESSED);
+    assert_eq!(pixel(&bytes, 96, 40, 88), FOCUS_RING);
+    assert_eq!(pixel(&bytes, 96, 8, 120), SURFACE_SELECTED);
+    assert_eq!(pixel(&bytes, 96, 40, 116), FOCUS_RING);
+    assert_eq!(pixel(&bytes, 96, 8, 148), SURFACE_DISABLED);
+    assert_eq!(pixel(&bytes, 96, 40, 144), BORDER_DISABLED);
+    assert_eq!(pixel(&bytes, 96, 8, 176), BACKGROUND);
+}
+
+#[test]
+fn native_template_painter_projects_fab_pill_radius_and_elevation_shadow() {
+    let nodes = model_rc(vec![TemplatePaneNodeData {
+        control_id: "Fab".into(),
+        node_id: "Fab.node".into(),
+        role: "Button".into(),
+        text: "Create".into(),
+        surface_variant: "elevated".into(),
+        corner_radius: 999.0,
+        border_width: 0.0,
+        elevation: 2.0,
+        button_style: button_style(
+            ButtonVariant::Contained,
+            ButtonColor::Primary,
+            ButtonInteractionState::Normal,
+        ),
+        frame: TemplateNodeFrameData {
+            x: 8.0,
+            y: 8.0,
+            width: 34.0,
+            height: 34.0,
+        },
+        ..TemplatePaneNodeData::default()
+    }]);
+
+    let bytes = paint_template_nodes_for_test(64, 64, nodes);
+
+    assert_eq!(pixel(&bytes, 64, 8, 8), BACKGROUND);
+    assert_eq!(pixel(&bytes, 64, 24, 24), ACCENT);
+    assert_eq!(pixel(&bytes, 64, 46, 24), SHADOW);
+}
+
 fn material_node(control_id: &str, x: f32, y: f32) -> TemplatePaneNodeData {
     TemplatePaneNodeData {
         control_id: control_id.into(),
         node_id: format!("{control_id}.node").into(),
         frame: frame(x, y),
         ..material_button_base()
+    }
+}
+
+fn styled_button_node(
+    control_id: &str,
+    y: f32,
+    button_style: ResolvedButtonStyle,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        node_id: format!("{control_id}.node").into(),
+        role: "Button".into(),
+        text: "".into(),
+        border_width: 1.0,
+        corner_radius: 10.0,
+        button_style,
+        frame: frame(4.0, y),
+        ..TemplatePaneNodeData::default()
+    }
+}
+
+fn button_style(
+    variant: ButtonVariant,
+    color: ButtonColor,
+    interaction_state: ButtonInteractionState,
+) -> ResolvedButtonStyle {
+    ResolvedButtonStyle {
+        variant,
+        color,
+        interaction_state,
+        ..ResolvedButtonStyle::default()
     }
 }
 

@@ -9,6 +9,8 @@ pub struct NetDownloadChunk {
     pub byte_offset: u64,
     pub byte_len: u64,
     pub sha256: String,
+    pub resume_from_byte: Option<u64>,
+    pub allow_range_resume: bool,
 }
 
 impl NetDownloadChunk {
@@ -25,8 +27,32 @@ impl NetDownloadChunk {
             byte_offset,
             byte_len,
             sha256: sha256.into(),
+            resume_from_byte: None,
+            allow_range_resume: false,
         }
     }
+
+    pub fn with_resume_from_byte(mut self, resume_from_byte: u64) -> Self {
+        self.resume_from_byte = Some(resume_from_byte);
+        self.allow_range_resume = true;
+        self
+    }
+
+    pub fn with_range_resume(mut self, allow_range_resume: bool) -> Self {
+        self.allow_range_resume = allow_range_resume;
+        self
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NetDownloadAttemptDescriptor {
+    pub download: NetDownloadId,
+    pub chunk_id: String,
+    pub url: String,
+    pub byte_offset: u64,
+    pub byte_len: u64,
+    pub range_start: Option<u64>,
+    pub attempt_index: usize,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

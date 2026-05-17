@@ -1,12 +1,13 @@
 use crate::asset::{
     AlphaMode, AssetReference, AssetUri, ImportedAsset, MaterialAsset, MeshVertex, ModelAsset,
     ModelPrimitiveAsset, ShaderAsset, ShaderDependencyAsset, ShaderEntryPointAsset,
-    ShaderSourceLanguage, TextureAsset, TexturePayload, VirtualGeometryAsset,
+    ShaderSourceLanguage, TextureAsset, TextureAssetDescriptor, TexturePayload,
+    VirtualGeometryAsset,
 };
 use crate::core::framework::render::{
-    RenderImageColorSpace, RenderImageFallbackKind, RenderImageUsage, RenderMaterialFallbackReason,
-    RenderMaterialValidationError, RenderMeshKind, RenderMeshTopology,
-    RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
+    RenderImageAssetUsage, RenderImageColorSpace, RenderImageDimension, RenderImageFallbackKind,
+    RenderImageUsage, RenderMaterialFallbackReason, RenderMaterialValidationError, RenderMeshKind,
+    RenderMeshTopology, RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderPipelineLayoutDescriptor, RenderShaderStage,
 };
 use crate::core::math::{Vec2, Vec3};
@@ -14,32 +15,102 @@ use crate::core::resource::ResourceKind;
 
 #[test]
 fn render_product_assets_texture_metadata_exposes_image_contract() {
-    let texture = TextureAsset {
-        uri: locator("res://textures/albedo.ktx2"),
-        width: 128,
-        height: 64,
-        rgba: Vec::new(),
-        payload: TexturePayload::Container {
-            format: "bc7_rgba_unorm_srgb".to_string(),
-            bytes: vec![1, 2, 3, 4],
-            mip_count: 7,
-            array_layers: 2,
-        },
-    };
+    let texture = TextureAsset::new_container(
+        locator("res://textures/albedo.ktx2"),
+        128,
+        64,
+        "bc7_rgba_unorm_srgb",
+        vec![1, 2, 3, 4],
+        7,
+        2,
+    );
 
     let descriptor = texture.render_image_descriptor();
 
     assert_eq!(descriptor.width, 128);
     assert_eq!(descriptor.height, 64);
+    assert_eq!(descriptor.depth_or_array_layers, 2);
+    assert_eq!(descriptor.dimension, RenderImageDimension::D2);
     assert_eq!(descriptor.format, "bc7_rgba_unorm_srgb");
     assert_eq!(descriptor.color_space, RenderImageColorSpace::Srgb);
     assert_eq!(
         descriptor.usage,
         vec![RenderImageUsage::Sampled, RenderImageUsage::CopyDst]
     );
+    assert_eq!(
+        descriptor.asset_usage,
+        vec![
+            RenderImageAssetUsage::MainWorld,
+            RenderImageAssetUsage::RenderWorld,
+        ]
+    );
     assert_eq!(descriptor.mip_count, 7);
     assert_eq!(descriptor.array_layer_count, 2);
     assert_eq!(descriptor.fallback, RenderImageFallbackKind::MissingImage);
+}
+
+#[test]
+fn render_product_assets_texture_without_descriptor_uses_payload_metadata() {
+    let texture = TextureAsset {
+        uri: locator("res://textures/legacy.dds"),
+        width: 32,
+        height: 16,
+        rgba: Vec::new(),
+        payload: TexturePayload::Container {
+            format: "dds/DXT5".to_string(),
+            bytes: vec![0; 128],
+            mip_count: 4,
+            array_layers: 6,
+        },
+        descriptor: None,
+    };
+
+    let descriptor = texture.render_image_descriptor();
+
+    assert_eq!(descriptor.format, "dds/DXT5");
+    assert_eq!(descriptor.dimension, RenderImageDimension::D2);
+    assert_eq!(descriptor.depth_or_array_layers, 6);
+    assert_eq!(descriptor.mip_count, 4);
+    assert_eq!(descriptor.array_layer_count, 6);
+}
+
+#[test]
+fn render_product_assets_texture_descriptor_overrides_payload_defaults() {
+    let mut texture_descriptor = TextureAssetDescriptor::rgba8_srgb();
+    texture_descriptor.format = "rgba16float".to_string();
+    texture_descriptor.color_space = RenderImageColorSpace::Hdr;
+    texture_descriptor.dimension = RenderImageDimension::D3;
+    texture_descriptor.usage = vec![RenderImageUsage::Sampled, RenderImageUsage::Storage];
+    texture_descriptor.asset_usage = vec![RenderImageAssetUsage::RenderWorld];
+    texture_descriptor.mip_count = 0;
+    texture_descriptor.array_layer_count = 0;
+    texture_descriptor.depth_or_array_layers = 0;
+
+    let texture = TextureAsset {
+        uri: locator("res://textures/height.exr"),
+        width: 16,
+        height: 8,
+        rgba: vec![0; 16 * 8 * 4],
+        payload: TexturePayload::Rgba8,
+        descriptor: Some(texture_descriptor),
+    };
+
+    let descriptor = texture.render_image_descriptor();
+
+    assert_eq!(descriptor.format, "rgba16float");
+    assert_eq!(descriptor.color_space, RenderImageColorSpace::Hdr);
+    assert_eq!(descriptor.dimension, RenderImageDimension::D3);
+    assert_eq!(
+        descriptor.usage,
+        vec![RenderImageUsage::Sampled, RenderImageUsage::Storage]
+    );
+    assert_eq!(
+        descriptor.asset_usage,
+        vec![RenderImageAssetUsage::RenderWorld]
+    );
+    assert_eq!(descriptor.mip_count, 1);
+    assert_eq!(descriptor.array_layer_count, 1);
+    assert_eq!(descriptor.depth_or_array_layers, 1);
 }
 
 #[test]
@@ -87,6 +158,11 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
             kind: ResourceKind::Texture,
             reference: asset_reference("res://textures/blue-noise.png"),
         }],
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        property_schema: Vec::new(),
+        texture_slots: Vec::new(),
+        editor: Default::default(),
         pipeline_layout: RenderShaderPipelineLayoutDescriptor {
             bind_groups: vec![RenderShaderBindGroupLayoutDescriptor {
                 group: 0,
@@ -117,6 +193,11 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         wgsl_source: "".to_string(),
         entry_points: Vec::new(),
         dependencies: Vec::new(),
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        property_schema: Vec::new(),
+        texture_slots: Vec::new(),
+        editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     };
@@ -127,6 +208,11 @@ fn render_product_assets_shader_selects_runtime_wgsl_and_entry_contracts() {
         wgsl_source: "".to_string(),
         entry_points: Vec::new(),
         dependencies: Vec::new(),
+        source_files: Vec::new(),
+        imports: Vec::new(),
+        property_schema: Vec::new(),
+        texture_slots: Vec::new(),
+        editor: Default::default(),
         pipeline_layout: Default::default(),
         validation_diagnostics: Vec::new(),
     };
@@ -183,6 +269,9 @@ fn render_product_assets_material_dependencies_validation_and_readiness_are_stru
         emissive_texture: Some(asset_reference("res://textures/emissive.png")),
         alpha_mode: AlphaMode::Mask { cutoff: 0.4 },
         double_sided: true,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
 
     let dependencies = material.dependency_set();
@@ -230,6 +319,9 @@ fn render_product_assets_material_readiness_reports_unresolved_dependencies_and_
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
 
     let report = material.readiness_report_with_resolution(
@@ -280,6 +372,9 @@ fn render_product_assets_material_rejects_invalid_alpha_mask_cutoff() {
             emissive_texture: None,
             alpha_mode: AlphaMode::Mask { cutoff },
             double_sided: false,
+            property_values: Default::default(),
+            texture_slots: Default::default(),
+            validation_diagnostics: Vec::new(),
         };
 
         let errors = material.readiness_report().validation_errors;

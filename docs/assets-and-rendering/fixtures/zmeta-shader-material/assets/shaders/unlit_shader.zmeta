@@ -1,0 +1,27 @@
+format_version = 6
+uuid = "11111111-2222-4333-8444-555555555555"
+url = "res://shaders/unlit_shader"
+asset_kind = "Shader"
+unit = "compound"
+included_files = [
+    "res://shaders/unlit_shader/unlit.zshader",
+    "res://shaders/unlit_shader/unlit.wgsl",
+]
+importer_id = "zircon.builtin.shader.zshader_package"
+preview_state = "ready"
+importer_version = 1
+
+[[entries]]
+uuid = "11111111-2222-4333-8444-555555555555"
+url = "res://shaders/unlit_shader"
+asset_kind = "Shader"
+
+[[entries]]
+uuid = "22222222-3333-4444-8555-666666666666"
+url = "res://shaders/unlit_shader#zshader:unlit.zshader"
+asset_kind = "Data"
+
+[[entries]]
+uuid = "33333333-4444-4555-8666-777777777777"
+url = "res://shaders/unlit_shader#wgsl:unlit.wgsl"
+asset_kind = "Data"

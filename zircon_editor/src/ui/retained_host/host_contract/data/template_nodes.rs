@@ -1,4 +1,5 @@
 use crate::ui::retained_host::primitives::{Color, Image, ModelRc, SharedString};
+use zircon_runtime_interface::ui::style::ResolvedButtonStyle;
 
 #[derive(Clone, Default)]
 pub(crate) struct TemplateNodeFrameData {
@@ -148,12 +149,14 @@ pub(crate) struct TemplatePaneNodeData {
     pub surface_variant: SharedString,
     pub text_tone: SharedString,
     pub button_variant: SharedString,
+    pub button_style: ResolvedButtonStyle,
     pub font_size: f32,
     pub font_weight: i32,
     pub text_align: SharedString,
     pub overflow: SharedString,
     pub corner_radius: f32,
     pub border_width: f32,
+    pub elevation: f32,
     pub has_clip_frame: bool,
     pub clip_frame: TemplateNodeFrameData,
     pub frame: TemplateNodeFrameData,

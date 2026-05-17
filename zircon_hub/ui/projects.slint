@@ -1,72 +1,133 @@
 import { LineEdit, ScrollView } from "std-widgets.slint";
 import {
     IconButton,
+    CenteredIcon,
     MutedText,
-    Panel,
     PillButton,
     ProjectCardData,
     QuickActionData,
     RecentProjectRowData,
+    UiTextData,
 } from "shared.slint";
+import {
+    ActionRow,
+    Badge,
+    DataTable,
+    HubPanel,
+    PanelHeader,
+    SearchBox,
+    SegmentButton,
+    ToolbarSelect,
+} from "components.slint";
 
-component ProjectCard inherits Panel {
+component ProjectCover inherits Rectangle {
     in property <ProjectCardData> project;
-    callback open(string);
 
-    height: 212px;
+    height: 118px;
+    horizontal-stretch: 1;
+    border-radius: 7px;
+    clip: true;
+    background: root.project.accent == 0 ? #24352e : (root.project.accent == 1 ? #143242 : (root.project.accent == 2 ? #3a2d20 : #1f3327));
+
+    if root.project.has-cover: Image {
+        width: parent.width;
+        height: parent.height;
+        source: root.project.cover-image;
+        image-fit: cover;
+    }
+
+    if !root.project.has-cover: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: root.project.accent == 0 ? #345d4a : (root.project.accent == 1 ? #1c5b76 : (root.project.accent == 2 ? #65462c : #2e573c));
+    }
+
+    if root.project.has-cover: Rectangle {
+        width: parent.width;
+        height: parent.height;
+        background: #07101455;
+    }
 
     VerticalLayout {
-        padding: 12px;
-        spacing: 8px;
+        width: parent.width;
+        height: parent.height;
+        padding: 8px;
+        spacing: 4px;
 
         Rectangle {
-            height: 96px;
-            border-radius: 6px;
-            background: root.project.accent == 0 ? #24352e : (root.project.accent == 1 ? #143242 : (root.project.accent == 2 ? #3a2d20 : #1f3327));
+            horizontal-stretch: 1;
+            height: 28px;
 
-            Rectangle {
-                x: 0px;
-                y: 0px;
+            HorizontalLayout {
                 width: parent.width;
                 height: parent.height;
-                border-radius: 6px;
-                background: root.project.accent == 0 ? #345d4a : (root.project.accent == 1 ? #1c5b76 : (root.project.accent == 2 ? #65462c : #2e573c));
-            }
+                alignment: start;
 
-            Rectangle {
-                x: 14px;
-                y: 60px;
-                width: 28px;
-                height: 28px;
-                border-radius: 6px;
-                background: #082d31;
-                border-width: 1px;
-                border-color: #32ded3;
-                Text {
-                    text: "Z";
-                    color: #a6fff7;
-                    font-size: 13px;
-                    font-weight: 800;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
+                Rectangle { horizontal-stretch: 1; }
+
+                IconButton {
+                    width: 28px;
+                    height: 28px;
+                    icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
+                    has-icon-image: true;
                 }
             }
+        }
 
-            Rectangle {
-                x: parent.width - 34px;
-                y: 8px;
-                width: 26px;
-                height: 26px;
-                border-radius: 6px;
-                background: #11151add;
-                Text {
-                    text: "...";
-                    color: #d9dde4;
-                    font-size: 14px;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
+        Rectangle { vertical-stretch: 1; }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            height: 30px;
+
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                alignment: start;
+
+                Rectangle {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 6px;
+                    background: #082d31;
+                    border-width: 1px;
+                    border-color: #32ded3;
+
+                    Image {
+                        width: parent.width;
+                        height: parent.height;
+                        source: @image-url("../assets/brand/zircon-mark.svg");
+                        image-fit: contain;
+                    }
                 }
+
+                Rectangle { horizontal-stretch: 1; }
             }
+        }
+    }
+}
+
+component ProjectCard inherits HubPanel {
+    in property <ProjectCardData> project;
+    in property <UiTextData> ui-text;
+    callback select(string);
+    callback open(string);
+
+    variant: root.project.selected ? "selected" : "interactive";
+    height: 252px;
+    min-width: 260px;
+    preferred-width: 296px;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 12px;
+        spacing: 8px;
+        alignment: start;
+
+        ProjectCover {
+            project: root.project;
         }
 
         Text {
@@ -83,259 +144,397 @@ component ProjectCard inherits Panel {
         }
 
         MutedText {
-            text: "Modified " + root.project.modified;
+            text: root.ui-text.modified-prefix + root.project.modified;
+            overflow: elide;
+        }
+
+        Rectangle { vertical-stretch: 1; }
+
+        HorizontalLayout {
+            height: 24px;
+            spacing: 8px;
+            alignment: start;
+
+            Badge {
+                text: root.project.version;
+                tone: "accent";
+                badge-width: 60px;
+            }
+
+            Badge {
+                text: root.project.platform;
+                tone: "neutral";
+                badge-width: 76px;
+            }
+
+            Rectangle { horizontal-stretch: 1; }
+
+            IconButton {
+                width: 30px;
+                height: 24px;
+                icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.open(root.project.project-path);
+                }
+            }
+        }
+    }
+
+    area := TouchArea {
+        clicked => {
+            root.select(root.project.project-path);
+        }
+    }
+}
+
+component ShowcaseButton inherits Rectangle {
+    in property <string> label;
+    in property <string> variant: "primary";
+    in property <string> visual-state: "default";
+    in property <bool> icon-only: false;
+
+    width: root.icon-only ? 40px : (root.variant == "tertiary" ? 64px : 82px);
+    height: root.icon-only ? 42px : 38px;
+    border-radius: 6px;
+    border-width: root.variant == "tertiary" ? 0px : 1px;
+    border-color: root.visual-state == "disabled" ? #29313a : (root.variant == "primary" ? #159f99 : #3a414b);
+    background: root.variant == "tertiary"
+        ? transparent
+        : (root.variant == "primary"
+            ? (root.visual-state == "hover" ? #0b8f88 : (root.visual-state == "pressed" ? #086b66 : (root.visual-state == "disabled" ? #123735 : #08756f)))
+            : (root.visual-state == "hover" ? #20252d : (root.visual-state == "pressed" ? #252a31 : (root.visual-state == "disabled" ? #161a20 : #181c22))));
+    clip: true;
+
+    if root.icon-only: HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        alignment: center;
+
+        CenteredIcon {
+            width: parent.width;
+            height: parent.height;
+            icon-size: 20px;
+            source-image: @image-url("../assets/icons/ui/plus.svg");
+            has-source-image: true;
+        }
+    }
+
+    if !root.icon-only: Text {
+        text: root.label;
+        overflow: elide;
+        color: root.visual-state == "disabled" ? #747c86 : (root.variant == "tertiary" ? #22d8d1 : #f2f5f7);
+        font-size: 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+component EntryPanel inherits HubPanel {
+    in-out property <string> mode: "none";
+    in-out property <string> project-path;
+    in-out property <string> project-name;
+    in-out property <string> project-location;
+    in property <UiTextData> ui-text;
+    callback open-project();
+    callback create-project();
+    callback browse-folder(string);
+
+    min-height: 132px;
+    preferred-height: 132px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 16px;
+        spacing: 10px;
+
+        HorizontalLayout {
+            height: 34px;
+            spacing: 10px;
+            alignment: center;
+
+            Text {
+                text: root.mode == "create" ? root.ui-text.create-project : root.ui-text.import-project;
+                color: #f2f5f7;
+                font-size: 16px;
+                font-weight: 800;
+                vertical-alignment: center;
+            }
+
+            Rectangle { horizontal-stretch: 1; }
+
+            IconButton {
+                icon-image: @image-url("../assets/icons/ui/close.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.mode = "none";
+                }
+            }
+        }
+
+        if root.mode == "open": HorizontalLayout {
+            height: 42px;
+            spacing: 10px;
+            alignment: center;
+
+            LineEdit {
+                placeholder-text: root.ui-text.project-root-path;
+                text <=> root.project-path;
+                horizontal-stretch: 1;
+            }
+
+            PillButton {
+                text: root.ui-text.browse;
+                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.browse-folder("project-root");
+                }
+            }
+
+            PillButton {
+                text: root.ui-text.open;
+                icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.open-project();
+                }
+            }
+        }
+
+        if root.mode == "create": HorizontalLayout {
+            height: 42px;
+            spacing: 10px;
+            alignment: center;
+
+            LineEdit {
+                placeholder-text: root.ui-text.project-name;
+                text <=> root.project-name;
+                horizontal-stretch: 1;
+            }
+
+            LineEdit {
+                placeholder-text: root.ui-text.location;
+                text <=> root.project-location;
+                horizontal-stretch: 1;
+            }
+
+            PillButton {
+                text: root.ui-text.browse;
+                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                has-icon-image: true;
+                clicked => {
+                    root.browse-folder("project-location");
+                }
+            }
+
+            PillButton {
+                text: root.ui-text.create;
+                icon-image: @image-url("../assets/icons/ui/plus.svg");
+                has-icon-image: true;
+                primary: true;
+                clicked => {
+                    root.create-project();
+                }
+            }
+        }
+    }
+}
+
+component ProjectFlow inherits Rectangle {
+    in-out property <bool> expanded;
+    in property <[ProjectCardData]> project-cards;
+    in property <int> project-card-count;
+    in property <UiTextData> ui-text;
+    callback select(string);
+    callback open(string);
+
+    height: root.expanded ? 536px : 252px;
+    clip: true;
+    background: transparent;
+
+    if root.project-card-count > 0: FlexboxLayout {
+        width: parent.width;
+        height: parent.height;
+        flex-direction: FlexboxLayoutDirection.row;
+        flex-wrap: FlexboxLayoutWrap.wrap;
+        alignment: stretch;
+        align-content: FlexboxLayoutAlignContent.start;
+        align-items: FlexboxLayoutAlignItems.start;
+        spacing-horizontal: 18px;
+        spacing-vertical: 16px;
+
+        for card in root.project-cards: ProjectCard {
+            flex-basis: 296px;
+            flex-grow: 1;
+            flex-shrink: 1;
+            min-width: 260px;
+            project: card;
+            ui-text: root.ui-text;
+            select(path) => {
+                root.select(path);
+            }
+            open(path) => {
+                root.open(path);
+            }
+        }
+    }
+
+    if root.project-card-count == 0: HubPanel {
+        width: parent.width;
+        height: 156px;
+
+        VerticalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding: 24px;
+            spacing: 8px;
+
+            Text {
+                text: root.ui-text.projects-empty-title;
+                color: #f4f7fb;
+                font-size: 18px;
+                font-weight: 800;
+            }
+
+            MutedText {
+                text: root.ui-text.projects-empty-detail;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+component ButtonStateShowcase inherits HubPanel {
+    height: 124px;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: 16px;
+        spacing: 8px;
+
+        Text {
+            text: "Button States";
+            color: #f2f5f7;
+            font-size: 15px;
+            font-weight: 800;
         }
 
         HorizontalLayout {
-            spacing: 8px;
-            Rectangle {
-                width: 52px;
-                height: 24px;
-                border-radius: 5px;
-                background: #063f3e;
-                border-width: 1px;
-                border-color: #0f7d78;
-                Text {
-                    text: root.project.version;
-                    color: #72f7ee;
-                    font-size: 12px;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
-            Rectangle {
-                width: 72px;
-                height: 24px;
-                border-radius: 5px;
-                background: #2a2f36;
-                border-width: 1px;
-                border-color: #3a4049;
-                Text {
-                    text: root.project.platform;
-                    color: #c9cfd8;
-                    font-size: 12px;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
-            }
-        }
-    }
-
-    area := TouchArea {
-        clicked => {
-            root.open(root.project.project-path);
-        }
-    }
-}
-
-component RecentProjectRow inherits Rectangle {
-    in property <RecentProjectRowData> project;
-    callback open(string);
-
-    height: 36px;
-    background: area.has-hover ? #20252d : transparent;
-
-    HorizontalLayout {
-        spacing: 12px;
-        padding-left: 8px;
-        padding-right: 8px;
-        alignment: start;
-
-        Rectangle {
-            width: 26px;
-            height: 26px;
-            border-radius: 4px;
-            background: root.project.accent == 0 ? #355b49 : (root.project.accent == 1 ? #245675 : (root.project.accent == 2 ? #60442d : #2b503b));
-            Text {
-                text: "Z";
-                color: #a6fff7;
-                font-size: 10px;
-                font-weight: 800;
-                horizontal-alignment: center;
-                vertical-alignment: center;
-            }
-        }
-
-        Text {
-            width: 190px;
-            text: root.project.title;
-            overflow: elide;
-            color: #f1f4f7;
-            font-size: 13px;
-            font-weight: 600;
-            vertical-alignment: center;
-        }
-
-        MutedText {
-            width: 110px;
-            text: root.project.version;
-            vertical-alignment: center;
-        }
-
-        MutedText {
-            width: 115px;
-            text: root.project.modified;
-            vertical-alignment: center;
-        }
-
-        MutedText {
-            text: root.project.project-path;
-            overflow: elide;
-            vertical-alignment: center;
             horizontal-stretch: 1;
-        }
+            spacing: 20px;
+            alignment: center;
 
-        Text {
-            width: 24px;
-            text: ">";
-            color: #dbe1e9;
-            font-size: 14px;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-    }
-
-    area := TouchArea {
-        clicked => {
-            root.open(root.project.project-path);
-        }
-    }
-}
-
-component QuickActionButton inherits Rectangle {
-    in property <QuickActionData> action;
-    callback activate(string);
-
-    height: 56px;
-    border-radius: 7px;
-    border-width: 1px;
-    border-color: area.has-hover && root.action.enabled ? #4a525d : #303641;
-    background: area.has-hover && root.action.enabled ? #20252d : #171b21;
-
-    HorizontalLayout {
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 12px;
-        alignment: start;
-
-        Text {
-            width: 32px;
-            text: root.action.icon;
-            color: root.action.enabled ? #f2f5f7 : #707884;
-            font-size: 18px;
-            font-weight: 700;
-            vertical-alignment: center;
-        }
-
-        VerticalLayout {
-            spacing: 2px;
-            Text {
-                text: root.action.title;
-                color: root.action.enabled ? #f3f6f9 : #8c939d;
-                font-size: 13px;
-                font-weight: 700;
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "Primary"; color: #aeb6c2; font-size: 11px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ShowcaseButton { label: "Default"; variant: "primary"; visual-state: "default"; }
+                    ShowcaseButton { label: "Hover"; variant: "primary"; visual-state: "hover"; }
+                    ShowcaseButton { label: "Pressed"; variant: "primary"; visual-state: "pressed"; }
+                    ShowcaseButton { label: "Disabled"; variant: "primary"; visual-state: "disabled"; }
+                }
             }
-            MutedText {
-                text: root.action.detail;
+
+            Rectangle { width: 1px; height: 56px; background: #303641; }
+
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "Secondary"; color: #aeb6c2; font-size: 11px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ShowcaseButton { label: "Default"; variant: "secondary"; visual-state: "default"; }
+                    ShowcaseButton { label: "Hover"; variant: "secondary"; visual-state: "hover"; }
+                    ShowcaseButton { label: "Pressed"; variant: "secondary"; visual-state: "pressed"; }
+                    ShowcaseButton { label: "Disabled"; variant: "secondary"; visual-state: "disabled"; }
+                }
             }
-        }
 
-        Text {
-            width: 20px;
-            text: ">";
-            color: root.action.enabled ? #eef3f7 : #646c76;
-            horizontal-alignment: center;
-            vertical-alignment: center;
-        }
-    }
+            Rectangle { width: 1px; height: 56px; background: #303641; }
 
-    area := TouchArea {
-        enabled: root.action.enabled;
-        clicked => {
-            root.activate(root.action.id);
-        }
-    }
-}
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "Tertiary"; color: #aeb6c2; font-size: 11px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ShowcaseButton { label: "Default"; variant: "tertiary"; visual-state: "default"; }
+                    ShowcaseButton { label: "Hover"; variant: "tertiary"; visual-state: "hover"; }
+                    ShowcaseButton { label: "Pressed"; variant: "tertiary"; visual-state: "pressed"; }
+                    ShowcaseButton { label: "Disabled"; variant: "tertiary"; visual-state: "disabled"; }
+                }
+            }
 
-component ToolbarSelect inherits Rectangle {
-    in property <string> icon;
-    in property <string> text;
-    callback clicked;
+            Rectangle { width: 1px; height: 56px; background: #303641; }
 
-    width: 138px;
-    height: 38px;
-    border-radius: 7px;
-    border-width: 1px;
-    border-color: area.has-hover ? #424b56 : #303641;
-    background: area.has-hover ? #20262d : #171b21;
-
-    HorizontalLayout {
-        width: parent.width;
-        height: parent.height;
-        padding-left: 12px;
-        padding-right: 10px;
-        spacing: 8px;
-        alignment: center;
-
-        Text {
-            text: root.icon;
-            color: #cbd2dc;
-            font-size: 14px;
-            vertical-alignment: center;
-        }
-
-        Text {
-            text: root.text;
-            overflow: elide;
-            color: #d7dde6;
-            font-size: 13px;
-            vertical-alignment: center;
-        }
-
-        Rectangle { horizontal-stretch: 1; }
-
-        Text {
-            text: "v";
-            color: #88929f;
-            font-size: 10px;
-            vertical-alignment: center;
-        }
-    }
-
-    area := TouchArea {
-        clicked => {
-            root.clicked();
+            VerticalLayout {
+                spacing: 6px;
+                Text { text: "Icon"; color: #aeb6c2; font-size: 11px; }
+                HorizontalLayout {
+                    spacing: 8px;
+                    ShowcaseButton { icon-only: true; variant: "primary"; visual-state: "default"; }
+                    ShowcaseButton { icon-only: true; variant: "primary"; visual-state: "hover"; }
+                    ShowcaseButton { icon-only: true; variant: "primary"; visual-state: "pressed"; }
+                    ShowcaseButton { icon-only: true; variant: "secondary"; visual-state: "disabled"; }
+                }
+            }
         }
     }
 }
 
 export component ProjectsPage inherits Rectangle {
+    in-out property <string> project-entry-mode: "none";
     in-out property <string> search-query;
     in-out property <string> project-path;
     in-out property <string> project-name;
     in-out property <string> project-location;
+    in property <string> project-filter-label;
     in property <string> project-sort-label;
     in-out property <string> project-view-mode;
+    in-out property <bool> project-cards-expanded: false;
     in property <[ProjectCardData]> project-cards;
     in property <int> project-card-count;
+    in property <[RecentProjectRowData]> project-list-rows;
+    in property <int> project-list-row-count;
     in property <[RecentProjectRowData]> recent-project-rows;
     in property <int> recent-project-row-count;
     in property <[QuickActionData]> quick-actions;
+    in property <UiTextData> ui-text;
     callback open-project();
     callback create-project();
     callback open-recent-project(string);
+    callback select-project(string);
     callback quick-action(string);
     callback search-projects(string);
+    callback view-all-projects();
+    callback browse-folder(string);
+    callback cycle-project-filter();
     callback cycle-project-sort();
     callback set-project-view-mode(string);
+
+    private property <length> page-scroll-y: 0px;
+    private property <length> quick-actions-scroll-y: 0px;
+    private property <bool> compact: root.width < 960px;
 
     background: #11151a;
     clip: true;
 
-    ScrollView {
-        content := Rectangle {
-            width: root.width;
-            height: 960px;
+    page-scroll := ScrollView {
+        width: root.width;
+        height: root.height;
+        viewport-y <=> root.page-scroll-y;
+        viewport-width: page-scroll.visible-width;
+        viewport-height: max(page-scroll.visible-height, root.project-cards-expanded ? 1090px : 808px);
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+        mouse-drag-pan-enabled: true;
+
+        Rectangle {
+            width: page-scroll.visible-width;
+            height: page-scroll.viewport-height;
             background: #11151a;
 
             VerticalLayout {
@@ -343,250 +542,53 @@ export component ProjectsPage inherits Rectangle {
                 height: parent.height;
                 padding-left: 28px;
                 padding-right: 28px;
-                padding-top: 252px;
-                padding-bottom: 24px;
-                spacing: 20px;
-
-                if root.project-view-mode == "grid": HorizontalLayout {
-                    spacing: 16px;
-
-                    for card in root.project-cards: ProjectCard {
-                        width: (parent.width - 48px) / 4;
-                        project: card;
-                        open(path) => {
-                            root.open-recent-project(path);
-                        }
-                    }
-
-                    if root.project-card-count == 0: Panel {
-                        height: 212px;
-                        horizontal-stretch: 1;
-                        VerticalLayout {
-                            padding: 24px;
-                            spacing: 8px;
-                            Text {
-                                text: "No recent projects";
-                                color: #f4f7fb;
-                                font-size: 18px;
-                                font-weight: 800;
-                            }
-                            MutedText {
-                                text: "Create a project or enter a project path to open an existing one.";
-                            }
-                        }
-                    }
-                }
-
-                if root.project-view-mode == "list": Panel {
-                    height: 250px;
-                    VerticalLayout {
-                        padding: 16px;
-                        spacing: 10px;
-                        Text {
-                            text: "Project List";
-                            color: #f2f5f7;
-                            font-size: 16px;
-                            font-weight: 800;
-                        }
-                        HorizontalLayout {
-                            spacing: 12px;
-                            MutedText { width: 228px; text: "Name"; }
-                            MutedText { width: 110px; text: "Engine Version"; }
-                            MutedText { width: 115px; text: "Last Modified"; }
-                            MutedText { text: "Location"; horizontal-stretch: 1; }
-                        }
-                        Rectangle { height: 1px; background: #303641; }
-
-                        for row in root.recent-project-rows: RecentProjectRow {
-                            project: row;
-                            open(path) => {
-                                root.open-recent-project(path);
-                            }
-                        }
-
-                        if root.recent-project-row-count == 0: MutedText {
-                            text: "No projects match the current search.";
-                        }
-                    }
-                }
+                padding-top: 0px;
+                padding-bottom: 16px;
+                spacing: 14px;
 
                 HorizontalLayout {
-                    spacing: 14px;
-
-                    Panel {
-                        horizontal-stretch: 1;
-                        height: 320px;
-                        VerticalLayout {
-                            padding: 16px;
-                            spacing: 10px;
-                            Text {
-                                text: "Recent Projects";
-                                color: #f2f5f7;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            HorizontalLayout {
-                                spacing: 12px;
-                                MutedText { width: 228px; text: "Name"; }
-                                MutedText { width: 110px; text: "Engine Version"; }
-                                MutedText { width: 115px; text: "Last Modified"; }
-                                MutedText { text: "Location"; horizontal-stretch: 1; }
-                            }
-                            Rectangle { height: 1px; background: #303641; }
-
-                            for row in root.recent-project-rows: RecentProjectRow {
-                                project: row;
-                                open(path) => {
-                                    root.open-recent-project(path);
-                                }
-                            }
-
-                            if root.recent-project-row-count == 0: MutedText {
-                                text: "No projects match the current search.";
-                            }
-
-                            Rectangle { vertical-stretch: 1; }
-                            HorizontalLayout {
-                                spacing: 10px;
-                                PillButton {
-                                    text: "Open Path";
-                                    icon: "[]";
-                                    clicked => {
-                                        root.open-project();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Panel {
-                        width: 420px;
-                        height: 320px;
-                        VerticalLayout {
-                            padding: 16px;
-                            spacing: 10px;
-                            Text {
-                                text: "Quick Actions";
-                                color: #f2f5f7;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            for action in root.quick-actions: QuickActionButton {
-                                action: action;
-                                activate(id) => {
-                                    root.quick-action(id);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Panel {
-                    height: 132px;
-                    VerticalLayout {
-                        padding: 16px;
-                        spacing: 10px;
-                        Text {
-                            text: "Project Entry";
-                            color: #f2f5f7;
-                            font-size: 16px;
-                            font-weight: 800;
-                        }
-                        HorizontalLayout {
-                            spacing: 10px;
-                            LineEdit {
-                                placeholder-text: "Project root path";
-                                text <=> root.project-path;
-                            }
-                            PillButton {
-                                text: "Open";
-                                icon: ">";
-                                clicked => {
-                                    root.open-project();
-                                }
-                            }
-                        }
-                        HorizontalLayout {
-                            spacing: 10px;
-                            LineEdit {
-                                placeholder-text: "Project name";
-                                text <=> root.project-name;
-                            }
-                            LineEdit {
-                                placeholder-text: "Location";
-                                text <=> root.project-location;
-                            }
-                            PillButton {
-                                text: "Create";
-                                icon: "+";
-                                primary: true;
-                                clicked => {
-                                    root.create-project();
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                x: 28px;
-                y: 184px;
-                width: parent.width - 56px;
-                height: 46px;
-                background: transparent;
-
-                HorizontalLayout {
-                    width: parent.width;
-                    height: parent.height;
+                    width: root.width - 56px;
+                    horizontal-stretch: 1;
+                    height: 42px;
                     spacing: 12px;
+                    alignment: stretch;
 
-                    Rectangle {
-                        width: 330px;
-                        height: 46px;
-                        border-radius: 8px;
-                        border-width: 1px;
-                        border-color: search-focus.has-focus ? #4ee8df : #37404b;
-                        background: #171b21;
-                        HorizontalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            padding-left: 14px;
-                            padding-right: 12px;
-                            spacing: 10px;
-                            alignment: center;
-                            Text {
-                                text: "O";
-                                color: #b8c0ca;
-                                font-size: 14px;
-                            }
-                            search-focus := LineEdit {
-                                text <=> root.search-query;
-                                placeholder-text: "Search projects...";
-                                edited => {
-                                    root.search-projects(search-focus.text);
-                                }
-                            }
+                    SearchBox {
+                        box-width: root.compact ? 250px : 330px;
+                        text <=> root.search-query;
+                        placeholder: root.ui-text.search-projects;
+                        edited(query) => {
+                            root.search-projects(query);
                         }
                     }
 
-                    Rectangle { horizontal-stretch: 1; }
+                    Rectangle { horizontal-stretch: 1; min-width: 12px; }
 
                     ToolbarSelect {
-                        icon: "[]";
-                        text: "All Projects";
+                        icon-image: @image-url("../assets/icons/ui/folder.svg");
+                        has-icon-image: true;
+                        text: root.project-filter-label;
+                        select-width: 154px;
+                        clicked => {
+                            root.cycle-project-filter();
+                        }
                     }
 
                     ToolbarSelect {
-                        icon: "^v";
+                        icon-image: @image-url("../assets/icons/ui/sort.svg");
+                        has-icon-image: true;
                         text: root.project-sort-label;
+                        select-width: 170px;
                         clicked => {
                             root.cycle-project-sort();
                         }
                     }
 
+                    Rectangle { width: 1px; height: 28px; background: #303641; }
+
                     IconButton {
-                        icon: "::";
+                        icon-image: @image-url("../assets/icons/ui/grid.svg");
+                        has-icon-image: true;
                         active: root.project-view-mode == "grid";
                         clicked => {
                             root.set-project-view-mode("grid");
@@ -594,30 +596,219 @@ export component ProjectsPage inherits Rectangle {
                     }
 
                     IconButton {
-                        icon: "==";
+                        icon-image: @image-url("../assets/icons/ui/list.svg");
+                        has-icon-image: true;
                         active: root.project-view-mode == "list";
                         clicked => {
                             root.set-project-view-mode("list");
                         }
                     }
+                }
 
-                    PillButton {
-                        text: "Import Project";
-                        icon: "v";
-                        clicked => {
-                            root.open-project();
+                if root.project-entry-mode != "none": EntryPanel {
+                    mode <=> root.project-entry-mode;
+                    project-path <=> root.project-path;
+                    project-name <=> root.project-name;
+                    project-location <=> root.project-location;
+                    ui-text: root.ui-text;
+                    open-project => {
+                        root.open-project();
+                    }
+                    create-project => {
+                        root.create-project();
+                    }
+                    browse-folder(target) => {
+                        root.browse-folder(target);
+                    }
+                }
+
+                if root.project-view-mode == "grid": VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: 10px;
+
+                    ProjectFlow {
+                        expanded <=> root.project-cards-expanded;
+                        project-cards: root.project-cards;
+                        project-card-count: root.project-card-count;
+                        ui-text: root.ui-text;
+                        select(path) => {
+                            root.select-project(path);
+                        }
+                        open(path) => {
+                            root.open-recent-project(path);
                         }
                     }
 
-                    PillButton {
-                        text: "New Project";
-                        icon: "+";
-                        primary: true;
+                    if root.project-card-count > 4: PillButton {
+                        horizontal-stretch: 1;
+                        height: 36px;
+                        text: root.project-cards-expanded ? root.ui-text.collapse-projects : root.ui-text.show-more-projects;
+                        icon-image: root.project-cards-expanded ? @image-url("../assets/icons/ui/chevron-down.svg") : @image-url("../assets/icons/ui/chevron-right.svg");
+                        has-icon-image: true;
                         clicked => {
-                            root.create-project();
+                            root.project-cards-expanded = !root.project-cards-expanded;
                         }
                     }
                 }
+
+                if root.project-view-mode == "list": HubPanel {
+                    horizontal-stretch: 1;
+                    min-height: 260px;
+                    preferred-height: 260px;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 16px;
+                        spacing: 10px;
+                        alignment: start;
+
+                        PanelHeader {
+                            title: root.ui-text.project-list;
+                            show-badge: true;
+                            badge-text: root.project-list-row-count + "";
+                            badge-tone: "neutral";
+                        }
+
+                        DataTable {
+                            horizontal-stretch: 1;
+                            vertical-stretch: 1;
+                            rows: root.project-list-rows;
+                            row-count: root.project-list-row-count;
+                            name-label: root.ui-text.name-column;
+                            version-label: root.ui-text.engine-version-column;
+                            modified-label: root.ui-text.last-modified-column;
+                            location-label: root.ui-text.location-column;
+                            empty-text: root.ui-text.no-projects-match;
+                            select(path) => {
+                                root.select-project(path);
+                            }
+                            open(path) => {
+                                root.open-recent-project(path);
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    height: root.compact ? 624px : 312px;
+                    clip: true;
+
+                    FlexboxLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        flex-direction: FlexboxLayoutDirection.row;
+                        flex-wrap: FlexboxLayoutWrap.wrap;
+                        alignment: stretch;
+                        align-content: FlexboxLayoutAlignContent.start;
+                        align-items: FlexboxLayoutAlignItems.start;
+                        spacing-horizontal: 14px;
+                        spacing-vertical: 14px;
+
+                        HubPanel {
+                            height: 312px;
+                            flex-basis: 600px;
+                            flex-grow: 1;
+                            flex-shrink: 1;
+                            min-width: 360px;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: 16px;
+                                spacing: 10px;
+                                alignment: stretch;
+
+                                PanelHeader {
+                                    title: root.ui-text.recent-projects;
+                                    show-action: true;
+                                    action-text: root.ui-text.view-all-projects;
+                                    action-clicked => {
+                                        root.project-entry-mode = "none";
+                                        root.search-query = "";
+                                        root.project-view-mode = "grid";
+                                        root.project-cards-expanded = true;
+                                        root.view-all-projects();
+                                    }
+                                }
+
+                                DataTable {
+                                    horizontal-stretch: 1;
+                                    vertical-stretch: 1;
+                                    rows: root.recent-project-rows;
+                                    row-count: root.recent-project-row-count;
+                                    name-label: root.ui-text.name-column;
+                                    version-label: root.ui-text.engine-version-column;
+                                    modified-label: root.ui-text.last-modified-column;
+                                    location-label: root.ui-text.location-column;
+                                    empty-text: root.ui-text.no-projects-match;
+                                    select(path) => {
+                                        root.select-project(path);
+                                    }
+                                    open(path) => {
+                                        root.open-recent-project(path);
+                                    }
+                                }
+
+                            }
+                        }
+
+                        HubPanel {
+                            height: 312px;
+                            flex-basis: 360px;
+                            flex-grow: 1;
+                            flex-shrink: 1;
+                            min-width: 320px;
+
+                            VerticalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                padding: 16px;
+                                spacing: 10px;
+                                alignment: stretch;
+
+                                PanelHeader {
+                                    title: root.ui-text.quick-actions;
+                                }
+
+                                quick-actions-scroll := ScrollView {
+                                    horizontal-stretch: 1;
+                                    vertical-stretch: 1;
+                                    viewport-y <=> root.quick-actions-scroll-y;
+                                    viewport-width: quick-actions-scroll.visible-width;
+                                    viewport-height: max(quick-actions-scroll.visible-height, root.quick-actions.length * 62px + 12px);
+                                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                                    mouse-drag-pan-enabled: true;
+
+                                    Rectangle {
+                                        width: quick-actions-scroll.visible-width;
+                                        height: quick-actions-scroll.viewport-height;
+                                        background: transparent;
+
+                                        VerticalLayout {
+                                            width: parent.width;
+                                            height: parent.height;
+                                            padding-top: 6px;
+                                            padding-bottom: 6px;
+                                            spacing: 6px;
+
+                                            for action in root.quick-actions: ActionRow {
+                                                action: action;
+                                                activate(id) => {
+                                                    root.quick-action(id);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                ButtonStateShowcase {}
             }
         }
     }

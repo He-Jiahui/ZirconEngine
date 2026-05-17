@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 160" role="img" aria-label="Whispering woods project cover">
+  <defs>
+    <linearGradient id="woods" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#50695b"/><stop offset="0.45" stop-color="#25392e"/><stop offset="1" stop-color="#0c1712"/></linearGradient>
+    <radialGradient id="mist" cx="50%" cy="45%" r="60%"><stop stop-color="#d8fff4" stop-opacity="0.5"/><stop offset="1" stop-color="#d8fff4" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="420" height="160" fill="url(#woods)"/>
+  <rect width="420" height="160" fill="url(#mist)"/>
+  <g fill="#102018">
+    <rect x="24" y="0" width="10" height="160"/><rect x="69" y="0" width="8" height="160"/><rect x="356" y="0" width="12" height="160"/><rect x="390" y="0" width="7" height="160"/>
+  </g>
+  <g fill="#1d3428">
+    <path d="m23 65-25 43h50z"/><path d="m71 51-30 59h60z"/><path d="m356 40-36 76h72z"/><path d="m390 62-28 55h56z"/>
+  </g>
+  <path fill="#17281f" d="M232 118V72h76v46z"/>
+  <path fill="#253c2f" d="m220 73 50-38 50 38z"/>
+  <path fill="#0b1511" d="M258 118V91h22v27zm31-28h13v13h-13z"/>
+  <path fill="#355c43" d="M0 137c48-14 91-17 130-9 48 10 91 11 130 1 58-16 111-13 160 7v24H0z"/>
+  <path fill="#7af1c5" d="M246 95h10v9h-10z" opacity="0.7"/>
+</svg>

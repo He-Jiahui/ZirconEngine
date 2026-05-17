@@ -5,7 +5,7 @@ use libloading::Library;
 use zircon_runtime_interface::runtime_api::ZrRuntimeProfileControlFnV1;
 use zircon_runtime_interface::runtime_api::{
     ZrRuntimeCaptureFrameFnV1, ZrRuntimeCreateSessionFnV1, ZrRuntimeDestroySessionFnV1,
-    ZrRuntimeHandleEventFnV1,
+    ZrRuntimeDrainHostRequestsFnV1, ZrRuntimeHandleEventFnV1, ZrRuntimeTickFrameFnV1,
 };
 use zircon_runtime_interface::{
     ZrHostApiV1, ZrRuntimeApiV1, ZrRuntimeBindViewportSurfaceFnV1, ZrRuntimeGetApiFnV1,
@@ -86,6 +86,14 @@ impl LoadedRuntime {
 
     pub(crate) fn present_viewport(&self) -> Option<ZrRuntimePresentViewportFnV1> {
         self.api_function_field(core::mem::offset_of!(ZrRuntimeApiV1, present_viewport))
+    }
+
+    pub(crate) fn tick_frame(&self) -> Option<ZrRuntimeTickFrameFnV1> {
+        self.api_function_field(core::mem::offset_of!(ZrRuntimeApiV1, tick_frame))
+    }
+
+    pub(crate) fn drain_host_requests(&self) -> Option<ZrRuntimeDrainHostRequestsFnV1> {
+        self.api_function_field(core::mem::offset_of!(ZrRuntimeApiV1, drain_host_requests))
     }
 
     #[cfg(feature = "target-editor-host")]

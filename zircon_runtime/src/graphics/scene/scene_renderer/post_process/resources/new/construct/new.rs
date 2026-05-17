@@ -18,7 +18,6 @@ impl ScenePostProcessResources {
             device,
             target_format,
             &bloom_bind_group_layout,
-            &ssao_bind_group_layout,
             &cluster_bind_group_layout,
             &post_process_bind_group_layout,
         );
@@ -31,7 +30,7 @@ impl ScenePostProcessResources {
             cluster_bind_group_layout,
             post_process_bind_group_layout,
             bloom_pipeline: pipeline_bundle.bloom_pipeline,
-            ssao_pipeline: pipeline_bundle.ssao_pipeline,
+            ssao_pipeline: std::sync::OnceLock::new(),
             cluster_pipeline: pipeline_bundle.cluster_pipeline,
             post_process_pipeline: pipeline_bundle.post_process_pipeline,
             bloom_params_buffer: buffer_bundle.bloom_params_buffer,

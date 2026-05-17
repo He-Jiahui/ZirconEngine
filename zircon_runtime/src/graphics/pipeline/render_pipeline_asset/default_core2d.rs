@@ -32,8 +32,9 @@ impl RenderPipelineAsset {
                     RenderPassStage::Debug,
                 ],
                 features: vec![
-                    RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess)
-                        .with_enabled(false),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Sprite),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::PostProcess),
+                    RendererFeatureAsset::builtin(BuiltinRenderFeature::Ui),
                     RendererFeatureAsset::builtin(BuiltinRenderFeature::DebugOverlay),
                 ],
             },

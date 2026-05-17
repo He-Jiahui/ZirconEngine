@@ -10,8 +10,8 @@ pub(super) fn load_or_create_meta(
 ) -> Result<AssetMetaDocument, AssetImportError> {
     if meta_path.exists() {
         let mut meta = AssetMetaDocument::load(meta_path)?;
-        meta.primary_locator = uri.clone();
-        meta.kind = kind;
+        meta.url = uri.clone();
+        meta.asset_kind = kind;
         return Ok(meta);
     }
 

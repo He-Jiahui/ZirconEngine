@@ -1,7 +1,7 @@
 use crate::core::editor_event::{
     EditorEvent, EditorEventDispatcher, EditorEventEffect, EditorEventEnvelope, EditorEventId,
     EditorEventRecord, EditorEventResult, EditorEventRuntime, EditorEventSequence,
-    EditorEventSource, MenuAction,
+    EditorEventSource, EditorEventTransient, MenuAction,
 };
 use crate::core::editor_operation::{
     EditorOperationDescriptor, EditorOperationPath, EditorOperationStackEntry,
@@ -201,6 +201,9 @@ impl EditorEventDispatcher for EditorEventRuntime {
     ) -> Result<EditorEventRecord, String> {
         let binding =
             EditorUiBinding::from_ui_binding(binding).map_err(|error| error.to_string())?;
+        if is_material_component_lab_binding(&binding) {
+            return Ok(self.record_material_component_lab_feedback(source, &binding));
+        }
         let event = normalize_editor_event_binding(&binding)?;
         self.dispatch_normalized_event(source, event)
     }
@@ -211,5 +214,54 @@ impl EditorEventDispatcher for EditorEventRuntime {
         event: EditorEvent,
     ) -> Result<EditorEventRecord, String> {
         self.dispatch_normalized_event(source, event)
+    }
+}
+
+fn is_material_component_lab_binding(binding: &EditorUiBinding) -> bool {
+    binding
+        .as_ui_binding()
+        .action
+        .as_ref()
+        .is_some_and(|call| call.symbol == "MaterialComponentLab")
+}
+
+impl EditorEventRuntime {
+    fn record_material_component_lab_feedback(
+        &self,
+        source: EditorEventSource,
+        binding: &EditorUiBinding,
+    ) -> EditorEventRecord {
+        let mut inner = self.lock_inner();
+        inner.next_event_id += 1;
+        inner.next_sequence += 1;
+
+        let revision = inner.revision;
+        let event = EditorEvent::Transient(EditorEventTransient::PressNode {
+            node_path: binding.path().control_id.clone(),
+            pressed: false,
+        });
+        let record = EditorEventRecord {
+            event_id: EditorEventId::new(inner.next_event_id),
+            sequence: EditorEventSequence::new(inner.next_sequence),
+            source,
+            event,
+            operation_id: None,
+            operation_display_name: Some("Material Component Lab Feedback".to_string()),
+            operation_arguments: None,
+            operation_group: Some("MaterialComponentLab".to_string()),
+            effects: Vec::new(),
+            undo_policy: undo_policy_for_event(&EditorEvent::Transient(
+                EditorEventTransient::PressNode {
+                    node_path: binding.path().control_id.clone(),
+                    pressed: false,
+                },
+            )),
+            before_revision: revision,
+            after_revision: revision,
+            result: EditorEventResult::success(event_result_value(revision, false)),
+        };
+        inner.journal.push(record.clone());
+        inner.event_listeners.notify(&record);
+        record
     }
 }

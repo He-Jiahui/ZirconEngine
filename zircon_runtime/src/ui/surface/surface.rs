@@ -44,6 +44,7 @@ use super::{
 };
 
 mod default_interactions;
+mod interaction_state;
 mod rebuild;
 
 pub use rebuild::UiSurfaceRebuildReport;
@@ -253,9 +254,17 @@ impl UiSurface {
         let property = request.property.clone();
         let value = request.value.clone();
         let mut report = mutate_tree_property(&mut self.tree, request)?;
+        let component_state_changed = if matches!(report.status, UiPropertyMutationStatus::Accepted)
+        {
+            self.sync_component_state_from_property(node_id, &property, &value)?
+        } else {
+            false
+        };
         if matches!(report.status, UiPropertyMutationStatus::Accepted) {
-            self.sync_component_state_from_property(node_id, &property, &value)?;
-            if property_may_affect_runtime_pseudo_state(&property) {
+            if component_state_changed {
+                self.mark_component_state_render_dirty(node_id)?;
+                report.invalidation.dirty.render = true;
+            } else if property_may_affect_runtime_pseudo_state(&property) {
                 let changed = self.apply_runtime_state_style_subtree(node_id, true)?;
                 if changed > 0 {
                     report.invalidation.dirty.render = true;
@@ -279,35 +288,38 @@ impl UiSurface {
         node_id: UiNodeId,
         property: &str,
         value: &UiValue,
-    ) -> Result<(), UiTreeError> {
+    ) -> Result<bool, UiTreeError> {
+        let mut changed =
+            self.component_states
+                .set_value(node_id, property.to_string(), value.clone());
         let UiValue::Bool(value) = value else {
-            return Ok(());
+            return Ok(changed);
         };
         match property {
             "pressed" => {
-                let _ = self.component_states.set_pressed(node_id, *value);
+                changed |= self.component_states.set_pressed(node_id, *value);
             }
             "checked" => {
-                let _ = self.component_states.set_checked(node_id, *value);
+                changed |= self.component_states.set_checked(node_id, *value);
             }
             "enabled" => {
-                let _ = self.component_states.set_disabled(node_id, !*value);
+                changed |= self.component_states.set_disabled(node_id, !*value);
             }
             "disabled" => {
-                let _ = self.component_states.set_disabled(node_id, *value);
+                changed |= self.component_states.set_disabled(node_id, *value);
             }
             "expanded" => {
-                let _ = self.component_states.set_expanded(node_id, *value);
+                changed |= self.component_states.set_expanded(node_id, *value);
             }
             "popup_open" | "open" => {
-                let _ = self.component_states.set_popup_open(node_id, *value);
+                changed |= self.component_states.set_popup_open(node_id, *value);
             }
             "selected" => {
-                let _ = self.component_states.set_selected(node_id, *value);
+                changed |= self.component_states.set_selected(node_id, *value);
             }
             _ => {}
         }
-        Ok(())
+        Ok(changed)
     }
 
     pub fn reflector_snapshot(&self, query: Option<UiHitTestQuery>) -> UiReflectorSnapshot {
@@ -530,7 +542,20 @@ impl UiSurface {
         if let Some(node_id) = range_action.handled_by {
             result.handled_by = Some(node_id);
         } else {
-            self.apply_default_pointer_component_actions(&route, &mut result.component_events)?;
+            let scrollbar_action = self.apply_default_scrollbar_pointer_action(&route)?;
+            if let Some(node_id) = scrollbar_action.handled_by {
+                result.handled_by = Some(node_id);
+                result.diagnostics.scroll_defaulted = true;
+            } else {
+                self.apply_default_pointer_component_actions(
+                    &route,
+                    event.click_count,
+                    &mut result.component_events,
+                )?;
+            }
+            if let Some(node_id) = scrollbar_action.damage_node {
+                self.push_damage_frame(&mut result, node_id);
+            }
         }
         if let Some(node_id) = range_action.damage_node {
             self.push_damage_frame(&mut result, node_id);
@@ -563,7 +588,9 @@ impl UiSurface {
         match route.activation_phase {
             UiPointerActivationPhase::PrimaryPress => {
                 if let Some(target) = route.target {
-                    if self.component_states.set_pressed(target, true) {
+                    if self.node_interaction_enabled(target)?
+                        && self.component_states.set_pressed(target, true)
+                    {
                         self.mark_component_state_render_dirty(target)?;
                     }
                 }
@@ -606,7 +633,9 @@ impl UiSurface {
                     self.set_node_pressed_dirty(previous, false)?;
                 }
                 if let Some(target) = route.target {
-                    self.set_node_pressed_dirty(target, true)?;
+                    if self.node_interaction_enabled(target)? {
+                        self.set_node_pressed_dirty(target, true)?;
+                    }
                 }
             }
             UiPointerActivationPhase::PrimaryRelease => {
@@ -685,27 +714,33 @@ impl UiSurface {
 
         if route.activation_phase == UiPointerActivationPhase::PrimaryPress {
             if let Some(node_id) = route.target {
-                self.push_pointer_component_events(
-                    &mut events,
-                    node_id,
-                    UiEventKind::Press,
-                    UiComponentEvent::Press { pressed: true },
-                    UiPointerComponentEventReason::PressBegin,
-                )?;
+                if self.node_interaction_enabled(node_id)? {
+                    self.push_pointer_component_events(
+                        &mut events,
+                        node_id,
+                        UiEventKind::Press,
+                        UiComponentEvent::Press { pressed: true },
+                        UiPointerComponentEventReason::PressBegin,
+                    )?;
+                }
             }
         }
         if route.activation_phase == UiPointerActivationPhase::PrimaryRelease {
             if let Some(node_id) = route.pressed {
-                self.push_pointer_component_events(
-                    &mut events,
-                    node_id,
-                    UiEventKind::Release,
-                    UiComponentEvent::Press { pressed: false },
-                    UiPointerComponentEventReason::PressEnd,
-                )?;
+                if self.node_interaction_enabled(node_id)? {
+                    self.push_pointer_component_events(
+                        &mut events,
+                        node_id,
+                        UiEventKind::Release,
+                        UiComponentEvent::Press { pressed: false },
+                        UiPointerComponentEventReason::PressEnd,
+                    )?;
+                }
             }
             if let Some(node_id) = route.click_target {
-                if !self.uses_typed_default_click_action(node_id)? {
+                if self.node_interaction_enabled(node_id)?
+                    && !self.uses_typed_default_click_action(node_id)?
+                {
                     self.push_pointer_component_events(
                         &mut events,
                         node_id,
@@ -950,11 +985,19 @@ impl UiSurface {
     ) -> Result<UiNavigationDispatchResult, UiTreeError> {
         let route = self.route_navigation_event(kind)?;
         if let Some(target) = route.target {
-            if let Some(direction) = default_interactions::range_navigation_direction(kind) {
-                if self
-                    .mutate_default_range_step_value(target, direction)?
-                    .is_some()
-                {
+            if let Some(action) = default_interactions::range_navigation_action(kind) {
+                let range_action = match action {
+                    default_interactions::UiDefaultRangeNavigationAction::Step(direction) => {
+                        self.mutate_default_range_step_value(target, direction)?
+                    }
+                    default_interactions::UiDefaultRangeNavigationAction::Minimum => {
+                        self.mutate_default_range_endpoint_value(target, false)?
+                    }
+                    default_interactions::UiDefaultRangeNavigationAction::Maximum => {
+                        self.mutate_default_range_endpoint_value(target, true)?
+                    }
+                };
+                if range_action.is_some() {
                     let mut result = UiNavigationDispatchResult::new(route);
                     result.handled_by = Some(target);
                     return Ok(result);

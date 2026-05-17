@@ -8,9 +8,10 @@ use zircon_runtime_interface::resource::{ResourceKind, ResourceRecord, ResourceS
 
 use crate::ui::workbench::snapshot::{
     AssetFolderSnapshot, AssetItemSnapshot, AssetReferenceSnapshot, AssetSelectionSnapshot,
-    AssetSurfaceMode, AssetUtilityTab, AssetViewMode, AssetWorkspaceSnapshot,
-    ProjectOverviewSnapshot,
+    AssetSubassetSnapshot, AssetSurfaceMode, AssetUtilityTab, AssetViewMode,
+    AssetWorkspaceSnapshot, ProjectOverviewSnapshot,
 };
+use zircon_runtime::asset::project::AssetSourceUnit;
 
 #[derive(Clone, Debug)]
 pub(crate) struct AssetWorkspaceState {
@@ -274,6 +275,28 @@ impl AssetWorkspaceState {
             adapter_key: details
                 .and_then(|details| details.editor_adapter.clone())
                 .unwrap_or_default(),
+            package_id: details.and_then(|details| details.package_id.clone()),
+            asset_unit: details
+                .map(|details| asset_unit_label(details.unit).to_string())
+                .unwrap_or_default(),
+            included_files: details
+                .map(|details| details.included_files.clone())
+                .unwrap_or_default(),
+            subassets: details
+                .map(|details| {
+                    details
+                        .subassets
+                        .iter()
+                        .map(|subasset| AssetSubassetSnapshot {
+                            uuid: subasset.uuid.clone(),
+                            locator: subasset.locator.clone(),
+                            kind: subasset.kind,
+                            artifact_locator: subasset.artifact_locator.clone(),
+                            dependency_locators: subasset.dependency_locators.clone(),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
             diagnostics: asset.diagnostics.clone(),
             resource_state: resource_state(resource),
             resource_revision: resource.map(|resource| resource.revision),
@@ -314,6 +337,13 @@ impl AssetWorkspaceState {
             resource_state: resource_state(resource),
             resource_revision: resource.map(|resource| resource.revision),
         }
+    }
+}
+
+fn asset_unit_label(unit: AssetSourceUnit) -> &'static str {
+    match unit {
+        AssetSourceUnit::Single => "single",
+        AssetSourceUnit::Compound => "compound",
     }
 }
 
@@ -386,6 +416,19 @@ fn asset_belongs_to_folder(asset: &EditorAssetCatalogRecord, folder_id: &str) ->
 }
 
 fn parent_folder_id_for_locator(locator: &str) -> String {
+    if let Some(package_path) = locator.strip_prefix("package://") {
+        let mut segments = package_path.split('/').collect::<Vec<_>>();
+        if segments.len() <= 1 {
+            return locator.to_string();
+        }
+        let package_id = segments.remove(0);
+        if segments.len() <= 1 {
+            return format!("package://{package_id}");
+        }
+        segments.pop();
+        return format!("package://{package_id}/{}", segments.join("/"));
+    }
+
     let locator_path = locator.strip_prefix("res://").unwrap_or(locator);
     let mut segments = locator_path.split('/').collect::<Vec<_>>();
     if segments.len() <= 1 {

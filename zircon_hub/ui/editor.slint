@@ -1,183 +1,507 @@
 import { LineEdit, ScrollView } from "std-widgets.slint";
-import { FieldLabel, MutedText, Panel, PillButton, SourceEngineData } from "shared.slint";
+import {
+    FieldLabel,
+    IconButton,
+    MutedText,
+    PillButton,
+    SourceBuildHistoryRowData,
+    SourceEngineData,
+    SourceEngineRowData,
+    UiTextData,
+} from "shared.slint";
+import { ActionRow, Badge, HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+
+component SourceEngineRow inherits Rectangle {
+    in property <SourceEngineRowData> engine;
+    callback selected(string);
+    callback remove(string);
+
+    height: 72px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: root.engine.active ? #18bbb2 : (area.has-hover ? #424b56 : #303641);
+    background: root.engine.active ? #073e3d : (area.has-hover ? #20252d : #171b21);
+    clip: true;
+
+    area := TouchArea {
+        clicked => {
+            root.selected(root.engine.id);
+        }
+    }
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: 14px;
+        padding-right: 12px;
+        spacing: 12px;
+        alignment: center;
+
+        Rectangle {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: root.engine.active ? #24d5ca : #3a4049;
+            background: root.engine.active ? #0b7771 : #20262d;
+
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: @image-url("../assets/brand/zircon-mark.svg");
+                image-fit: contain;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 4px;
+            horizontal-stretch: 1;
+            min-width: 1px;
+
+            Text {
+                text: root.engine.title;
+                overflow: elide;
+                color: #f3f6f9;
+                font-size: 14px;
+                font-weight: 800;
+            }
+
+            MutedText {
+                text: root.engine.version + " / " + root.engine.source-path;
+                overflow: elide;
+            }
+
+            MutedText {
+                text: root.engine.last-build;
+                overflow: elide;
+            }
+        }
+
+        Badge {
+            text: root.engine.status;
+            tone: root.engine.active ? "accent" : "neutral";
+            badge-width: 108px;
+        }
+
+        IconButton {
+            width: 28px;
+            height: 28px;
+            icon-image: @image-url("../assets/icons/ui/close.svg");
+            has-icon-image: true;
+            clicked => {
+                root.remove(root.engine.id);
+            }
+        }
+    }
+}
+
+component BuildHistoryRow inherits InfoRow {
+    in property <SourceBuildHistoryRowData> record;
+
+    row-height: 68px;
+    title: root.record.detail;
+    detail: root.record.output-path;
+    meta: root.record.profile + " / " + root.record.finished;
+    leading-image: root.record.success ? @image-url("../assets/icons/status/success.svg") : @image-url("../assets/icons/status/error.svg");
+    has-leading-image: true;
+    trailing-text: root.record.status;
+    trailing-tone: root.record.success ? "ok" : "error";
+    show-trailing-badge: true;
+}
 
 export component EditorPage inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
     in-out property <string> source-path;
     in-out property <string> output-path;
+    in-out property <string> active-engine-name;
     in property <SourceEngineData> source-engine;
+    in property <[SourceEngineRowData]> source-engines;
+    in property <int> source-engine-count;
+    in property <[SourceBuildHistoryRowData]> source-build-history;
+    in property <int> source-build-history-count;
+    in property <UiTextData> ui-text;
+    private property <bool> compact: root.width < 1120px;
+    private property <length> engine-list-scroll-y: 0px;
+    private property <length> build-history-scroll-y: 0px;
     callback save-settings();
+    callback browse-folder(string);
+    callback select-engine(string);
+    callback rename-active-engine(string);
+    callback remove-engine(string);
     callback build-engine();
     callback open-output();
     callback launch-editor();
 
     background: #11151a;
+    forward-focus: page-focus;
+    clip: true;
 
-    ScrollView {
-        content := Rectangle {
-            width: root.width;
-            height: 720px;
-            background: #11151a;
+    page-focus := FocusScope {
+        width: 1px;
+        height: 1px;
+    }
 
-            VerticalLayout {
+    PageScrollSurface {
+        width: root.width;
+        height: root.height;
+        scroll-y <=> root.scroll-y;
+        content-height: root.compact ? 1640px : 820px;
+        page-padding: 0px;
+        bottom-padding: 0px;
+        gap: 0px;
+
+        VerticalLayout {
+            width: parent.width;
+            height: parent.height;
+            padding-left: 28px;
+            padding-right: 28px;
+            padding-top: 28px;
+            padding-bottom: 28px;
+            spacing: 18px;
+
+            ResponsivePanelFlow {
                 width: parent.width;
-                height: parent.height;
-                padding-left: 28px;
-                padding-right: 28px;
-                padding-top: 184px;
-                padding-bottom: 28px;
-                spacing: 18px;
+                horizontal-stretch: 1;
+                flow-height: root.compact ? 598px : 292px;
+                spacing-horizontal: 14px;
+                spacing-vertical: 14px;
 
-                HorizontalLayout {
-                    spacing: 14px;
+                HubPanel {
+                    flex-basis: 620px;
+                    flex-grow: 1;
+                    flex-shrink: 1;
+                    min-width: 420px;
+                    height: 292px;
 
-                    Panel {
-                        horizontal-stretch: 1;
-                        height: 230px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 12px;
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 18px;
+                        spacing: 12px;
 
-                            HorizontalLayout {
-                                spacing: 14px;
-                                Rectangle {
-                                    width: 52px;
-                                    height: 52px;
-                                    border-radius: 10px;
-                                    background: #073e3d;
-                                    border-width: 1px;
-                                    border-color: #24d5ca;
-                                    Text {
-                                        text: "Z";
-                                        color: #a6fff7;
-                                        font-size: 22px;
-                                        font-weight: 900;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                VerticalLayout {
-                                    spacing: 4px;
-                                    Text {
-                                        text: root.source-engine.title;
-                                        color: #f3f6f9;
-                                        font-size: 20px;
-                                        font-weight: 800;
-                                    }
-                                    MutedText {
-                                        text: root.source-engine.version + " / " + root.source-engine.status;
-                                    }
-                                }
-                                Rectangle { horizontal-stretch: 1; }
-                                PillButton {
-                                    text: "Launch Editor";
-                                    icon: ">";
-                                    primary: true;
-                                    clicked => {
-                                        root.launch-editor();
-                                    }
-                                }
-                            }
-
-                            Rectangle { height: 1px; background: #303641; }
-
-                            MutedText { text: "Source: " + root.source-engine.source-path; }
-                            MutedText { text: "Output: " + root.source-engine.output-path; }
-                            MutedText { text: "Last build: " + root.source-engine.last-build; }
-
-                            HorizontalLayout {
-                                spacing: 10px;
-                                Rectangle {
-                                    width: 84px;
-                                    height: 26px;
-                                    border-radius: 5px;
-                                    background: #063f3e;
-                                    border-width: 1px;
-                                    border-color: #0f7d78;
-                                    Text {
-                                        text: root.source-engine.build-profile;
-                                        color: #72f7ee;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
-                                Rectangle {
-                                    width: 84px;
-                                    height: 26px;
-                                    border-radius: 5px;
-                                    background: #2a2f36;
-                                    border-width: 1px;
-                                    border-color: #3a4049;
-                                    Text {
-                                        text: root.source-engine.jobs + " jobs";
-                                        color: #c9cfd8;
-                                        font-size: 12px;
-                                        horizontal-alignment: center;
-                                        vertical-alignment: center;
-                                    }
-                                }
+                        PanelHeader {
+                            title: root.source-engine.title;
+                            subtitle: root.source-engine.version + " / " + root.source-engine.status;
+                            show-badge: true;
+                            badge-text: root.source-engine.build-profile;
+                            badge-tone: "accent";
+                            show-action: true;
+                            action-text: root.ui-text.open-editor;
+                            action-clicked => {
+                                root.launch-editor();
                             }
                         }
-                    }
 
-                    Panel {
-                        width: 360px;
-                        height: 230px;
-                        VerticalLayout {
-                            padding: 18px;
-                            spacing: 10px;
-                            Text {
-                                text: "Engine Actions";
-                                color: #f3f6f9;
-                                font-size: 16px;
-                                font-weight: 800;
-                            }
-                            PillButton {
-                                text: "Save Source";
-                                icon: "[]";
-                                clicked => {
-                                    root.save-settings();
-                                }
-                            }
-                            PillButton {
-                                text: "Build";
-                                icon: "/>";
-                                primary: true;
-                                clicked => {
-                                    root.build-engine();
-                                }
-                            }
-                            PillButton {
-                                text: "Open Output";
-                                icon: ">";
-                                clicked => {
-                                    root.open-output();
-                                }
-                            }
+                        Rectangle {
+                            height: 1px;
+                            background: #303641;
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.source-prefix;
+                            detail: root.source-engine.source-path;
+                            meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
+                            leading-image: @image-url("../assets/brand/zircon-mark.svg");
+                            has-leading-image: true;
+                            trailing-text: root.source-engine.status;
+                            trailing-tone: "ok";
+                            show-trailing-badge: true;
+                        }
+
+                        InfoRow {
+                            row-height: 62px;
+                            title: root.ui-text.output-prefix;
+                            detail: root.source-engine.output-path;
+                            meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
+                            leading-image: @image-url("../assets/icons/ui/folder.svg");
+                            has-leading-image: true;
+                            trailing-text: root.source-engine.jobs + root.ui-text.jobs-suffix;
+                            trailing-tone: "neutral";
+                            show-trailing-badge: true;
                         }
                     }
                 }
 
-                Panel {
-                    height: 210px;
+                HubPanel {
+                    flex-basis: 380px;
+                    flex-grow: 0;
+                    flex-shrink: 1;
+                    min-width: 340px;
+                    height: 292px;
+
                     VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
+                        padding: 18px;
+                        spacing: 10px;
+
+                        PanelHeader {
+                            title: root.ui-text.editor-actions;
+                            subtitle: "";
+                        }
+
+                        ActionRow {
+                            action: {
+                                id: "save-source",
+                                icon: "",
+                                icon-image: @image-url("../assets/icons/ui/settings.svg"),
+                                has-icon-image: true,
+                                title: root.ui-text.save-source,
+                                detail: root.ui-text.source-checkout-path,
+                                enabled: true,
+                            };
+                            activate(id) => {
+                                root.save-settings();
+                            }
+                        }
+
+                        ActionRow {
+                            action: {
+                                id: "build",
+                                icon: "",
+                                icon-image: @image-url("../assets/icons/actions/build-project.svg"),
+                                has-icon-image: true,
+                                title: root.ui-text.build,
+                                detail: root.ui-text.compile-editor,
+                                enabled: true,
+                            };
+                            activate(id) => {
+                                root.build-engine();
+                            }
+                        }
+
+                        ActionRow {
+                            action: {
+                                id: "open-output",
+                                icon: "",
+                                icon-image: @image-url("../assets/icons/ui/folder.svg"),
+                                has-icon-image: true,
+                                title: root.ui-text.open-output,
+                                detail: root.source-engine.output-path,
+                                enabled: true,
+                            };
+                            activate(id) => {
+                                root.open-output();
+                            }
+                        }
+                    }
+                }
+            }
+
+            ResponsivePanelFlow {
+                width: parent.width;
+                horizontal-stretch: 1;
+                flow-height: root.compact ? 966px : 476px;
+                spacing-horizontal: 14px;
+                spacing-vertical: 14px;
+
+                HubPanel {
+                    flex-basis: 600px;
+                    flex-grow: 1;
+                    flex-shrink: 1;
+                    min-width: 420px;
+                    height: 476px;
+
+                    VerticalLayout {
+                        width: parent.width;
+                        height: parent.height;
                         padding: 18px;
                         spacing: 12px;
-                        Text {
-                            text: "Source Engine";
-                            color: #f3f6f9;
-                            font-size: 16px;
-                            font-weight: 800;
+
+                        PanelHeader {
+                            title: root.ui-text.source-engine;
+                            subtitle: root.ui-text.source-checkout-path;
                         }
-                        FieldLabel { text: "Source checkout path"; }
-                        LineEdit {
-                            placeholder-text: "Source checkout path";
-                            text <=> root.source-path;
+
+                        FieldLabel {
+                            text: root.ui-text.active-engine-name;
                         }
-                        FieldLabel { text: "Staged output directory"; }
-                        LineEdit {
-                            placeholder-text: "Staged output directory";
-                            text <=> root.output-path;
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            LineEdit {
+                                horizontal-stretch: 1;
+                                placeholder-text: root.ui-text.active-engine-name;
+                                text <=> root.active-engine-name;
+                            }
+
+                            PillButton {
+                                text: root.ui-text.rename;
+                                icon-image: @image-url("../assets/icons/ui/edit.svg");
+                                has-icon-image: true;
+                                clicked => {
+                                    root.rename-active-engine(root.active-engine-name);
+                                }
+                            }
+                        }
+
+                        FieldLabel {
+                            text: root.ui-text.source-checkout-path;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            LineEdit {
+                                horizontal-stretch: 1;
+                                placeholder-text: root.ui-text.source-checkout-path;
+                                text <=> root.source-path;
+                            }
+
+                            PillButton {
+                                text: root.ui-text.browse;
+                                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                                has-icon-image: true;
+                                clicked => {
+                                    root.browse-folder("source");
+                                }
+                            }
+                        }
+
+                        FieldLabel {
+                            text: root.ui-text.staged-output-directory;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            LineEdit {
+                                horizontal-stretch: 1;
+                                placeholder-text: root.ui-text.staged-output-directory;
+                                text <=> root.output-path;
+                            }
+
+                            PillButton {
+                                text: root.ui-text.browse;
+                                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                                has-icon-image: true;
+                                clicked => {
+                                    root.browse-folder("output");
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            vertical-stretch: 1;
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    flex-basis: 440px;
+                    flex-grow: 0;
+                    flex-shrink: 1;
+                    min-width: 360px;
+                    height: 476px;
+                    spacing: 14px;
+
+                    HubPanel {
+                        vertical-stretch: 1;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: 18px;
+                            spacing: 10px;
+
+                            PanelHeader {
+                                title: root.ui-text.source-engines;
+                                subtitle: "";
+                                show-badge: true;
+                                badge-text: root.source-engine-count + "";
+                                badge-tone: "info";
+                            }
+
+                            engine-scroll := ScrollView {
+                                horizontal-stretch: 1;
+                                vertical-stretch: 1;
+                                viewport-y <=> root.engine-list-scroll-y;
+                                viewport-width: engine-scroll.visible-width;
+                                viewport-height: max(engine-scroll.visible-height, root.source-engine-count * 80px + 8px);
+                                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                                mouse-drag-pan-enabled: true;
+
+                                Rectangle {
+                                    width: engine-scroll.visible-width;
+                                    height: engine-scroll.viewport-height;
+                                    background: transparent;
+
+                                    VerticalLayout {
+                                        width: parent.width;
+                                        height: parent.height;
+                                        padding-bottom: 4px;
+                                        spacing: 8px;
+
+                                        for engine in root.source-engines: SourceEngineRow {
+                                            engine: engine;
+                                            selected(id) => {
+                                                root.select-engine(id);
+                                            }
+                                            remove(id) => {
+                                                root.remove-engine(id);
+                                            }
+                                        }
+
+                                        if root.source-engine-count == 0: MutedText {
+                                            text: root.ui-text.no-source-engines;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    HubPanel {
+                        vertical-stretch: 1;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: 18px;
+                            spacing: 10px;
+
+                            PanelHeader {
+                                title: root.ui-text.build-history;
+                                subtitle: "";
+                                show-badge: true;
+                                badge-text: root.source-build-history-count + "";
+                                badge-tone: "info";
+                            }
+
+                            history-scroll := ScrollView {
+                                horizontal-stretch: 1;
+                                vertical-stretch: 1;
+                                viewport-y <=> root.build-history-scroll-y;
+                                viewport-width: history-scroll.visible-width;
+                                viewport-height: max(history-scroll.visible-height, root.source-build-history-count * 76px + 8px);
+                                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+                                mouse-drag-pan-enabled: true;
+
+                                Rectangle {
+                                    width: history-scroll.visible-width;
+                                    height: history-scroll.viewport-height;
+                                    background: transparent;
+
+                                    VerticalLayout {
+                                        width: parent.width;
+                                        height: parent.height;
+                                        padding-bottom: 4px;
+                                        spacing: 8px;
+
+                                        for record in root.source-build-history: BuildHistoryRow {
+                                            record: record;
+                                        }
+
+                                        if root.source-build-history-count == 0: MutedText {
+                                            text: root.ui-text.no-build-history;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

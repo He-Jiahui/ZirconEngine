@@ -10,7 +10,7 @@ use zircon_runtime::{
     plugin::RuntimePluginFeatureRegistrationReport, plugin::RuntimePluginRegistrationReport,
 };
 
-use crate::entry::{BuiltinEngineEntry, EngineEntry, EntryConfig};
+use crate::entry::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryModuleSelectionReport};
 
 use super::EntryRunner;
 
@@ -122,6 +122,87 @@ impl NativePluginRuntimeBootstrap {
 }
 
 impl EntryRunner {
+    pub fn module_selection_report(
+        config: EntryConfig,
+    ) -> Result<EntryModuleSelectionReport, CoreError> {
+        Ok(BuiltinEngineEntry::for_config(&config)?.module_selection_report())
+    }
+
+    pub fn module_selection_diagnostics(config: EntryConfig) -> Result<String, CoreError> {
+        Ok(Self::module_selection_report(config)?.format_diagnostics())
+    }
+
+    pub fn module_selection_report_with_first_party_runtime_plugin_registrations(
+        config: EntryConfig,
+    ) -> Result<EntryModuleSelectionReport, CoreError> {
+        Ok(
+            BuiltinEngineEntry::for_config_with_first_party_runtime_plugin_registrations(&config)?
+                .module_selection_report(),
+        )
+    }
+
+    pub fn module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
+        config: EntryConfig,
+    ) -> Result<String, CoreError> {
+        Ok(
+            Self::module_selection_report_with_first_party_runtime_plugin_registrations(config)?
+                .format_diagnostics(),
+        )
+    }
+
+    pub fn module_selection_report_with_runtime_plugin_registrations(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+    ) -> Result<EntryModuleSelectionReport, CoreError> {
+        Ok(
+            BuiltinEngineEntry::for_config_with_runtime_plugin_registrations(
+                &config,
+                registrations,
+            )?
+            .module_selection_report(),
+        )
+    }
+
+    pub fn module_selection_diagnostics_with_runtime_plugin_registrations(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+    ) -> Result<String, CoreError> {
+        Ok(
+            Self::module_selection_report_with_runtime_plugin_registrations(config, registrations)?
+                .format_diagnostics(),
+        )
+    }
+
+    pub fn module_selection_report_with_runtime_plugin_and_feature_registrations(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+    ) -> Result<EntryModuleSelectionReport, CoreError> {
+        Ok(
+            BuiltinEngineEntry::for_config_with_runtime_plugin_and_feature_registrations(
+                &config,
+                registrations,
+                feature_registrations,
+            )?
+            .module_selection_report(),
+        )
+    }
+
+    pub fn module_selection_diagnostics_with_runtime_plugin_and_feature_registrations(
+        config: EntryConfig,
+        registrations: impl IntoIterator<Item = RuntimePluginRegistrationReport>,
+        feature_registrations: impl IntoIterator<Item = RuntimePluginFeatureRegistrationReport>,
+    ) -> Result<String, CoreError> {
+        Ok(
+            Self::module_selection_report_with_runtime_plugin_and_feature_registrations(
+                config,
+                registrations,
+                feature_registrations,
+            )?
+            .format_diagnostics(),
+        )
+    }
+
     pub fn bootstrap(config: EntryConfig) -> Result<CoreHandle, CoreError> {
         BuiltinEngineEntry::for_config(&config)?.bootstrap()
     }

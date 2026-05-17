@@ -11,6 +11,7 @@ pub enum UiA11yRole {
     Button,
     Checkbox,
     Radio,
+    RadioGroup,
     Slider,
     Text,
     TextInput,

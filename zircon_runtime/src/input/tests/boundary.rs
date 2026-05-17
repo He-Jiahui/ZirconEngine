@@ -9,10 +9,19 @@ fn input_protocol_types_live_in_runtime_input_surface() {
     let manager_resolver_source = include_str!("../../core/manager/resolver.rs");
 
     for required in [
+        "ButtonInputState",
+        "InputFrameSnapshot",
+        "GamepadButton",
+        "GamepadAxis",
+        "TouchPhase",
         "InputButton",
         "InputEvent",
         "InputEventRecord",
         "InputSnapshot",
+        "FileDragDropEvent",
+        "ImeDeleteSurrounding",
+        "WindowStatusEvent",
+        "WindowTheme",
     ] {
         assert!(
             input_mod_source.contains(required),
@@ -34,6 +43,9 @@ fn input_protocol_types_live_in_runtime_input_surface() {
         "InputEvent",
         "InputEventRecord",
         "InputSnapshot",
+        "ImeEvent",
+        "ImePreedit",
+        "ImeCursorRange",
     ] {
         assert!(
             !manager_mod_source.contains(forbidden),

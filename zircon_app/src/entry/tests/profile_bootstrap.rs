@@ -20,6 +20,9 @@ use zircon_runtime::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
     RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset, RendererFeatureAsset,
 };
+use zircon_runtime::platform::{
+    PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
+};
 use zircon_runtime::render_graph::QueueLane;
 use zircon_runtime::scene::World;
 #[cfg(feature = "target-editor-host")]
@@ -343,6 +346,40 @@ fn entry_config_can_select_headless_render_profile_bundle() {
     assert!(!bundle.enables(RenderProductProfile::Render2d));
     assert!(!bundle.enables(RenderProductProfile::Render3d));
     assert!(!bundle.enables(RenderProductProfile::Ui));
+}
+
+#[test]
+fn headless_bootstrap_stores_headless_platform_config() {
+    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let platform_config = core
+        .load_config::<PlatformConfig>(PLATFORM_CONFIG_KEY)
+        .expect("headless bootstrap should store the selected platform config");
+
+    assert!(platform_config.enabled);
+    assert_eq!(platform_config.target, PlatformTarget::Headless);
+    assert_eq!(
+        platform_config.target_mode,
+        RuntimeTargetMode::ServerRuntime
+    );
+    assert_eq!(
+        platform_config.features,
+        PlatformFeatureSelection::headless()
+    );
+}
+
+#[test]
+fn minimal_runtime_profile_stores_disabled_platform_config() {
+    let entry = BuiltinEngineEntry::for_runtime_profile(RuntimeProfileId::Minimal).unwrap();
+    let core = entry.bootstrap().unwrap();
+    let platform_config = core
+        .load_config::<PlatformConfig>(PLATFORM_CONFIG_KEY)
+        .expect("minimal runtime profile should store a diagnostic platform config");
+
+    assert!(!platform_config.enabled);
+    assert_eq!(
+        platform_config.target_mode,
+        RuntimeTargetMode::ClientRuntime
+    );
 }
 
 #[test]

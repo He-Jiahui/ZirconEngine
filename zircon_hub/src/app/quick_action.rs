@@ -25,14 +25,6 @@ impl HubQuickAction {
             _ => None,
         }
     }
-
-    pub(super) fn unavailable_detail(self) -> &'static str {
-        match self {
-            Self::InstallToDevice => "Device deployment is not connected yet.",
-            Self::PackageProject => "Project packaging is not connected yet.",
-            Self::BuildProject | Self::OpenEditor => "Action is available.",
-        }
-    }
 }
 
 #[cfg(test)]

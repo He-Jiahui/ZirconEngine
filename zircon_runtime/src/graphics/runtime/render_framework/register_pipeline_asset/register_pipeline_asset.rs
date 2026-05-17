@@ -14,8 +14,8 @@ pub(in crate::graphics::runtime::render_framework) fn register_pipeline_asset(
     let handle = pipeline.handle;
     let compiled = compile_pipeline_for_validation(&pipeline)?;
 
-    let _operation_guard = server.operation_lock.lock().unwrap();
-    let mut state = server.state.lock().unwrap();
+    let _operation_guard = server.lock_operation();
+    let mut state = server.lock_state();
     state
         .renderer
         .validate_compiled_pipeline_executors(&compiled)
@@ -84,6 +84,8 @@ fn validation_extract_for_core_pipeline(core_pipeline: CorePipelineKind) -> Rend
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: Default::default(),
             preview: crate::core::framework::render::PreviewEnvironmentExtract {

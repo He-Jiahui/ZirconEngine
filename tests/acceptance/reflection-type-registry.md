@@ -361,3 +361,141 @@ Observed output summaries:
 Result:
 
 - M8.6 implementation, focused resource reflection tests, typed ECS regression tests, docs, review fix, and scoped Cargo validation pass in this checkout. Workspace-wide validation was not run or claimed for M8.6.
+
+## M8.7 Editor Inspector And Remote DTO Reuse Proof
+
+Implementation files:
+
+- `zircon_runtime/src/scene/tests/ecs_reflect/mod.rs`
+- `zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs`
+
+Docs:
+
+- `docs/zircon_runtime/scene/reflect.md`
+- `docs/zircon_editor/scene/viewport/edit_mode_projection.md`
+- `tests/acceptance/reflection-type-registry.md`
+- `.codex/sessions/20260508-2036-reflection-type-registry.md`
+
+Validation target directory:
+
+- `E:\cargo-targets\zircon-reflect-m8`
+
+Scope:
+
+- Added runtime-side inspector-style field listing proof through `world.reflect_fields(ReflectFieldsRequest::new(...))` for fixed `Name`, fixed `ActiveSelf`, and dynamic plugin JSON component fields.
+- Added remote-style schema/read request-response DTO serialization proof by serializing and deserializing `ReflectSchemaRequest`, `ReflectReadRequest`, `ReflectSchemaResponse`, and `ReflectReadResponse` with `serde_json` and asserting response equality.
+- Added remote-style plugin-owned filter proof: `ReflectSchemaRequest::remote_visible()` excludes plugin-owned dynamic types by default, while explicit `include_plugin_owned = true` includes them.
+- Added remote-style write request-response proof by serializing and deserializing `ReflectWriteRequest`, passing it to `world.reflect_write(...)`, serializing/deserializing the returned `ReflectWriteResponse`, and verifying the world changed through the reflection facade.
+- Checked serialized reflection DTO payloads for absence of runtime-only tokens such as `World`, `TypeRegistry`, `ReflectComponent`, and `ReflectResource`.
+- Documented the future editor inspector seam: `WorldReflection` DTOs become the field source for existing `SceneInspectorField` projection, while selection, viewport tools, command history, and undo/redo intent remain in `zircon_editor`.
+- Kept actual editor projection rewrites, sockets, HTTP routes, BRP handlers, and remote authorization out of M8.7 scope.
+
+Commands:
+
+- Passed: `rustfmt --edition 2021 --check "zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs" "zircon_runtime/src/scene/tests/ecs_reflect/mod.rs"`
+- Passed: `cargo check -p zircon_runtime --lib --locked --message-format short`
+- Passed: `cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short`
+- Passed with line-ending warnings only: `git diff --check -- "zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs" "zircon_runtime/src/scene/tests/ecs_reflect/mod.rs" "docs/zircon_runtime/scene/reflect.md" "docs/zircon_editor/scene/viewport/edit_mode_projection.md" "tests/acceptance/reflection-type-registry.md" ".codex/sessions/20260508-2036-reflection-type-registry.md"`
+
+Observed output summaries:
+
+- M8.7 spec compliance review reported `Spec compliant`. The code-quality review found missing write-response serialization coverage and missing default plugin-owned remote filter coverage; both were fixed in `editor_remote.rs` before validation. A final focused review then found schema/read request roundtrips were still response-only; `editor_remote.rs` now roundtrips `ReflectSchemaRequest` and `ReflectReadRequest` before executing the facade path.
+- `rustfmt --check` for the M8.7 test files completed with no output.
+- Before Cargo validation, the E drive had 13.33 GB free. The low-disk policy cleanup ran `cargo clean --target-dir "E:\cargo-targets\zircon-reflect-m8"`, removed 903 files / 404.7 MiB, and left 13.73 GB free, so validation stayed serial and scoped.
+- `cargo check -p zircon_runtime --lib --locked --message-format short` finished successfully in 2m 55s with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-m8`.
+- `cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short` finished successfully after a 6m 57s compile and reported 35 passed, 0 failed, 0 ignored, 1425 filtered out.
+- Scoped `git diff --check` completed with no whitespace errors. It emitted LF-to-CRLF warnings for `docs/zircon_editor/scene/viewport/edit_mode_projection.md`, `docs/zircon_runtime/scene/reflect.md`, `tests/acceptance/reflection-type-registry.md`, and `zircon_runtime/src/scene/tests/ecs_reflect/mod.rs`.
+
+Result:
+
+- M8.7 implementation, review fixes, runtime inspector/remote DTO tests, docs, focused formatting, focused compile validation, focused reflection tests, and scoped whitespace validation pass in this checkout. Workspace-wide validation was not run or claimed for M8.7.
+
+## M8.8 Documentation And Acceptance Evidence
+
+Documentation files:
+
+- `docs/zircon_runtime_interface/reflect.md`
+- `docs/zircon_runtime/scene/reflect.md`
+- `docs/zircon_runtime/scene/ecs.md`
+- `docs/zircon_editor/scene/viewport/edit_mode_projection.md`
+- `tests/acceptance/reflection-type-registry.md`
+- `.codex/sessions/20260508-2036-reflection-type-registry.md`
+
+Scope:
+
+- Confirmed the interface reflection doc owns the final DTO file list, tests, design source, object address model, schema/read/write request-response semantics, tagged value contract, and error model.
+- Updated the runtime reflection doc header and body so plan sources include the M8.7 editor/remote proof, boundary plan, and design spec, while the body links the concrete adapter/facade ownership split.
+- Updated the ECS doc header and body to explain how `ComponentRegistry`, `ResourceRegistry`, plugin `ComponentTypeRegistry`, dynamic JSON descriptors, runtime `TypeRegistry`, and `WorldReflection` relate without collapsing storage identity into schema identity.
+- Confirmed the editor viewport projection doc records the runtime reflection field-source seam while selection, tools, command history, undo/redo intent, and authoring UI state remain editor-owned.
+- Preserved scoped validation evidence only; workspace-wide and plugin-workspace validation remain unclaimed until the final promotion gate runs.
+
+Commands:
+
+- Passed with line-ending warnings only: `git diff --check -- docs/superpowers/specs/2026-05-08-reflection-type-registry-design.md docs/superpowers/plans/2026-05-08-reflection-type-registry-implementation.md docs/zircon_runtime_interface/reflect.md docs/zircon_runtime/scene/reflect.md docs/zircon_runtime/scene/ecs.md docs/zircon_editor/scene/viewport/edit_mode_projection.md tests/acceptance/reflection-type-registry.md .codex/sessions/20260508-2036-reflection-type-registry.md`
+
+Observed output summaries:
+
+- Scoped documentation `git diff --check` completed with no whitespace errors. It emitted LF-to-CRLF warnings for `docs/zircon_editor/scene/viewport/edit_mode_projection.md`, `docs/zircon_runtime/scene/ecs.md`, `docs/zircon_runtime/scene/reflect.md`, and `tests/acceptance/reflection-type-registry.md`.
+
+Result:
+
+- M8.8 documentation cleanup and scoped documentation whitespace validation pass in this checkout. The final promotion gate remains pending; workspace-wide and plugin-workspace validation were not run or claimed in M8.8.
+
+## Final Promotion Gate
+
+Validation target directory:
+
+- `E:\cargo-targets\zircon-reflect-m8`
+
+Commands:
+
+- Low-disk cleanup before final scoped tests: `cargo clean --target-dir "E:\cargo-targets\zircon-reflect-m8"`
+- Passed: `cargo test -p zircon_runtime_interface --locked --message-format short`
+- Passed: `cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short`
+- Passed: `cargo test -p zircon_runtime --lib scene::tests::ecs_typed_api --locked --message-format short`
+- Passed: `cargo test -p zircon_runtime --lib scene::tests --locked --message-format short`
+- Later broad-validation attempt failed before root workspace tests: `cargo build --workspace --locked --verbose`
+- Not run because root workspace build failed first: `cargo test --workspace --locked --verbose`
+- Later broad-validation plugin workspace results are recorded below.
+
+Observed output summaries:
+
+- Before final scoped runtime tests, the E drive had 32.67 GB free, which is below the repository's 50 GB Cargo threshold. No Cargo/rustc process was using `E:\cargo-targets\zircon-reflect-m8`, so cleanup removed 4675 files / 5.4 GiB and left 37.89 GB free.
+- `cargo test -p zircon_runtime_interface --locked --message-format short` finished successfully in 1m 01s. The lib tests reported 96 passed, 0 failed, 0 ignored, 0 filtered out; doc tests reported 0 tests.
+- `cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short` finished successfully after an 8m 24s compile and reported 35 passed, 0 failed, 0 ignored, 1430 filtered out.
+- `cargo test -p zircon_runtime --lib scene::tests::ecs_typed_api --locked --message-format short` finished successfully in 4m 05s and reported 4 passed, 0 failed, 0 ignored, 1463 filtered out.
+- `cargo test -p zircon_runtime --lib scene::tests --locked --message-format short` finished successfully after a 10m 28s compile and reported 114 passed, 0 failed, 0 ignored, 1355 filtered out.
+- After the focused review fix for schema/read request roundtrips, `rustfmt --edition 2021 --check "zircon_runtime/src/scene/tests/ecs_reflect/editor_remote.rs"` completed with no output after scoped formatting. The E drive had 43.19 GB free before the retest cleanup; `cargo clean --target-dir "E:\cargo-targets\zircon-reflect-m8"` removed 4193 files / 7.4 GiB and left 48.01 GB free. The retest `cargo test -p zircon_runtime --lib scene::tests::ecs_reflect --locked --message-format short` finished successfully after a 10m 49s compile and reported 35 passed, 0 failed, 0 ignored, 1455 filtered out.
+- Workspace-wide and plugin-workspace validation were deferred at the time of the scoped gate because this checkout remained heavily dirty with active editor/UI/render/plugin lanes, and the active drive still remained below the 50 GB build threshold after cleaning the isolated reflection target. No workspace-wide green status was claimed from the scoped gate.
+
+Result:
+
+- Reflection M8 scoped promotion passes for the runtime-interface contract suite, focused reflection tests, typed ECS regression tests, and broader runtime scene tests. Root workspace readiness remains unclaimed until the root workspace CI build/test commands pass in a coordinated validation window.
+
+## Broad Workspace And Plugin Validation
+
+Validation target directories:
+
+- `E:\cargo-targets\zircon-reflect-workspace`
+- `E:\cargo-targets\zircon-reflect-plugins`
+
+Commands:
+
+- Failed on Windows before Zircon crates finished compiling: `cargo build --workspace --locked --verbose` with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-workspace`
+- Not run after the failed root build: `cargo test --workspace --locked --verbose`
+- Blocked in WSL/Linux CI parity setup: root workspace build/test commands, because required pkg-config packages are missing and noninteractive sudo cannot install them.
+- Passed before this continuation in the same broad-validation lane: `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked --verbose` with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-plugins`
+- Passed: `cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose` with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-plugins`
+- Passed: `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked --verbose` with `CARGO_TARGET_DIR=E:\cargo-targets\zircon-reflect-plugins`
+
+Observed output summaries:
+
+- The Windows root workspace build failed in third-party `wgpu-hal 29.0.3` DX12 code before completing the root workspace. The first error was `E0308` in `wgpu-hal-29.0.3/src/dx12/suballocation.rs:83`, where `gpu_allocator::d3d12::ID3D12DeviceVersion::Device(...)` expected the `windows 0.61.3`/`windows-core 0.61.2` `ID3D12Device` type but received the `windows 0.62.2`/`windows-core 0.62.2` `Direct3D12::ID3D12Device` type. The same dependency split also produced `ResourceCategory::from(&D3D12_RESOURCE_DESC)` and `ID3D12Heap: Param<ID3D12Heap>` errors, and rustc reported `could not compile wgpu-hal (lib) due to 10 previous errors`.
+- Fresh WSL probe at `2026-05-17 13:59 +08:00` reported `Linux 6.6.87.2-microsoft-standard-WSL2 x86_64 GNU/Linux`, `pkg_config=0.29.2`, missing `pkg:x11`, `pkg:xcursor`, `pkg:xcb`, `pkg:xkbcommon`, `pkg:wayland-client`, and `pkg:alsa`, plus `sudo_noninteractive=failed` with `sudo: a password is required`. This blocks local Linux CI-parity root validation until those system packages are installed or a prepared environment is provided.
+- The plugin workspace target started with 57.25 GB free on `E:` before the build, so the isolated target was not cleaned. The plugin build finished with `Finished dev profile [unoptimized + debuginfo] target(s) in 3m 13s`.
+- The plugin workspace had 55.06 GB free before tests. The plugin test command finished with `Finished test profile [unoptimized + debuginfo] target(s) in 8m 04s`; all visible unit-test and doc-test summaries in the captured output were `ok` with 0 failures.
+- After plugin testing, `E:` had 30.93 GB free. No additional broad Cargo build/test was started after recording evidence because the repo policy requires cleaning before further build/test work at or below the 50 GB threshold, and cleaning the plugin target would discard the just-produced cached evidence target.
+
+Result:
+
+- Plugin workspace build/test validation passed in this checkout, with pre-continuation evidence that the plugin all-targets check had already passed in the same isolated target. Root workspace validation remains blocked, not green, because the Windows CI-shape build fails in third-party `wgpu-hal`/`windows` dependency code and local WSL CI-parity validation cannot proceed without missing system dependencies and sudo access.

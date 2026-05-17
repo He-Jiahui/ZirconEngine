@@ -7,6 +7,7 @@ pub enum SystemParamError {
     Query(QueryAccessError),
     ConflictingResourceAccess { resource_id: ResourceId },
     ConflictingEventAccess { type_name: &'static str },
+    ConflictingMessageAccess { type_name: &'static str },
     MissingResource { type_name: &'static str },
 }
 
@@ -22,6 +23,10 @@ impl fmt::Display for SystemParamError {
             Self::ConflictingEventAccess { type_name } => write!(
                 f,
                 "system accesses event {type_name} mutably while events are already read or written"
+            ),
+            Self::ConflictingMessageAccess { type_name } => write!(
+                f,
+                "system accesses message {type_name} mutably while messages are already read or written"
             ),
             Self::MissingResource { type_name } => {
                 write!(f, "requested missing scene resource {type_name}")

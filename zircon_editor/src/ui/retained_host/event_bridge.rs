@@ -66,6 +66,10 @@ impl UiHostEventEffects {
 }
 
 pub(crate) fn apply_record_effects(target: &mut UiHostEventEffects, record: &EditorEventRecord) {
+    if record.operation_group.as_deref() == Some("MaterialComponentLab") {
+        target.request_paint_only();
+    }
+
     for effect in &record.effects {
         match effect {
             EditorEventEffect::PresentationChanged => {

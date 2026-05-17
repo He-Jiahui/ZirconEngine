@@ -81,7 +81,7 @@ pub(super) fn direct_references(imported: &ImportedAsset) -> Vec<AssetReference>
 fn dedup_references(references: Vec<AssetReference>) -> Vec<AssetReference> {
     let mut seen = HashMap::<AssetId, AssetReference>::new();
     for reference in references {
-        let id = AssetId::from_asset_uuid_label(reference.uuid, reference.locator.label());
+        let id = AssetId::from_asset_uuid(reference.uuid);
         seen.entry(id).or_insert(reference);
     }
     let mut deduped = seen.into_values().collect::<Vec<_>>();

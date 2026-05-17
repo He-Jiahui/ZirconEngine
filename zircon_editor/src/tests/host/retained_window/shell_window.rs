@@ -455,17 +455,17 @@ fn rust_owned_host_window_snapshot_renders_template_node_styles() {
 
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 84, 102),
-        [54, 83, 130, 255],
+        [15, 101, 116, 255],
         "selected template panel should use active surface color"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 176, 102),
-        [76, 125, 213, 255],
+        [53, 199, 208, 255],
         "primary button variant should use primary surface color"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 84, 136),
-        [30, 33, 39, 255],
+        [25, 29, 34, 255],
         "disabled template node should use disabled surface color"
     );
     assert_ne!(
@@ -509,27 +509,27 @@ fn rust_owned_host_window_snapshot_renders_template_icon_states() {
 
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 59, 75),
-        [44, 53, 66, 255],
+        [128, 234, 255, 255],
         "hovered icon controls should paint the Material hover state layer"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 111, 75),
-        [47, 64, 94, 255],
-        "pressed icon controls should paint a distinct pressed state"
+        [128, 234, 255, 255],
+        "pressed icon controls should paint the Material interaction state layer"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 163, 75),
-        [54, 83, 130, 255],
-        "selected icon controls should paint the active selected surface"
+        [128, 234, 255, 255],
+        "selected icon controls should paint the Material interaction state layer"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 59, 109),
-        [30, 33, 39, 255],
+        [51, 72, 82, 255],
         "disabled icon controls should paint the disabled surface"
     );
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 178, 90),
-        [123, 156, 224, 255],
+        [100, 201, 220, 255],
         "selected icons should use the active icon tint"
     );
     assert_ne!(
@@ -579,7 +579,7 @@ fn rust_owned_host_window_snapshot_respects_template_node_order_and_clip() {
 
     assert_eq!(
         pixel(snapshot.width(), snapshot.as_bytes(), 92, 106),
-        [54, 83, 130, 255],
+        [15, 101, 116, 255],
         "later overlapping template nodes should paint over earlier nodes"
     );
     assert_ne!(

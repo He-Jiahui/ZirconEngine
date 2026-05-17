@@ -1,6 +1,7 @@
 mod dispatch;
 mod effect;
 mod state;
+mod text_keyboard;
 mod validation;
 
 pub(crate) use dispatch::dispatch_input_event;

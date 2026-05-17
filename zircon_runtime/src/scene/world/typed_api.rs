@@ -1,7 +1,7 @@
 pub(super) mod fixed_components;
 
 use crate::scene::ecs::{
-    Bundle, Component, ComponentId, ComponentRemoveResult, Resource, ResourceId,
+    Bundle, Component, ComponentId, ComponentRemoveResult, LifecycleEventKind, Resource, ResourceId,
 };
 use crate::scene::{EntityId, NodeKind};
 
@@ -29,6 +29,7 @@ impl World {
         self.entities.push(entity);
         self.kinds.insert(entity, NodeKind::Mesh);
         self.refresh_stable_entity_locations();
+        self.bump_query_cache_revision();
         self.mark_derived_state_dirty();
         true
     }
@@ -89,6 +90,7 @@ impl World {
 
         let tick = self.mutation_change_tick();
         let component_id = self.component_id::<T>();
+        let was_present = self.contains_component_id(entity, component_id);
         self.insert_fixed_component(entity, &component)?;
         let internal = self
             .internal_entity(entity)
@@ -99,6 +101,15 @@ impl World {
             .map_err(|error| error.to_string())?;
 
         self.mark_component_mutation::<T>();
+        if !was_present {
+            self.bump_query_cache_revision();
+        }
+        if was_present {
+            self.trigger_component_lifecycle(LifecycleEventKind::Replace, entity, component_id);
+        } else {
+            self.trigger_component_lifecycle(LifecycleEventKind::Add, entity, component_id);
+        }
+        self.trigger_component_lifecycle(LifecycleEventKind::Insert, entity, component_id);
         Ok(old)
     }
 
@@ -145,8 +156,19 @@ impl World {
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
         if self.is_fixed_component_type::<T>() {
+            if component_id
+                .is_some_and(|component_id| self.contains_component_id(entity, component_id))
+            {
+                self.trigger_component_lifecycle(
+                    LifecycleEventKind::Remove,
+                    entity,
+                    component_id.expect("checked component id must be present"),
+                );
+            }
             let removed = self.remove_fixed_component_value::<T>(entity);
+            let mut removed_from_storage = false;
             if let Some(component_id) = component_id {
+                removed_from_storage = self.component_storage.contains(component_id, internal);
                 self.component_storage
                     .remove::<T>(component_id, internal)
                     .map_err(|error| error.to_string())?;
@@ -155,11 +177,17 @@ impl World {
                 self.record_removed_component::<T>(entity);
                 self.mark_component_mutation::<T>();
             }
+            if removed.is_some() || removed_from_storage {
+                self.bump_query_cache_revision();
+            }
             return Ok(removed);
         }
         let Some(component_id) = component_id else {
             return Ok(None);
         };
+        if self.contains_component_id(entity, component_id) {
+            self.trigger_component_lifecycle(LifecycleEventKind::Remove, entity, component_id);
+        }
         let removed = self
             .component_storage
             .remove::<T>(component_id, internal)
@@ -168,6 +196,7 @@ impl World {
         if removed.is_some() {
             self.record_removed_component::<T>(entity);
             self.mark_component_mutation::<T>();
+            self.bump_query_cache_revision();
         }
         Ok(removed)
     }
@@ -272,7 +301,8 @@ impl World {
             .internal_entity(entity)
             .expect("stable entity must have an internal identity");
         let tick = self.mutation_change_tick();
-        self.component_storage
+        let old = self
+            .component_storage
             .insert_at_tick(
                 component_id,
                 crate::scene::ecs::StorageType::SparseSet,
@@ -280,8 +310,11 @@ impl World {
                 DynamicComponentPresence,
                 tick,
             )
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        if old.is_none() {
+            self.bump_query_cache_revision();
+        }
+        Ok(())
     }
 
     pub(super) fn remove_dynamic_component_presence(
@@ -298,10 +331,14 @@ impl World {
         let Some(internal) = self.internal_entity(entity) else {
             return Ok(());
         };
-        self.component_storage
+        let removed = self
+            .component_storage
             .remove::<DynamicComponentPresence>(component_id, internal)
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+            .map_err(|error| error.to_string())?;
+        if removed.is_some() {
+            self.bump_query_cache_revision();
+        }
+        Ok(())
     }
 
     pub(super) fn rebuild_typed_component_presence(&mut self) {

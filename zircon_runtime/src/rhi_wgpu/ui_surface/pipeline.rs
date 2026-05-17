@@ -1,196 +1,7 @@
 use super::geometry::{ImageVertex, SolidVertex};
 
-const SOLID_SHADER: &str = r#"
-struct VertexInput {
-    @location(0) position: vec2<f32>,
-    @location(1) color: vec4<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-};
-
-@vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4<f32>(input.position, 0.0, 1.0);
-    output.color = input.color;
-    return output;
-}
-
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return input.color;
-}
-"#;
-
-const IMAGE_SHADER: &str = r#"
-struct VertexInput {
-    @location(0) position: vec2<f32>,
-    @location(1) uv: vec2<f32>,
-};
-
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
-
-@group(0) @binding(0) var source_texture: texture_2d<f32>;
-@group(0) @binding(1) var source_sampler: sampler;
-
-@vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
-    var output: VertexOutput;
-    output.position = vec4<f32>(input.position, 0.0, 1.0);
-    output.uv = input.uv;
-    return output;
-}
-
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(source_texture, source_sampler, input.uv);
-}
-"#;
-
-const BLIT_SHADER: &str = r#"
-struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-};
-
-@group(0) @binding(0) var source_texture: texture_2d<f32>;
-@group(0) @binding(1) var source_sampler: sampler;
-
-@vertex
-fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
-    var positions = array<vec2<f32>, 3>(
-        vec2<f32>(-1.0, -1.0),
-        vec2<f32>(3.0, -1.0),
-        vec2<f32>(-1.0, 3.0)
-    );
-    var uvs = array<vec2<f32>, 3>(
-        vec2<f32>(0.0, 1.0),
-        vec2<f32>(2.0, 1.0),
-        vec2<f32>(0.0, -1.0)
-    );
-
-    var output: VertexOutput;
-    output.position = vec4<f32>(positions[vertex_index], 0.0, 1.0);
-    output.uv = uvs[vertex_index];
-    return output;
-}
-
-@fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(source_texture, source_sampler, input.uv);
-}
-"#;
-
-pub(super) struct WgpuBlitResources {
-    pipeline: wgpu::RenderPipeline,
-    bind_group_layout: wgpu::BindGroupLayout,
-    sampler: wgpu::Sampler,
-}
-
-impl WgpuBlitResources {
-    pub(super) fn new(
-        device: &wgpu::Device,
-        target_format: wgpu::TextureFormat,
-        bind_group_layout: &wgpu::BindGroupLayout,
-    ) -> Self {
-        let sampler = create_image_sampler(device);
-        let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("zircon-ui-blit-pipeline-layout"),
-            bind_group_layouts: &[Some(bind_group_layout)],
-            immediate_size: 0,
-        });
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("zircon-ui-blit-shader"),
-            source: wgpu::ShaderSource::Wgsl(BLIT_SHADER.into()),
-        });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("zircon-ui-blit-pipeline"),
-            layout: Some(&pipeline_layout),
-            vertex: wgpu::VertexState {
-                module: &shader,
-                entry_point: Some("vs_main"),
-                compilation_options: Default::default(),
-                buffers: &[],
-            },
-            fragment: Some(wgpu::FragmentState {
-                module: &shader,
-                entry_point: Some("fs_main"),
-                compilation_options: Default::default(),
-                targets: &[Some(wgpu::ColorTargetState {
-                    format: target_format,
-                    blend: Some(wgpu::BlendState::REPLACE),
-                    write_mask: wgpu::ColorWrites::ALL,
-                })],
-            }),
-            primitive: wgpu::PrimitiveState::default(),
-            depth_stencil: None,
-            multisample: wgpu::MultisampleState::default(),
-            multiview_mask: None,
-            cache: None,
-        });
-        Self {
-            pipeline,
-            bind_group_layout: bind_group_layout.clone(),
-            sampler,
-        }
-    }
-
-    pub(super) fn blit(
-        &self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        source_view: &wgpu::TextureView,
-        target_view: &wgpu::TextureView,
-        size: (u32, u32),
-    ) {
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("zircon-ui-blit-bind-group"),
-            layout: &self.bind_group_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::TextureView(source_view),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-            ],
-        });
-        let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-            label: Some("zircon-ui-blit-encoder"),
-        });
-        {
-            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("zircon-ui-blit-pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                    depth_slice: None,
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-                multiview_mask: None,
-            });
-            pass.set_pipeline(&self.pipeline);
-            pass.set_bind_group(0, &bind_group, &[]);
-            pass.set_viewport(0.0, 0.0, size.0 as f32, size.1 as f32, 0.0, 1.0);
-            pass.draw(0..3, 0..1);
-        }
-        queue.submit(Some(encoder.finish()));
-    }
-}
+const UI_MATERIAL_SHADER: &str = include_str!("shaders/ui_material.wgsl");
+const UI_SURFACE_BLEND: wgpu::BlendState = wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING;
 
 pub(super) fn create_solid_pipeline(
     device: &wgpu::Device,
@@ -203,14 +14,14 @@ pub(super) fn create_solid_pipeline(
     });
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-ui-solid-shader"),
-        source: wgpu::ShaderSource::Wgsl(SOLID_SHADER.into()),
+        source: wgpu::ShaderSource::Wgsl(UI_MATERIAL_SHADER.into()),
     });
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-ui-solid-pipeline"),
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: Some("vs_main"),
+            entry_point: Some("solid_vs_main"),
             compilation_options: Default::default(),
             buffers: &[wgpu::VertexBufferLayout {
                 array_stride: std::mem::size_of::<SolidVertex>() as wgpu::BufferAddress,
@@ -231,11 +42,11 @@ pub(super) fn create_solid_pipeline(
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: Some("fs_main"),
+            entry_point: Some("solid_fs_main"),
             compilation_options: Default::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: target_format,
-                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                blend: Some(UI_SURFACE_BLEND),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
@@ -259,14 +70,14 @@ pub(super) fn create_image_pipeline(
     });
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-ui-image-shader"),
-        source: wgpu::ShaderSource::Wgsl(IMAGE_SHADER.into()),
+        source: wgpu::ShaderSource::Wgsl(UI_MATERIAL_SHADER.into()),
     });
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-ui-image-pipeline"),
         layout: Some(&pipeline_layout),
         vertex: wgpu::VertexState {
             module: &shader,
-            entry_point: Some("vs_main"),
+            entry_point: Some("image_vs_main"),
             compilation_options: Default::default(),
             buffers: &[wgpu::VertexBufferLayout {
                 array_stride: std::mem::size_of::<ImageVertex>() as wgpu::BufferAddress,
@@ -287,11 +98,11 @@ pub(super) fn create_image_pipeline(
         },
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: Some("fs_main"),
+            entry_point: Some("image_fs_main"),
             compilation_options: Default::default(),
             targets: &[Some(wgpu::ColorTargetState {
                 format: target_format,
-                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                blend: Some(UI_SURFACE_BLEND),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
         }),
@@ -338,4 +149,55 @@ pub(super) fn create_image_sampler(device: &wgpu::Device) -> wgpu::Sampler {
         mipmap_filter: wgpu::MipmapFilterMode::Nearest,
         ..Default::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UI_MATERIAL_SHADER, UI_SURFACE_BLEND};
+
+    #[test]
+    fn ui_material_shader_exposes_surface_entry_points_and_material_helpers() {
+        for entry_point in [
+            "solid_vs_main",
+            "solid_fs_main",
+            "image_vs_main",
+            "image_fs_main",
+        ] {
+            assert!(
+                UI_MATERIAL_SHADER.contains(entry_point),
+                "ui_material.wgsl must expose `{entry_point}`"
+            );
+        }
+
+        for helper in [
+            "material_tint",
+            "premultiply_alpha",
+            "rounded_box_alpha",
+            "material_solid_color",
+            "material_image_color",
+        ] {
+            assert!(
+                UI_MATERIAL_SHADER.contains(helper),
+                "ui_material.wgsl must keep the Material UI helper `{helper}`"
+            );
+        }
+    }
+
+    #[test]
+    fn ui_material_shader_routes_fragment_outputs_through_material_helpers() {
+        assert_eq!(
+            UI_SURFACE_BLEND,
+            wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING,
+            "solid and image UI surfaces must blend premultiplied fragment output"
+        );
+        assert!(
+            UI_MATERIAL_SHADER.contains("return material_solid_color(input.color);"),
+            "solid fragment output must go through the Material solid color path"
+        );
+        assert!(
+            UI_MATERIAL_SHADER
+                .contains("return material_image_color(textureSample(source_texture, source_sampler, input.uv));"),
+            "image fragment output must go through the Material image color path"
+        );
+    }
 }
