@@ -4,10 +4,10 @@ use std::path::{Path, PathBuf};
 
 use crate::asset::AssetImporterDescriptor;
 use crate::plugin::{
-    ComponentTypeDescriptor, PluginFeatureBundleManifest, PluginFeatureDependency,
-    PluginModuleKind, PluginModuleManifest, PluginPackageKind, PluginPackageManifest,
-    ProjectPluginFeatureSelection, RuntimePluginDescriptor, RuntimePluginFeatureRegistrationReport,
-    RuntimePluginRegistrationReport, UiComponentDescriptor,
+    CapabilityStatus, ComponentTypeDescriptor, PluginFeatureBundleManifest,
+    PluginFeatureDependency, PluginModuleKind, PluginModuleManifest, PluginPackageKind,
+    PluginPackageManifest, ProjectPluginFeatureSelection, RuntimePluginDescriptor,
+    RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport, UiComponentDescriptor,
 };
 use crate::{
     plugin::ExportPackagingStrategy, plugin::ExportTargetPlatform, plugin::ProjectPluginManifest,
@@ -1207,6 +1207,52 @@ fn builtin_runtime_catalog_entries_have_matching_plugin_manifests_and_workspace_
             descriptor.package_id,
             descriptor.crate_name
         );
+    }
+}
+
+#[test]
+fn advanced_render_plugin_manifests_declare_profile_capabilities() {
+    let plugins_root = plugins_workspace_root();
+    let catalog = RuntimePluginDescriptor::builtin_catalog();
+
+    for (plugin_id, capability, runtime_id) in [
+        (
+            "virtual_geometry",
+            "runtime.render.advanced.virtual_geometry",
+            RuntimePluginId::VirtualGeometry,
+        ),
+        (
+            "hybrid_gi",
+            "runtime.render.advanced.hybrid_gi",
+            RuntimePluginId::HybridGi,
+        ),
+    ] {
+        let manifest = read_plugin_manifest(&plugins_root, plugin_id);
+        let runtime_module = manifest
+            .modules
+            .iter()
+            .find(|module| module.kind == PluginModuleKind::Runtime)
+            .expect("advanced render plugin should declare a runtime module");
+        let descriptor = catalog
+            .iter()
+            .find(|descriptor| descriptor.runtime_id == runtime_id)
+            .expect("advanced render plugin should be in the runtime catalog");
+        let projected_manifest = descriptor.package_manifest();
+
+        assert!(manifest.capabilities.contains(&capability.to_string()));
+        assert!(manifest.capability_statuses.iter().any(|status| {
+            status.capability == capability && status.status == CapabilityStatus::Partial
+        }));
+        assert!(runtime_module
+            .capabilities
+            .contains(&capability.to_string()));
+        assert!(descriptor.capabilities.contains(&capability.to_string()));
+        assert!(descriptor.capability_statuses.iter().any(|status| {
+            status.capability == capability && status.status == CapabilityStatus::Partial
+        }));
+        assert!(projected_manifest
+            .capabilities
+            .contains(&capability.to_string()));
     }
 }
 

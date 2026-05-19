@@ -52,6 +52,11 @@ pub(super) fn update_base_stats(
         .renderer
         .last_render_graph_executed_post_process_nodes()
         .to_vec();
+    state.stats.last_anti_alias_fallback = context.anti_alias_fallback();
+    state.stats.last_advanced_provider_reports = context.advanced_provider_reports().to_vec();
+    state.stats.last_solari_runtime_report = context.solari_runtime_report().clone();
+    state.stats.last_anti_alias_graph_executed_pass_count =
+        count_executor_prefix(&state.stats.last_graph_executed_executor_ids, "post.fxaa");
     state.stats.last_graph_queue_fallback_pass_count = state
         .renderer
         .last_render_graph_executed_queue_fallback_count();

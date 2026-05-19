@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderBloomSettings, RenderColorGradingSettings};
+use crate::core::framework::render::{
+    AntiAliasMode, AntiAliasSettings, RenderBloomSettings, RenderColorGradingSettings,
+};
 
 use super::{PostProcessEffectKind, PostProcessEffectSettings, PostProcessPassGraph};
 
@@ -11,6 +13,7 @@ impl PostProcessGraphResourceNames {
     pub const BLOOM: &'static str = "bloom-texture";
     pub const COLOR_GRADED: &'static str = "postprocess.color-graded";
     pub const HISTORY_RESOLVED: &'static str = "postprocess.history-resolved";
+    pub const FINAL_COMPOSITED: &'static str = "postprocess.final-composited";
     pub const FINAL_COLOR: &'static str = "final-color";
 }
 
@@ -38,9 +41,26 @@ impl PostProcessStackDescriptor {
         history_resolve_enabled: bool,
         history_available: bool,
     ) -> Self {
+        Self::from_extract_settings_with_anti_alias(
+            bloom,
+            color_grading,
+            history_resolve_enabled,
+            history_available,
+            &AntiAliasSettings::off(),
+        )
+    }
+
+    pub fn from_extract_settings_with_anti_alias(
+        bloom: &RenderBloomSettings,
+        color_grading: &RenderColorGradingSettings,
+        history_resolve_enabled: bool,
+        history_available: bool,
+        anti_alias: &AntiAliasSettings,
+    ) -> Self {
         let bloom_enabled = bloom.intensity > 0.0;
         let color_grading_enabled = *color_grading != RenderColorGradingSettings::default();
         let history_enabled = history_resolve_enabled && history_available;
+        let fxaa_enabled = anti_alias.mode == AntiAliasMode::Fxaa;
         let mut initial_resources = vec![
             PostProcessGraphResourceNames::SCENE_COLOR.to_string(),
             PostProcessGraphResourceNames::SCENE_DEPTH.to_string(),
@@ -63,6 +83,11 @@ impl PostProcessStackDescriptor {
             final_inputs.push(PostProcessGraphResourceNames::HISTORY_RESOLVED.to_string());
             final_after.push(PostProcessEffectKind::HistoryResolve);
         }
+        let final_composite_output = if fxaa_enabled {
+            PostProcessGraphResourceNames::FINAL_COMPOSITED
+        } else {
+            PostProcessGraphResourceNames::FINAL_COLOR
+        };
         let color_grading_after = if bloom_enabled {
             vec![PostProcessEffectKind::Bloom]
         } else {
@@ -76,31 +101,42 @@ impl PostProcessStackDescriptor {
             Vec::new()
         };
 
+        let mut effects = vec![
+            PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
+                .with_enabled(bloom_enabled)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
+            PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
+                .with_enabled(color_grading_enabled)
+                .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
+                .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
+                .with_after(color_grading_after),
+            PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
+                .with_enabled(history_enabled)
+                .with_required_inputs([
+                    PostProcessGraphResourceNames::SCENE_COLOR,
+                    PostProcessGraphResourceNames::HISTORY_COLOR,
+                ])
+                .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_RESOLVED])
+                .with_after(history_after),
+            PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
+                .with_required_inputs(final_inputs)
+                .with_produced_outputs([final_composite_output])
+                .with_after(final_after),
+        ];
+        if anti_alias.mode != AntiAliasMode::Off {
+            effects.push(
+                PostProcessEffectSettings::new(PostProcessEffectKind::Fxaa)
+                    .with_enabled(fxaa_enabled)
+                    .with_required_inputs([PostProcessGraphResourceNames::FINAL_COMPOSITED])
+                    .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
+                    .with_after([PostProcessEffectKind::FinalComposite]),
+            );
+        }
+
         Self {
             initial_resources,
-            effects: vec![
-                PostProcessEffectSettings::new(PostProcessEffectKind::Bloom)
-                    .with_enabled(bloom_enabled)
-                    .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
-                    .with_produced_outputs([PostProcessGraphResourceNames::BLOOM]),
-                PostProcessEffectSettings::new(PostProcessEffectKind::ColorGrading)
-                    .with_enabled(color_grading_enabled)
-                    .with_required_inputs([PostProcessGraphResourceNames::SCENE_COLOR])
-                    .with_produced_outputs([PostProcessGraphResourceNames::COLOR_GRADED])
-                    .with_after(color_grading_after),
-                PostProcessEffectSettings::new(PostProcessEffectKind::HistoryResolve)
-                    .with_enabled(history_enabled)
-                    .with_required_inputs([
-                        PostProcessGraphResourceNames::SCENE_COLOR,
-                        PostProcessGraphResourceNames::HISTORY_COLOR,
-                    ])
-                    .with_produced_outputs([PostProcessGraphResourceNames::HISTORY_RESOLVED])
-                    .with_after(history_after),
-                PostProcessEffectSettings::new(PostProcessEffectKind::FinalComposite)
-                    .with_required_inputs(final_inputs)
-                    .with_produced_outputs([PostProcessGraphResourceNames::FINAL_COLOR])
-                    .with_after(final_after),
-            ],
+            effects,
         }
     }
 

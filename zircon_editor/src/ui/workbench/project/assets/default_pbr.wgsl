@@ -38,8 +38,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-    let albedo = textureSample(color_texture, color_sampler, input.uv) * model.tint;
+    let base_color = textureSample(color_texture, color_sampler, input.uv) * model.tint;
     let ndotl = max(dot(normalize(input.world_normal), normalize(-scene.light_dir.xyz)), 0.0);
     let lighting = 0.15 + ndotl;
-    return vec4<f32>(albedo.rgb * scene.light_color.rgb * lighting, albedo.a);
+    return vec4<f32>(base_color.rgb * scene.light_color.rgb * lighting, base_color.a);
 }

@@ -9,6 +9,7 @@ mod console;
 mod control;
 mod hierarchy;
 mod inspector;
+mod material_editor;
 mod project_overview;
 mod template;
 mod ui_asset_editor;

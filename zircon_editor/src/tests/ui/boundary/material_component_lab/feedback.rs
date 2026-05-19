@@ -5,6 +5,9 @@ use std::{
 
 use zircon_runtime::ui::v2::UiZuiAssetLoader;
 
+use crate::ui::binding::{EditorUiBindingPayload, EditorUiEventKind};
+use crate::ui::template_runtime::builtin::builtin_template_bindings;
+
 use super::support::*;
 
 const STRUCTURAL_CHILD_ROUTE_PROTOTYPES: &[&str] = &["button_group"];
@@ -576,6 +579,32 @@ fn material_button_group_uses_child_segment_routes_without_sample_feedback_route
         assert!(
             !event.id.starts_with("MaterialLab/"),
             "ButtonGroup child segment routes should not become Material Lab feedback routes"
+        );
+    }
+}
+
+#[test]
+fn material_button_group_child_routes_are_registered_as_structural_builtin_bindings() {
+    let bindings = builtin_template_bindings();
+
+    for (binding_id, control_id) in [
+        ("ButtonGroup/First/Click", "button-group_SegmentFirst"),
+        ("ButtonGroup/Middle/Click", "button-group_SegmentMiddle"),
+        ("ButtonGroup/Last/Click", "button-group_SegmentLast"),
+    ] {
+        let binding = bindings
+            .get(binding_id)
+            .unwrap_or_else(|| panic!("`{binding_id}` should be a builtin structural binding"));
+        assert_eq!(binding.path().view_id, "MaterialComponentLab");
+        assert_eq!(binding.path().control_id, control_id);
+        assert_eq!(binding.path().event_kind, EditorUiEventKind::Click);
+        let EditorUiBindingPayload::Custom(call) = binding.payload() else {
+            panic!("`{binding_id}` should use the Material Component Lab feedback payload");
+        };
+        assert_eq!(call.symbol, "MaterialComponentLab");
+        assert!(
+            !binding_id.starts_with("MaterialLab/"),
+            "`{binding_id}` should stay outside the representative Material Lab feedback inventory"
         );
     }
 }

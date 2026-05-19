@@ -3,6 +3,7 @@ mod constants;
 mod host_export_registry;
 mod host_registry;
 mod plugin_host_driver;
+mod reflection_docs;
 mod vm_plugin_host_context;
 mod vm_plugin_slot_lifecycle;
 
@@ -15,5 +16,9 @@ pub use host_export_registry::{
 };
 pub use host_registry::{HostCapabilityRecord, HostRegistry};
 pub use plugin_host_driver::PluginHostDriver;
+pub use reflection_docs::{
+    builtin_host_module_descriptors, render_script_host_modules_markdown,
+    write_script_host_modules_markdown, ScriptHostInterfaceMarkdownOptions,
+};
 pub use vm_plugin_host_context::VmPluginHostContext;
 pub use vm_plugin_slot_lifecycle::VmPluginSlotLifecycle;

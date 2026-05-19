@@ -7,6 +7,7 @@ pub(crate) struct SceneRuntimeFeatureFlags {
     pub(crate) history_resolve_enabled: bool,
     pub(crate) bloom_enabled: bool,
     pub(crate) color_grading_enabled: bool,
+    pub(crate) anti_alias_enabled: bool,
     pub(crate) reflection_probes_enabled: bool,
     pub(crate) baked_lighting_enabled: bool,
     pub(crate) sprite_rendering_enabled: bool,

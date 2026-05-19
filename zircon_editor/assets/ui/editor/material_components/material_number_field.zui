@@ -55,17 +55,64 @@ layout = { width = { min = 162, preferred = 162, max = 162, stretch = "Fixed" },
 component = "Label"
 control_id = "number_field_MetaLayout"
 classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
-props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+props = { text = "stepper / drag", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "stepper / drag", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "NumberField"
+component = "HorizontalBox"
 control_id = "number-field_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-number-field-row"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, dragging = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "number_stepper" },
+  { node = "number_clamped" },
+  { node = "number_drag_active" },
+  { node = "number_error" },
+  { node = "number_disabled" },
+]
 events = [
   { id = "MaterialLab/NumberField/Change", event = "Change", route = "MaterialLab.NumberField.Change" },
 ]
+
+[nodes.number_stepper]
+component = "NumberField"
+control_id = "number-field_Stepper"
+classes = ["material-control", "material-number-field", "material-number-field-stepper"]
+props = { value = 42.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = false, disabled = false, dragging = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.number_clamped]
+component = "NumberField"
+control_id = "number-field_Clamped"
+classes = ["material-control", "material-number-field", "material-number-field-clamped"]
+props = { value = 100.0, min = 0.0, max = 100.0, step = 5.0, large_step = 25.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = false, disabled = false, dragging = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_container_high" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.number_drag_active]
+component = "NumberField"
+control_id = "number-field_DragActive"
+classes = ["material-control", "material-number-field", "material-number-field-drag-active"]
+props = { value = 64.0, min = 0.0, max = 100.0, step = 0.5, large_step = 5.0, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = true, focused = true, selected = true, checked = false, disabled = false, dragging = true, open = false, popup_open = false, corner_radius = 999.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 999.0 } } }
+layout = { width = { min = 54.0, preferred = 62.0, max = 78.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.number_error]
+component = "NumberField"
+control_id = "number-field_Error"
+classes = ["material-control", "material-number-field", "material-number-field-error"]
+props = { value = 8.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, surface_variant = "elevated", button_variant = "contained", text_tone = "error", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, dragging = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.error" }, foreground = { color = "material.text" }, border = { color = "material.error", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 44.0, preferred = 52.0, max = 68.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.number_disabled]
+component = "NumberField"
+control_id = "number-field_Disabled"
+classes = ["material-control", "material-number-field", "material-number-field-disabled"]
+props = { value = 12.0, min = 0.0, max = 100.0, step = 1.0, large_step = 10.0, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, dragging = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

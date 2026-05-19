@@ -1,0 +1,171 @@
+import { MutedText } from "shared.slint";
+import { HubTokens } from "tokens.slint";
+import { ElevatedCard, OutlinedCard, OutlineButton, MaterialPalette, MaterialStyleMetrics, MaterialTypography } from "material_bridge.slint";
+
+export component HubPanel inherits Rectangle {
+    in property <string> variant: "default";
+
+    background: transparent;
+    clip: true;
+
+    if root.variant == "elevated": ElevatedCard {
+        width: parent.width;
+        height: parent.height;
+    }
+
+    if root.variant != "elevated": OutlinedCard {
+        width: parent.width;
+        height: parent.height;
+    }
+
+    Rectangle {
+        width: parent.width;
+        height: parent.height;
+        border-radius: MaterialStyleMetrics.border_radius_12;
+        border-width: root.variant == "selected" || root.variant == "danger" ? HubTokens.border-width : 0px;
+        border-color: root.variant == "danger" ? MaterialPalette.error : (root.variant == "selected" ? MaterialPalette.primary : transparent);
+        background: transparent;
+        clip: true;
+
+        @children
+    }
+}
+
+export component HubCard inherits HubPanel {
+    variant: "interactive";
+}
+
+export component HeaderGroup inherits Rectangle {
+    in property <length> group-height: HubTokens.shell-header-height;
+
+    height: root.group-height;
+    background: HubTokens.surface-page;
+    border-width: HubTokens.border-width;
+    border-color: HubTokens.stroke-muted;
+    clip: true;
+}
+
+export component Badge inherits Rectangle {
+    in property <string> text;
+    in property <string> tone: "neutral";
+    in property <length> badge-width: MaterialStyleMetrics.size_64;
+    in property <length> badge-height: MaterialStyleMetrics.size_24;
+
+    width: root.badge-width;
+    height: root.badge-height;
+    border-radius: MaterialStyleMetrics.border_radius_4;
+    border-width: HubTokens.border-width;
+    border-color: root.tone == "warning" ? MaterialPalette.tertiary : (root.tone == "error" ? MaterialPalette.error : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary : MaterialPalette.outline_variant));
+    background: root.tone == "warning" ? MaterialPalette.tertiary_container : (root.tone == "error" ? MaterialPalette.error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.primary_container : MaterialPalette.surface_container_highest));
+
+    Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        overflow: elide;
+        color: root.tone == "warning" ? MaterialPalette.on_tertiary_container : (root.tone == "error" ? MaterialPalette.on_error_container : (root.tone == "accent" || root.tone == "ok" ? MaterialPalette.on_primary_container : MaterialPalette.on_surface_variant));
+        font-size: MaterialTypography.label_medium.font_size;
+        font-weight: MaterialTypography.label_medium.font_weight;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component StatusBadge inherits Badge {
+    badge-width: HubTokens.control-md * 3;
+    badge-height: HubTokens.control-sm;
+}
+
+export component PanelHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <string> badge-text;
+    in property <string> badge-tone: "neutral";
+    in property <bool> show-badge: false;
+    in property <string> action-text;
+    in property <bool> show-action: false;
+    in property <length> action-width: HubTokens.panel-min-sm / 2;
+    callback action-clicked;
+
+    height: subtitle == "" ? HubTokens.control-md : HubTokens.list-row-sm;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    preferred-width: 100%;
+    background: transparent;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: HubTokens.toolbar-gap;
+        alignment: stretch;
+
+        VerticalLayout {
+            spacing: MaterialStyleMetrics.spacing_2;
+            min-width: 1px;
+
+            Text {
+                text: root.title;
+                overflow: elide;
+                color: HubTokens.text-primary;
+                font-size: MaterialTypography.title_medium.font_size;
+                font-weight: MaterialTypography.title_medium.font_weight;
+                horizontal-alignment: left;
+                vertical-alignment: center;
+            }
+
+            if root.subtitle != "": MutedText {
+                text: root.subtitle;
+                overflow: elide;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: HubTokens.space-2;
+        }
+
+        if root.show-badge: StatusBadge {
+            text: root.badge-text;
+            tone: root.badge-tone;
+        }
+
+        if root.show-action: OutlineButton {
+            width: root.action-width;
+            height: HubTokens.control-md;
+            text: root.action-text;
+            icon: @image-url("../assets/icons/ui/chevron-right.svg");
+            clicked => {
+                root.action-clicked();
+            }
+        }
+    }
+}
+
+export component StatusBanner inherits HubPanel {
+    in property <string> title;
+    in property <string> detail;
+    in property <string> tone: "info";
+
+    variant: root.tone == "error" ? "danger" : "elevated";
+    min-height: HubTokens.list-row-sm;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: HubTokens.space-4;
+        spacing: HubTokens.space-1;
+
+        Text {
+            text: root.title;
+            overflow: elide;
+            color: HubTokens.text-primary;
+            font-size: MaterialTypography.title_small.font_size;
+            font-weight: MaterialTypography.title_small.font_weight;
+        }
+
+        if root.detail != "": MutedText {
+            text: root.detail;
+            overflow: elide;
+        }
+    }
+}

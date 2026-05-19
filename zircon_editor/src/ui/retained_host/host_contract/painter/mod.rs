@@ -26,6 +26,8 @@ pub(super) use workbench::{paint_host_frame, record_host_frame_commands};
 #[cfg(test)]
 pub(crate) use render_commands::paint_runtime_render_commands_for_test;
 #[cfg(test)]
-pub(crate) use template_nodes::paint_template_nodes_for_test;
+pub(crate) use template_nodes::{
+    paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
+};
 #[cfg(test)]
 pub(in crate::ui::retained_host::host_contract) use workbench::repaint_host_frame_region;

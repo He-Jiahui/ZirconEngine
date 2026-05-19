@@ -4,6 +4,7 @@ use zircon_runtime::core::framework::render::{
     RenderVirtualGeometryExecutionSegment, RenderVirtualGeometrySelectedCluster,
     RenderVirtualGeometrySelectedClusterSource,
 };
+use zircon_runtime::rhi::GpuBuffer;
 
 use super::virtual_geometry_hardware_rasterization_pass::VirtualGeometryHardwareRasterizationPassOutput;
 use super::virtual_geometry_node_and_cluster_cull_pass::VirtualGeometryNodeAndClusterCullPassOutput;
@@ -47,6 +48,6 @@ pub(in crate::virtual_geometry::renderer) struct VirtualGeometryIndirectStatsSto
     pub(in crate::virtual_geometry::renderer) segment_buffer: Option<Arc<wgpu::Buffer>>,
     pub(in crate::virtual_geometry::renderer) execution_submission_buffer:
         Option<Arc<wgpu::Buffer>>,
-    pub(in crate::virtual_geometry::renderer) execution_args_buffer: Option<Arc<wgpu::Buffer>>,
+    pub(in crate::virtual_geometry::renderer) execution_args_buffer: Option<Arc<GpuBuffer>>,
     pub(in crate::virtual_geometry::renderer) execution_authority_buffer: Option<Arc<wgpu::Buffer>>,
 }

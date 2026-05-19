@@ -1,6 +1,7 @@
 use super::super::super::render_framework_state::RenderFrameworkState;
 use super::super::frame_submission_context::FrameSubmissionContext;
 use super::super::submission_record_update::SubmissionRecordUpdate;
+use crate::core::framework::render::RenderHybridGiPayloadSource;
 
 pub(super) fn update_hybrid_gi_stats(
     state: &mut RenderFrameworkState,
@@ -46,6 +47,7 @@ pub(super) fn update_hybrid_gi_stats(
         hybrid_gi_stats.voxel_dirty_clipmap_count();
     state.stats.last_hybrid_gi_voxel_invalidated_clipmap_count =
         hybrid_gi_stats.voxel_invalidated_clipmap_count();
+    state.stats.last_hybrid_gi_payload_source = context.hybrid_gi_payload_source();
 }
 
 pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
@@ -69,4 +71,5 @@ pub(super) fn reset_hybrid_gi_stats(state: &mut RenderFrameworkState) {
     state.stats.last_hybrid_gi_voxel_resident_clipmap_count = 0;
     state.stats.last_hybrid_gi_voxel_dirty_clipmap_count = 0;
     state.stats.last_hybrid_gi_voxel_invalidated_clipmap_count = 0;
+    state.stats.last_hybrid_gi_payload_source = RenderHybridGiPayloadSource::None;
 }

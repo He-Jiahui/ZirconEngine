@@ -11,7 +11,7 @@ fn preview_change_only_syncs_catalog_without_touching_runtime_resources() {
             kind: EditorAssetChangeKind::PreviewChanged,
             catalog_revision: 4,
             uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
-            locator: Some("res://materials/grid.material.toml".to_string()),
+            locator: Some("res://materials/grid.zmaterial".to_string()),
         }],
         &[],
     );
@@ -37,7 +37,7 @@ fn preview_and_catalog_change_keeps_structural_refresh_domains() {
                 kind: EditorAssetChangeKind::PreviewChanged,
                 catalog_revision: 4,
                 uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
-                locator: Some("res://materials/grid.material.toml".to_string()),
+                locator: Some("res://materials/grid.zmaterial".to_string()),
             },
             EditorAssetChange {
                 kind: EditorAssetChangeKind::CatalogChanged,

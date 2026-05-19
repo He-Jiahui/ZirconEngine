@@ -229,11 +229,123 @@ set = { self = { button_variant = "text", button_color = "primary", button_size 
 
 [[stylesheets.rules]]
 selector = ".material-toggle-button"
-set = { self = { background = { color = "$material_surface_inset" } } }
+set = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:pressed"
+set = { self = { button_interaction_state = "pressed", background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-selected"
+set = { self = { button_interaction_state = "focused", background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-hover"
+set = { self = { button_interaction_state = "hover", background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-toggle-button-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_none" }, opacity = "$material_disabled_opacity" } }
 
 [[stylesheets.rules]]
 selector = ".material-checkbox-row"
-set = { self = { background = { color = "$material_surface_inset" } } }
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-unchecked"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-checked"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-indeterminate"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-checkbox-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-group-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-selected"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-unselected"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-radio-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
 
 [[stylesheets.rules]]
 selector = ".material-outlined-field"
@@ -440,6 +552,42 @@ selector = ".material-switch"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_accent" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_large" } } }
 
 [[stylesheets.rules]]
+selector = ".material-switch-row"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:focus"
+set = { self = { button_interaction_state = "focused", border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch:disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-on"
+set = { self = { background = { color = "$material_accent_soft" }, foreground = { color = "$material_text" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-off"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-small"
+set = { self = { background = { color = "$material_surface_selected" }, foreground = { color = "$material_text" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-disabled"
+set = { self = { button_interaction_state = "disabled", background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_pill" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-switch-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
 selector = ".material-standard-table-view"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
 
@@ -494,6 +642,226 @@ set = { self = { background = { color = "$material_surface_selected" }, foregrou
 [[stylesheets.rules]]
 selector = ".material-text-edit"
 set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-outlined"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-filled"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-standard"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_none" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-focused"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-text-field-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-min-rows"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-max-rows"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-autosize"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-focused"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-textarea-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:pressed"
+set = { self = { background = { color = "$material_surface_pressed" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-stepper"
+set = { self = { background = { color = "$material_surface_inset" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-clamped"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-drag-active"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-error"
+set = { self = { background = { color = "$material_error_container" }, foreground = { color = "$material_error" }, border = { color = "$material_error", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-number-field-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-select-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-select-closed"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text_muted" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-open"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-selected"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-select-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-row"
+set = { self = { background = { color = "$material_surface" }, border = { color = "$material_border", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete"
+set = { self = { background = { color = "$material_surface_inset" }, foreground = { color = "$material_text" }, border = { color = "$material_outline", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:hover"
+set = { self = { background = { color = "$material_surface_hover" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:focus"
+set = { self = { border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:selected"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete:disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-query"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-open"
+set = { self = { background = { color = "$material_surface_container_high" }, border = { color = "$material_focus_ring", width = "$material_focus_ring_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-selected"
+set = { self = { background = { color = "$material_accent_soft" }, border = { color = "$material_accent", width = "$material_border_width", radius = "$material_radius_control" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-multiple"
+set = { self = { background = { color = "$material_surface_selected" }, border = { color = "$material_focus_ring", width = "$material_border_width", radius = "$material_radius_pill" } } }
+
+[[stylesheets.rules]]
+selector = ".material-autocomplete-disabled"
+set = { self = { background = { color = "$material_surface_disabled" }, foreground = { color = "$material_text_disabled" }, border = { color = "$material_outline_variant", width = "$material_border_width", radius = "$material_radius_control" }, opacity = "$material_disabled_opacity" } }
 
 [[stylesheets.rules]]
 selector = ".material-runtime-dialog"

@@ -11,6 +11,7 @@ pub enum BuiltinRenderFeature {
     ReflectionProbes,
     BakedLighting,
     HistoryResolve,
+    AntiAlias,
     Shadows,
     PostProcess,
     Ui,

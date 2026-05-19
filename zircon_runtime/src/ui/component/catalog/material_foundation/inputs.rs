@@ -1,4 +1,5 @@
 use super::shared::*;
+use zircon_runtime_interface::ui::style::ButtonVariant;
 
 pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
     vec![
@@ -36,6 +37,9 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         ))
         .with_prop(int_prop("button_group_segment_count", 1))
         .with_prop(bool_prop("button_group_disabled_propagates", true))
+        .with_prop(button_color_prop())
+        .with_prop(button_size_prop())
+        .with_prop(button_icon_placement_prop("none"))
         .default_prop(
             "button_group_orientation",
             UiValue::Enum("horizontal".to_string()),
@@ -98,99 +102,30 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         .event(UiComponentEventKind::Commit)
         .requires_render_capability(UiRenderCapability::Vector),
         primitive(
-            "TextField",
-            "Text Field",
-            UiComponentCategory::Input,
-            "text-field",
-        )
-        .with_prop(text_prop())
-        .with_prop(string_prop("placeholder"))
-        .with_prop(string_prop("helper_text"))
-        .with_prop(enum_prop("variant", "outlined"))
-        .events([
-            UiComponentEventKind::Focus,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
-        primitive("Input", "Input", UiComponentCategory::Input, "input")
-            .with_prop(value_text_prop())
-            .with_prop(string_prop("placeholder"))
-            .events([
-                UiComponentEventKind::Focus,
-                UiComponentEventKind::ValueChanged,
-                UiComponentEventKind::Commit,
-            ])
-            .requires_host_capability(UiHostCapability::TextInput),
-        primitive(
-            "TextareaAutosize",
-            "Textarea Autosize",
-            UiComponentCategory::Input,
-            "textarea-autosize",
-        )
-        .with_prop(value_text_prop())
-        .with_prop(int_prop("min_rows", 2))
-        .with_prop(int_prop("max_rows", 8))
-        .events([
-            UiComponentEventKind::Focus,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
-        primitive(
             "NumberField",
             "Number Field",
             UiComponentCategory::Numeric,
             "number-field",
         )
-        .with_prop(number_value_prop())
+        .with_prop(field_number_value_prop())
         .with_prop(float_prop("min", 0.0))
         .with_prop(float_prop("max", 100.0))
         .with_prop(float_prop("step", 1.0))
+        .with_prop(float_prop("large_step", 10.0))
+        .default_prop("value", UiValue::Float(0.0))
+        .default_prop("min", UiValue::Float(0.0))
+        .default_prop("max", UiValue::Float(100.0))
+        .default_prop("step", UiValue::Float(1.0))
+        .default_prop("large_step", UiValue::Float(10.0))
         .events([
             UiComponentEventKind::Focus,
             UiComponentEventKind::BeginDrag,
             UiComponentEventKind::DragDelta,
+            UiComponentEventKind::LargeDragDelta,
             UiComponentEventKind::EndDrag,
             UiComponentEventKind::ValueChanged,
             UiComponentEventKind::Commit,
         ]),
-        primitive("Select", "Select", UiComponentCategory::Selection, "select")
-            .with_prop(options_prop())
-            .with_prop(value_text_prop())
-            .events([
-                UiComponentEventKind::Focus,
-                UiComponentEventKind::OpenPopup,
-                UiComponentEventKind::SelectOption,
-                UiComponentEventKind::ClosePopup,
-            ]),
-        primitive(
-            "Dropdown",
-            "Dropdown",
-            UiComponentCategory::Selection,
-            "dropdown",
-        )
-        .with_prop(options_prop())
-        .with_prop(value_text_prop())
-        .event(UiComponentEventKind::ValueChanged),
-        composite(
-            "Autocomplete",
-            "Autocomplete",
-            UiComponentCategory::Selection,
-            "autocomplete",
-        )
-        .with_prop(string_prop("query"))
-        .with_prop(options_prop())
-        .with_prop(value_text_prop())
-        .slot(UiSlotSchema::new("listbox").multiple(true))
-        .events([
-            UiComponentEventKind::Focus,
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::OpenPopup,
-            UiComponentEventKind::SelectOption,
-            UiComponentEventKind::ClosePopup,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
         primitive(
             "Checkbox",
             "Checkbox",
@@ -199,14 +134,54 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
         )
         .with_prop(text_prop())
         .with_prop(checked_prop())
-        .event(UiComponentEventKind::ValueChanged),
+        .with_prop(bool_prop("indeterminate", false))
+        .with_prop(bool_prop("label_click_toggles", true))
+        .with_prop(bool_prop("indeterminate_resolves_to_checked", true))
+        .default_prop("text", UiValue::String("Checkbox".to_string()))
+        .state(bool_prop("indeterminate", false))
+        .events([
+            UiComponentEventKind::Focus,
+            UiComponentEventKind::ValueChanged,
+        ]),
         primitive("Radio", "Radio", UiComponentCategory::Input, "radio")
             .with_prop(text_prop())
             .with_prop(checked_prop())
-            .event(UiComponentEventKind::SelectOption),
+            .with_prop(default_string_prop("group_value", "editor"))
+            .with_prop(default_string_prop("option_id", "editor"))
+            .with_prop(radio_options_prop())
+            .with_prop(array_prop("disabled_options"))
+            .with_prop(bool_prop("label_click_selects", true))
+            .with_prop(bool_prop("exclusive_group", true))
+            .with_prop(bool_prop("keyboard_navigation", true))
+            .default_prop("text", UiValue::String("Radio".to_string()))
+            .events([
+                UiComponentEventKind::Focus,
+                UiComponentEventKind::SelectOption,
+                UiComponentEventKind::ValueChanged,
+            ]),
         primitive("Switch", "Switch", UiComponentCategory::Input, "switch")
+            .with_prop(text_prop())
             .with_prop(checked_prop())
-            .event(UiComponentEventKind::ValueChanged),
+            .with_prop(enum_prop_with_options(
+                "switch_size",
+                "medium",
+                ["small", "medium"].into_iter().map(enum_option_descriptor),
+            ))
+            .with_prop(enum_prop_with_options(
+                "switch_color",
+                "primary",
+                ["primary", "default", "error"]
+                    .into_iter()
+                    .map(enum_option_descriptor),
+            ))
+            .with_prop(bool_prop("label_click_toggles", true))
+            .with_prop(bool_prop("track_click_toggles", true))
+            .with_prop(bool_prop("thumb_draggable", false))
+            .default_prop("text", UiValue::String("Switch".to_string()))
+            .events([
+                UiComponentEventKind::Focus,
+                UiComponentEventKind::ValueChanged,
+            ]),
         primitive("Slider", "Slider", UiComponentCategory::Numeric, "slider")
             .with_prop(number_value_prop())
             .with_prop(bool_prop("show_value_label", true))
@@ -218,54 +193,37 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
                 UiComponentEventKind::EndDrag,
                 UiComponentEventKind::ValueChanged,
             ]),
-        primitive(
-            "ToggleButton",
-            "Toggle Button",
-            UiComponentCategory::Input,
-            "toggle-button",
+        with_button_variant_default(
+            primitive(
+                "ToggleButton",
+                "Toggle Button",
+                UiComponentCategory::Input,
+                "toggle-button",
+            ),
+            "outlined",
         )
         .with_prop(text_prop())
         .with_prop(checked_prop())
+        .with_prop(button_color_prop())
+        .with_prop(button_size_prop())
+        .with_prop(button_icon_placement_prop("none"))
+        .with_prop(enum_prop_with_options(
+            "selection_state",
+            "exclusive",
+            ["exclusive", "multiple"]
+                .into_iter()
+                .map(enum_option_descriptor),
+        ))
+        .default_prop("button_variant", UiValue::Enum("outlined".to_string()))
+        .default_prop("button_color", UiValue::Enum("primary".to_string()))
+        .default_prop("button_size", UiValue::Enum("medium".to_string()))
+        .default_prop("icon_placement", UiValue::Enum("none".to_string()))
+        .default_prop("selection_state", UiValue::Enum("exclusive".to_string()))
         .event(UiComponentEventKind::ValueChanged),
-        composite(
-            "ToggleButtonGroup",
-            "Toggle Button Group",
-            UiComponentCategory::Selection,
-            "toggle-button-group",
-        )
-        .with_prop(enum_prop("selection_state", "exclusive"))
-        .with_prop(value_text_prop())
-        .slot(UiSlotSchema::new("buttons").multiple(true))
-        .event(UiComponentEventKind::SelectOption),
         primitive("Rating", "Rating", UiComponentCategory::Numeric, "rating")
             .with_prop(number_value_prop())
             .with_prop(int_prop("max", 5))
             .event(UiComponentEventKind::ValueChanged),
-        editor_panel_component(
-            "SearchField",
-            "Search Field",
-            UiComponentCategory::Input,
-            "search-field",
-        )
-        .with_prop(string_prop("query"))
-        .events([
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
-        editor_panel_component(
-            "FieldEditor",
-            "Field Editor",
-            UiComponentCategory::Container,
-            "field-editor",
-        )
-        .with_prop(text_prop())
-        .with_prop(value_text_prop())
-        .slot(UiSlotSchema::new("field").required(true))
-        .events([
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ]),
         editor_panel_component(
             "GizmoControls",
             "Gizmo Controls",
@@ -279,17 +237,49 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             UiComponentEventKind::EndDrag,
             UiComponentEventKind::SetWorldTransform,
         ]),
-        editor_panel_component(
-            "SourceEditor",
-            "Source Editor",
-            UiComponentCategory::Input,
-            "source-editor",
-        )
-        .with_prop(text_prop())
-        .events([
-            UiComponentEventKind::ValueChanged,
-            UiComponentEventKind::Commit,
-        ])
-        .requires_host_capability(UiHostCapability::TextInput),
     ]
+}
+
+fn radio_options_prop() -> UiPropSchema {
+    UiPropSchema::new("options", UiValueKind::Array)
+        .default_value(UiValue::Array(vec![
+            UiValue::String("editor".to_string()),
+            UiValue::String("runtime".to_string()),
+            UiValue::String("disabled".to_string()),
+            UiValue::String("qa".to_string()),
+        ]))
+        .with_options([
+            UiOptionDescriptor::new("editor", "Editor", UiValue::String("editor".to_string())),
+            UiOptionDescriptor::new("runtime", "Runtime", UiValue::String("runtime".to_string())),
+            UiOptionDescriptor::new(
+                "disabled",
+                "Disabled",
+                UiValue::String("disabled".to_string()),
+            )
+            .disabled(true),
+            UiOptionDescriptor::new("qa", "QA", UiValue::String("qa".to_string())),
+        ])
+}
+
+fn with_button_variant_default(
+    mut descriptor: UiComponentDescriptor,
+    default: &str,
+) -> UiComponentDescriptor {
+    let replacement = enum_prop_with_options(
+        "button_variant",
+        default,
+        ButtonVariant::OPTIONS
+            .into_iter()
+            .map(enum_option_descriptor),
+    );
+    if let Some(schema) = descriptor
+        .prop_schema
+        .iter_mut()
+        .find(|schema| schema.name == "button_variant")
+    {
+        *schema = replacement;
+    } else {
+        descriptor.prop_schema.push(replacement);
+    }
+    descriptor
 }

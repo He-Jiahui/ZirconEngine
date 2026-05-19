@@ -28,7 +28,7 @@ pub(super) fn descriptors() -> Vec<UiComponentDescriptor> {
             .slot(UiSlotSchema::new("content").multiple(true))
             .slot(UiSlotSchema::new("actions").multiple(true)),
         composite("Paper", "Paper", UiComponentCategory::Container, "paper")
-            .with_prop(int_prop("elevation", 1))
+            .default_prop("elevation", UiValue::Float(1.0))
             .slot(UiSlotSchema::new("content").multiple(true)),
         composite("Panel", "Panel", UiComponentCategory::Container, "panel")
             .slot(UiSlotSchema::new("header"))

@@ -219,6 +219,8 @@ fn build_single_entity_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -312,6 +314,8 @@ fn build_same_page_dual_entity_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,
@@ -376,6 +380,8 @@ fn build_hierarchical_instance_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,

@@ -1698,8 +1698,8 @@ dependencies = [
  "libc",
  "log",
  "rustversion",
- "windows-link 0.1.3",
- "windows-result 0.3.4",
+ "windows-link 0.2.1",
+ "windows-result 0.4.1",
 ]
 
 [[package]]
@@ -1787,7 +1787,7 @@ dependencies = [
  "vec_map",
  "wasm-bindgen",
  "web-sys",
- "windows 0.61.3",
+ "windows 0.62.2",
 ]
 
 [[package]]
@@ -2368,7 +2368,7 @@ dependencies = [
  "js-sys",
  "log",
  "wasm-bindgen",
- "windows-core 0.61.2",
+ "windows-core 0.62.2",
 ]
 
 [[package]]
@@ -4346,6 +4346,12 @@ dependencies = [
  "core_maths",
  "font-types",
 ]
+
+[[package]]
+name = "rectangle-pack"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0d463f2884048e7153449a55166f91028d5b0ea53c79377099ce4e8cf0cf9bb"
 
 [[package]]
 name = "redox_syscall"
@@ -7423,12 +7429,15 @@ dependencies = [
  "winit 0.31.0-beta.2",
  "zircon_editor",
  "zircon_plugin_animation_runtime",
+ "zircon_plugin_hybrid_gi_runtime",
  "zircon_plugin_navigation_runtime",
  "zircon_plugin_net_runtime",
  "zircon_plugin_particles_runtime",
  "zircon_plugin_rendering_runtime",
+ "zircon_plugin_solari_runtime",
  "zircon_plugin_sound_runtime",
  "zircon_plugin_texture_runtime",
+ "zircon_plugin_virtual_geometry_runtime",
  "zircon_runtime",
  "zircon_runtime_interface",
 ]
@@ -7442,6 +7451,7 @@ dependencies = [
  "gltf",
  "image",
  "notify",
+ "rectangle-pack",
  "resvg",
  "serde",
  "serde_json",
@@ -7474,6 +7484,15 @@ name = "zircon_plugin_animation_runtime"
 version = "0.1.0"
 dependencies = [
  "zircon_plugin_physics_runtime",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_hybrid_gi_runtime"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "wgpu",
  "zircon_runtime",
 ]
 
@@ -7527,6 +7546,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zircon_plugin_solari_runtime"
+version = "0.1.0"
+dependencies = [
+ "zircon_runtime",
+]
+
+[[package]]
 name = "zircon_plugin_sound_runtime"
 version = "0.1.0"
 dependencies = [
@@ -7537,6 +7563,16 @@ dependencies = [
 name = "zircon_plugin_texture_runtime"
 version = "0.1.0"
 dependencies = [
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_virtual_geometry_runtime"
+version = "0.1.0"
+dependencies = [
+ "bytemuck",
+ "pollster",
+ "wgpu",
  "zircon_runtime",
 ]
 

@@ -1,4 +1,5 @@
 use zircon_runtime::core::framework::window::WindowDescriptor;
+use zircon_runtime::platform::EventLoopPolicy;
 use zircon_runtime_interface::{
     ZrRuntimeEventV1, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
     ZIRCON_RUNTIME_ABI_VERSION_V1,
@@ -14,6 +15,7 @@ impl RuntimeEntryApp {
         Self {
             window: None,
             window_descriptor,
+            event_loop_policy: EventLoopPolicy::Game,
             presenter: None,
             surface_present_enabled: false,
             surface_present_failed: false,

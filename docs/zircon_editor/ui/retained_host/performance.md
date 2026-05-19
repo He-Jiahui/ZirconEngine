@@ -143,6 +143,7 @@ plan_sources:
   - .codex/plans/Retained Host Chrome GPU 化与 Hover 卡顿根因修复计划.md
   - .codex/plans/Retained Host Chrome 性能根因修复计划.md
   - .codex/plans/Zircon UI .zui 组件资产与 Unreal 风格入口重构计划.md
+  - docs/superpowers/plans/2026-05-18-editor-sprite-atlas-ui-batching.md
 tests:
   - zircon_editor/src/tests/host/render_framework_boundary/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/command_stream.rs
@@ -187,10 +188,10 @@ tests:
   - cargo test -p zircon_runtime --lib draw_list_stats_do_not_count_cached_images_as_uploads --locked
   - cargo test -p zircon_runtime --lib wgpu_ui_surface_text_bounds_clip_to_damage_and_command_clip --locked
   - cargo test -p zircon_runtime --lib wgpu_ui_surface_text_skips_disjoint_damage --locked
-  - cargo test -p zircon_runtime --lib wgpu_ui_surface_draw_ops_preserve_mixed_command_order --locked
-  - cargo test -p zircon_runtime --lib wgpu_ui_surface_draw_ops_sort_by_stable_z_order --locked
-  - cargo test -p zircon_runtime --lib wgpu_ui_surface_text_ops_interleave_with_geometry_z_order --locked
-  - cargo test -p zircon_runtime --lib wgpu_ui_surface_presenter_stats_skip_disjoint_patch_commands --locked
+  - cargo test -p zircon_runtime --lib batch_plan_batches_disjoint_quads_into_one_solid_draw --locked
+  - cargo test -p zircon_runtime --lib wgpu_ui_surface_draw_items_sort_by_stable_z_order --locked
+  - cargo test -p zircon_runtime --lib batch_plan_splits_text_when_overlapping_geometry_depends --locked
+  - cargo test -p zircon_runtime --lib wgpu_ui_surface_presenter_uses_damage_for_patch_stats --locked
   - cargo test -p zircon_runtime --lib wgpu_ui_surface_image_cache_prune --locked
   - cargo test -p zircon_runtime --lib wgpu_ui_surface_uses_non_srgb_formats_for_byte_exact_editor_parity --locked --jobs 1 --message-format short
   - cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1
@@ -199,12 +200,15 @@ tests:
   - cargo test -p zircon_editor --lib draw_rgba_image_clipped_records_content_scoped_resource_keys --locked
   - cargo test -p zircon_editor --lib viewport_image_patch_can_carry_upload_bytes_for_gpu --locked
   - cargo test -p zircon_editor --lib command_stream --locked
+  - cargo test -p zircon_editor --lib command_stream --locked --jobs 1 --message-format short --color never
   - cargo test -p zircon_editor --lib painter --locked
   - cargo test -p zircon_editor --lib patch_command_stream_matches_legacy_region_repaint_pixels --locked
   - cargo test -p zircon_editor --lib text_draw_skips_disjoint_active_and_explicit_clips --locked
   - cargo test -p zircon_editor --lib draw_rect_clipped_skips_disjoint_active_and_explicit_clips --locked
   - cargo test -p zircon_editor --lib fill_rect_respects_active_paint_clip --locked
   - cargo test -p zircon_editor --lib gpu_presenter --locked
+  - cargo test -p zircon_editor --lib gpu_presenter --locked --jobs 1 --message-format short --color never
+  - cargo test -p zircon_runtime --lib ui_surface --locked --jobs 1 --message-format short --color never
   - cargo check -p zircon_app --features "target-editor-host" --locked
   - 2026-05-15 continuation: cargo check -p zircon_runtime --lib --locked
   - 2026-05-15 continuation: cargo check -p zircon_editor --lib --locked
@@ -389,9 +393,11 @@ Template-node painting now applies the active region-damage clip before command 
 
 The presenter boundary lives under `host_contract/presenter/`. `HostChromePresenter` is the object-safe seam used by `window.rs`; `HostPresenterBackend::default_native()` returns `Gpu`, and `HostPresenterBackend::fallback()` is the explicit softbuffer path used only when GPU presenter creation fails. Window startup logs the selected backend and exits only if both GPU and softbuffer construction fail.
 
-`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
+`ChromeCommandStream` is now the retained-host command surface, not a parallel stub. The retained painter can run in record-only mode, so `record_host_frame_commands` traverses the same workbench, template-node, viewport image, close prompt, floating-window, menu, debug overlay, rect, border, image, and text paths that CPU painting uses. Full streams describe the complete retained UI; patch streams carry the same command vocabulary but clip generation to the requested damage region. Image commands preserve resource/content-derived keys through record, stream conversion, GPU upload, and softbuffer replay. Atlas-capable image commands additionally carry `atlas_uv: Option<ChromeImageUvRect>`: recorded software/viewport images set it to `None`, while future SpriteAtlas consumers can use one atlas texture `resource_key` plus per-entry UV metadata. This keeps GPU and softbuffer fallback on one UI expression instead of letting two painters drift.
 
-`GpuChromePresenter<P: UiSurfacePresenter>` converts the chrome command stream into `zircon_runtime::rhi::UiSurfaceDrawList`. It records command full/patch counters, propagates runtime surface failures instead of hiding them, and emits `gpu_upload_bytes`, actual `gpu_draw_calls`, `gpu_visible_commands`, `gpu_visible_draw_items`, `gpu_batch_layers`, and `gpu_batch_dependencies`. It never imports `wgpu`, and its factory no longer names `rhi_wgpu`; the concrete native surface, swapchain, offscreen retained UI target, quad/image pipelines, glyphon text atlas, texture uploads, batch planning, and surface present are selected by the runtime RHI factory.
+`GpuChromePresenter<P: UiSurfacePresenter>` converts the chrome command stream into `zircon_runtime::rhi::UiSurfaceDrawList`. It records command full/patch counters, propagates runtime surface failures instead of hiding them, and emits `gpu_upload_bytes`, actual `gpu_draw_calls`, `gpu_visible_commands`, `gpu_visible_draw_items`, `gpu_batch_layers`, and `gpu_batch_dependencies`. It also maps `ChromeImageUvRect` directly into `UiSurfaceImageUvRect`, so atlas metadata crosses the editor/runtime boundary without exposing editor asset-manager or renderer-specific types. It never imports `wgpu`, and its factory no longer names `rhi_wgpu`; the concrete native surface, swapchain, offscreen retained UI target, quad/image pipelines, glyphon text atlas, texture uploads, batch planning, and surface present are selected by the runtime RHI factory.
+
+Softbuffer replay deliberately ignores atlas UV metadata. The software command-stream executor paints the embedded `rgba` bytes as the image payload it was given and falls back to `FALLBACK_IMAGE_COLOR` when bytes are absent, so atlas-backed producers must only depend on GPU atlas sampling when they provide the atlas texture to runtime. Non-atlas viewport and recorded-image paths continue to set `atlas_uv: None`, preserving byte-for-byte software parity tests.
 
 The runtime presenter keeps a retained offscreen UI texture so damage patches can repaint only their region and still present a complete swapchain image. Full streams clear the offscreen target and rebuild it; patch streams load the previous target, clip command geometry to the command clip plus damage, upload changed image payloads, render UI geometry/text on the GPU, then blit the offscreen texture to the native surface. Runtime text preparation and image uploads use the same effective command-frame, clip, surface, and damage intersection as the quad/image clipping path from `rhi_wgpu/ui_surface/geometry.rs`; shader and blit setup lives in `rhi_wgpu/ui_surface/pipeline.rs`; glyphon buffer preparation, style mapping, and atlas rendering live in `rhi_wgpu/ui_surface/text.rs`. `rhi_wgpu/ui_surface/batching.rs` builds the draw plan from the clipped items: overlapping items keep the stable softbuffer z/index order through depth dependencies, while non-overlapping items are incomparable and can share a layer. Each layer batches all solid vertices into one solid draw, groups images by identical `resource_key`, and sends all layer text areas to one glyphon batch. This means `gpu_draw_calls` now measures actual planned GPU batch submissions instead of visible command count, and the visible command/item counters explain how much batching happened. Glyphs, texture uploads, and profile counters are therefore skipped or bounded exactly like the command stream patch. The headless constructor remains stats-only so runtime and editor tests can verify the contract without requiring a real window.
 

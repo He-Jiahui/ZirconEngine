@@ -1,3 +1,4 @@
+pub(super) mod anti_alias;
 pub(super) mod baked_lighting;
 pub(super) mod bloom;
 pub(super) mod clustered_lighting;

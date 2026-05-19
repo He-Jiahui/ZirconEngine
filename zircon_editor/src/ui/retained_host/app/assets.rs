@@ -201,7 +201,7 @@ impl RetainedEditorHost {
     pub(super) fn default_project_material_id(
         &self,
     ) -> Result<ResourceHandle<MaterialMarker>, String> {
-        let material_uri = ResourceLocator::parse("res://materials/default.material.toml")
+        let material_uri = ResourceLocator::parse("res://materials/default.zmaterial")
             .map_err(|error| error.to_string())?;
         self.asset_server
             .import_asset(&material_uri.to_string())

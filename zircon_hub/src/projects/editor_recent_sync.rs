@@ -198,6 +198,26 @@ mod tests {
     }
 
     #[test]
+    fn editor_recent_writer_does_not_emit_hub_project_metadata() {
+        let root = std::env::temp_dir().join(format!(
+            "zircon_hub_recent_metadata_boundary_{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root).unwrap();
+        let path = root.join("config.json");
+
+        save_editor_recent_projects(&path, &[RecentProject::new("Game", "E:/Projects/Game", 42)])
+            .unwrap();
+
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(!text.contains("pinned"));
+        assert!(!text.contains("engine_id"));
+        assert!(!text.contains("last_selected_template"));
+        let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
     fn editor_recent_writer_preserves_existing_last_project_without_override() {
         let root = std::env::temp_dir().join(format!(
             "zircon_hub_recent_last_project_{}",

@@ -1,5 +1,5 @@
 import { MutedText, PillButton } from "shared.slint";
-import { HubPanel, PanelHeader } from "components.slint";
+import { HubPanel, HubTokens, MaterialStyleMetrics, PanelHeader } from "components.slint";
 
 export component PlaceholderPage inherits Rectangle {
     in property <string> title;
@@ -8,25 +8,25 @@ export component PlaceholderPage inherits Rectangle {
     in property <string> reserved-text;
     callback primary-action();
 
-    background: #11151a;
+    background: HubTokens.surface-page;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 28px;
-        padding-right: 28px;
-        padding-top: 28px;
-        padding-bottom: 28px;
-        spacing: 18px;
+        padding-left: HubTokens.page-padding;
+        padding-right: HubTokens.page-padding;
+        padding-top: HubTokens.page-padding;
+        padding-bottom: HubTokens.page-padding;
+        spacing: HubTokens.panel-gap;
 
         HubPanel {
-            height: 240px;
+            height: HubTokens.list-row-lg * 3;
 
             VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding: 24px;
-                spacing: 12px;
+                padding: MaterialStyleMetrics.padding_24;
+                spacing: HubTokens.toolbar-gap;
 
                 PanelHeader {
                     title: root.title;
@@ -40,7 +40,7 @@ export component PlaceholderPage inherits Rectangle {
                 Rectangle { vertical-stretch: 1; }
 
                 HorizontalLayout {
-                    spacing: 10px;
+                    spacing: HubTokens.toolbar-gap;
 
                     PillButton {
                         text: root.action-label;

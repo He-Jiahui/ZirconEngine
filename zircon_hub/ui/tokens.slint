@@ -1,0 +1,82 @@
+import { MaterialPalette, MaterialStyleMetrics } from "material_bridge.slint";
+
+export global HubTokens {
+    in property <length> space-0: 0px;
+    in property <length> space-1: MaterialStyleMetrics.spacing_4;
+    in property <length> space-2: MaterialStyleMetrics.spacing_8;
+    in property <length> space-3: MaterialStyleMetrics.spacing_12;
+    in property <length> space-4: MaterialStyleMetrics.spacing_16;
+    in property <length> space-6: MaterialStyleMetrics.spacing_16 + MaterialStyleMetrics.spacing_8;
+    in property <length> space-7: MaterialStyleMetrics.spacing_16 + MaterialStyleMetrics.spacing_12;
+
+    in property <length> breakpoint-compact: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_200 * 2;
+    in property <length> breakpoint-medium: MaterialStyleMetrics.size_640 * 2;
+    in property <length> breakpoint-wide: MaterialStyleMetrics.size_640 * 2 + MaterialStyleMetrics.size_256;
+
+    in property <length> page-padding: MaterialStyleMetrics.padding_28;
+    in property <length> page-padding-compact: MaterialStyleMetrics.padding_16;
+    in property <length> panel-gap: MaterialStyleMetrics.spacing_16;
+    in property <length> toolbar-gap: MaterialStyleMetrics.spacing_12;
+
+    in property <length> icon-xs: MaterialStyleMetrics.icon_size_18;
+    in property <length> icon-sm: MaterialStyleMetrics.icon_size_18;
+    in property <length> icon-md: MaterialStyleMetrics.icon_size_24;
+    in property <length> icon-lg: MaterialStyleMetrics.icon_size_24;
+    in property <length> icon-xl: MaterialStyleMetrics.icon_size_36;
+
+    in property <length> control-sm: MaterialStyleMetrics.size_36;
+    in property <length> control-md: MaterialStyleMetrics.size_40;
+    in property <length> control-lg: MaterialStyleMetrics.size_48;
+    in property <length> input-field: MaterialStyleMetrics.size_56;
+    in property <length> input-width: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_80;
+    in property <length> table-row: MaterialStyleMetrics.size_30;
+    in property <length> list-row-sm: MaterialStyleMetrics.size_56;
+    in property <length> list-row-md: MaterialStyleMetrics.size_72;
+    in property <length> list-row-lg: MaterialStyleMetrics.size_80;
+    in property <length> border-width: MaterialStyleMetrics.size_1;
+
+    in property <length> panel-min-sm: MaterialStyleMetrics.size_344;
+    in property <length> panel-min-md: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_80;
+    in property <length> panel-min-lg: MaterialStyleMetrics.size_344 + MaterialStyleMetrics.size_200;
+
+    in property <length> workspace-row-editor-summary: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_90;
+    in property <length> workspace-row-editor-config: MaterialStyleMetrics.size_200 * 2 + MaterialStyleMetrics.size_72 + MaterialStyleMetrics.size_4;
+    in property <length> workspace-row-build-summary: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_90 + MaterialStyleMetrics.spacing_8 + MaterialStyleMetrics.size_2;
+    in property <length> workspace-row-build-detail: MaterialStyleMetrics.size_360;
+    in property <length> workspace-row-settings-controls: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_6;
+    in property <length> workspace-row-settings-detail: MaterialStyleMetrics.size_200 * 2 - MaterialStyleMetrics.size_8;
+
+    in property <length> breakpoint-short: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_80 + MaterialStyleMetrics.size_40;
+    in property <length> shell-row-min: MaterialStyleMetrics.size_52;
+    in property <length> shell-row-max: MaterialStyleMetrics.size_56;
+    in property <length> shell-drag-min: MaterialStyleMetrics.size_8;
+    in property <length> shell-drag-max: MaterialStyleMetrics.size_8;
+    in property <length> shell-header-height: MaterialStyleMetrics.size_64;
+    in property <length> shell-gap-min: MaterialStyleMetrics.spacing_8;
+    in property <length> shell-gap-max: MaterialStyleMetrics.spacing_12;
+    in property <length> shell-pad-x-min: MaterialStyleMetrics.padding_16;
+    in property <length> shell-pad-x-max: MaterialStyleMetrics.padding_24;
+    in property <length> nav-width-collapsed-min: MaterialStyleMetrics.size_64;
+    in property <length> nav-width-collapsed-max: MaterialStyleMetrics.size_72;
+    in property <length> nav-width-expanded-min: MaterialStyleMetrics.size_200;
+    in property <length> nav-width-expanded-max: MaterialStyleMetrics.size_200 + MaterialStyleMetrics.size_32;
+    in property <length> bottom-status-height: MaterialStyleMetrics.size_32;
+    in property <length> window-resize-border: MaterialStyleMetrics.size_6;
+    in property <length> window-min-width: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_344;
+    in property <length> window-min-height: MaterialStyleMetrics.size_640;
+    in property <length> window-preferred-width: root.breakpoint-wide + root.nav-width-collapsed-min;
+    in property <length> window-preferred-height: MaterialStyleMetrics.size_640 + MaterialStyleMetrics.size_360 + MaterialStyleMetrics.size_24;
+    in property <length> user-menu-min-width: root.nav-width-collapsed-max + root.control-lg + root.space-1;
+    in property <length> user-menu-max-width: root.nav-width-collapsed-max * 2 + root.space-1;
+
+    in property <brush> surface-page: MaterialPalette.background;
+    in property <brush> surface-panel: MaterialPalette.surface_container_low;
+    in property <brush> surface-panel-hover: MaterialPalette.surface_container_high;
+    in property <brush> surface-elevated: MaterialPalette.surface_container;
+    in property <brush> stroke-muted: MaterialPalette.outline_variant;
+    in property <brush> stroke-strong: MaterialPalette.outline;
+    in property <brush> accent: MaterialPalette.primary;
+    in property <brush> accent-fill: MaterialPalette.primary_container;
+    in property <brush> text-primary: MaterialPalette.on_surface;
+    in property <brush> text-muted: MaterialPalette.on_surface_variant;
+}

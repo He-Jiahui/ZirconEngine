@@ -103,9 +103,41 @@ impl ProjectViewMode {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ProjectSubpage {
+    #[default]
+    Dashboard,
+    NewProject,
+    ProjectBrowser,
+    ProjectDetail,
+}
+
+impl ProjectSubpage {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Dashboard => "dashboard",
+            Self::NewProject => "new-project",
+            Self::ProjectBrowser => "project-browser",
+            Self::ProjectDetail => "project-detail",
+        }
+    }
+
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id.trim().to_ascii_lowercase().as_str() {
+            "dashboard" | "projects" => Some(Self::Dashboard),
+            "new-project" | "create-project" => Some(Self::NewProject),
+            "project-browser" | "browser" | "project-list" | "all-projects" => {
+                Some(Self::ProjectBrowser)
+            }
+            "project-detail" | "detail" => Some(Self::ProjectDetail),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{ProjectFilterMode, ProjectSortMode, ProjectViewMode};
+    use super::{ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode};
 
     #[test]
     fn project_filter_mode_cycles_through_supported_modes() {
@@ -138,5 +170,15 @@ mod tests {
             Some(ProjectViewMode::List)
         );
         assert_eq!(ProjectViewMode::from_id("unknown"), None);
+    }
+
+    #[test]
+    fn project_subpage_parses_internal_page_ids() {
+        assert_eq!(
+            ProjectSubpage::from_id("new-project"),
+            Some(ProjectSubpage::NewProject)
+        );
+        assert_eq!(ProjectSubpage::ProjectBrowser.id(), "project-browser");
+        assert_eq!(ProjectSubpage::from_id("missing"), None);
     }
 }

@@ -352,7 +352,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 transform: Transform::default(),
                 model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                    "res://materials/cooked.material.toml",
+                    "res://materials/cooked.zmaterial",
                 )),
                 tint: Default::default(),
                 mobility: Mobility::Dynamic,
@@ -363,7 +363,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_only_collects_cooked_mod
                 transform: Transform::default(),
                 model: ResourceHandle::<ModelMarker>::new(plain_model_id),
                 material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                    "res://materials/plain.material.toml",
+                    "res://materials/plain.zmaterial",
                 )),
                 tint: Default::default(),
                 mobility: Mobility::Dynamic,
@@ -461,7 +461,7 @@ fn virtual_geometry_nanite_mesh_based_automatic_extract_with_debug_keeps_extract
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -497,7 +497,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_clusters_grouped_by_bv
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -537,7 +537,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_leaf_clusters_grouped_
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -577,7 +577,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_clusters_as_w
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -628,7 +628,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_leaf_clusters_a
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -683,7 +683,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_clusters_
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -738,7 +738,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_page_clus
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -787,7 +787,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_page_cluster_ma
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -836,7 +836,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_mip_cluster_map
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -885,7 +885,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_page_cluster_
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -930,7 +930,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_loaded_depth_cluster_m
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -979,7 +979,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_mip_accepted_depth_clu
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -1028,7 +1028,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_mip_cluster_m
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,
@@ -1073,7 +1073,7 @@ fn virtual_geometry_nanite_cpu_reference_instances_expose_selected_depth_cluster
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(cooked_model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/cooked.material.toml",
+                "res://materials/cooked.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,

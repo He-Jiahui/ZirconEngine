@@ -1,3 +1,4 @@
+pub(crate) mod anti_alias;
 mod core;
 mod deferred;
 mod graph_execution;

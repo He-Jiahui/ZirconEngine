@@ -245,6 +245,7 @@ fn shader_outcome(
             source_files: Vec::new(),
             imports: Vec::new(),
             property_schema: Vec::new(),
+            texture_slots: Vec::new(),
             editor: Default::default(),
             pipeline_layout: Default::default(),
             validation_diagnostics: Vec::new(),

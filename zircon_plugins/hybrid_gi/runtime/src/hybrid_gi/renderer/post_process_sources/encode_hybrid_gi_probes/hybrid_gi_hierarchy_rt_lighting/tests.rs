@@ -829,6 +829,8 @@ fn hierarchy_rt_lighting_with_descendant(descendant_runtime: [u8; 4]) -> [f32; 4
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -889,6 +891,8 @@ fn scene_prepare_rt_lighting_with_resources(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -950,6 +954,8 @@ fn scene_prepare_rt_lighting_with_exact_runtime(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1013,6 +1019,8 @@ fn scene_prepare_rt_lighting_with_exact_runtime_and_scene_driven_flag(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1091,6 +1099,8 @@ fn scene_prepare_rt_lighting_with_scene_driven_exact_and_descendant(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1184,6 +1194,8 @@ fn scene_prepare_rt_lighting_with_scene_driven_lineage_and_surface_cache_page(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1275,6 +1287,8 @@ fn inherited_legacy_probe_rt_lighting_with_zero_packed_hierarchy_rt() -> [f32; 4
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1361,6 +1375,8 @@ fn inherited_trace_region_rt_lighting_with_scheduled_region_ids(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1457,6 +1473,8 @@ fn inherited_trace_region_rt_lighting_with_budget_excess_tail_payload() -> [f32;
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1520,6 +1538,8 @@ fn inherited_trace_region_rt_lighting_with_duplicate_region_payloads() -> [f32; 
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1604,6 +1624,8 @@ fn inherited_trace_region_rt_lighting_with_duplicate_child_probe_payloads() -> [
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -1674,6 +1696,8 @@ fn inherited_trace_region_rt_lighting_with_flat_runtime() -> [f32; 4] {
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {

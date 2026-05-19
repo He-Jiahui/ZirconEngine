@@ -4,8 +4,9 @@ use std::path::{Path, PathBuf};
 use super::import_shader::shader_entry_points;
 use super::validate_wgsl::validate_wgsl;
 use crate::asset::assets::{
-    DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset, ShaderEntryPointAsset,
-    ShaderImportRedirectAsset, ShaderSourceFileAsset, ShaderSourceLanguage, ZShaderDocument,
+    validate_wgsl_captures, DataAsset, DataAssetFormat, ImportedAsset, ShaderAsset,
+    ShaderEntryPointAsset, ShaderImportRedirectAsset, ShaderSourceFileAsset, ShaderSourceLanguage,
+    ZShaderDocument,
 };
 use crate::asset::{
     AssetImportContext, AssetImportError, AssetImportOutcome, AssetUri, ImportedAssetEntry,
@@ -60,7 +61,7 @@ pub(crate) fn import_shader_package(
         .map(|import| import.redirect.locator.clone())
         .collect::<Vec<_>>();
 
-    let shader = ShaderAsset {
+    let mut shader = ShaderAsset {
         uri: context.uri.clone(),
         source_language: ShaderSourceLanguage::Wgsl,
         source: wgsl_source.clone(),
@@ -85,6 +86,27 @@ pub(crate) fn import_shader_package(
         pipeline_layout: Default::default(),
         validation_diagnostics,
     };
+    shader
+        .validation_diagnostics
+        .extend(
+            validate_wgsl_captures(&shader).into_iter().map(|error| {
+                match error {
+                crate::core::framework::render::RenderMaterialValidationError::MissingWgslCapture {
+                    path,
+                    name,
+                    ..
+                } if path.starts_with("properties.") => {
+                    format!("wgsl_capture property `{name}` was not found at {path}")
+                }
+                crate::core::framework::render::RenderMaterialValidationError::MissingWgslCapture {
+                    path,
+                    name,
+                    ..
+                } => format!("wgsl_capture texture slot `{name}` was not found at {path}"),
+                other => format!("{other:?}"),
+            }
+            }),
+        );
     let mut outcome = AssetImportOutcome::new(context.uri.clone(), ImportedAsset::Shader(shader));
     for dependency in dependency_locators {
         outcome = outcome.with_dependency(dependency);

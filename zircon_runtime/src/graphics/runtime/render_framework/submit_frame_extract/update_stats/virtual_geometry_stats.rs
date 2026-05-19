@@ -4,8 +4,8 @@ use super::super::submission_record_update::SubmissionRecordUpdate;
 use crate::core::framework::render::{
     RenderVirtualGeometryClusterSelectionInputSource, RenderVirtualGeometryExecutionState,
     RenderVirtualGeometryHardwareRasterizationSource,
-    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
-    RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometryPayloadSource,
+    RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
 };
 use std::collections::BTreeSet;
 
@@ -38,6 +38,7 @@ pub(super) fn update_virtual_geometry_stats(
     state.stats.last_virtual_geometry_instance_count = virtual_geometry_extract
         .map(|extract| extract.instances.len())
         .unwrap_or(0);
+    state.stats.last_virtual_geometry_payload_source = context.virtual_geometry_payload_source();
     state.stats.last_virtual_geometry_requested_page_count = context
         .virtual_geometry_page_upload_plan()
         .map(|plan| plan.requested_pages.len())
@@ -192,6 +193,7 @@ pub(super) fn reset_virtual_geometry_stats(state: &mut RenderFrameworkState) {
     state.stats.last_virtual_geometry_visible_cluster_count = 0;
     state.stats.last_virtual_geometry_visible_entity_count = 0;
     state.stats.last_virtual_geometry_instance_count = 0;
+    state.stats.last_virtual_geometry_payload_source = RenderVirtualGeometryPayloadSource::None;
     state.stats.last_virtual_geometry_requested_page_count = 0;
     state.stats.last_virtual_geometry_dirty_page_count = 0;
     state.stats.last_virtual_geometry_forced_mip = None;

@@ -7,6 +7,10 @@ description = "Standalone desktop launcher and install hub for ZirconEngine."
 build = "build.rs"
 autobins = false
 
+[lib]
+path = "src/lib.rs"
+test = false
+
 [[bin]]
 name = "zircon_hub"
 path = "src/main.rs"

@@ -1,10 +1,17 @@
 use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::core::framework::render::SolariRuntimeStatus;
 use crate::graphics::runtime::WgpuRenderFramework;
 use crate::graphics::{
-    FrameHistoryBinding, FrameHistorySlot, RenderFeatureCapabilityRequirement,
-    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage,
+    FrameHistoryBinding, FrameHistorySlot, HybridGiRuntimeFeedback, HybridGiRuntimePrepareInput,
+    HybridGiRuntimePrepareOutput, HybridGiRuntimeProvider, HybridGiRuntimeProviderRegistration,
+    HybridGiRuntimeState, HybridGiRuntimeUpdate, RenderFeatureCapabilityRequirement,
+    RenderFeatureDescriptor, RenderFeaturePassDescriptor, RenderPassStage, SolariRuntimeProvider,
+    SolariRuntimeProviderRegistration, VirtualGeometryRuntimeFeedback,
+    VirtualGeometryRuntimePrepareInput, VirtualGeometryRuntimePrepareOutput,
+    VirtualGeometryRuntimeProvider, VirtualGeometryRuntimeProviderRegistration,
+    VirtualGeometryRuntimeState, VirtualGeometryRuntimeUpdate,
 };
 use crate::render_graph::QueueLane;
 
@@ -23,6 +30,47 @@ pub(super) fn pluginized_wgpu_render_framework_with_asset_manager(
         ],
         Vec::new(),
         Vec::new(),
+    )
+    .unwrap()
+}
+
+pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers() -> WgpuRenderFramework {
+    pluginized_wgpu_render_framework_with_advanced_providers_and_asset_manager(Arc::new(
+        ProjectAssetManager::default(),
+    ))
+}
+
+pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers_and_asset_manager(
+    asset_manager: Arc<ProjectAssetManager>,
+) -> WgpuRenderFramework {
+    WgpuRenderFramework::new_with_plugin_render_extensions(
+        asset_manager,
+        [
+            virtual_geometry_render_feature_descriptor(),
+            hybrid_gi_render_feature_descriptor(),
+        ],
+        Vec::new(),
+        Vec::new(),
+        [test_hybrid_gi_runtime_provider()],
+        [test_virtual_geometry_runtime_provider()],
+    )
+    .unwrap()
+}
+
+pub(super) fn pluginized_wgpu_render_framework_with_solari_provider(
+    status: SolariRuntimeStatus,
+) -> WgpuRenderFramework {
+    WgpuRenderFramework::new_with_plugin_render_extensions_and_solari(
+        Arc::new(ProjectAssetManager::default()),
+        [
+            virtual_geometry_render_feature_descriptor(),
+            hybrid_gi_render_feature_descriptor(),
+        ],
+        Vec::new(),
+        Vec::new(),
+        [test_hybrid_gi_runtime_provider()],
+        [test_solari_runtime_provider(status)],
+        [test_virtual_geometry_runtime_provider()],
     )
     .unwrap()
 }
@@ -138,6 +186,95 @@ pub(super) fn default_rendering_feature_descriptors() -> Vec<RenderFeatureDescri
         rendering_baked_lighting_descriptor(),
         rendering_post_process_descriptor(),
     ]
+}
+
+#[derive(Debug)]
+struct TestVirtualGeometryRuntimeProvider;
+
+impl VirtualGeometryRuntimeProvider for TestVirtualGeometryRuntimeProvider {
+    fn create_state(&self) -> Box<dyn VirtualGeometryRuntimeState> {
+        Box::new(TestVirtualGeometryRuntimeState)
+    }
+}
+
+#[derive(Debug)]
+struct TestVirtualGeometryRuntimeState;
+
+impl VirtualGeometryRuntimeState for TestVirtualGeometryRuntimeState {
+    fn prepare_frame(
+        &mut self,
+        _input: VirtualGeometryRuntimePrepareInput<'_>,
+    ) -> VirtualGeometryRuntimePrepareOutput {
+        VirtualGeometryRuntimePrepareOutput::default()
+    }
+
+    fn update_after_render(
+        &mut self,
+        _feedback: VirtualGeometryRuntimeFeedback,
+    ) -> VirtualGeometryRuntimeUpdate {
+        VirtualGeometryRuntimeUpdate::default()
+    }
+}
+
+#[derive(Debug)]
+struct TestHybridGiRuntimeProvider;
+
+impl HybridGiRuntimeProvider for TestHybridGiRuntimeProvider {
+    fn create_state(&self) -> Box<dyn HybridGiRuntimeState> {
+        Box::new(TestHybridGiRuntimeState)
+    }
+}
+
+#[derive(Debug)]
+struct TestSolariRuntimeProvider {
+    status: SolariRuntimeStatus,
+}
+
+impl SolariRuntimeProvider for TestSolariRuntimeProvider {
+    fn runtime_status(&self) -> SolariRuntimeStatus {
+        self.status
+    }
+
+    fn runtime_status_message(&self) -> Option<&str> {
+        (self.status == SolariRuntimeStatus::Unavailable)
+            .then_some("test solari provider unavailable")
+    }
+}
+
+struct TestHybridGiRuntimeState;
+
+impl HybridGiRuntimeState for TestHybridGiRuntimeState {
+    fn prepare_frame(
+        &mut self,
+        _input: HybridGiRuntimePrepareInput<'_>,
+    ) -> HybridGiRuntimePrepareOutput {
+        HybridGiRuntimePrepareOutput::default()
+    }
+
+    fn update_after_render(&mut self, _feedback: HybridGiRuntimeFeedback) -> HybridGiRuntimeUpdate {
+        HybridGiRuntimeUpdate::default()
+    }
+}
+
+fn test_virtual_geometry_runtime_provider() -> VirtualGeometryRuntimeProviderRegistration {
+    VirtualGeometryRuntimeProviderRegistration::new(
+        "test.virtual-geometry",
+        Arc::new(TestVirtualGeometryRuntimeProvider),
+    )
+}
+
+fn test_hybrid_gi_runtime_provider() -> HybridGiRuntimeProviderRegistration {
+    HybridGiRuntimeProviderRegistration::new(
+        "test.hybrid-gi",
+        Arc::new(TestHybridGiRuntimeProvider),
+    )
+}
+
+fn test_solari_runtime_provider(status: SolariRuntimeStatus) -> SolariRuntimeProviderRegistration {
+    SolariRuntimeProviderRegistration::new(
+        "test.solari",
+        Arc::new(TestSolariRuntimeProvider { status }),
+    )
 }
 
 pub(super) fn particle_render_feature_descriptor() -> RenderFeatureDescriptor {

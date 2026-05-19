@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use crate::core::framework::render::{PostProcessEffectKind, PostProcessGraphResourceNames};
+use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
 use crate::graphics::RenderFeatureDescriptor;
 use crate::CompiledRenderPipeline;
 
@@ -37,6 +38,7 @@ impl RenderPassExecutorRegistry {
             "post.final-composite".into(),
             final_composite_postprocess_executor,
         );
+        registry.register(FXAA_EXECUTOR_ID.into(), fxaa_postprocess_executor);
         registry.register("sprite.opaque".into(), sprite_executor);
         registry.register("sprite.alpha-mask".into(), sprite_executor);
         registry.register("sprite.transparent".into(), sprite_executor);
@@ -185,26 +187,26 @@ fn final_composite_postprocess_executor(
     product_postprocess_executor(context, PostProcessEffectKind::FinalComposite)
 }
 
+fn fxaa_postprocess_executor(context: &mut RenderPassExecutionContext<'_>) -> Result<(), String> {
+    product_postprocess_executor(context, PostProcessEffectKind::Fxaa)
+}
+
 fn product_postprocess_executor(
     context: &mut RenderPassExecutionContext<'_>,
     kind: PostProcessEffectKind,
 ) -> Result<(), String> {
-    let executor_id = context.executor_id.as_str().to_string();
     let gpu = context.require_gpu()?;
     let required_resources = {
         let frame_extract = gpu.frame_extract();
-        let node = frame_extract
+        let Some(node) = frame_extract
             .post_process
             .graph
             .nodes
             .iter()
             .find(|node| node.kind == kind)
-            .ok_or_else(|| {
-                format!(
-                    "product postprocess executor `{executor_id}` cannot find enabled `{}` postprocess node",
-                    kind.label()
-                )
-            })?;
+        else {
+            return Ok(());
+        };
         node.required_inputs
             .iter()
             .chain(&node.produced_outputs)
@@ -416,6 +418,7 @@ mod tests {
             "history.scene-color",
             "post.history-resolve",
             "post.final-composite",
+            "post.fxaa",
         ] {
             assert!(
                 registry.contains(&RenderPassExecutorId::new(executor_id)),

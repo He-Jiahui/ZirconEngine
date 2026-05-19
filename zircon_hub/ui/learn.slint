@@ -1,5 +1,5 @@
 import { LearnData, UiTextData } from "shared.slint";
-import { CatalogListPanel, InfoRow, PageScrollSurface } from "components.slint";
+import { CatalogPage, HubTokens, InfoRow } from "components.slint";
 
 component LearnRow inherits InfoRow {
     in property <LearnData> resource;
@@ -15,7 +15,7 @@ component LearnRow inherits InfoRow {
     trailing-tone: "accent";
     show-trailing-badge: true;
     show-arrow: true;
-    row-height: 108px;
+    row-height: HubTokens.list-row-lg + HubTokens.space-6;
     clicked => {
         root.open-resource(root.resource.path);
     }
@@ -29,28 +29,24 @@ export component LearnPage inherits Rectangle {
     private property <length> list-scroll-y: 0px;
     callback open-resource(string);
 
-    background: #11151a;
+    background: HubTokens.surface-page;
 
-    PageScrollSurface {
+    CatalogPage {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
-        content-height: 620px;
+        list-scroll-y <=> root.list-scroll-y;
+        title: root.ui-text.learn-library;
+        badge-text: root.resource-count + " " + root.ui-text.learn-resources-found;
+        badge-tone: "accent";
+        empty-title: root.ui-text.no-learn-resources-found;
+        row-count: root.resource-count;
+        row-height: HubTokens.list-row-lg + HubTokens.space-6;
 
-        CatalogListPanel {
-            scroll-y <=> root.list-scroll-y;
-            title: root.ui-text.learn-library;
-            badge-text: root.resource-count + " " + root.ui-text.learn-resources-found;
-            badge-tone: "accent";
-            empty-title: root.ui-text.no-learn-resources-found;
-            row-count: root.resource-count;
-            row-height: 108px;
-
-            for resource in root.resources: LearnRow {
-                resource: resource;
-                ui-text: root.ui-text;
-                open-resource(path) => { root.open-resource(path); }
-            }
+        for resource in root.resources: LearnRow {
+            resource: resource;
+            ui-text: root.ui-text;
+            open-resource(path) => { root.open-resource(path); }
         }
     }
 }

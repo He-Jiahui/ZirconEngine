@@ -7,6 +7,9 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
         .with_queue(RenderQueueClass::Compute)
         .with_surface_support(true)
         .with_pipeline_cache(true)
+        .with_storage_buffers(true)
+        .with_indirect_draw(true)
+        .with_buffer_readback(true)
         .with_acceleration_structures(AccelerationStructureCaps::disabled());
 
     assert!(caps.supports_queue(RenderQueueClass::Graphics));
@@ -14,5 +17,8 @@ fn backend_caps_report_queue_classes_and_rt_support_independently() {
     assert!(!caps.supports_queue(RenderQueueClass::Copy));
     assert!(caps.supports_surface);
     assert!(caps.supports_pipeline_cache);
+    assert!(caps.supports_storage_buffers);
+    assert!(caps.supports_indirect_draw);
+    assert!(caps.supports_buffer_readback);
     assert!(!caps.acceleration_structures.supported);
 }

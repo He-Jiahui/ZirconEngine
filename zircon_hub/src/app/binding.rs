@@ -24,6 +24,7 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
         snapshot.project_sort,
         language,
     ));
+    ui.set_project_subpage(view_model::project_subpage_id(snapshot.project_subpage));
     ui.set_project_view_mode(view_model::project_view_mode_id(snapshot.project_view_mode));
     ui.set_search_query(snapshot.search_query.clone().into());
     ui.set_status_label(snapshot.task_status.label.clone().into());
@@ -34,6 +35,10 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     )));
     let project_cards = view_model::project_cards(snapshot);
     let project_list_rows = view_model::project_list_rows(snapshot);
+    let project_browser_rows = view_model::project_browser_rows(snapshot);
+    let dashboard_project_rows = view_model::dashboard_project_rows(snapshot);
+    let project_templates = view_model::project_templates(snapshot);
+    let project_engine_rows = view_model::project_engine_rows(snapshot);
     let recent_project_rows = view_model::recent_project_rows(snapshot);
     let asset_items = view_model::asset_items(snapshot);
     let learn_items = view_model::learn_items(snapshot);
@@ -48,6 +53,19 @@ pub(super) fn apply_snapshot(ui: &HubWindow, snapshot: &HubSnapshot) {
     ui.set_project_cards(view_model::model_from(project_cards));
     ui.set_project_list_row_count(project_list_rows.len() as i32);
     ui.set_project_list_rows(view_model::model_from(project_list_rows));
+    ui.set_project_browser_row_count(project_browser_rows.len() as i32);
+    ui.set_project_browser_rows(view_model::model_from(project_browser_rows));
+    ui.set_dashboard_project_title(view_model::dashboard_project_title(snapshot, language));
+    ui.set_dashboard_project_row_count(dashboard_project_rows.len() as i32);
+    ui.set_dashboard_project_rows(view_model::model_from(dashboard_project_rows));
+    ui.set_project_template_count(project_templates.len() as i32);
+    ui.set_project_templates(view_model::model_from(project_templates));
+    ui.set_project_create_enabled(view_model::project_create_enabled(snapshot));
+    ui.set_project_create_template_label(view_model::project_create_template_label(snapshot));
+    ui.set_project_create_engine_label(view_model::project_create_engine_label(snapshot));
+    ui.set_project_engine_count(project_engine_rows.len() as i32);
+    ui.set_project_engine_rows(view_model::model_from(project_engine_rows));
+    ui.set_project_detail(view_model::project_detail(snapshot));
     ui.set_recent_project_row_count(recent_project_rows.len() as i32);
     ui.set_recent_project_rows(view_model::model_from(recent_project_rows));
     ui.set_quick_actions(view_model::model_from(view_model::quick_actions(language)));

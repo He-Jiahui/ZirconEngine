@@ -1,0 +1,27 @@
+version = 1
+name = "Default PBR"
+wgsl_files = ["pbr.wgsl"]
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+file = "pbr.wgsl"
+
+[[entry_points]]
+name = "fs_main"
+stage = "fragment"
+file = "pbr.wgsl"
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+default = [1.0, 1.0, 1.0, 1.0]
+editor = { label = "Base Color", group = "Surface" }
+
+[[texture_slots]]
+name = "base_color"
+kind = "texture2d"
+default = "white"
+sampler = "linear_repeat"
+group = "Surface"
+label = "Base Color Texture"

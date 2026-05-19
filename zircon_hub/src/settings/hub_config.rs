@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::engines::SourceEngineInstall;
 use crate::error::HubError;
-use crate::projects::RecentProject;
+use crate::projects::{ProjectMetadataMap, RecentProject};
 
 use super::{
     default_build_output_dir, default_device_install_dir, default_project_dir, default_source_dir,
@@ -17,6 +17,8 @@ pub struct HubConfig {
     pub settings: HubSettings,
     #[serde(default)]
     pub recent_projects: Vec<RecentProject>,
+    #[serde(default)]
+    pub project_metadata: ProjectMetadataMap,
     #[serde(default)]
     pub engines: Vec<SourceEngineInstall>,
     #[serde(default)]
@@ -52,6 +54,7 @@ impl Default for HubConfig {
         Self {
             settings: HubSettings::default(),
             recent_projects: Vec::new(),
+            project_metadata: ProjectMetadataMap::new(),
             engines: Vec::new(),
             active_engine_id: None,
             window: HubWindowState::default(),
@@ -187,6 +190,14 @@ mod tests {
         let mut config = HubConfig::default();
         config.settings.jobs = 4;
         config.settings.default_device_install_dir = PathBuf::from("E:/zircon-device");
+        config.project_metadata.insert(
+            "e:/projects/game".to_string(),
+            crate::projects::ProjectMetadata {
+                pinned: true,
+                engine_id: Some("local".to_string()),
+                last_selected_template: Some("renderable-empty".to_string()),
+            },
+        );
         config.engines.push(SourceEngineInstall {
             id: "local".to_string(),
             display_name: "Local Source".to_string(),
@@ -209,6 +220,13 @@ mod tests {
             PathBuf::from("E:/zircon-device")
         );
         assert_eq!(decoded.engines[0].id, "local");
+        assert!(decoded.project_metadata["e:/projects/game"].pinned);
+        assert_eq!(
+            decoded.project_metadata["e:/projects/game"]
+                .engine_id
+                .as_deref(),
+            Some("local")
+        );
         assert_eq!(decoded.active_engine_id.as_deref(), Some("local"));
         assert_eq!(decoded.window.width, Some(1320));
         assert!(decoded.window.maximized);

@@ -48,24 +48,71 @@ layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" },
 component = "Label"
 control_id = "textarea_autosize_MetaVariant"
 classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
-props = { text = "outlined / filled / standard", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "outlined / filled / standard", density = "compact", corner_radius = 999.0, border_width = 1.0 }
-layout = { width = { min = 162, preferred = 162, max = 162, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { text = "min rows / max rows", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "min rows / max rows", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 122, preferred = 122, max = 122, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.meta_layout]
 component = "Label"
 control_id = "textarea_autosize_MetaLayout"
 classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
-props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
-layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
+props = { text = "layout dirty", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "layout dirty", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+layout = { width = { min = 82, preferred = 82, max = 82, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "TextField"
+component = "HorizontalBox"
 control_id = "textarea-autosize_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { value = "Material multiline field", placeholder = "Write notes", helper_text = "Autosize prototype", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-textarea-row"]
+props = { value = "Line one\nLine two", value_text = "Line one\nLine two", placeholder = "Write notes", helper_text = "Autosize min/max rows", variant = "outlined", min_rows = 2, max_rows = 4, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "textarea_min_rows" },
+  { node = "textarea_max_rows" },
+  { node = "textarea_autosize_focus" },
+  { node = "textarea_error" },
+  { node = "textarea_disabled" },
+]
 events = [
   { id = "MaterialLab/TextareaAutosize/Change", event = "Change", route = "MaterialLab.TextareaAutosize.Change" },
 ]
+
+[nodes.textarea_min_rows]
+component = "TextareaAutosize"
+control_id = "textarea-autosize_MinRows"
+classes = ["material-control", "material-textarea", "material-textarea-min-rows"]
+props = { value = "2 rows", value_text = "2 rows", placeholder = "Min rows", helper_text = "min_rows=2", variant = "outlined", min_rows = 2, max_rows = 4, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text" }, border = { color = "material.outline", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 74.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
+
+[nodes.textarea_max_rows]
+component = "TextareaAutosize"
+control_id = "textarea-autosize_MaxRows"
+classes = ["material-control", "material-textarea", "material-textarea-max-rows"]
+props = { value = "4 row\nclamp", value_text = "4 row\nclamp", placeholder = "Max rows", helper_text = "max_rows=4", variant = "outlined", min_rows = 2, max_rows = 4, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = true, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_hover" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 74.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.textarea_autosize_focus]
+component = "TextareaAutosize"
+control_id = "textarea-autosize_Focused"
+classes = ["material-control", "material-textarea", "material-textarea-autosize", "material-textarea-focused"]
+props = { value = "Autosize", value_text = "Autosize", placeholder = "Autosize", helper_text = "layout dirty", variant = "filled", min_rows = 1, max_rows = 5, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_hover" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 52.0, preferred = 60.0, max = 78.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.textarea_error]
+component = "TextareaAutosize"
+control_id = "textarea-autosize_Error"
+classes = ["material-control", "material-textarea", "material-textarea-error"]
+props = { value = "Too long", value_text = "Too long", placeholder = "Error", helper_text = "Required", variant = "outlined", min_rows = 2, max_rows = 4, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "error", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.error" }, foreground = { color = "material.text" }, border = { color = "material.error", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 74.0, stretch = "Fixed" }, height = { min = 30.0, preferred = 30.0, max = 30.0, stretch = "Fixed" } }
+
+[nodes.textarea_disabled]
+component = "TextareaAutosize"
+control_id = "textarea-autosize_Disabled"
+classes = ["material-control", "material-textarea", "material-textarea-disabled"]
+props = { value = "Locked", value_text = "Locked", placeholder = "Disabled", helper_text = "No edit", variant = "outlined", min_rows = 2, max_rows = 4, autosize = true, multiline = true, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 74.0, stretch = "Fixed" }, height = { min = 28.0, preferred = 28.0, max = 28.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

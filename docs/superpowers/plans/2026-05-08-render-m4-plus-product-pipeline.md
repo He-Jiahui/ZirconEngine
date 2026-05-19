@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
@@ -27,8 +28,11 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -39,10 +43,15 @@ related_code:
   - zircon_runtime/src/scene/components/render2d/mesh2d.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
 implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/mod.rs
   - zircon_runtime/src/core/framework/render/post_process/effect.rs
@@ -52,6 +61,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/post_process/validation.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/scene_extract.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/render/sprite/mod.rs
   - zircon_runtime/src/core/framework/render/sprite/sprite.rs
   - zircon_runtime/src/core/framework/render/sprite/atlas.rs
@@ -74,8 +84,11 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/post_process/pass_graph/execute.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_record.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_graph_execution_resources.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_scene_resources.rs
@@ -86,15 +99,21 @@ implementation_files:
   - zircon_runtime/src/scene/components/render2d/mesh2d.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/sprite.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/build_sprite_vertices.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_vertex.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
 plan_sources:
   - user: 2026-05-16 continue Render M4B postprocess pass graph productization
   - user: 2026-05-17 continue M5A PBR material and light runtime baseline
   - user: 2026-05-17 continue M6A sprite/default 2D renderer productization
+  - user: 2026-05-18 continue M7A runtime UI placement in the product pipeline
   - .codex/plans/ZirconEngine Bevy-Level Rendering Completion Plan.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs
@@ -103,6 +122,7 @@ tests:
   - zircon_runtime/src/graphics/scene/render_product_streamer_tests.rs
   - zircon_runtime/src/graphics/tests/render_product_submit.rs
   - zircon_runtime/src/graphics/tests/render_product_sprite.rs
+  - zircon_runtime/src/graphics/tests/render_product_ui.rs
   - zircon_runtime/src/scene/tests/world_basics.rs
   - zircon_runtime/src/graphics/tests/pipeline_compile.rs
   - tests/acceptance/render-product-m3a-assets.md
@@ -116,6 +136,9 @@ tests:
   - cargo test -p zircon_runtime --locked render_product_assets
   - cargo test -p zircon_runtime --locked render_product_sprite
   - cargo test -p zircon_runtime --locked render_product_pipeline
+  - cargo test -p zircon_runtime --locked render_product_ui
+  - cargo test -p zircon_runtime --locked runtime_ui
+  - cargo check -p zircon_editor --lib --locked
   - cargo test -p zircon_runtime --locked default_core2d_pipeline_compiles_expected_stage_order_and_passes
   - cargo check -p zircon_runtime --lib --locked
 doc_type: milestone-detail
@@ -528,24 +551,27 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add a UI phase to `core_pipeline` contracts and graph stage mapping.
-- [ ] Update submit context to record UI target placement and UI pass order.
-- [ ] Route `UiRenderExtract` through the product graph record rather than only through legacy command stats.
-- [ ] Update UI renderer stats with pass order, target size, clipped command count, image payload count, and text payload count.
-- [ ] Add tests for UI after postprocess and before overlay for Core2d and Core3d.
-- [ ] Update `docs/assets-and-rendering/runtime-ui-graphics-integration.md` if present and `docs/assets-and-rendering/render-framework-architecture.md`.
+- [x] Add a UI phase to `core_pipeline` contracts and graph stage mapping.
+- [x] Update submit context to record UI target placement and UI pass order.
+- [x] Route `UiRenderExtract` through the product graph record rather than only through legacy command stats.
+- [x] Update UI renderer stats with pass order, target size, clipped command count, image payload count, and text payload count.
+- [x] Add tests for UI after postprocess and before overlay for Core2d and Core3d.
+- [x] Update `docs/assets-and-rendering/runtime-ui-graphics-integration.md` if present and `docs/assets-and-rendering/render-framework-architecture.md`.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_ui`.
-- Run `cargo test -p zircon_runtime --locked runtime_ui`.
-- Run `cargo check -p zircon_editor --lib --locked`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_ui`.
+- [x] Run `cargo test -p zircon_runtime --locked runtime_ui`.
+- [x] Run `cargo check -p zircon_editor --lib --locked`.
 - Debug order: core phase placement, UI extract target routing, renderer stats, editor compile impact.
+
+2026-05-18 M7A evidence was refreshed with `CARGO_TARGET_DIR=target/codex-native-material-painter`. `cargo check -p zircon_runtime --lib --locked --jobs 1 --color never`, `cargo check -p zircon_editor --lib --locked --jobs 1 --color never`, `cargo test -p zircon_runtime --locked render_product_ui --jobs 1 --message-format short --color never` (2 passed), and `cargo test -p zircon_runtime --locked runtime_ui --jobs 1 --message-format short --color never` (23 runtime lib tests plus 6 `runtime_ui_text_render_contract` tests) passed. No workspace-wide validation or plugin workspace validation was run for this milestone closeout.
 
 **Exit evidence:**
 
 - Runtime UI pass ordering is asserted relative to postprocess and overlay.
 - Editor still compiles against shared UI/render contracts.
+- Accepted for narrowed M7A runtime/editor UI-placement scope; workspace and plugin validation remain later gates.
 
 ## Milestone M8A: Anti-Alias Product Surface
 
@@ -562,20 +588,27 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `anti_alias` neutral contracts and re-export them from render framework.
-- [ ] Add `AntiAliasSettings` to `RenderViewExtract` or the camera-facing part of `RenderFrameExtract`.
-- [ ] Add FXAA shader/pipeline resources under `scene_renderer/anti_alias/fxaa.rs`.
-- [ ] Insert FXAA into `PostProcessPassGraph` when settings resolve to FXAA.
-- [ ] Add `AntiAliasFallbackReport` to render stats or advanced provider reports.
-- [ ] Update profile validation so `DefaultRender` can prove `AntiAlias` is backed by Auto-to-FXAA resolution on supported backends.
-- [ ] Add negative tests for unsupported DLSS, unsupported MSAA sample count, and TAA without history.
-- [ ] Update `docs/zircon_runtime/core/framework/render/anti_alias.md`.
+- [x] Add `anti_alias` neutral contracts and re-export them from render framework.
+- [x] Add `AntiAliasSettings` to `RenderViewExtract` or the camera-facing part of `RenderFrameExtract`.
+- [x] Add FXAA shader/pipeline resources under `scene_renderer/anti_alias/fxaa.rs`.
+- [x] Insert FXAA into `PostProcessPassGraph` when settings resolve to FXAA.
+- [x] Add `AntiAliasFallbackReport` to render stats or advanced provider reports.
+- [x] Update profile validation so `DefaultRender` can prove `AntiAlias` is backed by Auto-to-FXAA resolution on supported backends.
+- [x] Add negative tests for unsupported DLSS, unsupported MSAA sample count, and TAA without history.
+- [x] Update `docs/zircon_runtime/core/framework/render/anti_alias.md`.
+
+**2026-05-18 status:** scoped M8A implementation complete and focused validation passed. `RenderViewExtract` carries `AntiAliasSettings`; Default Forward+/Deferred include `BuiltinRenderFeature::AntiAlias`; the `fxaa` graph pass uses executor `post.fxaa`; `RenderStats` reports `last_anti_alias_fallback` and `last_anti_alias_graph_executed_pass_count`; focused tests cover Auto-to-FXAA plus unsupported DLSS, unsupported MSAA sample count, and TAA without history. `pipeline_compile` now asserts the product graph order including `post-process`, `fxaa`, `runtime-ui`, and overlay, so M8A AA placement stays compatible with the M7A runtime UI graph placement.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_anti_alias`.
-- Run `cargo test -p zircon_runtime --locked render_product_post_process`.
-- Run `cargo check -p zircon_runtime --lib --locked`.
+- [x] Run `cargo check -p zircon_runtime --lib --locked --jobs 1 --color never`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_anti_alias --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_post_process --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_pipeline --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --locked render_product_ui --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --lib builtin_registry_covers_product_postprocess_executor_ids --locked --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --lib capability_validation --locked --jobs 1 --message-format short --color never`.
+- [x] Run `cargo test -p zircon_runtime --locked pipeline_compile --jobs 1 --message-format short --color never`.
 - Debug order: settings resolution, pass graph insertion, renderer FXAA execution, fallback reports.
 
 **Exit evidence:**
@@ -601,23 +634,29 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `AdvancedRenderDegradation`, `AdvancedProviderReport`, and `AdvancedProfileRuntimePlan` under `core/framework/render/advanced/`.
-- [ ] Extend `RenderCapabilityKind` with concrete advanced requirements that current VG/HGI code actually needs, such as indirect draw, storage buffers, readback, async compute when used, and ray-query when required by a provider.
-- [ ] Update capability summary and validation to report default, advanced, and experimental capability classes separately.
-- [ ] Update `zircon_app/src/entry/first_party_runtime_plugins.rs` and `zircon_app/Cargo.toml` so VG/HGI linked providers can be collected behind explicit app features.
-- [ ] Update plugin manifests and runtime catalog entries for VG/HGI advanced capability declarations.
-- [ ] Update `resolve_enabled_features.rs` so profile requirements and compiled pipeline descriptors both participate in enabling advanced providers.
-- [ ] Move VG/HGI prepared sideband merge helpers from test-only availability into production submit feedback collection.
-- [ ] Add provider arbitration tests and submit tests for provider missing, capability missing, authored payload, automatic fallback payload, and stale state clearing.
-- [ ] Update `docs/zircon_runtime/core/framework/render/advanced.md` and advanced sections in render architecture docs.
+- [x] Add `AdvancedRenderDegradation`, `AdvancedProviderReport`, and `AdvancedProfileRuntimePlan` under `core/framework/render/advanced/`.
+- [x] Extend `RenderCapabilityKind` with concrete advanced requirements that current VG/HGI code actually needs, such as indirect draw, storage buffers, readback, async compute when used, and ray-query when required by a provider.
+- [x] Update capability summary and validation to report default, advanced, and experimental capability classes separately.
+- [x] Add framework-local provider arbitration tests for duplicate IDs, highest-priority ties, selected provider IDs, and stats availability.
+- [x] Gate advanced capability opt-in and submit context VG/HGI sidebands through provider-backed `AdvancedProfileRuntimePlan` reports.
+- [x] Report VG submit payload source through `RenderVirtualGeometryPayloadSource`, `FrameSubmissionContext`, and `RenderStats::last_virtual_geometry_payload_source`, with focused tests for authored priority, automatic fallback labeling, and degraded stale-source clearing.
+- [x] Report HGI submit payload source through `RenderHybridGiPayloadSource`, `FrameSubmissionContext`, and `RenderStats::last_hybrid_gi_payload_source`; current HGI has no automatic fallback extract path, so the source is `Authored` or `None`.
+- [x] Update `zircon_app/src/entry/first_party_runtime_plugins.rs` and `zircon_app/Cargo.toml` so VG/HGI linked providers can be collected behind explicit app features.
+- [x] Update plugin manifests and runtime catalog entries for VG/HGI advanced capability declarations.
+- [x] Update `resolve_enabled_features.rs` so profile requirements and compiled pipeline descriptors both participate in enabling advanced providers.
+- [x] Move VG/HGI prepared sideband merge helpers from test-only availability into production submit feedback collection.
+- [x] Add broader runtime-framework submit tests for provider missing, capability missing, and readback/feedback stats.
+- [x] Update `docs/zircon_runtime/core/framework/render/advanced.md` and advanced sections in render architecture docs for the completed runtime-local slices.
+
+**2026-05-19 status:** M9A neutral contract, capability-report, framework-local provider-arbitration, submit-time provider-gating, explicit profile-plus-descriptor feature resolving, VG/HGI payload-source reporting, production HGI/VG sideband readback merge, runtime-framework broader submit acceptance, app provider collection, plugin manifest/catalog, and product-level `render_product_advanced` slices are in place. `AdvancedProfileRuntimePlan` reports per-feature readiness for VG/HGI from `RenderProfileBundle`, `RenderCapabilitySummary`, and `AdvancedProviderAvailability`; missing backend capability and missing provider are separate degradations. `RenderCapabilityKind`, `RenderCapabilitySummary`, RHI backend caps, WGPU capability projection, quality-profile capability validation, and advanced provider reports include concrete advanced requirements for storage buffers, indirect draw, and buffer readback. `RenderCapabilitySummary::capability_class_report(...)` splits default, advanced, and experimental capability classes for diagnostics. VG/HGI provider registrations carry priority; duplicate IDs and ties at the highest priority reject framework construction; selected provider IDs are reported in `RenderStats::advanced_provider_availability`; compile options only opt in advanced capability-gated plugin features when a selected provider exists; `resolve_enabled_features(...)` requires both compiled capability descriptors and ready `AdvancedProfileRuntimePlan` state; `RenderStats::last_advanced_provider_reports` records last-submit per-feature reports; `RenderStats::last_virtual_geometry_payload_source` distinguishes authored VG extracts from automatic fallback extracts after runtime-plan gating clears degraded stale state; `RenderStats::last_hybrid_gi_payload_source` reports HGI `Authored` or `None` because there is no HGI automatic fallback extract path today; and `collect_runtime_feedback(...)` merges renderer readback with `PreparedRuntimeSubmission` HGI/VG sideband readback in production. `zircon_app` links VG/HGI providers behind `first-party-advanced-render-runtime-plugins`; `first_party_runtime_plugin_registrations_for_config(...)` derives advanced provider selections from `EntryConfig::render_profile`; VG/HGI `plugin.toml`, runtime descriptors, and built-in catalog entries declare the profile-facing advanced capabilities; and `render_product_advanced` now proves provider-backed acceptance plus descriptor-only provider-missing degradation through the planned all-target Cargo filter.
 
 **Testing stage:**
 
-- Run `cargo test -p zircon_runtime --locked render_product_advanced`.
-- Run `cargo test -p zircon_runtime --locked virtual_geometry`.
-- Run `cargo test -p zircon_runtime --locked hybrid_gi`.
-- Run `cargo test -p zircon_app --locked render_profile_runtime_plugins`.
-- Run `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets`.
+- Run `cargo test -p zircon_runtime --locked render_product_advanced`. Passed on 2026-05-19: 2 tests, 0 failures.
+- Run `cargo test -p zircon_runtime --locked virtual_geometry`. Passed on 2026-05-19: 47 lib-filtered tests plus filtered integration targets; 4 ignored legacy automatic-VG tests remained ignored by design.
+- Run `cargo test -p zircon_runtime --locked hybrid_gi`. Passed on 2026-05-19: 19 lib-filtered tests plus filtered integration targets.
+- Run `cargo test -p zircon_app --locked render_profile_runtime_plugins`. Focused 2026-05-19 app-provider variants passed with `first-party-advanced-render-runtime-plugins` alone and with `first-party-runtime-plugins` combined.
+- Run `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --locked --all-targets`. Passed on 2026-05-19 with `CARGO_TARGET_DIR=E:\Git\ZirconEngine\target\codex-render-m9a-advanced` after syncing the shader importer and WGSL importer `ShaderAsset` initializers to the current `texture_slots` field. Focused VG/HGI registration tests and package-level `--all-targets` checks for `zircon_plugin_virtual_geometry_runtime`, `zircon_plugin_hybrid_gi_runtime`, `zircon_plugin_asset_importer_shader_runtime`, and `zircon_plugin_shader_wgsl_importer_runtime` also passed.
 - Debug order: app profile provider collection, runtime profile catalog, capability validation, submit preparation, provider readback/feedback, stats.
 
 **Exit evidence:**
@@ -625,6 +664,7 @@ Update docs with required YAML frontmatter:
 - `AdvancedRender` cannot silently pass without required providers or backend support.
 - VG/HGI submit tests prove profile-selected deep integration through readback and feedback stats.
 - `DefaultRender` tests prove VG/HGI remain disabled by default.
+- Product-level `render_product_advanced` tests prove provider-backed AdvancedRender acceptance and descriptor-only provider-missing degradation.
 
 ## Milestone M9B: Solari Experimental Contract And Gated Runtime Path
 
@@ -642,14 +682,14 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `solari` neutral contract module with `SolariSettings`, `SolariCapabilityRequirement`, `SolariRuntimeStatus`, and `SolariDegradationReason`.
-- [ ] Extend `RenderCapabilityKind` with binding-array or bindless resource capabilities required by the local Bevy Solari evidence.
-- [ ] Create `zircon_plugins/solari/runtime` with provider registration and unavailable-provider behavior.
-- [ ] Add `zircon_plugins/solari/plugin.toml` and workspace membership in `zircon_plugins/Cargo.toml`.
-- [ ] Add catalog/runtime-profile entries so `SolariExperimental` can request the Solari plugin explicitly.
-- [ ] Update profile capability validation for `RenderProductFeature::Solari` to require all Solari experimental capabilities.
-- [ ] Add tests proving Solari is disabled in DefaultRender and AdvancedRender, rejects missing capabilities, reports provider missing, and reports experimental disabled.
-- [ ] Update `docs/zircon_runtime/core/framework/render/solari.md`.
+- [x] Add `solari` neutral contract module with `SolariSettings`, `SolariCapabilityRequirement`, `SolariRuntimeStatus`, and `SolariDegradationReason`.
+- [x] Extend `RenderCapabilityKind` with binding-array or bindless resource capabilities required by the local Bevy Solari evidence.
+- [x] Create `zircon_plugins/solari/runtime` with provider registration and unavailable-provider behavior.
+- [x] Add `zircon_plugins/solari/plugin.toml` and workspace membership in `zircon_plugins/Cargo.toml`.
+- [x] Add catalog/runtime-profile entries so `SolariExperimental` can request the Solari plugin explicitly.
+- [x] Update profile capability validation for `RenderProductFeature::Solari` to require all Solari experimental capabilities.
+- [x] Add tests proving Solari is disabled in DefaultRender and AdvancedRender, rejects missing capabilities, reports provider missing, and reports experimental disabled.
+- [x] Update `docs/zircon_runtime/core/framework/render/solari.md`.
 
 **Testing stage:**
 
@@ -680,13 +720,15 @@ Update docs with required YAML frontmatter:
 
 **Implementation slices:**
 
-- [ ] Add `tests/acceptance/render-product-default-profile.md` with exact fixture description and commands.
-- [ ] Add `tests/acceptance/render-product-advanced-profile.md` with VG/HGI provider and fallback cases.
-- [ ] Add runtime graphics tests under `render_product_submit.rs` for DefaultRender, Headless, AdvancedRender, and SolariExperimental.
-- [ ] Add app bootstrap tests proving profile bundle selection flows into plugin/provider planning.
-- [ ] Add docs index links from `docs/assets-and-rendering/index.md` to every render product module doc.
-- [ ] Update `docs/assets-and-rendering/bevy-rendering-capability-matrix.md` with accepted, degraded, experimental, and intentionally divergent statuses.
-- [ ] Remove or quarantine product acceptance that still depends on legacy snapshot authority if all product paths have direct extract coverage.
+- [x] Add `tests/acceptance/render-product-default-profile.md` with exact fixture description and commands.
+- [x] Add `tests/acceptance/render-product-advanced-profile.md` with VG/HGI provider and fallback cases.
+- [x] Add runtime graphics tests under `render_product_submit.rs` for DefaultRender, Headless, AdvancedRender, and SolariExperimental.
+- [x] Add app bootstrap tests proving profile bundle selection flows into plugin/provider planning.
+- [x] Add docs index links from `docs/assets-and-rendering/index.md` to every render product module doc.
+- [x] Update `docs/assets-and-rendering/bevy-rendering-capability-matrix.md` with accepted, degraded, experimental, and intentionally divergent statuses.
+- [x] Remove or quarantine product acceptance that still depends on legacy snapshot authority if all product paths have direct extract coverage.
+
+**2026-05-19 status:** M10A focused acceptance is implemented and locally validated on Windows with a shared target dir. `cargo test -p zircon_runtime --locked render_product --jobs 1 --message-format short --color never` passed 57 focused product tests; `cargo test -p zircon_app --locked render_profile --jobs 1 --message-format short --color never` passed the default-feature app profile gate; `cargo test -p zircon_app --locked --no-default-features --features "plugin-ui,first-party-advanced-render-runtime-plugins" render_profile --jobs 1 --message-format short --color never` passed the advanced-plugin app profile gate; `cargo check -p zircon_editor --lib --locked --message-format short --color never` passed; and `cargo check --manifest-path zircon_plugins\Cargo.toml --workspace --locked --all-targets --message-format short --color never` passed. Full workspace CI-equivalent build/test and the optional validation-matrix script remain separate final-promotion gates for a cleaner worktree window.
 
 **Testing stage:**
 

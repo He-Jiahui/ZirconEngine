@@ -2,6 +2,9 @@ use std::fmt;
 use std::sync::Arc;
 
 use zircon_runtime::core::framework::render::RENDER_PROFILE_CONFIG_KEY;
+use zircon_runtime::core::framework::window::{
+    WindowDescriptor, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
+};
 use zircon_runtime::core::{CoreError, CoreHandle, CoreRuntime, ModuleDescriptor};
 use zircon_runtime::engine_module::EngineModule;
 use zircon_runtime::platform::{
@@ -53,13 +56,14 @@ pub struct EntryModuleSelection {
     pub plugin_count: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EntryModuleSelectionReport {
     pub profile: EntryProfile,
     pub run_mode: EntryRunMode,
     pub runtime_profile: Option<RuntimeProfileId>,
     pub target_mode: RuntimeTargetMode,
     pub platform_config: PlatformConfig,
+    pub window_descriptor: WindowDescriptor,
     pub plugin_group: String,
     pub modules: Vec<EntryModuleSelection>,
 }
@@ -84,6 +88,7 @@ impl EntryModuleSelectionReport {
         ));
         lines.push(format!("entry.target_mode={:?}", self.target_mode));
         lines.extend(self.platform_config.diagnostic_lines());
+        lines.extend(self.window_descriptor.diagnostic_lines());
         lines.push(format!("entry.plugin_group={}", self.plugin_group));
         lines.push(format!("entry.modules={}", self.modules.len()));
         lines.extend(
@@ -243,6 +248,7 @@ impl BuiltinEngineEntry {
             runtime_profile: self.config.runtime_profile(),
             target_mode: self.config.target_mode,
             platform_config: platform_config_for_entry_config(&self.config),
+            window_descriptor: self.config.window_descriptor.clone(),
             plugin_group: self.plugin_group.name().to_string(),
             modules: self
                 .module_descriptors()
@@ -262,6 +268,12 @@ impl BuiltinEngineEntry {
             .ok();
         runtime_handle
             .store_config(RENDER_PROFILE_CONFIG_KEY, &self.config.render_profile)
+            .ok();
+        runtime_handle
+            .store_config(
+                PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
+                &self.config.window_descriptor,
+            )
             .ok();
         #[cfg(not(feature = "target-editor-host"))]
         let _ = runtime;

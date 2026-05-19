@@ -432,7 +432,8 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f
 
 @fragment
 fn fs_main() -> @location(0) vec4f {
-    return vec4f(1.0, 1.0, 1.0, 1.0);
+    let base_color = vec4f(1.0, 1.0, 1.0, 1.0);
+    return base_color;
 }
 "#,
     )
@@ -506,6 +507,84 @@ fn fs_main() -> @location(0) vec4f {
                 .shader_property_diagnostics(&shader)
                 .iter()
                 .any(|diagnostic| diagnostic.contains("not declared")));
+        }
+        other => panic!("unexpected compound shader artifact: {other:?}"),
+    }
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_imports_zshader_with_wgsl_capture_diagnostics() {
+    let root = unique_temp_project_root("project_manager_zshader_capture_diagnostics");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    paths.ensure_layout().unwrap();
+    ProjectManifest::new(
+        "ShaderCaptureSandbox",
+        AssetUri::parse("res://shaders/capture_shader").unwrap(),
+        1,
+    )
+    .save(paths.manifest_path())
+    .unwrap();
+
+    let shader_uri = AssetUri::parse("res://shaders/capture_shader").unwrap();
+    let shader_meta_path = paths
+        .assets_root()
+        .join("shaders")
+        .join("capture_shader.zmeta");
+    let mut shader_meta =
+        AssetMetaDocument::new(AssetUuid::new(), shader_uri.clone(), AssetKind::Shader);
+    shader_meta.unit = AssetSourceUnit::Compound;
+    shader_meta.save(&shader_meta_path).unwrap();
+
+    let shader_dir = paths.assets_root().join("shaders").join("capture_shader");
+    fs::create_dir_all(&shader_dir).unwrap();
+    fs::write(
+        shader_dir.join("capture.zshader"),
+        r#"
+version = 1
+wgsl_files = ["capture.wgsl"]
+
+[[entry_points]]
+name = "vs_main"
+stage = "vertex"
+
+[[properties]]
+name = "base_color"
+kind = "vec4"
+
+[[texture_slots]]
+name = "albedo"
+kind = "texture2d"
+"#,
+    )
+    .unwrap();
+    fs::write(
+        shader_dir.join("capture.wgsl"),
+        r#"
+@vertex
+fn vs_main(@builtin(vertex_index) vertex_index: u32) -> @builtin(position) vec4f {
+    return vec4f(f32(vertex_index), 0.0, 0.0, 1.0);
+}
+"#,
+    )
+    .unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+
+    match manager.load_artifact(&shader_uri).unwrap() {
+        ImportedAsset::Shader(shader) => {
+            assert!(shader
+                .validation_diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic
+                    .contains("wgsl_capture property `base_color` was not found")));
+            assert!(shader
+                .validation_diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic
+                    .contains("wgsl_capture texture slot `albedo` was not found")));
         }
         other => panic!("unexpected compound shader artifact: {other:?}"),
     }

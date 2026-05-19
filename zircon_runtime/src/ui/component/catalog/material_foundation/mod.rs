@@ -9,8 +9,10 @@ mod inputs;
 mod layout;
 mod mui_x;
 mod navigation;
+mod selection_inputs;
 mod shared;
 mod surfaces;
+mod text_inputs;
 
 static MATERIAL_EDITOR_FOUNDATION_REGISTRY: OnceLock<UiComponentDescriptorRegistry> =
     OnceLock::new();
@@ -37,6 +39,8 @@ fn build_material_editor_foundation_registry() -> UiComponentDescriptorRegistry 
 fn material_editor_foundation_descriptors() -> Vec<UiComponentDescriptor> {
     let mut descriptors = Vec::new();
     descriptors.extend(inputs::descriptors());
+    descriptors.extend(selection_inputs::descriptors());
+    descriptors.extend(text_inputs::descriptors());
     descriptors.extend(data_display::descriptors());
     descriptors.extend(feedback::descriptors());
     descriptors.extend(surfaces::descriptors());

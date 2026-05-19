@@ -96,6 +96,8 @@ fn scene_representation_extract(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract {
             display_mode: DisplayMode::Shaded,

@@ -1,22 +1,21 @@
-import { ScrollView } from "std-widgets.slint";
 import { CloudServiceData, CloudSummaryData, MutedText, UiTextData } from "shared.slint";
-import { HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+import { HubPanel, HubTokens, InfoRow, MaterialPalette, MaterialStyleMetrics, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, ResponsivePanelFlow } from "components.slint";
 
 component CloudMetric inherits HubPanel {
     in property <string> label;
     in property <string> value;
     in property <string> status;
 
-    height: 104px;
+    height: HubTokens.list-row-lg + HubTokens.space-6;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 16px;
-        padding-right: 16px;
-        padding-top: 14px;
-        padding-bottom: 14px;
-        spacing: 7px;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_16;
+        padding-top: MaterialStyleMetrics.padding_14;
+        padding-bottom: MaterialStyleMetrics.padding_14;
+        spacing: MaterialStyleMetrics.spacing_6;
 
         MutedText {
             text: root.label;
@@ -26,9 +25,9 @@ component CloudMetric inherits HubPanel {
         Text {
             text: root.status;
             overflow: elide;
-            color: #f3f6f9;
-            font-size: 15px;
-            font-weight: 800;
+            color: MaterialPalette.on_surface;
+            font-size: MaterialTypography.title_small.font_size;
+            font-weight: MaterialTypography.title_small.font_weight;
         }
 
         MutedText {
@@ -50,7 +49,7 @@ component CloudServiceRow inherits InfoRow {
     trailing-text: root.service.status;
     trailing-tone: root.service.status == "Ready" ? "ok" : (root.service.status == "Not connected" ? "warning" : "neutral");
     show-trailing-badge: true;
-    row-height: 86px;
+    row-height: HubTokens.list-row-lg;
 }
 
 export component CloudPage inherits Rectangle {
@@ -59,28 +58,27 @@ export component CloudPage inherits Rectangle {
     in property <[CloudServiceData]> services;
     in property <int> service-count;
     in property <UiTextData> ui-text;
-    private property <bool> compact: root.width < 920px;
+    private property <bool> compact: root.width < HubTokens.breakpoint-compact;
     private property <length> service-scroll-y: 0px;
 
-    background: #11151a;
+    background: HubTokens.surface-page;
     clip: true;
 
     PageScrollSurface {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
-        content-height: root.compact ? 920px : 690px;
 
         HubPanel {
-            height: 82px;
+            height: HubTokens.list-row-lg;
 
             VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding-left: 18px;
-                padding-right: 18px;
-                padding-top: 14px;
-                padding-bottom: 14px;
+                padding-left: MaterialStyleMetrics.padding_16;
+                padding-right: MaterialStyleMetrics.padding_16;
+                padding-top: MaterialStyleMetrics.padding_14;
+                padding-bottom: MaterialStyleMetrics.padding_14;
 
                 PanelHeader {
                     title: root.ui-text.cloud-overview;
@@ -93,42 +91,42 @@ export component CloudPage inherits Rectangle {
         }
 
         ResponsivePanelFlow {
-            flow-height: root.compact ? 452px : 220px;
-            spacing-horizontal: 12px;
-            spacing-vertical: 12px;
+            flow-height: root.compact ? (HubTokens.list-row-lg + HubTokens.space-6) * 2 + HubTokens.panel-gap : HubTokens.list-row-lg + HubTokens.space-6;
+            spacing-horizontal: HubTokens.space-3;
+            spacing-vertical: HubTokens.space-3;
 
             CloudMetric {
-                flex-basis: 320px;
+                flex-basis: HubTokens.panel-min-sm;
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: 260px;
+                min-width: HubTokens.panel-min-sm * 3 / 4;
                 label: root.ui-text.cloud-account;
                 value: root.ui-text.cloud-local-only;
                 status: root.summary.account-status;
             }
             CloudMetric {
-                flex-basis: 320px;
+                flex-basis: HubTokens.panel-min-sm;
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: 260px;
+                min-width: HubTokens.panel-min-sm * 3 / 4;
                 label: root.ui-text.cloud-output;
                 value: root.summary.output-path;
                 status: root.summary.output-status;
             }
             CloudMetric {
-                flex-basis: 320px;
+                flex-basis: HubTokens.panel-min-sm;
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: 260px;
+                min-width: HubTokens.panel-min-sm * 3 / 4;
                 label: root.ui-text.cloud-device-install;
                 value: root.summary.device-path;
                 status: root.summary.device-status;
             }
             CloudMetric {
-                flex-basis: 320px;
+                flex-basis: HubTokens.panel-min-sm;
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: 260px;
+                min-width: HubTokens.panel-min-sm * 3 / 4;
                 label: root.ui-text.cloud-packages;
                 value: root.summary.package-path;
                 status: root.summary.package-status;
@@ -142,8 +140,8 @@ export component CloudPage inherits Rectangle {
             VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding: 18px;
-                spacing: 10px;
+                padding: MaterialStyleMetrics.padding_16;
+                spacing: HubTokens.toolbar-gap;
 
                 PanelHeader {
                     title: root.ui-text.cloud-services;
@@ -152,30 +150,13 @@ export component CloudPage inherits Rectangle {
                     badge-tone: "neutral";
                 }
 
-                cloud-scroll := ScrollView {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    viewport-y <=> root.service-scroll-y;
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-                    mouse-drag-pan-enabled: true;
-                    viewport-width: cloud-scroll.visible-width;
-                    viewport-height: max(cloud-scroll.visible-height, root.service-count * 94px + 8px);
+                PanelListViewport {
+                    scroll-y <=> root.service-scroll-y;
+                    row-count: root.service-count;
+                    row-height: HubTokens.list-row-lg;
 
-                    Rectangle {
-                        width: cloud-scroll.visible-width;
-                        height: cloud-scroll.viewport-height;
-                        background: transparent;
-
-                        VerticalLayout {
-                            width: parent.width;
-                            height: parent.height;
-                            spacing: 8px;
-
-                            for service in root.services: CloudServiceRow {
-                                service: service;
-                            }
-                        }
+                    for service in root.services: CloudServiceRow {
+                        service: service;
                     }
                 }
             }

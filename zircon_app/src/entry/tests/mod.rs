@@ -183,20 +183,52 @@ fn runtime_entry_surface_present_switch_keeps_diagnostics_and_fallback_paths() {
 fn runtime_entry_ticks_dynamic_runtime_time_before_redraw_request() {
     let runtime_handler_source = include_str!("../runtime_entry_app/application_handler.rs");
     let runtime_session_source = include_str!("../runtime_library/runtime_session.rs");
+    let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
 
     assert!(
         runtime_session_source.contains("pub(crate) fn tick_frame"),
         "runtime session should expose an optional dynamic runtime tick wrapper"
     );
+    assert!(
+        runtime_app_source.contains("event_loop_policy: EventLoopPolicy"),
+        "runtime entry app should store the selected event-loop policy"
+    );
     assert_source_order(
         runtime_handler_source,
         &[
             "fn about_to_wait",
+            "self.apply_event_loop_policy(event_loop);",
             "self.session.tick_frame()",
             "self.apply_runtime_host_requests(event_loop)",
             "window.request_redraw();",
         ],
         "runtime entry should advance runtime time and apply host requests before requesting the next redraw",
+    );
+}
+
+#[test]
+fn runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow() {
+    let event_loop_policy_source = include_str!("../runtime_entry_app/event_loop_policy.rs");
+    let runtime_app_source = include_str!("../runtime_entry_app/mod.rs");
+
+    for required in [
+        "EventLoopPolicy::Game",
+        "EventLoopPolicy::Continuous",
+        "EventLoopPolicy::DesktopApp",
+        "EventLoopPolicy::Mobile",
+        "EventLoopPolicy::Headless",
+        "ControlFlow::Poll",
+        "ControlFlow::Wait",
+        "event_loop.set_control_flow",
+    ] {
+        assert!(
+            event_loop_policy_source.contains(required),
+            "runtime event-loop policy helper should preserve `{required}`"
+        );
+    }
+    assert!(
+        runtime_app_source.contains("mod event_loop_policy;"),
+        "runtime entry app should keep event-loop policy mapping in a child module"
     );
 }
 

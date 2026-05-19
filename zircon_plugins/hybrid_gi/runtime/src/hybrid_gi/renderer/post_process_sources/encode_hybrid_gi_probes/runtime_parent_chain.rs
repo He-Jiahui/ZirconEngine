@@ -1071,6 +1071,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1120,6 +1122,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1175,6 +1179,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1232,6 +1238,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1264,6 +1272,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1309,6 +1319,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1472,6 +1484,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1516,6 +1530,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {
@@ -1577,6 +1593,8 @@ mod tests {
                 directional_lights: Vec::new(),
                 point_lights: Vec::new(),
                 spot_lights: Vec::new(),
+                ambient_lights: Vec::new(),
+                rect_lights: Vec::new(),
             },
             overlays: RenderOverlayExtract::default(),
             preview: PreviewEnvironmentExtract {

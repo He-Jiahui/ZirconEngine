@@ -83,7 +83,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionArgsTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -94,7 +94,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionArgsOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -112,12 +112,10 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_gpu_autho
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -186,7 +184,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionArgsTokensTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -197,7 +195,7 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionArgsTokensOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -215,12 +213,10 @@ fn virtual_geometry_submission_records_survive_with_execution_args_and_shared_su
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -284,7 +280,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionAuthorityOnlyTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -295,7 +291,7 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionAuthorityOnlyOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -313,12 +309,10 @@ fn virtual_geometry_submission_records_survive_with_execution_authority_buffer_o
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -388,7 +382,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionSubmissionTokensTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -399,7 +393,7 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionSubmissionTokensOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -417,12 +411,10 @@ fn virtual_geometry_submission_records_survive_with_execution_submission_tokens_
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -488,7 +480,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionArgsDefaultTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -499,7 +491,7 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionArgsDefaultOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -517,12 +509,10 @@ fn virtual_geometry_execution_draw_ref_indices_default_to_execution_args_without
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -585,7 +575,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
         paths
             .assets_root()
             .join("materials")
-            .join("transparent_red.material.toml"),
+            .join("transparent_red.zmaterial"),
         "ExecutionRecordsDefaultTransparentRed",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -596,7 +586,7 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
         paths
             .assets_root()
             .join("materials")
-            .join("opaque_white.material.toml"),
+            .join("opaque_white.zmaterial"),
         "ExecutionRecordsDefaultOpaqueWhite",
         "res://shaders/flat_color.wgsl",
         "res://textures/white.png",
@@ -614,12 +604,10 @@ fn virtual_geometry_execution_records_default_to_execution_args_and_authority_wi
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
     let transparent_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/transparent_red.material.toml",
+        "res://materials/transparent_red.zmaterial",
     );
-    let opaque_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/opaque_white.material.toml",
-    );
+    let opaque_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/opaque_white.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_overlapping_extract(
         viewport_size,
@@ -930,6 +918,9 @@ fn write_material(
         emissive_texture: None,
         alpha_mode,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

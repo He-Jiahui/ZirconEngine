@@ -7,7 +7,8 @@ use crate::asset::AssetImporterRegistry;
 use crate::engine_module::EngineModule;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
     RuntimePluginCatalog, RuntimePluginFeatureRegistrationReport, RuntimePluginRegistrationReport,
@@ -49,6 +50,7 @@ pub enum RuntimePluginId {
     Rendering,
     VirtualGeometry,
     HybridGi,
+    Solari,
     ZrVmLanguage,
 }
 
@@ -75,6 +77,7 @@ impl RuntimePluginId {
             Self::Rendering => "rendering",
             Self::VirtualGeometry => "virtual_geometry",
             Self::HybridGi => "hybrid_gi",
+            Self::Solari => "solari",
             Self::ZrVmLanguage => "zr_vm_language",
         }
     }
@@ -101,6 +104,7 @@ impl RuntimePluginId {
             Self::Rendering => "Rendering",
             Self::VirtualGeometry => "VirtualGeometry",
             Self::HybridGi => "HybridGi",
+            Self::Solari => "Solari",
             Self::ZrVmLanguage => "ZrVM Language",
         }
     }
@@ -129,6 +133,7 @@ impl RuntimePluginId {
             "rendering" | "renderer" | "graphics" => Some(Self::Rendering),
             "vg" | "virtual_geometry" => Some(Self::VirtualGeometry),
             "gi" | "hybrid_gi" => Some(Self::HybridGi),
+            "solari" => Some(Self::Solari),
             "zr_vm_language" | "zr_vm" | "zrvmlanguage" => Some(Self::ZrVmLanguage),
             _ => None,
         }
@@ -195,6 +200,7 @@ fn runtime_core_modules_for_target(target: RuntimeTargetMode) -> Vec<Arc<dyn Eng
         &[],
         &[],
         &[],
+        &[],
     )
 }
 
@@ -215,6 +221,7 @@ fn runtime_core_modules_for_target_with_render_features(
     render_pass_executors: &[RenderPassExecutorRegistration],
     runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
+    solari_runtime_providers: &[SolariRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> Vec<Arc<dyn EngineModule>> {
     let mut modules: Vec<Arc<dyn EngineModule>> = vec![
@@ -233,6 +240,7 @@ fn runtime_core_modules_for_target_with_render_features(
                 render_pass_executors.iter().cloned(),
                 runtime_prepare_collectors.iter().cloned(),
                 hybrid_gi_runtime_providers.iter().cloned(),
+                solari_runtime_providers.iter().cloned(),
                 virtual_geometry_runtime_providers.iter().cloned(),
             ),
         ));
@@ -262,6 +270,7 @@ pub fn runtime_modules_for_target_with_linked_plugins(
         manifest_override,
         linked_plugin_ids,
         &AssetImporterRegistry::default(),
+        &[],
         &[],
         &[],
         &[],
@@ -320,6 +329,16 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
                 .cloned()
         })
         .collect::<Vec<_>>();
+    let solari_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .solari_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
     let virtual_geometry_runtime_providers = registrations
         .iter()
         .flat_map(|registration| {
@@ -346,6 +365,7 @@ pub fn runtime_modules_for_target_with_plugin_registration_reports<'a>(
             &render_pass_executors,
             &runtime_prepare_collectors,
             &hybrid_gi_runtime_providers,
+            &solari_runtime_providers,
             &virtual_geometry_runtime_providers,
         );
     report.errors.extend(asset_importer_errors);
@@ -366,6 +386,7 @@ pub fn runtime_modules_for_runtime_profile(
         &manifest,
         std::iter::empty::<String>(),
         &AssetImporterRegistry::default(),
+        &[],
         &[],
         &[],
         &[],
@@ -442,6 +463,16 @@ fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
                 .cloned()
         })
         .collect::<Vec<_>>();
+    let solari_runtime_providers = registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .solari_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .collect::<Vec<_>>();
     let virtual_geometry_runtime_providers = registrations
         .iter()
         .flat_map(|registration| {
@@ -467,6 +498,7 @@ fn runtime_modules_for_profile_manifest_with_plugin_registration_reports<'a>(
             &render_pass_executors,
             &runtime_prepare_collectors,
             &hybrid_gi_runtime_providers,
+            &solari_runtime_providers,
             &virtual_geometry_runtime_providers,
         );
     report.errors.extend(asset_importer_errors);
@@ -582,6 +614,27 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
                 }),
         )
         .collect::<Vec<_>>();
+    let solari_runtime_providers = active_registrations
+        .iter()
+        .flat_map(|registration| {
+            registration
+                .extensions
+                .solari_runtime_providers()
+                .iter()
+                .cloned()
+        })
+        .chain(
+            active_feature_registrations
+                .iter()
+                .flat_map(|registration| {
+                    registration
+                        .extensions
+                        .solari_runtime_providers()
+                        .iter()
+                        .cloned()
+                }),
+        )
+        .collect::<Vec<_>>();
     let virtual_geometry_runtime_providers = active_registrations
         .iter()
         .flat_map(|registration| {
@@ -622,6 +675,7 @@ pub fn runtime_modules_for_target_with_plugin_and_feature_registration_reports<'
         &render_pass_executors,
         &runtime_prepare_collectors,
         &hybrid_gi_runtime_providers,
+        &solari_runtime_providers,
         &virtual_geometry_runtime_providers,
     );
     for blocked in feature_report.blocked_features {
@@ -645,6 +699,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
     render_pass_executors: &[RenderPassExecutorRegistration],
     runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
+    solari_runtime_providers: &[SolariRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
     let manifest = manifest_with_mode_baseline(target, manifest_override);
@@ -657,6 +712,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features(
         render_pass_executors,
         runtime_prepare_collectors,
         hybrid_gi_runtime_providers,
+        solari_runtime_providers,
         virtual_geometry_runtime_providers,
     )
 }
@@ -670,6 +726,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features_for_manife
     render_pass_executors: &[RenderPassExecutorRegistration],
     runtime_prepare_collectors: &[RuntimePrepareCollectorRegistration],
     hybrid_gi_runtime_providers: &[HybridGiRuntimeProviderRegistration],
+    solari_runtime_providers: &[SolariRuntimeProviderRegistration],
     virtual_geometry_runtime_providers: &[VirtualGeometryRuntimeProviderRegistration],
 ) -> RuntimeModuleLoadReport {
     let linked_plugin_ids = linked_plugin_ids
@@ -684,6 +741,7 @@ fn runtime_modules_for_target_with_linked_plugins_and_render_features_for_manife
             render_pass_executors,
             runtime_prepare_collectors,
             hybrid_gi_runtime_providers,
+            solari_runtime_providers,
             virtual_geometry_runtime_providers,
         ));
 
@@ -897,6 +955,10 @@ fn module_for_plugin(
         }
         RuntimePluginId::HybridGi => {
             warnings.push(externalized_runtime_plugin_message("hybrid_gi"));
+            None
+        }
+        RuntimePluginId::Solari => {
+            warnings.push(externalized_runtime_plugin_message("solari"));
             None
         }
         RuntimePluginId::ZrVmLanguage => {

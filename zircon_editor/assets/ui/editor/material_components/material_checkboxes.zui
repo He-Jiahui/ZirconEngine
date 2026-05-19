@@ -58,14 +58,61 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Checkbox"
+component = "HorizontalBox"
 control_id = "checkboxes_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Checkboxes", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-checkbox-row"]
+props = { text = "Checkboxes", checked = true, indeterminate = false, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "checkbox_unchecked" },
+  { node = "checkbox_checked" },
+  { node = "checkbox_indeterminate" },
+  { node = "checkbox_error" },
+  { node = "checkbox_disabled" },
+]
 events = [
   { id = "MaterialLab/Checkboxes/Toggle", event = "Toggle", route = "MaterialLab.Checkboxes.Toggle" },
 ]
+
+[nodes.checkbox_unchecked]
+component = "Checkbox"
+control_id = "checkboxes_Unchecked"
+classes = ["material-control", "material-checkbox", "material-checkbox-unchecked"]
+props = { text = "Unchecked", checked = false, indeterminate = false, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "secondary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text_muted" }, border = { color = "material.outline", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 78.0, preferred = 90.0, max = 106.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.checkbox_checked]
+component = "Checkbox"
+control_id = "checkboxes_Checked"
+classes = ["material-control", "material-checkbox", "material-checkbox-checked"]
+props = { text = "Checked", checked = true, indeterminate = false, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 70.0, preferred = 82.0, max = 98.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.checkbox_indeterminate]
+component = "Checkbox"
+control_id = "checkboxes_Indeterminate"
+classes = ["material-control", "material-checkbox", "material-checkbox-indeterminate"]
+props = { text = "Mixed", checked = false, indeterminate = true, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_selected" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 70.0, max = 86.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.checkbox_error]
+component = "Checkbox"
+control_id = "checkboxes_Error"
+classes = ["material-control", "material-checkbox", "material-checkbox-error"]
+props = { text = "Error", checked = false, indeterminate = false, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "error", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.error_container" }, foreground = { color = "material.error" }, border = { color = "material.error", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 54.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.checkbox_disabled]
+component = "Checkbox"
+control_id = "checkboxes_Disabled"
+classes = ["material-control", "material-checkbox", "material-checkbox-disabled"]
+props = { text = "Disabled", checked = true, indeterminate = false, label_click_toggles = true, indeterminate_resolves_to_checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 74.0, preferred = 86.0, max = 102.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

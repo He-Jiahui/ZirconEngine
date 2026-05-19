@@ -58,14 +58,61 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Dropdown"
+component = "HorizontalBox"
 control_id = "selects_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { value = "primary", value_text = "Primary", options = ["Primary", "Secondary", "Disabled"], surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-select-row"]
+props = { value = "primary", value_text = "Primary", selected_options = ["primary"], label = "Select", placeholder = "Choose option", helper_text = "Open menu and choose an option", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = ["secondary"], hovered_options = ["secondary"], pressed_options = [], variant = "outlined", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "select_closed" },
+  { node = "select_open" },
+  { node = "select_selected" },
+  { node = "select_multi_chip" },
+  { node = "select_disabled" },
+]
 events = [
   { id = "MaterialLab/Selects/Change", event = "Change", route = "MaterialLab.Selects.Change" },
 ]
+
+[nodes.select_closed]
+component = "Select"
+control_id = "selects_Closed"
+classes = ["material-control", "material-select", "material-select-closed"]
+props = { value = "", value_text = "", selected_options = [], label = "Target", placeholder = "Choose", helper_text = "Closed", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "outlined", multiple = false, display_empty = true, surface_variant = "elevated", button_variant = "contained", text_tone = "secondary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text_muted" }, border = { color = "material.outline", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_open]
+component = "Select"
+control_id = "selects_Open"
+classes = ["material-control", "material-select", "material-select-open"]
+props = { value = "secondary", value_text = "Secondary", selected_options = ["secondary"], label = "Mode", placeholder = "Choose", helper_text = "Popup open", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = ["secondary"], hovered_options = ["secondary"], pressed_options = [], variant = "outlined", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_container_high" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_selected]
+component = "Select"
+control_id = "selects_Selected"
+classes = ["material-control", "material-select", "material-select-selected"]
+props = { value = "primary", value_text = "Primary", selected_options = ["primary"], label = "Status", placeholder = "Choose", helper_text = "Selected", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "filled", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_multi_chip]
+component = "Select"
+control_id = "selects_MultiChip"
+classes = ["material-control", "material-select", "material-select-multiple"]
+props = { value = "primary,secondary", value_text = "Primary, Secondary", selected_options = ["primary", "secondary"], label = "Tags", placeholder = "Choose", helper_text = "Multi-chip", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "outlined", multiple = true, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 999.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_selected" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 1.0, radius = 999.0 } } }
+layout = { width = { min = 72.0, preferred = 84.0, max = 100.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.select_disabled]
+component = "Select"
+control_id = "selects_Disabled"
+classes = ["material-control", "material-select", "material-select-disabled"]
+props = { value = "disabled", value_text = "Disabled", selected_options = ["disabled"], label = "Disabled", placeholder = "Choose", helper_text = "No action", options = ["primary", "secondary", "disabled"], disabled_options = ["disabled"], focused_options = [], hovered_options = [], pressed_options = [], variant = "standard", multiple = false, display_empty = false, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 58.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

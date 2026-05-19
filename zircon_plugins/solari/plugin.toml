@@ -1,0 +1,23 @@
+id = "solari"
+version = "0.1.0"
+display_name = "Solari"
+description = "Experimental realtime raytraced lighting runtime provider contract."
+maturity = "experimental"
+default_packaging = ["source_template", "library_embed"]
+capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]
+
+[[capability_statuses]]
+capability = "runtime.plugin.solari"
+status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.render.experimental.solari"
+status = "partial"
+note = "SolariExperimental provider contract is wired; realtime pass execution remains unavailable."
+
+[[modules]]
+name = "solari.runtime"
+kind = "runtime"
+crate_name = "zircon_plugin_solari_runtime"
+target_modes = ["client_runtime", "editor_host"]
+capabilities = ["runtime.plugin.solari", "runtime.render.experimental.solari"]

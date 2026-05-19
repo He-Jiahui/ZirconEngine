@@ -295,6 +295,8 @@ fn hierarchy_irradiance_with_descendant(descendant_runtime: [u8; 4]) -> [f32; 4]
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -355,6 +357,8 @@ fn hierarchy_irradiance_with_scene_prepare_page_content(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -441,6 +445,8 @@ fn hierarchy_irradiance_with_duplicate_middle_probe_payloads() -> [f32; 4] {
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -522,6 +528,8 @@ fn hierarchy_irradiance_with_budgeted_scene_representation_and_legacy_ancestor_p
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -597,6 +605,8 @@ fn hierarchy_irradiance_with_flat_runtime_and_legacy_ancestor_prepare() -> [f32;
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -674,6 +684,8 @@ fn hierarchy_irradiance_with_exact_runtime_and_scene_driven_flag(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -752,6 +764,8 @@ fn hierarchy_irradiance_with_scene_driven_exact_and_descendant(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {
@@ -845,6 +859,8 @@ fn hierarchy_irradiance_with_scene_driven_lineage_and_scene_prepare_page(
             directional_lights: Vec::new(),
             point_lights: Vec::new(),
             spot_lights: Vec::new(),
+            ambient_lights: Vec::new(),
+            rect_lights: Vec::new(),
         },
         overlays: RenderOverlayExtract::default(),
         preview: PreviewEnvironmentExtract {

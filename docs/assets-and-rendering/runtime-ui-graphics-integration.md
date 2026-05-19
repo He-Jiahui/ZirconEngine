@@ -61,6 +61,17 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
@@ -132,6 +143,17 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/sdf_text.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/ui.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
+  - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
+  - zircon_runtime/src/core/framework/render/backend_types.rs
+  - zircon_runtime/src/graphics/runtime/render_framework/submit_frame_extract/update_stats/base_stats.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_execution_context.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/scene_passes/render_scene_passes.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_new/construct/construct.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_new/new_with_icon_source.rs
   - zircon_runtime/src/core/framework/render/framework.rs
@@ -182,6 +204,8 @@ plan_sources:
   - user: 2026-04-28 继续文本的 SDF 渲染和排版能力任务
   - user: 2026-05-05 SVG/Image components, SVG icons, Material UI, and top-right debug refresh-rate overlay must stay on the .ui.toml chain
   - user: 2026-05-12 runtime UI v2 化、全局 dirty-domain 增量刷新、组件交互完整度、旧 schema fallback 更大范围删除
+  - user: 2026-05-18 M7A runtime UI placement in product render pipeline
+  - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
   - .codex/plans/Zircon UI 增量布局、增量重绘与控件池优化计划.md
   - .codex/plans/UI SDF 字体真实 Bake 收束计划.md
   - .codex/plans/Zircon UI 与 Unreal Slate 差异审计及后续里程碑.md
@@ -195,6 +219,7 @@ tests:
   - zircon_runtime/src/tests/ui_boundary/mod.rs
   - zircon_runtime/src/tests/ui_boundary/assets.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge.rs
+  - zircon_runtime/src/graphics/tests/render_product_ui.rs
   - zircon_editor/src/tests/editing/state.rs
   - zircon_editor/src/ui/retained_host/viewport/tests/controller_submits_shared_ui_overlay_through_render_framework.rs
   - cargo test -p zircon_runtime render_extract_carries_visual_contract_fields_for_visible_nodes
@@ -264,6 +289,11 @@ tests:
   - cargo test -p zircon_runtime --lib text_attrs --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
   - cargo test -p zircon_editor --lib native_runtime_text_painter --locked --jobs 1 --target-dir E:\zircon-build\targets-ui-m6 --message-format short --color never -- --nocapture
   - cargo test -p zircon_runtime --lib surface_node_pool --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-incremental-layout-render --message-format short --color never
+  - $env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo check -p zircon_runtime --lib --locked --jobs 1 --color never
+  - $env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo check -p zircon_editor --lib --locked --jobs 1 --color never
+  - $env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --lib builtin_registry_covers_runtime_ui_executor_id --locked --jobs 1 --message-format short --color never
+  - $env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --locked render_product_ui --jobs 1 --message-format short --color never
+  - $env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --locked runtime_ui --jobs 1 --message-format short --color never
 doc_type: module-detail
 ---
 
@@ -375,6 +405,16 @@ The 2026-05-08 retained render-cache slice was validated at the runtime surface 
 `runtime-ui-integration-tests` feature 下的 all-fixture 验收现在会遍历 `HudOverlay`、`PauseMenu`、`SettingsDialog`、`InventoryList`、`QuestLogDialog`，逐个通过 `RuntimeUiManager::load_builtin_fixture(...) -> build_frame() -> WgpuRenderFramework::submit_runtime_frame(...)` 提交，并检查 `RenderStats` 中的 UI command 与 quad/text payload 计数。这条测试只证明所有 builtin fixture 都进入同一 screen-space UI pass，不为某个 fixture 增加专用 renderer 分支。
 
 所以这轮变更的重点不是另起一套 runtime UI renderer，而是确保“进入 renderer 的 UI 数据”来自 crate `assets/` 下的正式 v2 `.v2.ui.toml` 文件，同时把文本子层从占位矩形升级到真正的字形绘制。
+
+## Product Graph Placement
+
+M7A keeps the same `UiRenderExtract` frame boundary, but the concrete placement is now graph-owned instead of being only a late renderer side call. `BuiltinRenderFeature::Ui` declares a `runtime-ui` pass in `RenderPassStage::Ui` with executor id `ui.screen-space`. The pass reads the post-process `final-color` graph resource and writes the external `viewport-output` target, so the product graph can prove that screen-space runtime UI runs after postprocess and before overlay/final presentation.
+
+The default product pipelines all include this pass. `RenderPipelineAsset::default_core2d()`, `default_forward_plus()`, and `default_deferred()` compile the UI feature beside their existing postprocess and debug/overlay stages. Forward+ and Deferred also include the base `PostProcess` feature even when optional bloom, color grading, and history are disabled; that keeps a concrete `post-process` pass in the executed order so UI placement evidence does not disappear in lightweight profiles.
+
+Graph execution now passes the renderer-owned `ScreenSpaceUiRenderer` through `RenderPassGpuExecutionContext`. `RenderPassExecutorRegistry` registers `ui.screen-space`, and that executor calls `ScreenSpaceUiRenderer::record(...)` against the final-color target inside the graph execution slice. The old manual late `ScreenSpaceUiRenderer::record(...)` call after overlay is no longer the authority path for product placement.
+
+`RenderStats` keeps the legacy payload counters from `UiSubmissionStats` and adds graph placement evidence: `last_ui_graph_executed_pass_count`, `last_ui_target_size`, and `last_ui_graph_pass_order`. `update_base_stats(...)` derives those fields from the real `RenderGraphExecutionRecord`, and `last_ui_graph_pass_order = "postprocess-ui-overlay"` is set only when the executed pass list contains `post-process`, `runtime-ui`, and `overlay-gizmo` in that order. This keeps clipped command, image payload, and text payload stats tied to the shared extract while making placement observable from the render framework facade.
 
 ## Editor Native Visual Asset Rasterization
 
@@ -622,6 +662,16 @@ M1 这里再补了一条最小默认策略：
   - 证明 `UiTextRenderMode::Auto` 会优先采用字体资产 manifest 的默认 render mode，并保留显式样式优先级
 - `cargo test -p zircon_runtime render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts --locked`
   - 证明 shared `UiRenderExtract` 通过 render framework 提交时，UI command/quad/text payload 统计都会落进 runtime submission stats，editor viewport HUD 和 runtime fixture 走的是同一条 screen-space UI 提交口
+- `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo check -p zircon_runtime --lib --locked --jobs 1 --color never`
+  - 2026-05-18 runtime lib check passed for the graph-owned UI placement build before the focused M7A tests below.
+- `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --locked render_product_ui --jobs 1 --message-format short --color never`
+  - 2026-05-18 M7A pass: 2 passed / 0 failed. This proves Core2d, Forward+, and Deferred compile `runtime-ui` after postprocess and before overlay, and a submitted runtime UI extract records `ui.screen-space`, target size `320x240`, clipped/image/text payload counters, and `last_ui_graph_pass_order = "postprocess-ui-overlay"`.
+- `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --lib builtin_registry_covers_runtime_ui_executor_id --locked --jobs 1 --message-format short --color never`
+  - 2026-05-18 graph registry guard: 1 passed / 0 failed. This pins the built-in executor registry so the runtime UI graph pass cannot silently fall back to the earlier missing-executor failure mode.
+- `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo test -p zircon_runtime --locked runtime_ui --jobs 1 --message-format short --color never`
+  - 2026-05-18 broader runtime UI pass: 23 runtime lib tests passed, and the `runtime_ui_text_render_contract` integration binary passed 6 matching tests. This revalidates the shared runtime UI boundary plus text/capture contracts against the same graph-aware runtime build.
+- `$env:CARGO_TARGET_DIR='target/codex-native-material-painter'; cargo check -p zircon_editor --lib --locked --jobs 1 --color never`
+  - 2026-05-18 editor lib pass: shared UI/render contracts still type-check for `zircon_editor` after the graph-owned runtime UI placement changes.
 - `cargo test -p zircon_runtime production_ui_entry_assets_live_under_crate_assets_not_src --locked`
   - 证明生产入口 `.ui.toml` 没有回流到 `src/`
 - `cargo test -p zircon_runtime default_runtime_font_manifest_stays_inside_runtime_assets --locked`

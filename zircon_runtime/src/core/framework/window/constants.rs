@@ -1,4 +1,5 @@
 pub const DEFAULT_WINDOW_TITLE: &str = "Zircon Runtime";
+pub const PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY: &str = "runtime.window.primary_descriptor";
 
 pub(super) const DEFAULT_WINDOW_WIDTH: u32 = 1280;
 pub(super) const DEFAULT_WINDOW_HEIGHT: u32 = 720;

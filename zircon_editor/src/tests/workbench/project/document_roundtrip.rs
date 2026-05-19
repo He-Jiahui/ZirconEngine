@@ -76,7 +76,7 @@ fn editor_project_document_roundtrips_world_and_workspace() {
     assert!(paths
         .assets_root()
         .join("materials")
-        .join("default.material.toml")
+        .join("default.zmaterial")
         .exists());
     assert!(paths.assets_root().join("models").join("cube.obj").exists());
 

@@ -18,8 +18,8 @@ pub use device::{
 };
 pub use ui_surface::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDescriptor, UiSurfaceDrawList,
-    UiSurfaceImagePayload, UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect,
-    UiSurfaceTextStyle,
+    UiSurfaceImagePayload, UiSurfaceImageUvRect, UiSurfacePresentStats, UiSurfacePresenter,
+    UiSurfaceRect, UiSurfaceTextStyle,
 };
 
 pub fn create_default_ui_surface_presenter(

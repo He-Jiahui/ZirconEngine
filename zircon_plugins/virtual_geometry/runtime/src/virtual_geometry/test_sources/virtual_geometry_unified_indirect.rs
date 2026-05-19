@@ -168,7 +168,7 @@ fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -181,10 +181,8 @@ fn virtual_geometry_prepare_keeps_one_visibility_owned_segment_but_distinct_gpu_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -314,7 +312,7 @@ fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compact
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -327,10 +325,8 @@ fn virtual_geometry_unified_indirect_propagates_multi_primitive_draw_ref_compact
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/triangle_quad.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -428,7 +424,7 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -441,10 +437,8 @@ fn virtual_geometry_renderer_submission_records_preserve_draw_level_tokens_for_r
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -535,7 +529,7 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -548,10 +542,8 @@ fn virtual_geometry_renderer_submission_records_keep_draw_level_tokens_without_g
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -644,7 +636,7 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -657,10 +649,8 @@ fn virtual_geometry_renderer_submission_records_fall_back_to_gpu_generated_indir
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -754,7 +744,7 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -767,10 +757,8 @@ fn virtual_geometry_unified_indirect_reconstructs_submission_records_from_gpu_au
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -858,7 +846,7 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -871,10 +859,8 @@ fn virtual_geometry_unified_indirect_keeps_lineage_depth_in_gpu_submission_and_i
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -1017,7 +1003,7 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1030,10 +1016,8 @@ fn virtual_geometry_unified_indirect_keeps_pending_request_frontier_rank_in_gpu_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
     let compiled = compile_virtual_geometry_pipeline(&extract);
@@ -1222,7 +1206,7 @@ fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_mult
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1235,10 +1219,8 @@ fn render_framework_stats_follow_actual_virtual_geometry_gpu_submission_for_mult
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let mut extract = build_single_entity_extract(viewport_size, model, green_material);
     extract.apply_viewport_size(viewport_size);
@@ -1664,6 +1646,9 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

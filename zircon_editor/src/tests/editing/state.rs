@@ -31,7 +31,7 @@ fn editor_state_snapshot_projects_structured_asset_workspace() {
     state.sync_asset_catalog(sample_catalog());
     state.sync_asset_resources(vec![
         sample_resource_status(
-            "res://materials/grid.material.toml",
+            "res://materials/grid.zmaterial",
             ResourceKind::Material,
             4,
             ResourceState::Ready,

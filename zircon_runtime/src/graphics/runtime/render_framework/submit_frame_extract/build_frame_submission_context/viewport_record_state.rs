@@ -1,4 +1,6 @@
-use crate::core::framework::render::{RenderCapabilitySummary, RenderPipelineHandle};
+use crate::core::framework::render::{
+    AdvancedProfileRuntimePlan, RenderCapabilitySummary, RenderPipelineHandle, SolariRuntimeReport,
+};
 use crate::core::math::UVec2;
 
 use crate::{RenderPipelineAsset, RenderPipelineCompileOptions, VisibilityHistorySnapshot};
@@ -11,6 +13,8 @@ pub(super) struct ViewportRecordState {
     previous_visibility: Option<VisibilityHistorySnapshot>,
     pipeline_asset: RenderPipelineAsset,
     compile_options: RenderPipelineCompileOptions,
+    advanced_runtime_plan: AdvancedProfileRuntimePlan,
+    solari_runtime_report: SolariRuntimeReport,
     capabilities: RenderCapabilitySummary,
     predicted_generation: u64,
 }
@@ -25,6 +29,8 @@ impl ViewportRecordState {
         previous_visibility: Option<VisibilityHistorySnapshot>,
         pipeline_asset: RenderPipelineAsset,
         compile_options: RenderPipelineCompileOptions,
+        advanced_runtime_plan: AdvancedProfileRuntimePlan,
+        solari_runtime_report: SolariRuntimeReport,
         capabilities: RenderCapabilitySummary,
         predicted_generation: u64,
     ) -> Self {
@@ -36,6 +42,8 @@ impl ViewportRecordState {
             previous_visibility,
             pipeline_asset,
             compile_options,
+            advanced_runtime_plan,
+            solari_runtime_report,
             capabilities,
             predicted_generation,
         }
@@ -63,6 +71,14 @@ impl ViewportRecordState {
 
     pub(super) fn compile_options(&self) -> &RenderPipelineCompileOptions {
         &self.compile_options
+    }
+
+    pub(super) fn advanced_runtime_plan(&self) -> &AdvancedProfileRuntimePlan {
+        &self.advanced_runtime_plan
+    }
+
+    pub(super) fn solari_runtime_report(&self) -> &SolariRuntimeReport {
+        &self.solari_runtime_report
     }
 
     pub(super) fn capabilities(&self) -> &RenderCapabilitySummary {

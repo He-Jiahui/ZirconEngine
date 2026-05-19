@@ -58,14 +58,52 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "Radio"
+component = "HorizontalBox"
 control_id = "radio-buttons_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Radio Buttons", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-radio-group-row"]
+props = { text = "Radio Buttons", group_value = "editor", option_id = "editor", options = ["editor", "runtime", "disabled", "qa"], disabled_options = ["disabled"], label_click_selects = true, exclusive_group = true, keyboard_navigation = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "radio_selected" },
+  { node = "radio_unselected" },
+  { node = "radio_disabled" },
+  { node = "radio_error" },
+]
 events = [
   { id = "MaterialLab/RadioButtons/Change", event = "Change", route = "MaterialLab.RadioButtons.Change" },
 ]
+
+[nodes.radio_selected]
+component = "Radio"
+control_id = "radio_buttons_Selected"
+classes = ["material-control", "material-radio", "material-radio-selected"]
+props = { text = "Editor", group_value = "editor", option_id = "editor", options = ["editor", "runtime", "disabled", "qa"], disabled_options = ["disabled"], label_click_selects = true, exclusive_group = true, keyboard_navigation = true, checked = true, surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 66.0, preferred = 78.0, max = 94.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.radio_unselected]
+component = "Radio"
+control_id = "radio_buttons_Unselected"
+classes = ["material-control", "material-radio", "material-radio-unselected"]
+props = { text = "Runtime", group_value = "editor", option_id = "runtime", options = ["editor", "runtime", "disabled", "qa"], disabled_options = ["disabled"], label_click_selects = true, exclusive_group = true, keyboard_navigation = true, checked = false, surface_variant = "elevated", button_variant = "contained", text_tone = "secondary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text_muted" }, border = { color = "material.outline", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 78.0, preferred = 90.0, max = 106.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.radio_disabled]
+component = "Radio"
+control_id = "radio_buttons_Disabled"
+classes = ["material-control", "material-radio", "material-radio-disabled"]
+props = { text = "Disabled", group_value = "editor", option_id = "disabled", options = ["editor", "runtime", "disabled", "qa"], disabled_options = ["disabled"], label_click_selects = true, exclusive_group = true, keyboard_navigation = true, checked = false, surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 74.0, preferred = 86.0, max = 102.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.radio_error]
+component = "Radio"
+control_id = "radio_buttons_Error"
+classes = ["material-control", "material-radio", "material-radio-error"]
+props = { text = "Error", group_value = "editor", option_id = "qa", options = ["editor", "runtime", "disabled", "qa"], disabled_options = ["disabled"], label_click_selects = true, exclusive_group = true, keyboard_navigation = true, checked = false, surface_variant = "elevated", button_variant = "contained", text_tone = "error", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.error_container" }, foreground = { color = "material.error" }, border = { color = "material.error", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 54.0, preferred = 66.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

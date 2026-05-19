@@ -5,14 +5,15 @@ use crate::core::framework::animation::AnimationPoseOutput;
 use crate::core::framework::scene::{EntityId, Mobility, WorldHandle};
 
 use super::{
-    build_mesh_phase_queue, build_sprite_phase_queue, CorePipelineKind, DisplayMode,
-    FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph, PostProcessStackDescriptor,
-    PreviewEnvironmentExtract, RenderAmbientLightSnapshot, RenderBakedLightingExtract,
-    RenderBloomSettings, RenderColorGradingSettings, RenderDirectionalLightSnapshot,
-    RenderHybridGiExtract, RenderMaterialAlphaMode, RenderMeshSnapshot, RenderOverlayExtract,
-    RenderParticleBoundsSnapshot, RenderParticleSpriteSnapshot, RenderPhaseQueue,
-    RenderPointLightSnapshot, RenderRectLightSnapshot, RenderReflectionProbeSnapshot,
-    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
+    build_mesh_phase_queue, build_sprite_phase_queue, AntiAliasSettings, CorePipelineKind,
+    DisplayMode, FallbackSkyboxKind, MeshPhaseInput, PostProcessPassGraph,
+    PostProcessStackDescriptor, PreviewEnvironmentExtract, RenderAmbientLightSnapshot,
+    RenderBakedLightingExtract, RenderBloomSettings, RenderColorGradingSettings,
+    RenderDirectionalLightSnapshot, RenderHybridGiExtract, RenderMaterialAlphaMode,
+    RenderMeshSnapshot, RenderOverlayExtract, RenderParticleBoundsSnapshot,
+    RenderParticleSpriteSnapshot, RenderPhaseQueue, RenderPointLightSnapshot,
+    RenderRectLightSnapshot, RenderReflectionProbeSnapshot, RenderSceneGeometryExtract,
+    RenderSceneSnapshot, RenderSpotLightSnapshot, RenderSpriteSnapshot,
     RenderVirtualGeometryDebugState, RenderVirtualGeometryExtract, SceneViewportExtractRequest,
     SpriteExtract, SpritePhaseInput, ViewportCameraSnapshot,
 };
@@ -56,14 +57,17 @@ pub trait RenderExtractProducer {
 pub struct RenderViewExtract {
     pub camera: ViewportCameraSnapshot,
     pub core_pipeline: CorePipelineKind,
+    pub anti_alias: AntiAliasSettings,
 }
 
 impl RenderViewExtract {
     pub fn from_camera(camera: ViewportCameraSnapshot) -> Self {
         let core_pipeline = camera.core_pipeline_kind();
+        let anti_alias = AntiAliasSettings::from_camera_msaa_samples(camera.msaa_samples);
         Self {
             camera,
             core_pipeline,
+            anti_alias,
         }
     }
 }

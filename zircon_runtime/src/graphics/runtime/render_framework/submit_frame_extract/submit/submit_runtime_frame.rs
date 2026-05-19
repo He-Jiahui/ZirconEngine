@@ -134,6 +134,7 @@ fn apply_effective_post_process_graph_to_runtime_frame(
 ) {
     frame.extract.post_process.bloom = context.post_process_bloom();
     frame.extract.post_process.color_grading = context.post_process_color_grading();
+    frame.extract.view.anti_alias = context.anti_alias_fallback().effective_settings();
     frame.extract.post_process.stack = context.post_process_stack().clone();
     frame.extract.post_process.graph = context.post_process_graph().clone();
 }

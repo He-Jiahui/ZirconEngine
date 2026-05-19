@@ -44,6 +44,13 @@ pub struct RenderBackendCaps {
     pub supports_async_compute: bool,
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
+    pub supports_storage_buffers: bool,
+    pub supports_indirect_draw: bool,
+    pub supports_buffer_readback: bool,
+    pub supports_buffer_binding_array: bool,
+    pub supports_texture_binding_array: bool,
+    pub supports_non_uniform_resource_indexing: bool,
+    pub supports_partially_bound_binding_array: bool,
     pub acceleration_structures: AccelerationStructureCaps,
 }
 
@@ -57,6 +64,13 @@ impl RenderBackendCaps {
             supports_async_compute: false,
             supports_async_copy: false,
             supports_pipeline_cache: false,
+            supports_storage_buffers: false,
+            supports_indirect_draw: false,
+            supports_buffer_readback: false,
+            supports_buffer_binding_array: false,
+            supports_texture_binding_array: false,
+            supports_non_uniform_resource_indexing: false,
+            supports_partially_bound_binding_array: false,
             acceleration_structures: AccelerationStructureCaps::disabled(),
         }
     }
@@ -94,6 +108,41 @@ impl RenderBackendCaps {
 
     pub fn with_pipeline_cache(mut self, enabled: bool) -> Self {
         self.supports_pipeline_cache = enabled;
+        self
+    }
+
+    pub fn with_storage_buffers(mut self, enabled: bool) -> Self {
+        self.supports_storage_buffers = enabled;
+        self
+    }
+
+    pub fn with_indirect_draw(mut self, enabled: bool) -> Self {
+        self.supports_indirect_draw = enabled;
+        self
+    }
+
+    pub fn with_buffer_readback(mut self, enabled: bool) -> Self {
+        self.supports_buffer_readback = enabled;
+        self
+    }
+
+    pub fn with_buffer_binding_array(mut self, enabled: bool) -> Self {
+        self.supports_buffer_binding_array = enabled;
+        self
+    }
+
+    pub fn with_texture_binding_array(mut self, enabled: bool) -> Self {
+        self.supports_texture_binding_array = enabled;
+        self
+    }
+
+    pub fn with_non_uniform_resource_indexing(mut self, enabled: bool) -> Self {
+        self.supports_non_uniform_resource_indexing = enabled;
+        self
+    }
+
+    pub fn with_partially_bound_binding_array(mut self, enabled: bool) -> Self {
+        self.supports_partially_bound_binding_array = enabled;
         self
     }
 

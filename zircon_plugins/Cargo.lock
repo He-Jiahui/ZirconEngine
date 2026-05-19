@@ -2887,6 +2887,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rectangle-pack"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0d463f2884048e7153449a55166f91028d5b0ea53c79377099ce4e8cf0cf9bb"
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5519,6 +5525,7 @@ dependencies = [
  "gltf",
  "image",
  "notify",
+ "rectangle-pack",
  "resvg",
  "serde",
  "serde_json",
@@ -6026,6 +6033,13 @@ name = "zircon_plugin_shader_wgsl_importer_runtime"
 version = "0.1.0"
 dependencies = [
  "naga",
+ "zircon_runtime",
+]
+
+[[package]]
+name = "zircon_plugin_solari_runtime"
+version = "0.1.0"
+dependencies = [
  "zircon_runtime",
 ]
 

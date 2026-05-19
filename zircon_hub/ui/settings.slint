@@ -1,12 +1,15 @@
-import { LineEdit, ScrollView } from "std-widgets.slint";
 import { FieldLabel, PillButton, SettingStatusData, UiTextData } from "shared.slint";
 import {
     HubPanel,
+    HubTextField,
+    HubTokens,
     InfoRow,
+    MaterialStyleMetrics,
+    PageScrollSurface,
     PanelHeader,
-    ScrollablePanel,
+    PanelListViewport,
     SegmentButton,
-    TwoColumnSurface,
+    WorkspacePanelSection,
 } from "components.slint";
 
 component PathSettingRow inherits Rectangle {
@@ -16,38 +19,29 @@ component PathSettingRow inherits Rectangle {
     callback browse;
 
     horizontal-stretch: 1;
-    height: 66px;
+    height: HubTokens.input-field;
 
-    VerticalLayout {
+    HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        spacing: 6px;
+        spacing: HubTokens.toolbar-gap;
+        alignment: center;
 
-        FieldLabel {
-            text: root.label;
-            height: 16px;
-            vertical-alignment: center;
+        HubTextField {
+            label: root.label;
+            placeholder: root.label;
+            text <=> root.value;
+            horizontal-stretch: 1;
         }
 
-        HorizontalLayout {
-            height: 40px;
-            spacing: 10px;
-            alignment: start;
-
-            LineEdit {
-                placeholder-text: root.label;
-                text <=> root.value;
-                horizontal-stretch: 1;
-            }
-
-            PillButton {
-                width: 108px;
-                text: root.browse-label;
-                icon-image: @image-url("../assets/icons/ui/folder.svg");
-                has-icon-image: true;
-                clicked => {
-                    root.browse();
-                }
+        PillButton {
+            width: HubTokens.control-md * 3;
+            height: HubTokens.control-md;
+            text: root.browse-label;
+            icon-image: @image-url("../assets/icons/ui/folder.svg");
+            has-icon-image: true;
+            clicked => {
+                root.browse();
             }
         }
     }
@@ -65,136 +59,116 @@ component SettingStatusRow inherits InfoRow {
     trailing-text: root.status.detail;
     trailing-tone: root.status.state == "ok" ? "ok" : (root.status.state == "warn" ? "warning" : (root.status.state == "error" ? "error" : "info"));
     show-trailing-badge: true;
-    row-height: 52px;
+    row-height: HubTokens.shell-row-min;
 }
 
-component ToolchainPanel inherits ScrollablePanel {
+component ToolchainPanel inherits HubPanel {
     in-out property <string> python-path;
     in-out property <string> cargo-path;
     in-out property <string> rustup-path;
     in property <UiTextData> ui-text;
 
-    height: 236px;
+    height: HubTokens.workspace-row-settings-controls;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding: 18px;
-        spacing: 10px;
+        padding: MaterialStyleMetrics.padding_16;
+        spacing: HubTokens.toolbar-gap;
 
         PanelHeader { title: root.ui-text.toolchain; }
 
-        ScrollView {
+        VerticalLayout {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            content := Rectangle {
-                width: max(320px, parent.width);
-                height: 230px;
-                background: transparent;
+            spacing: HubTokens.space-2;
 
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    spacing: 8px;
-
-                    FieldLabel { text: root.ui-text.python-executable; }
-                    LineEdit {
-                        placeholder-text: root.ui-text.python-executable;
-                        text <=> root.python-path;
-                    }
-                    FieldLabel { text: root.ui-text.cargo-executable; }
-                    LineEdit {
-                        placeholder-text: root.ui-text.cargo-executable;
-                        text <=> root.cargo-path;
-                    }
-                    FieldLabel { text: root.ui-text.rustup-executable; }
-                    LineEdit {
-                        placeholder-text: root.ui-text.rustup-executable;
-                        text <=> root.rustup-path;
-                    }
-                }
+            HubTextField {
+                label: root.ui-text.python-executable;
+                placeholder: root.ui-text.python-executable;
+                text <=> root.python-path;
+            }
+            HubTextField {
+                label: root.ui-text.cargo-executable;
+                placeholder: root.ui-text.cargo-executable;
+                text <=> root.cargo-path;
+            }
+            HubTextField {
+                label: root.ui-text.rustup-executable;
+                placeholder: root.ui-text.rustup-executable;
+                text <=> root.rustup-path;
             }
         }
     }
 }
 
-component BuildDefaultsPanel inherits ScrollablePanel {
+component BuildDefaultsPanel inherits HubPanel {
     in-out property <string> build-jobs;
     in-out property <string> build-profile;
     in-out property <string> language;
     in property <UiTextData> ui-text;
 
-    height: 222px;
+    height: HubTokens.workspace-row-settings-controls;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding: 18px;
-        spacing: 10px;
+        padding: MaterialStyleMetrics.padding_16;
+        spacing: HubTokens.toolbar-gap;
 
         PanelHeader { title: root.ui-text.build-defaults; }
 
-        ScrollView {
+        VerticalLayout {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            content := Rectangle {
-                width: max(320px, parent.width);
-                height: 238px;
-                background: transparent;
+            spacing: HubTokens.space-2;
 
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    spacing: 8px;
-
-                    FieldLabel { text: root.ui-text.build-profile; }
-                    HorizontalLayout {
-                        height: 34px;
-                        spacing: 8px;
-                        SegmentButton {
-                            horizontal-stretch: 1;
-                            text: root.ui-text.debug;
-                            active: root.build-profile == "debug";
-                            clicked => {
-                                root.build-profile = "debug";
-                            }
-                        }
-                        SegmentButton {
-                            horizontal-stretch: 1;
-                            text: root.ui-text.release;
-                            active: root.build-profile == "release";
-                            clicked => {
-                                root.build-profile = "release";
-                            }
-                        }
+            FieldLabel { text: root.ui-text.build-profile; }
+            HorizontalLayout {
+                height: HubTokens.control-md;
+                spacing: HubTokens.space-2;
+                SegmentButton {
+                    horizontal-stretch: 1;
+                    text: root.ui-text.debug;
+                    active: root.build-profile == "debug";
+                    clicked => {
+                        root.build-profile = "debug";
                     }
-
-                    FieldLabel { text: root.ui-text.build-jobs; }
-                    LineEdit {
-                        placeholder-text: root.ui-text.build-jobs;
-                        text <=> root.build-jobs;
+                }
+                SegmentButton {
+                    horizontal-stretch: 1;
+                    text: root.ui-text.release;
+                    active: root.build-profile == "release";
+                    clicked => {
+                        root.build-profile = "release";
                     }
+                }
+            }
 
-                    FieldLabel { text: root.ui-text.language; }
-                    HorizontalLayout {
-                        height: 34px;
-                        spacing: 8px;
-                        SegmentButton {
-                            horizontal-stretch: 1;
-                            text: root.ui-text.english;
-                            active: root.language == "English";
-                            clicked => {
-                                root.language = "English";
-                            }
-                        }
-                        SegmentButton {
-                            horizontal-stretch: 1;
-                            text: root.ui-text.chinese;
-                            active: root.language == "Chinese";
-                            clicked => {
-                                root.language = "Chinese";
-                            }
-                        }
+            HubTextField {
+                label: root.ui-text.build-jobs;
+                placeholder: root.ui-text.build-jobs;
+                text <=> root.build-jobs;
+            }
+
+            FieldLabel { text: root.ui-text.language; }
+            HorizontalLayout {
+                height: HubTokens.control-md;
+                spacing: HubTokens.space-2;
+                SegmentButton {
+                    horizontal-stretch: 1;
+                    text: root.ui-text.english;
+                    active: root.language == "English";
+                    clicked => {
+                        root.language = "English";
+                    }
+                }
+                SegmentButton {
+                    horizontal-stretch: 1;
+                    text: root.ui-text.chinese;
+                    active: root.language == "Chinese";
+                    clicked => {
+                        root.language = "Chinese";
                     }
                 }
             }
@@ -202,7 +176,7 @@ component BuildDefaultsPanel inherits ScrollablePanel {
     }
 }
 
-component DefaultPathsPanel inherits ScrollablePanel {
+component DefaultPathsPanel inherits HubPanel {
     in-out property <string> project-location;
     in-out property <string> source-path;
     in-out property <string> output-path;
@@ -210,106 +184,81 @@ component DefaultPathsPanel inherits ScrollablePanel {
     in property <UiTextData> ui-text;
     callback browse-folder(string);
 
+    height: HubTokens.workspace-row-settings-detail;
+
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding: 18px;
-        spacing: 10px;
+        padding: MaterialStyleMetrics.padding_16;
+        spacing: HubTokens.toolbar-gap;
 
         PanelHeader { title: root.ui-text.default-paths; }
 
-        ScrollView {
+        VerticalLayout {
             horizontal-stretch: 1;
             vertical-stretch: 1;
-            content := Rectangle {
-                width: max(360px, parent.width);
-                height: 288px;
-                background: transparent;
+            spacing: HubTokens.space-2;
 
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    spacing: 8px;
-
-                    PathSettingRow {
-                        label: root.ui-text.default-project-directory;
-                        browse-label: root.ui-text.browse;
-                        value <=> root.project-location;
-                        browse => {
-                            root.browse-folder("project-location");
-                        }
-                    }
-                    PathSettingRow {
-                        label: root.ui-text.default-source-directory;
-                        browse-label: root.ui-text.browse;
-                        value <=> root.source-path;
-                        browse => {
-                            root.browse-folder("source");
-                        }
-                    }
-                    PathSettingRow {
-                        label: root.ui-text.default-staged-output-directory;
-                        browse-label: root.ui-text.browse;
-                        value <=> root.output-path;
-                        browse => {
-                            root.browse-folder("output");
-                        }
-                    }
-                    PathSettingRow {
-                        label: root.ui-text.default-device-install-directory;
-                        browse-label: root.ui-text.browse;
-                        value <=> root.device-install-path;
-                        browse => {
-                            root.browse-folder("device-install");
-                        }
-                    }
+            PathSettingRow {
+                label: root.ui-text.default-project-directory;
+                browse-label: root.ui-text.browse;
+                value <=> root.project-location;
+                browse => {
+                    root.browse-folder("project-location");
+                }
+            }
+            PathSettingRow {
+                label: root.ui-text.default-source-directory;
+                browse-label: root.ui-text.browse;
+                value <=> root.source-path;
+                browse => {
+                    root.browse-folder("source");
+                }
+            }
+            PathSettingRow {
+                label: root.ui-text.default-staged-output-directory;
+                browse-label: root.ui-text.browse;
+                value <=> root.output-path;
+                browse => {
+                    root.browse-folder("output");
+                }
+            }
+            PathSettingRow {
+                label: root.ui-text.default-device-install-directory;
+                browse-label: root.ui-text.browse;
+                value <=> root.device-install-path;
+                browse => {
+                    root.browse-folder("device-install");
                 }
             }
         }
     }
 }
 
-component ConfigurationHealthPanel inherits ScrollablePanel {
+component ConfigurationHealthPanel inherits HubPanel {
     in property <[SettingStatusData]> settings-statuses;
+    in property <int> status-count;
     in property <UiTextData> ui-text;
     private property <length> health-scroll-y: 0px;
 
-    height: 220px;
+    height: HubTokens.workspace-row-settings-detail;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding: 18px;
-        spacing: 10px;
+        padding: MaterialStyleMetrics.padding_16;
+        spacing: HubTokens.toolbar-gap;
 
         PanelHeader { title: root.ui-text.configuration-health; }
 
-        health-scroll := ScrollView {
-            horizontal-stretch: 1;
-            vertical-stretch: 1;
-            viewport-y <=> root.health-scroll-y;
-            viewport-width: health-scroll.visible-width;
-            viewport-height: max(health-scroll.visible-height, 420px);
-            vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-            horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-            mouse-drag-pan-enabled: true;
+        PanelListViewport {
+            scroll-y <=> root.health-scroll-y;
+            row-count: root.status-count;
+            row-height: HubTokens.shell-row-min;
+            row-spacing: HubTokens.space-2;
 
-            Rectangle {
-                width: health-scroll.visible-width;
-                height: health-scroll.viewport-height;
-                background: transparent;
-
-                VerticalLayout {
-                    width: parent.width;
-                    height: parent.height;
-                    padding-top: 4px;
-                    padding-bottom: 4px;
-                    spacing: 6px;
-
-                    for status in root.settings-statuses: SettingStatusRow {
-                        status: status;
-                    }
-                }
+            for status in root.settings-statuses: SettingStatusRow {
+                status: status;
             }
         }
     }
@@ -329,87 +278,100 @@ export component SettingsPage inherits Rectangle {
     in-out property <string> language;
     in property <[SettingStatusData]> settings-statuses;
     in property <UiTextData> ui-text;
+    private property <bool> compact: root.width < HubTokens.breakpoint-medium;
+    private property <int> settings-status-count: root.settings-statuses.length;
     callback browse-folder(string);
     callback save-settings();
 
-    background: #11151a;
+    background: HubTokens.surface-page;
     forward-focus: page-focus;
     clip: true;
 
     page-focus := FocusScope {
-        width: 1px;
-        height: 1px;
+        width: HubTokens.border-width;
+        height: HubTokens.border-width;
     }
 
-    TwoColumnSurface {
+    PageScrollSurface {
         width: root.width;
         height: root.height;
+        scroll-y <=> root.scroll-y;
+
+        WorkspacePanelSection {
+            compact: root.compact;
+            row-height: HubTokens.workspace-row-settings-controls;
+            spacing-horizontal: HubTokens.panel-gap;
+            spacing-vertical: HubTokens.panel-gap;
+
+            ToolchainPanel {
+                flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: HubTokens.panel-min-sm;
+                python-path <=> root.python-path;
+                cargo-path <=> root.cargo-path;
+                rustup-path <=> root.rustup-path;
+                ui-text: root.ui-text;
+            }
+
+            BuildDefaultsPanel {
+                flex-basis: HubTokens.panel-min-md + HubTokens.control-sm;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: HubTokens.panel-min-sm;
+                build-jobs <=> root.build-jobs;
+                build-profile <=> root.build-profile;
+                language <=> root.language;
+                ui-text: root.ui-text;
+            }
+        }
 
         HorizontalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding-left: 28px;
-            padding-right: 28px;
-            padding-top: 28px;
-            padding-bottom: 22px;
-            spacing: 14px;
+            height: HubTokens.control-lg;
+            spacing: HubTokens.toolbar-gap;
 
-            VerticalLayout {
-                width: 490px;
-                spacing: 14px;
+            Rectangle { horizontal-stretch: 1; }
 
-                ToolchainPanel {
-                    python-path <=> root.python-path;
-                    cargo-path <=> root.cargo-path;
-                    rustup-path <=> root.rustup-path;
-                    ui-text: root.ui-text;
+            PillButton {
+                text: root.ui-text.save-settings;
+                icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
+                has-icon-image: true;
+                primary: true;
+                clicked => {
+                    root.save-settings();
                 }
+            }
+        }
 
-                BuildDefaultsPanel {
-                    build-jobs <=> root.build-jobs;
-                    build-profile <=> root.build-profile;
-                    language <=> root.language;
-                    ui-text: root.ui-text;
-                }
+        WorkspacePanelSection {
+            compact: root.compact;
+            row-height: HubTokens.workspace-row-settings-detail;
+            spacing-horizontal: HubTokens.panel-gap;
+            spacing-vertical: HubTokens.panel-gap;
 
-                HorizontalLayout {
-                    height: 42px;
-                    spacing: 10px;
-                    Rectangle { horizontal-stretch: 1; }
-                    PillButton {
-                        text: root.ui-text.save-settings;
-                        icon-image: @image-url("../assets/icons/ui/chevron-right.svg");
-                        has-icon-image: true;
-                        primary: true;
-                        clicked => {
-                            root.save-settings();
-                        }
-                    }
+            DefaultPathsPanel {
+                flex-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: HubTokens.panel-min-md;
+                project-location <=> root.project-location;
+                source-path <=> root.source-path;
+                output-path <=> root.output-path;
+                device-install-path <=> root.device-install-path;
+                ui-text: root.ui-text;
+                browse-folder(target) => {
+                    root.browse-folder(target);
                 }
             }
 
-            VerticalLayout {
-                horizontal-stretch: 1;
-                spacing: 14px;
-
-                DefaultPathsPanel {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    project-location <=> root.project-location;
-                    source-path <=> root.source-path;
-                    output-path <=> root.output-path;
-                    device-install-path <=> root.device-install-path;
-                    ui-text: root.ui-text;
-                    browse-folder(target) => {
-                        root.browse-folder(target);
-                    }
-                }
-
-                ConfigurationHealthPanel {
-                    horizontal-stretch: 1;
-                    settings-statuses: root.settings-statuses;
-                    ui-text: root.ui-text;
-                }
+            ConfigurationHealthPanel {
+                flex-basis: HubTokens.panel-min-md;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: HubTokens.panel-min-sm;
+                settings-statuses: root.settings-statuses;
+                status-count: root.settings-status-count;
+                ui-text: root.ui-text;
             }
         }
     }

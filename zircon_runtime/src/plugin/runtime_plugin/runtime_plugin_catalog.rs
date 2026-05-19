@@ -1021,6 +1021,13 @@ fn merge_extension_registry_contributions(
             fatal_diagnostics,
         );
     }
+    for provider in extensions.solari_runtime_providers() {
+        push_runtime_extension_result(
+            registry.register_solari_runtime_provider(provider.clone()),
+            diagnostics,
+            fatal_diagnostics,
+        );
+    }
     for component in extensions.components() {
         push_runtime_extension_result(
             registry.register_component(component.clone()),

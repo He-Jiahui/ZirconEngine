@@ -3,6 +3,8 @@ use std::collections::BTreeMap;
 use super::support::*;
 use crate::ui::template_runtime::{RetainedUiHostModel, RetainedUiHostNodeProjection};
 
+const COMPONENT_SHOWCASE_DOCUMENT_ID: &str = "editor.window.ui_component_showcase";
+
 #[test]
 fn editor_ui_compatibility_harness_captures_projection_shape_for_parity_checks() {
     let mut runtime = EditorUiHostRuntime::default();
@@ -181,6 +183,46 @@ fn editor_ui_compatibility_harness_captures_host_model_routes_and_attributes() {
     assert!(snapshot
         .attribute_entries
         .contains(&"root.0.4.0.text=Ready".to_string()));
+}
+
+#[test]
+fn surface_backed_host_model_preserves_component_state_attributes_for_semantics() {
+    let mut runtime = EditorUiHostRuntime::default();
+    runtime.load_builtin_host_templates().unwrap();
+    let mut projection = runtime
+        .project_document(COMPONENT_SHOWCASE_DOCUMENT_ID)
+        .unwrap();
+    let mut service = EditorUiControlService::default();
+    runtime
+        .register_projection_routes(&mut service, &mut projection)
+        .unwrap();
+    let mut surface = runtime
+        .build_shared_surface(COMPONENT_SHOWCASE_DOCUMENT_ID)
+        .unwrap();
+    surface.compute_layout(UiSize::new(1280.0, 720.0)).unwrap();
+
+    let host_model = runtime
+        .build_host_model_with_surface(&projection, &surface)
+        .unwrap();
+
+    let enabled_button = host_model.node_by_control_id("ButtonDemo").unwrap();
+    assert_eq!(
+        enabled_button
+            .attributes
+            .get("disabled")
+            .and_then(Value::as_bool),
+        Some(false),
+        "surface-backed host model should keep explicit false state for component semantics"
+    );
+
+    let disabled_button = host_model.node_by_control_id("ButtonDisabledDemo").unwrap();
+    assert_eq!(
+        disabled_button
+            .attributes
+            .get("disabled")
+            .and_then(Value::as_bool),
+        Some(true)
+    );
 }
 
 #[test]

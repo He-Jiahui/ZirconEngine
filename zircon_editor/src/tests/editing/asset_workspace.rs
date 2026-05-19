@@ -19,7 +19,7 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
     workspace.select_asset(Some("11111111-1111-1111-1111-111111111111".to_string()));
     workspace.sync_selected_details(Some(sample_material_details()));
     workspace.sync_resources(vec![sample_resource_status(
-        "res://materials/grid.material.toml",
+        "res://materials/grid.zmaterial",
         ResourceKind::Material,
         4,
         ResourceState::Ready,
@@ -39,7 +39,7 @@ fn asset_workspace_builds_folder_tree_and_visible_content_from_catalog() {
     assert_eq!(snapshot.visible_assets.len(), 1);
     assert_eq!(
         snapshot.visible_assets[0].locator,
-        "res://materials/grid.material.toml"
+        "res://materials/grid.zmaterial"
     );
     assert_eq!(
         snapshot.selection.references[0].locator,
@@ -200,13 +200,13 @@ pub(super) fn sample_catalog() -> EditorAssetCatalogSnapshotRecord {
             EditorAssetCatalogRecord {
                 uuid: "11111111-1111-1111-1111-111111111111".to_string(),
                 id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa".to_string(),
-                locator: "res://materials/grid.material.toml".to_string(),
+                locator: "res://materials/grid.zmaterial".to_string(),
                 kind: ResourceKind::Material,
-                display_name: "grid.material".to_string(),
-                file_name: "grid.material.toml".to_string(),
-                extension: "toml".to_string(),
+                display_name: "grid".to_string(),
+                file_name: "grid.zmaterial".to_string(),
+                extension: "zmaterial".to_string(),
                 preview_state: PreviewState::Ready,
-                meta_path: "E:/Sandbox/assets/materials/grid.material.toml.zmeta".to_string(),
+                meta_path: "E:/Sandbox/assets/materials/grid.zmaterial.zmeta".to_string(),
                 preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
                 source_mtime_unix_ms: 10,
                 source_hash: "mat".to_string(),

@@ -384,6 +384,150 @@ mod tests {
     }
 
     #[test]
+    fn batch_plan_batches_disjoint_images_with_same_resource_key_into_one_draw() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 10.0, 10.0),
+                    "atlas://editor/icons",
+                ),
+                image(
+                    1,
+                    UiSurfaceRect::new(20.0, 0.0, 10.0, 10.0),
+                    "atlas://editor/icons",
+                ),
+                image(
+                    2,
+                    UiSurfaceRect::new(40.0, 0.0, 10.0, 10.0),
+                    "atlas://editor/icons",
+                ),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 3);
+        assert_eq!(plan.stats.draw_calls, 1);
+        assert_eq!(plan.stats.batch_layer_count, 1);
+        assert_eq!(plan.stats.batch_dependency_count, 0);
+        let [DrawOp::Image(draw)] = plan.ops.as_slice() else {
+            panic!("expected one image batch");
+        };
+        assert_eq!(draw.resource_key, "atlas://editor/icons");
+        assert_eq!(draw.vertices.len(), 18);
+    }
+
+    #[test]
+    fn batch_plan_splits_overlapping_images_even_with_same_resource_key() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+                image(
+                    1,
+                    UiSurfaceRect::new(10.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 2);
+        assert_eq!(plan.stats.draw_calls, 2);
+        assert_eq!(plan.stats.batch_layer_count, 2);
+        assert_eq!(plan.stats.batch_dependency_count, 1);
+        let [DrawOp::Image(first), DrawOp::Image(second)] = plan.ops.as_slice() else {
+            panic!("expected overlapping images to split into image batches");
+        };
+        assert_eq!(first.resource_key, "atlas://editor/icons");
+        assert_eq!(second.resource_key, "atlas://editor/icons");
+    }
+
+    #[test]
+    fn batch_plan_preserves_overlap_chain_between_same_resource_images() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+                quad(
+                    1,
+                    UiSurfaceRect::new(10.0, 0.0, 20.0, 20.0),
+                    [255, 0, 0, 255],
+                ),
+                image(
+                    2,
+                    UiSurfaceRect::new(24.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 3);
+        assert_eq!(plan.stats.draw_calls, 3);
+        assert_eq!(plan.stats.batch_layer_count, 3);
+        assert_eq!(plan.stats.batch_dependency_count, 2);
+        let [DrawOp::Image(first), DrawOp::Solid(_), DrawOp::Image(third)] = plan.ops.as_slice()
+        else {
+            panic!("expected image-solid-image painter order across dependency layers");
+        };
+        assert_eq!(first.resource_key, "atlas://editor/icons");
+        assert_eq!(third.resource_key, "atlas://editor/icons");
+    }
+
+    #[test]
+    fn batch_plan_batches_independent_same_resource_images_around_overlap() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![
+                image(
+                    0,
+                    UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+                quad(
+                    1,
+                    UiSurfaceRect::new(10.0, 0.0, 20.0, 20.0),
+                    [255, 0, 0, 255],
+                ),
+                image(
+                    2,
+                    UiSurfaceRect::new(40.0, 0.0, 20.0, 20.0),
+                    "atlas://editor/icons",
+                ),
+            ],
+        );
+
+        let plan = batch_draw_plan(&draw_list);
+
+        assert_eq!(plan.stats.visible_draw_item_count, 3);
+        assert_eq!(plan.stats.draw_calls, 2);
+        assert_eq!(plan.stats.batch_layer_count, 2);
+        assert_eq!(plan.stats.batch_dependency_count, 1);
+        let [DrawOp::Image(draw), DrawOp::Solid(_)] = plan.ops.as_slice() else {
+            panic!("expected independent same-resource images to share the first layer");
+        };
+        assert_eq!(draw.resource_key, "atlas://editor/icons");
+        assert_eq!(draw.vertices.len(), 12);
+    }
+
+    #[test]
     fn batch_plan_batches_disjoint_list_rows_by_depth_and_material() {
         let draw_list = UiSurfaceDrawList::new(
             (200, 120),
@@ -523,6 +667,7 @@ mod tests {
                     height: 2,
                     upload_bytes: 16,
                     rgba: Some(vec![255; 16]),
+                    atlas_uv: None,
                 },
             },
         }

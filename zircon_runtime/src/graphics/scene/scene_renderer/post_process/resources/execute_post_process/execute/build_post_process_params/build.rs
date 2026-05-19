@@ -1,4 +1,4 @@
-use crate::core::framework::render::RenderFrameExtract;
+use crate::core::framework::render::{AntiAliasMode, RenderFrameExtract};
 use crate::core::math::UVec2;
 
 use super::super::super::super::super::post_process_params::PostProcessParams;
@@ -36,6 +36,14 @@ pub(in super::super) fn build_post_process_params(
             hybrid_gi_probe_count,
             scheduled_trace_region_count,
             u32::from(features.hybrid_global_illumination_enabled && history_available),
+            0,
+        ],
+        anti_alias: [
+            u32::from(
+                features.anti_alias_enabled && extract.view.anti_alias.mode == AntiAliasMode::Fxaa,
+            ),
+            0,
+            0,
             0,
         ],
         blends: [

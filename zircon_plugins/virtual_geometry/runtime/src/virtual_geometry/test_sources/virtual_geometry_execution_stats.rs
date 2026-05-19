@@ -59,7 +59,7 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -72,10 +72,8 @@ fn renderer_execution_stats_follow_actual_virtual_geometry_cluster_states() {
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_dual_entity_extract(
         viewport_size,
@@ -243,7 +241,7 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -256,10 +254,8 @@ fn render_framework_stats_expose_actual_virtual_geometry_execution_compaction() 
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/double_triangle.gltf");
-    let material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, material, true);
 
@@ -676,6 +672,9 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

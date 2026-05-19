@@ -1,0 +1,385 @@
+import {
+    IconButton,
+    MutedText,
+    ProjectTemplateData,
+    RecentProjectRowData,
+    SourceEngineRowData,
+} from "shared.slint";
+import { Badge, HubTokens, ListTile, MaterialPalette, MaterialStyleMetrics, MaterialTypography } from "components.slint";
+
+export component PageHeader inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <length> header-height: MaterialStyleMetrics.size_48;
+    callback back;
+
+    private property <length> back-size: max(MaterialStyleMetrics.size_36, min(MaterialStyleMetrics.size_40, root.header-height * 4 / 5));
+
+    height: root.header-height;
+    horizontal-stretch: 1;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: MaterialStyleMetrics.spacing_12;
+        alignment: start;
+
+        IconButton {
+            width: root.back-size;
+            height: root.back-size;
+            icon-image: @image-url("../assets/icons/ui/chevron-left.svg");
+            has-icon-image: true;
+            clicked => { root.back(); }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            spacing: MaterialStyleMetrics.spacing_2;
+
+            Text {
+                text: root.title;
+                overflow: elide;
+                color: MaterialPalette.on_surface;
+                font-size: MaterialTypography.title_large.font_size;
+                font-weight: MaterialTypography.title_large.font_weight;
+                vertical-alignment: center;
+            }
+
+            MutedText {
+                text: root.subtitle;
+                overflow: elide;
+            }
+        }
+    }
+}
+
+export component EngineChoiceRow inherits Rectangle {
+    in property <SourceEngineRowData> engine;
+    in property <length> row-height: HubTokens.list-row-md;
+    in property <string> selected-label: "Selected";
+    in property <string> registered-label: "Registered";
+    callback selected(string);
+
+    private property <length> badge-slot: max(HubTokens.control-md * 2 + MaterialStyleMetrics.size_2, min(HubTokens.control-md * 5 / 2 + MaterialStyleMetrics.size_4, root.row-height * 8 / 5));
+
+    height: root.row-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: root.engine.active ? MaterialStyleMetrics.size_1 : 0px;
+    border-color: root.engine.active ? MaterialPalette.primary : transparent;
+    background: root.engine.active ? MaterialPalette.secondary_container : MaterialPalette.surface_container_low;
+    clip: true;
+
+    ListTile {
+        width: parent.width;
+        height: parent.height;
+        text: root.engine.title;
+        supporting_text: root.engine.source-path;
+        avatar_icon: @image-url("../assets/icons/nav/editor.svg");
+        avatar_background: root.engine.active ? MaterialPalette.primary_container : MaterialPalette.surface_container_high;
+        avatar_foreground: root.engine.active ? MaterialPalette.primary : MaterialPalette.on_surface_variant;
+        clicked => { root.selected(root.engine.id); }
+
+        Rectangle {
+            width: root.badge-slot;
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+                Badge {
+                    text: root.engine.active ? root.selected-label : root.registered-label;
+                    tone: root.engine.active ? "accent" : "neutral";
+                    badge-width: root.badge-slot;
+                }
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            }
+        }
+    }
+}
+
+export component TemplateChoiceRow inherits Rectangle {
+    in property <ProjectTemplateData> template;
+    in property <length> row-height: HubTokens.list-row-md;
+    in property <string> soon-label: "Soon";
+    callback selected(string);
+
+    private property <length> badge-slot: max(MaterialStyleMetrics.size_48, min(MaterialStyleMetrics.size_56, root.row-height * 7 / 10));
+
+    height: root.row-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: root.template.selected ? MaterialStyleMetrics.size_1 : 0px;
+    border-color: root.template.selected ? MaterialPalette.primary : transparent;
+    background: !root.template.enabled ? MaterialPalette.surface_container_low.with_alpha(MaterialPalette.disable_opacity) : (root.template.selected ? MaterialPalette.secondary_container : MaterialPalette.surface_container_low);
+    clip: true;
+
+    ListTile {
+        width: parent.width;
+        height: parent.height;
+        text: root.template.title;
+        supporting_text: root.template.description;
+        avatar_icon: root.template.enabled ? @image-url("../assets/icons/nav/assets.svg") : @image-url("../assets/icons/ui/alert.svg");
+        avatar_background: root.template.enabled ? MaterialPalette.primary_container : MaterialPalette.error_container;
+        avatar_foreground: root.template.enabled ? MaterialPalette.primary : MaterialPalette.on_error_container;
+        enabled: root.template.enabled;
+        clicked => {
+            if (root.template.enabled) {
+                root.selected(root.template.id);
+            }
+        }
+
+        if !root.template.enabled: Rectangle {
+            width: root.badge-slot;
+            height: parent.height;
+            background: transparent;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+
+                Badge {
+                    text: root.soon-label;
+                    tone: "neutral";
+                    badge-width: root.badge-slot;
+                }
+
+                Rectangle { vertical-stretch: 1; min-height: 0px; }
+            }
+        }
+    }
+}
+
+export component ProjectSettingSummaryRow inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <bool> badge-value: false;
+    in property <string> badge-tone: "neutral";
+    in property <length> row-height: HubTokens.control-md;
+
+    private property <length> label-width: root.row-height * 9 / 2;
+    private property <length> badge-width: root.row-height * 5;
+
+    height: root.row-height;
+    horizontal-stretch: 1;
+    min-width: 1px;
+    border-width: 0px;
+    background: transparent;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        spacing: max(MaterialStyleMetrics.spacing_8, root.row-height / 5);
+        alignment: stretch;
+
+        Text {
+            width: root.label-width;
+            text: root.label;
+            overflow: elide;
+            color: MaterialPalette.on_surface_variant;
+            font-size: max(MaterialTypography.label_small.font_size, min(MaterialTypography.label_medium.font_size, root.row-height / 3));
+            vertical-alignment: center;
+            horizontal-alignment: left;
+        }
+
+        if !root.badge-value: Text {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            text: root.value;
+            overflow: elide;
+            color: MaterialPalette.on_surface;
+            font-size: max(MaterialTypography.body_small.font_size, min(MaterialTypography.body_medium.font_size, root.row-height * 7 / 20));
+            font-weight: MaterialTypography.label_large.font_weight;
+            vertical-alignment: center;
+            horizontal-alignment: left;
+        }
+
+        if root.badge-value: Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            HorizontalLayout {
+                width: parent.width;
+                height: parent.height;
+                alignment: start;
+                Badge {
+                    text: root.value;
+                    tone: root.badge-tone;
+                    badge-width: root.badge-width;
+                }
+            }
+        }
+    }
+}
+
+
+export component ProjectBrowserRow inherits Rectangle {
+    in property <RecentProjectRowData> project;
+    in property <length> row-width: 0px;
+    in property <length> row-height: HubTokens.list-row-lg;
+    in property <string> pinned-label: "Pinned";
+    in property <string> missing-label: "Missing";
+    callback select(string);
+    callback detail(string);
+
+    private property <length> thumbnail-size: max(MaterialStyleMetrics.size_48, root.row-height * 7 / 10);
+    private property <length> detail-button-size: max(MaterialStyleMetrics.size_32, root.row-height * 2 / 5);
+    private property <length> row-pad-x: max(MaterialStyleMetrics.padding_10, min(MaterialStyleMetrics.padding_16, root.row-height / 6));
+    private property <length> row-gap: max(MaterialStyleMetrics.spacing_8, min(MaterialStyleMetrics.spacing_16, root.row-height / 6));
+    private property <length> title-line-height: max(MaterialStyleMetrics.size_20, root.row-height / 4);
+    private property <length> pinned-badge-width: max(MaterialStyleMetrics.size_64 - MaterialStyleMetrics.size_2, root.row-height * 9 / 10);
+    private property <length> missing-badge-width: max(MaterialStyleMetrics.size_72 - MaterialStyleMetrics.size_2, root.row-height);
+    private property <length> version-badge-width: max(root.row-height * 3 / 2, min(root.row-height * 9 / 5, root.row-width / 8));
+    private property <length> meta-line-height: max(MaterialStyleMetrics.size_20, root.row-height / 4);
+
+    width: root.row-width;
+    height: root.row-height;
+    horizontal-stretch: 1;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: root.project.selected ? MaterialStyleMetrics.size_1 : 0px;
+    border-color: root.project.selected ? MaterialPalette.primary : transparent;
+    background: root.project.selected ? MaterialPalette.secondary_container : (thumb-area.has-hover || body-area.has-hover ? MaterialPalette.surface_container_high : MaterialPalette.surface_container_low);
+    clip: true;
+
+    HorizontalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.row-pad-x;
+        padding-right: root.row-pad-x;
+        spacing: root.row-gap;
+        alignment: stretch;
+
+        Rectangle {
+            width: root.thumbnail-size;
+            height: root.thumbnail-size;
+            border-radius: MaterialStyleMetrics.border_radius_12;
+            border-width: MaterialStyleMetrics.size_1;
+            border-color: MaterialPalette.outline_variant;
+            background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : (root.project.accent == 2 ? MaterialPalette.tertiary_container : MaterialPalette.surface_container_high));
+            clip: true;
+            if root.project.has-cover: Image {
+                width: parent.width;
+                height: parent.height;
+                source: root.project.cover-image;
+                image-fit: cover;
+            }
+            if !root.project.has-cover: Image {
+                width: parent.width;
+                height: parent.height;
+                source: @image-url("../assets/brand/zircon-mark.svg");
+                image-fit: contain;
+            }
+
+            thumb-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.detail(root.project.project-path);
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: 1px;
+            preferred-width: max(root.row-height * 6, root.row-width * 7 / 10);
+            height: parent.height;
+            background: transparent;
+            clip: true;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                spacing: MaterialStyleMetrics.spacing_2;
+
+                HorizontalLayout {
+                    height: root.title-line-height;
+                    spacing: max(MaterialStyleMetrics.spacing_6, root.row-gap * 2 / 3);
+                    alignment: start;
+                    Text {
+                        text: root.project.title;
+                        overflow: elide;
+                        color: root.project.selected ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface;
+                        font-size: MaterialTypography.label_large.font_size;
+                        font-weight: MaterialTypography.label_large.font_weight;
+                        horizontal-stretch: 1;
+                        horizontal-alignment: left;
+                        vertical-alignment: center;
+                    }
+                    if root.project.pinned: Badge { text: root.pinned-label; tone: "accent"; badge-width: root.pinned-badge-width; }
+                    if root.project.missing: Badge { text: root.missing-label; tone: "warning"; badge-width: root.missing-badge-width; }
+                }
+
+                MutedText {
+                    text: root.project.project-path;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    height: root.meta-line-height;
+                    spacing: max(MaterialStyleMetrics.spacing_6, root.row-gap * 2 / 3);
+                    alignment: stretch;
+
+                    Badge {
+                        text: root.project.version;
+                        tone: "accent";
+                        badge-width: root.version-badge-width;
+                        badge-height: root.meta-line-height;
+                    }
+
+                    Text {
+                        text: root.project.engine-label;
+                        overflow: elide;
+                        color: MaterialPalette.on_surface_variant;
+                        font-size: MaterialTypography.body_small.font_size;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+                        horizontal-stretch: 1;
+                        min-width: 1px;
+                    }
+
+                    Text {
+                        text: root.project.modified;
+                        overflow: elide;
+                        color: MaterialPalette.on_surface_variant;
+                        font-size: MaterialTypography.body_small.font_size;
+                        vertical-alignment: center;
+                        horizontal-alignment: right;
+                        preferred-width: max(root.row-height * 3 / 2, root.row-width / 10);
+                    }
+                }
+            }
+
+            body-area := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    root.detail(root.project.project-path);
+                }
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            min-width: root.row-gap;
+        }
+
+        IconButton {
+            width: root.detail-button-size;
+            height: root.detail-button-size;
+            icon-image: @image-url("../assets/icons/ui/more-vertical.svg");
+            has-icon-image: true;
+            clicked => { root.detail(root.project.project-path); }
+        }
+    }
+
+}

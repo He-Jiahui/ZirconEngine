@@ -7,6 +7,7 @@ related_code:
   - zircon_runtime/src/platform/target.rs
   - zircon_runtime/src/platform/service_types.rs
   - zircon_runtime/src/core/framework/window/mod.rs
+  - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/prelude.rs
   - zircon_runtime/src/input/mod.rs
@@ -16,9 +17,11 @@ related_code:
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad.rs
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/Cargo.toml
@@ -30,14 +33,17 @@ implementation_files:
   - zircon_runtime/src/platform/config.rs
   - zircon_runtime/src/platform/service_types.rs
   - zircon_runtime/src/core/framework/window/mod.rs
+  - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/dynamic_api/session.rs
   - zircon_app/src/entry/engine_entry.rs
+  - zircon_app/src/entry/entry_config.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
   - zircon_app/src/entry/runtime_entry_app/gamepad.rs
 plan_sources:
   - user: 2026-05-16 Bevy-style platform/window/winit/gilrs/input parity plan
@@ -94,13 +100,15 @@ The matrix follows the same split Bevy uses:
 `PlatformCapabilityMatrix` produces a `PlatformCapabilityReport` for a target and `RuntimeTargetMode`. The report includes:
 
 - window backend: `Winit`, `BrowserCanvas`, or `Headless`;
-- event-loop policy: `Game`, `DesktopApp`, `Mobile`, or `Headless`;
+- event-loop policy: `Game`, `DesktopApp`, `Mobile`, `Continuous`, or `Headless`;
 - mouse, keyboard, touch, and gesture input backend declarations;
 - gamepad backend declaration: desktop `Gilrs`, browser `BrowserGamepadApi`, feature-disabled, or unavailable;
 - file drag/drop backend declaration: desktop `WinitWindowEvents`, future `BrowserDragEvents`, or unavailable;
 - Linux protocol declarations for X11 and Wayland.
 
-`PlatformConfig` keeps the existing `enabled` flag and adds target, runtime mode, and feature snapshot fields. `PLATFORM_CONFIG_KEY` is the runtime config-store key used by `zircon_app` bootstrap. `PlatformManager::capability_report()` is a thin access surface over that config.
+`report(...)` derives the default event-loop policy from topology: client desktop uses `Game`, editor host uses `DesktopApp`, mobile uses `Mobile`, and server/headless uses `Headless`. `report_with_event_loop_policy(...)` is the explicit opt-in path for Bevy-style update-policy selection, including `EventLoopPolicy::Continuous`. Server runtime and explicit headless targets still report `Headless` even when an explicit continuous policy is requested, because the topology has no active window event loop to poll.
+
+`PlatformConfig` keeps the existing `enabled` flag and adds target, runtime mode, and feature snapshot fields. `PLATFORM_CONFIG_KEY` is the runtime config-store key used by `zircon_app` bootstrap. `PlatformManager::capability_report()` is a thin access surface over that config. The primary window descriptor is stored separately under `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY` by the app entry layer, so capability diagnostics can say which backend is available while window diagnostics say which primary-window policy was selected.
 
 `BuiltinEngineEntry` stores a serialized `PlatformConfig` before module activation. Runtime/editor entries use the current host target and compiled feature snapshot; headless entries use `PlatformTarget::Headless` plus `PlatformFeatureSelection::headless()`. `RuntimeProfileId::Minimal` still stores the config for diagnostics, but marks it disabled because `MinimalPlugins` does not install `PlatformModule`.
 
@@ -108,11 +116,13 @@ The matrix follows the same split Bevy uses:
 
 This mirrors Bevy's public diagnostic need without copying its internals: Bevy's `DefaultPlugins` are feature-gated and documented as user-controllable by disabling default features in `dev/bevy/crates/bevy_internal/src/default_plugins.rs`; `dev/bevy/docs/cargo_features.md` documents `default_platform`, `bevy_winit`, `bevy_gilrs`, `gamepad`, `x11`, `wayland`, and `web`; and `dev/bevy/crates/bevy_winit/src/winit_config.rs` separates game, desktop-app, mobile, and continuous update policies. Zircon keeps those decisions visible as capability diagnostics instead of relying on implicit Cargo feature knowledge.
 
+The runtime-preview winit host maps this runtime-facing policy to winit `ControlFlow` in `zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs`: `Game` and `Continuous` use `ControlFlow::Poll`, while `DesktopApp`, `Mobile`, and `Headless` use `ControlFlow::Wait`. That mapping is app-host behavior and does not move concrete event-loop ownership into `zircon_runtime`.
+
 ## Target Policy
 
 Desktop targets use `Winit` for windowing when `platform-window` and `platform-winit` are enabled. Linux separately declares `platform-x11` and `platform-wayland` so the engine can later validate X11/Wayland support independently instead of treating Linux as one opaque desktop path.
 
-The platform matrix reports backend availability, while `zircon_runtime::core::framework::window::WindowDescriptor` now owns the neutral primary-window defaults that a backend can consume: primary-window handle, title, present mode, window mode, position, resolution, resize constraints, resizable/decorated/visible/focused flags, and physical/logical scale-factor conversion. This mirrors Bevy's `bevy_window::Window` and `WindowPlugin::primary_window` split from `bevy_winit` host creation. The current descriptor is additive and does not yet change `zircon_app` window creation.
+The platform matrix reports backend availability, while `zircon_runtime::core::framework::window::WindowDescriptor` now owns the neutral primary-window defaults that a backend can consume: primary-window handle, title, present mode, window mode, position, resolution, resize constraints, resizable/decorated/visible/focused flags, and physical/logical scale-factor conversion. This mirrors Bevy's `bevy_window::Window` and `WindowPlugin::primary_window` split from `bevy_winit` host creation. The descriptor is additive, is persisted through app bootstrap config, and is consumed by the runtime-preview app host for initial winit window attributes.
 
 The native winit preview host now forwards raw mouse device deltas with winit `DeviceEvent::PointerMotion` -> `ZrRuntimeEventV1::mouse_motion` -> runtime input state. This follows Bevy's `bevy_winit` and `bevy_input::mouse::MouseMotion` split: the platform/backend layer owns OS event collection, while the runtime input layer owns neutral frame accumulation.
 
@@ -132,7 +142,9 @@ Mobile targets use the mobile event-loop policy. Android requires a winit activi
 
 Browser targets use `BrowserCanvas` when `platform-web` is enabled. Browser gamepad is now declared as its own `gamepad-browser` backend feature and reports `GamepadBackend::BrowserGamepadApi` only when `platform-web`, `input-gamepad`, and `gamepad-browser` are all enabled. This deliberately does not fall back to `gamepad-gilrs`: Bevy's checked-in `bevy_gilrs` plugin uses `GilrsBuilder` and has wasm-specific storage in `dev/bevy/crates/bevy_gilrs/src/lib.rs`, while Zircon's capability matrix names the browser host API separately so desktop gilrs polling and browser Gamepad API polling can evolve without becoming one ambiguous backend. Bevy's top-level `dev/bevy/Cargo.toml` also keeps `gamepad` as the neutral input feature and `bevy_gilrs` as a concrete backend feature; Zircon mirrors that split with `input-gamepad`, `gamepad-gilrs`, and `gamepad-browser`.
 
-Server runtime and explicit headless targets use `Headless` event-loop policy. They do not report physical gamepad support.
+`EventLoopPolicy::Continuous` mirrors Bevy's `WinitSettings::continuous()` preset in `dev/bevy/crates/bevy_winit/src/winit_config.rs`: both focused and unfocused updates are continuous. Zircon exposes it as an explicit capability-report override rather than a default target policy. This lets runtime preview, profiling, or benchmark-style hosts request continuous polling without changing the normal client/editor/mobile/headless defaults.
+
+Server runtime and explicit headless targets use `Headless` event-loop policy. They do not report physical gamepad support, and an explicit continuous event-loop request is normalized back to `Headless`.
 
 ## Tests
 
@@ -141,6 +153,7 @@ The platform, prelude, and app composition tests verify:
 - the platform root remains structural;
 - client default platform reports winit, input, and gilrs on desktop;
 - editor host uses the desktop-app event-loop policy;
+- explicit continuous event-loop policy reports `platform.event_loop_policy=continuous` on windowed targets while headless topology remains `Headless`;
 - server runtime remains headless;
 - Linux X11 and Wayland capability states are independent;
 - capability reports and app module-selection diagnostics emit stable `platform.*` lines, including `platform.enabled`, target, event-loop policy, window backend, input backends, gamepad backend, file drag/drop state, and Linux protocol states;

@@ -5,7 +5,8 @@ use crate::asset::{
 use crate::core::{ManagerDescriptor, ModuleDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::plugin::{
     ComponentTypeDescriptor, LoadedNativePlugin, PluginEventCatalogManifest, PluginOptionManifest,
@@ -140,6 +141,25 @@ impl RuntimeExtensionRegistry {
             );
         }
         self.hybrid_gi_runtime_providers.push(registration);
+        Ok(())
+    }
+
+    pub fn register_solari_runtime_provider(
+        &mut self,
+        registration: SolariRuntimeProviderRegistration,
+    ) -> Result<(), RuntimeExtensionRegistryError> {
+        if self
+            .solari_runtime_providers
+            .iter()
+            .any(|existing| existing.provider_id() == registration.provider_id())
+        {
+            return Err(
+                RuntimeExtensionRegistryError::DuplicateSolariRuntimeProvider(
+                    registration.provider_id().to_string(),
+                ),
+            );
+        }
+        self.solari_runtime_providers.push(registration);
         Ok(())
     }
 

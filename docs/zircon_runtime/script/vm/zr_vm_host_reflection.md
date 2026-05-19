@@ -5,13 +5,21 @@ related_code:
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/reflection_macros/src/lib.rs
+  - zircon_runtime/src/script/mod.rs
+  - zircon_runtime/src/script/vm/mod.rs
+  - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/writer.rs
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
@@ -21,19 +29,29 @@ implementation_files:
   - zircon_runtime/reflection_macros/Cargo.toml
   - zircon_runtime/src/core/framework/script.rs
   - zircon_runtime/reflection_macros/src/lib.rs
+  - zircon_runtime/src/script/mod.rs
+  - zircon_runtime/src/script/vm/mod.rs
+  - zircon_runtime/src/script/vm/host/mod.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/builtin_host_modules.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/options.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs
+  - zircon_runtime/src/script/vm/host/reflection_docs/writer.rs
   - zircon_runtime/src/script/vm/host/plugin_host_driver.rs
   - zircon_runtime/src/script/vm/host/vm_plugin_host_context.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package.rs
   - zircon_runtime/src/script/vm/plugin/vm_plugin_package_discovery.rs
+  - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.toml
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/plugin.zrp
   - docs/zircon_runtime/script/vm/examples/zr_vm_minimal/main.zr
 plan_sources:
   - user: 2026-05-15 implement ZrVM language plugin and reflection registration plan
   - user: 2026-05-16 continue precise VM host reflection macro implementation
+  - user: 2026-05-18 modular reflection content/generated reflection interface documentation
+  - docs/superpowers/plans/2026-05-18-zrvm-host-reflection-docs.md
 tests:
   - zircon_runtime/src/script/vm/tests.rs
   - "cargo test -p zircon_runtime script::vm: passed 2026-05-15"
@@ -57,6 +75,18 @@ tests:
   - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: red 2026-05-18 for unsupported-input macro tests before guards; async/generic function and generic type tests failed because macros still emitted descriptors"
   - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-macros: passed 2026-05-18 after unsupported-input guards; 3 passed, 0 failed, 0 doc-tests"
   - "rustfmt --edition 2021 --check zircon_runtime/reflection_macros/src/lib.rs zircon_runtime/src/script/vm/tests.rs zircon_runtime/src/core/framework/script.rs zircon_runtime/src/script/vm/host/host_export_registry.rs zircon_runtime/src/script/vm/host/builtin_host_modules.rs zircon_plugins/zr_vm_language/runtime/src/real_backend.rs: passed 2026-05-18 after unsupported-input guards"
+  - "cargo test -p zircon_runtime host_reflection_docs --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs -- --nocapture --test-threads=1: passed 2026-05-18 during Milestone 2; 4 host_reflection_docs tests passed"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs: passed 2026-05-18 during Milestone 2"
+  - "cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs -- F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 during Milestone 3; generated explicit-output host interface Markdown"
+  - "Test-Path -LiteralPath 'F:\\cargo-targets\\codex-reflection-docs\\host-interface.md': passed 2026-05-18 during Milestone 3; generated file existed"
+  - "Grep tool search for 'zr\\.zircon\\.math' in F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 during Milestone 3; generated file included zr.zircon.math at line 76"
+  - "rustfmt --edition 2021 --check zircon_runtime/src/script/vm/host/reflection_docs/mod.rs zircon_runtime/src/script/vm/host/reflection_docs/options.rs zircon_runtime/src/script/vm/host/reflection_docs/markdown.rs zircon_runtime/src/script/vm/host/reflection_docs/writer.rs zircon_runtime/src/script/vm/host/mod.rs zircon_runtime/src/script/vm/mod.rs zircon_runtime/src/script/mod.rs zircon_runtime/src/script/vm/tests.rs zircon_runtime/src/bin/zircon_host_reflection_docs.rs: passed 2026-05-18 final validation"
+  - "cargo test --manifest-path zircon_runtime/reflection_macros/Cargo.toml --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs: passed 2026-05-18 final validation; 3 passed, 0 failed, 0 doc-tests"
+  - "cargo test -p zircon_runtime host_reflection_docs --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs -- --nocapture --test-threads=1: passed 2026-05-18 final validation; 4 host_reflection_docs tests passed, 1561 filtered out"
+  - "cargo check -p zircon_runtime --lib --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs: passed 2026-05-18 final validation"
+  - "cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline --jobs 1 --target-dir F:\\cargo-targets\\codex-reflection-docs -- F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 final validation; generated explicit-output host interface Markdown"
+  - "Test-Path -LiteralPath 'F:\\cargo-targets\\codex-reflection-docs\\host-interface.md': passed 2026-05-18 final validation; generated file existed"
+  - "Grep tool search for 'zr\\.zircon\\.math' in F:\\cargo-targets\\codex-reflection-docs\\host-interface.md: passed 2026-05-18 final validation; generated file included zr.zircon.math at line 76"
 doc_type: module-detail
 ---
 
@@ -119,6 +149,22 @@ Calls go through `call_with_capabilities`. The registry checks arity and require
 `zr.zircon.math` is registered through the reflection macros. `Vec3` and `ColorRgba` derive `ZirconScriptType`, and pure helpers such as vector length and dot product use `zircon_host_function`, proving that macro-generated descriptors flow through the same registry validation and dispatch path as handwritten modules.
 
 This first wave deliberately favors stable values and handles over concrete manager references. Manager-backed behavior can replace the diagnostic placeholders once the target services expose stable trait-object access through `core::manager`.
+
+## Generated Interface Documentation
+
+Generated ZrVM host interface documentation is descriptor-driven. `ScriptHostModuleDescriptor`, `ScriptHostTypeDescriptor`, `ScriptHostFunctionDescriptor`, `ScriptHostParameterDescriptor`, `ScriptHostFieldDescriptor`, and `ScriptHostTypeRef` remain the source of truth; the Markdown renderer reads those descriptors instead of reflecting Rust implementation details or querying a backend-specific ABI. Built-in documentation uses `builtin_host_module_descriptors()` to register the same first-wave host modules into a local registry and then renders the validated descriptor records.
+
+The renderer keeps output deterministic for review and generated-file comparison. Modules are sorted by module name, capabilities are sorted by capability string, reflected types are sorted by type name, and functions are sorted by function name. Field order and function parameter order stay descriptor-defined because those sequences describe user-facing struct layout and call signatures.
+
+The writer command is explicit-output only:
+
+```powershell
+cargo run -p zircon_runtime --bin zircon_host_reflection_docs --locked --offline --jobs 1 --target-dir F:\cargo-targets\codex-reflection-docs -- F:\cargo-targets\codex-reflection-docs\host-interface.md
+```
+
+The command requires exactly one output Markdown path, creates missing parent directories through the writer API, and does not commit a machine-specific generated artifact path into the repository. Callers choose where generated interface documentation is emitted.
+
+The built-in math module is the proof that handwritten and macro-generated descriptors flow through one documentation path. `zr.zircon.math` is registered through the reflection macros, then rendered from the same descriptor model as the handwritten built-ins; Milestone 3 generated output was inspected and contained `zr.zircon.math` at line 76.
 
 ## Package Protocol
 

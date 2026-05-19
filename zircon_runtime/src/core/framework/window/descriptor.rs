@@ -26,6 +26,13 @@ impl WindowDescriptor {
         self
     }
 
+    pub fn without_primary_window(mut self) -> Self {
+        self.primary_window = None;
+        self.visible = false;
+        self.focused = false;
+        self
+    }
+
     pub fn with_title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
         self
@@ -74,6 +81,64 @@ impl WindowDescriptor {
     pub fn with_focused(mut self, focused: bool) -> Self {
         self.focused = focused;
         self
+    }
+
+    pub fn diagnostic_lines(&self) -> Vec<String> {
+        let physical_size = self.resolution.physical_size();
+        let logical_size = self.resolution.logical_size();
+        let constraints = self.resize_constraints.validated();
+        vec![
+            format!(
+                "window.primary_window={}",
+                self.primary_window
+                    .map(|handle| handle.raw().to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            ),
+            format!("window.title={}", self.title),
+            format!("window.present_mode={:?}", self.present_mode),
+            format!("window.mode={:?}", self.mode),
+            format!("window.position={:?}", self.position),
+            format!(
+                "window.physical_size={}x{}",
+                physical_size.x, physical_size.y
+            ),
+            format!(
+                "window.logical_size={}x{}",
+                format_window_axis(logical_size[0]),
+                format_window_axis(logical_size[1])
+            ),
+            format!("window.scale_factor={}", self.resolution.scale_factor()),
+            format!(
+                "window.scale_factor_override={}",
+                self.resolution
+                    .scale_factor_override()
+                    .map(|scale_factor| scale_factor.to_string())
+                    .unwrap_or_else(|| "none".to_string())
+            ),
+            format!(
+                "window.resize_constraints={}x{}..{}x{}",
+                format_window_axis(constraints.min_width),
+                format_window_axis(constraints.min_height),
+                format_window_axis(constraints.max_width),
+                format_window_axis(constraints.max_height)
+            ),
+            format!("window.resizable={}", self.resizable),
+            format!("window.decorated={}", self.decorated),
+            format!("window.visible={}", self.visible),
+            format!("window.focused={}", self.focused),
+        ]
+    }
+
+    pub fn format_diagnostics(&self) -> String {
+        self.diagnostic_lines().join("\n")
+    }
+}
+
+fn format_window_axis(axis: f32) -> String {
+    if axis.fract() == 0.0 {
+        format!("{axis:.0}")
+    } else {
+        axis.to_string()
     }
 }
 

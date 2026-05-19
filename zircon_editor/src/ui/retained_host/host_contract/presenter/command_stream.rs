@@ -48,6 +48,13 @@ pub(super) struct ChromeImagePayload {
     pub(super) height: u32,
     pub(super) upload_bytes: u64,
     pub(super) rgba: Option<Vec<u8>>,
+    pub(super) atlas_uv: Option<ChromeImageUvRect>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct ChromeImageUvRect {
+    pub(super) min: [f32; 2],
+    pub(super) max: [f32; 2],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -300,6 +307,7 @@ impl ChromeCommandStream {
                         height,
                         upload_bytes,
                         rgba: include_image_bytes.then_some(rgba).flatten(),
+                        atlas_uv: None,
                     },
                 }
             }
@@ -777,6 +785,46 @@ mod tests {
         assert_eq!(image.resource_key, "viewport:test-initial");
         assert_eq!(image.upload_bytes, 16);
         assert_eq!(image.rgba.as_deref(), Some(&[255; 16][..]));
+        assert_eq!(image.atlas_uv, None);
+    }
+
+    #[test]
+    fn command_stream_preserves_atlas_uv_on_image_payload() {
+        let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+
+        stream.push_image(
+            1,
+            FrameRect {
+                x: 4.0,
+                y: 6.0,
+                width: 20.0,
+                height: 12.0,
+            },
+            None,
+            ChromeImagePayload {
+                resource_key: "atlas://editor/icons".to_string(),
+                width: 64,
+                height: 64,
+                upload_bytes: 0,
+                rgba: None,
+                atlas_uv: Some(ChromeImageUvRect {
+                    min: [0.5, 0.25],
+                    max: [0.75, 0.5],
+                }),
+            },
+        );
+
+        let ChromeCommandKind::Image { payload } = &stream.commands()[0].kind else {
+            panic!("expected image command");
+        };
+        assert_eq!(payload.resource_key, "atlas://editor/icons");
+        assert_eq!(
+            payload.atlas_uv,
+            Some(ChromeImageUvRect {
+                min: [0.5, 0.25],
+                max: [0.75, 0.5],
+            })
+        );
     }
 
     #[test]

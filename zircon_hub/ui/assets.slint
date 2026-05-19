@@ -1,5 +1,5 @@
 import { AssetData, UiTextData } from "shared.slint";
-import { CatalogListPanel, InfoRow, PageScrollSurface } from "components.slint";
+import { CatalogPage, HubTokens, InfoRow } from "components.slint";
 
 component AssetRow inherits InfoRow {
     in property <AssetData> asset;
@@ -13,7 +13,7 @@ component AssetRow inherits InfoRow {
     trailing-text: root.asset.kind;
     trailing-tone: "accent";
     show-trailing-badge: true;
-    row-height: 86px;
+    row-height: HubTokens.list-row-lg;
 }
 
 export component AssetsPage inherits Rectangle {
@@ -23,27 +23,23 @@ export component AssetsPage inherits Rectangle {
     in property <UiTextData> ui-text;
     private property <length> list-scroll-y: 0px;
 
-    background: #11151a;
+    background: HubTokens.surface-page;
 
-    PageScrollSurface {
+    CatalogPage {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
-        content-height: 620px;
+        list-scroll-y <=> root.list-scroll-y;
+        title: root.ui-text.asset-catalog;
+        badge-text: root.asset-count + " " + root.ui-text.assets-found;
+        badge-tone: "accent";
+        empty-title: root.ui-text.no-assets-found;
+        row-count: root.asset-count;
+        row-height: HubTokens.list-row-lg;
 
-        CatalogListPanel {
-            scroll-y <=> root.list-scroll-y;
-            title: root.ui-text.asset-catalog;
-            badge-text: root.asset-count + " " + root.ui-text.assets-found;
-            badge-tone: "accent";
-            empty-title: root.ui-text.no-assets-found;
-            row-count: root.asset-count;
-            row-height: 86px;
-
-            for asset in root.assets: AssetRow {
-                asset: asset;
-                ui-text: root.ui-text;
-            }
+        for asset in root.assets: AssetRow {
+            asset: asset;
+            ui-text: root.ui-text;
         }
     }
 }

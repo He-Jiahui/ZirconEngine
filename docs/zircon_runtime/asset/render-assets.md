@@ -22,9 +22,23 @@ related_code:
   - zircon_runtime/src/asset/assets/material/mod.rs
   - zircon_runtime/src/asset/assets/material/material_asset.rs
   - zircon_runtime/src/asset/assets/material/texture_slot.rs
+  - zircon_runtime/src/asset/assets/material/validation.rs
   - zircon_runtime/src/asset/assets/material/zmaterial.rs
+  - zircon_runtime/src/core/framework/render/material/diagnostic_source.rs
+  - zircon_runtime/src/core/framework/render/material/validation_error.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
+  - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_editor/src/ui/workbench/project/constants.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
+  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
+  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
+  - zircon_editor/src/tests/workbench/project/renderable_template.rs
+  - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/tests/virtual_geometry_visibility_debug_contract.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
@@ -62,6 +76,12 @@ implementation_files:
   - zircon_runtime/src/asset/assets/material/zmaterial.rs
   - zircon_runtime/src/asset/assets/imported.rs
   - zircon_runtime/src/asset/importer/ingest/import_material.rs
+  - zircon_runtime/src/asset/importer/ingest/import_shader_package.rs
+  - zircon_editor/src/ui/workbench/project/constants.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_ensure_runtime_assets.rs
+  - zircon_editor/src/ui/workbench/project/runtime_asset_helpers.rs
+  - zircon_editor/src/ui/workbench/project/assets/default_pbr.zshader
+  - zircon_editor/src/ui/workbench/project/assets/default_pbr.wgsl
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_material.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_ensure_shader_source.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_resolve_texture_id.rs
@@ -74,11 +94,30 @@ plan_sources:
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - docs/superpowers/specs/2026-05-17-zmaterial-material-editor-design.md
   - docs/superpowers/plans/2026-05-17-zmaterial-material-editor.md
+  - user: 2026-05-19 finish runtime UI graph and direct-surface damage, then close the `.zmaterial` workspace blocker
 tests:
   - zircon_runtime/src/asset/tests/assets/render_product.rs
   - zircon_runtime/src/asset/tests/assets/importer.rs
   - zircon_runtime/src/asset/tests/assets/material.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager.rs
   - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_editor/src/tests/workbench/project/renderable_template.rs
+  - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
+  - zircon_plugins/virtual_geometry/runtime/src/virtual_geometry/test_sources
+  - zircon_runtime/tests/virtual_geometry_visibility_debug_contract.rs
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked shader --jobs 1
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked material_asset_reports_shader_contract_diagnostics_without_blocking_import --jobs 1
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-m2-wsl cargo test -p zircon_runtime --lib --locked project_manager_imports_zshader_with_wgsl_capture_diagnostics --jobs 1
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib material --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib shader --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --lib asset::tests::project::zmeta --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo check --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_virtual_geometry_runtime --lib --locked --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=/mnt/f/cargo-targets/zircon-zmaterial-final-wsl cargo test -p zircon_runtime --test virtual_geometry_visibility_debug_contract --locked --offline --jobs 1 --message-format short --color never
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib material_asset_serialization_rewrites_stale_canonical_overrides --locked --jobs 1 --message-format short --color never -- --test-threads=1 --nocapture
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib material_asset --locked --jobs 1 --message-format short --color never -- --test-threads=1
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib asset::tests::pipeline::manager --locked --jobs 1 --message-format short --color never -- --test-threads=1
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test -p zircon_runtime --lib --locked --jobs 1 --message-format short --color never -- --test-threads=1
+  - CARGO_TARGET_DIR=D:\cargo-targets\zircon-codex-render-damage cargo test --workspace --locked --jobs 1 --message-format short --color never -- --test-threads=1
   - zircon_runtime/src/asset/tests/assets/texture_importer.rs
   - zircon_plugins/texture_importer/runtime/src/lib.rs
   - zircon_plugins/texture_importer/runtime/src/container.rs
@@ -209,13 +248,21 @@ fixture coverage in `importer.rs`.
 
 Shader dependencies are explicit serialized `ShaderDependencyAsset` entries because M3A does not introduce a shader import language. `ShaderAsset::dependencies()` projects those entries into `RenderShaderDependency`. Pipeline layout readiness is explicit through serialized `RenderShaderPipelineLayoutDescriptor`, including bind groups, binding descriptors, resource type, stage visibility, and push-constant range labels.
 
-`MaterialAsset` exposes `dependency_set()`, `direct_references()`, `standard_material_descriptor()`, `color_material_descriptor()`, and `readiness_report()`. Source material files now use `.zmaterial`: shader identity is stored in `[shader]`, instance scalar/vector state is stored under `[overrides]`, and texture references are stored under `[textures.<slot>]`. Legacy PBR fields remain in the Rust struct for the current renderer path, but source parse and serialization hydrate them from shader-style override and texture-slot entries instead of accepting the old `.material.toml` top-level shape.
+`MaterialAsset` exposes `dependency_set()`, `direct_references()`, `standard_material_descriptor()`, `color_material_descriptor()`, and `readiness_report()`. Source material files now use `.zmaterial`: shader identity is stored in `[shader]`, instance scalar/vector state is stored under `[overrides]`, and texture references are stored under `[textures.<slot>]`. Legacy PBR fields remain in the Rust struct for the current renderer path, but source parse and serialization hydrate them from shader-style override and texture-slot entries instead of accepting the old `.material.toml` top-level shape. During serialization, canonical PBR fields rewrite stale matching override entries and canonical texture slots before TOML is emitted, while preserving unknown shader-specific overrides and fallback-only texture slot metadata. This keeps a material edited through runtime fields from writing old `[overrides]` bytes back to disk and prevents source-hash/revision no-ops during asset watcher reimport.
+
+Editor renderable project scaffolding follows the same source contract instead of pointing materials at raw WGSL. `default.zmaterial` references `res://shaders/pbr_shader`, `pbr_shader.zmeta` owns the compound shader root, and `pbr.zshader` plus `pbr.wgsl` are written under `assets/shaders/pbr_shader/`. Virtual Geometry fixture helpers now serialize `.zmaterial` material sources as well, so render-product tests exercise the current importer suffix instead of the removed legacy material suffix.
 
 Material direct dependencies include the shader plus every concrete texture-slot reference. Fallback-only texture slots remain authoring/runtime fallback data and are omitted from dependency locators until a real texture reference is authored.
+
+Material/schema mismatches are diagnostics, not import blockers. `MaterialAsset::shader_contract_diagnostics(...)` compares `[overrides]` and `[textures.<slot>]` against the loaded `ShaderAsset` contract and emits typed `RenderMaterialValidationError` values for unknown overrides, override type mismatches, and unknown texture slots. `readiness_report_with_shader_contract(...)` merges those diagnostics into the neutral readiness report while preserving fallback-only texture slots as non-dependency data.
+
+Compound `.zshader` import now performs a lightweight WGSL capture check after reading the declared source files. Every declared property and texture-slot name should appear in the combined WGSL source; misses are recorded in `ShaderAsset.validation_diagnostics` as `wgsl_capture` diagnostics. The import still succeeds so authoring tools and readiness reports can show the mismatch instead of losing the asset.
 
 ## Readiness
 
 Material readiness is structured through `RenderMaterialReadinessReport`. `AlphaMode::Mask { cutoff }` rejects non-finite values and values outside `0.0..=1.0` with `RenderMaterialValidationError::InvalidMaskCutoff`. Callers that can resolve asset references use `readiness_report_with_resolution(...)`, which records unresolved shader or concrete texture-slot references as validation errors plus explicit fallback usage records.
+
+Diagnostic sources are explicit through `RenderMaterialDiagnosticSource`: shader schema, WGSL capture, material override, texture slot, and dependency resolution paths are distinguishable in the same readiness payload. This keeps unknown override, unknown texture slot, and WGSL capture mismatch reports machine-readable for the Material Editor without making source import fail.
 
 The resource streamer uses typed material readiness before preparing GPU material state and stores the resulting `RenderMaterialReadinessReport` on `MaterialRuntime`. Renderer-side consumers and tests can query it through `ResourceStreamer::material_readiness_report(...)`. Existing fallback shader and missing-texture behavior remains allowed for compatibility, but unresolved shader references, wrong-kind or load-failing dependencies, unresolved texture references, and the fallback policy used for each slot are preserved in the stored report instead of being discarded.
 

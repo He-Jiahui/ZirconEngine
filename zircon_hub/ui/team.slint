@@ -1,18 +1,17 @@
-import { ScrollView } from "std-widgets.slint";
 import { MutedText, TeamData, TeamMemberData, UiTextData } from "shared.slint";
-import { HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+import { HubPanel, HubTokens, InfoRow, MaterialPalette, MaterialStyleMetrics, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, ResponsivePanelFlow } from "components.slint";
 
 component TeamSummaryItem inherits Rectangle {
     in property <string> label;
     in property <string> primary;
     in property <string> secondary;
 
-    min-height: 70px;
+    min-height: HubTokens.list-row-md;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        spacing: 6px;
+        spacing: MaterialStyleMetrics.spacing_6;
 
         MutedText {
             text: root.label;
@@ -22,9 +21,9 @@ component TeamSummaryItem inherits Rectangle {
         Text {
             text: root.primary;
             overflow: elide;
-            color: #f3f6f9;
-            font-size: 15px;
-            font-weight: 800;
+            color: MaterialPalette.on_surface;
+            font-size: MaterialTypography.title_small.font_size;
+            font-weight: MaterialTypography.title_small.font_weight;
         }
 
         MutedText {
@@ -39,15 +38,15 @@ component TeamSummaryCard inherits HubPanel {
     in property <string> primary;
     in property <string> secondary;
 
-    height: 112px;
+    height: HubTokens.list-row-lg + HubTokens.space-7;
 
     VerticalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 18px;
-        padding-right: 18px;
-        padding-top: 18px;
-        padding-bottom: 18px;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_16;
+        padding-top: MaterialStyleMetrics.padding_16;
+        padding-bottom: MaterialStyleMetrics.padding_16;
 
         TeamSummaryItem {
             horizontal-stretch: 1;
@@ -71,7 +70,7 @@ component TeamMemberRow inherits InfoRow {
     trailing-text: root.member.commits + " " + root.ui-text.team-commits;
     trailing-tone: "accent";
     show-trailing-badge: true;
-    row-height: 78px;
+    row-height: HubTokens.list-row-lg;
 }
 
 export component TeamPage inherits Rectangle {
@@ -80,28 +79,27 @@ export component TeamPage inherits Rectangle {
     in property <[TeamMemberData]> members;
     in property <int> member-count;
     in property <UiTextData> ui-text;
-    private property <bool> compact: root.width < 920px;
+    private property <bool> compact: root.width < HubTokens.breakpoint-compact;
     private property <length> member-scroll-y: 0px;
 
-    background: #11151a;
+    background: HubTokens.surface-page;
     clip: true;
 
     PageScrollSurface {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
-        content-height: root.compact ? 820px : 650px;
 
         HubPanel {
-            height: 82px;
+            height: HubTokens.list-row-lg;
 
             VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding-left: 18px;
-                padding-right: 18px;
-                padding-top: 14px;
-                padding-bottom: 14px;
+                padding-left: MaterialStyleMetrics.padding_16;
+                padding-right: MaterialStyleMetrics.padding_16;
+                padding-top: MaterialStyleMetrics.padding_14;
+                padding-bottom: MaterialStyleMetrics.padding_14;
 
                 PanelHeader {
                     title: root.ui-text.team-workspace;
@@ -114,25 +112,25 @@ export component TeamPage inherits Rectangle {
         }
 
         ResponsivePanelFlow {
-            flow-height: root.compact ? 238px : 112px;
-            spacing-horizontal: 14px;
-            spacing-vertical: 14px;
+            flow-height: root.compact ? (HubTokens.list-row-lg + HubTokens.space-7) * 2 + HubTokens.panel-gap : HubTokens.list-row-lg + HubTokens.space-7;
+            spacing-horizontal: HubTokens.panel-gap;
+            spacing-vertical: HubTokens.panel-gap;
 
             TeamSummaryCard {
-                flex-basis: 280px;
+                flex-basis: HubTokens.panel-min-sm * 4 / 5;
                 flex-grow: 0;
                 flex-shrink: 1;
-                min-width: 260px;
+                min-width: HubTokens.panel-min-sm * 3 / 4;
                 label: root.ui-text.team-git-identity;
                 primary: root.summary.identity-name;
                 secondary: root.summary.identity-email;
             }
 
             TeamSummaryCard {
-                flex-basis: 520px;
+                flex-basis: HubTokens.panel-min-lg;
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: 300px;
+                min-width: HubTokens.panel-min-sm;
                 label: root.ui-text.team-repository;
                 primary: root.summary.repository-path;
                 secondary: root.ui-text.team-local-only;
@@ -146,8 +144,8 @@ export component TeamPage inherits Rectangle {
             VerticalLayout {
                 width: parent.width;
                 height: parent.height;
-                padding: 18px;
-                spacing: 10px;
+                padding: MaterialStyleMetrics.padding_16;
+                spacing: HubTokens.toolbar-gap;
 
                 PanelHeader {
                     title: root.ui-text.team-members-found;
@@ -156,60 +154,44 @@ export component TeamPage inherits Rectangle {
                     badge-tone: "neutral";
                 }
 
-                team-scroll := ScrollView {
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-                    viewport-y <=> root.member-scroll-y;
-                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-                    mouse-drag-pan-enabled: true;
-                    viewport-width: team-scroll.visible-width;
-                    viewport-height: max(team-scroll.visible-height, root.member-count * 86px + 8px);
+                PanelListViewport {
+                    scroll-y <=> root.member-scroll-y;
+                    row-count: root.member-count;
+                    row-height: HubTokens.list-row-lg;
+                    empty-height: HubTokens.list-row-lg + HubTokens.space-4;
 
-                    Rectangle {
-                        width: team-scroll.visible-width;
-                        height: team-scroll.viewport-height;
-                        background: transparent;
+                    if root.member-count == 0: HubPanel {
+                        height: HubTokens.list-row-lg + HubTokens.space-4;
 
                         VerticalLayout {
                             width: parent.width;
                             height: parent.height;
-                            spacing: 8px;
+                            padding: MaterialStyleMetrics.padding_16;
+                            spacing: HubTokens.space-2;
 
-                            if root.member-count == 0: HubPanel {
-                                height: 96px;
-
-                                VerticalLayout {
-                                    width: parent.width;
-                                    height: parent.height;
-                                    padding: 18px;
-                                    spacing: 8px;
-
-                                    Text {
-                                        text: root.ui-text.no-team-members-found;
-                                        color: #d5dbe5;
-                                        font-size: 14px;
-                                        font-weight: 700;
-                                    }
-
-                                    MutedText {
-                                        text: root.summary.repository-path;
-                                        overflow: elide;
-                                    }
-                                }
+                            Text {
+                                text: root.ui-text.no-team-members-found;
+                                color: MaterialPalette.on_surface;
+                                font-size: MaterialTypography.label_large.font_size;
+                                font-weight: MaterialTypography.label_large.font_weight;
                             }
 
-                            for member in root.members: Rectangle {
-                                width: parent.width;
-                                height: 78px;
-
-                                TeamMemberRow {
-                                    width: parent.width;
-                                    height: parent.height;
-                                    member: member;
-                                    ui-text: root.ui-text;
-                                }
+                            MutedText {
+                                text: root.summary.repository-path;
+                                overflow: elide;
                             }
+                        }
+                    }
+
+                    for member in root.members: Rectangle {
+                        width: parent.width;
+                        height: HubTokens.list-row-lg;
+
+                        TeamMemberRow {
+                            width: parent.width;
+                            height: parent.height;
+                            member: member;
+                            ui-text: root.ui-text;
                         }
                     }
                 }

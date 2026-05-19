@@ -8,6 +8,10 @@ description = "Runtime absorption layer for high-level engine subsystems."
 [lib]
 crate-type = ["rlib", "cdylib"]
 
+[[bin]]
+name = "zircon_host_reflection_docs"
+path = "src/bin/zircon_host_reflection_docs.rs"
+
 [features]
 default = ["target-client"]
 runtime-ui-integration-tests = []

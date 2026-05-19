@@ -9,6 +9,7 @@ pub use crate::core::framework::time::{Fixed, FixedStepPlan, Real, Time, Virtual
 pub use crate::core::framework::window::{
     PrimaryWindowHandle, WindowDescriptor, WindowMode, WindowPosition, WindowPresentMode,
     WindowResizeConstraints, WindowResolution, DEFAULT_WINDOW_TITLE,
+    PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
 pub use crate::core::modules::{
     DiagnosticsCoreModule, FrameCountModule, LogDiagnosticsModule, LogModule, TasksModule,

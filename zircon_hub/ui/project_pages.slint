@@ -1,0 +1,673 @@
+import { ScrollView } from "std-widgets.slint";
+import {
+    MutedText,
+    PillButton,
+    ProjectDetailData,
+    ProjectTemplateData,
+    RecentProjectRowData,
+    SourceEngineRowData,
+    UiTextData,
+} from "shared.slint";
+import {
+    Badge,
+    HubPanel,
+    HubTextField,
+    HubTokens,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialTypography,
+    PanelHeader,
+    SearchBox,
+    ToolbarSelect,
+} from "components.slint";
+
+import {
+    EngineChoiceRow,
+    PageHeader,
+    ProjectBrowserRow,
+    ProjectSettingSummaryRow,
+    TemplateChoiceRow,
+} from "project_page_components.slint";
+
+export component ProjectNewPage inherits Rectangle {
+    in-out property <string> project-name;
+    in-out property <string> project-location;
+    in property <[ProjectTemplateData]> templates;
+    in property <int> template-count;
+    in property <bool> create-enabled: true;
+    in property <string> selected-template-label;
+    in property <string> selected-engine-label;
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <UiTextData> ui-text;
+    callback back;
+    callback browse-folder(string);
+    callback create-project;
+    callback select-template(string);
+    callback select-engine(string);
+
+    private property <length> scroll-y: 0px;
+    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
+    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
+    private property <length> field-height: HubTokens.input-field;
+    private property <length> header-height: max(root.field-height * 11 / 10, min(root.field-height * 3 / 2, root.height / 13));
+    private property <length> choice-row-height: max(root.field-height * 4 / 3, min(MaterialStyleMetrics.size_64, root.height / 14));
+    private property <length> template-row-height: max(root.choice-row-height * 6 / 5, min(MaterialStyleMetrics.size_80, root.height / 11));
+    private property <length> summary-row-height: max(root.field-height * 9 / 10, min(root.field-height * 11 / 10, root.flow-height / 12));
+    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
+    private property <bool> narrow-flow: root.content-width < HubTokens.panel-min-md + HubTokens.panel-min-sm + root.page-gap;
+    private property <length> column-width: root.content-width - root.page-gap * 2;
+    private property <length> flow-height: max(page-scroll.visible-height - root.page-pad - root.header-height - root.page-gap, root.narrow-flow ? root.field-height * 22 : root.field-height * 12);
+
+    background: HubTokens.surface-page;
+    clip: true;
+
+    page-scroll := ScrollView {
+        width: root.width;
+        height: root.height;
+        viewport-y <=> root.scroll-y;
+        viewport-width: page-scroll.visible-width;
+        viewport-height: max(page-scroll.visible-height, root.flow-height + root.page-pad + root.header-height + root.page-gap);
+        vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+        horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+        Rectangle {
+            width: page-scroll.visible-width;
+            height: page-scroll.viewport-height;
+            background: HubTokens.surface-page;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding-left: root.page-pad;
+                padding-right: root.page-pad;
+                padding-bottom: root.page-pad;
+                spacing: root.page-gap;
+
+                PageHeader {
+                    header-height: root.header-height;
+                    title: root.ui-text.new-project-title;
+                    subtitle: root.ui-text.new-project-subtitle;
+                    back => { root.back(); }
+                }
+
+                FlexboxLayout {
+                    horizontal-stretch: 1;
+                    height: root.flow-height;
+                    flex-direction: FlexboxLayoutDirection.row;
+                    flex-wrap: root.narrow-flow ? FlexboxLayoutWrap.wrap : FlexboxLayoutWrap.no-wrap;
+                    align-content: FlexboxLayoutAlignContent.start;
+                    align-items: FlexboxLayoutAlignItems.start;
+                    spacing-horizontal: root.page-gap;
+                    spacing-vertical: root.page-gap;
+
+                    HubPanel {
+                        width: root.narrow-flow ? root.content-width : root.column-width * 13 / 20;
+                        flex-basis: root.narrow-flow ? root.content-width : root.column-width * 13 / 20;
+                        flex-grow: root.narrow-flow ? 1 : 0;
+                        flex-shrink: 1;
+                        height: root.narrow-flow ? max(root.field-height * 12, root.flow-height * 3 / 5) : root.flow-height;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: max(MaterialStyleMetrics.padding_16, min(MaterialStyleMetrics.padding_20, root.width / 60));
+                            spacing: root.page-gap;
+                            alignment: stretch;
+
+                            PanelHeader {
+                                title: root.ui-text.project-settings-title;
+                                subtitle: root.ui-text.project-settings-subtitle;
+                            }
+
+                            HubTextField {
+                                height: root.field-height;
+                                label: root.ui-text.project-name;
+                                placeholder: root.ui-text.project-name;
+                                text <=> root.project-name;
+                            }
+
+                            HorizontalLayout {
+                                horizontal-stretch: 1;
+                                height: root.field-height;
+                                spacing: root.page-gap;
+                                alignment: center;
+
+                                HubTextField {
+                                    text <=> root.project-location;
+                                    label: root.ui-text.location;
+                                    placeholder: root.ui-text.location;
+                                    horizontal-stretch: 1;
+                                }
+
+                                PillButton {
+                                    height: HubTokens.control-md;
+                                    text: root.ui-text.browse;
+                                    icon-image: @image-url("../assets/icons/ui/folder.svg");
+                                    has-icon-image: true;
+                                    clicked => { root.browse-folder("project-location"); }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: MaterialStyleMetrics.spacing_8;
+                                Text {
+                                    text: root.ui-text.source-engine;
+                                    color: MaterialPalette.on_surface_variant;
+                                    font-size: MaterialTypography.body_small.font_size;
+                                }
+                                for engine in root.engines: EngineChoiceRow {
+                                    row-height: root.choice-row-height;
+                                    engine: engine;
+                                    selected-label: root.ui-text.selected-label;
+                                    registered-label: root.ui-text.registered;
+                                    selected(id) => { root.select-engine(id); }
+                                }
+                                if root.engine-count == 0: MutedText {
+                                    text: root.ui-text.register-source-engine-before-create;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                height: root.field-height;
+                                alignment: end;
+                                spacing: root.page-gap;
+                                Rectangle { horizontal-stretch: 1; }
+                                PillButton {
+                                    text: root.ui-text.create;
+                                    icon-image: @image-url("../assets/icons/ui/plus.svg");
+                                    has-icon-image: true;
+                                    primary: true;
+                                    enabled: root.create-enabled;
+                                    clicked => { root.create-project(); }
+                                }
+                            }
+
+                            VerticalLayout {
+                                spacing: max(MaterialStyleMetrics.spacing_4, root.page-gap / 2);
+
+                                PanelHeader {
+                                    title: root.ui-text.project-summary-title;
+                                    subtitle: root.ui-text.project-summary-subtitle;
+                                }
+
+                                ProjectSettingSummaryRow {
+                                    row-height: root.summary-row-height;
+                                    label: root.ui-text.project-root-path;
+                                    value: root.project-location + "\\" + root.project-name;
+                                }
+
+                                ProjectSettingSummaryRow {
+                                    row-height: root.summary-row-height;
+                                    label: root.ui-text.source-engine;
+                                    value: root.selected-engine-label;
+                                }
+
+                                ProjectSettingSummaryRow {
+                                    row-height: root.summary-row-height;
+                                    label: root.ui-text.selected-template;
+                                    value: root.selected-template-label;
+                                }
+
+                                ProjectSettingSummaryRow {
+                                    row-height: root.summary-row-height;
+                                    label: root.ui-text.create;
+                                    value: root.create-enabled ? root.ui-text.ready-to-create : root.ui-text.complete-project-settings;
+                                    badge-value: true;
+                                    badge-tone: root.create-enabled ? "accent" : "warning";
+                                }
+                            }
+                        }
+                    }
+
+                    HubPanel {
+                        width: root.narrow-flow ? root.content-width : root.column-width * 7 / 20;
+                        flex-basis: root.narrow-flow ? root.content-width : root.column-width * 7 / 20;
+                        flex-grow: root.narrow-flow ? 1 : 0;
+                        flex-shrink: 1;
+                        height: root.narrow-flow ? max(root.template-row-height * (root.template-count + 1), root.flow-height * 2 / 5 - root.page-gap) : root.flow-height;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            padding: max(MaterialStyleMetrics.padding_14, min(MaterialStyleMetrics.padding_20, root.width / 80));
+                            spacing: root.page-gap;
+
+                            PanelHeader {
+                                title: root.ui-text.templates-title;
+                                show-badge: true;
+                                badge-text: root.template-count + "";
+                                badge-tone: "neutral";
+                            }
+
+                            for template in root.templates: TemplateChoiceRow {
+                                row-height: root.template-row-height;
+                                template: template;
+                                soon-label: root.ui-text.soon-label;
+                                selected(id) => { root.select-template(id); }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+export component ProjectBrowserPage inherits Rectangle {
+    in-out property <string> search-query;
+    in property <string> project-filter-label;
+    in property <string> project-sort-label;
+    in property <string> list-title: "Project List";
+    in property <[RecentProjectRowData]> rows;
+    in property <int> row-count;
+    in property <UiTextData> ui-text;
+    callback back;
+    callback search-projects(string);
+    callback set-project-filter(string);
+    callback set-project-sort(string);
+    callback select-project(string);
+    callback open-detail(string);
+
+    private property <length> scroll-y: 0px;
+    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
+    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
+    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
+    private property <length> toolbar-height: max(HubTokens.input-field, min(HubTokens.input-field + HubTokens.space-2, root.height / 18));
+    private property <length> toolbar-control-min-width: root.toolbar-height * 18 / 5;
+    private property <bool> toolbar-wrap: root.content-width < root.toolbar-control-min-width * 4 + root.page-gap * 3;
+    private property <length> browser-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-lg + MaterialStyleMetrics.spacing_16, root.height / 11));
+    private property <length> browser-row-gap: max(MaterialStyleMetrics.spacing_6, min(MaterialStyleMetrics.spacing_12, root.height / 90));
+    private property <length> toolbar-row-height: root.toolbar-wrap ? root.toolbar-height * 2 + root.page-gap : root.toolbar-height;
+    private property <length> toolbar-select-width: root.toolbar-wrap ? (root.content-width - root.page-gap) / 2 : max(root.content-width / 8, root.toolbar-control-min-width);
+
+    background: HubTokens.surface-page;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.page-pad;
+        padding-right: root.page-pad;
+        padding-bottom: root.page-pad;
+        spacing: root.page-gap;
+
+        PageHeader {
+            header-height: root.toolbar-height * 6 / 5;
+            title: root.ui-text.project-browser-title;
+            subtitle: root.ui-text.project-browser-subtitle;
+            back => { root.back(); }
+        }
+
+        FlexboxLayout {
+            height: root.toolbar-row-height;
+            flex-direction: FlexboxLayoutDirection.row;
+            flex-wrap: FlexboxLayoutWrap.wrap;
+            align-content: FlexboxLayoutAlignContent.start;
+            align-items: FlexboxLayoutAlignItems.start;
+            spacing-horizontal: root.page-gap;
+            spacing-vertical: root.page-gap;
+
+            SearchBox {
+                flex-basis: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
+                flex-grow: 1;
+                flex-shrink: 1;
+                box-width: root.toolbar-wrap ? root.content-width : root.content-width * 2 / 5;
+                box-height: root.toolbar-height;
+                text <=> root.search-query;
+                placeholder: root.ui-text.search-projects;
+                edited(query) => { root.search-projects(query); }
+            }
+
+            ToolbarSelect {
+                flex-basis: root.toolbar-select-width;
+                flex-grow: 1;
+                flex-shrink: 1;
+                icon-image: @image-url("../assets/icons/ui/folder.svg");
+                has-icon-image: true;
+                text: root.project-filter-label;
+                select-width: root.toolbar-select-width;
+                select-height: root.toolbar-height;
+                option-count: 3;
+                menu-items: [
+                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.all-projects-label, trailing_text: "", enabled: true },
+                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.existing-projects-label, trailing_text: "", enabled: true },
+                    { icon: @image-url("../assets/icons/ui/folder.svg"), text: root.ui-text.missing-label, trailing_text: "", enabled: true },
+                ];
+                options: [
+                    { id: "all", label: root.ui-text.all-projects-label, active: root.project-filter-label == root.ui-text.all-projects-label },
+                    { id: "existing", label: root.ui-text.existing-projects-label, active: root.project-filter-label == root.ui-text.existing-projects-label },
+                    { id: "missing", label: root.ui-text.missing-label, active: root.project-filter-label == root.ui-text.missing-label },
+                ];
+                selected(id) => { root.set-project-filter(id); }
+            }
+
+            ToolbarSelect {
+                flex-basis: root.toolbar-select-width;
+                flex-grow: 1;
+                flex-shrink: 1;
+                icon-image: @image-url("../assets/icons/ui/sort.svg");
+                has-icon-image: true;
+                text: root.project-sort-label;
+                select-width: root.toolbar-select-width;
+                select-height: root.toolbar-height;
+                option-count: 2;
+                menu-items: [
+                    { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.last-modified-column, trailing_text: "", enabled: true },
+                    { icon: @image-url("../assets/icons/ui/sort.svg"), text: root.ui-text.name-column, trailing_text: "", enabled: true },
+                ];
+                options: [
+                    { id: "last-modified", label: root.ui-text.last-modified-column, active: root.project-sort-label == root.ui-text.last-modified-column },
+                    { id: "name", label: root.ui-text.name-column, active: root.project-sort-label == root.ui-text.name-column },
+                ];
+                selected(id) => { root.set-project-sort(id); }
+            }
+        }
+
+        HubPanel {
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+
+            VerticalLayout {
+                width: parent.width;
+                height: parent.height;
+                padding: root.page-gap;
+                spacing: root.page-gap;
+
+                PanelHeader {
+                    title: root.list-title;
+                    show-badge: true;
+                    badge-text: root.row-count + "";
+                    badge-tone: "neutral";
+                }
+
+                browser-scroll := ScrollView {
+                    horizontal-stretch: 1;
+                    vertical-stretch: 1;
+                    viewport-y <=> root.scroll-y;
+                    viewport-width: browser-scroll.visible-width;
+                    viewport-height: max(browser-scroll.visible-height, root.row-count * (root.browser-row-height + root.browser-row-gap) + root.browser-row-gap);
+                    vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
+                    horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
+
+                    Rectangle {
+                        width: browser-scroll.visible-width;
+                        height: browser-scroll.viewport-height;
+                        background: transparent;
+
+                        VerticalLayout {
+                            width: parent.width;
+                            height: parent.height;
+                            spacing: root.browser-row-gap;
+                            alignment: stretch;
+
+                            for row in root.rows: ProjectBrowserRow {
+                                row-width: browser-scroll.visible-width;
+                                row-height: root.browser-row-height;
+                                project: row;
+                                pinned-label: root.ui-text.pinned-label;
+                                missing-label: root.ui-text.missing-label;
+                                select(path) => { root.select-project(path); }
+                                detail(path) => { root.open-detail(path); }
+                            }
+
+                            if root.row-count == 0: MutedText {
+                                text: root.ui-text.no-projects-match;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component ProjectDetailPage inherits Rectangle {
+    in property <ProjectDetailData> project;
+    in property <[SourceEngineRowData]> engines;
+    in property <int> engine-count;
+    in property <UiTextData> ui-text;
+    callback back;
+    callback open-project(string);
+    callback select-engine(string);
+    callback toggle-pin;
+    callback remove-from-hub;
+    callback request-delete;
+    callback cancel-delete;
+    callback confirm-delete;
+
+    private property <length> page-pad: max(HubTokens.page-padding-compact, min(HubTokens.page-padding, root.width / 48));
+    private property <length> page-gap: max(MaterialStyleMetrics.spacing_8, min(HubTokens.panel-gap, root.width / 100));
+    private property <length> content-width: max(1px, root.width - root.page-pad - root.page-pad);
+    private property <bool> narrow-flow: root.content-width < root.action-row-height * 25;
+    private property <length> cover-height: max(root.action-row-height * 5 / 2, min(root.action-row-height * 7 / 2, root.content-height / 4));
+    private property <length> detail-choice-row-height: max(HubTokens.list-row-md, min(HubTokens.list-row-md + MaterialStyleMetrics.spacing_8, root.height / 13));
+    private property <length> action-row-height: max(HubTokens.control-sm, min(HubTokens.control-lg, root.height / 20));
+    private property <length> status-row-height: max(MaterialStyleMetrics.size_24, root.action-row-height * 3 / 5);
+    private property <length> status-gap: max(MaterialStyleMetrics.spacing_8, root.action-row-height / 4);
+    private property <length> info-row-height: max(root.action-row-height * 7 / 10, min(root.action-row-height * 9 / 10, root.content-height / 20));
+    private property <length> version-badge-width: max(root.action-row-height * 3, root.content-width / 10);
+    private property <length> pin-badge-width: max(root.action-row-height * 2, root.content-width / 14);
+    private property <length> column-width: root.content-width - root.page-gap * 2;
+    private property <length> main-panel-min-width: min(max(root.content-width / 2, root.action-row-height * 13), root.content-width);
+    private property <length> action-panel-min-width: min(max(root.content-width / 4, root.action-row-height * 15 / 2), root.content-width);
+    private property <length> content-height: max(root.height - root.page-pad - root.page-pad - root.action-row-height * 2, root.narrow-flow ? root.action-row-height * 22 : root.action-row-height * 13);
+
+    background: HubTokens.surface-page;
+    clip: true;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding-left: root.page-pad;
+        padding-right: root.page-pad;
+        padding-bottom: root.page-pad;
+        spacing: root.page-gap;
+
+        PageHeader {
+            header-height: root.action-row-height * 6 / 5;
+            title: root.ui-text.project-detail-title;
+            subtitle: root.project.title;
+            back => { root.back(); }
+        }
+
+        FlexboxLayout {
+            horizontal-stretch: 1;
+            height: root.content-height;
+            flex-direction: FlexboxLayoutDirection.row;
+            flex-wrap: FlexboxLayoutWrap.wrap;
+            align-content: FlexboxLayoutAlignContent.start;
+            align-items: FlexboxLayoutAlignItems.start;
+            spacing-horizontal: root.page-gap;
+            spacing-vertical: root.page-gap;
+
+            HubPanel {
+                flex-basis: root.narrow-flow ? root.content-width : root.column-width * 7 / 10;
+                flex-grow: 2;
+                flex-shrink: 1;
+                min-width: root.main-panel-min-width;
+                height: root.narrow-flow ? root.content-height * 3 / 5 : root.content-height;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding: max(MaterialStyleMetrics.padding_16, min(MaterialStyleMetrics.padding_20, root.width / 60));
+                    spacing: root.page-gap;
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        height: root.cover-height;
+                        border-radius: MaterialStyleMetrics.border_radius_12;
+                        background: root.project.accent == 0 ? MaterialPalette.primary_container : (root.project.accent == 1 ? MaterialPalette.secondary_container : MaterialPalette.tertiary_container);
+                        clip: true;
+                        if root.project.has-cover: Image {
+                            width: parent.width;
+                            height: parent.height;
+                            source: root.project.cover-image;
+                            image-fit: cover;
+                        }
+                    }
+
+                    PanelHeader {
+                        title: root.project.title;
+                        subtitle: root.project.project-path;
+                        show-badge: true;
+                        badge-text: root.project.status;
+                        badge-tone: root.project.missing ? "warning" : "accent";
+                    }
+
+                    HorizontalLayout {
+                        height: root.status-row-height;
+                        spacing: root.status-gap;
+                        Badge { text: root.project.version; tone: "accent"; badge-width: root.version-badge-width; }
+                        Badge { text: root.project.pinned ? root.ui-text.pinned-label : root.ui-text.not-pinned-label; tone: root.project.pinned ? "accent" : "neutral"; badge-width: root.pin-badge-width; }
+                        Text {
+                            text: root.ui-text.modified-prefix + root.project.modified;
+                            color: MaterialPalette.on_surface_variant;
+                            font-size: MaterialTypography.body_small.font_size;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        spacing: max(MaterialStyleMetrics.spacing_4, root.page-gap / 2);
+
+                        PanelHeader {
+                            title: root.ui-text.project-info-title;
+                            subtitle: root.ui-text.project-info-subtitle;
+                        }
+
+                        ProjectSettingSummaryRow {
+                            row-height: root.info-row-height;
+                            label: root.ui-text.project-status;
+                            value: root.project.status;
+                            badge-value: true;
+                            badge-tone: root.project.missing ? "warning" : "accent";
+                        }
+
+                        ProjectSettingSummaryRow {
+                            row-height: root.info-row-height;
+                            label: root.ui-text.project-root-path;
+                            value: root.project.project-path;
+                        }
+
+                        ProjectSettingSummaryRow {
+                            row-height: root.info-row-height;
+                            label: root.ui-text.source-engine;
+                            value: root.project.engine-label;
+                        }
+
+                        ProjectSettingSummaryRow {
+                            row-height: root.info-row-height;
+                            label: root.ui-text.engine-version-column;
+                            value: root.project.version;
+                        }
+
+                        ProjectSettingSummaryRow {
+                            row-height: root.info-row-height;
+                            label: root.ui-text.last-modified-column;
+                            value: root.project.modified;
+                        }
+                    }
+
+                    Rectangle { vertical-stretch: 1; }
+                }
+            }
+
+            HubPanel {
+                flex-basis: root.narrow-flow ? root.content-width : root.column-width * 3 / 10;
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: root.action-panel-min-width;
+                height: root.narrow-flow ? max(root.action-row-height * 6, root.content-height * 2 / 5 - root.page-gap) : root.content-height;
+
+                VerticalLayout {
+                    width: parent.width;
+                    height: parent.height;
+                    padding: max(MaterialStyleMetrics.padding_14, min(MaterialStyleMetrics.padding_20, root.width / 80));
+                    spacing: root.page-gap;
+
+                    PanelHeader { title: root.ui-text.project-actions-title; }
+
+                    PillButton {
+                        horizontal-stretch: 1;
+                        height: root.action-row-height;
+                        text: root.ui-text.open;
+                        icon-image: @image-url("../assets/icons/nav/editor.svg");
+                        has-icon-image: true;
+                        primary: true;
+                        enabled: root.project.can-open;
+                        clicked => { root.open-project(root.project.project-path); }
+                    }
+
+                    PillButton {
+                        horizontal-stretch: 1;
+                        height: root.action-row-height;
+                        text: root.project.pinned ? root.ui-text.unpin-project : root.ui-text.pin-project;
+                        icon-image: @image-url("../assets/icons/ui/grid.svg");
+                        has-icon-image: true;
+                        clicked => { root.toggle-pin(); }
+                    }
+
+                    PillButton {
+                        horizontal-stretch: 1;
+                        height: root.action-row-height;
+                        text: root.ui-text.remove-from-hub;
+                        icon-image: @image-url("../assets/icons/ui/close.svg");
+                        has-icon-image: true;
+                        clicked => { root.remove-from-hub(); }
+                    }
+
+                    PillButton {
+                        horizontal-stretch: 1;
+                        height: root.action-row-height;
+                        text: root.project.pending-delete ? root.ui-text.confirm-delete : root.ui-text.delete-project;
+                        icon-image: @image-url("../assets/icons/ui/alert.svg");
+                        has-icon-image: true;
+                        enabled: root.project.can-delete;
+                        clicked => {
+                            if (root.project.pending-delete) {
+                                root.confirm-delete();
+                            } else {
+                                root.request-delete();
+                            }
+                        }
+                    }
+
+                    if root.project.pending-delete: PillButton {
+                        horizontal-stretch: 1;
+                        height: root.action-row-height;
+                        text: root.ui-text.cancel-delete;
+                        icon-image: @image-url("../assets/icons/ui/close.svg");
+                        has-icon-image: true;
+                        clicked => { root.cancel-delete(); }
+                    }
+
+                    if root.project.pending-delete: MutedText {
+                        text: root.ui-text.recycle-bin-delete-detail;
+                    }
+
+                    Rectangle { height: root.page-gap; }
+
+                    PanelHeader {
+                        title: root.ui-text.bound-source-engine;
+                        subtitle: root.project.engine-label;
+                    }
+
+                    for engine in root.engines: EngineChoiceRow {
+                        row-height: root.detail-choice-row-height;
+                        engine: engine;
+                        selected-label: root.ui-text.selected-label;
+                        registered-label: root.ui-text.registered;
+                        selected(id) => { root.select-engine(id); }
+                    }
+
+                    if root.engine-count == 0: MutedText {
+                        text: root.ui-text.no-source-engine-available;
+                    }
+                }
+            }
+        }
+    }
+}

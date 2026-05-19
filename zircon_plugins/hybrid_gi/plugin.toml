@@ -4,17 +4,23 @@ display_name = "Hybrid GI"
 description = "Optional hybrid global illumination runtime and editor package."
 maturity = "experimental"
 default_packaging = ["source_template", "library_embed"]
+capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
 
 [[capability_statuses]]
 capability = "runtime.plugin.hybrid_gi"
 status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.render.advanced.hybrid_gi"
+status = "partial"
+note = "AdvancedRender provider path for hybrid global illumination; default render profiles do not require it."
 
 [[modules]]
 name = "hybrid_gi.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_hybrid_gi_runtime"
 target_modes = ["client_runtime", "editor_host"]
-capabilities = ["runtime.plugin.hybrid_gi"]
+capabilities = ["runtime.plugin.hybrid_gi", "runtime.render.advanced.hybrid_gi"]
 
 [[modules]]
 name = "hybrid_gi.editor"

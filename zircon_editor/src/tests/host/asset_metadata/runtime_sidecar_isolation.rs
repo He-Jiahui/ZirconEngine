@@ -7,8 +7,8 @@ use super::support::unique_temp_dir;
 #[test]
 fn editor_asset_metadata_does_not_import_editor_fields_from_runtime_meta() {
     let root = unique_temp_dir("editor_asset_metadata_runtime_isolation");
-    let source_path = root.join("materials").join("grid.material.toml");
-    let runtime_meta_path = source_path.with_file_name("grid.material.toml.zmeta");
+    let source_path = root.join("materials").join("grid.zmaterial");
+    let runtime_meta_path = source_path.with_file_name("grid.zmaterial.zmeta");
     let editor_meta_path = editor_meta_path_for_source(&source_path);
     fs::create_dir_all(source_path.parent().unwrap()).unwrap();
     fs::write(

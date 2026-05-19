@@ -3,7 +3,8 @@ use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{
     plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest,
@@ -19,6 +20,7 @@ pub struct RuntimeExtensionRegistry {
     pub(super) render_pass_executors: Vec<RenderPassExecutorRegistration>,
     pub(super) runtime_prepare_collectors: Vec<RuntimePrepareCollectorRegistration>,
     pub(super) hybrid_gi_runtime_providers: Vec<HybridGiRuntimeProviderRegistration>,
+    pub(super) solari_runtime_providers: Vec<SolariRuntimeProviderRegistration>,
     pub(super) virtual_geometry_runtime_providers: Vec<VirtualGeometryRuntimeProviderRegistration>,
     pub(super) components: Vec<ComponentTypeDescriptor>,
     pub(super) ui_components: Vec<UiComponentDescriptor>,

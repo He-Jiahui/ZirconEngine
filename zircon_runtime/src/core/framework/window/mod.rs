@@ -10,7 +10,7 @@ mod resize_constraints;
 mod resolution;
 mod validation;
 
-pub use constants::DEFAULT_WINDOW_TITLE;
+pub use constants::{DEFAULT_WINDOW_TITLE, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY};
 pub use descriptor::WindowDescriptor;
 pub use mode::WindowMode;
 pub use position::WindowPosition;

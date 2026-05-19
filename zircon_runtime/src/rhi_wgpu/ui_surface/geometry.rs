@@ -1,7 +1,9 @@
 use bytemuck::{Pod, Zeroable};
 use glyphon::TextBounds;
 
-use crate::rhi::{UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceRect};
+use crate::rhi::{
+    UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImageUvRect, UiSurfaceRect,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
@@ -136,6 +138,13 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                 let Some(rect) = primitive_effective_rect(command, command.frame, draw_list) else {
                     continue;
                 };
+                if payload
+                    .atlas_uv
+                    .as_ref()
+                    .is_some_and(|atlas_uv| !atlas_uv.is_valid())
+                {
+                    continue;
+                }
                 items.push(DrawItem::Image(ImageItem {
                     order: DrawItemOrder {
                         z_index: command.z_index,
@@ -144,7 +153,12 @@ pub(super) fn draw_items(draw_list: &UiSurfaceDrawList) -> Vec<DrawItem> {
                     },
                     rect,
                     resource_key: payload.resource_key.clone(),
-                    vertices: image_vertices(command.frame, rect, draw_list.surface_size),
+                    vertices: image_vertices(
+                        command.frame,
+                        rect,
+                        draw_list.surface_size,
+                        payload.atlas_uv,
+                    ),
                 }));
             }
             UiSurfaceCommandKind::Text { .. } => {
@@ -413,14 +427,16 @@ fn image_vertices(
     frame: UiSurfaceRect,
     visible_rect: UiSurfaceRect,
     size: (u32, u32),
+    atlas_uv: Option<UiSurfaceImageUvRect>,
 ) -> [ImageVertex; 6] {
     let positions = quad_positions(visible_rect, size);
-    let u0 = ((visible_rect.x - frame.x) / frame.width.max(1.0)).clamp(0.0, 1.0);
-    let v0 = ((visible_rect.y - frame.y) / frame.height.max(1.0)).clamp(0.0, 1.0);
-    let u1 =
+    let local_u0 = ((visible_rect.x - frame.x) / frame.width.max(1.0)).clamp(0.0, 1.0);
+    let local_v0 = ((visible_rect.y - frame.y) / frame.height.max(1.0)).clamp(0.0, 1.0);
+    let local_u1 =
         ((visible_rect.x + visible_rect.width - frame.x) / frame.width.max(1.0)).clamp(0.0, 1.0);
-    let v1 =
+    let local_v1 =
         ((visible_rect.y + visible_rect.height - frame.y) / frame.height.max(1.0)).clamp(0.0, 1.0);
+    let (u0, v0, u1, v1) = image_uv_bounds(local_u0, local_v0, local_u1, local_v1, atlas_uv);
     [
         ImageVertex {
             position: positions[0],
@@ -447,6 +463,26 @@ fn image_vertices(
             uv: [u1, v1],
         },
     ]
+}
+
+fn image_uv_bounds(
+    u0: f32,
+    v0: f32,
+    u1: f32,
+    v1: f32,
+    atlas_uv: Option<UiSurfaceImageUvRect>,
+) -> (f32, f32, f32, f32) {
+    let Some(atlas_uv) = atlas_uv else {
+        return (u0, v0, u1, v1);
+    };
+    let width = atlas_uv.max[0] - atlas_uv.min[0];
+    let height = atlas_uv.max[1] - atlas_uv.min[1];
+    (
+        atlas_uv.min[0] + u0 * width,
+        atlas_uv.min[1] + v0 * height,
+        atlas_uv.min[0] + u1 * width,
+        atlas_uv.min[1] + v1 * height,
+    )
 }
 
 fn quad_positions(frame: UiSurfaceRect, size: (u32, u32)) -> [[f32; 2]; 4] {
@@ -535,7 +571,7 @@ pub(super) fn text_bounds_from_rect(clip: UiSurfaceRect) -> TextBounds {
 mod tests {
     use crate::rhi::{
         UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
-        UiSurfaceRect, UiSurfaceTextStyle,
+        UiSurfaceImageUvRect, UiSurfaceRect, UiSurfaceTextStyle,
     };
 
     use super::*;
@@ -613,6 +649,7 @@ mod tests {
                             height: 2,
                             upload_bytes: 16,
                             rgba: Some(vec![255; 16]),
+                            atlas_uv: None,
                         },
                     },
                 },
@@ -700,6 +737,7 @@ mod tests {
                         height: 2,
                         upload_bytes: 16,
                         rgba: Some(vec![255; 16]),
+                        atlas_uv: None,
                     },
                 },
             }],
@@ -713,6 +751,68 @@ mod tests {
         assert_eq!(image.rect, UiSurfaceRect::new(5.0, 5.0, 10.0, 10.0));
         assert_eq!(image.vertices[0].uv, [0.25, 0.25]);
         assert_eq!(image.vertices[5].uv, [0.75, 0.75]);
+    }
+
+    #[test]
+    fn wgpu_ui_surface_image_uvs_compose_clipped_rect_with_atlas_uv() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            Some(UiSurfaceRect::new(5.0, 5.0, 10.0, 10.0)),
+            vec![UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Image {
+                    payload: UiSurfaceImagePayload {
+                        resource_key: "atlas://editor/icons".to_string(),
+                        width: 64,
+                        height: 64,
+                        upload_bytes: 0,
+                        rgba: None,
+                        atlas_uv: Some(UiSurfaceImageUvRect {
+                            min: [0.5, 0.25],
+                            max: [0.75, 0.5],
+                        }),
+                    },
+                },
+            }],
+        );
+
+        let items = draw_items(&draw_list);
+
+        let DrawItem::Image(image) = &items[0] else {
+            panic!("expected clipped atlas image item");
+        };
+        assert_eq!(image.vertices[0].uv, [0.5625, 0.3125]);
+        assert_eq!(image.vertices[5].uv, [0.6875, 0.4375]);
+    }
+
+    #[test]
+    fn wgpu_ui_surface_skips_image_with_invalid_atlas_uv() {
+        let draw_list = UiSurfaceDrawList::new(
+            (100, 100),
+            None,
+            vec![UiSurfaceCommand {
+                z_index: 0,
+                frame: UiSurfaceRect::new(0.0, 0.0, 20.0, 20.0),
+                clip: None,
+                kind: UiSurfaceCommandKind::Image {
+                    payload: UiSurfaceImagePayload {
+                        resource_key: "atlas://editor/icons".to_string(),
+                        width: 64,
+                        height: 64,
+                        upload_bytes: 0,
+                        rgba: None,
+                        atlas_uv: Some(UiSurfaceImageUvRect {
+                            min: [0.75, 0.25],
+                            max: [0.5, 0.5],
+                        }),
+                    },
+                },
+            }],
+        );
+
+        assert!(draw_items(&draw_list).is_empty());
     }
 
     #[test]

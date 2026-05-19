@@ -22,6 +22,9 @@ pub(crate) use native_input_translation::{
     native_mouse_wheel_event_to_shared_input,
 };
 #[cfg(test)]
-pub(crate) use painter::{paint_runtime_render_commands_for_test, paint_template_nodes_for_test};
+pub(crate) use painter::{
+    paint_runtime_render_commands_for_test, paint_template_nodes_for_test,
+    paint_template_nodes_for_test_with_background,
+};
 pub(crate) use surface_hit_test::build_pane_template_surface_frame;
 pub(crate) use window::UiHostWindow;

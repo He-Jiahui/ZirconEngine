@@ -16,6 +16,8 @@ pub enum RuntimeExtensionRegistryError {
     DuplicateVirtualGeometryRuntimeProvider(String),
     #[error("hybrid GI runtime provider {0} already registered")]
     DuplicateHybridGiRuntimeProvider(String),
+    #[error("Solari runtime provider {0} already registered")]
+    DuplicateSolariRuntimeProvider(String),
     #[error("component type {0} already registered")]
     DuplicateComponentType(String),
     #[error("invalid component type: {0}")]

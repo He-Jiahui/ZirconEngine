@@ -1,7 +1,6 @@
-use crate::core::framework::render::RenderParticleGpuReadbackOutputs;
-#[cfg(test)]
 use crate::core::framework::render::{
-    RenderHybridGiReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+    RenderHybridGiReadbackOutputs, RenderParticleGpuReadbackOutputs,
+    RenderVirtualGeometryReadbackOutputs,
 };
 use crate::{
     HybridGiGpuCompletion, HybridGiRuntimeFeedback, ParticleGpuFeedback, ParticleRuntimeFeedback,
@@ -27,9 +26,12 @@ pub(super) fn collect_runtime_feedback(
 fn collect_hybrid_gi_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    _prepared: &PreparedRuntimeSubmission,
+    prepared: &PreparedRuntimeSubmission,
 ) -> HybridGiRuntimeFeedback {
-    let readback_outputs = renderer.take_last_hybrid_gi_readback_outputs();
+    let readback_outputs = merge_hybrid_gi_readback_outputs(
+        renderer.take_last_hybrid_gi_readback_outputs(),
+        prepared.hybrid_gi_readback_outputs(),
+    );
 
     HybridGiRuntimeFeedback::new(
         HybridGiGpuCompletion::from_readback_outputs(readback_outputs),
@@ -54,9 +56,12 @@ fn collect_particle_feedback(
 fn collect_virtual_geometry_feedback(
     renderer: &mut SceneRenderer,
     context: &FrameSubmissionContext,
-    _prepared: &PreparedRuntimeSubmission,
+    prepared: &PreparedRuntimeSubmission,
 ) -> VirtualGeometryRuntimeFeedback {
-    let mut readback_outputs = renderer.take_last_virtual_geometry_readback_outputs();
+    let mut readback_outputs = merge_virtual_geometry_readback_outputs(
+        renderer.take_last_virtual_geometry_readback_outputs(),
+        prepared.virtual_geometry_readback_outputs(),
+    );
     let node_and_cluster_cull_page_requests =
         readback_outputs.take_node_and_cluster_cull_page_request_ids();
 
@@ -68,7 +73,6 @@ fn collect_virtual_geometry_feedback(
     )
 }
 
-#[cfg(test)]
 fn merge_hybrid_gi_readback_outputs(
     mut renderer_outputs: RenderHybridGiReadbackOutputs,
     sideband_outputs: &RenderHybridGiReadbackOutputs,
@@ -109,7 +113,6 @@ fn merge_hybrid_gi_readback_outputs(
     renderer_outputs
 }
 
-#[cfg(test)]
 fn append_hybrid_gi_scene_prepare_readback(
     renderer_outputs: &mut crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
     sideband_outputs: &crate::core::framework::render::RenderHybridGiScenePrepareReadbackOutputs,
@@ -172,7 +175,6 @@ fn merge_particle_readback_outputs(
     sideband_outputs.clone()
 }
 
-#[cfg(test)]
 fn merge_virtual_geometry_readback_outputs(
     mut renderer_outputs: RenderVirtualGeometryReadbackOutputs,
     sideband_outputs: &RenderVirtualGeometryReadbackOutputs,

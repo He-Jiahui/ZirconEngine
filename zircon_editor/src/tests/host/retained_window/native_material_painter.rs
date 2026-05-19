@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use crate::ui::retained_host::primitives::{ModelRc, VecModel};
 use crate::ui::retained_host::{
-    paint_template_nodes_for_test, TemplateNodeFrameData, TemplatePaneNodeData,
+    paint_template_nodes_for_test, paint_template_nodes_for_test_with_background,
+    TemplateNodeFrameData, TemplatePaneNodeData,
 };
 use zircon_runtime_interface::ui::style::{
     ButtonColor, ButtonInteractionState, ButtonVariant, ResolvedButtonStyle,
@@ -28,7 +29,8 @@ const SUCCESS_CONTAINER: [u8; 4] = [29, 71, 47, 255];
 const INFO: [u8; 4] = [99, 179, 255, 255];
 const INFO_CONTAINER: [u8; 4] = [24, 57, 91, 255];
 const TEXT_DISABLED: [u8; 4] = [88, 101, 108, 255];
-const SHADOW: [u8; 4] = [0, 0, 0, 73];
+const SHADOW_BACKGROUND: [u8; 4] = [100, 100, 100, 255];
+const SHADOW_ON_BACKGROUND: [u8; 4] = [71, 71, 71, 255];
 
 #[test]
 fn native_template_painter_uses_material_state_palette_for_controls() {
@@ -293,7 +295,7 @@ fn native_template_painter_projects_fab_pill_radius_and_elevation_shadow() {
         control_id: "Fab".into(),
         node_id: "Fab.node".into(),
         role: "Button".into(),
-        text: "Create".into(),
+        text: "".into(),
         surface_variant: "elevated".into(),
         corner_radius: 999.0,
         border_width: 0.0,
@@ -312,11 +314,11 @@ fn native_template_painter_projects_fab_pill_radius_and_elevation_shadow() {
         ..TemplatePaneNodeData::default()
     }]);
 
-    let bytes = paint_template_nodes_for_test(64, 64, nodes);
+    let bytes = paint_template_nodes_for_test_with_background(64, 64, SHADOW_BACKGROUND, nodes);
 
-    assert_eq!(pixel(&bytes, 64, 8, 8), BACKGROUND);
+    assert_eq!(pixel(&bytes, 64, 8, 8), SHADOW_BACKGROUND);
     assert_eq!(pixel(&bytes, 64, 24, 24), ACCENT);
-    assert_eq!(pixel(&bytes, 64, 46, 24), SHADOW);
+    assert_eq!(pixel(&bytes, 64, 42, 36), SHADOW_ON_BACKGROUND);
 }
 
 fn material_node(control_id: &str, x: f32, y: f32) -> TemplatePaneNodeData {

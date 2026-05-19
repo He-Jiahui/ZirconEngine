@@ -966,6 +966,7 @@ mod tests {
                             height: 2,
                             upload_bytes: 16,
                             rgba: Some(vec![255; 16]),
+                            atlas_uv: None,
                         },
                     },
                 },

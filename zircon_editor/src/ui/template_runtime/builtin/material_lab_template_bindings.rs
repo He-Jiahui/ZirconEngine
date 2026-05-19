@@ -2,10 +2,22 @@ use crate::ui::binding::{EditorUiBinding, EditorUiBindingPayload, EditorUiEventK
 use zircon_runtime_interface::ui::binding::{UiBindingCall, UiBindingValue};
 
 pub(super) fn material_lab_template_bindings() -> Vec<(String, EditorUiBinding)> {
-    MATERIAL_LAB_BINDING_SPECS
+    let mut bindings = MATERIAL_LAB_BINDING_SPECS
         .iter()
         .map(|spec| material_lab_binding_entry(spec.binding_id, spec.event_kind))
-        .collect()
+        .collect::<Vec<_>>();
+    bindings.extend(
+        MATERIAL_LAB_STRUCTURAL_CHILD_BINDING_SPECS
+            .iter()
+            .map(|spec| {
+                material_lab_structural_child_binding_entry(
+                    spec.binding_id,
+                    spec.control_id,
+                    spec.event_kind,
+                )
+            }),
+    );
+    bindings
 }
 
 #[derive(Clone, Copy)]
@@ -86,12 +98,49 @@ const MATERIAL_LAB_BINDING_SPECS: &[MaterialLabBindingSpec] = &[
     material_lab_binding_spec("MaterialLab/TransferList/Change", EditorUiEventKind::Change),
 ];
 
+#[derive(Clone, Copy)]
+struct MaterialLabStructuralChildBindingSpec {
+    binding_id: &'static str,
+    control_id: &'static str,
+    event_kind: EditorUiEventKind,
+}
+
+const MATERIAL_LAB_STRUCTURAL_CHILD_BINDING_SPECS: &[MaterialLabStructuralChildBindingSpec] = &[
+    material_lab_structural_child_binding_spec(
+        "ButtonGroup/First/Click",
+        "button-group_SegmentFirst",
+        EditorUiEventKind::Click,
+    ),
+    material_lab_structural_child_binding_spec(
+        "ButtonGroup/Middle/Click",
+        "button-group_SegmentMiddle",
+        EditorUiEventKind::Click,
+    ),
+    material_lab_structural_child_binding_spec(
+        "ButtonGroup/Last/Click",
+        "button-group_SegmentLast",
+        EditorUiEventKind::Click,
+    ),
+];
+
 const fn material_lab_binding_spec(
     binding_id: &'static str,
     event_kind: EditorUiEventKind,
 ) -> MaterialLabBindingSpec {
     MaterialLabBindingSpec {
         binding_id,
+        event_kind,
+    }
+}
+
+const fn material_lab_structural_child_binding_spec(
+    binding_id: &'static str,
+    control_id: &'static str,
+    event_kind: EditorUiEventKind,
+) -> MaterialLabStructuralChildBindingSpec {
+    MaterialLabStructuralChildBindingSpec {
+        binding_id,
+        control_id,
         event_kind,
     }
 }
@@ -107,6 +156,27 @@ fn material_lab_binding_entry(
         EditorUiBinding::new(
             "MaterialComponentLab",
             control_id.clone(),
+            event_kind,
+            EditorUiBindingPayload::Custom(
+                UiBindingCall::new("MaterialComponentLab")
+                    .with_argument(UiBindingValue::string(action))
+                    .with_argument(UiBindingValue::string(control_id)),
+            ),
+        ),
+    )
+}
+
+fn material_lab_structural_child_binding_entry(
+    binding_id: &str,
+    control_id: &str,
+    event_kind: EditorUiEventKind,
+) -> (String, EditorUiBinding) {
+    let action = binding_id.replace('/', ".");
+    (
+        binding_id.to_string(),
+        EditorUiBinding::new(
+            "MaterialComponentLab",
+            control_id,
             event_kind,
             EditorUiBindingPayload::Custom(
                 UiBindingCall::new("MaterialComponentLab")

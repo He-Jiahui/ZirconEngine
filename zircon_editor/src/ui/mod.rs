@@ -9,6 +9,7 @@ pub mod binding_dispatch;
 pub mod control;
 pub mod host;
 pub(crate) mod layouts;
+pub mod material_editor;
 mod reflection;
 pub mod retained_host;
 pub(crate) mod template;

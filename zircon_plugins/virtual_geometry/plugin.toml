@@ -4,17 +4,23 @@ display_name = "Virtual Geometry"
 description = "Optional virtualized geometry runtime and editor package."
 maturity = "experimental"
 default_packaging = ["source_template", "library_embed"]
+capabilities = ["runtime.plugin.virtual_geometry", "runtime.render.advanced.virtual_geometry"]
 
 [[capability_statuses]]
 capability = "runtime.plugin.virtual_geometry"
 status = "partial"
+
+[[capability_statuses]]
+capability = "runtime.render.advanced.virtual_geometry"
+status = "partial"
+note = "AdvancedRender provider path for virtual geometry; default render profiles do not require it."
 
 [[modules]]
 name = "virtual_geometry.runtime"
 kind = "runtime"
 crate_name = "zircon_plugin_virtual_geometry_runtime"
 target_modes = ["client_runtime", "editor_host"]
-capabilities = ["runtime.plugin.virtual_geometry"]
+capabilities = ["runtime.plugin.virtual_geometry", "runtime.render.advanced.virtual_geometry"]
 
 [[modules]]
 name = "virtual_geometry.editor"

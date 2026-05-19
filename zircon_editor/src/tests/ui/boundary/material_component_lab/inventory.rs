@@ -471,10 +471,12 @@ fn material_component_prototype_meta_strips_cover_variants_and_layout_modes() {
     let required_variant_examples = [
         ("buttons", "contained / outlined / text"),
         ("text_fields", "outlined / filled / standard"),
+        ("textarea_autosize", "min rows / max rows"),
         ("switches", "checked / unchecked"),
         ("dialogs", "open / anchored"),
         ("cards", "elevated / outlined"),
         ("tabs", "active / inactive"),
+        ("toggle_button", "exclusive / multiple"),
         ("mui_x_data_grid", "sorted / selected"),
         ("mui_x_date_time_pickers", "date / time / date-time"),
         ("mui_x_agent_chat", "streaming / error"),

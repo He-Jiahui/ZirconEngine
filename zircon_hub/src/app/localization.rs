@@ -35,6 +35,8 @@ pub(super) fn ui_text(language: HubLanguage) -> UiTextData {
         ),
         project_list: text(language, "Project List", "项目列表"),
         recent_projects: text(language, "Recent Projects", "最近项目"),
+        all_projects_label: text(language, "All Projects", "全部项目"),
+        existing_projects_label: text(language, "Existing", "可用"),
         name_column: text(language, "Name", "名称"),
         engine_version_column: text(language, "Engine Version", "引擎版本"),
         last_modified_column: text(language, "Last Modified", "最近修改"),
@@ -58,6 +60,74 @@ pub(super) fn ui_text(language: HubLanguage) -> UiTextData {
         ),
         show_more_projects: text(language, "Show More", "展示更多"),
         collapse_projects: text(language, "Collapse", "收起"),
+        new_project_title: text(language, "New Project", "新建项目"),
+        new_project_subtitle: text(
+            language,
+            "Set the project essentials first, then choose a template.",
+            "先设置项目核心信息，再选择模板。",
+        ),
+        project_settings_title: text(language, "Project Settings", "项目设置"),
+        project_settings_subtitle: text(
+            language,
+            "Name, location, and source engine",
+            "名称、位置与源码引擎",
+        ),
+        project_summary_title: text(language, "Create Summary", "创建摘要"),
+        project_summary_subtitle: text(
+            language,
+            "Review the resolved project target before creating.",
+            "创建前确认最终项目目标。",
+        ),
+        selected_template: text(language, "Selected template", "已选模板"),
+        ready_to_create: text(language, "Ready to create", "可以创建"),
+        complete_project_settings: text(
+            language,
+            "Choose an enabled template and Source Engine.",
+            "请选择可用模板与源码引擎。",
+        ),
+        register_source_engine_before_create: text(
+            language,
+            "Register a source engine in Editor before creating projects.",
+            "创建项目之前，请先在编辑器页注册源码引擎。",
+        ),
+        templates_title: text(language, "Templates", "模板"),
+        selected_label: text(language, "Selected", "已选择"),
+        soon_label: text(language, "Soon", "即将支持"),
+        pinned_label: text(language, "Pinned", "已置顶"),
+        not_pinned_label: text(language, "Not pinned", "未置顶"),
+        missing_label: text(language, "Missing", "缺失"),
+        project_browser_title: text(language, "Project Browser", "项目浏览器"),
+        project_browser_subtitle: text(
+            language,
+            "Pinned projects are shown first; recent projects fill the browser when nothing is pinned.",
+            "优先展示置顶项目；没有置顶项目时展示最近项目。",
+        ),
+        project_detail_title: text(language, "Project Detail", "项目详情"),
+        project_info_title: text(language, "Project Information", "项目信息"),
+        project_info_subtitle: text(
+            language,
+            "Hub metadata and launch state",
+            "Hub 元数据与启动状态",
+        ),
+        project_status: text(language, "Status", "状态"),
+        bound_source_engine: text(language, "Bound Source Engine", "绑定的源码引擎"),
+        no_source_engine_available: text(
+            language,
+            "No registered source engine is available.",
+            "没有可用的已注册源码引擎。",
+        ),
+        project_actions_title: text(language, "Actions", "操作"),
+        pin_project: text(language, "Pin Project", "置顶项目"),
+        unpin_project: text(language, "Unpin Project", "取消置顶"),
+        remove_from_hub: text(language, "Remove from Hub", "从 Hub 移除"),
+        delete_project: text(language, "Delete Project", "删除项目"),
+        confirm_delete: text(language, "Confirm Delete", "确认删除"),
+        cancel_delete: text(language, "Cancel Delete", "取消删除"),
+        recycle_bin_delete_detail: text(
+            language,
+            "Deletion moves the project folder to the Windows Recycle Bin.",
+            "删除会将项目文件夹移动到 Windows 回收站。",
+        ),
         modified_prefix: text(language, "Modified ", "修改于 "),
         editor_actions: text(language, "Engine Actions", "引擎操作"),
         save_source: text(language, "Save Source", "保存源码"),
@@ -275,6 +345,12 @@ mod tests {
         let texts = ui_text(HubLanguage::Chinese);
 
         assert_eq!(texts.game_engine, SharedString::from("游戏引擎"));
+        assert_eq!(texts.new_project_title, SharedString::from("新建项目"));
+        assert_eq!(texts.pin_project, SharedString::from("置顶项目"));
+        assert_eq!(
+            texts.recycle_bin_delete_detail,
+            SharedString::from("删除会将项目文件夹移动到 Windows 回收站。")
+        );
         assert_eq!(
             page_title(HubPage::Projects, HubLanguage::Chinese),
             SharedString::from("项目")

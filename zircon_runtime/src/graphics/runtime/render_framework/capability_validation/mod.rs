@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
-    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderFrameworkError,
-    RenderPipelineHandle, RenderQualityProfile,
+    AdvancedRenderFeature, RenderCapabilityMismatchDetail, RenderCapabilitySummary,
+    RenderFrameworkError, RenderPipelineHandle, RenderQualityProfile, SolariCapabilityRequirement,
 };
 use crate::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
 
@@ -77,12 +77,50 @@ impl RenderQualityProfileCapabilityRequirements for RenderQualityProfile {
     fn capability_requirements(&self) -> Vec<RenderFeatureCapabilityRequirement> {
         let mut requirements = Vec::new();
         if self.features.virtual_geometry {
-            requirements.push(RenderFeatureCapabilityRequirement::VirtualGeometry);
+            push_advanced_feature_requirements(
+                &mut requirements,
+                AdvancedRenderFeature::VirtualGeometry,
+            );
         }
         if self.features.hybrid_global_illumination {
-            requirements.push(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
+            push_advanced_feature_requirements(
+                &mut requirements,
+                AdvancedRenderFeature::HybridGlobalIllumination,
+            );
+        }
+        if self.features.anti_alias {
+            requirements.push(RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
+        }
+        if self.features.solari {
+            for requirement in SolariCapabilityRequirement::ALL {
+                push_unique_requirement(
+                    &mut requirements,
+                    RenderFeatureCapabilityRequirement::from_capability_kind(
+                        requirement.capability_kind(),
+                    ),
+                );
+            }
         }
         requirements
+    }
+}
+
+fn push_advanced_feature_requirements(
+    requirements: &mut Vec<RenderFeatureCapabilityRequirement>,
+    feature: AdvancedRenderFeature,
+) {
+    for capability in feature.required_capabilities() {
+        let requirement = RenderFeatureCapabilityRequirement::from_capability_kind(*capability);
+        push_unique_requirement(requirements, requirement);
+    }
+}
+
+fn push_unique_requirement(
+    requirements: &mut Vec<RenderFeatureCapabilityRequirement>,
+    requirement: RenderFeatureCapabilityRequirement,
+) {
+    if !requirements.contains(&requirement) {
+        requirements.push(requirement);
     }
 }
 
@@ -96,8 +134,9 @@ mod tests {
     use crate::render_graph::QueueLane;
     use crate::scene::world::World;
     use crate::{
-        RenderFeatureCapabilityRequirement, RenderFeatureDescriptor, RenderFeaturePassDescriptor,
-        RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions, RendererFeatureAsset,
+        BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
+        RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset,
+        RenderPipelineCompileOptions, RendererFeatureAsset,
     };
 
     use super::{validate_compiled_pipeline_capabilities, validate_quality_profile_capabilities};
@@ -110,6 +149,7 @@ mod tests {
         let capabilities = RenderCapabilitySummary {
             backend_name: "capability-test".to_string(),
             supports_offscreen: true,
+            supports_fxaa: true,
             ..Default::default()
         };
 
@@ -125,10 +165,13 @@ mod tests {
             RenderFrameworkError::CapabilityMismatch {
                 pipeline: 7,
                 reason:
-                    "quality profile `flagship` requires virtual_geometry, hybrid_global_illumination"
+                    "quality profile `flagship` requires virtual_geometry, storage_buffers, indirect_draw, buffer_readback, hybrid_global_illumination"
                         .to_string(),
                 missing: vec![
                     RenderCapabilityMismatchDetail::new(RenderCapabilityKind::VirtualGeometry),
+                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::StorageBuffers),
+                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::IndirectDraw),
+                    RenderCapabilityMismatchDetail::new(RenderCapabilityKind::BufferReadback),
                     RenderCapabilityMismatchDetail::new(
                         RenderCapabilityKind::HybridGlobalIllumination,
                     ),
@@ -162,6 +205,7 @@ mod tests {
             .compile_with_options(
                 &test_extract(),
                 &RenderPipelineCompileOptions::default()
+                    .with_feature_disabled(BuiltinRenderFeature::AntiAlias)
                     .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry),
             )
             .unwrap();
@@ -172,6 +216,7 @@ mod tests {
         let capabilities = RenderCapabilitySummary {
             backend_name: "capability-test".to_string(),
             supports_offscreen: true,
+            supports_fxaa: true,
             ..Default::default()
         };
 
@@ -230,6 +275,7 @@ mod tests {
         let capabilities = RenderCapabilitySummary {
             backend_name: "capability-test".to_string(),
             supports_offscreen: true,
+            supports_fxaa: true,
             ..Default::default()
         };
 

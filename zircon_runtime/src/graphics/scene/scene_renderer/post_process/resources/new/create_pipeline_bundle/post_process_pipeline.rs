@@ -1,3 +1,5 @@
+use crate::graphics::scene::anti_alias::fxaa::FXAA_SHADER_ENTRY_POINT;
+
 pub(super) fn post_process_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
@@ -27,7 +29,7 @@ pub(super) fn post_process_pipeline(
         multisample: wgpu::MultisampleState::default(),
         fragment: Some(wgpu::FragmentState {
             module: &shader,
-            entry_point: Some("fs_main"),
+            entry_point: Some(FXAA_SHADER_ENTRY_POINT),
             compilation_options: wgpu::PipelineCompilationOptions::default(),
             targets: &[
                 Some(wgpu::ColorTargetState {

@@ -20,4 +20,6 @@ pub enum GraphicsError {
     BufferMap(String),
     #[error("graphics debugger capture failed: {0}")]
     GraphicsDebugger(String),
+    #[error("advanced render provider selection failed: {0}")]
+    AdvancedProviderSelection(String),
 }

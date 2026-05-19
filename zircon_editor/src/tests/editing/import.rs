@@ -16,7 +16,7 @@ fn imported_mesh_can_be_undone() {
                 "res://models/test.obj"
             )),
             ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/default.material.toml",
+                "res://materials/default.zmaterial",
             )),
             "res://models/test.obj",
         )

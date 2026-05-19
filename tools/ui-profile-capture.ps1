@@ -1296,7 +1296,7 @@ function Invoke-AssetRefreshChange {
         Write-Warning "Asset refresh interaction could not find project assets root: $assetsRoot"
         return
     }
-    $materialPath = Join-Path (Join-Path $assetsRoot "materials") "default.material.toml"
+    $materialPath = Join-Path (Join-Path $assetsRoot "materials") "default.zmaterial"
     if (Test-Path $materialPath) {
         Add-Content -Path $materialPath -Value ("`n# profile capture asset refresh {0}" -f (Get-Date -Format o)) -Encoding UTF8
     }

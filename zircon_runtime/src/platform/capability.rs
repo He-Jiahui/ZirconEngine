@@ -99,6 +99,7 @@ pub enum EventLoopPolicy {
     Game,
     DesktopApp,
     Mobile,
+    Continuous,
     Headless,
 }
 
@@ -108,6 +109,7 @@ impl EventLoopPolicy {
             Self::Game => "game",
             Self::DesktopApp => "desktop_app",
             Self::Mobile => "mobile",
+            Self::Continuous => "continuous",
             Self::Headless => "headless",
         }
     }
@@ -251,6 +253,20 @@ impl PlatformCapabilityMatrix {
         }
     }
 
+    /// Builds a report with an explicit Bevy-style update policy while keeping
+    /// server/headless topology authoritative.
+    pub fn report_with_event_loop_policy(
+        self,
+        target: PlatformTarget,
+        target_mode: RuntimeTargetMode,
+        event_loop_policy: EventLoopPolicy,
+    ) -> PlatformCapabilityReport {
+        let mut report = self.report(target, target_mode);
+        report.event_loop_policy =
+            self.explicit_event_loop_policy(target, target_mode, event_loop_policy);
+        report
+    }
+
     fn window_backend(
         self,
         target: PlatformTarget,
@@ -332,6 +348,23 @@ impl PlatformCapabilityMatrix {
             EventLoopPolicy::DesktopApp
         } else {
             EventLoopPolicy::Game
+        }
+    }
+
+    fn explicit_event_loop_policy(
+        self,
+        target: PlatformTarget,
+        target_mode: RuntimeTargetMode,
+        requested: EventLoopPolicy,
+    ) -> EventLoopPolicy {
+        if target_mode == RuntimeTargetMode::ServerRuntime || target == PlatformTarget::Headless {
+            return EventLoopPolicy::Headless;
+        }
+
+        if requested == EventLoopPolicy::Headless {
+            self.event_loop_policy(target, target_mode)
+        } else {
+            requested
         }
     }
 

@@ -42,6 +42,28 @@ pub struct UiSurfaceImagePayload {
     pub height: u32,
     pub upload_bytes: u64,
     pub rgba: Option<Vec<u8>>,
+    pub atlas_uv: Option<UiSurfaceImageUvRect>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct UiSurfaceImageUvRect {
+    pub min: [f32; 2],
+    pub max: [f32; 2],
+}
+
+impl UiSurfaceImageUvRect {
+    pub fn is_valid(&self) -> bool {
+        self.min[0].is_finite()
+            && self.min[1].is_finite()
+            && self.max[0].is_finite()
+            && self.max[1].is_finite()
+            && self.min[0] >= 0.0
+            && self.min[1] >= 0.0
+            && self.max[0] <= 1.0
+            && self.max[1] <= 1.0
+            && self.min[0] < self.max[0]
+            && self.min[1] < self.max[1]
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -320,6 +342,7 @@ mod tests {
                             height: 2,
                             upload_bytes: 16,
                             rgba: Some(vec![255; 16]),
+                            atlas_uv: None,
                         },
                     },
                 },
@@ -362,6 +385,7 @@ mod tests {
                             height: 2,
                             upload_bytes: 16,
                             rgba: Some(vec![255; 16]),
+                            atlas_uv: None,
                         },
                     },
                 },
@@ -393,6 +417,7 @@ mod tests {
                         height: 2,
                         upload_bytes: 16,
                         rgba: None,
+                        atlas_uv: None,
                     },
                 },
             }],
@@ -405,6 +430,25 @@ mod tests {
         assert_eq!(stats.visible_draw_item_count, 1);
         assert_eq!(stats.image_count, 1);
         assert_eq!(stats.image_upload_bytes, 0);
+    }
+
+    #[test]
+    fn atlas_uv_rect_validates_normalized_finite_bounds() {
+        assert!(UiSurfaceImageUvRect {
+            min: [0.25, 0.25],
+            max: [0.75, 0.75],
+        }
+        .is_valid());
+        assert!(!UiSurfaceImageUvRect {
+            min: [0.75, 0.25],
+            max: [0.75, 0.75],
+        }
+        .is_valid());
+        assert!(!UiSurfaceImageUvRect {
+            min: [0.0, f32::NAN],
+            max: [1.0, 1.0],
+        }
+        .is_valid());
     }
 
     #[test]

@@ -33,11 +33,23 @@ fn create_renderable_template_scaffolds_directory_project_defaults() {
     assert!(paths
         .assets_root()
         .join("materials")
-        .join("default.material.toml")
+        .join("default.zmaterial")
         .exists());
     assert!(paths
         .assets_root()
         .join("shaders")
+        .join("pbr_shader.zmeta")
+        .exists());
+    assert!(paths
+        .assets_root()
+        .join("shaders")
+        .join("pbr_shader")
+        .join("pbr.zshader")
+        .exists());
+    assert!(paths
+        .assets_root()
+        .join("shaders")
+        .join("pbr_shader")
         .join("pbr.wgsl")
         .exists());
     assert!(paths.library_root().exists());

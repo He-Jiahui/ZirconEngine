@@ -2,15 +2,16 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::asset::{AssetReference, ShaderAsset, ShaderMaterialPropertyAsset};
+use crate::asset::{AssetReference, ShaderAsset};
 use crate::core::framework::render::{
-    ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialFallbackPolicy,
-    RenderMaterialFallbackReason, RenderMaterialFallbackUsage, RenderMaterialReadinessReport,
-    RenderMaterialValidationError, StandardMaterialDescriptor,
+    ColorMaterialDescriptor, RenderMaterialDependencySet, RenderMaterialDiagnosticSource,
+    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
+    RenderMaterialReadinessReport, RenderMaterialValidationError, StandardMaterialDescriptor,
 };
 
 use super::{
-    dependency_set, validate_alpha_mode, AlphaMode, MaterialTextureSlotValue, ZMaterialDocument,
+    dependency_set, validate_alpha_mode, validate_shader_contract, AlphaMode,
+    MaterialTextureSlotValue, ZMaterialDocument,
 };
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -115,7 +116,29 @@ impl MaterialAsset {
     }
 
     pub fn shader_property_diagnostics(&self, shader: &ShaderAsset) -> Vec<String> {
-        validate_property_values(&self.property_values, &shader.property_schema)
+        self.shader_contract_diagnostics(shader)
+            .into_iter()
+            .filter_map(|error| match error {
+                RenderMaterialValidationError::UnknownPropertyOverride { name, .. } => Some(
+                    format!("material property {name} is not declared by shader schema"),
+                ),
+                RenderMaterialValidationError::PropertyOverrideTypeMismatch {
+                    name,
+                    expected,
+                    ..
+                } => Some(format!(
+                    "material property {name} expects {expected} but received override value"
+                )),
+                _ => None,
+            })
+            .collect()
+    }
+
+    pub fn shader_contract_diagnostics(
+        &self,
+        shader: &ShaderAsset,
+    ) -> Vec<RenderMaterialValidationError> {
+        validate_shader_contract(self, shader)
     }
 
     pub fn readiness_report(&self) -> RenderMaterialReadinessReport {
@@ -166,6 +189,26 @@ impl MaterialAsset {
             validation_errors,
             fallback_usages,
         }
+    }
+
+    pub fn readiness_report_with_shader_contract(
+        &self,
+        shader: &ShaderAsset,
+        shader_resolves: impl Fn(&AssetReference) -> bool,
+        texture_resolves: impl Fn(&AssetReference) -> bool,
+    ) -> RenderMaterialReadinessReport {
+        let mut report = self.readiness_report_with_resolution(shader_resolves, texture_resolves);
+        for error in self.shader_contract_diagnostics(shader) {
+            report.push_validation_error_once(error);
+        }
+        for diagnostic in &shader.validation_diagnostics {
+            report.push_validation_error_once(RenderMaterialValidationError::MissingWgslCapture {
+                source: RenderMaterialDiagnosticSource::WgslCapture,
+                path: "shader.validation_diagnostics".to_string(),
+                name: diagnostic.clone(),
+            });
+        }
+        report
     }
 
     pub fn standard_material_descriptor(&self) -> StandardMaterialDescriptor {
@@ -239,34 +282,43 @@ impl MaterialAsset {
 
     fn texture_slots_with_legacy_defaults(&self) -> BTreeMap<String, MaterialTextureSlotValue> {
         let mut slots = self.texture_slots.clone();
-        for (slot, texture) in self.legacy_texture_slots() {
-            slots
-                .entry(slot.trim_end_matches("_texture").to_string())
-                .or_insert_with(|| MaterialTextureSlotValue::new(texture.clone()));
-        }
+        // Canonical PBR slots own serialized references; shader fallback metadata can stay.
+        sync_texture_slot(&mut slots, "base_color", self.base_color_texture.as_ref());
+        sync_texture_slot(&mut slots, "normal", self.normal_texture.as_ref());
+        sync_texture_slot(
+            &mut slots,
+            "metallic_roughness",
+            self.metallic_roughness_texture.as_ref(),
+        );
+        sync_texture_slot(&mut slots, "occlusion", self.occlusion_texture.as_ref());
+        sync_texture_slot(&mut slots, "emissive", self.emissive_texture.as_ref());
         slots
     }
 
     fn property_overrides_with_legacy_defaults(&self) -> BTreeMap<String, toml::Value> {
         let mut overrides = self.property_values.clone();
-        insert_vec4_override_if_changed(
+        // Runtime PBR fields must overwrite hydrated maps so source rewrites are real edits.
+        sync_vec4_override(
             &mut overrides,
             "base_color",
             self.base_color,
             [1.0, 1.0, 1.0, 1.0],
         );
-        insert_f32_override_if_changed(&mut overrides, "metallic", self.metallic, 0.0);
-        insert_f32_override_if_changed(&mut overrides, "roughness", self.roughness, 1.0);
-        insert_vec3_override_if_changed(&mut overrides, "emissive", self.emissive, [0.0, 0.0, 0.0]);
+        sync_f32_override(&mut overrides, "metallic", self.metallic, 0.0);
+        sync_f32_override(&mut overrides, "roughness", self.roughness, 1.0);
+        sync_vec3_override(&mut overrides, "emissive", self.emissive, [0.0, 0.0, 0.0]);
         if self.alpha_mode != AlphaMode::Opaque {
-            overrides
-                .entry("alpha_mode".to_string())
-                .or_insert_with(|| toml::Value::try_from(self.alpha_mode.clone()).unwrap());
+            overrides.insert(
+                "alpha_mode".to_string(),
+                toml::Value::try_from(self.alpha_mode.clone()).unwrap(),
+            );
+        } else {
+            overrides.remove("alpha_mode");
         }
         if self.double_sided {
-            overrides
-                .entry("double_sided".to_string())
-                .or_insert(toml::Value::Boolean(true));
+            overrides.insert("double_sided".to_string(), toml::Value::Boolean(true));
+        } else {
+            overrides.remove("double_sided");
         }
         overrides
     }
@@ -320,42 +372,68 @@ fn toml_number_as_f32(value: &toml::Value) -> Option<f32> {
         .map(|value| value as f32)
 }
 
-fn insert_f32_override_if_changed(
+fn sync_texture_slot(
+    slots: &mut BTreeMap<String, MaterialTextureSlotValue>,
+    slot: &str,
+    texture: Option<&AssetReference>,
+) {
+    match texture {
+        Some(texture) => {
+            let fallback = slots.get(slot).and_then(|value| value.fallback.clone());
+            let mut value = MaterialTextureSlotValue::new(texture.clone());
+            value.fallback = fallback;
+            slots.insert(slot.to_string(), value);
+        }
+        None => {
+            let should_remove = if let Some(value) = slots.get_mut(slot) {
+                value.reference = None;
+                value.fallback.is_none()
+            } else {
+                false
+            };
+            if should_remove {
+                slots.remove(slot);
+            }
+        }
+    }
+}
+
+fn sync_f32_override(
     values: &mut BTreeMap<String, toml::Value>,
     key: &str,
     value: f32,
     default: f32,
 ) {
     if (value - default).abs() > f32::EPSILON {
-        values
-            .entry(key.to_string())
-            .or_insert(toml::Value::Float(value as f64));
+        values.insert(key.to_string(), toml::Value::Float(value as f64));
+    } else {
+        values.remove(key);
     }
 }
 
-fn insert_vec4_override_if_changed(
+fn sync_vec4_override(
     values: &mut BTreeMap<String, toml::Value>,
     key: &str,
     value: [f32; 4],
     default: [f32; 4],
 ) {
     if value != default {
-        values
-            .entry(key.to_string())
-            .or_insert_with(|| toml_array(value));
+        values.insert(key.to_string(), toml_array(value));
+    } else {
+        values.remove(key);
     }
 }
 
-fn insert_vec3_override_if_changed(
+fn sync_vec3_override(
     values: &mut BTreeMap<String, toml::Value>,
     key: &str,
     value: [f32; 3],
     default: [f32; 3],
 ) {
     if value != default {
-        values
-            .entry(key.to_string())
-            .or_insert_with(|| toml_array(value));
+        values.insert(key.to_string(), toml_array(value));
+    } else {
+        values.remove(key);
     }
 }
 
@@ -366,49 +444,4 @@ fn toml_array<const N: usize>(value: [f32; N]) -> toml::Value {
             .map(|value| toml::Value::Float(value as f64))
             .collect(),
     )
-}
-
-fn validate_property_values(
-    values: &BTreeMap<String, toml::Value>,
-    schema: &[ShaderMaterialPropertyAsset],
-) -> Vec<String> {
-    let mut diagnostics = Vec::new();
-    for property in schema {
-        match values.get(&property.name) {
-            Some(value) if !property.accepts_value(value) => diagnostics.push(format!(
-                "material property {} expects {} but received {}",
-                property.name,
-                property.kind,
-                value_type_name(value)
-            )),
-            Some(_) => {}
-            None if property.required && property.default.is_none() => diagnostics.push(format!(
-                "material property {} is required by shader schema",
-                property.name
-            )),
-            None => {}
-        }
-    }
-
-    for name in values.keys() {
-        if !schema.iter().any(|property| property.name == *name) {
-            diagnostics.push(format!(
-                "material property {name} is not declared by shader schema"
-            ));
-        }
-    }
-
-    diagnostics
-}
-
-fn value_type_name(value: &toml::Value) -> &'static str {
-    match value {
-        toml::Value::String(_) => "string",
-        toml::Value::Integer(_) => "integer",
-        toml::Value::Float(_) => "float",
-        toml::Value::Boolean(_) => "bool",
-        toml::Value::Datetime(_) => "datetime",
-        toml::Value::Array(_) => "array",
-        toml::Value::Table(_) => "table",
-    }
 }

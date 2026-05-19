@@ -47,7 +47,9 @@ mod tests {
     use std::path::PathBuf;
 
     use crate::settings::HubSettings;
-    use crate::state::{HubPage, ProjectFilterMode, ProjectSortMode, ProjectViewMode, TaskStatus};
+    use crate::state::{
+        HubPage, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode, TaskStatus,
+    };
 
     use super::*;
 
@@ -65,10 +67,15 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: vec![AssetCatalogEntry {
                 name: "diffuse.png".to_string(),
                 kind: "image".to_string(),

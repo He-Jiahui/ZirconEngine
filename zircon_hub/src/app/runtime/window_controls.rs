@@ -16,8 +16,35 @@ const TITLE_DOUBLE_CLICK_WINDOW: Duration = Duration::from_millis(420);
 #[derive(Clone, Copy, Debug)]
 struct WindowDragState {
     origin: PhysicalPosition,
+    press_cursor: Option<PhysicalPosition>,
     press_x: f32,
     press_y: f32,
+}
+
+#[cfg(windows)]
+#[repr(C)]
+struct WinPoint {
+    x: i32,
+    y: i32,
+}
+
+#[cfg(windows)]
+#[link(name = "user32")]
+unsafe extern "system" {
+    fn GetCursorPos(point: *mut WinPoint) -> i32;
+}
+
+#[cfg(windows)]
+fn current_cursor_position() -> Option<PhysicalPosition> {
+    let mut point = WinPoint { x: 0, y: 0 };
+    // GetCursorPos returns physical screen coordinates, matching Window::position().
+    let ok = unsafe { GetCursorPos(&mut point as *mut WinPoint) };
+    (ok != 0).then(|| PhysicalPosition::new(point.x, point.y))
+}
+
+#[cfg(not(windows))]
+fn current_cursor_position() -> Option<PhysicalPosition> {
+    None
 }
 
 impl HubRuntime {
@@ -117,6 +144,7 @@ pub(super) fn wire_window_controls(ui: &HubWindow, runtime: Rc<RefCell<HubRuntim
             }
             *drag_for_start.borrow_mut() = Some(WindowDragState {
                 origin: ui.window().position(),
+                press_cursor: current_cursor_position(),
                 press_x,
                 press_y,
             });
@@ -132,6 +160,14 @@ pub(super) fn wire_window_controls(ui: &HubWindow, runtime: Rc<RefCell<HubRuntim
         let Some(state) = *drag_for_move.borrow() else {
             return;
         };
+        if let (Some(press_cursor), Some(cursor)) = (state.press_cursor, current_cursor_position())
+        {
+            ui.window().set_position(PhysicalPosition::new(
+                state.origin.x + cursor.x - press_cursor.x,
+                state.origin.y + cursor.y - press_cursor.y,
+            ));
+            return;
+        }
         let scale = ui.window().scale_factor();
         let delta_x = ((mouse_x - state.press_x) * scale) as i32;
         let delta_y = ((mouse_y - state.press_y) * scale) as i32;

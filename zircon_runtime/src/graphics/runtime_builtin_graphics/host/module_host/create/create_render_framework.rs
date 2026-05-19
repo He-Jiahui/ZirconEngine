@@ -4,7 +4,8 @@ use crate::core::framework::render::RenderFramework;
 use crate::core::CoreHandle;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{GraphicsError, WgpuRenderFramework};
 
@@ -16,18 +17,20 @@ pub fn create_render_framework_with_render_features(
     render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+    solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
     virtual_geometry_runtime_providers: impl IntoIterator<
         Item = VirtualGeometryRuntimeProviderRegistration,
     >,
 ) -> Result<Arc<dyn RenderFramework>, GraphicsError> {
     let asset_manager = resolve_project_asset_manager(core)?;
     Ok(Arc::new(
-        WgpuRenderFramework::new_with_plugin_render_extensions(
+        WgpuRenderFramework::new_with_plugin_render_extensions_and_solari(
             asset_manager,
             render_features,
             render_pass_executors,
             runtime_prepare_collectors,
             hybrid_gi_runtime_providers,
+            solari_runtime_providers,
             virtual_geometry_runtime_providers,
         )?,
     ))

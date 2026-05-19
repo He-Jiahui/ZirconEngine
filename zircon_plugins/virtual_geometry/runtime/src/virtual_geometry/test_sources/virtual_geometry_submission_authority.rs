@@ -84,7 +84,7 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -97,10 +97,8 @@ fn virtual_geometry_unified_indirect_uses_fallback_recycle_slot_authority_for_su
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -250,7 +248,7 @@ fn virtual_geometry_segment_buffer_keeps_prepare_owned_segments_when_some_entiti
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -263,10 +261,8 @@ fn virtual_geometry_segment_buffer_keeps_prepare_owned_segments_when_some_entiti
     project.scan_and_import().unwrap();
 
     let valid_model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_dual_entity_extract_with_clusters(
         viewport_size,
@@ -422,7 +418,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -435,10 +431,8 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_fallback_slot_aut
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -551,7 +545,7 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -564,10 +558,8 @@ fn virtual_geometry_indirect_args_buffer_order_follows_fallback_slot_submission_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -1076,6 +1068,9 @@ fn write_material(path: PathBuf, shader_uri: &str, texture_uri: &str) {
         emissive_texture: None,
         alpha_mode: AlphaMode::Opaque,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

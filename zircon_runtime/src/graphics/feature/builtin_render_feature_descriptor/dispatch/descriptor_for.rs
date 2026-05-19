@@ -1,8 +1,8 @@
 use super::super::builtin_render_feature::BuiltinRenderFeature;
 use super::super::feature_descriptors::{
-    baked_lighting, bloom, clustered_lighting, color_grading, debug_overlay, deferred_geometry,
-    deferred_lighting, history_resolve, mesh, post_process, ray_tracing, reflection_probes,
-    screen_space_ambient_occlusion, shadows, sprite, ui,
+    anti_alias, baked_lighting, bloom, clustered_lighting, color_grading, debug_overlay,
+    deferred_geometry, deferred_lighting, history_resolve, mesh, post_process, ray_tracing,
+    reflection_probes, screen_space_ambient_occlusion, shadows, sprite, ui,
 };
 use super::super::render_feature_descriptor::RenderFeatureDescriptor;
 use crate::graphics::feature::RenderFeatureCapabilityRequirement;
@@ -22,6 +22,7 @@ pub(super) fn descriptor_for(feature: BuiltinRenderFeature) -> RenderFeatureDesc
         BuiltinRenderFeature::ReflectionProbes => reflection_probes::descriptor(),
         BuiltinRenderFeature::BakedLighting => baked_lighting::descriptor(),
         BuiltinRenderFeature::HistoryResolve => history_resolve::descriptor(),
+        BuiltinRenderFeature::AntiAlias => anti_alias::descriptor(),
         BuiltinRenderFeature::Shadows => shadows::descriptor(),
         BuiltinRenderFeature::PostProcess => post_process::descriptor(),
         BuiltinRenderFeature::Ui => ui::descriptor(),

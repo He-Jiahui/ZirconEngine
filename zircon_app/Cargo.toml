@@ -28,6 +28,11 @@ first-party-runtime-plugins = [
     "dep:zircon_plugin_sound_runtime",
     "dep:zircon_plugin_texture_runtime",
 ]
+first-party-advanced-render-runtime-plugins = [
+    "dep:zircon_plugin_hybrid_gi_runtime",
+    "dep:zircon_plugin_solari_runtime",
+    "dep:zircon_plugin_virtual_geometry_runtime",
+]
 first-party-navigation-runtime-plugin = ["dep:zircon_plugin_navigation_runtime"]
 default-platform = [
     "zircon_runtime/default-platform",
@@ -73,11 +78,14 @@ softbuffer = { version = "0.4.6", optional = true }
 winit = { workspace = true, default-features = false, optional = true }
 zircon_editor = { path = "../zircon_editor", optional = true }
 zircon_plugin_animation_runtime = { path = "../zircon_plugins/animation/runtime", optional = true }
+zircon_plugin_hybrid_gi_runtime = { path = "../zircon_plugins/hybrid_gi/runtime", optional = true }
 zircon_plugin_navigation_runtime = { path = "../zircon_plugins/navigation/runtime", optional = true }
 zircon_plugin_net_runtime = { path = "../zircon_plugins/net/runtime", optional = true }
 zircon_plugin_particles_runtime = { path = "../zircon_plugins/particles/runtime", optional = true }
 zircon_plugin_rendering_runtime = { path = "../zircon_plugins/rendering/runtime", optional = true }
+zircon_plugin_solari_runtime = { path = "../zircon_plugins/solari/runtime", optional = true }
 zircon_plugin_sound_runtime = { path = "../zircon_plugins/sound/runtime", optional = true }
 zircon_plugin_texture_runtime = { path = "../zircon_plugins/texture/runtime", optional = true }
+zircon_plugin_virtual_geometry_runtime = { path = "../zircon_plugins/virtual_geometry/runtime", optional = true }
 zircon_runtime = { path = "../zircon_runtime", default-features = false }
 zircon_runtime_interface = { path = "../zircon_runtime_interface" }

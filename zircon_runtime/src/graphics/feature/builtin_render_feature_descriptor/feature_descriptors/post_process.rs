@@ -17,6 +17,7 @@ pub(in crate::graphics::feature::builtin_render_feature_descriptor) fn descripto
             QueueLane::Graphics,
         )
         .with_executor_id("post.stack")
+        .with_side_effects()
         .read_texture("scene-color")
         .write_texture("scene-color")],
     )

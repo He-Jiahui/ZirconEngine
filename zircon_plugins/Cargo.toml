@@ -70,6 +70,7 @@ members = [
     "virtual_geometry/editor",
     "hybrid_gi/runtime",
     "hybrid_gi/editor",
+    "solari/runtime",
     "runtime_diagnostics/editor",
     "ui_asset_authoring/editor",
     "native_window_hosting/editor",

@@ -24,7 +24,7 @@ fn resolve_ready_handle_returns_typed_handle_from_resource_server() {
 
 #[test]
 fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
-    let locator = ResourceLocator::parse("res://materials/default.material.toml").unwrap();
+    let locator = ResourceLocator::parse("res://materials/default.zmaterial").unwrap();
     let server = FakeResourceServer::new(vec![ResourceRecord {
         id: ResourceId::from_locator(&locator),
         kind: ResourceKind::Material,
@@ -46,7 +46,7 @@ fn resolve_ready_handle_surfaces_non_ready_state_and_diagnostics() {
         crate::ui::host::resource_access::resolve_ready_handle::<MaterialMarker>(&server, &locator)
             .expect_err("error state should be rejected");
 
-    assert!(error.contains("res://materials/default.material.toml"));
+    assert!(error.contains("res://materials/default.zmaterial"));
     assert!(error.contains("Error"));
     assert!(error.contains("shader compile failed"));
 }

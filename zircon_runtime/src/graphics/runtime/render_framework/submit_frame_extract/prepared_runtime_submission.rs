@@ -1,4 +1,3 @@
-#[cfg(test)]
 use crate::core::framework::render::{
     RenderHybridGiReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
 };
@@ -26,12 +25,10 @@ impl PreparedRuntimeSubmission {
         }
     }
 
-    #[cfg(test)]
     pub(super) fn hybrid_gi_readback_outputs(&self) -> &RenderHybridGiReadbackOutputs {
         &self.plugin_renderer_outputs.hybrid_gi
     }
 
-    #[cfg(test)]
     pub(super) fn virtual_geometry_readback_outputs(
         &self,
     ) -> &RenderVirtualGeometryReadbackOutputs {

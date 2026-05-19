@@ -193,6 +193,16 @@ pub(super) fn button_icon_placement_prop(default: &str) -> UiPropSchema {
     )
 }
 
+pub(super) fn with_text_input_events(descriptor: UiComponentDescriptor) -> UiComponentDescriptor {
+    descriptor
+        .events([
+            UiComponentEventKind::Focus,
+            UiComponentEventKind::ValueChanged,
+            UiComponentEventKind::Commit,
+        ])
+        .requires_host_capability(UiHostCapability::TextInput)
+}
+
 fn enum_options<const N: usize>(options: [&'static str; N]) -> Vec<UiOptionDescriptor> {
     options
         .into_iter()
@@ -253,6 +263,13 @@ pub(super) fn number_value_prop() -> UiPropSchema {
         .default_value(UiValue::Float(0.0))
         .range(0.0, 1.0)
         .step(0.01)
+}
+
+pub(super) fn field_number_value_prop() -> UiPropSchema {
+    UiPropSchema::new("value", UiValueKind::Float)
+        .default_value(UiValue::Float(0.0))
+        .range(0.0, 100.0)
+        .step(1.0)
 }
 
 pub(super) fn workbench_skin_prop() -> UiPropSchema {

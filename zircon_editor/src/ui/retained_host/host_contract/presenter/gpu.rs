@@ -1,6 +1,7 @@
 use zircon_runtime::rhi::{
     UiSurfaceCommand, UiSurfaceCommandKind, UiSurfaceDrawList, UiSurfaceImagePayload,
-    UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect, UiSurfaceTextStyle,
+    UiSurfaceImageUvRect, UiSurfacePresentStats, UiSurfacePresenter, UiSurfaceRect,
+    UiSurfaceTextStyle,
 };
 use zircon_runtime_interface::ui::surface::UiTextRunPaintStyle;
 
@@ -198,6 +199,7 @@ fn ui_surface_command_from_chrome(
                     height: payload.height,
                     upload_bytes: payload.upload_bytes,
                     rgba: payload.rgba.clone(),
+                    atlas_uv: payload.atlas_uv.map(ui_image_uv_rect),
                 },
             },
             ChromeCommandKind::Clip => UiSurfaceCommandKind::Clip,
@@ -216,6 +218,13 @@ fn ui_text_style(style: UiTextRunPaintStyle) -> UiSurfaceTextStyle {
 
 fn ui_rect(frame: &FrameRect) -> UiSurfaceRect {
     UiSurfaceRect::new(frame.x, frame.y, frame.width, frame.height)
+}
+
+fn ui_image_uv_rect(rect: super::command_stream::ChromeImageUvRect) -> UiSurfaceImageUvRect {
+    UiSurfaceImageUvRect {
+        min: rect.min,
+        max: rect.max,
+    }
 }
 
 fn full_surface_pixels(size: (u32, u32)) -> u64 {
@@ -245,7 +254,7 @@ mod tests {
     use super::*;
     use crate::ui::retained_host::host_contract::data::FrameRect;
     use crate::ui::retained_host::host_contract::presenter::command_stream::{
-        ChromeCommandLayer, ChromeImagePayload,
+        ChromeCommandLayer, ChromeImagePayload, ChromeImageUvRect,
     };
     use crate::ui::retained_host::host_contract::presenter::error::HostPresenterError;
     use zircon_runtime::rhi::RhiError;
@@ -388,6 +397,7 @@ mod tests {
                 height: 2,
                 upload_bytes: 16,
                 rgba: Some(vec![128; 16]),
+                atlas_uv: None,
             },
         );
 
@@ -404,6 +414,46 @@ mod tests {
     }
 
     #[test]
+    fn gpu_presenter_forwards_atlas_uv_to_runtime_surface_payload() {
+        let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+        stream.push_image(
+            1,
+            FrameRect {
+                x: 4.0,
+                y: 6.0,
+                width: 20.0,
+                height: 12.0,
+            },
+            None,
+            ChromeImagePayload {
+                resource_key: "atlas://editor/icons".to_string(),
+                width: 64,
+                height: 64,
+                upload_bytes: 0,
+                rgba: None,
+                atlas_uv: Some(ChromeImageUvRect {
+                    min: [0.5, 0.25],
+                    max: [0.75, 0.5],
+                }),
+            },
+        );
+
+        let draw_list = ui_surface_draw_list_from_stream(&stream);
+
+        let UiSurfaceCommandKind::Image { payload } = &draw_list.commands[0].kind else {
+            panic!("expected runtime image command");
+        };
+        assert_eq!(payload.resource_key, "atlas://editor/icons");
+        assert_eq!(
+            payload.atlas_uv,
+            Some(UiSurfaceImageUvRect {
+                min: [0.5, 0.25],
+                max: [0.75, 0.5],
+            })
+        );
+    }
+
+    #[test]
     fn gpu_presenter_damage_present_uses_patch_after_surface_cache_is_ready() {
         let mut presenter = GpuChromePresenter::new(RecordingSurfacePresenter::default(), (64, 64));
         let damage = FrameRect {
@@ -416,7 +466,7 @@ mod tests {
         let diagnostics = presenter
             .present(
                 &HostWindowPresentationData::default(),
-                Some(damage),
+                Some(damage.clone()),
                 HostInvalidationDiagnostics::default(),
             )
             .expect("GPU presenter should bootstrap the direct-surface cache");
@@ -440,7 +490,7 @@ mod tests {
         let diagnostics = presenter
             .present(
                 &HostWindowPresentationData::default(),
-                Some(damage),
+                Some(damage.clone()),
                 HostInvalidationDiagnostics::default(),
             )
             .expect("GPU presenter should submit damage once the cache is ready");

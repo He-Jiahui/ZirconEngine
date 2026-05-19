@@ -6,17 +6,19 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::super::{
-        backend::MockVmBackend, module_descriptor, BuiltinVmBackendFamily, CapabilitySet,
-        HostExportFunction, HostExportRegistry, HostRegistry, HotReloadCoordinator,
-        PluginHostDriver, UnavailableVmBackend, VmBackend, VmBackendFamily, VmError,
-        VmPluginHostContext, VmPluginInstance, VmPluginManager, VmPluginManifest, VmPluginPackage,
+        backend::MockVmBackend, builtin_host_module_descriptors, module_descriptor,
+        render_script_host_modules_markdown, write_script_host_modules_markdown,
+        BuiltinVmBackendFamily, CapabilitySet, HostExportFunction, HostExportRegistry,
+        HostRegistry, HotReloadCoordinator, PluginHostDriver, ScriptHostInterfaceMarkdownOptions,
+        UnavailableVmBackend, VmBackend, VmBackendFamily, VmError, VmPluginHostContext,
+        VmPluginInstance, VmPluginManager, VmPluginManifest, VmPluginPackage,
         VmPluginPackageSource, VmPluginSlotLifecycle, VmPluginSlotRecord, PLUGIN_HOST_DRIVER_NAME,
         SCRIPT_MODULE_NAME, VM_PLUGIN_MANAGER_NAME, VM_PLUGIN_RUNTIME_NAME,
     };
     use crate::core::framework::script::{
-        ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor, ScriptHostParameterDescriptor,
-        ScriptHostPrototypeKind, ScriptHostTypeDescriptor, ScriptHostTypeRef, ScriptHostValue,
-        ScriptHostValueKind, ZirconScriptType,
+        ScriptHostFieldDescriptor, ScriptHostFunctionDescriptor, ScriptHostModuleDescriptor,
+        ScriptHostParameterDescriptor, ScriptHostPrototypeKind, ScriptHostTypeDescriptor,
+        ScriptHostTypeRef, ScriptHostValue, ScriptHostValueKind, ZirconScriptType,
     };
     use crate::core::{CoreRuntime, PluginContext};
 
@@ -282,6 +284,235 @@ mod tests {
                 .type_name,
             "Vec3"
         );
+    }
+
+    #[test]
+    fn host_reflection_docs_render_synthetic_descriptor_deterministically() {
+        let alpha = ScriptHostModuleDescriptor::new("example.alpha", "0.1.0")
+            .with_capability("alpha.write")
+            .with_capability("alpha.read")
+            .with_type(
+                ScriptHostTypeDescriptor::new("Zeta", ScriptHostValueKind::Int)
+                    .with_prototype_kind(ScriptHostPrototypeKind::Enum)
+                    .with_documentation("Zeta docs."),
+            )
+            .with_type(
+                ScriptHostTypeDescriptor::new("Vec3", ScriptHostValueKind::Float)
+                    .with_prototype_kind(ScriptHostPrototypeKind::Struct)
+                    .allow_value_construction(true)
+                    .with_field(
+                        ScriptHostFieldDescriptor::new("z", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "float",
+                            ))
+                            .with_documentation("Z axis."),
+                    )
+                    .with_field(
+                        ScriptHostFieldDescriptor::new("x", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "float",
+                            ))
+                            .with_documentation("X axis."),
+                    )
+                    .with_documentation("Vec3 docs."),
+            )
+            .with_function(
+                ScriptHostFunctionDescriptor::new("length", 1, 1, ScriptHostValueKind::Float)
+                    .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "float"))
+                    .with_required_capability("alpha.read")
+                    .with_parameter(
+                        ScriptHostParameterDescriptor::new("y", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "float",
+                            )),
+                    )
+                    .with_parameter(
+                        ScriptHostParameterDescriptor::new("x", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "float",
+                            )),
+                    )
+                    .with_documentation("Return vector length."),
+            )
+            .with_function(
+                ScriptHostFunctionDescriptor::new("normalize", 1, 1, ScriptHostValueKind::Float)
+                    .with_return_type(ScriptHostTypeRef::new(ScriptHostValueKind::Float, "Vec3"))
+                    .with_required_capability("alpha.write")
+                    .with_parameter(
+                        ScriptHostParameterDescriptor::new("value", ScriptHostValueKind::Float)
+                            .with_type_ref(ScriptHostTypeRef::new(
+                                ScriptHostValueKind::Float,
+                                "Vec3",
+                            )),
+                    )
+                    .with_documentation("Normalize vector."),
+            )
+            .with_documentation("Example module docs.");
+        let beta = ScriptHostModuleDescriptor::new("example.beta", "0.1.0")
+            .with_documentation("Beta module docs.");
+
+        let markdown = render_script_host_modules_markdown(
+            &[beta, alpha],
+            &ScriptHostInterfaceMarkdownOptions::default(),
+        );
+
+        assert_eq!(
+            markdown,
+            concat!(
+                "# ZrVM Host Interface\n",
+                "\n",
+                "## Module `example.alpha`\n",
+                "\n",
+                "- Version: `0.1.0`\n",
+                "- Documentation: Example module docs.\n",
+                "- Capabilities: `alpha.read`, `alpha.write`\n",
+                "\n",
+                "### Types\n",
+                "\n",
+                "#### Type `Vec3`\n",
+                "\n",
+                "- Type ref: `Vec3` (`float`)\n",
+                "- Prototype: `struct`\n",
+                "- Value construction: `true`\n",
+                "- Documentation: Vec3 docs.\n",
+                "\n",
+                "Fields:\n",
+                "\n",
+                "- `z`: `float` (`float`) - Z axis.\n",
+                "- `x`: `float` (`float`) - X axis.\n",
+                "\n",
+                "#### Type `Zeta`\n",
+                "\n",
+                "- Type ref: `Zeta` (`int`)\n",
+                "- Prototype: `enum`\n",
+                "- Value construction: `false`\n",
+                "- Documentation: Zeta docs.\n",
+                "\n",
+                "### Functions\n",
+                "\n",
+                "#### Function `length`\n",
+                "\n",
+                "- Return: `float` (`float`)\n",
+                "- Required capabilities: `alpha.read`\n",
+                "- Documentation: Return vector length.\n",
+                "\n",
+                "Parameters:\n",
+                "\n",
+                "- `y`: `float` (`float`)\n",
+                "- `x`: `float` (`float`)\n",
+                "\n",
+                "#### Function `normalize`\n",
+                "\n",
+                "- Return: `Vec3` (`float`)\n",
+                "- Required capabilities: `alpha.write`\n",
+                "- Documentation: Normalize vector.\n",
+                "\n",
+                "Parameters:\n",
+                "\n",
+                "- `value`: `Vec3` (`float`)\n",
+                "\n",
+                "## Module `example.beta`\n",
+                "\n",
+                "- Version: `0.1.0`\n",
+                "- Documentation: Beta module docs.\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn host_reflection_docs_clamp_heading_levels_without_overflow() {
+        let descriptor = ScriptHostModuleDescriptor::new("heading.example", "0.1.0");
+        let mut options = ScriptHostInterfaceMarkdownOptions {
+            title: "Heading Edge".to_string(),
+            heading_level: 0,
+            include_capabilities: true,
+            include_empty_sections: false,
+        };
+
+        assert_eq!(
+            render_script_host_modules_markdown(&[descriptor.clone()], &options),
+            concat!(
+                "# Heading Edge\n",
+                "\n",
+                "## Module `heading.example`\n",
+                "\n",
+                "- Version: `0.1.0`\n",
+                "\n",
+            )
+        );
+
+        options.heading_level = 99;
+        assert_eq!(
+            render_script_host_modules_markdown(&[descriptor.clone()], &options),
+            concat!(
+                "###### Heading Edge\n",
+                "\n",
+                "###### Module `heading.example`\n",
+                "\n",
+                "- Version: `0.1.0`\n",
+                "\n",
+            )
+        );
+
+        options.heading_level = usize::MAX;
+        assert_eq!(
+            render_script_host_modules_markdown(&[descriptor], &options),
+            concat!(
+                "###### Heading Edge\n",
+                "\n",
+                "###### Module `heading.example`\n",
+                "\n",
+                "- Version: `0.1.0`\n",
+                "\n",
+            )
+        );
+    }
+
+    #[test]
+    fn host_reflection_docs_writer_creates_parent_directory_and_file() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!("zircon-host-reflection-docs-{nonce}"));
+        let output_path = root.join("nested").join("host-interface.md");
+        let descriptor = ScriptHostModuleDescriptor::new("writer.example", "0.1.0")
+            .with_documentation("Writer example.");
+
+        write_script_host_modules_markdown(
+            &output_path,
+            &[descriptor],
+            &ScriptHostInterfaceMarkdownOptions::default(),
+        )
+        .unwrap();
+
+        let contents = fs::read_to_string(&output_path).unwrap();
+        assert!(contents.contains("## Module `writer.example`"));
+        assert!(contents.contains("Writer example."));
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn host_reflection_docs_include_macro_generated_builtin_math_module() {
+        let modules = builtin_host_module_descriptors().unwrap();
+        let markdown = render_script_host_modules_markdown(
+            &modules,
+            &ScriptHostInterfaceMarkdownOptions::default(),
+        );
+
+        assert!(markdown.contains("## Module `zr.zircon.math`"));
+        assert!(markdown.contains("#### Type `Vec3`"));
+        assert!(markdown.contains("#### Type `ColorRgba`"));
+        assert!(markdown.contains("#### Function `vec3_length`"));
+        assert!(markdown.contains("#### Function `vec3_dot`"));
+        assert!(markdown.contains("- Return: `float` (`float`)"));
+        assert!(markdown.contains("- `x`: `float` (`float`)"));
     }
 
     #[test]

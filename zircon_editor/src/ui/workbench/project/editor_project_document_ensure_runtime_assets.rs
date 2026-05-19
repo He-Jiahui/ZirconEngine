@@ -3,10 +3,14 @@ use std::ffi::OsStr;
 use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
 use zircon_runtime::scene::world::SceneProjectError;
 
-use super::constants::{DEFAULT_CUBE_OBJ, DEFAULT_PBR_WGSL, DEFAULT_SCENE_URI};
+use super::constants::{
+    DEFAULT_CUBE_OBJ, DEFAULT_PBR_WGSL, DEFAULT_PBR_ZSHADER, DEFAULT_SCENE_URI,
+};
 use super::editor_project_document::EditorProjectDocument;
 use super::project_root_path::project_root_path;
-use super::runtime_asset_helpers::{default_material_asset, parse_asset_uri, write_if_missing};
+use super::runtime_asset_helpers::{
+    default_material_asset, default_shader_meta_document, parse_asset_uri, write_if_missing,
+};
 
 impl EditorProjectDocument {
     pub fn ensure_runtime_assets(
@@ -27,14 +31,30 @@ impl EditorProjectDocument {
         }
 
         write_if_missing(
-            paths.assets_root().join("shaders").join("pbr.wgsl"),
+            paths.assets_root().join("shaders").join("pbr_shader.zmeta"),
+            default_shader_meta_document()?,
+        )?;
+        write_if_missing(
+            paths
+                .assets_root()
+                .join("shaders")
+                .join("pbr_shader")
+                .join("pbr.zshader"),
+            DEFAULT_PBR_ZSHADER,
+        )?;
+        write_if_missing(
+            paths
+                .assets_root()
+                .join("shaders")
+                .join("pbr_shader")
+                .join("pbr.wgsl"),
             DEFAULT_PBR_WGSL,
         )?;
         write_if_missing(
             paths
                 .assets_root()
                 .join("materials")
-                .join("default.material.toml"),
+                .join("default.zmaterial"),
             default_material_asset()?
                 .to_toml_string()
                 .map_err(|error| super::runtime_asset_helpers::invalid_data(error.to_string()))?,

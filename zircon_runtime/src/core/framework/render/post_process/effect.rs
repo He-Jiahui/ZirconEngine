@@ -6,6 +6,7 @@ pub enum PostProcessEffectKind {
     ColorGrading,
     HistoryResolve,
     FinalComposite,
+    Fxaa,
 }
 
 impl PostProcessEffectKind {
@@ -15,6 +16,7 @@ impl PostProcessEffectKind {
             Self::ColorGrading => "color-grading",
             Self::HistoryResolve => "history-resolve",
             Self::FinalComposite => "final-composite",
+            Self::Fxaa => "fxaa",
         }
     }
 }

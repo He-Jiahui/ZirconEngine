@@ -1,6 +1,7 @@
 use crate::core::framework::render::{
-    PostProcessStackDescriptor, RenderBloomSettings, RenderColorGradingSettings,
-    RenderFrameExtract, RenderFrameworkError, RenderViewportHandle, RenderVirtualGeometryExtract,
+    AntiAliasSettings, PostProcessStackDescriptor, RenderBloomSettings, RenderColorGradingSettings,
+    RenderFrameExtract, RenderFrameworkError, RenderHybridGiPayloadSource, RenderViewportHandle,
+    RenderVirtualGeometryExtract, RenderVirtualGeometryPayloadSource,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
@@ -28,8 +29,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
     sized_extract.apply_viewport_size(submission_size);
     let extract = &sized_extract;
     let compiled_pipeline = compile_submission_pipeline(&viewport_state, extract)?;
+    let advanced_runtime_plan = viewport_state.advanced_runtime_plan().clone();
+    let solari_runtime_report = viewport_state.solari_runtime_report().clone();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
-        resolve_enabled_features(&compiled_pipeline);
+        resolve_enabled_features(&compiled_pipeline, &advanced_runtime_plan);
     let bloom_enabled = compiled_pipeline
         .enabled_features
         .iter()
@@ -42,6 +45,10 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         .enabled_features
         .iter()
         .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::HistoryResolve));
+    let anti_alias_feature_enabled = compiled_pipeline
+        .enabled_features
+        .iter()
+        .any(|feature| feature.is_builtin(crate::BuiltinRenderFeature::AntiAlias));
     let effective_bloom = bloom_enabled
         .then_some(extract.post_process.bloom)
         .unwrap_or_else(RenderBloomSettings::default);
@@ -52,12 +59,18 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         extract.geometry.virtual_geometry.clone(),
         extract.geometry.virtual_geometry_debug,
     );
+    let authored_virtual_geometry_present = authored_virtual_geometry_extract.is_some();
     let automatic_virtual_geometry_output =
-        if virtual_geometry_enabled && authored_virtual_geometry_extract.is_none() {
+        if virtual_geometry_enabled && !authored_virtual_geometry_present {
             build_automatic_virtual_geometry_extract(server, extract)
         } else {
             None
         };
+    let virtual_geometry_payload_source = virtual_geometry_payload_source_for_extract(
+        virtual_geometry_enabled,
+        authored_virtual_geometry_present,
+        automatic_virtual_geometry_output.is_some(),
+    );
     let effective_virtual_geometry_extract = authored_virtual_geometry_extract.or_else(|| {
         automatic_virtual_geometry_output
             .as_ref()
@@ -100,17 +113,29 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             &compiled_pipeline,
             &history_validation_key,
         );
-    let post_process_stack = PostProcessStackDescriptor::from_extract_settings(
+    let requested_anti_alias = if anti_alias_feature_enabled {
+        extract.view.anti_alias
+    } else {
+        AntiAliasSettings::off()
+    };
+    let anti_alias_report =
+        requested_anti_alias.resolve(viewport_state.capabilities(), history_available);
+    let post_process_stack = PostProcessStackDescriptor::from_extract_settings_with_anti_alias(
         &effective_bloom,
         &effective_color_grading,
         history_resolve_enabled,
         history_available,
+        &anti_alias_report.effective_settings(),
     );
     let post_process_graph = post_process_stack.validated_graph();
     let hybrid_gi_update_plan =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_update_plan.clone());
     let hybrid_gi_feedback =
         hybrid_gi_enabled.then(|| visibility_context.hybrid_gi_feedback.clone());
+    let hybrid_gi_payload_source = hybrid_gi_payload_source_for_extract(
+        hybrid_gi_enabled,
+        extract.lighting.hybrid_global_illumination.is_some(),
+    );
     let virtual_geometry_page_upload_plan = virtual_geometry_enabled
         .then(|| visibility_context.virtual_geometry_page_upload_plan.clone());
     let virtual_geometry_feedback =
@@ -129,6 +154,9 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
             .unwrap_or_default(),
         effective_bloom,
         effective_color_grading,
+        anti_alias_report,
+        advanced_runtime_plan,
+        solari_runtime_report,
         post_process_stack,
         post_process_graph,
         hybrid_gi_enabled,
@@ -136,6 +164,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         hybrid_gi_enabled
             .then(|| extract.lighting.hybrid_global_illumination.clone())
             .flatten(),
+        hybrid_gi_payload_source,
         hybrid_gi_update_plan,
         hybrid_gi_feedback,
         extract.geometry.meshes.clone(),
@@ -147,6 +176,7 @@ pub(in crate::graphics::runtime::render_framework::submit_frame_extract) fn buil
         virtual_geometry_enabled
             .then(|| effective_virtual_geometry_extract.clone())
             .flatten(),
+        virtual_geometry_payload_source,
         virtual_geometry_cpu_reference_instances,
         virtual_geometry_bvh_visualization_instances,
         virtual_geometry_page_upload_plan,
@@ -220,6 +250,34 @@ fn build_automatic_virtual_geometry_extract(
     )
 }
 
+fn hybrid_gi_payload_source_for_extract(
+    hybrid_gi_enabled: bool,
+    authored_hybrid_gi_present: bool,
+) -> RenderHybridGiPayloadSource {
+    if hybrid_gi_enabled && authored_hybrid_gi_present {
+        RenderHybridGiPayloadSource::Authored
+    } else {
+        RenderHybridGiPayloadSource::None
+    }
+}
+
+fn virtual_geometry_payload_source_for_extract(
+    virtual_geometry_enabled: bool,
+    authored_virtual_geometry_present: bool,
+    automatic_virtual_geometry_present: bool,
+) -> RenderVirtualGeometryPayloadSource {
+    if !virtual_geometry_enabled {
+        return RenderVirtualGeometryPayloadSource::None;
+    }
+    if authored_virtual_geometry_present {
+        return RenderVirtualGeometryPayloadSource::Authored;
+    }
+    if automatic_virtual_geometry_present {
+        return RenderVirtualGeometryPayloadSource::AutomaticFallback;
+    }
+    RenderVirtualGeometryPayloadSource::None
+}
+
 fn visibility_extract_with_effective_advanced_features(
     extract: &RenderFrameExtract,
     hybrid_gi_enabled: bool,
@@ -231,6 +289,56 @@ fn visibility_extract_with_effective_advanced_features(
     }
     extract.geometry.virtual_geometry = virtual_geometry_extract;
     extract
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn virtual_geometry_payload_source_prefers_authored_extract() {
+        let source = virtual_geometry_payload_source_for_extract(true, true, true);
+
+        assert_eq!(source, RenderVirtualGeometryPayloadSource::Authored);
+    }
+
+    #[test]
+    fn virtual_geometry_payload_source_reports_automatic_fallback() {
+        let source = virtual_geometry_payload_source_for_extract(true, false, true);
+
+        assert_eq!(
+            source,
+            RenderVirtualGeometryPayloadSource::AutomaticFallback
+        );
+    }
+
+    #[test]
+    fn virtual_geometry_payload_source_clears_when_feature_disabled_or_missing() {
+        assert_eq!(
+            virtual_geometry_payload_source_for_extract(false, true, true),
+            RenderVirtualGeometryPayloadSource::None
+        );
+        assert_eq!(
+            virtual_geometry_payload_source_for_extract(true, false, false),
+            RenderVirtualGeometryPayloadSource::None
+        );
+    }
+
+    #[test]
+    fn hybrid_gi_payload_source_reports_authored_extract_only_when_enabled() {
+        assert_eq!(
+            hybrid_gi_payload_source_for_extract(true, true),
+            RenderHybridGiPayloadSource::Authored
+        );
+        assert_eq!(
+            hybrid_gi_payload_source_for_extract(false, true),
+            RenderHybridGiPayloadSource::None
+        );
+        assert_eq!(
+            hybrid_gi_payload_source_for_extract(true, false),
+            RenderHybridGiPayloadSource::None
+        );
+    }
 }
 
 fn compute_ui_submission_stats(extract: &UiRenderExtract) -> UiSubmissionStats {

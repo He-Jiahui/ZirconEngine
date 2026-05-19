@@ -1,0 +1,189 @@
+import { ScrollView } from "@material";
+import { HubTokens } from "tokens.slint";
+
+export component Fill inherits Rectangle {
+    horizontal-stretch: 1;
+    vertical-stretch: 1;
+    min-width: 1px;
+    min-height: 0px;
+    background: transparent;
+}
+
+export component Divider inherits Rectangle {
+    in property <bool> vertical: false;
+    in property <brush> tone: HubTokens.stroke-muted;
+
+    width: root.vertical ? HubTokens.border-width : 0px;
+    height: root.vertical ? 0px : HubTokens.border-width;
+    horizontal-stretch: root.vertical ? 0 : 1;
+    vertical-stretch: root.vertical ? 1 : 0;
+    background: root.tone;
+}
+
+export component Stack inherits Rectangle {
+    in property <bool> is-row: false;
+    in property <bool> wrap: false;
+    in property <length> gap: HubTokens.space-0;
+    in property <length> gap-x: root.gap;
+    in property <length> gap-y: root.gap;
+    in property <length> stack-padding: HubTokens.space-0;
+    in property <length> stack-padding-left: root.stack-padding;
+    in property <length> stack-padding-right: root.stack-padding;
+    in property <length> stack-padding-top: root.stack-padding;
+    in property <length> stack-padding-bottom: root.stack-padding;
+
+    background: transparent;
+
+    FlexboxLayout {
+        width: parent.width;
+        height: parent.height;
+        flex-direction: root.is-row ? FlexboxLayoutDirection.row : FlexboxLayoutDirection.column;
+        flex-wrap: root.wrap ? FlexboxLayoutWrap.wrap : FlexboxLayoutWrap.no-wrap;
+        align-content: FlexboxLayoutAlignContent.start;
+        align-items: FlexboxLayoutAlignItems.stretch;
+        spacing-horizontal: root.gap-x;
+        spacing-vertical: root.gap-y;
+        padding-left: root.stack-padding-left;
+        padding-right: root.stack-padding-right;
+        padding-top: root.stack-padding-top;
+        padding-bottom: root.stack-padding-bottom;
+
+        @children
+    }
+}
+
+export component Row inherits Stack {
+    is-row: true;
+}
+
+export component Column inherits Stack {
+    is-row: false;
+}
+
+export component Flow inherits Stack {
+    is-row: true;
+    wrap: true;
+}
+
+export component ResponsiveSlot inherits Rectangle {
+    in property <length> basis: HubTokens.panel-min-md;
+    in property <float> grow: 1;
+    in property <float> shrink: 1;
+
+    flex-basis: root.basis;
+    flex-grow: root.grow;
+    flex-shrink: root.shrink;
+    background: transparent;
+
+    @children
+}
+
+export component PanelGrid inherits Rectangle {
+    in property <length> gap: HubTokens.panel-gap;
+    in property <length> row-gap: root.gap;
+    in property <bool> clip-content: true;
+
+    min-width: 0px;
+    preferred-width: 0px;
+    horizontal-stretch: 1;
+    background: transparent;
+    clip: root.clip-content;
+
+    FlexboxLayout {
+        width: parent.width;
+        height: parent.height;
+        flex-direction: FlexboxLayoutDirection.row;
+        flex-wrap: FlexboxLayoutWrap.wrap;
+        align-content: FlexboxLayoutAlignContent.start;
+        align-items: FlexboxLayoutAlignItems.start;
+        spacing-horizontal: root.gap;
+        spacing-vertical: root.row-gap;
+
+        @children
+    }
+}
+
+export component Page inherits Rectangle {
+    in-out property <length> scroll-y: 0px;
+    in property <length> page-padding: HubTokens.page-padding;
+    in property <length> bottom-padding: HubTokens.space-6;
+    in property <length> gap: HubTokens.panel-gap;
+
+    background: HubTokens.surface-page;
+    clip: true;
+
+    page-scroll := ScrollView {
+        width: root.width;
+        height: root.height;
+        viewport_y <=> root.scroll-y;
+        viewport_width: page-scroll.visible_width;
+        viewport_height: max(page-scroll.visible_height, content-layout.preferred-height);
+        vertical_scrollbar_policy: ScrollBarPolicy.as-needed;
+        horizontal_scrollbar_policy: ScrollBarPolicy.always-off;
+
+        Rectangle {
+            width: page-scroll.visible_width;
+            height: page-scroll.viewport_height;
+            background: HubTokens.surface-page;
+
+            content-layout := VerticalLayout {
+                width: parent.width;
+                height: self.preferred-height;
+                padding-left: root.page-padding;
+                padding-right: root.page-padding;
+                padding-top: root.page-padding;
+                padding-bottom: root.bottom-padding;
+                spacing: root.gap;
+                alignment: start;
+
+                @children
+            }
+        }
+    }
+}
+
+export component PageScrollSurface inherits Page {}
+
+export component ResponsivePanelFlow inherits PanelGrid {
+    in property <length> flow-height: HubTokens.panel-min-sm - HubTokens.space-6 - HubTokens.space-2;
+    in property <length> spacing-horizontal: HubTokens.panel-gap;
+    in property <length> spacing-vertical: HubTokens.panel-gap;
+
+    min-height: root.flow-height;
+    preferred-height: root.flow-height;
+    max-height: root.flow-height;
+    vertical-stretch: 0;
+    gap: root.spacing-horizontal;
+    row-gap: root.spacing-vertical;
+}
+
+export component WorkspacePanelSection inherits Rectangle {
+    in property <bool> compact: false;
+    in property <length> row-height: HubTokens.workspace-row-build-detail;
+    in property <length> spacing-horizontal: HubTokens.panel-gap;
+    in property <length> spacing-vertical: HubTokens.panel-gap;
+    private property <length> section-height: root.compact ? (root.row-height * 2 + root.spacing-vertical) : root.row-height;
+
+    min-width: 0px;
+    preferred-width: 0px;
+    horizontal-stretch: 1;
+    min-height: root.section-height;
+    preferred-height: root.section-height;
+    max-height: root.section-height;
+    vertical-stretch: 0;
+    background: transparent;
+    clip: true;
+
+    FlexboxLayout {
+        width: parent.width;
+        height: root.section-height;
+        flex-direction: root.compact ? FlexboxLayoutDirection.column : FlexboxLayoutDirection.row;
+        flex-wrap: root.compact ? FlexboxLayoutWrap.no-wrap : FlexboxLayoutWrap.wrap;
+        align-content: FlexboxLayoutAlignContent.start;
+        align-items: FlexboxLayoutAlignItems.start;
+        spacing-horizontal: root.spacing-horizontal;
+        spacing-vertical: root.spacing-vertical;
+
+        @children
+    }
+}

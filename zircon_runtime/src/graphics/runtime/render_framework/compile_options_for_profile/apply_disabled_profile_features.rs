@@ -26,6 +26,9 @@ pub(super) fn apply_disabled_profile_features(
     if profile.is_some_and(|profile| !profile.features.color_grading) {
         options = options.with_feature_disabled(BuiltinRenderFeature::ColorGrading);
     }
+    if profile.is_some_and(|profile| !profile.features.anti_alias) {
+        options = options.with_feature_disabled(BuiltinRenderFeature::AntiAlias);
+    }
     if profile.is_some_and(|profile| !profile.features.reflection_probes) {
         options = options
             .with_feature_disabled(BuiltinRenderFeature::ReflectionProbes)

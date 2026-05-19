@@ -1,3 +1,5 @@
+mod advanced;
+mod anti_alias;
 mod backend_types;
 mod camera;
 mod camera_ordering;
@@ -15,18 +17,28 @@ mod prepared_runtime_sidebands;
 mod profile;
 mod scene_extract;
 mod shader;
+mod solari;
 mod sprite;
 mod surface;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
 mod virtual_geometry_execution_draw;
 
+pub use advanced::{
+    AdvancedProfileRuntimePlan, AdvancedProviderAvailability, AdvancedProviderReport,
+    AdvancedProviderStatus, AdvancedRenderDegradation, AdvancedRenderDegradationReason,
+    AdvancedRenderFeature,
+};
+pub use anti_alias::{
+    AntiAliasFallbackReason, AntiAliasFallbackReport, AntiAliasMode, AntiAliasSettings,
+};
 pub use backend_types::{
-    CapturedFrame, FrameHistoryHandle, GraphicsDebuggerStatus, RenderCapabilityKind,
-    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderCommand,
-    RenderFeatureQualitySettings, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
+    CapturedFrame, FrameHistoryHandle, GraphicsDebuggerStatus, RenderCapabilityClass,
+    RenderCapabilityClassReport, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+    RenderCapabilitySummary, RenderCommand, RenderFeatureQualitySettings,
+    RenderHybridGiPayloadSource, RenderPipelineHandle, RenderQualityProfile, RenderQuery,
     RenderQueueCapability, RenderStats, RenderViewportDescriptor, RenderViewportHandle,
-    RenderingBackendInfo,
+    RenderVirtualGeometryPayloadSource, RenderingBackendInfo,
 };
 pub use camera::{
     aspect_ratio_from_viewport_size, default_viewport_aspect_ratio, DisplayMode,
@@ -59,8 +71,9 @@ pub use image::{
 };
 pub use material::{
     ColorMaterialDescriptor, RenderMaterialAlphaMode, RenderMaterialDependencySet,
-    RenderMaterialFallbackPolicy, RenderMaterialFallbackReason, RenderMaterialFallbackUsage,
-    RenderMaterialReadinessReport, RenderMaterialValidationError, StandardMaterialDescriptor,
+    RenderMaterialDiagnosticSource, RenderMaterialFallbackPolicy, RenderMaterialFallbackReason,
+    RenderMaterialFallbackUsage, RenderMaterialReadinessReport, RenderMaterialValidationError,
+    StandardMaterialDescriptor,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
 pub use overlay::{
@@ -104,6 +117,10 @@ pub use shader::{
     RenderShaderBindGroupLayoutDescriptor, RenderShaderBindingDescriptor,
     RenderShaderBindingResourceType, RenderShaderDependency, RenderShaderEntryPointDescriptor,
     RenderShaderPipelineLayoutDescriptor, RenderShaderStage, RenderShaderVariantKey,
+};
+pub use solari::{
+    SolariCapabilityRequirement, SolariDegradationReason, SolariProviderAvailability,
+    SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
 };
 pub use sprite::{
     RenderSpriteAnchor, RenderSpriteAtlasRegion, RenderSpriteBounds, RenderSpriteRect,

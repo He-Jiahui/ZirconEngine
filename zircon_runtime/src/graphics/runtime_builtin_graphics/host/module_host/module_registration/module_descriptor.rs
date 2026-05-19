@@ -7,7 +7,8 @@ use crate::core::{
 use crate::engine_module::{dependency_on, factory, qualified_name};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 
 use crate::asset::ASSET_MODULE_NAME;
@@ -25,6 +26,7 @@ pub fn module_descriptor() -> ModuleDescriptor {
         Vec::new(),
         Vec::new(),
         Vec::new(),
+        Vec::new(),
     )
 }
 
@@ -33,6 +35,7 @@ pub fn module_descriptor_with_render_features(
     render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
     runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+    solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
     virtual_geometry_runtime_providers: impl IntoIterator<
         Item = VirtualGeometryRuntimeProviderRegistration,
     >,
@@ -43,6 +46,8 @@ pub fn module_descriptor_with_render_features(
         Arc::new(runtime_prepare_collectors.into_iter().collect::<Vec<_>>());
     let hybrid_gi_runtime_providers =
         Arc::new(hybrid_gi_runtime_providers.into_iter().collect::<Vec<_>>());
+    let solari_runtime_providers =
+        Arc::new(solari_runtime_providers.into_iter().collect::<Vec<_>>());
     let virtual_geometry_runtime_providers = Arc::new(
         virtual_geometry_runtime_providers
             .into_iter()
@@ -75,6 +80,7 @@ pub fn module_descriptor_with_render_features(
             let render_pass_executors = Arc::clone(&render_pass_executors);
             let runtime_prepare_collectors = Arc::clone(&runtime_prepare_collectors);
             let hybrid_gi_runtime_providers = Arc::clone(&hybrid_gi_runtime_providers);
+            let solari_runtime_providers = Arc::clone(&solari_runtime_providers);
             let virtual_geometry_runtime_providers =
                 Arc::clone(&virtual_geometry_runtime_providers);
             move |core| {
@@ -84,6 +90,7 @@ pub fn module_descriptor_with_render_features(
                     render_pass_executors.to_vec(),
                     runtime_prepare_collectors.to_vec(),
                     hybrid_gi_runtime_providers.to_vec(),
+                    solari_runtime_providers.to_vec(),
                     virtual_geometry_runtime_providers.to_vec(),
                 )
                 .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;

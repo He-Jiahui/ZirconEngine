@@ -168,6 +168,7 @@ pub fn runtime_plugin_descriptor() -> zircon_runtime::plugin::RuntimePluginDescr
         zircon_runtime::RuntimeTargetMode::EditorHost,
     ])
     .with_capability("runtime.plugin.hybrid_gi")
+    .with_capability("runtime.render.advanced.hybrid_gi")
 }
 
 pub fn runtime_plugin() -> HybridGiRuntimePlugin {
@@ -187,7 +188,10 @@ pub fn plugin_registration() -> zircon_runtime::plugin::RuntimePluginRegistratio
 }
 
 pub fn runtime_capabilities() -> &'static [&'static str] {
-    &["runtime.plugin.hybrid_gi"]
+    &[
+        "runtime.plugin.hybrid_gi",
+        "runtime.render.advanced.hybrid_gi",
+    ]
 }
 
 #[cfg(test)]
@@ -215,6 +219,13 @@ mod tests {
                 zircon_runtime::RuntimeTargetMode::EditorHost,
             ]
         );
+        assert!(report
+            .package_manifest
+            .capabilities
+            .contains(&"runtime.render.advanced.hybrid_gi".to_string()));
+        assert!(report.package_manifest.modules[0]
+            .capabilities
+            .contains(&"runtime.render.advanced.hybrid_gi".to_string()));
         let feature = &report.extensions.render_features()[0];
         assert_eq!(
             feature.required_extract_sections,

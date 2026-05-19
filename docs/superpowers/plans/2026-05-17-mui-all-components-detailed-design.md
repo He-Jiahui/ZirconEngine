@@ -17,6 +17,7 @@
 - Repository baseline: `docs/ui-and-layout/material-ui-component-design-matrix.md` already covers 63 MUI Core/Utils/Lab rows plus 10 MUI X extension rows.
 - Required scope correction: add a first-class MUI X `Date and Time Pickers` row and prototype plan. Current local references exist under `dev/material-ui/packages/mui-lab/src/*Date*Picker*` and current Zircon docs mention `MaterialDatePickerPopup` / `MaterialTimePickerPopup`, but the design matrix does not yet carry the MUI X row.
 - Do not remove existing prototype assets. Use the current `material_*.zui` files as the landing zone and only add/reshape files when the per-component plan says so.
+- 2026-05-18 case expansion: every visual prototype must freeze at least one concrete sample that would be visible in the Material Lab grid, plus state-strip examples for default, hover, pressed, focus, disabled, selected, open, and error. Composite/util prototypes may show a placeholder only when the real retained behavior owner is named.
 
 ## Shared Per-Component Design Template
 
@@ -30,6 +31,27 @@ Every component plan below follows the Button slice shape:
 6. **Prototype Asset:** `.zui` file and `editor_material.v2.ui.toml` selectors/tokens to touch.
 7. **Validation:** focused runtime/editor tests plus docs checks. Compile/build commands run in milestone testing stages, not after each small slice.
 8. **Docs:** update matrix, token audit, module docs, and any source-path docs when code modules change.
+
+## Prototype Example Matrix
+
+Use these examples when generating or polishing `material_*.zui` prototypes. They are intentionally concrete so later agents do not reduce the all-components scope to generic cards.
+
+| Family | Components | Required visible examples |
+|---|---|---|
+| Inputs | Button, IconButton, ButtonGroup, FloatingActionButton, ToggleButton, ToggleButtonGroup | contained primary, outlined, text, danger, disabled; icon-only; grouped first/middle/last segments; circular/small/extended FAB; exclusive selected toggle; multiple checked toggle; disabled toggle |
+| Inputs | TextField, Input, TextareaAutosize, NumberField | outlined/filled/standard fields, focused label, helper text, error helper, multiline min/max rows, numeric stepper, drag-active numeric chip, disabled field |
+| Inputs | Select, Autocomplete | closed field, open popup placeholder, selected option, multi-chip selection, disabled option, query text with filtered result |
+| Inputs | Checkbox, Radio, Switch, Slider, Rating | unchecked/checked/indeterminate checkbox, exclusive radio group, switch on/off/small/disabled/error, slider track/fill/thumb/marks/value label, rating empty/filled/hover preview/read-only |
+| Data Display | Chip, Divider, Icon, SvgIcon, Material Icons, Typography | filled/outlined/deletable chip, horizontal/vertical/text divider, icon tone row, named Material icon placeholder, title/body/meta typography scale |
+| Data Display | Avatar, Badge, List, ImageList, Table, Timeline, TransferList | initials/image/icon avatar, avatar group overlap, badge dot/count/max, dense/selected/secondary-action list rows, image tiles with tile bar, table header sort + selected row, timeline dot/connector, dual-list move controls |
+| Feedback | Alert, Backdrop, Dialog, Modal, Popover, Popper, Tooltip, Snackbar, Progress, Skeleton, SpeedDial | severity alert with close action, scrim/backdrop, dialog paper with actions, modal behavior shell, anchored popover/popper/tooltip, snackbar action, linear/circular progress, skeleton text/rounded/circular, FAB action fan |
+| Surfaces | Accordion, AppBar, Card, Paper, Drawer | collapsed/expanded accordion, top app bar toolbar, card header/media/actions, elevated/outlined paper, temporary/persistent/permanent drawer anchors |
+| Navigation | Breadcrumbs, BottomNavigation, Link, Menubar, Menu, Pagination, Stepper, Tabs | collapsed breadcrumbs, selected bottom nav item, underline hover link, active menubar item, menu with checked/disabled rows, selected page, horizontal/vertical stepper, tab indicator and disabled tab |
+| Layout / Utils | Box, Container, Grid, Stack, Masonry, Portal, NoSsr, ClickAwayListener, CssBaseline, InitColorSchemeScript, useMediaQuery, Transitions | style carrier box, constrained container, grid spans, stack with divider, masonry placeholder with explicit `needs support`, overlay-layer utility placeholder, native-only NoSsr note, click-away close owner, theme baseline token card, color-scheme bootstrap note, breakpoint choice, static transition end states |
+| MUI X | Tree View, Data Grid, Date and Time Pickers | expanded/selected/editable tree rows, data-grid sorted header + selected row + virtual range footer, date/time/date-time field with popup/static calendar/time list |
+| MUI X | Charts, LineChart, BarChart, PieChart, Sparkline, Gauge, AgentChat, ChatComposer | line/bar/pie/sparkline/gauge chart cards with hover marker, empty/error chart state, conversation list, user/assistant/streaming/error bubbles, focused composer, disabled send, submit route |
+
+Every new or polished prototype should update this matrix only when it introduces a new visible example category. Do not add purely decorative variants that have no state, event, or layout consequence.
 
 ## File Responsibility Map
 
@@ -119,6 +141,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_toggle_button.zui`.
 - **Validation:** toggle click, exclusive group, multi-select, disabled no-toggle, selected pixel.
 - **Docs:** clarify selected vs checked mapping.
+- **Required examples:** one representative route-bearing sample row with exclusive selected, exclusive hover, multiple checked, and disabled toggle children. The sample owns the single `MaterialLab/ToggleButton/Toggle` feedback route; child examples are non-dispatchable visual states.
 
 ### Text Field
 
@@ -130,6 +153,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_text_fields.zui`.
 - **Validation:** focus ring, edit/commit event, helper/error tone, disabled no-edit, multiline/select-mode compatibility.
 - **Docs:** update input-event and token audit docs.
+- **Required examples:** one representative route-bearing sample row with visual-only child fields for outlined focused label, filled helper text, standard underline, error helper, and disabled no-edit. The sample keeps the single `MaterialLab/TextFields/Change` route; child fields freeze `variant`, `label`, `helper_text`, `validation_level`, `focused`, and `disabled` metadata for projection/painter follow-up.
 
 ### Textarea Autosize
 
@@ -141,6 +165,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_textarea_autosize.zui`.
 - **Validation:** min/max row layout, multiline edit, focus/error pixels.
 - **Docs:** record that live autosize is layout-affecting and not render-only.
+- **Required examples:** one representative route-bearing sample row with visual-only child textareas for minimum rows, maximum row clamp, focused autosize, error helper, and disabled no-edit. The sample keeps the single `MaterialLab/TextareaAutosize/Change` route; child textareas freeze `min_rows`, `max_rows`, `autosize`, `multiline`, `helper_text`, `validation_level`, `focused`, and `disabled` metadata for the later layout pass.
 
 ### Number Field
 
@@ -152,6 +177,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_number_field.zui`.
 - **Validation:** step/clamp, drag, commit, disabled no-change, error tone.
 - **Docs:** update component state numeric behavior docs.
+- **Required examples:** one representative route-bearing sample row with visual-only child number fields for numeric stepper, clamped max, drag-active chip, error, and disabled no-change. The sample keeps the single `MaterialLab/NumberField/Change` route; child number fields freeze numeric `value`, `min`, `max`, `step`, `large_step`, `dragging`, `validation_level`, and `disabled` metadata without falling back to string-only numeric state.
 
 ### Select
 
@@ -163,6 +189,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_selects.zui`.
 - **Validation:** open route, select option, disabled option, multiple chip display, focus/error pixels.
 - **Docs:** update popup/default interaction docs.
+- **Required examples:** one representative route-bearing sample row with visual-only child selects for closed placeholder, open popup placeholder, selected option, multi-chip selection, and disabled option. The sample keeps the single `MaterialLab/Selects/Change` route; child selects freeze `variant`, `value`, `value_text`, `selected_options`, `options`, `disabled_options`, `multiple`, `display_empty`, `popup_open`, and `disabled` metadata for popup/selection follow-up without adding extra routes.
 
 ### Autocomplete
 
@@ -174,6 +201,7 @@ Every component plan below follows the Button slice shape:
 - **Prototype Asset:** `material_autocomplete.zui`.
 - **Validation:** edit query, open popup, select option, remove chip, disabled option.
 - **Docs:** mark free-solo and async loading as future support if not implemented.
+- **Required examples:** one representative route-bearing sample row with visual-only child autocompletes for query text with filtered results, open popup, selected option, multi-chip selection, and disabled option. The sample keeps the single `MaterialLab/Autocomplete/Change` route; child autocompletes freeze `query`, `value`, `value_text`, `selected_options`, `options`, `filtered_options`, `disabled_options`, focused/hovered/pressed/matched option sets, `multiple`, `free_solo`, `popup_open`, and `disabled` metadata for later popup/filter/chip behavior without adding extra routes.
 
 ### Checkbox
 
@@ -190,23 +218,25 @@ Every component plan below follows the Button slice shape:
 
 - **MUI Source:** `Radio`, `RadioGroup`.
 - **Zircon Shape:** single-select radio row group.
-- **Typed Contract:** group value, option ids, checked, disabled, error.
+- **Typed Contract:** group value, option ids, per-option id, checked, disabled option ids, error, label-click, exclusivity, and keyboard-navigation metadata.
 - **Runtime Behavior:** selecting one option clears previous; keyboard navigation follows focus plan.
 - **Editor Projection/Painter:** radio circle/dot glyph and label state.
 - **Prototype Asset:** `material_radio_buttons.zui`.
 - **Validation:** exclusive selection, disabled option rejection, focus/error pixels.
 - **Docs:** connect to selection state contract.
+- **Required examples:** one representative route-bearing sample row with visual-only child radios for selected option, unselected option, disabled option, and error option. The sample keeps the single `MaterialLab/RadioButtons/Change` route; child radios freeze `group_value`, `option_id`, `options`, `disabled_options`, `checked`, `label_click_selects`, `exclusive_group`, and `keyboard_navigation` metadata so later behavior tests can prove selection clears siblings and skips disabled options without adding extra routes.
 
 ### Switch
 
 - **MUI Source:** `Switch`.
 - **Zircon Shape:** switch track + thumb control.
-- **Typed Contract:** checked, disabled, size/color if needed.
-- **Runtime Behavior:** click toggles, disabled no-toggle, focus/hover/press states.
+- **Typed Contract:** checked, disabled, `switch_size = small|medium`, `switch_color = primary|default|error`, label/track toggle flags, and thumb drag policy metadata.
+- **Runtime Behavior:** label or track click toggles checked state; disabled prevents toggle; thumb drag is explicitly false until drag semantics are implemented; focus/hover/press states remain paint metadata.
 - **Editor Projection/Painter:** track/thumb geometry; may need painter support if current quads cannot express thumb overlap cleanly.
 - **Prototype Asset:** `material_switches.zui`.
 - **Validation:** toggle, disabled no-toggle, checked/unchecked pixels, focus ring.
 - **Docs:** record whether switch thumb is asset/image or painter primitive.
+- **Required examples:** one representative route-bearing sample row with visual-only child switches for on, off, small, disabled, and error states. The sample keeps the single `MaterialLab/Switches/Toggle` route; child switches freeze `checked`, `switch_size`, `switch_color`, `label_click_toggles`, `track_click_toggles`, `thumb_draggable`, `selected`, `disabled`, and `validation_level` metadata so later behavior tests can prove label/track toggles and disabled no-toggle behavior without adding extra routes.
 
 ### Slider
 
@@ -601,6 +631,41 @@ Every component plan below follows the Button slice shape:
 - [ ] Run runtime `component_catalog`, `v2_asset`, and added data-grid/tree/date-picker tests.
 - [ ] Run editor `native_material_painter` if chart/date picker painter primitives changed.
 - [ ] Run `cargo fmt --all --check` and focused diff checks.
+
+## Milestone 7: Slate-Informed Layout Algorithm Design
+
+Milestone 7 starts only after the basic Material component prototype/design milestones have credible coverage. It designs layout support before adding new layout behavior, using Unreal Slate as the primary reference and the current Zircon runtime layout pass as the landing zone.
+
+### Unreal Slate Sources To Inspect First
+
+- `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SWidget.h`: `Paint`, `OnPaint`, `OnArrangeChildren`, `Prepass_Internal`, active timers, and input bubbling/tunneling.
+- `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Widgets/SPanel.h`: panel responsibility split, `ComputeDesiredSize`, `OnArrangeChildren`, `GetChildren`, and `PaintArrangedChildren`.
+- `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/Geometry.h`: local size, accumulated layout transform, accumulated render transform, and child geometry construction.
+- `dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Layout/ArrangedChildren.h`: visibility-filtered arranged children and small-inline arranged widget storage.
+- `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/SGridPanel.h`: row/column, span, layer, nudge, and fill coefficient semantics.
+- `dev/UnrealEngine/Engine/Source/Runtime/Slate/Public/Widgets/Layout/SWrapBox.h`: preferred-size wrapping, fill-empty-space, force-new-line, orientation, and inner slot padding.
+
+### Target Zircon Layout Architecture
+
+- Keep layout ownership in `zircon_runtime/src/ui/layout/pass/**`; editor assets describe layout metadata, while runtime measure/arrange resolves frames and dirty domains.
+- Preserve the Slate-like two-stage shape: desired-size prepass, then arrange children into explicit geometry records with visibility and clipping filters.
+- Split future algorithm files by behavior, not by root glue: `measure`, `arrange`, `grid`, `stack`, `wrap`, `masonry`, `overlay`, `scroll`, and `virtual_list` remain separate owners.
+- Model geometry as layout transform + render transform + clipped rect. Do not hide screen-space conversion in painter-only code.
+- Treat dirty domains explicitly: style-only changes are paint/render dirty, layout props are measure/arrange dirty, and virtual range changes are layout plus hit-grid dirty.
+
+### Layout Design Tasks
+
+- [ ] Audit current `zircon_runtime/src/ui/layout/pass/measure.rs`, `arrange.rs`, `material.rs`, and layout tests against the Slate source list above.
+- [ ] Write `docs/ui-and-layout/slate-inspired-layout-algorithm-design.md` with related-code headers for Unreal references and Zircon layout pass files.
+- [ ] Define the first algorithm contract for `GridBox`, `Stack`, `Container`, `WrapBox`, `Masonry`, overlay/portal, scroll, and virtual list.
+- [ ] Freeze acceptance tests before implementation: desired size, arrange rects, span/fill distribution, wrapping, visibility filtering, clip inheritance, damage bounds, and hit-grid frame parity.
+- [ ] Only after the design doc is reviewed, implement the lowest shared layout primitive before Material Lab layout polish.
+
+### Milestone 7 Testing Stage
+
+- [ ] Run focused runtime layout tests first: `cargo test -p zircon_runtime --lib material_layout --locked --jobs 1` and any new layout-pass filters.
+- [ ] Run editor Material Lab shell/projection tests after runtime layout passes: `cargo test -p zircon_editor --lib material_component_lab --locked --jobs 1`.
+- [ ] Capture acceptance evidence in the layout design doc before declaring the layout milestone complete.
 
 ## Cross-Milestone Acceptance Rules
 

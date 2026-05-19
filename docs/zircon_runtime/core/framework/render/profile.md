@@ -1,6 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/advanced/mod.rs
+  - zircon_runtime/src/core/framework/render/advanced/feature.rs
+  - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
+  - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
+  - zircon_runtime/src/core/framework/render/solari/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/tests.rs
@@ -11,6 +16,11 @@ related_code:
   - dev/bevy/docs/cargo_features.md
 implementation_files:
   - zircon_runtime/src/core/framework/render/profile.rs
+  - zircon_runtime/src/core/framework/render/advanced/mod.rs
+  - zircon_runtime/src/core/framework/render/advanced/feature.rs
+  - zircon_runtime/src/core/framework/render/advanced/provider_report.rs
+  - zircon_runtime/src/core/framework/render/advanced/runtime_plan.rs
+  - zircon_runtime/src/core/framework/render/solari/mod.rs
   - zircon_runtime/src/core/framework/render/mod.rs
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_app/src/entry/entry_config.rs
@@ -82,6 +92,10 @@ Zircon deliberately diverges by making these runtime product choices rather than
 - `Ui` requires UI render, core pipeline, and render target.
 
 `validate_capabilities(...)` additionally maps product features to backend capability gates through existing neutral `RenderCapabilityKind` values. `VirtualGeometry`, `HybridGlobalIllumination`, and `Solari` remain explicit opt-in paths and are not part of `DefaultRender`.
+
+M9A adds a neutral advanced runtime plan under `render::advanced`. `AdvancedProfileRuntimePlan` evaluates `RenderProfileBundle`, backend capabilities, and provider availability into per-feature reports for Virtual Geometry and Hybrid GI. These reports distinguish `NotRequested`, `Ready`, and `Degraded`, and they record both missing provider and missing backend capability details. Advanced capability validation now includes concrete backend requirements such as storage buffers, indirect draw, and buffer readback rather than relying only on the flagship VG/HGI capability toggles.
+
+M9B adds the neutral Solari contract under `render::solari`. `SolariExperimental` now requires Bevy Solari's runtime GPU capability set: inline ray query, acceleration structures, buffer binding arrays, texture binding arrays, sampled-texture/storage-buffer non-uniform indexing, and partially bound binding arrays. `RenderQualityProfile::with_solari(true)` resolves submit-time profile participation to `SolariExperimental`; `SolariSettings::experimental_enabled()` remains a separate runtime gate so tests and app profile selection can distinguish requested-but-disabled from provider or backend failures.
 
 ## App Wiring
 

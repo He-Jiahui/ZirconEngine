@@ -1,6 +1,4 @@
-import { LineEdit, ScrollView } from "std-widgets.slint";
 import {
-    FieldLabel,
     IconButton,
     MutedText,
     PillButton,
@@ -9,18 +7,18 @@ import {
     SourceEngineRowData,
     UiTextData,
 } from "shared.slint";
-import { ActionRow, Badge, HubPanel, InfoRow, PageScrollSurface, PanelHeader, ResponsivePanelFlow } from "components.slint";
+import { ActionRow, Badge, Divider, HubPanel, HubTextField, HubTokens, InfoRow, MaterialPalette, MaterialStyleMetrics, MaterialTypography, PageScrollSurface, PanelHeader, PanelListViewport, WorkspacePanelSection } from "components.slint";
 
 component SourceEngineRow inherits Rectangle {
     in property <SourceEngineRowData> engine;
     callback selected(string);
     callback remove(string);
 
-    height: 72px;
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: root.engine.active ? #18bbb2 : (area.has-hover ? #424b56 : #303641);
-    background: root.engine.active ? #073e3d : (area.has-hover ? #20252d : #171b21);
+    height: HubTokens.list-row-md;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: HubTokens.border-width;
+    border-color: root.engine.active ? MaterialPalette.primary : (area.has-hover ? MaterialPalette.outline : MaterialPalette.outline_variant);
+    background: root.engine.active ? MaterialPalette.primary_container : (area.has-hover ? MaterialPalette.surface_container_high : MaterialPalette.surface_container_low);
     clip: true;
 
     area := TouchArea {
@@ -32,18 +30,18 @@ component SourceEngineRow inherits Rectangle {
     HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 14px;
-        padding-right: 12px;
-        spacing: 12px;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_12;
+        spacing: HubTokens.toolbar-gap;
         alignment: center;
 
         Rectangle {
-            width: 44px;
-            height: 44px;
-            border-radius: 8px;
-            border-width: 1px;
-            border-color: root.engine.active ? #24d5ca : #3a4049;
-            background: root.engine.active ? #0b7771 : #20262d;
+            width: min(MaterialStyleMetrics.size_48, root.height - MaterialStyleMetrics.spacing_16);
+            height: min(MaterialStyleMetrics.size_48, root.height - MaterialStyleMetrics.spacing_16);
+            border-radius: MaterialStyleMetrics.border_radius_8;
+            border-width: HubTokens.border-width;
+            border-color: root.engine.active ? MaterialPalette.primary : MaterialPalette.outline_variant;
+            background: root.engine.active ? MaterialPalette.primary : MaterialPalette.surface_container_highest;
 
             Image {
                 width: parent.width;
@@ -54,16 +52,16 @@ component SourceEngineRow inherits Rectangle {
         }
 
         VerticalLayout {
-            spacing: 4px;
+            spacing: MaterialStyleMetrics.spacing_4;
             horizontal-stretch: 1;
             min-width: 1px;
 
             Text {
                 text: root.engine.title;
                 overflow: elide;
-                color: #f3f6f9;
-                font-size: 14px;
-                font-weight: 800;
+                color: root.engine.active ? MaterialPalette.on_primary_container : MaterialPalette.on_surface;
+                font-size: MaterialTypography.label_large.font_size;
+                font-weight: MaterialTypography.label_large.font_weight;
             }
 
             MutedText {
@@ -80,12 +78,12 @@ component SourceEngineRow inherits Rectangle {
         Badge {
             text: root.engine.status;
             tone: root.engine.active ? "accent" : "neutral";
-            badge-width: 108px;
+            badge-width: HubTokens.control-md * 3;
         }
 
         IconButton {
-            width: 28px;
-            height: 28px;
+            width: HubTokens.icon-lg;
+            height: HubTokens.icon-lg;
             icon-image: @image-url("../assets/icons/ui/close.svg");
             has-icon-image: true;
             clicked => {
@@ -98,7 +96,7 @@ component SourceEngineRow inherits Rectangle {
 component BuildHistoryRow inherits InfoRow {
     in property <SourceBuildHistoryRowData> record;
 
-    row-height: 68px;
+    row-height: HubTokens.list-row-md;
     title: root.record.detail;
     detail: root.record.output-path;
     meta: root.record.profile + " / " + root.record.finished;
@@ -120,7 +118,7 @@ export component EditorPage inherits Rectangle {
     in property <[SourceBuildHistoryRowData]> source-build-history;
     in property <int> source-build-history-count;
     in property <UiTextData> ui-text;
-    private property <bool> compact: root.width < 1120px;
+    private property <bool> compact: root.width < HubTokens.breakpoint-medium;
     private property <length> engine-list-scroll-y: 0px;
     private property <length> build-history-scroll-y: 0px;
     callback save-settings();
@@ -132,52 +130,39 @@ export component EditorPage inherits Rectangle {
     callback open-output();
     callback launch-editor();
 
-    background: #11151a;
+    background: HubTokens.surface-page;
     forward-focus: page-focus;
     clip: true;
 
     page-focus := FocusScope {
-        width: 1px;
-        height: 1px;
+        width: HubTokens.border-width;
+        height: HubTokens.border-width;
     }
 
     PageScrollSurface {
         width: root.width;
         height: root.height;
         scroll-y <=> root.scroll-y;
-        content-height: root.compact ? 1640px : 820px;
-        page-padding: 0px;
-        bottom-padding: 0px;
-        gap: 0px;
 
-        VerticalLayout {
-            width: parent.width;
-            height: parent.height;
-            padding-left: 28px;
-            padding-right: 28px;
-            padding-top: 28px;
-            padding-bottom: 28px;
-            spacing: 18px;
-
-            ResponsivePanelFlow {
-                width: parent.width;
-                horizontal-stretch: 1;
-                flow-height: root.compact ? 598px : 292px;
-                spacing-horizontal: 14px;
-                spacing-vertical: 14px;
+        WorkspacePanelSection {
+            compact: root.compact;
+            row-height: HubTokens.workspace-row-editor-summary;
+            spacing-horizontal: HubTokens.panel-gap;
+            spacing-vertical: HubTokens.panel-gap;
 
                 HubPanel {
-                    flex-basis: 620px;
+                    flex-basis: HubTokens.panel-min-lg + HubTokens.control-lg;
                     flex-grow: 1;
                     flex-shrink: 1;
-                    min-width: 420px;
-                    height: 292px;
+                    min-width: HubTokens.panel-min-md;
+                    height: HubTokens.workspace-row-editor-summary;
 
                     VerticalLayout {
                         width: parent.width;
                         height: parent.height;
-                        padding: 18px;
-                        spacing: 12px;
+                        padding: HubTokens.space-4;
+                        spacing: HubTokens.space-3;
+                        alignment: stretch;
 
                         PanelHeader {
                             title: root.source-engine.title;
@@ -192,13 +177,10 @@ export component EditorPage inherits Rectangle {
                             }
                         }
 
-                        Rectangle {
-                            height: 1px;
-                            background: #303641;
-                        }
+                        Divider {}
 
                         InfoRow {
-                            row-height: 62px;
+                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
                             title: root.ui-text.source-prefix;
                             detail: root.source-engine.source-path;
                             meta: root.ui-text.last-build-prefix + root.source-engine.last-build;
@@ -210,7 +192,7 @@ export component EditorPage inherits Rectangle {
                         }
 
                         InfoRow {
-                            row-height: 62px;
+                            row-height: HubTokens.list-row-sm + HubTokens.space-2;
                             title: root.ui-text.output-prefix;
                             detail: root.source-engine.output-path;
                             meta: root.ui-text.profile-prefix + root.source-engine.build-profile;
@@ -224,17 +206,17 @@ export component EditorPage inherits Rectangle {
                 }
 
                 HubPanel {
-                    flex-basis: 380px;
+                    flex-basis: HubTokens.panel-min-sm;
                     flex-grow: 0;
                     flex-shrink: 1;
-                    min-width: 340px;
-                    height: 292px;
+                    min-width: HubTokens.panel-min-sm;
+                    height: HubTokens.workspace-row-editor-summary;
 
                     VerticalLayout {
                         width: parent.width;
                         height: parent.height;
-                        padding: 18px;
-                        spacing: 10px;
+                        padding: HubTokens.space-4;
+                        spacing: HubTokens.toolbar-gap;
 
                         PanelHeader {
                             title: root.ui-text.editor-actions;
@@ -287,98 +269,115 @@ export component EditorPage inherits Rectangle {
                         }
                     }
                 }
-            }
+        }
 
-            ResponsivePanelFlow {
-                width: parent.width;
-                horizontal-stretch: 1;
-                flow-height: root.compact ? 966px : 476px;
-                spacing-horizontal: 14px;
-                spacing-vertical: 14px;
+        WorkspacePanelSection {
+                compact: root.compact;
+                row-height: HubTokens.workspace-row-editor-config;
+                spacing-horizontal: HubTokens.panel-gap;
+                spacing-vertical: HubTokens.panel-gap;
 
                 HubPanel {
-                    flex-basis: 600px;
+                    flex-basis: HubTokens.panel-min-md + HubTokens.panel-min-sm / 2;
                     flex-grow: 1;
                     flex-shrink: 1;
-                    min-width: 420px;
-                    height: 476px;
+                    min-width: HubTokens.panel-min-md;
+                    height: HubTokens.workspace-row-editor-config;
 
                     VerticalLayout {
                         width: parent.width;
                         height: parent.height;
-                        padding: 18px;
-                        spacing: 12px;
+                        padding: HubTokens.space-4;
+                        spacing: HubTokens.space-3;
 
                         PanelHeader {
                             title: root.ui-text.source-engine;
                             subtitle: root.ui-text.source-checkout-path;
                         }
 
-                        FieldLabel {
-                            text: root.ui-text.active-engine-name;
-                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            height: HubTokens.input-field;
 
-                        HorizontalLayout {
-                            spacing: 10px;
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                spacing: HubTokens.toolbar-gap;
+                                alignment: center;
 
-                            LineEdit {
-                                horizontal-stretch: 1;
-                                placeholder-text: root.ui-text.active-engine-name;
-                                text <=> root.active-engine-name;
-                            }
+                                HubTextField {
+                                    horizontal-stretch: 1;
+                                    label: root.ui-text.active-engine-name;
+                                    placeholder: root.ui-text.active-engine-name;
+                                    text <=> root.active-engine-name;
+                                }
 
-                            PillButton {
-                                text: root.ui-text.rename;
-                                icon-image: @image-url("../assets/icons/ui/edit.svg");
-                                has-icon-image: true;
-                                clicked => {
-                                    root.rename-active-engine(root.active-engine-name);
+                                PillButton {
+                                    height: HubTokens.control-md;
+                                    text: root.ui-text.rename;
+                                    icon-image: @image-url("../assets/icons/ui/edit.svg");
+                                    has-icon-image: true;
+                                    clicked => {
+                                        root.rename-active-engine(root.active-engine-name);
+                                    }
                                 }
                             }
                         }
 
-                        FieldLabel {
-                            text: root.ui-text.source-checkout-path;
-                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            height: HubTokens.input-field;
 
-                        HorizontalLayout {
-                            spacing: 10px;
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                spacing: HubTokens.toolbar-gap;
+                                alignment: center;
 
-                            LineEdit {
-                                horizontal-stretch: 1;
-                                placeholder-text: root.ui-text.source-checkout-path;
-                                text <=> root.source-path;
-                            }
+                                HubTextField {
+                                    horizontal-stretch: 1;
+                                    label: root.ui-text.source-checkout-path;
+                                    placeholder: root.ui-text.source-checkout-path;
+                                    text <=> root.source-path;
+                                }
 
-                            PillButton {
-                                text: root.ui-text.browse;
-                                icon-image: @image-url("../assets/icons/ui/folder.svg");
-                                has-icon-image: true;
-                                clicked => {
-                                    root.browse-folder("source");
+                                PillButton {
+                                    height: HubTokens.control-md;
+                                    text: root.ui-text.browse;
+                                    icon-image: @image-url("../assets/icons/ui/folder.svg");
+                                    has-icon-image: true;
+                                    clicked => {
+                                        root.browse-folder("source");
+                                    }
                                 }
                             }
                         }
 
-                        FieldLabel {
-                            text: root.ui-text.staged-output-directory;
-                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            height: HubTokens.input-field;
 
-                        HorizontalLayout {
-                            spacing: 10px;
+                            HorizontalLayout {
+                                width: parent.width;
+                                height: parent.height;
+                                spacing: HubTokens.toolbar-gap;
+                                alignment: center;
 
-                            LineEdit {
-                                horizontal-stretch: 1;
-                                placeholder-text: root.ui-text.staged-output-directory;
-                                text <=> root.output-path;
-                            }
+                                HubTextField {
+                                    horizontal-stretch: 1;
+                                    label: root.ui-text.staged-output-directory;
+                                    placeholder: root.ui-text.staged-output-directory;
+                                    text <=> root.output-path;
+                                }
 
-                            PillButton {
-                                text: root.ui-text.browse;
-                                icon-image: @image-url("../assets/icons/ui/folder.svg");
-                                has-icon-image: true;
-                                clicked => {
-                                    root.browse-folder("output");
+                                PillButton {
+                                    height: HubTokens.control-md;
+                                    text: root.ui-text.browse;
+                                    icon-image: @image-url("../assets/icons/ui/folder.svg");
+                                    has-icon-image: true;
+                                    clicked => {
+                                        root.browse-folder("output");
+                                    }
                                 }
                             }
                         }
@@ -390,12 +389,12 @@ export component EditorPage inherits Rectangle {
                 }
 
                 VerticalLayout {
-                    flex-basis: 440px;
+                    flex-basis: HubTokens.panel-min-md;
                     flex-grow: 0;
                     flex-shrink: 1;
-                    min-width: 360px;
-                    height: 476px;
-                    spacing: 14px;
+                    min-width: HubTokens.panel-min-sm;
+                    height: HubTokens.workspace-row-editor-config;
+                    spacing: HubTokens.panel-gap;
 
                     HubPanel {
                         vertical-stretch: 1;
@@ -403,8 +402,8 @@ export component EditorPage inherits Rectangle {
                         VerticalLayout {
                             width: parent.width;
                             height: parent.height;
-                            padding: 18px;
-                            spacing: 10px;
+                            padding: HubTokens.space-4;
+                            spacing: HubTokens.toolbar-gap;
 
                             PanelHeader {
                                 title: root.ui-text.source-engines;
@@ -414,41 +413,23 @@ export component EditorPage inherits Rectangle {
                                 badge-tone: "info";
                             }
 
-                            engine-scroll := ScrollView {
-                                horizontal-stretch: 1;
-                                vertical-stretch: 1;
-                                viewport-y <=> root.engine-list-scroll-y;
-                                viewport-width: engine-scroll.visible-width;
-                                viewport-height: max(engine-scroll.visible-height, root.source-engine-count * 80px + 8px);
-                                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-                                mouse-drag-pan-enabled: true;
+                            PanelListViewport {
+                                scroll-y <=> root.engine-list-scroll-y;
+                                row-count: root.source-engine-count;
+                                row-height: HubTokens.list-row-md;
 
-                                Rectangle {
-                                    width: engine-scroll.visible-width;
-                                    height: engine-scroll.viewport-height;
-                                    background: transparent;
-
-                                    VerticalLayout {
-                                        width: parent.width;
-                                        height: parent.height;
-                                        padding-bottom: 4px;
-                                        spacing: 8px;
-
-                                        for engine in root.source-engines: SourceEngineRow {
-                                            engine: engine;
-                                            selected(id) => {
-                                                root.select-engine(id);
-                                            }
-                                            remove(id) => {
-                                                root.remove-engine(id);
-                                            }
-                                        }
-
-                                        if root.source-engine-count == 0: MutedText {
-                                            text: root.ui-text.no-source-engines;
-                                        }
+                                for engine in root.source-engines: SourceEngineRow {
+                                    engine: engine;
+                                    selected(id) => {
+                                        root.select-engine(id);
                                     }
+                                    remove(id) => {
+                                        root.remove-engine(id);
+                                    }
+                                }
+
+                                if root.source-engine-count == 0: MutedText {
+                                    text: root.ui-text.no-source-engines;
                                 }
                             }
                         }
@@ -460,8 +441,8 @@ export component EditorPage inherits Rectangle {
                         VerticalLayout {
                             width: parent.width;
                             height: parent.height;
-                            padding: 18px;
-                            spacing: 10px;
+                            padding: HubTokens.space-4;
+                            spacing: HubTokens.toolbar-gap;
 
                             PanelHeader {
                                 title: root.ui-text.build-history;
@@ -471,35 +452,17 @@ export component EditorPage inherits Rectangle {
                                 badge-tone: "info";
                             }
 
-                            history-scroll := ScrollView {
-                                horizontal-stretch: 1;
-                                vertical-stretch: 1;
-                                viewport-y <=> root.build-history-scroll-y;
-                                viewport-width: history-scroll.visible-width;
-                                viewport-height: max(history-scroll.visible-height, root.source-build-history-count * 76px + 8px);
-                                vertical-scrollbar-policy: ScrollBarPolicy.as-needed;
-                                horizontal-scrollbar-policy: ScrollBarPolicy.always-off;
-                                mouse-drag-pan-enabled: true;
+                            PanelListViewport {
+                                scroll-y <=> root.build-history-scroll-y;
+                                row-count: root.source-build-history-count;
+                                row-height: HubTokens.list-row-md;
 
-                                Rectangle {
-                                    width: history-scroll.visible-width;
-                                    height: history-scroll.viewport-height;
-                                    background: transparent;
+                                for record in root.source-build-history: BuildHistoryRow {
+                                    record: record;
+                                }
 
-                                    VerticalLayout {
-                                        width: parent.width;
-                                        height: parent.height;
-                                        padding-bottom: 4px;
-                                        spacing: 8px;
-
-                                        for record in root.source-build-history: BuildHistoryRow {
-                                            record: record;
-                                        }
-
-                                        if root.source-build-history-count == 0: MutedText {
-                                            text: root.ui-text.no-build-history;
-                                        }
-                                    }
+                                if root.source-build-history-count == 0: MutedText {
+                                    text: root.ui-text.no-build-history;
                                 }
                             }
                         }
@@ -508,4 +471,3 @@ export component EditorPage inherits Rectangle {
             }
         }
     }
-}

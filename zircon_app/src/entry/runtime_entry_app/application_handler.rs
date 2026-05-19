@@ -457,6 +457,7 @@ impl ApplicationHandler for RuntimeEntryApp {
 
     fn about_to_wait(&mut self, event_loop: &dyn ActiveEventLoop) {
         zircon_runtime::profile_scope!("app", "runtime_entry", "about_to_wait");
+        self.apply_event_loop_policy(event_loop);
         #[cfg(feature = "gamepad-gilrs")]
         self.poll_gamepads(event_loop);
         if self.session.tick_frame().is_err() {

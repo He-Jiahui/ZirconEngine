@@ -58,10 +58,10 @@ fn shared_asset_details_scroll_surface_accounts_for_diagnostics_panel() {
     let mut selection = AssetSelectionSnapshot {
         uuid: Some("11111111-1111-1111-1111-111111111111".to_string()),
         display_name: "grid.material".to_string(),
-        locator: "res://materials/grid.material.toml".to_string(),
+        locator: "res://materials/grid.zmaterial".to_string(),
         kind: None,
         preview_artifact_path: "E:/Sandbox/library/editor-previews/grid.png".to_string(),
-        meta_path: "E:/Sandbox/assets/materials/grid.material.toml.zmeta".to_string(),
+        meta_path: "E:/Sandbox/assets/materials/grid.zmaterial.zmeta".to_string(),
         adapter_key: "zircon.asset.material".to_string(),
         package_id: None,
         asset_unit: "single".to_string(),

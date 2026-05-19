@@ -160,6 +160,10 @@ fn runtime_prelude_exports_platform_window_and_input_contracts() {
     assert_eq!(window_descriptor.present_mode, WindowPresentMode::Fifo);
     assert_eq!(WindowResolution::default().physical_size().x, 1280);
     assert_eq!(WindowResizeConstraints::default().min_width, 180.0);
+    assert_eq!(
+        PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
+        "runtime.window.primary_descriptor"
+    );
     assert!(matches!(
         window_event,
         WindowStatusEvent::ThemeChanged(WindowTheme::Light)

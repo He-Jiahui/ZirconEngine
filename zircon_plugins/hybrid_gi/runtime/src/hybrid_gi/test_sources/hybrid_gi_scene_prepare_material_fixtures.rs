@@ -162,22 +162,16 @@ pub(super) fn material_surface_response_test_assets() -> (
     );
 
     let asset_manager = open_test_project(&root);
-    let smooth_white = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/smooth_white.zmaterial",
-    );
-    let rough_white = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/rough_white.zmaterial",
-    );
+    let smooth_white =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/smooth_white.zmaterial");
+    let rough_white =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/rough_white.zmaterial");
     let dielectric_red = resource_handle::<MaterialMarker>(
         &asset_manager,
         "res://materials/dielectric_red.zmaterial",
     );
-    let metallic_red = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/metallic_red.zmaterial",
-    );
+    let metallic_red =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/metallic_red.zmaterial");
 
     (
         asset_manager,

@@ -3,7 +3,8 @@ use std::path::PathBuf;
 
 use zircon_runtime::asset::assets::{AlphaMode, MaterialAsset};
 use zircon_runtime::asset::importer::AssetImportError;
-use zircon_runtime::asset::AssetReference;
+use zircon_runtime::asset::project::{AssetMetaDocument, AssetSourceUnit};
+use zircon_runtime::asset::{AssetKind, AssetReference, AssetUuid};
 use zircon_runtime::scene::world::SceneProjectError;
 use zircon_runtime_interface::resource::ResourceLocator;
 
@@ -27,11 +28,10 @@ pub(in crate::ui::workbench::project) fn write_if_missing(
 
 pub(in crate::ui::workbench::project) fn default_material_asset(
 ) -> Result<MaterialAsset, SceneProjectError> {
+    let shader_uri = parse_asset_uri(DEFAULT_SHADER_URI)?;
     Ok(MaterialAsset {
         name: Some("Default".to_string()),
-        shader: AssetReference::from_locator(
-            ResourceLocator::parse(DEFAULT_SHADER_URI).expect("default shader uri"),
-        ),
+        shader: AssetReference::from_locator(shader_uri),
         base_color: [0.85, 0.85, 0.85, 1.0],
         base_color_texture: None,
         normal_texture: None,
@@ -47,6 +47,18 @@ pub(in crate::ui::workbench::project) fn default_material_asset(
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     })
+}
+
+pub(in crate::ui::workbench::project) fn default_shader_meta_document(
+) -> Result<String, SceneProjectError> {
+    let shader_uri = parse_asset_uri(DEFAULT_SHADER_URI)?;
+    let mut meta = AssetMetaDocument::new(
+        AssetUuid::from_stable_label(DEFAULT_SHADER_URI),
+        shader_uri,
+        AssetKind::Shader,
+    );
+    meta.unit = AssetSourceUnit::Compound;
+    toml::to_string_pretty(&meta).map_err(|error| invalid_data(error.to_string()).into())
 }
 
 pub(in crate::ui::workbench::project) fn parse_asset_uri(

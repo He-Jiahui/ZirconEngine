@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crate::asset::pipeline::manager::ProjectAssetManager;
 use crate::core::framework::render::{
-    FrameHistoryHandle, RenderBloomSettings, RenderCapabilityKind, RenderCapabilityMismatchDetail,
-    RenderCapabilitySummary, RenderColorGradingSettings, RenderFrameExtract, RenderFramework,
-    RenderFrameworkError, RenderHybridGiExtract, RenderHybridGiProbe, RenderHybridGiTraceRegion,
-    RenderPipelineHandle, RenderQualityProfile, RenderViewportDescriptor, RenderViewportHandle,
-    RenderVirtualGeometryCluster, RenderVirtualGeometryExtract, RenderVirtualGeometryPage,
-    RenderWorldSnapshotHandle,
+    AdvancedProviderReport, AdvancedProviderStatus, AdvancedRenderDegradationReason,
+    AdvancedRenderFeature, FrameHistoryHandle, RenderBloomSettings, RenderCapabilityKind,
+    RenderCapabilityMismatchDetail, RenderCapabilitySummary, RenderColorGradingSettings,
+    RenderFrameExtract, RenderFramework, RenderFrameworkError, RenderHybridGiExtract,
+    RenderHybridGiPayloadSource, RenderHybridGiProbe, RenderHybridGiTraceRegion,
+    RenderPipelineHandle, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
+    RenderViewportHandle, RenderVirtualGeometryCluster, RenderVirtualGeometryExtract,
+    RenderVirtualGeometryPage, RenderVirtualGeometryPayloadSource, RenderWorldSnapshotHandle,
 };
 use crate::core::math::{UVec2, Vec3};
 use crate::scene::world::World;
@@ -26,7 +28,8 @@ use crate::{
 };
 
 use super::plugin_render_feature_fixtures::{
-    pluginized_wgpu_render_framework, virtual_geometry_render_feature_descriptor,
+    pluginized_wgpu_render_framework, pluginized_wgpu_render_framework_with_advanced_providers,
+    virtual_geometry_render_feature_descriptor,
 };
 
 #[test]
@@ -220,7 +223,7 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
     server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
 
-    assert_eq!(stats.last_post_process_graph_node_count, 3);
+    assert_eq!(stats.last_post_process_graph_node_count, 4);
     assert_eq!(stats.last_post_process_graph_skipped_node_count, 1);
     assert_eq!(
         stats.last_post_process_final_composite_node.as_deref(),
@@ -232,6 +235,7 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
             "bloom".to_string(),
             "color-grading".to_string(),
             "final-composite".to_string(),
+            "fxaa".to_string(),
         ]
     );
     assert!(stats
@@ -445,11 +449,7 @@ fn render_framework_rejects_quality_profile_when_requested_feature_lacks_backend
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
 
     let error = server
         .set_quality_profile(
@@ -488,11 +488,7 @@ fn render_framework_rejects_pipeline_switch_when_active_profile_loses_required_c
             RenderQualityProfile::new("flagship").with_virtual_geometry(true),
         )
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
 
     let error = server
         .set_pipeline_asset(viewport, RenderPipelineHandle::new(1))
@@ -522,11 +518,7 @@ fn render_framework_rejects_submit_when_active_profile_loses_required_caps() {
             RenderQualityProfile::new("flagship").with_virtual_geometry(true),
         )
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
 
     let error = server
         .submit_frame_extract(viewport, test_extract())
@@ -652,20 +644,20 @@ fn render_framework_accepts_pipeline_asset_with_culled_unknown_executor_id() {
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(79);
     custom_pipeline.name = "bad-culled-executor-pipeline".to_string();
-    let bloom = custom_pipeline
+    let debug_overlay = custom_pipeline
         .renderer
         .features
         .iter_mut()
-        .find(|feature| feature.is_builtin(BuiltinRenderFeature::Bloom))
-        .expect("default pipeline should include bloom");
-    *bloom = bloom
+        .find(|feature| feature.is_builtin(BuiltinRenderFeature::DebugOverlay))
+        .expect("default pipeline should include debug overlay");
+    *debug_overlay = debug_overlay
         .clone()
         .with_descriptor_override(RenderFeatureDescriptor::new(
             "bad-culled-executor-feature",
             Vec::new(),
             Vec::new(),
             vec![RenderFeaturePassDescriptor::new(
-                RenderPassStage::PostProcess,
+                RenderPassStage::Debug,
                 "bad-culled-executor-pass",
                 QueueLane::Graphics,
             )
@@ -817,11 +809,7 @@ fn render_framework_reports_profile_override_pipeline_for_capability_mismatch() 
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
 
     let error = server
         .set_quality_profile(
@@ -848,11 +836,7 @@ fn render_framework_rejects_pipeline_switch_when_pipeline_asset_requires_missing
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
     let mut pipeline = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()]);
     pipeline.handle = RenderPipelineHandle::new(82);
@@ -877,11 +861,7 @@ fn render_framework_rejects_profile_override_when_pipeline_asset_requires_missin
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
     let mut pipeline = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()]);
     pipeline.handle = RenderPipelineHandle::new(83);
@@ -916,11 +896,7 @@ fn render_framework_rejects_active_pipeline_reload_when_asset_requires_missing_b
     base_pipeline.name = "active-reload-base-pipeline".to_string();
     let handle = server.register_pipeline_asset(base_pipeline).unwrap();
     server.set_pipeline_asset(viewport, handle).unwrap();
-    server.override_capabilities_for_tests(RenderCapabilitySummary {
-        backend_name: "capability-test".to_string(),
-        supports_offscreen: true,
-        ..Default::default()
-    });
+    server.override_capabilities_for_tests(capability_test_summary());
     let mut reloaded_pipeline = RenderPipelineAsset::default_forward_plus()
         .with_plugin_render_features([virtual_geometry_render_feature_descriptor()]);
     reloaded_pipeline.handle = handle;
@@ -941,7 +917,7 @@ fn render_framework_rejects_active_pipeline_reload_when_asset_requires_missing_b
 
 #[test]
 fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabilities() {
-    let server = pluginized_wgpu_render_framework();
+    let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -968,8 +944,38 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
     assert!(stats
         .last_effective_features
         .contains(&"hybrid_gi".to_string()));
+    assert_eq!(
+        stats
+            .advanced_provider_availability
+            .virtual_geometry_provider_id
+            .as_deref(),
+        Some("test.virtual-geometry")
+    );
+    assert_eq!(
+        stats
+            .advanced_provider_availability
+            .hybrid_gi_provider_id
+            .as_deref(),
+        Some("test.hybrid-gi")
+    );
+    assert_eq!(
+        advanced_provider_report(&stats, AdvancedRenderFeature::VirtualGeometry).status,
+        AdvancedProviderStatus::Ready
+    );
+    assert_eq!(
+        advanced_provider_report(&stats, AdvancedRenderFeature::HybridGlobalIllumination).status,
+        AdvancedProviderStatus::Ready
+    );
     assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 5);
     assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 4);
+    assert_eq!(
+        stats.last_virtual_geometry_payload_source,
+        RenderVirtualGeometryPayloadSource::Authored
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_payload_source,
+        RenderHybridGiPayloadSource::Authored
+    );
     assert_eq!(stats.last_virtual_geometry_visible_cluster_count, 2);
     assert_eq!(stats.last_virtual_geometry_requested_page_count, 1);
     assert_eq!(stats.last_virtual_geometry_dirty_page_count, 1);
@@ -1006,9 +1012,62 @@ fn headless_wgpu_server_exposes_current_m5_flagship_baselines_without_rt_capabil
 }
 
 #[test]
+fn render_framework_degrades_requested_advanced_features_without_runtime_providers() {
+    let server = pluginized_wgpu_render_framework();
+    let viewport = server
+        .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
+        .unwrap();
+    server
+        .set_quality_profile(
+            viewport,
+            RenderQualityProfile::new("flagship-no-provider")
+                .with_virtual_geometry(true)
+                .with_hybrid_global_illumination(true),
+        )
+        .unwrap();
+
+    server
+        .submit_frame_extract(viewport, flagship_extract())
+        .unwrap();
+    let stats = server.query_stats().unwrap();
+
+    assert!(!stats
+        .last_effective_features
+        .contains(&"virtual_geometry".to_string()));
+    assert!(!stats
+        .last_effective_features
+        .contains(&"hybrid_gi".to_string()));
+    assert_eq!(stats.last_virtual_geometry_graph_executed_pass_count, 0);
+    assert_eq!(stats.last_hybrid_gi_graph_executed_pass_count, 0);
+    assert_eq!(
+        stats.last_virtual_geometry_payload_source,
+        RenderVirtualGeometryPayloadSource::None
+    );
+    assert_eq!(
+        stats.last_hybrid_gi_payload_source,
+        RenderHybridGiPayloadSource::None
+    );
+
+    for feature in [
+        AdvancedRenderFeature::VirtualGeometry,
+        AdvancedRenderFeature::HybridGlobalIllumination,
+    ] {
+        let report = advanced_provider_report(&stats, feature);
+        assert!(report.requested);
+        assert_eq!(report.provider_id, None);
+        assert_eq!(report.status, AdvancedProviderStatus::Degraded);
+        assert!(report
+            .degradations
+            .iter()
+            .any(|degradation| degradation.reason
+                == AdvancedRenderDegradationReason::ProviderMissing));
+    }
+}
+
+#[test]
 fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_and_hybrid_gi_payload(
 ) {
-    let server = pluginized_wgpu_render_framework();
+    let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -1088,7 +1147,7 @@ fn render_framework_drops_stale_flagship_runtime_state_when_extract_removes_vg_a
 
 #[test]
 fn render_framework_ignores_legacy_hybrid_gi_history_while_feature_disabled() {
-    let server = pluginized_wgpu_render_framework();
+    let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -1236,10 +1295,33 @@ fn missing_capabilities(
         .collect()
 }
 
+fn capability_test_summary() -> RenderCapabilitySummary {
+    RenderCapabilitySummary {
+        backend_name: "capability-test".to_string(),
+        supports_offscreen: true,
+        supports_fxaa: true,
+        supports_storage_buffers: true,
+        supports_indirect_draw: true,
+        supports_buffer_readback: true,
+        ..Default::default()
+    }
+}
+
+fn advanced_provider_report(
+    stats: &RenderStats,
+    feature: AdvancedRenderFeature,
+) -> &AdvancedProviderReport {
+    stats
+        .last_advanced_provider_reports
+        .iter()
+        .find(|report| report.feature == feature)
+        .expect("advanced provider report should be recorded")
+}
+
 fn render_hybrid_gi_history_capture(
     seed_rt_lighting_rgb: [u8; 3],
 ) -> crate::core::framework::render::CapturedFrame {
-    let server = pluginized_wgpu_render_framework();
+    let server = pluginized_wgpu_render_framework_with_advanced_providers();
     let viewport_size = UVec2::new(160, 120);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

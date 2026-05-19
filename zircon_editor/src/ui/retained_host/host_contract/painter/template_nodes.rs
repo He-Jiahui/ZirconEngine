@@ -74,7 +74,17 @@ pub(crate) fn paint_template_nodes_for_test(
     height: u32,
     nodes: ModelRc<TemplatePaneNodeData>,
 ) -> Vec<u8> {
-    let mut frame = HostRgbaFrame::filled(width, height, [0, 0, 0, 255]);
+    paint_template_nodes_for_test_with_background(width, height, [0, 0, 0, 255], nodes)
+}
+
+#[cfg(test)]
+pub(crate) fn paint_template_nodes_for_test_with_background(
+    width: u32,
+    height: u32,
+    background: [u8; 4],
+    nodes: ModelRc<TemplatePaneNodeData>,
+) -> Vec<u8> {
+    let mut frame = HostRgbaFrame::filled(width, height, background);
     let bounds = FrameRect {
         x: 0.0,
         y: 0.0,

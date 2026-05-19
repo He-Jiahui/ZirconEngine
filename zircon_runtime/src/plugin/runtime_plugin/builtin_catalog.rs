@@ -222,6 +222,17 @@ impl RuntimePluginDescriptor {
                 ][..],
             ),
             (
+                "solari",
+                "Solari",
+                RuntimePluginId::Solari,
+                "zircon_plugin_solari_runtime",
+                "runtime.plugin.solari",
+                &[
+                    RuntimeTargetMode::ClientRuntime,
+                    RuntimeTargetMode::EditorHost,
+                ][..],
+            ),
+            (
                 "zr_vm_language",
                 "ZrVM Language",
                 RuntimePluginId::ZrVmLanguage,
@@ -401,12 +412,54 @@ fn classify_descriptor(descriptor: RuntimePluginDescriptor) -> RuntimePluginDesc
                 "runtime.capability.physics.raycast",
                 CapabilityStatus::Partial,
             )),
-        "virtual_geometry" | "hybrid_gi" => descriptor
+        "virtual_geometry" => descriptor
             .with_maturity(PluginMaturity::Experimental)
+            .with_capability("runtime.render.advanced.virtual_geometry")
             .with_capability_status(capability_status(
-                format!("runtime.plugin.{package_id}"),
+                "runtime.plugin.virtual_geometry",
                 CapabilityStatus::Partial,
-            )),
+            ))
+            .with_capability_status(
+                capability_status(
+                    "runtime.render.advanced.virtual_geometry",
+                    CapabilityStatus::Partial,
+                )
+                .with_note(
+                    "AdvancedRender provider path; default render profiles do not require it.",
+                ),
+            ),
+        "hybrid_gi" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability("runtime.render.advanced.hybrid_gi")
+            .with_capability_status(capability_status(
+                "runtime.plugin.hybrid_gi",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(
+                capability_status(
+                    "runtime.render.advanced.hybrid_gi",
+                    CapabilityStatus::Partial,
+                )
+                .with_note(
+                    "AdvancedRender provider path; default render profiles do not require it.",
+                ),
+            ),
+        "solari" => descriptor
+            .with_maturity(PluginMaturity::Experimental)
+            .with_capability("runtime.render.experimental.solari")
+            .with_capability_status(capability_status(
+                "runtime.plugin.solari",
+                CapabilityStatus::Partial,
+            ))
+            .with_capability_status(
+                capability_status(
+                    "runtime.render.experimental.solari",
+                    CapabilityStatus::Partial,
+                )
+                .with_note(
+                    "SolariExperimental provider contract is wired; realtime pass execution remains unavailable.",
+                ),
+            ),
         "zr_vm_language" => descriptor
             .with_maturity(PluginMaturity::Experimental)
             .with_capability_status(capability_status(

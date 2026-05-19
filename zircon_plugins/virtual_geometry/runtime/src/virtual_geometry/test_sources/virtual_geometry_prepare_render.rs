@@ -133,7 +133,7 @@ fn virtual_geometry_prepare_filters_mesh_fallback_to_allowed_entities() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_red.material.toml"),
+            .join("flat_red.zmaterial"),
         "res://shaders/flat_red.wgsl",
         "res://textures/white.png",
     );
@@ -141,7 +141,7 @@ fn virtual_geometry_prepare_filters_mesh_fallback_to_allowed_entities() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -155,11 +155,9 @@ fn virtual_geometry_prepare_filters_mesh_fallback_to_allowed_entities() {
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
     let red_material =
-        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.material.toml");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.zmaterial");
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
 
@@ -258,7 +256,7 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_red.material.toml"),
+            .join("flat_red.zmaterial"),
         "res://shaders/flat_red.wgsl",
         "res://textures/white.png",
     );
@@ -266,7 +264,7 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -280,11 +278,9 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_output() {
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
     let red_material =
-        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.material.toml");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.zmaterial");
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
 
@@ -405,7 +401,7 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_coverage() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -418,10 +414,8 @@ fn virtual_geometry_prepare_streaming_state_changes_fallback_raster_coverage() {
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
 
@@ -542,7 +536,7 @@ fn virtual_geometry_prepare_gpu_args_change_when_only_visible_submission_index_c
         paths
             .assets_root()
             .join("materials")
-            .join("flat_red.material.toml"),
+            .join("flat_red.zmaterial"),
         "res://shaders/flat_red.wgsl",
         "res://textures/white.png",
     );
@@ -550,7 +544,7 @@ fn virtual_geometry_prepare_gpu_args_change_when_only_visible_submission_index_c
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -564,11 +558,9 @@ fn virtual_geometry_prepare_gpu_args_change_when_only_visible_submission_index_c
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
     let red_material =
-        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.material.toml");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_red.zmaterial");
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_extract(viewport_size, model, red_material, green_material);
 
@@ -788,7 +780,7 @@ fn virtual_geometry_prepare_resident_slot_changes_fallback_raster_output() {
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -801,10 +793,8 @@ fn virtual_geometry_prepare_resident_slot_changes_fallback_raster_output() {
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract(viewport_size, model, green_material);
 
@@ -923,7 +913,7 @@ fn virtual_geometry_prepare_visible_cluster_ids_change_fallback_raster_region() 
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -936,10 +926,8 @@ fn virtual_geometry_prepare_visible_cluster_ids_change_fallback_raster_region() 
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
 
@@ -1065,7 +1053,7 @@ fn virtual_geometry_prepare_draw_segments_override_extract_cluster_ordinals_for_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1078,10 +1066,8 @@ fn virtual_geometry_prepare_draw_segments_override_extract_cluster_ordinals_for_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
 
@@ -1159,7 +1145,7 @@ fn virtual_geometry_prepare_segments_submit_indirect_raster_draws_when_feature_e
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1172,10 +1158,8 @@ fn virtual_geometry_prepare_segments_submit_indirect_raster_draws_when_feature_e
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_clustered_extract(viewport_size, model, green_material);
 
@@ -1252,7 +1236,7 @@ fn virtual_geometry_prepare_preserves_explicit_segment_boundaries_even_when_segm
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1265,10 +1249,8 @@ fn virtual_geometry_prepare_preserves_explicit_segment_boundaries_even_when_segm
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -1430,7 +1412,7 @@ fn virtual_geometry_prepare_reuses_one_shared_indirect_buffer_across_multiple_in
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1443,10 +1425,8 @@ fn virtual_geometry_prepare_reuses_one_shared_indirect_buffer_across_multiple_in
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -1568,7 +1548,7 @@ fn virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separa
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1581,10 +1561,8 @@ fn virtual_geometry_prepare_keeps_different_pages_in_same_slot_split_into_separa
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -1734,7 +1712,7 @@ fn virtual_geometry_prepare_visibility_owned_draw_segment_span_changes_fallback_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1747,10 +1725,8 @@ fn virtual_geometry_prepare_visibility_owned_draw_segment_span_changes_fallback_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -1931,7 +1907,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_follow_visibility_owned_
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -1944,10 +1920,8 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_follow_visibility_owned_
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -2125,7 +2099,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_resident_slo
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -2138,10 +2112,8 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_resident_slo
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -2285,7 +2257,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -2298,10 +2270,8 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_page_id_chan
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -2465,7 +2435,7 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_lod_level_ch
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -2478,10 +2448,8 @@ fn virtual_geometry_prepare_gpu_generated_indirect_args_change_when_lod_level_ch
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -2626,7 +2594,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_i
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -2639,10 +2607,8 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_page_id_changes_i
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -2789,7 +2755,7 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_pending_request_f
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -2802,10 +2768,8 @@ fn virtual_geometry_prepare_cluster_raster_output_changes_when_pending_request_f
     project.scan_and_import().unwrap();
 
     let model = resource_handle::<ModelMarker>(&asset_manager, "res://models/tiled_quad.obj");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let extract = build_single_entity_extract_with_clusters(
         viewport_size,
@@ -3007,7 +2971,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         paths
             .assets_root()
             .join("materials")
-            .join("flat_green.material.toml"),
+            .join("flat_green.zmaterial"),
         "res://shaders/flat_green.wgsl",
         "res://textures/white.png",
     );
@@ -3023,10 +2987,8 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         resource_handle::<ModelMarker>(&asset_manager, "res://models/double_quad_lr.gltf");
     let right_then_left_model =
         resource_handle::<ModelMarker>(&asset_manager, "res://models/double_quad_rl.gltf");
-    let green_material = resource_handle::<MaterialMarker>(
-        &asset_manager,
-        "res://materials/flat_green.material.toml",
-    );
+    let green_material =
+        resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_green.zmaterial");
     let viewport_size = UVec2::new(160, 120);
     let left_then_right_extract =
         build_single_entity_extract(viewport_size, left_then_right_model, green_material);
@@ -3134,7 +3096,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         paths
             .assets_root()
             .join("materials")
-            .join("textured_blend.material.toml"),
+            .join("textured_blend.zmaterial"),
         "res://shaders/textured_color.wgsl",
         "res://textures/split_rg.png",
         [1.0, 1.0, 1.0, 0.65],
@@ -3154,7 +3116,7 @@ fn virtual_geometry_prepare_cluster_raster_output_is_stable_when_same_segment_pr
         resource_handle::<ModelMarker>(&asset_manager, "res://models/overlap_uv_rl.gltf");
     let blend_material = resource_handle::<MaterialMarker>(
         &asset_manager,
-        "res://materials/textured_blend.material.toml",
+        "res://materials/textured_blend.zmaterial",
     );
     let viewport_size = UVec2::new(160, 120);
     let left_then_right_extract =
@@ -3922,6 +3884,9 @@ fn write_material_with_base_color_and_alpha_mode(
         emissive_texture: None,
         alpha_mode,
         double_sided: false,
+        property_values: Default::default(),
+        texture_slots: Default::default(),
+        validation_diagnostics: Vec::new(),
     };
     fs::write(path, material.to_toml_string().unwrap()).unwrap();
 }

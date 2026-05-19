@@ -2,6 +2,7 @@ struct PostProcessParams {
     viewport_and_clusters: vec4<u32>,
     feature_flags: vec4<u32>,
     hybrid_gi_counts: vec4<u32>,
+    anti_alias: vec4<u32>,
     blends: vec4<f32>,
     grading: vec4<f32>,
     tint_and_probe: vec4<f32>,
@@ -83,6 +84,46 @@ fn apply_color_grading(color: vec3<f32>) -> vec3<f32> {
     graded = max(graded, vec3<f32>(0.0));
     graded = pow(graded, vec3<f32>(1.0 / max(gamma, 0.001)));
     return graded * params.tint_and_probe.xyz;
+}
+
+fn color_luminance(color: vec3<f32>) -> f32 {
+    return dot(color, vec3<f32>(0.299, 0.587, 0.114));
+}
+
+fn load_scene_rgb(coord: vec2<i32>, viewport_size: vec2<u32>) -> vec3<f32> {
+    let max_coord = vec2<i32>(viewport_size - vec2<u32>(1u, 1u));
+    let clamped = clamp(coord, vec2<i32>(0, 0), max_coord);
+    return textureLoad(scene_color_tex, clamped, 0).rgb;
+}
+
+fn apply_fxaa(coord: vec2<u32>, viewport_size: vec2<u32>, color: vec3<f32>) -> vec3<f32> {
+    let coord_i32 = vec2<i32>(coord);
+    let north = load_scene_rgb(coord_i32 + vec2<i32>(0, -1), viewport_size);
+    let south = load_scene_rgb(coord_i32 + vec2<i32>(0, 1), viewport_size);
+    let west = load_scene_rgb(coord_i32 + vec2<i32>(-1, 0), viewport_size);
+    let east = load_scene_rgb(coord_i32 + vec2<i32>(1, 0), viewport_size);
+
+    let luma_center = color_luminance(color);
+    let luma_north = color_luminance(north);
+    let luma_south = color_luminance(south);
+    let luma_west = color_luminance(west);
+    let luma_east = color_luminance(east);
+    let luma_min = min(luma_center, min(min(luma_north, luma_south), min(luma_west, luma_east)));
+    let luma_max = max(luma_center, max(max(luma_north, luma_south), max(luma_west, luma_east)));
+    let luma_range = luma_max - luma_min;
+    if (luma_range < 0.03125) {
+        return color;
+    }
+
+    let horizontal_edge = abs(luma_north + luma_south - 2.0 * luma_center);
+    let vertical_edge = abs(luma_east + luma_west - 2.0 * luma_center);
+    var neighbor_average = (east + west) * 0.5;
+    if (horizontal_edge >= vertical_edge) {
+        neighbor_average = (north + south) * 0.5;
+    }
+
+    let blend = clamp(luma_range * 1.5, 0.0, 0.75);
+    return mix(color, neighbor_average, blend);
 }
 
 @fragment
@@ -261,6 +302,10 @@ fn fs_main(@builtin(position) position: vec4<f32>) -> FragmentOutput {
 
     if (params.baked_color_and_intensity.w > 0.0) {
         color = color + params.baked_color_and_intensity.rgb * params.baked_color_and_intensity.w;
+    }
+
+    if (params.anti_alias.x != 0u) {
+        color = apply_fxaa(coord, viewport_size, color);
     }
 
     color = apply_color_grading(color);

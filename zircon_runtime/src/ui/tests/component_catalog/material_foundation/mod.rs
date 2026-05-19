@@ -10,6 +10,10 @@ use zircon_runtime_interface::ui::style::{
 };
 
 use super::{assert_has_event, assert_has_prop};
+
+mod inputs;
+mod selection_inputs;
+
 #[test]
 fn material_editor_foundation_catalog_covers_planned_component_layers() {
     let registry = UiComponentDescriptorRegistry::material_editor_foundation();
@@ -300,6 +304,91 @@ fn material_editor_foundation_catalog_covers_planned_component_layers() {
         .required_render_capabilities
         .contains(&UiRenderCapability::Vector));
 
+    let text_field = registry
+        .descriptor("TextField")
+        .expect("TextField descriptor");
+    assert_enum_options(text_field, "variant", &["outlined", "filled", "standard"]);
+    for prop in [
+        "value_text",
+        "label",
+        "placeholder",
+        "helper_text",
+        "multiline",
+        "select_mode",
+    ] {
+        assert_has_prop(text_field, prop);
+    }
+    assert_eq!(
+        text_field
+            .default_props
+            .iter()
+            .find(|(name, _)| name == "variant")
+            .map(|(_, value)| value),
+        Some(&UiValue::Enum("outlined".to_string())),
+        "TextField should default to outlined Material field styling"
+    );
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+    ] {
+        assert_has_event(text_field, event);
+    }
+    assert!(text_field
+        .required_host_capabilities
+        .contains(&UiHostCapability::TextInput));
+
+    let textarea = registry
+        .descriptor("TextareaAutosize")
+        .expect("TextareaAutosize descriptor");
+    assert_enum_options(textarea, "variant", &["outlined", "filled", "standard"]);
+    for prop in [
+        "value_text",
+        "placeholder",
+        "helper_text",
+        "multiline",
+        "autosize",
+        "min_rows",
+        "max_rows",
+    ] {
+        assert_has_prop(textarea, prop);
+    }
+    for (prop, expected) in [("multiline", true), ("autosize", true)] {
+        assert_eq!(
+            textarea
+                .default_props
+                .iter()
+                .find(|(name, _)| name == prop)
+                .map(|(_, value)| value),
+            Some(&UiValue::Bool(expected)),
+            "TextareaAutosize should default `{prop}` to `{expected}`"
+        );
+    }
+    for (prop, expected) in [("min_rows", 2), ("max_rows", 8)] {
+        assert_eq!(
+            textarea
+                .default_props
+                .iter()
+                .find(|(name, _)| name == prop)
+                .map(|(_, value)| value),
+            Some(&UiValue::Int(expected)),
+            "TextareaAutosize should default `{prop}` to `{expected}`"
+        );
+    }
+    for event in [
+        UiComponentEventKind::Focus,
+        UiComponentEventKind::ValueChanged,
+        UiComponentEventKind::Commit,
+    ] {
+        assert_has_event(textarea, event);
+    }
+    assert!(textarea
+        .required_host_capabilities
+        .contains(&UiHostCapability::TextInput));
+
+    inputs::assert_descriptors(&registry);
+    selection_inputs::assert_descriptors(&registry);
+
     let window = registry.descriptor("Window").expect("Window descriptor");
     assert_has_prop(window, "window_id");
     assert_has_prop(window, "dock_policy");
@@ -564,7 +653,7 @@ fn assert_button_style_schema(
     assert_button_style_schema_with_variant_default(descriptor, expected_icon_placement, "default");
 }
 
-fn assert_button_style_schema_with_variant_default(
+pub(super) fn assert_button_style_schema_with_variant_default(
     descriptor: &zircon_runtime_interface::ui::component::UiComponentDescriptor,
     expected_icon_placement: &str,
     expected_variant_default: &str,
@@ -587,7 +676,7 @@ fn assert_button_style_schema_with_variant_default(
     );
 }
 
-fn assert_enum_options(
+pub(super) fn assert_enum_options(
     descriptor: &zircon_runtime_interface::ui::component::UiComponentDescriptor,
     name: &str,
     expected: &[&str],
@@ -619,6 +708,8 @@ fn material_editor_foundation_catalog_stays_folder_backed_by_family() {
         "mod.rs",
         "shared.rs",
         "inputs.rs",
+        "selection_inputs.rs",
+        "text_inputs.rs",
         "data_display.rs",
         "feedback.rs",
         "surfaces.rs",

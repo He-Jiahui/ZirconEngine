@@ -10,6 +10,7 @@ mod physics_material;
 mod scene;
 mod shader;
 mod sound;
+mod sprite_atlas;
 mod texture;
 mod ui;
 
@@ -31,7 +32,9 @@ pub use authoring::{
 pub use data::{DataAsset, DataAssetFormat};
 pub use font::{FontAsset, FontAssetError};
 pub use imported::{asset_kind_for_imported_asset, ImportedAsset};
-pub use material::{AlphaMode, MaterialAsset, MaterialTextureSlotValue, ZMaterialDocument};
+pub use material::{
+    validate_wgsl_captures, AlphaMode, MaterialAsset, MaterialTextureSlotValue, ZMaterialDocument,
+};
 pub use model::{
     ModelAsset, ModelPrimitiveAsset, VirtualGeometryAsset, VirtualGeometryClusterHeaderAsset,
     VirtualGeometryClusterPageHeaderAsset, VirtualGeometryDebugMetadataAsset,
@@ -59,6 +62,10 @@ pub use shader::{
     ZShaderTextureSlotDocument,
 };
 pub use sound::SoundAsset;
+pub use sprite_atlas::{
+    validate_sprite_atlas_asset, SpriteAtlasAsset, SpriteAtlasEntry, SpriteAtlasPadding,
+    SpriteAtlasRect, SpriteAtlasUvRect, SpriteAtlasValidationError,
+};
 pub use texture::{
     TextureArrayLayout, TextureAsset, TextureAssetDescriptor, TexturePayload,
     RGBA8_UNORM_SRGB_FORMAT,

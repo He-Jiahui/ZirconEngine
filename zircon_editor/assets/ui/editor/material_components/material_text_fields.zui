@@ -58,14 +58,61 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "InputField"
+component = "HorizontalBox"
 control_id = "text-fields_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { value = "Material input", placeholder = "Type here", helper_text = "Focus, edit, submit", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-text-field-row"]
+props = { label = "Name", value = "Material input", value_text = "Material input", placeholder = "Type here", helper_text = "Focus, edit, submit", variant = "outlined", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 4.0 } }
+children = [
+  { node = "field_outlined_focus" },
+  { node = "field_filled_helper" },
+  { node = "field_standard" },
+  { node = "field_error" },
+  { node = "field_disabled" },
+]
 events = [
   { id = "MaterialLab/TextFields/Change", event = "Change", route = "MaterialLab.TextFields.Change" },
 ]
+
+[nodes.field_outlined_focus]
+component = "TextField"
+control_id = "text-fields_OutlinedFocus"
+classes = ["material-control", "material-text-field", "material-text-field-outlined", "material-text-field-focused"]
+props = { label = "Name", value = "Scene", value_text = "Scene", placeholder = "Name", helper_text = "Focused label", variant = "outlined", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = true, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 2.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_inset" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 2.0, radius = 10.0 } } }
+layout = { width = { min = 56.0, preferred = 64.0, max = 82.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.field_filled_helper]
+component = "TextField"
+control_id = "text-fields_FilledHelper"
+classes = ["material-control", "material-text-field", "material-text-field-filled"]
+props = { label = "Count", value = "42", value_text = "42", placeholder = "Count", helper_text = "Helper", variant = "filled", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface_hover" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 44.0, preferred = 52.0, max = 70.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.field_standard]
+component = "InputField"
+control_id = "text-fields_Standard"
+classes = ["material-control", "material-text-field", "material-text-field-standard"]
+props = { label = "Value", value = "std", value_text = "std", placeholder = "Value", helper_text = "Underline", variant = "standard", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 0.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.surface" }, foreground = { color = "material.text" }, border = { color = "material.outline", width = 1.0, radius = 0.0 } } }
+layout = { width = { min = 44.0, preferred = 52.0, max = 70.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.field_error]
+component = "TextField"
+control_id = "text-fields_Error"
+classes = ["material-control", "material-text-field", "material-text-field-error"]
+props = { label = "Slug", value = "bad", value_text = "bad", placeholder = "Slug", helper_text = "Required", variant = "outlined", surface_variant = "elevated", button_variant = "contained", text_tone = "error", validation_level = "error", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.error" }, foreground = { color = "material.text" }, border = { color = "material.error", width = 1.0, radius = 10.0 } } }
+layout = { width = { min = 44.0, preferred = 52.0, max = 70.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.field_disabled]
+component = "TextField"
+control_id = "text-fields_Disabled"
+classes = ["material-control", "material-text-field", "material-text-field-disabled"]
+props = { label = "State", value = "Lock", value_text = "Lock", placeholder = "Disabled", helper_text = "No edit", variant = "outlined", surface_variant = "elevated", button_variant = "contained", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 10.0 }, opacity = 0.38 } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 74.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

@@ -29,6 +29,10 @@ fn main() {
 }
 
 fn compile_with_flexbox(input: &Path, output: &Path) -> Result<Vec<PathBuf>, String> {
+    let manifest_dir = input
+        .parent()
+        .and_then(Path::parent)
+        .ok_or_else(|| format!("invalid Slint input path: {}", input.display()))?;
     let mut diagnostics = BuildDiagnostics::default();
     let syntax_node = i_slint_compiler::parser::parse_file(input, &mut diagnostics);
     if diagnostics.has_errors() {
@@ -40,6 +44,13 @@ fn compile_with_flexbox(input: &Path, output: &Path) -> Result<Vec<PathBuf>, Str
     let mut config = i_slint_compiler::CompilerConfiguration::new(OutputFormat::Rust);
     config.translation_domain = env::var("CARGO_PKG_NAME").ok();
     config.enable_experimental = true;
+    config.library_paths.insert(
+        "material".to_string(),
+        manifest_dir
+            .parent()
+            .expect("zircon_hub manifest layout is stable")
+            .join("dev/material-rust-template/material-1.0/material.slint"),
+    );
 
     let syntax_node = syntax_node.expect("diagnostics contained no parser errors");
     let (document, diagnostics, loader) = spin_on::spin_on(i_slint_compiler::compile_syntax_node(

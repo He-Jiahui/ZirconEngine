@@ -427,6 +427,7 @@ impl RuntimeProfileDescriptor {
         .with_optional_plugin(RuntimePluginId::Particles)
         .with_optional_plugin(RuntimePluginId::VirtualGeometry)
         .with_optional_plugin(RuntimePluginId::HybridGi)
+        .with_optional_plugin(RuntimePluginId::Solari)
         .with_required_capability("runtime.core.asset")
         .with_required_capability("runtime.core.scene")
         .with_required_capability("runtime.core.render.base")
@@ -466,6 +467,7 @@ impl RuntimeProfileDescriptor {
             .with_optional_plugin(RuntimePluginId::Particles)
             .with_optional_plugin(RuntimePluginId::VirtualGeometry)
             .with_optional_plugin(RuntimePluginId::HybridGi)
+            .with_optional_plugin(RuntimePluginId::Solari)
             .with_required_capability("runtime.core.diagnostics")
             .with_required_capability("editor.host.plugin_management")
     }

@@ -3,7 +3,8 @@ use crate::core::ManagerDescriptor;
 use crate::core::ModuleDescriptor;
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
-    RuntimePrepareCollectorRegistration, VirtualGeometryRuntimeProviderRegistration,
+    RuntimePrepareCollectorRegistration, SolariRuntimeProviderRegistration,
+    VirtualGeometryRuntimeProviderRegistration,
 };
 use crate::{
     plugin::ComponentTypeDescriptor, plugin::PluginEventCatalogManifest,
@@ -36,6 +37,10 @@ impl RuntimeExtensionRegistry {
 
     pub fn hybrid_gi_runtime_providers(&self) -> &[HybridGiRuntimeProviderRegistration] {
         &self.hybrid_gi_runtime_providers
+    }
+
+    pub fn solari_runtime_providers(&self) -> &[SolariRuntimeProviderRegistration] {
+        &self.solari_runtime_providers
     }
 
     pub fn virtual_geometry_runtime_providers(

@@ -1,0 +1,190 @@
+import { HubTokens } from "tokens.slint";
+import {
+    MenuItem,
+    OutlineButton,
+    PopupMenu,
+    SearchBar,
+    SegmentedButton,
+    TextField,
+    TonalButton,
+    MaterialStyleMetrics,
+} from "material_bridge.slint";
+
+export struct SelectOptionData {
+    id: string,
+    label: string,
+    active: bool,
+}
+
+export component SearchBox inherits Rectangle {
+    in-out property <string> text;
+    in property <string> placeholder;
+    in property <length> box-width: HubTokens.input-width;
+    in property <length> box-height: HubTokens.input-field;
+    callback edited(string);
+    callback accepted(string);
+
+    forward-focus: search-field;
+    width: root.box-width;
+    height: root.box-height;
+    clip: true;
+
+    search-field := SearchBar {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.text;
+        placeholder_text: root.placeholder;
+        leading_icon: @image-url("../assets/icons/ui/search.svg");
+        empty_text: "";
+        edited(value) => {
+            root.edited(value);
+        }
+        accepted(value) => {
+            root.accepted(value);
+        }
+    }
+}
+
+export component HubTextField inherits Rectangle {
+    in-out property <string> text;
+    in property <string> label;
+    in property <string> placeholder;
+    in property <string> supporting-text;
+    in property <bool> enabled: true;
+    in property <image> leading-icon;
+    in property <image> trailing-icon;
+    callback edited(string);
+    callback accepted(string);
+
+    forward-focus: material-field;
+    height: HubTokens.input-field;
+    min-width: 1px;
+    preferred-width: HubTokens.input-width;
+    horizontal-stretch: 1;
+    clip: true;
+
+    material-field := TextField {
+        width: parent.width;
+        height: parent.height;
+        text <=> root.text;
+        label: root.label;
+        placeholder_text: root.placeholder != "" ? root.placeholder : root.label;
+        supporting_text: root.supporting-text;
+        leading_icon: root.leading-icon;
+        trailing_icon: root.trailing-icon;
+        enabled: root.enabled;
+        edited(value) => {
+            root.edited(value);
+        }
+        accepted(value) => {
+            root.accepted(value);
+        }
+    }
+}
+
+export component ToolbarSelect inherits Rectangle {
+    in property <string> icon;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
+    in property <string> text;
+    in property <length> select-width: HubTokens.control-md * 7 / 2;
+    in property <length> select-height: HubTokens.control-md;
+    in property <[MenuItem]> menu-items: [];
+    in property <[SelectOptionData]> options: [];
+    in property <int> option-count: 0;
+    callback clicked;
+    callback selected(string);
+    callback selected-index(int);
+
+    width: root.select-width;
+    height: root.select-height;
+    clip: true;
+
+    trigger := OutlineButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.icon-image;
+        clicked => {
+            if (root.menu-items.length > 0) {
+                menu.show();
+            } else {
+                root.clicked();
+            }
+        }
+    }
+
+    menu := PopupMenu {
+        x: 0px;
+        y: root.height + MaterialStyleMetrics.spacing_6;
+        width: max(root.select-width, HubTokens.input-width / 2);
+        items: root.menu-items;
+
+        activated(index) => {
+            menu.close();
+            root.selected-index(index);
+            if index >= 0 && index < root.options.length {
+                root.selected(root.options[index].id);
+            }
+        }
+    }
+}
+
+export component DropDownButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon-image;
+    in property <bool> has-icon-image: false;
+    in property <bool> active: false;
+    in property <length> button-width: HubTokens.input-width * 2 / 5;
+    callback clicked;
+
+    width: root.button-width;
+    height: HubTokens.control-md;
+    clip: true;
+
+    if root.active: TonalButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.icon-image;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    if !root.active: OutlineButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.icon-image;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component SegmentButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> active;
+    callback clicked;
+
+    private property <int> selected-index: root.active ? 0 : -1;
+
+    height: HubTokens.control-md;
+    min-width: MaterialStyleMetrics.size_80;
+    clip: true;
+
+    material-segment := SegmentedButton {
+        width: parent.width;
+        height: parent.height;
+        current_index <=> root.selected-index;
+        items: [{ text: root.text }];
+        index_changed(index) => {
+            root.clicked();
+        }
+    }
+
+    changed active => {
+        root.selected-index = root.active ? 0 : -1;
+    }
+}

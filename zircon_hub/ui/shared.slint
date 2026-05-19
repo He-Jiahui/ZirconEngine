@@ -1,3 +1,15 @@
+import {
+    FilledButton,
+    FilledIconButton,
+    OutlineButton,
+    OutlineIconButton,
+    TonalButton,
+    TonalIconButton,
+    MaterialPalette,
+    MaterialStyleMetrics,
+    MaterialTypography,
+} from "material_bridge.slint";
+
 export struct NavItemData {
     id: string,
     title: string,
@@ -12,10 +24,14 @@ export struct ProjectCardData {
     project-path: string,
     modified: string,
     version: string,
+    engine-id: string,
+    engine-label: string,
     platform: string,
     cover-image: image,
     has-cover: bool,
     selected: bool,
+    pinned: bool,
+    missing: bool,
     accent: int,
 }
 
@@ -24,9 +40,43 @@ export struct RecentProjectRowData {
     project-path: string,
     modified: string,
     version: string,
+    engine-id: string,
+    engine-label: string,
     cover-image: image,
     has-cover: bool,
     selected: bool,
+    pinned: bool,
+    missing: bool,
+    can-open: bool,
+    can-delete: bool,
+    accent: int,
+}
+
+export struct ProjectTemplateData {
+    id: string,
+    title: string,
+    category: string,
+    description: string,
+    enabled: bool,
+    selected: bool,
+}
+
+export struct ProjectDetailData {
+    title: string,
+    project-path: string,
+    modified: string,
+    version: string,
+    engine-id: string,
+    engine-label: string,
+    status: string,
+    cover-image: image,
+    has-cover: bool,
+    selected: bool,
+    pinned: bool,
+    missing: bool,
+    can-open: bool,
+    can-delete: bool,
+    pending-delete: bool,
     accent: int,
 }
 
@@ -162,6 +212,8 @@ export struct UiTextData {
     projects-empty-detail: string,
     project-list: string,
     recent-projects: string,
+    all-projects-label: string,
+    existing-projects-label: string,
     name-column: string,
     engine-version-column: string,
     last-modified-column: string,
@@ -181,6 +233,38 @@ export struct UiTextData {
     no-projects-match: string,
     show-more-projects: string,
     collapse-projects: string,
+    new-project-title: string,
+    new-project-subtitle: string,
+    project-settings-title: string,
+    project-settings-subtitle: string,
+    project-summary-title: string,
+    project-summary-subtitle: string,
+    selected-template: string,
+    ready-to-create: string,
+    complete-project-settings: string,
+    register-source-engine-before-create: string,
+    templates-title: string,
+    selected-label: string,
+    soon-label: string,
+    pinned-label: string,
+    not-pinned-label: string,
+    missing-label: string,
+    project-browser-title: string,
+    project-browser-subtitle: string,
+    project-detail-title: string,
+    project-info-title: string,
+    project-info-subtitle: string,
+    project-status: string,
+    bound-source-engine: string,
+    no-source-engine-available: string,
+    project-actions-title: string,
+    pin-project: string,
+    unpin-project: string,
+    remove-from-hub: string,
+    delete-project: string,
+    confirm-delete: string,
+    cancel-delete: string,
+    recycle-bin-delete-detail: string,
     modified-prefix: string,
     editor-actions: string,
     save-source: string,
@@ -264,9 +348,9 @@ export struct UiTextData {
 }
 
 export component BrandMark inherits Rectangle {
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
+    width: MaterialStyleMetrics.size_36;
+    height: root.width;
+    border-radius: MaterialStyleMetrics.border_radius_8;
     background: transparent;
 
     Image {
@@ -281,7 +365,7 @@ export component CenteredIcon inherits Rectangle {
     in property <image> source-image;
     in property <image> fallback-image: @image-url("../assets/icons/ui/alert.svg");
     in property <bool> has-source-image: false;
-    in property <length> icon-size: 18px;
+    in property <length> icon-size: MaterialStyleMetrics.icon_size_18;
 
     clip: true;
 
@@ -323,45 +407,50 @@ export component PillButton inherits Rectangle {
     in property <bool> enabled: true;
     callback clicked;
 
-    min-width: 110px;
-    height: 36px;
-    border-radius: 7px;
-    border-width: 1px;
-    border-color: primary ? #1caaa3 : #333841;
-    background: !enabled ? #1d2228 : (primary ? (area.pressed ? #08756f : (area.has-hover ? #0a8f88 : #086b66)) : (area.pressed ? #242a31 : (area.has-hover ? #22272e : #181c22)));
+    height: MaterialStyleMetrics.size_40;
+    min-width: root.height * 3;
+    preferred-width: root.height * 4;
+    clip: true;
 
-    HorizontalLayout {
+    if root.primary && (root.has-icon-image || root.icon != ""): FilledButton {
         width: parent.width;
         height: parent.height;
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 8px;
-        alignment: center;
-
-        if root.has-icon-image || root.icon != "": CenteredIcon {
-            width: 18px;
-            height: parent.height;
-            icon-size: 18px;
-            source-image: root.icon-image;
-            has-source-image: root.has-icon-image;
-            fallback-image: @image-url("../assets/icons/ui/alert.svg");
-        }
-
-        Text {
-            text: root.text;
-            color: root.enabled ? #f2f5f7 : #767d86;
-            font-size: 14px;
-            font-weight: 600;
-            vertical-alignment: center;
+        text: root.text;
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
         }
     }
 
-    area := TouchArea {
+    if root.primary && !(root.has-icon-image || root.icon != ""): FilledButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
         enabled: root.enabled;
         clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
+            root.clicked();
+        }
+    }
+
+    if !root.primary && (root.has-icon-image || root.icon != ""): TonalButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    if !root.primary && !(root.has-icon-image || root.icon != ""): TonalButton {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
         }
     }
 }
@@ -374,28 +463,27 @@ export component IconButton inherits Rectangle {
     in property <bool> enabled: true;
     callback clicked;
 
-    width: 36px;
-    height: 36px;
-    border-radius: 7px;
-    border-width: 1px;
-    border-color: active ? #13aaa2 : (area.has-hover ? #424852 : #30353d);
-    background: !enabled ? #1a1e24 : (active ? #073e3d : (area.pressed ? #252b33 : (area.has-hover ? #20262d : #171b21)));
+    width: MaterialStyleMetrics.size_40;
+    height: root.width;
+    clip: true;
 
-    CenteredIcon {
+    if root.active: FilledIconButton {
         width: parent.width;
         height: parent.height;
-        icon-size: 18px;
-        source-image: root.icon-image;
-        has-source-image: root.has-icon-image;
-        fallback-image: @image-url("../assets/icons/ui/alert.svg");
-    }
-
-    area := TouchArea {
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
         enabled: root.enabled;
         clicked => {
-            if (root.enabled) {
-                root.clicked();
-            }
+            root.clicked();
+        }
+    }
+
+    if !root.active: TonalIconButton {
+        width: parent.width;
+        height: parent.height;
+        icon: root.has-icon-image ? root.icon-image : @image-url("../assets/icons/ui/alert.svg");
+        enabled: root.enabled;
+        clicked => {
+            root.clicked();
         }
     }
 }
@@ -405,11 +493,11 @@ export component NavButton inherits Rectangle {
     in property <bool> collapsed: false;
     callback clicked(string);
 
-    height: 46px;
-    border-radius: 8px;
-    border-width: root.item.active ? 1px : 0px;
-    border-color: #1ec8be;
-    background: root.item.active ? #0a4644 : (area.has-hover ? #1b2027 : transparent);
+    height: MaterialStyleMetrics.size_56;
+    border-radius: root.height / 2;
+    border-width: root.item.active ? MaterialStyleMetrics.size_1 : 0px;
+    border-color: MaterialPalette.primary;
+    background: root.item.active ? MaterialPalette.secondary_container : (area.has-hover ? MaterialPalette.surface_container_high : transparent);
 
     if root.collapsed: HorizontalLayout {
         width: parent.width;
@@ -419,7 +507,7 @@ export component NavButton inherits Rectangle {
         CenteredIcon {
             width: parent.width;
             height: parent.height;
-            icon-size: 24px;
+            icon-size: MaterialStyleMetrics.icon_size_24;
             source-image: root.item.icon-image;
             has-source-image: root.item.has-icon-image;
             fallback-image: @image-url("../assets/icons/nav/projects.svg");
@@ -429,15 +517,15 @@ export component NavButton inherits Rectangle {
     if !root.collapsed: HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 14px;
-        padding-right: 12px;
-        spacing: 12px;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_24;
+        spacing: MaterialStyleMetrics.spacing_12;
         alignment: start;
 
         CenteredIcon {
-            width: 24px;
+            width: MaterialStyleMetrics.icon_size_24;
             height: parent.height;
-            icon-size: 24px;
+            icon-size: MaterialStyleMetrics.icon_size_24;
             source-image: root.item.icon-image;
             has-source-image: root.item.has-icon-image;
             fallback-image: @image-url("../assets/icons/nav/projects.svg");
@@ -445,9 +533,9 @@ export component NavButton inherits Rectangle {
 
         Text {
             text: root.item.title;
-            color: root.item.active ? #f5fbff : #c3c9d1;
-            font-size: 14px;
-            font-weight: root.item.active ? 700 : 500;
+            color: root.item.active ? MaterialPalette.on_secondary_container : MaterialPalette.on_surface_variant;
+            font-size: MaterialTypography.label_large.font_size;
+            font-weight: MaterialTypography.label_large.font_weight;
             vertical-alignment: center;
             overflow: elide;
             horizontal-stretch: 1;
@@ -455,6 +543,9 @@ export component NavButton inherits Rectangle {
     }
 
     area := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
         clicked => {
             root.clicked(root.item.id);
         }
@@ -468,25 +559,25 @@ export component StatusPill inherits Rectangle {
     in property <string> text;
     in property <color> accent-color;
 
-    min-width: 88px;
-    height: 36px;
-    border-radius: 8px;
-    border-width: 1px;
+    height: MaterialStyleMetrics.size_40;
+    min-width: root.height * 5 / 2;
+    border-radius: root.height / 2;
+    border-width: MaterialStyleMetrics.size_1;
     border-color: root.accent-color;
-    background: #171b20;
+    background: MaterialPalette.surface_container_low;
 
     HorizontalLayout {
         width: parent.width;
         height: parent.height;
-        padding-left: 14px;
-        padding-right: 14px;
-        spacing: 8px;
+        padding-left: MaterialStyleMetrics.padding_16;
+        padding-right: MaterialStyleMetrics.padding_16;
+        spacing: MaterialStyleMetrics.spacing_8;
         alignment: center;
 
         CenteredIcon {
-            width: 18px;
+            width: MaterialStyleMetrics.icon_size_18;
             height: parent.height;
-            icon-size: 18px;
+            icon-size: MaterialStyleMetrics.icon_size_18;
             source-image: root.icon-image;
             has-source-image: root.has-icon-image;
             fallback-image: @image-url("../assets/icons/status/running.svg");
@@ -495,8 +586,8 @@ export component StatusPill inherits Rectangle {
         Text {
             text: root.text;
             color: root.accent-color;
-            font-size: 13px;
-            font-weight: 700;
+            font-size: MaterialTypography.label_large.font_size;
+            font-weight: MaterialTypography.label_large.font_weight;
             vertical-alignment: center;
         }
     }
@@ -509,14 +600,14 @@ export component WindowButton inherits Rectangle {
     in property <bool> danger: false;
     callback clicked;
 
-    width: 36px;
-    height: 36px;
-    background: root.danger && area.has-hover ? #6d2025 : (area.has-hover ? #242a31 : transparent);
+    width: MaterialStyleMetrics.size_40;
+    height: root.width;
+    background: root.danger && area.has-hover ? MaterialPalette.error_container : (area.has-hover ? MaterialPalette.surface_container_high : transparent);
 
     CenteredIcon {
         width: parent.width;
         height: parent.height;
-        icon-size: 16px;
+        icon-size: MaterialStyleMetrics.icon_size_18;
         source-image: root.icon-image;
         has-source-image: root.has-icon-image;
         fallback-image: @image-url("../assets/icons/ui/close.svg");
@@ -530,19 +621,19 @@ export component WindowButton inherits Rectangle {
 }
 
 export component Panel inherits Rectangle {
-    border-radius: 8px;
-    border-width: 1px;
-    border-color: #343942;
-    background: #181c22;
+    border-radius: MaterialStyleMetrics.border_radius_12;
+    border-width: MaterialStyleMetrics.size_1;
+    border-color: MaterialPalette.outline_variant;
+    background: MaterialPalette.surface_container_low;
 }
 
 export component FieldLabel inherits Text {
-    color: #f2f5f7;
-    font-size: 13px;
-    font-weight: 700;
+    color: MaterialPalette.on_surface;
+    font-size: MaterialTypography.label_large.font_size;
+    font-weight: MaterialTypography.label_large.font_weight;
 }
 
 export component MutedText inherits Text {
-    color: #9fa7b2;
-    font-size: 12px;
+    color: MaterialPalette.on_surface_variant;
+    font-size: MaterialTypography.body_small.font_size;
 }

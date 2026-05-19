@@ -6,6 +6,8 @@ use crate::error::HubError;
 
 const ASSET_CATALOG_LIMIT: usize = 256;
 const PROJECT_ASSET_DIRS: &[&str] = &["Assets", "assets"];
+pub const SELECTED_PROJECT_ASSET_SOURCE: &str = "Selected Project";
+pub const PROJECT_ASSET_SOURCE: &str = "Project";
 const ENGINE_ASSET_ROOTS: &[(&str, &[&str])] = &[
     ("Editor", &["zircon_editor", "assets"]),
     ("Runtime", &["zircon_runtime", "assets"]),
@@ -29,14 +31,37 @@ where
     P: IntoIterator<Item = PathBuf>,
     R: IntoIterator<Item = PathBuf>,
 {
+    discover_asset_catalog_for_scope(None, project_roots, repo_roots)
+}
+
+pub fn discover_asset_catalog_for_scope<P, R>(
+    selected_project_root: Option<PathBuf>,
+    project_roots: P,
+    repo_roots: R,
+) -> Result<Vec<AssetCatalogEntry>, HubError>
+where
+    P: IntoIterator<Item = PathBuf>,
+    R: IntoIterator<Item = PathBuf>,
+{
     let mut entries = Vec::new();
     let mut visited_roots = HashSet::new();
 
+    if let Some(project_root) = selected_project_root {
+        collect_project_asset_roots(
+            SELECTED_PROJECT_ASSET_SOURCE,
+            &project_root,
+            &mut visited_roots,
+            &mut entries,
+        )?;
+    }
+
     for project_root in project_roots {
-        for asset_dir in PROJECT_ASSET_DIRS {
-            let root = project_root.join(asset_dir);
-            collect_asset_root("Project", &root, &mut visited_roots, &mut entries)?;
-        }
+        collect_project_asset_roots(
+            PROJECT_ASSET_SOURCE,
+            &project_root,
+            &mut visited_roots,
+            &mut entries,
+        )?;
     }
 
     for repo_root in repo_roots {
@@ -57,6 +82,19 @@ where
     });
     entries.truncate(ASSET_CATALOG_LIMIT);
     Ok(entries)
+}
+
+fn collect_project_asset_roots(
+    source: &str,
+    project_root: &Path,
+    visited_roots: &mut HashSet<String>,
+    entries: &mut Vec<AssetCatalogEntry>,
+) -> Result<(), HubError> {
+    for asset_dir in PROJECT_ASSET_DIRS {
+        let root = project_root.join(asset_dir);
+        collect_asset_root(source, &root, visited_roots, entries)?;
+    }
+    Ok(())
 }
 
 fn collect_asset_root(
@@ -211,6 +249,35 @@ mod tests {
         fs::remove_dir_all(project_root).unwrap();
 
         assert!(entries.is_empty());
+    }
+
+    #[test]
+    fn discover_asset_catalog_labels_selected_project_assets() {
+        let selected_project_root = temp_dir("asset-selected");
+        let other_project_root = temp_dir("asset-other");
+        fs::create_dir_all(selected_project_root.join("Assets")).unwrap();
+        fs::write(selected_project_root.join("Assets").join("hero.glb"), "model").unwrap();
+        fs::create_dir_all(other_project_root.join("assets")).unwrap();
+        fs::write(other_project_root.join("assets").join("ambient.ogg"), "audio").unwrap();
+
+        let entries = discover_asset_catalog_for_scope(
+            Some(selected_project_root.clone()),
+            [selected_project_root.clone(), other_project_root.clone()],
+            Vec::<PathBuf>::new(),
+        )
+        .unwrap();
+        fs::remove_dir_all(selected_project_root).unwrap();
+        fs::remove_dir_all(other_project_root).unwrap();
+
+        assert!(entries.iter().any(|entry| {
+            entry.name == "hero.glb" && entry.source == SELECTED_PROJECT_ASSET_SOURCE
+        }));
+        assert!(entries
+            .iter()
+            .any(|entry| entry.name == "ambient.ogg" && entry.source == PROJECT_ASSET_SOURCE));
+        assert!(!entries
+            .iter()
+            .any(|entry| entry.name == "hero.glb" && entry.source == PROJECT_ASSET_SOURCE));
     }
 
     fn temp_dir(label: &str) -> PathBuf {

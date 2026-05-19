@@ -33,6 +33,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::AlphaMask3d,
             RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
+            RenderPassStage::Ui,
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
         ]
@@ -51,8 +52,11 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "opaque-mesh",
             "alpha-mask-mesh",
             "transparent-mesh",
+            "post-process",
             "bloom-extract",
             "color-grade",
+            "fxaa",
+            "runtime-ui",
             "overlay-gizmo",
         ]
     );
@@ -63,6 +67,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
             "geometry".to_string(),
             "lighting".to_string(),
             "post_process".to_string(),
+            "ui".to_string(),
             "view".to_string(),
             "visibility".to_string(),
         ]
@@ -88,6 +93,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             RenderPassStage::Lighting,
             RenderPassStage::Transparent3d,
             RenderPassStage::PostProcess,
+            RenderPassStage::Ui,
             RenderPassStage::Overlay,
             RenderPassStage::Debug,
         ]
@@ -107,8 +113,11 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "clustered-light-culling",
             "deferred-lighting",
             "transparent-mesh",
+            "post-process",
             "bloom-extract",
             "color-grade",
+            "fxaa",
+            "runtime-ui",
             "overlay-gizmo",
         ]
     );
@@ -119,6 +128,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
             "geometry".to_string(),
             "lighting".to_string(),
             "post_process".to_string(),
+            "ui".to_string(),
             "view".to_string(),
             "visibility".to_string(),
         ]
@@ -154,6 +164,8 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
             ("opaque-sprite", Some("sprite.opaque")),
             ("alpha-mask-sprite", Some("sprite.alpha-mask")),
             ("transparent-sprite", Some("sprite.transparent")),
+            ("post-process", Some("post.stack")),
+            ("runtime-ui", Some("ui.screen-space")),
             ("overlay-gizmo", Some("overlay.gizmo")),
         ]
     );
@@ -161,7 +173,9 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
         compiled.required_extract_sections,
         vec![
             "debug".to_string(),
+            "post_process".to_string(),
             "sprites".to_string(),
+            "ui".to_string(),
             "view".to_string(),
             "visibility".to_string(),
         ]
@@ -179,7 +193,6 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
             BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
             BuiltinRenderFeature::ReflectionProbes,
             BuiltinRenderFeature::BakedLighting,
-            BuiltinRenderFeature::PostProcess,
         ] {
             assert!(
                 !pipeline
@@ -188,6 +201,22 @@ fn default_pipeline_assets_do_not_embed_pluginized_advanced_builtin_features() {
                     .iter()
                     .any(|asset| asset.is_builtin(feature)),
                 "{} should receive {:?} from rendering plugin descriptors",
+                pipeline.name,
+                feature
+            );
+        }
+        for feature in [
+            BuiltinRenderFeature::PostProcess,
+            BuiltinRenderFeature::AntiAlias,
+            BuiltinRenderFeature::Ui,
+        ] {
+            assert!(
+                pipeline
+                    .renderer
+                    .features
+                    .iter()
+                    .any(|asset| asset.is_builtin(feature)),
+                "{} should keep {:?} in the product render graph",
                 pipeline.name,
                 feature
             );
@@ -248,6 +277,8 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
             "baked-lighting-composite",
             "post-process",
             "color-grade",
+            "fxaa",
+            "runtime-ui",
             "overlay-gizmo",
         ]
     );
@@ -286,6 +317,8 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
             "baked-lighting-composite",
             "post-process",
             "color-grade",
+            "fxaa",
+            "runtime-ui",
             "overlay-gizmo",
         ]
     );
@@ -479,6 +512,7 @@ fn compiled_pipeline_collects_enabled_plugin_feature_capability_requirements() {
         hybrid_gi_render_feature_descriptor(),
     ]);
     let options = RenderPipelineCompileOptions::default()
+        .with_feature_disabled(BuiltinRenderFeature::AntiAlias)
         .with_capability_enabled(RenderFeatureCapabilityRequirement::VirtualGeometry)
         .with_capability_enabled(RenderFeatureCapabilityRequirement::HybridGlobalIllumination);
 

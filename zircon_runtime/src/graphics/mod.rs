@@ -13,6 +13,7 @@ pub(crate) mod runtime;
 mod runtime_prepare_collector;
 pub(crate) mod scene;
 pub(crate) mod shader;
+pub(crate) mod solari_runtime_provider;
 pub(crate) mod types;
 pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;
@@ -55,6 +56,7 @@ pub use scene::{
     RenderPassGpuExecutionContext, SceneRenderer,
 };
 pub use shader::{MaterialGraphAsset, ShaderGraphAsset, ShaderProgramAsset, ShaderVariantKey};
+pub use solari_runtime_provider::{SolariRuntimeProvider, SolariRuntimeProviderRegistration};
 pub(crate) use types::ViewportRenderFrame;
 pub use types::{GpuResourceHandle, GraphicsError, ViewportFrame, ViewportFrameTextureHandle};
 pub use virtual_geometry_runtime_provider::{

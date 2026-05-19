@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 #[cfg(feature = "target-editor-host")]
 use zircon_editor::ui::host::EditorManager;
@@ -8,6 +9,9 @@ use zircon_editor::EDITOR_MANAGER_NAME;
 use zircon_runtime::core::framework::render::{
     RenderProductFeature, RenderProductProfile, RenderProfileBundle, RenderQualityProfile,
     RenderViewportDescriptor, RENDER_PROFILE_CONFIG_KEY,
+};
+use zircon_runtime::core::framework::window::{
+    WindowDescriptor, WindowResolution, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
 use zircon_runtime::core::manager::ManagerResolver;
 #[cfg(feature = "target-editor-host")]
@@ -19,6 +23,10 @@ use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::graphics::{
     BuiltinRenderFeature, RenderFeatureCapabilityRequirement, RenderFeatureDescriptor,
     RenderFeaturePassDescriptor, RenderPassStage, RenderPipelineAsset, RendererFeatureAsset,
+    VirtualGeometryRuntimeFeedback, VirtualGeometryRuntimePrepareInput,
+    VirtualGeometryRuntimePrepareOutput, VirtualGeometryRuntimeProvider,
+    VirtualGeometryRuntimeProviderRegistration, VirtualGeometryRuntimeState,
+    VirtualGeometryRuntimeUpdate,
 };
 use zircon_runtime::platform::{
     PlatformConfig, PlatformFeatureSelection, PlatformTarget, PLATFORM_CONFIG_KEY,
@@ -39,7 +47,10 @@ use zircon_runtime::{
     plugin::RuntimePluginRegistrationReport,
 };
 
-#[cfg(all(feature = "first-party-runtime-plugins", feature = "plugin-ui"))]
+#[cfg(any(
+    all(feature = "first-party-runtime-plugins", feature = "plugin-ui"),
+    feature = "first-party-advanced-render-runtime-plugins"
+))]
 use super::super::first_party_runtime_plugin_registrations_for_config;
 use super::super::{BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunner};
 
@@ -203,6 +214,120 @@ fn runtime_profile_bootstrap_can_link_optional_first_party_runtime_plugins() {
         .any(|descriptor| descriptor.name == "ParticlesModule"));
 }
 
+#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
+#[test]
+fn render_profile_runtime_plugins_do_not_link_advanced_providers_for_default_render() {
+    let config = EntryConfig::new(EntryProfile::Runtime);
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+
+    assert!(registrations
+        .iter()
+        .all(|registration| registration.package_manifest.id != "virtual_geometry"));
+    assert!(registrations
+        .iter()
+        .all(|registration| registration.package_manifest.id != "hybrid_gi"));
+}
+
+#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
+#[test]
+fn render_profile_runtime_plugins_link_advanced_providers_when_advanced_render_is_selected() {
+    let config = EntryConfig::new(EntryProfile::Runtime)
+        .with_render_profile(RenderProfileBundle::advanced_render());
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+    let ids = registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi"]);
+    assert!(registrations
+        .iter()
+        .all(RuntimePluginRegistrationReport::is_success));
+    assert_eq!(
+        registrations[0]
+            .extensions
+            .virtual_geometry_runtime_providers()
+            .len(),
+        1
+    );
+    assert_eq!(
+        registrations[1]
+            .extensions
+            .hybrid_gi_runtime_providers()
+            .len(),
+        1
+    );
+
+    let diagnostics =
+        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
+            config,
+        )
+        .expect("advanced render provider registrations should satisfy diagnostics");
+
+    assert!(diagnostics.contains("module=VirtualGeometryPluginModule"));
+    assert!(diagnostics.contains("module=HybridGiPluginModule"));
+}
+
+#[cfg(feature = "first-party-advanced-render-runtime-plugins")]
+#[test]
+fn render_profile_runtime_plugins_link_solari_provider_when_solari_experimental_is_selected() {
+    let config = EntryConfig::new(EntryProfile::Runtime)
+        .with_render_profile(RenderProfileBundle::solari_experimental());
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+    let ids = registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+
+    assert_eq!(ids, vec!["virtual_geometry", "hybrid_gi", "solari"]);
+    assert!(registrations
+        .iter()
+        .all(RuntimePluginRegistrationReport::is_success));
+    assert_eq!(
+        registrations[2].extensions.solari_runtime_providers().len(),
+        1
+    );
+
+    let diagnostics =
+        EntryRunner::module_selection_diagnostics_with_first_party_runtime_plugin_registrations(
+            config,
+        )
+        .expect("solari experimental provider registrations should satisfy diagnostics");
+
+    assert!(diagnostics.contains("module=VirtualGeometryPluginModule"));
+    assert!(diagnostics.contains("module=HybridGiPluginModule"));
+    assert!(diagnostics.contains("module=SolariPluginModule"));
+}
+
+#[cfg(all(
+    feature = "first-party-runtime-plugins",
+    feature = "first-party-advanced-render-runtime-plugins",
+    feature = "plugin-ui"
+))]
+#[test]
+fn render_profile_runtime_plugins_merge_runtime_profile_baseline_with_advanced_providers() {
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Client3d)
+        .with_render_profile(RenderProfileBundle::advanced_render());
+    let registrations = first_party_runtime_plugin_registrations_for_config(&config);
+    let ids = registrations
+        .iter()
+        .map(|registration| registration.package_manifest.id.as_str())
+        .collect::<Vec<_>>();
+
+    for expected in [
+        "sound",
+        "rendering",
+        "texture",
+        "virtual_geometry",
+        "hybrid_gi",
+    ] {
+        assert!(
+            ids.contains(&expected),
+            "missing first-party registration {expected}"
+        );
+    }
+}
+
 #[cfg(all(
     feature = "first-party-runtime-plugins",
     feature = "first-party-navigation-runtime-plugin",
@@ -349,6 +474,38 @@ fn entry_config_can_select_headless_render_profile_bundle() {
 }
 
 #[test]
+fn runtime_bootstrap_stores_primary_window_descriptor() {
+    let descriptor = WindowDescriptor::default()
+        .with_title("Runtime Config Window")
+        .with_resolution(WindowResolution::new(1600, 900));
+    let core = EntryRunner::bootstrap(
+        EntryConfig::new(EntryProfile::Runtime).with_window_descriptor(descriptor.clone()),
+    )
+    .unwrap();
+    let stored = core
+        .load_config::<WindowDescriptor>(PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY)
+        .expect("runtime bootstrap should store the selected primary window descriptor");
+
+    assert_eq!(stored, descriptor);
+    assert_eq!(stored.title, "Runtime Config Window");
+    assert_eq!(stored.resolution.physical_size(), UVec2::new(1600, 900));
+}
+
+#[test]
+fn headless_bootstrap_stores_absent_primary_window_descriptor() {
+    let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Headless)).unwrap();
+    let descriptor = core
+        .load_config::<WindowDescriptor>(PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY)
+        .expect("headless bootstrap should store a diagnostic window descriptor");
+
+    assert_eq!(descriptor.primary_window, None);
+    assert!(!descriptor.visible);
+    assert!(descriptor
+        .format_diagnostics()
+        .contains("window.primary_window=none"));
+}
+
+#[test]
 fn headless_bootstrap_stores_headless_platform_config() {
     let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Headless)).unwrap();
     let platform_config = core
@@ -471,6 +628,13 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
         .last_effective_features
         .iter()
         .any(|feature| feature == "virtual_geometry"));
+    assert_eq!(
+        stats
+            .advanced_provider_availability
+            .virtual_geometry_provider_id
+            .as_deref(),
+        Some("virtual_geometry")
+    );
     assert!(stats
         .last_graph_executed_passes
         .iter()
@@ -604,7 +768,41 @@ impl RuntimePlugin for LinkedVirtualGeometryPlugin {
                 .with_side_effects()],
             )
             .with_capability_requirement(RenderFeatureCapabilityRequirement::VirtualGeometry),
+        )?;
+        registry.register_virtual_geometry_runtime_provider(
+            VirtualGeometryRuntimeProviderRegistration::new(
+                "virtual_geometry",
+                Arc::new(LinkedVirtualGeometryRuntimeProvider),
+            ),
         )
+    }
+}
+
+#[derive(Debug)]
+struct LinkedVirtualGeometryRuntimeProvider;
+
+impl VirtualGeometryRuntimeProvider for LinkedVirtualGeometryRuntimeProvider {
+    fn create_state(&self) -> Box<dyn VirtualGeometryRuntimeState> {
+        Box::new(LinkedVirtualGeometryRuntimeState)
+    }
+}
+
+#[derive(Debug)]
+struct LinkedVirtualGeometryRuntimeState;
+
+impl VirtualGeometryRuntimeState for LinkedVirtualGeometryRuntimeState {
+    fn prepare_frame(
+        &mut self,
+        _input: VirtualGeometryRuntimePrepareInput<'_>,
+    ) -> VirtualGeometryRuntimePrepareOutput {
+        VirtualGeometryRuntimePrepareOutput::default()
+    }
+
+    fn update_after_render(
+        &mut self,
+        _feedback: VirtualGeometryRuntimeFeedback,
+    ) -> VirtualGeometryRuntimeUpdate {
+        VirtualGeometryRuntimeUpdate::default()
     }
 }
 

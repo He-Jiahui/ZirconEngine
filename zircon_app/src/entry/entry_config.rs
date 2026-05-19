@@ -1,11 +1,15 @@
 use super::entry_profile::EntryProfile;
 use zircon_runtime::{
-    core::framework::render::RenderProfileBundle, plugin::ExportProfile,
-    plugin::ProjectPluginManifest, plugin::ProjectPluginSelection,
-    plugin::RuntimeProfileDescriptor, plugin::RuntimeProfileId, RuntimePluginId, RuntimeTargetMode,
+    core::framework::{render::RenderProfileBundle, window::WindowDescriptor},
+    plugin::ExportProfile,
+    plugin::ProjectPluginManifest,
+    plugin::ProjectPluginSelection,
+    plugin::RuntimeProfileDescriptor,
+    plugin::RuntimeProfileId,
+    RuntimePluginId, RuntimeTargetMode,
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct EntryConfig {
     pub profile: EntryProfile,
     pub runtime_profile: Option<RuntimeProfileId>,
@@ -13,6 +17,7 @@ pub struct EntryConfig {
     pub project_plugins: Option<ProjectPluginManifest>,
     pub export_profile: Option<ExportProfile>,
     pub render_profile: RenderProfileBundle,
+    pub window_descriptor: WindowDescriptor,
     pub editor_enabled_subsystems: Option<Vec<String>>,
     pub editor_runtime_sandbox_enabled: bool,
 }
@@ -26,6 +31,7 @@ impl EntryConfig {
             project_plugins: None,
             export_profile: None,
             render_profile: default_render_profile_for_profile(profile),
+            window_descriptor: default_window_descriptor_for_profile(profile),
             editor_enabled_subsystems: None,
             editor_runtime_sandbox_enabled: true,
         }
@@ -40,12 +46,19 @@ impl EntryConfig {
         self.runtime_profile = Some(profile_id);
         self.target_mode = profile.target_mode;
         self.project_plugins = Some(profile.project_manifest());
+        if matches!(
+            profile_id,
+            RuntimeProfileId::Minimal | RuntimeProfileId::Server
+        ) {
+            self.window_descriptor = WindowDescriptor::default().without_primary_window();
+        }
         self
     }
 
     pub fn with_target_mode(mut self, target_mode: RuntimeTargetMode) -> Self {
         self.runtime_profile = None;
         self.target_mode = target_mode;
+        self.apply_window_descriptor_target_policy();
         self
     }
 
@@ -111,12 +124,18 @@ impl EntryConfig {
     pub fn with_export_profile(mut self, export_profile: ExportProfile) -> Self {
         self.runtime_profile = None;
         self.target_mode = export_profile.target_mode;
+        self.apply_window_descriptor_target_policy();
         self.export_profile = Some(export_profile);
         self
     }
 
     pub fn with_render_profile(mut self, render_profile: RenderProfileBundle) -> Self {
         self.render_profile = render_profile;
+        self
+    }
+
+    pub fn with_window_descriptor(mut self, window_descriptor: WindowDescriptor) -> Self {
+        self.window_descriptor = window_descriptor;
         self
     }
 
@@ -155,6 +174,12 @@ impl EntryConfig {
             })
             .unwrap_or_default()
     }
+
+    fn apply_window_descriptor_target_policy(&mut self) {
+        if matches!(self.target_mode, RuntimeTargetMode::ServerRuntime) {
+            self.window_descriptor = WindowDescriptor::default().without_primary_window();
+        }
+    }
 }
 
 const fn entry_profile_for_runtime_profile(profile_id: RuntimeProfileId) -> EntryProfile {
@@ -179,5 +204,12 @@ fn default_render_profile_for_profile(profile: EntryProfile) -> RenderProfileBun
     match profile {
         EntryProfile::Editor | EntryProfile::Runtime => RenderProfileBundle::default_render(),
         EntryProfile::Headless => RenderProfileBundle::headless(),
+    }
+}
+
+fn default_window_descriptor_for_profile(profile: EntryProfile) -> WindowDescriptor {
+    match profile {
+        EntryProfile::Editor | EntryProfile::Runtime => WindowDescriptor::default(),
+        EntryProfile::Headless => WindowDescriptor::default().without_primary_window(),
     }
 }

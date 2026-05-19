@@ -324,9 +324,11 @@ fn bvh_connector_color(node: &RenderVirtualGeometryBvhVisualizationNode) -> Vec4
 mod tests {
     use super::*;
     use crate::core::framework::render::{
-        FallbackSkyboxKind, PreviewEnvironmentExtract, RenderOverlayExtract, RenderPipelineHandle,
-        RenderPluginRendererOutputs, RenderVirtualGeometryNodeClusterCullReadbackOutputs,
-        RenderVirtualGeometryReadbackOutputs, SceneViewportRenderPacket, ViewportCameraSnapshot,
+        AdvancedProfileRuntimePlan, AdvancedProviderAvailability, FallbackSkyboxKind,
+        PreviewEnvironmentExtract, RenderCapabilitySummary, RenderOverlayExtract,
+        RenderPipelineHandle, RenderPluginRendererOutputs, RenderProfileBundle,
+        RenderVirtualGeometryNodeClusterCullReadbackOutputs, RenderVirtualGeometryReadbackOutputs,
+        SceneViewportRenderPacket, ViewportCameraSnapshot,
     };
     use crate::core::math::UVec2;
     use crate::graphics::{CompiledRenderPipeline, RenderPassStage};
@@ -351,10 +353,14 @@ mod tests {
             Default::default(),
             Default::default(),
             Default::default(),
+            advanced_runtime_plan_with_virtual_geometry(),
+            Default::default(),
+            Default::default(),
             Default::default(),
             false,
             true,
             None,
+            Default::default(),
             None,
             None,
             Vec::new(),
@@ -364,6 +370,7 @@ mod tests {
             Vec::new(),
             Vec::new(),
             None,
+            Default::default(),
             Vec::new(),
             Vec::new(),
             None,
@@ -420,6 +427,23 @@ mod tests {
             history_bindings: Vec::new(),
             graph,
         }
+    }
+
+    fn advanced_runtime_plan_with_virtual_geometry() -> AdvancedProfileRuntimePlan {
+        AdvancedProfileRuntimePlan::from_profile_bundle(
+            &RenderProfileBundle::advanced_render(),
+            &RenderCapabilitySummary {
+                virtual_geometry_supported: true,
+                hybrid_global_illumination_supported: true,
+                supports_storage_buffers: true,
+                supports_indirect_draw: true,
+                supports_buffer_readback: true,
+                ..RenderCapabilitySummary::default()
+            },
+            &AdvancedProviderAvailability::new()
+                .with_virtual_geometry_provider("vg")
+                .with_hybrid_gi_provider("hgi"),
+        )
     }
 
     fn empty_scene_snapshot() -> SceneViewportRenderPacket {

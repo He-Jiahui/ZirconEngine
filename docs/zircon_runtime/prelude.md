@@ -11,6 +11,7 @@ related_code:
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/platform/mod.rs
   - zircon_runtime/src/core/framework/window/mod.rs
+  - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/core/framework/time/mod.rs
   - zircon_runtime/src/core/state/mod.rs
@@ -26,6 +27,7 @@ implementation_files:
   - zircon_runtime/src/core/mod.rs
   - zircon_runtime/src/core/tasks/report.rs
   - zircon_runtime/src/core/framework/window/mod.rs
+  - zircon_runtime/src/core/framework/window/constants.rs
   - zircon_runtime/src/core/framework/window/descriptor.rs
   - zircon_runtime/src/diagnostic_log/level.rs
   - zircon_runtime/src/diagnostic_log/settings.rs
@@ -73,7 +75,7 @@ The runtime prelude exports:
 - core runtime types such as `CoreRuntime`, `CoreHandle`, `ModuleDescriptor`, `RegistryName`, `DependencySpec`, `StartupMode`, and `LifecycleState`,
 - module/service helper contracts such as `EngineModule`, `EngineService`, `EngineDriver`, `EngineManager`, and descriptor-construction helpers,
 - current foundation utilities such as `JobScheduler`, `TaskPools`, `TaskPoolKind`, `FrameClock`, `FoundationModule`, and core descriptor modules for log, tasks, time, frame count, diagnostics, and development log diagnostics,
-- platform/window/input contracts such as `PlatformCapabilityMatrix`, `PlatformFeatureSelection`, `PlatformTarget`, `PlatformConfig`, `PLATFORM_CONFIG_KEY`, `WindowBackend`, `WindowDescriptor`, `WindowResolution`, `WindowResizeConstraints`, `WindowPresentMode`, `PrimaryWindowHandle`, `InputBackend`, `GamepadBackend`, `PlatformModule`, `InputModule`, `InputEvent`, `InputButton`, `InputFrameSnapshot`, and `DefaultInputManager`,
+- platform/window/input contracts such as `PlatformCapabilityMatrix`, `PlatformFeatureSelection`, `PlatformTarget`, `PlatformConfig`, `PLATFORM_CONFIG_KEY`, `WindowBackend`, `WindowDescriptor`, `WindowResolution`, `WindowResizeConstraints`, `WindowPresentMode`, `PrimaryWindowHandle`, `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY`, `InputBackend`, `GamepadBackend`, `PlatformModule`, `InputModule`, `InputEvent`, `InputButton`, `InputFrameSnapshot`, and `DefaultInputManager`,
 - state contracts `StateSpec`, `State`, `NextState`, `StateTransitionEvent`, `OnEnter`, `OnExit`, and `OnTransition`,
 - time contracts and runtime clock snapshots such as `Time`, `Real`, `Virtual`, `Fixed`, `FixedStepPlan`, `RuntimeTimeClocks`, and `RuntimeTimeAdvance`,
 - Bevy-style runtime Time diagnostic path constants such as `TIME_FRAME_COUNT_DIAGNOSTIC`, `TIME_FIXED_STEPS_DIAGNOSTIC`, `TIME_FRAME_TIME_DIAGNOSTIC`, and `TIME_FPS_DIAGNOSTIC`,
@@ -97,7 +99,7 @@ Current coverage includes:
 - diagnostic-log formatting helpers for runtime `DiagnosticStoreSnapshot` values;
 - diagnostic-log settings exports for `DiagnosticLogSettings`, its Bevy-aligned `LogSettings` alias, sink toggles, and stable settings diagnostics;
 - diagnostic-log cadence helpers for Bevy-style dev-profile diagnostic-store output;
-- platform/window/input exports for `PlatformCapabilityMatrix`, `PlatformFeatureSelection::bevy_default_platform()`, `PLATFORM_CONFIG_KEY`, desktop `Winit`/winit-input/`Gilrs` capability status, neutral `WindowDescriptor` / `PrimaryWindowHandle` defaults, `InputEvent`, `InputButton`, `PlatformModule`, and `InputModule`;
+- platform/window/input exports for `PlatformCapabilityMatrix`, `PlatformFeatureSelection::bevy_default_platform()`, `PLATFORM_CONFIG_KEY`, desktop `Winit`/winit-input/`Gilrs` capability status, neutral `WindowDescriptor` / `PrimaryWindowHandle` defaults, `PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY`, `InputEvent`, `InputButton`, `PlatformModule`, and `InputModule`;
 - runtime profile diagnostics for `RuntimeProfileDescriptor`, `RuntimeCoreProfile`, and `PluginMaturity`;
 - state transition exports for `State`, `NextState`, `OnEnter`, and `StateTransitionEvent`;
 - Time diagnostic path constants for frame count, fixed steps, frame time, and FPS, matching the runtime-owned Time diagnostics recorded by `CoreHandle::advance_time_by(...)`.

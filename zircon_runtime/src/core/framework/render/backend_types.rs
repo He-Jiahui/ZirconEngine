@@ -1,10 +1,11 @@
 use crate::core::math::UVec2;
 
 use super::{
+    AdvancedProviderAvailability, AdvancedProviderReport, AntiAliasFallbackReport,
     RenderFrameExtract, RenderVirtualGeometryClusterSelectionInputSource,
     RenderVirtualGeometryHardwareRasterizationSource,
     RenderVirtualGeometryNodeAndClusterCullSource, RenderVirtualGeometrySelectedClusterSource,
-    RenderVirtualGeometryVisBuffer64Source,
+    RenderVirtualGeometryVisBuffer64Source, SolariRuntimeReport, SolariSettings,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -89,11 +90,37 @@ pub enum RenderCapabilityKind {
     AccelerationStructures,
     InlineRayQuery,
     RayTracingPipeline,
+    BufferBindingArray,
+    TextureBindingArray,
+    NonUniformResourceIndexing,
+    PartiallyBoundBindingArray,
+    ScreenSpaceAntiAlias,
+    StorageBuffers,
+    IndirectDraw,
+    BufferReadback,
     AsyncCompute,
     AsyncCopy,
 }
 
 impl RenderCapabilityKind {
+    pub const ALL: [Self; 15] = [
+        Self::VirtualGeometry,
+        Self::HybridGlobalIllumination,
+        Self::AccelerationStructures,
+        Self::InlineRayQuery,
+        Self::RayTracingPipeline,
+        Self::BufferBindingArray,
+        Self::TextureBindingArray,
+        Self::NonUniformResourceIndexing,
+        Self::PartiallyBoundBindingArray,
+        Self::ScreenSpaceAntiAlias,
+        Self::StorageBuffers,
+        Self::IndirectDraw,
+        Self::BufferReadback,
+        Self::AsyncCompute,
+        Self::AsyncCopy,
+    ];
+
     pub const fn label(self) -> &'static str {
         match self {
             Self::VirtualGeometry => "virtual_geometry",
@@ -101,8 +128,36 @@ impl RenderCapabilityKind {
             Self::AccelerationStructures => "acceleration_structures",
             Self::InlineRayQuery => "inline_ray_query",
             Self::RayTracingPipeline => "ray_tracing_pipeline",
+            Self::BufferBindingArray => "buffer_binding_array",
+            Self::TextureBindingArray => "texture_binding_array",
+            Self::NonUniformResourceIndexing => "non_uniform_resource_indexing",
+            Self::PartiallyBoundBindingArray => "partially_bound_binding_array",
+            Self::ScreenSpaceAntiAlias => "screen_space_anti_alias",
+            Self::StorageBuffers => "storage_buffers",
+            Self::IndirectDraw => "indirect_draw",
+            Self::BufferReadback => "buffer_readback",
             Self::AsyncCompute => "async_compute",
             Self::AsyncCopy => "async_copy",
+        }
+    }
+
+    pub const fn capability_class(self) -> RenderCapabilityClass {
+        match self {
+            Self::ScreenSpaceAntiAlias => RenderCapabilityClass::Default,
+            Self::VirtualGeometry
+            | Self::HybridGlobalIllumination
+            | Self::StorageBuffers
+            | Self::IndirectDraw
+            | Self::BufferReadback
+            | Self::AsyncCompute
+            | Self::AsyncCopy => RenderCapabilityClass::Advanced,
+            Self::AccelerationStructures
+            | Self::InlineRayQuery
+            | Self::RayTracingPipeline
+            | Self::BufferBindingArray
+            | Self::TextureBindingArray
+            | Self::NonUniformResourceIndexing
+            | Self::PartiallyBoundBindingArray => RenderCapabilityClass::Experimental,
         }
     }
 
@@ -113,8 +168,33 @@ impl RenderCapabilityKind {
             Self::AccelerationStructures => capabilities.acceleration_structures_supported,
             Self::InlineRayQuery => capabilities.inline_ray_query,
             Self::RayTracingPipeline => capabilities.ray_tracing_pipeline,
+            Self::BufferBindingArray => capabilities.supports_buffer_binding_array,
+            Self::TextureBindingArray => capabilities.supports_texture_binding_array,
+            Self::NonUniformResourceIndexing => capabilities.supports_non_uniform_resource_indexing,
+            Self::PartiallyBoundBindingArray => capabilities.supports_partially_bound_binding_array,
+            Self::ScreenSpaceAntiAlias => capabilities.supports_fxaa,
+            Self::StorageBuffers => capabilities.supports_storage_buffers,
+            Self::IndirectDraw => capabilities.supports_indirect_draw,
+            Self::BufferReadback => capabilities.supports_buffer_readback,
             Self::AsyncCompute => capabilities.supports_async_compute,
             Self::AsyncCopy => capabilities.supports_async_copy,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum RenderCapabilityClass {
+    Default,
+    Advanced,
+    Experimental,
+}
+
+impl RenderCapabilityClass {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Default => "default",
+            Self::Advanced => "advanced",
+            Self::Experimental => "experimental",
         }
     }
 }
@@ -133,6 +213,10 @@ impl RenderCapabilityMismatchDetail {
     pub const fn label(self) -> &'static str {
         self.capability.label()
     }
+
+    pub const fn capability_class(self) -> RenderCapabilityClass {
+        self.capability.capability_class()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -144,11 +228,58 @@ pub struct RenderCapabilitySummary {
     pub supports_async_compute: bool,
     pub supports_async_copy: bool,
     pub supports_pipeline_cache: bool,
+    pub supports_storage_buffers: bool,
+    pub supports_indirect_draw: bool,
+    pub supports_buffer_readback: bool,
     pub acceleration_structures_supported: bool,
     pub inline_ray_query: bool,
     pub ray_tracing_pipeline: bool,
+    pub supports_buffer_binding_array: bool,
+    pub supports_texture_binding_array: bool,
+    pub supports_non_uniform_resource_indexing: bool,
+    pub supports_partially_bound_binding_array: bool,
+    pub supports_fxaa: bool,
+    pub supports_smaa: bool,
+    pub supports_taa: bool,
+    pub supports_cas: bool,
+    pub supports_dlss: bool,
+    pub max_supported_msaa_samples: u32,
     pub virtual_geometry_supported: bool,
     pub hybrid_global_illumination_supported: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RenderCapabilityClassReport {
+    pub class: RenderCapabilityClass,
+    pub satisfied: Vec<RenderCapabilityKind>,
+    pub missing: Vec<RenderCapabilityMismatchDetail>,
+}
+
+impl RenderCapabilitySummary {
+    pub fn capability_class_report(
+        &self,
+        class: RenderCapabilityClass,
+    ) -> RenderCapabilityClassReport {
+        let mut satisfied = Vec::new();
+        let mut missing = Vec::new();
+
+        for capability in RenderCapabilityKind::ALL {
+            if capability.capability_class() != class {
+                continue;
+            }
+            if capability.is_satisfied_by(self) {
+                satisfied.push(capability);
+            } else {
+                missing.push(RenderCapabilityMismatchDetail::new(capability));
+            }
+        }
+
+        RenderCapabilityClassReport {
+            class,
+            satisfied,
+            missing,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -170,6 +301,21 @@ pub enum RenderCommand {
 pub enum RenderQuery {
     Stats,
     CaptureFrame(RenderViewportHandle),
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderHybridGiPayloadSource {
+    #[default]
+    None,
+    Authored,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
+pub enum RenderVirtualGeometryPayloadSource {
+    #[default]
+    None,
+    Authored,
+    AutomaticFallback,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -196,11 +342,13 @@ pub struct RenderFeatureQualitySettings {
     pub history_resolve: bool,
     pub bloom: bool,
     pub color_grading: bool,
+    pub anti_alias: bool,
     pub reflection_probes: bool,
     pub baked_lighting: bool,
     pub particle_rendering: bool,
     pub virtual_geometry: bool,
     pub hybrid_global_illumination: bool,
+    pub solari: bool,
     pub allow_async_compute: bool,
 }
 
@@ -212,11 +360,13 @@ impl Default for RenderFeatureQualitySettings {
             history_resolve: false,
             bloom: true,
             color_grading: true,
+            anti_alias: true,
             reflection_probes: true,
             baked_lighting: true,
             particle_rendering: true,
             virtual_geometry: false,
             hybrid_global_illumination: false,
+            solari: false,
             allow_async_compute: true,
         }
     }
@@ -227,6 +377,7 @@ pub struct RenderQualityProfile {
     pub name: String,
     pub pipeline_override: Option<RenderPipelineHandle>,
     pub features: RenderFeatureQualitySettings,
+    pub solari: SolariSettings,
 }
 
 impl RenderQualityProfile {
@@ -235,6 +386,7 @@ impl RenderQualityProfile {
             name: name.into(),
             pipeline_override: None,
             features: RenderFeatureQualitySettings::default(),
+            solari: SolariSettings::default(),
         }
     }
 
@@ -268,6 +420,11 @@ impl RenderQualityProfile {
         self
     }
 
+    pub fn with_anti_alias(mut self, enabled: bool) -> Self {
+        self.features.anti_alias = enabled;
+        self
+    }
+
     pub fn with_reflection_probes(mut self, enabled: bool) -> Self {
         self.features.reflection_probes = enabled;
         self
@@ -290,6 +447,25 @@ impl RenderQualityProfile {
 
     pub fn with_hybrid_global_illumination(mut self, enabled: bool) -> Self {
         self.features.hybrid_global_illumination = enabled;
+        self
+    }
+
+    pub fn with_solari(mut self, enabled: bool) -> Self {
+        self.features.solari = enabled;
+        self
+    }
+
+    pub fn with_solari_settings(mut self, settings: SolariSettings) -> Self {
+        self.solari = settings;
+        self
+    }
+
+    pub fn with_solari_experimental_enabled(mut self, enabled: bool) -> Self {
+        self.solari = if enabled {
+            SolariSettings::experimental_enabled()
+        } else {
+            SolariSettings::default()
+        };
         self
     }
 
@@ -326,6 +502,8 @@ pub struct RenderStats {
     pub last_post_process_graph_skipped_node_count: usize,
     pub last_post_process_final_composite_node: Option<String>,
     pub last_post_process_graph_executed_nodes: Vec<String>,
+    pub last_anti_alias_fallback: AntiAliasFallbackReport,
+    pub last_anti_alias_graph_executed_pass_count: usize,
     pub last_virtual_geometry_graph_executed_pass_count: usize,
     pub last_hybrid_gi_graph_executed_pass_count: usize,
     pub last_particle_graph_executed_pass_count: usize,
@@ -363,6 +541,7 @@ pub struct RenderStats {
     pub last_virtual_geometry_visible_cluster_count: usize,
     pub last_virtual_geometry_visible_entity_count: usize,
     pub last_virtual_geometry_instance_count: usize,
+    pub last_virtual_geometry_payload_source: RenderVirtualGeometryPayloadSource,
     pub last_virtual_geometry_requested_page_count: usize,
     pub last_virtual_geometry_dirty_page_count: usize,
     pub last_virtual_geometry_forced_mip: Option<u8>,
@@ -424,7 +603,11 @@ pub struct RenderStats {
     pub last_hybrid_gi_voxel_resident_clipmap_count: usize,
     pub last_hybrid_gi_voxel_dirty_clipmap_count: usize,
     pub last_hybrid_gi_voxel_invalidated_clipmap_count: usize,
+    pub last_hybrid_gi_payload_source: RenderHybridGiPayloadSource,
     pub capabilities: RenderCapabilitySummary,
+    pub advanced_provider_availability: AdvancedProviderAvailability,
+    pub last_advanced_provider_reports: Vec<AdvancedProviderReport>,
+    pub last_solari_runtime_report: SolariRuntimeReport,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -443,5 +626,79 @@ impl CapturedFrame {
             rgba,
             generation,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        RenderCapabilityClass, RenderCapabilityKind, RenderCapabilityMismatchDetail,
+        RenderCapabilitySummary,
+    };
+
+    #[test]
+    fn capability_class_report_splits_default_advanced_and_experimental_requirements() {
+        let capabilities = RenderCapabilitySummary {
+            backend_name: "class-report-test".to_string(),
+            supports_fxaa: true,
+            virtual_geometry_supported: true,
+            supports_storage_buffers: true,
+            supports_indirect_draw: true,
+            supports_buffer_readback: true,
+            acceleration_structures_supported: true,
+            supports_buffer_binding_array: true,
+            supports_texture_binding_array: true,
+            ..RenderCapabilitySummary::default()
+        };
+
+        let default = capabilities.capability_class_report(RenderCapabilityClass::Default);
+        assert_eq!(
+            default.satisfied,
+            vec![RenderCapabilityKind::ScreenSpaceAntiAlias]
+        );
+        assert!(default.missing.is_empty());
+
+        let advanced = capabilities.capability_class_report(RenderCapabilityClass::Advanced);
+        assert_eq!(
+            advanced.satisfied,
+            vec![
+                RenderCapabilityKind::VirtualGeometry,
+                RenderCapabilityKind::StorageBuffers,
+                RenderCapabilityKind::IndirectDraw,
+                RenderCapabilityKind::BufferReadback,
+            ]
+        );
+        assert_eq!(
+            advanced.missing,
+            vec![
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::HybridGlobalIllumination,),
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::AsyncCompute),
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::AsyncCopy),
+            ]
+        );
+
+        let experimental =
+            capabilities.capability_class_report(RenderCapabilityClass::Experimental);
+        assert_eq!(
+            experimental.satisfied,
+            vec![
+                RenderCapabilityKind::AccelerationStructures,
+                RenderCapabilityKind::BufferBindingArray,
+                RenderCapabilityKind::TextureBindingArray,
+            ]
+        );
+        assert_eq!(
+            experimental.missing,
+            vec![
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::InlineRayQuery),
+                RenderCapabilityMismatchDetail::new(RenderCapabilityKind::RayTracingPipeline),
+                RenderCapabilityMismatchDetail::new(
+                    RenderCapabilityKind::NonUniformResourceIndexing,
+                ),
+                RenderCapabilityMismatchDetail::new(
+                    RenderCapabilityKind::PartiallyBoundBindingArray,
+                ),
+            ]
+        );
     }
 }

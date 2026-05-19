@@ -2,6 +2,7 @@ use super::super::{
     BuiltinEngineEntry, EngineEntry, EntryConfig, EntryProfile, EntryRunMode, EntryRunner,
 };
 use crate::plugins::{DefaultPlugins, DevPlugins, HeadlessPlugins, MinimalPlugins, PluginGroup};
+use zircon_runtime::core::framework::window::{WindowDescriptor, WindowResolution};
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::plugin::{
     RuntimeExtensionRegistry, RuntimePlugin, RuntimePluginDescriptor,
@@ -83,6 +84,13 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != zircon_runtime::ui::UI_MODULE_NAME));
+    assert_eq!(
+        entry
+            .module_selection_report()
+            .window_descriptor
+            .primary_window,
+        None
+    );
 }
 
 #[test]
@@ -140,7 +148,13 @@ fn dev_runtime_profile_selects_dev_plugin_group() {
 
 #[test]
 fn module_selection_report_formats_diagnostic_summary() {
-    let entry = BuiltinEngineEntry::for_runtime_profile(RuntimeProfileId::Minimal).unwrap();
+    let config = EntryConfig::for_runtime_profile(RuntimeProfileId::Minimal)
+        .with_window_descriptor(
+            WindowDescriptor::default()
+                .with_title("Diagnostic Window")
+                .with_resolution(WindowResolution::new(1440, 900)),
+        );
+    let entry = BuiltinEngineEntry::for_config(&config).unwrap();
     let report = entry.module_selection_report();
     let diagnostics = report.format_diagnostics();
 
@@ -151,6 +165,8 @@ fn module_selection_report_formats_diagnostic_summary() {
         "entry.target_mode=ClientRuntime",
         "entry.plugin_group=MinimalPlugins",
         "entry.modules=",
+        "window.title=Diagnostic Window",
+        "window.physical_size=1440x900",
         zircon_runtime::foundation::FOUNDATION_MODULE_NAME,
         "drivers=",
         "managers=",

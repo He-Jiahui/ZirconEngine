@@ -42,7 +42,7 @@ fn virtual_geometry_mesh_based_extract_uses_imported_cooked_model_assets() {
             transform: Transform::default(),
             model: ResourceHandle::<ModelMarker>::new(model_id),
             material: ResourceHandle::<MaterialMarker>::new(ResourceId::from_stable_label(
-                "res://materials/imported.material.toml",
+                "res://materials/imported.zmaterial",
             )),
             tint: Default::default(),
             mobility: Mobility::Dynamic,

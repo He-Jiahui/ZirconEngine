@@ -48,7 +48,7 @@ layout = { width = { min = 112, preferred = 112, max = 112, stretch = "Fixed" },
 component = "Label"
 control_id = "toggle_button_MetaVariant"
 classes = ["material-lab-meta-chip", "material-lab-meta-variant"]
-props = { text = "checked / unchecked", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "checked / unchecked", density = "compact", corner_radius = 999.0, border_width = 1.0 }
+props = { text = "exclusive / multiple", text_tone = "primary", font_size = 8.0, surface_variant = "elevated", variant = "exclusive / multiple", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 127, preferred = 127, max = 127, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 
 [nodes.meta_layout]
@@ -58,14 +58,52 @@ classes = ["material-lab-meta-chip", "material-lab-meta-layout"]
 props = { text = "inline controls", text_tone = "warning", font_size = 8.0, surface_variant = "elevated", layout_mode = "inline controls", density = "compact", corner_radius = 999.0, border_width = 1.0 }
 layout = { width = { min = 107, preferred = 107, max = 107, stretch = "Fixed" }, height = { min = 16.0, preferred = 16.0, max = 16.0, stretch = "Fixed" } }
 [nodes.sample]
-component = "ToggleButton"
+component = "HorizontalBox"
 control_id = "toggle-button_Sample"
-classes = ["material-control", "material-lab-sample"]
-props = { text = "Toggle Button", surface_variant = "elevated", button_variant = "contained", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = true, popup_open = true, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
-layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" } }
+classes = ["material-control", "material-lab-sample", "material-toggle-button-row"]
+props = { text = "Toggle Button", surface_variant = "elevated", button_variant = "contained", button_color = "primary", button_size = "medium", icon_placement = "none", text_tone = "primary", validation_level = "normal", selection_state = "exclusive", hovered = true, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 10.0, border_width = 1.0, input_interactive = true, input_clickable = true, input_hoverable = true, input_focusable = true }
+layout = { width = { stretch = "Stretch" }, height = { min = 34.0, preferred = 34.0, max = 34.0, stretch = "Fixed" }, container = { kind = "HorizontalBox", gap = 0.0 } }
+children = [
+  { node = "toggle_exclusive_selected" },
+  { node = "toggle_exclusive_hover" },
+  { node = "toggle_multi_checked" },
+  { node = "toggle_disabled" },
+]
 events = [
   { id = "MaterialLab/ToggleButton/Toggle", event = "Toggle", route = "MaterialLab.ToggleButton.Toggle" },
 ]
+
+[nodes.toggle_exclusive_selected]
+component = "ToggleButton"
+control_id = "toggle-button_ExclusiveSelected"
+classes = ["material-control", "material-toggle-button", "material-toggle-button-selected"]
+props = { text = "Solo", surface_variant = "elevated", button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", selection_state = "exclusive", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = true, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 0.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "focused", background = { color = "material.accent_soft" }, foreground = { color = "material.text" }, border = { color = "material.focus_ring", width = 1.0, radius = 0.0 } } }
+layout = { width = { min = 48.0, preferred = 56.0, max = 72.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.toggle_exclusive_hover]
+component = "ToggleButton"
+control_id = "toggle-button_ExclusiveHover"
+classes = ["material-control", "material-toggle-button", "material-toggle-button-hover"]
+props = { text = "Hover", surface_variant = "elevated", button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", selection_state = "exclusive", text_tone = "primary", validation_level = "normal", hovered = true, pressed = false, focused = false, selected = false, checked = false, disabled = false, open = false, popup_open = false, corner_radius = 0.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "hover", background = { color = "material.surface_hover" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 0.0 } } }
+layout = { width = { min = 54.0, preferred = 62.0, max = 78.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.toggle_multi_checked]
+component = "ToggleButton"
+control_id = "toggle-button_MultiChecked"
+classes = ["material-control", "material-toggle-button", "material-toggle-button-multiple"]
+props = { text = "Multi", surface_variant = "elevated", button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", selection_state = "multiple", text_tone = "primary", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = true, checked = true, disabled = false, open = false, popup_open = false, corner_radius = 0.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", background = { color = "material.surface_selected" }, foreground = { color = "material.text" }, border = { color = "material.accent", width = 1.0, radius = 0.0 } } }
+layout = { width = { min = 52.0, preferred = 60.0, max = 76.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
+
+[nodes.toggle_disabled]
+component = "ToggleButton"
+control_id = "toggle-button_Disabled"
+classes = ["material-control", "material-toggle-button", "material-toggle-button-disabled"]
+props = { text = "Off", surface_variant = "elevated", button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", selection_state = "exclusive", text_tone = "disabled", validation_level = "normal", hovered = false, pressed = false, focused = false, selected = false, checked = false, disabled = true, open = false, popup_open = false, corner_radius = 0.0, border_width = 1.0, input_interactive = false, input_clickable = false, input_hoverable = false, input_focusable = false }
+style = { self = { button_variant = "outlined", button_color = "primary", button_size = "medium", icon_placement = "none", button_interaction_state = "disabled", background = { color = "material.disabled" }, foreground = { color = "material.text_disabled" }, border = { color = "material.outline", width = 1.0, radius = 0.0 }, opacity = 0.38 } }
+layout = { width = { min = 42.0, preferred = 50.0, max = 66.0, stretch = "Fixed" }, height = { min = 32.0, preferred = 32.0, max = 32.0, stretch = "Fixed" } }
 
 [nodes.state_strip]
 component = "HorizontalBox"

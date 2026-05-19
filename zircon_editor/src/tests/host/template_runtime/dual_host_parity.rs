@@ -310,6 +310,7 @@ fn is_showcase_state_overlay_key(entry: &str) -> bool {
             | "collection_items"
             | "value"
             | "checked"
+            | "disabled"
             | "focused"
             | "hovered"
             | "pressed"

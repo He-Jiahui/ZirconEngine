@@ -3,7 +3,7 @@ use std::path::Path;
 use slint::{ModelRc, SharedString, VecModel};
 
 use crate::engines::SourceEngineInstall;
-use crate::projects::{now_unix_ms, RecentProject};
+use crate::projects::now_unix_ms;
 use crate::settings::{HubLanguage, HubSettings};
 use crate::state::{HubPage, HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectViewMode};
 
@@ -11,9 +11,8 @@ use super::localization;
 use super::quick_action::HubQuickAction;
 use super::{
     AssetData, CloudServiceData, CloudSummaryData, HeaderStatusData, LearnData, NavItemData,
-    PluginData, ProjectCardData, QuickActionData, RecentProjectRowData, SettingStatusData,
-    SourceBuildHistoryRowData, SourceEngineData, SourceEngineRowData, TeamData, TeamMemberData,
-    UiTextData,
+    PluginData, QuickActionData, SettingStatusData, SourceBuildHistoryRowData, SourceEngineData,
+    SourceEngineRowData, TeamData, TeamMemberData, UiTextData,
 };
 
 mod assets;
@@ -21,6 +20,7 @@ mod cloud;
 mod learn;
 mod media;
 mod plugins;
+mod projects;
 mod team;
 
 const PROJECT_CARD_LIMIT: usize = 12;
@@ -31,6 +31,13 @@ const MILLIS_PER_MINUTE: u64 = 60_000;
 const MILLIS_PER_HOUR: u64 = 60 * MILLIS_PER_MINUTE;
 const MILLIS_PER_DAY: u64 = 24 * MILLIS_PER_HOUR;
 const MILLIS_PER_WEEK: u64 = 7 * MILLIS_PER_DAY;
+
+pub(super) use projects::{
+    dashboard_project_rows, dashboard_project_title, project_browser_rows, project_cards,
+    project_create_enabled, project_create_engine_label, project_create_template_label,
+    project_detail, project_engine_rows, project_list_rows, project_subpage_id, project_templates,
+    recent_project_rows,
+};
 
 pub(super) fn model_from<T: Clone + 'static>(items: Vec<T>) -> ModelRc<T> {
     ModelRc::new(VecModel::from(items))
@@ -65,36 +72,6 @@ pub(super) fn navigation_items(selected_page: HubPage, language: HubLanguage) ->
         }
     })
     .collect()
-}
-
-pub(super) fn project_cards(snapshot: &HubSnapshot) -> Vec<ProjectCardData> {
-    snapshot
-        .filtered_recent_projects()
-        .into_iter()
-        .take(PROJECT_CARD_LIMIT)
-        .enumerate()
-        .map(|(index, project)| project_card(index, &project, snapshot))
-        .collect()
-}
-
-pub(super) fn recent_project_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData> {
-    snapshot
-        .filtered_recent_projects()
-        .into_iter()
-        .take(RECENT_ROW_LIMIT)
-        .enumerate()
-        .map(|(index, project)| recent_project_row(index, &project, snapshot))
-        .collect()
-}
-
-pub(super) fn project_list_rows(snapshot: &HubSnapshot) -> Vec<RecentProjectRowData> {
-    snapshot
-        .filtered_recent_projects()
-        .into_iter()
-        .take(PROJECT_LIST_ROW_LIMIT)
-        .enumerate()
-        .map(|(index, project)| recent_project_row(index, &project, snapshot))
-        .collect()
 }
 
 pub(super) fn quick_actions(language: HubLanguage) -> Vec<QuickActionData> {
@@ -490,77 +467,6 @@ pub(super) fn project_view_mode_id(mode: ProjectViewMode) -> SharedString {
     shared(mode.id())
 }
 
-fn project_card(index: usize, project: &RecentProject, snapshot: &HubSnapshot) -> ProjectCardData {
-    let language = snapshot.settings.language;
-    let cover_image = media::project_cover(index, project);
-    let has_cover = cover_image.is_some();
-    ProjectCardData {
-        title: shared(display_name(project)),
-        project_path: shared(path_text(&project.path, language)),
-        modified: shared(relative_time(
-            now_unix_ms(),
-            project.last_opened_unix_ms,
-            language,
-        )),
-        version: shared(engine_version_for_index(index)),
-        platform: shared(platform_label()),
-        cover_image: cover_image.unwrap_or_default(),
-        has_cover,
-        selected: project_is_selected(project, snapshot),
-        accent: index as i32,
-    }
-}
-
-fn recent_project_row(
-    index: usize,
-    project: &RecentProject,
-    snapshot: &HubSnapshot,
-) -> RecentProjectRowData {
-    let language = snapshot.settings.language;
-    let cover_image = media::project_cover(index, project);
-    let has_cover = cover_image.is_some();
-    RecentProjectRowData {
-        title: shared(display_name(project)),
-        project_path: shared(path_text(&project.path, language)),
-        modified: shared(relative_time(
-            now_unix_ms(),
-            project.last_opened_unix_ms,
-            language,
-        )),
-        version: shared(engine_version_for_index(index)),
-        cover_image: cover_image.unwrap_or_default(),
-        has_cover,
-        selected: project_is_selected(project, snapshot),
-        accent: index as i32,
-    }
-}
-
-fn project_is_selected(project: &RecentProject, snapshot: &HubSnapshot) -> bool {
-    snapshot
-        .selected_project_path
-        .as_ref()
-        .is_some_and(|selected| selected == &project.path)
-}
-
-fn display_name(project: &RecentProject) -> String {
-    if project.display_name.trim().is_empty() {
-        return project
-            .path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or("Zircon Project")
-            .to_string();
-    }
-    project.display_name.clone()
-}
-
-fn path_text(path: &Path, language: HubLanguage) -> String {
-    if path.as_os_str().is_empty() {
-        return localization::text(language, "Not configured", "未配置").to_string();
-    }
-    path.to_string_lossy().into_owned()
-}
-
 fn relative_time(now_ms: u64, then_ms: u64, language: HubLanguage) -> String {
     let elapsed = now_ms.saturating_sub(then_ms);
     if elapsed < MILLIS_PER_MINUTE {
@@ -594,25 +500,11 @@ fn relative_time(now_ms: u64, then_ms: u64, language: HubLanguage) -> String {
     }
 }
 
-fn engine_version_for_index(index: usize) -> &'static str {
-    match index % 5 {
-        0 | 1 => "1.8.2",
-        2 => "1.8.1",
-        3 => "1.8.0",
-        _ => "1.7.9",
+fn path_text(path: &Path, language: HubLanguage) -> String {
+    if path.as_os_str().is_empty() {
+        return localization::text(language, "Not configured", "未配置").to_string();
     }
-}
-
-fn platform_label() -> &'static str {
-    if cfg!(target_os = "windows") {
-        "Windows"
-    } else if cfg!(target_os = "linux") {
-        "Linux"
-    } else if cfg!(target_os = "macos") {
-        "macOS"
-    } else {
-        "Desktop"
-    }
+    path.to_string_lossy().into_owned()
 }
 
 fn selected_engine<'a>(
@@ -697,8 +589,10 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
 
+    use crate::projects::RecentProject;
     use crate::state::{
-        HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectViewMode, TaskStatus,
+        HubSnapshot, ProjectFilterMode, ProjectSortMode, ProjectSubpage, ProjectViewMode,
+        TaskStatus,
     };
 
     use super::*;
@@ -710,13 +604,18 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: "stellar".to_string(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: vec![
                 RecentProject::new("Elysium", "E:/Projects/Elysium", 10),
                 RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 20),
             ],
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),
@@ -731,7 +630,7 @@ mod tests {
 
         assert_eq!(cards.len(), 1);
         assert_eq!(cards[0].title, SharedString::from("Stellar Outpost"));
-        assert_eq!(cards[0].version, SharedString::from("1.8.2"));
+        assert_eq!(cards[0].version, SharedString::from("Unbound"));
         assert!(cards[0].has_cover);
         assert_eq!(rows.len(), 1);
         assert_eq!(
@@ -749,13 +648,18 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: Some(selected_path),
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: vec![
                 RecentProject::new("Elysium", "E:/Projects/Elysium", 10),
                 RecentProject::new("Stellar Outpost", "E:/Projects/StellarOutpost", 20),
             ],
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),
@@ -790,10 +694,15 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: projects,
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),
@@ -806,6 +715,73 @@ mod tests {
         assert_eq!(project_cards(&snapshot).len(), PROJECT_CARD_LIMIT);
         assert_eq!(project_list_rows(&snapshot).len(), PROJECT_LIST_ROW_LIMIT);
         assert_eq!(recent_project_rows(&snapshot).len(), RECENT_ROW_LIMIT);
+    }
+
+    #[test]
+    fn project_browser_prefers_pinned_projects_and_falls_back_to_recent() {
+        let mut metadata = crate::projects::ProjectMetadataMap::new();
+        metadata.insert(
+            crate::projects::project_metadata_key("E:/Projects/Pinned"),
+            crate::projects::ProjectMetadata {
+                pinned: true,
+                ..crate::projects::ProjectMetadata::default()
+            },
+        );
+        let snapshot = HubSnapshot {
+            selected_page: HubPage::Projects,
+            project_filter: ProjectFilterMode::All,
+            project_sort: ProjectSortMode::LastModified,
+            project_view_mode: ProjectViewMode::List,
+            project_subpage: ProjectSubpage::ProjectBrowser,
+            search_query: String::new(),
+            selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
+            task_status: TaskStatus::idle(),
+            recent_projects: vec![
+                RecentProject::new("Recent", "E:/Projects/Recent", 50),
+                RecentProject::new("Pinned", "E:/Projects/Pinned", 10),
+            ],
+            project_metadata: metadata,
+            assets: Vec::new(),
+            learn_resources: Vec::new(),
+            plugins: Vec::new(),
+            team: crate::team::TeamOverview::empty(),
+            engines: Vec::new(),
+            active_engine_id: None,
+            settings: HubSettings::default(),
+        };
+
+        let pinned_rows = project_browser_rows(&snapshot);
+        let pinned_dashboard_rows = dashboard_project_rows(&snapshot);
+        let mut fallback = snapshot.clone();
+        fallback.project_metadata.clear();
+        let fallback_rows = project_browser_rows(&fallback);
+        let fallback_dashboard_rows = dashboard_project_rows(&fallback);
+
+        assert_eq!(pinned_rows.len(), 1);
+        assert_eq!(pinned_dashboard_rows.len(), 1);
+        assert_eq!(pinned_rows[0].title, SharedString::from("Pinned"));
+        assert_eq!(pinned_dashboard_rows[0].title, SharedString::from("Pinned"));
+        assert_eq!(
+            dashboard_project_title(&snapshot, HubLanguage::English),
+            "Pinned Projects"
+        );
+        assert_eq!(
+            dashboard_project_title(&snapshot, HubLanguage::Chinese),
+            "置顶项目"
+        );
+        assert_eq!(fallback_dashboard_rows.len(), 2);
+        assert_eq!(fallback_rows[0].title, SharedString::from("Recent"));
+        assert_eq!(
+            dashboard_project_title(&fallback, HubLanguage::English),
+            "Recent Projects"
+        );
+        assert_eq!(
+            dashboard_project_title(&fallback, HubLanguage::Chinese),
+            "最近项目"
+        );
     }
 
     #[test]
@@ -872,10 +848,15 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::running("Building", "Running build command"),
             recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),
@@ -903,10 +884,15 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),
@@ -947,10 +933,15 @@ mod tests {
             project_filter: ProjectFilterMode::All,
             project_sort: ProjectSortMode::LastModified,
             project_view_mode: ProjectViewMode::Grid,
+            project_subpage: ProjectSubpage::Dashboard,
             search_query: String::new(),
             selected_project_path: None,
+            selected_template_id: "renderable-empty".to_string(),
+            new_project_engine_id: None,
+            pending_delete_project_path: None,
             task_status: TaskStatus::idle(),
             recent_projects: Vec::new(),
+            project_metadata: crate::projects::ProjectMetadataMap::new(),
             assets: Vec::new(),
             learn_resources: Vec::new(),
             plugins: Vec::new(),

@@ -57,6 +57,10 @@ pub(in crate::graphics::scene::scene_renderer::core::scene_renderer_core_render_
             .final_color
             .create_view(&wgpu::TextureViewDescriptor::default()),
     );
+    resources.import_texture_alias(
+        PostProcessGraphResourceNames::FINAL_COMPOSITED,
+        &target.final_color,
+    );
     resources.import_texture_view(
         PostProcessGraphResourceNames::BLOOM,
         target

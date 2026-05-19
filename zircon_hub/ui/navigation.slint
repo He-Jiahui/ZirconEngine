@@ -1,0 +1,28 @@
+import { NavButton, NavItemData } from "shared.slint";
+import { HubTokens } from "tokens.slint";
+
+export component NavRail inherits Rectangle {
+    in property <[NavItemData]> items;
+    in property <bool> collapsed: false;
+    in property <length> rail-padding: root.collapsed ? HubTokens.space-2 : HubTokens.space-3;
+    in property <length> rail-gap: HubTokens.toolbar-gap;
+    in property <brush> rail-background: HubTokens.surface-page;
+    callback clicked(string);
+
+    background: root.rail-background;
+
+    VerticalLayout {
+        width: parent.width;
+        height: parent.height;
+        padding: root.rail-padding;
+        spacing: root.rail-gap;
+
+        for item in root.items: NavButton {
+            item: item;
+            collapsed: root.collapsed;
+            clicked(id) => {
+                root.clicked(id);
+            }
+        }
+    }
+}

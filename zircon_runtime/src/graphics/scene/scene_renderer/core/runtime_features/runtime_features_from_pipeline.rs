@@ -41,6 +41,7 @@ pub(crate) fn runtime_features_from_pipeline(
         history_resolve_enabled: feature_enabled(BuiltinRenderFeature::HistoryResolve),
         bloom_enabled: feature_enabled(BuiltinRenderFeature::Bloom),
         color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
+        anti_alias_enabled: feature_enabled(BuiltinRenderFeature::AntiAlias),
         reflection_probes_enabled: render_feature_enabled(
             BuiltinRenderFeature::ReflectionProbes,
             "reflection_probes",

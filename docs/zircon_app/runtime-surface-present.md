@@ -4,6 +4,7 @@ related_code:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface.rs
@@ -23,6 +24,7 @@ implementation_files:
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler.rs
   - zircon_app/src/entry/runtime_entry_app/construct.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
   - zircon_app/src/entry/runtime_entry_app/mod.rs
   - zircon_app/src/entry/runtime_entry_app/window_attributes.rs
   - zircon_app/src/entry/runtime_entry_app/window_surface.rs
@@ -35,10 +37,12 @@ plan_sources:
   - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
 tests:
   - zircon_app/src/entry/runtime_entry_app/window_attributes.rs
+  - zircon_app/src/entry/runtime_entry_app/event_loop_policy.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/runtime_library/tests.rs
   - zircon_app/src/entry/tests/mod.rs
   - cargo test -p zircon_app --locked --verbose runtime_entry
+  - cargo test -p zircon_app runtime_entry_maps_platform_event_loop_policy_to_winit_control_flow --lib --no-default-features --features platform-x11,platform-wayland,input-mouse,input-keyboard,input-touch --locked
   - cargo test -p zircon_app --locked --verbose
   - cargo check -p zircon_app --locked
 doc_type: module-detail
@@ -66,7 +70,7 @@ When extraction succeeds, `RuntimeSession::bind_viewport_surface()` sends a `ZrR
 
 If `present_viewport()` returns `Ok(false)` or an error, the app marks `surface_present_failed`, logs `runtime_surface_present_failed`, disables/unbinds the native path, creates the softbuffer presenter on demand, and continues through the existing fallback branch in the same redraw event. The fallback branch calls `RuntimeSession::capture_frame()` and passes the CPU RGBA frame to `SoftbufferRuntimePresenter::present()`.
 
-`about_to_wait()` still calls `request_redraw()` on the window each loop so both native surface present and softbuffer fallback remain frame-driven.
+`about_to_wait()` applies the current platform event-loop policy before runtime ticks and redraw scheduling. The runtime-preview host maps `EventLoopPolicy::Game` and `EventLoopPolicy::Continuous` to winit `ControlFlow::Poll`, and maps `DesktopApp`, `Mobile`, and `Headless` to `ControlFlow::Wait`. The preview app still calls `request_redraw()` on the window each loop after the runtime tick and host-request drain so both native surface present and softbuffer fallback remain frame-driven.
 
 ## Resize And Teardown
 
